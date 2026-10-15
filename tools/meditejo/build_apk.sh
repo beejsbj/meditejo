@@ -1,71 +1,68 @@
 #!/usr/bin/env bash
-# Build remotely, then sign locally. This command never installs an APK.
+# Build a committed ref on GitHub, then sign only on bjslab. Never installs.
 set -euo pipefail
 umask 077
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
-source_dir=$root
+cd "$root"
+ref=HEAD
 flavor=${MEDITEJO_FLAVOR:-dev}
-app_id=${MEDITEJO_APP_ID:-io.github.beejsbj.meditejo}
-mode=debug
-dry_run=false
+mode=${MEDITEJO_BUILD_MODE:-release}
+name=
 while (($#)); do
   case $1 in
     --flavor) flavor=${2:?Missing flavor}; shift 2 ;;
-    --app-id) app_id=${2:?Missing app ID}; shift 2 ;;
-    --source) source_dir=${2:?Missing source checkout}; shift 2 ;;
+    --mode) mode=${2:?Missing mode}; shift 2 ;;
     --release) mode=release; shift ;;
-    --dry-run) dry_run=true; shift ;;
-    -h|--help) echo 'build_apk.sh [--source CHECKOUT] [--flavor dev|prod] [--app-id ID] [--release] [--dry-run]'; exit 0 ;;
-    *) echo "Unknown argument: $1" >&2; exit 2 ;;
+    --name) name=${2:?Missing output name}; shift 2 ;;
+    -h|--help)
+      echo 'build_apk.sh [REF] [--flavor dev|prod] [--mode release|debug] [--name PREFIX]'
+      echo 'REF must contain the APK workflow. Defaults: HEAD, dev, release.'
+      exit 0 ;;
+    -*) echo "Unknown argument: $1" >&2; exit 2 ;;
+    *) ref=$1; shift ;;
   esac
 done
 [[ $flavor == dev || $flavor == prod ]] || { echo 'Flavor must be dev or prod' >&2; exit 2; }
-[[ $app_id =~ ^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$ ]] || { echo 'Invalid application ID' >&2; exit 2; }
-cache=${PUB_CACHE:-$HOME/.pub-cache}
-source_dir=$(cd "$source_dir" && pwd)
-[[ -d $cache/hosted ]] || { echo 'Run flutter pub get on bjslab first' >&2; exit 1; }
+[[ $mode == release || $mode == debug ]] || { echo 'Mode must be release or debug' >&2; exit 2; }
+name=${name:-meditejo-$flavor-$mode}
+[[ $name =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { echo 'Invalid output name' >&2; exit 2; }
+for executable in gh git python3 keytool sha256sum; do command -v "$executable" >/dev/null; done
+signing="$HOME/.config/meditejo/signing"
+[[ -s $signing/meditejo.p12 && -s $signing/password ]] || {
+  echo 'Recover the original Meditejo key/password under ~/.config/meditejo/signing; never generate a replacement.' >&2
+  exit 1
+}
+[[ $(stat -c %a "$signing") == 700 && $(stat -c %a "$signing/meditejo.p12") == 600 && $(stat -c %a "$signing/password") == 600 ]] || {
+  echo 'Signing directory must be 0700 and key/password files 0600.' >&2; exit 1;
+}
+expected=0787ecf850d8df93f902db09a98dc61e9ce40fe139bf5435a535a62e185a5031
+actual=$(keytool -exportcert -keystore "$signing/meditejo.p12" -alias meditejo \
+  -storepass:file "$signing/password" | sha256sum | cut -d ' ' -f 1)
+[[ $actual == "$expected" ]] || { echo "Wrong signing identity: $actual" >&2; exit 1; }
+build_tools=${MEDITEJO_BUILD_TOOLS:-$HOME/.local/share/android-sdk/build-tools/36.0.0}
+[[ -x $build_tools/zipalign && -x $build_tools/apksigner ]] || {
+  echo "Install user build-tools 36.0.0 or set MEDITEJO_BUILD_TOOLS; missing: $build_tools" >&2; exit 1;
+}
 stage=$(mktemp -d /tmp/meditejo-apk.XXXXXXXX)
 trap 'rm -rf "$stage"' EXIT
-echo 'Staging app source and public pub packages (no signing credentials)...'
-python3 "$root/tools/meditejo/stage_build.py" "$source_dir" "$stage" "$cache"
-python3 "$root/tools/meditejo/fetch_portal.py" "$stage/portal-maven"
-cp "$root/tools/meditejo/portal.init.gradle" "$stage/portal.init.gradle"
-job="meditejo-$(date -u +%Y%m%d-%H%M%S)-$RANDOM"
-compute=(cockpit compute run --cwd "$stage" --profile android --disk 10
-  --timeout 3600 --max-input-mb 1024 --max-output-mb 512
-  --collect 'outputs/**' --job "$job")
-if $dry_run; then compute+=(--dry-run); fi
-"${compute[@]}" -- bash daytona_build.sh "$flavor" "$app_id" "$mode"
-if $dry_run; then exit 0; fi
-state=${DAYTONA_RUN_STATE:-$HOME/.local/state/daytona-run}
-apk="$state/$job/artifacts/outputs/daytona.apk"
-[[ -s $apk ]] || { echo "No APK collected for $job" >&2; exit 1; }
-signing="$HOME/.config/meditejo/signing"
-mkdir -p "$signing"
-chmod 700 "$signing"
-# Refuse partial key state: never silently replace an existing signing identity.
-if [[ ! -e $signing/meditejo.p12 && ! -e $signing/password ]]; then
-  python3 - "$signing/password" <<'PY'
-import os, secrets, sys
-fd = os.open(sys.argv[1], os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-with os.fdopen(fd, 'w') as f:
-    f.write(secrets.token_urlsafe(48) + '\n')
-PY
-  keytool -genkeypair -keystore "$signing/meditejo.p12" -storetype PKCS12 \
-    -storepass:file "$signing/password" -keypass:file "$signing/password" \
-    -alias meditejo -keyalg RSA -keysize 4096 -validity 36500 \
-    -dname 'CN=Meditejo, OU=Personal Android signing'
+python3 "$root/tools/meditejo/github_run.py" "$ref" "$flavor" "$mode" "$stage/artifact"
+apk="$stage/artifact/unsigned.apk"
+if "$build_tools/apksigner" verify "$apk" >/dev/null 2>&1; then
+  echo 'Refusing an artifact that already has a valid signature; inspect the workflow.' >&2; exit 1;
 fi
-[[ -s $signing/meditejo.p12 && -s $signing/password ]] || { echo 'Incomplete signing key state; recover the original key/password' >&2; exit 1; }
-chmod 600 "$signing/meditejo.p12" "$signing/password"
-build_tools=${MEDITEJO_BUILD_TOOLS:-$HOME/.local/share/android-sdk/build-tools/36.0.0}
-output_dir=${MEDITEJO_APK_DIR:-$HOME/.local/share/meditejo/apks}
+sha=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha"])' "$stage/artifact/result.json")
+output_dir=${MEDITEJO_APK_DIR:-$HOME/.local/share/meditejo/apk}
 mkdir -p "$output_dir"
-output="$output_dir/$job-$flavor-$mode.apk"
+output="$output_dir/$name-${sha:0:8}.apk"
 "$build_tools/zipalign" -P 16 -f 4 "$apk" "$stage/aligned.apk"
 "$build_tools/apksigner" sign --ks "$signing/meditejo.p12" --ks-key-alias meditejo \
   --ks-pass "file:$signing/password" --key-pass "file:$signing/password" \
-  --out "$output" "$stage/aligned.apk"
-"$build_tools/zipalign" -c -P 16 4 "$output"
-"$build_tools/apksigner" verify --print-certs "$output"
-printf 'APK: %s\nDaytona job: %s\n' "$output" "$job"
+  --out "$stage/signed.apk" "$stage/aligned.apk"
+"$build_tools/zipalign" -c -P 16 4 "$stage/signed.apk"
+"$build_tools/apksigner" verify --print-certs "$stage/signed.apk" | tee "$stage/certificate.txt"
+signed_digest=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$stage/certificate.txt" | tr '[:upper:]' '[:lower:]' | tr -d ':')
+[[ $signed_digest == "$expected" ]] || { echo 'Signed APK certificate mismatch' >&2; exit 1; }
+mv "$stage/signed.apk" "$output"
+cp "$stage/artifact/result.json" "$output.build.json"
+cp "$stage/certificate.txt" "$output.certificate.txt"
+printf 'APK: %s\nSize: %s bytes\nCertificate SHA-256: %s\n' "$output" "$(stat -c %s "$output")" "$signed_digest"

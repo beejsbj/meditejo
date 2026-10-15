@@ -1,151 +1,110 @@
 # Android build route
 
-**Status: blocked by the 10 GiB disk cap on the arm64 de-Medito source too.**
-PR #3 without mock mode passed offline pub, plugin resolution and project
-configuration, then exhausted disk during debug compilation despite pruning.
-No APK exists. APK signing, release/prod builds and phone updates remain
-unverified. Historical attempts and current continuation evidence follow.
-
-Build on Daytona; sign on bjslab. Never run Gradle on bjslab. This baseline is
-still Medito branded and must not be installed on the phone. The orchestrator
-does the first install after the rename is integrated.
+GitHub Actions builds an **unsigned arm64 APK**; bjslab aligns and signs it.
+No phone install is performed by this route. The orchestrator owns installation.
+The Daytona route is retired; its failures and measurements remain below.
 
 ## Prerequisites on bjslab
 
-- Flutter 3.47.2 / Dart 3.13.2 (`~/.local/share/flutter`, already on PATH).
-- `cockpit compute` with its existing BWS authentication. See
-  `cockpit handbook bjslab/capabilities/daytona` and `cockpit compute doctor`.
-- Python 3, Bash, Git, Java/keytool and tar.
-- User Android build-tools 36.0.0, already installed at
-  `~/.local/share/android-sdk/build-tools/36.0.0`. Only `apksigner` and `zipalign`
-  run locally. Override with `MEDITEJO_BUILD_TOOLS` if needed. If absent,
-  install only `build-tools;36.0.0` with a user SDK's `sdkmanager`, never a
-  system package or a full local Gradle build.
-- In the source checkout, resolve and generate locally, one command at a time:
-
-  ```bash
-  nice -n 10 flutter pub get
-  for f in pigeon_conf.dart pigeons/*.dart; do
-    [[ -f $f ]] || continue
-    nice -n 10 dart run pigeon --input "$f" --package_name=medito || break
-  done
-  nice -n 10 dart run build_runner build --delete-conflicting-outputs
-  ```
-
-  `--package_name=medito` is needed when Pigeon cannot deduce the package name
-  from an output directory that has not yet been created. The Dart package
-  name remains `medito` by decision; it is independent of the Android app ID.
-  Do this again when dependencies or generated models change.
+- Git, GitHub CLI (`gh auth status`), Python 3, Bash, Java/keytool.
+- Push/actions access to `beejsbj/meditejo`. No new GitHub secret is needed.
+- The existing durable key and password under `~/.config/meditejo/signing/`.
+- User Android build-tools 36.0.0 at
+  `~/.local/share/android-sdk/build-tools/36.0.0`, already installed. Override
+  with `MEDITEJO_BUILD_TOOLS`. Only zipalign/apksigner run locally; never Gradle.
+- A committed ref containing `.github/workflows/meditejo-apk.yml` and the
+  backend removal/rename stack. Uncommitted source is not uploaded.
 
 ## One command
 
 ```bash
-tools/meditejo/build_apk.sh --source /tmp/meditejo-demeditized-build \
-  --flavor dev --app-id io.github.beejsbj.meditejo
+tools/meditejo/build_apk.sh apk/m1-phone --name meditejo-m1
 ```
 
-The default source is the checkout containing the script. To build a different
-resolved/generated checkout, add `--source /absolute/path/to/checkout`; the build
-tools stay in this branch. No scripts need copying into the source checkout.
-The command above targets PR #3's temporary worktree; its creation is recorded
-in the de-Medito continuation below. After integration, omit `--source` to build
-the integrated checkout containing these scripts.
-The job collects its source HEAD in `outputs/source-revision.txt` and stages
-current working bytes, including generated files. Mock mode is retired.
+Defaults: current committed HEAD, flavor `dev`, mode `release`, arm64 only.
+Options: `--flavor dev|prod`, `--mode release|debug`, `--name OUTPUT_PREFIX`.
+Defaults can be changed through `MEDITEJO_FLAVOR`, `MEDITEJO_BUILD_MODE` and
+`MEDITEJO_APK_DIR`. Application ID comes from the selected checkout's Gradle
+configuration; the script does not override identity.
 
-The command also runs `tools/meditejo/fetch_portal.py` on bjslab, using plain
-HTTPS to stage the coordinates in `tools/meditejo/portal-artifacts.txt` as a
-small Maven repository. It fetches required POMs/JARs and optional module
-metadata, follows module artifact filenames and checks their published SHA-256
-when available. It never invokes Gradle locally. To inspect this step alone:
+The script finds a matching run for the exact commit, flavor and mode. If none
+exists, it pushes that commit to `apk/build/<flavor>/<mode>/<fullsha>` without
+force and waits for the push workflow. Existing `apk/**` push runs default to
+dev/release. This works before PR #1 merges. `workflow_dispatch` is also
+available once the workflow is on the default branch, with flavor and mode
+inputs. See [GitHub's trigger documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
+
+It uses `gh run watch --exit-status` and `gh run download`, verifies artifact
+metadata against the requested commit/configuration and APK SHA-256, aligns
+16 KiB native libraries, signs locally and verifies both alignment and signing
+certificate. Expired artifacts trigger a rerun of the same commit. A failed
+build stops before signing; inspect the printed run URL and use
+`gh run view RUN_ID --repo beejsbj/meditejo --log-failed`.
+
+Outputs go to `~/.local/share/meditejo/apk/<prefix>-<shortsha>.apk`, with
+`.build.json` provenance and `.certificate.txt` verification beside the APK.
+The command prints the path, bytes and certificate digest. Generic default
+prefix: `meditejo-<flavor>-<mode>`.
+
+## GitHub build and signing boundary
+
+`.github/workflows/meditejo-apk.yml` uses ubuntu-latest, Java 17 and
+`subosito/flutter-action@v2.12.0` with Flutter 3.47.2, matching existing CI.
+It fetches pub.dev dependencies, runs the guarded Pigeon loop with
+`--package_name=medito`, then build_runner, and builds with:
 
 ```bash
-python3 tools/meditejo/fetch_portal.py /tmp/meditejo-portal-maven
+flutter build apk --no-pub --flavor dev --release --target-platform android-arm64
 ```
 
-The sandbox installs `portal.init.gradle` under its private
-`GRADLE_USER_HOME/init.d`. Its `beforeSettings` callback adds the staged repo,
-Google Maven and Maven Central before the portal. This also runs for Flutter's
-included Gradle build and plugins resolved during settings evaluation. Tracked
-Gradle files remain unchanged. Add exact missing coordinates to the list when
-a Gradle failure establishes that another portal artifact is needed.
+The guard skips absent `pigeons/*.dart`; PR #3 removed that directory. Normal
+runner SDK/NDK installation remains enabled: `path_provider_android` uses JNI
+and compiles C, so the NDK is required. The JVM is bounded to 4 GiB/two workers.
+Unrelated preinstalled tools are removed to provide disk space.
 
-Debug and `--target-platform android-arm64` are the defaults; this APK targets
-Burooj's arm64 S23+. Add `--release` for release. Choose `--flavor prod` for
-the flavor without the `.dev` application ID suffix. `--app-id` is the base
-ID, before that suffix. Defaults can be changed with `MEDITEJO_FLAVOR` and
-`MEDITEJO_APP_ID`. The build script supplies the ID through sandbox-only
-`keystore.properties`; it does not rename native packages, labels or icons.
+Release is unsigned when `android/keystore.properties` is absent. The tracked
+Gradle change only makes the missing keystore optional and selects release
+signing when a store file is supplied, matching PR #2's existing behavior.
+No throwaway release key, service configuration, private environment file or
+phone signing credential is needed. The artifact preparation step removes any
+Android debug signature as well, so both supported modes upload unsigned APKs.
+Artifact metadata includes the full source SHA, parameters, APK hash and bytes.
+The artifact is `meditejo-<flavor>-<mode>-<shortsha>`, retained for **7 days**.
+No release is published and no signed APK is uploaded.
 
-Use the same command with `--dry-run` to pack inputs and inspect the printed
-Daytona manifest without contacting Daytona or signing anything. The upload
-contains selected source plus `pub-packages.tgz` (only resolved pub.dev package
-sources and hashes from `${PUB_CACHE:-$HOME/.pub-cache}`, selected through
-the app's and Flutter tooling's `.dart_tool/package_config.json`; Git and external path dependencies are
-rejected until explicitly supported). It includes ignored generated
-Dart files, which a normal Git-based runner upload omits. No host signing key,
-password, Firebase configuration or private environment JSON is staged.
+## Durable local identity
 
-The sandbox downloads a checksum-pinned Flutter 3.47.2 archive from Google,
-extracts the supplied pub cache, resolves Flutter tooling first with its Dart
-binary and `pub get --offline`, runs `flutter pub get --offline`, and installs
-API 36 and NDK 28.2.13676358. It precaches Android only, skips doctor, deletes
-archives after extraction and lets AGP install only the build-tools/CMake
-versions it actually requests. API 35 remains necessary for JNI. The current
-`path_provider_android` implementation depends on `jni`, which compiles C with
-CMake, so omitting the NDK would not be valid. Unused target sysroot libraries
-are removed; shared headers and host compiler tools remain. It creates a
-disposable signing key there. Older checkouts that apply Google Services get a
-placeholder JSON; PR #3 does not need or receive one.
+- Directory: `~/.config/meditejo/signing/` (0700).
+- Key: `meditejo.p12` (0600), alias `meditejo`, RSA-4096.
+- Password: `password` (0600), passed by file to keytool/apksigner, never printed.
+- Certificate SHA-256:
+  `07:87:EC:F8:50:D8:DF:93:F9:02:DB:09:A9:8D:C6:1E:9C:E4:0F:E1:39:BF:54:35:A5:35:A6:2E:18:5A:50:31`.
 
-The Android profile requests 4 CPUs, 8 GiB RAM and 10 GiB disk, with a 3,600
-second command limit. Input/output limits
-are 1,024/512 MiB. In the sandbox copy only, Gradle uses a 4 GiB heap, at most
-two workers, and Kotlin compiles in process. The sandbox script changes the
-nested Android Gradle distribution URL to the official GitHub binary release host
-because `services.gradle.org` is blocked. The runner's automatic rewrite only
-handles root-level Gradle projects. The script preserves the Gradle version
-and selects `-bin` instead of `-all` to omit docs/sources. If an all-distribution
-checksum is present it stops rather than reuse that checksum for different bytes.
-Gradle build caching is disabled, and Flutter's `--no-android-gradle-daemon`
-passes `--no-daemon` to Gradle. An init script deletes the distribution ZIP after
-extraction. Transform/dependency caches still exist even with build caching off.
-Stage measurements and 15-second Gradle samples use `du -s -B1` and filesystem
-usage; they are collected in `outputs/footprint.jsonl`, including after a failed
-build when space permits. `android_sdk` includes `ndk`; the report also provides
-`android_sdk_without_ndk` so these are not double counted. Peak means the largest
-observed sample, not a continuous measurement.
+The key must **never leave bjslab or change**: Android requires the same key to
+update the installed app; replacing it would require an uninstall and lose
+local practice data. The script pins this digest before signing and checks it
+again on the signed APK. It refuses missing/partial keys or loose permissions
+and never generates a replacement. Backup policy remains Burooj's decision.
 
-## Signing and outputs
+## GitHub verification record (2026-10-15)
 
-The durable identity is stored only on bjslab:
+Pending the first integration build from PR #2 head
+`b7c3f8ec2c3f52676fc7da4c0b59cb3df7984e30`, which includes PR #3, merged with
+this route on throwaway branch `apk/m1-phone`. No PR is opened for that branch.
+Actual run timings, artifact size and certificate verification will be recorded
+here after the run. No Gradle, phone operation or key upload occurs on bjslab.
 
-- `~/.config/meditejo/signing/` — mode 0700.
-- `meditejo.p12` — RSA 4096, alias `meditejo`, mode 0600.
-- `password` — shared store/key password, mode 0600; never print it.
+## Routes tried
 
-Every phone install must use this key. Changing it requires uninstalling the
-app and losing its local data. Never copy it into the worktree, staging
-directory or Daytona. Backing it up to BWS remains Burooj's decision.
-The script creates an identity only when both files are absent and refuses
-partial state; recover the original key/password instead of replacing either.
+### Daytona (retired)
 
-Public certificate SHA-256 (verified with `keytool -list -v`; no APK exists
-yet for `apksigner verify --print-certs`):
+Historical commands below describe the attempts, not the current rebuild route.
+The Daytona-only staging/build/portal scripts have been removed; their source
+remains in Git history (last Daytona-route commit `e866fe89`). The account's
+10 GiB per-sandbox cap prevented even the lean de-Medito debug build from
+finishing. No Daytona APK was produced.
 
-```text
-07:87:EC:F8:50:D8:DF:93:F9:02:DB:09:A9:8D:C6:1E:9C:E4:0F:E1:39:BF:54:35:A5:35:A6:2E:18:5A:50:31
-```
-
-Collected cloud artifacts and logs stay in
-`~/.local/state/daytona-run/<job>/`. The script aligns the APK for 16 KiB pages,
-re-signs locally, verifies alignment and certificate, and prints the final path
-under `~/.local/share/meditejo/apks/` (override `MEDITEJO_APK_DIR`). It never
-installs an APK. Daytona removes each completed sandbox. Use
-`cockpit compute status <job>` after interruption, and `collect`/`cancel` as
-appropriate before its expiry.
-
-## Verification record (2026-10-15)
+### Verification record (2026-10-15)
 
 Starting commit: `8d527429`. Results and cloud evidence from the build attempts:
 
@@ -186,7 +145,7 @@ Starting commit: `8d527429`. Results and cloud evidence from the build attempts:
   and is ignored. It also warns that SDK language 3.13 exceeds the pinned
   analyzer's 3.11 support; dependency upgrades are outside this build slice.
 
-### Daytona preparation and resource limit
+#### Daytona preparation and resource limit
 
 - Dry-run `meditejo-20261015-110659-5959`: exit 0, 632 files,
   391,004,151 input bytes, 377,359,896 compressed bytes. This preliminary
@@ -246,7 +205,7 @@ Starting commit: `8d527429`. Results and cloud evidence from the build attempts:
   Flutter tooling offline before invoking Flutter. This corrects the cache
   selection without allowing unrelated hosted packages or Git dependencies.
 
-### Initial stopping point: Gradle plugin resolution
+#### Initial stopping point: Gradle plugin resolution
 
 Job `meditejo-20261015-112548-15828` ran with 4 CPUs, 8 GiB RAM and 10 GiB
 disk. It uploaded 712 files, including 263 resolved pub.dev package versions:
@@ -306,7 +265,7 @@ wrapper routing, heap/worker limits and placeholders affect sandbox copies only.
 | `meditejo-20261015-111652-7667` | 339.9 s | exit 69, SDK tooling cache omitted | none |
 | `meditejo-20261015-112548-15828` | 159.5 s | exit 1, Gradle Kotlin DSL plugin unresolved | none |
 
-## Plugin portal continuation (2026-10-15)
+### Plugin portal continuation (2026-10-15)
 
 The cheap probe confirmed host-specific access:
 
@@ -375,7 +334,7 @@ analysis/DevTools tooling, and SDK 35. It kept all Android ABIs, the selected
 debug/release mode and the host compiler tools. Gradle used the same version's
 binary distribution. All pruning affected only the disposable sandbox.
 
-### Final retry: disk exhausted after pruning
+#### Final retry: disk exhausted after pruning
 
 Job `meditejo-20261015-115252-22616` uploaded 720 files: 204,736,780 input
 bytes / 190,596,061 compressed bytes. The sandbox command and build wrapper
@@ -427,7 +386,7 @@ independent review with no material issues. The original Flutter analysis
 and 38-test results above remain the local toolchain evidence; they were not
 rerun for script/documentation changes.
 
-## De-Medito arm64 continuation (2026-10-15)
+### De-Medito arm64 continuation (2026-10-15)
 
 The target changed to `origin/fork/remove-medito-backend` (PR #3), commit
 `37548a2543d875e27b8db7364b8ba3d78019999e`, in a detached temporary worktree:
@@ -476,7 +435,7 @@ The first launch, `meditejo-20261015-121516-21207`, was canceled before Gradle;
 its lifecycle was 33.0 seconds and deletion was verified. Its controlling runner exited 2 with HTTP 502 during
 upload concurrent with cancellation. It provides no compilation evidence.
 
-### Arm64 attempt: capacity held through Java compilation; blocked metadata
+#### Arm64 attempt: capacity held through Java compilation; blocked metadata
 
 Job `meditejo-20261015-121643-21037` used the corrected ABI filter and the
 source above. Input: 581 files, 194,022,165 bytes / 181,462,820 compressed.
@@ -516,7 +475,7 @@ project configuration. Google Maven/Maven Central remain; no version is
 pinned or changed, and tracked Gradle files remain unchanged. Artifact handoff
 uses `mv` to avoid another APK copy in the constrained sandbox.
 
-### Final arm64 retry: disk exhausted
+#### Final arm64 retry: disk exhausted
 
 Job `meditejo-20261015-123057-23399` used the same PR #3 source without mock
 mode. Input: 581 files, 194,022,810 bytes / 181,463,232 compressed bytes.

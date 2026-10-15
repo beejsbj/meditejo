@@ -34,8 +34,6 @@ def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-} else {
-    throw new FileNotFoundException("keystore.properties file not found. Please create it from keystore.properties.example")
 }
 
 def facebookAppId = System.getenv('FACEBOOK_APP_ID') ?: ''
@@ -93,7 +91,7 @@ android {
 
     project.ext {
         APP_ID = keystoreProperties['appId']
-        KEYSTORE_STORE_FILE = rootProject.file(keystoreProperties['storeFile'])
+        KEYSTORE_STORE_FILE = keystoreProperties['storeFile'] ? rootProject.file(keystoreProperties['storeFile']) : null
         KEYSTORE_STORE_PASSWORD = keystoreProperties['storePassword']
         KEYSTORE_KEY_ALIAS = keystoreProperties['keyAlias']
         KEYSTORE_KEY_PASSWORD = keystoreProperties['keyPassword']
@@ -159,7 +157,7 @@ android {
             debuggable true
         }
         release {
-            signingConfig signingConfigs.release
+            signingConfig project.KEYSTORE_STORE_FILE ? signingConfigs.release : null
             debuggable false
             minifyEnabled true
             shrinkResources false
