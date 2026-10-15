@@ -14,8 +14,10 @@ class _Bells extends Mock implements IosSessionBells {}
 class _Handler extends IosAudioHandler {
   _Handler(AudioPlayer player) : super(player: player);
 
+  final IosSessionBells _bells = _Bells();
+
   @override
-  final IosSessionBells sessionBells = _Bells();
+  IosSessionBells get sessionBells => _bells;
 
   @override
   Future<void> ensureInitialized() async {}

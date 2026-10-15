@@ -27,7 +27,7 @@ Future<T> serializeStatsPreferences<T>(
       rethrow;
     }
   });
-  queue.tail = result.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+  queue.tail = result.then<void>((_) {}, onError: (Object _, StackTrace _) {});
   return result;
 }
 

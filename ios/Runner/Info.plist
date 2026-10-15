@@ -6,8 +6,6 @@
 	<string>LaunchScreen</string>
 	<key>FLTEnableImpeller</key>
 	<true/>
-	<key>NSCameraUsageDescription</key>
-	<string>Scan your card to add it automatically</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>

@@ -1,231 +1,43 @@
 appId: ${APP_ID}
-name: Smoke Test – Onboarding, Navigate, Verify Content
+name: Smoke Test – Local Navigation, Stats, Timer
 ---
-
-# ── Launch app ──
-# clearState wipes SharedPreferences so the app always starts fresh (no stale
-# anonymous-auth state from a previous CI run that would skip the auth screen).
+# Fresh local state; the app opens Home directly.
 - launchApp:
     clearState: true
 
-# ── Android only: dismiss "Pixel Launcher isn't responding" ANR dialog on CI ──
-# Wrapped in platform:Android so iOS doesn't spend ~50 s on an irrelevant check.
+# CI emulator cold boots can briefly put a launcher ANR above the app.
 - runFlow:
     when:
       platform: Android
     commands:
       - runFlow:
           when:
-            # Maestro regexes must match the WHOLE text ("System UI isn't
-            # responding", "Pixel Launcher isn't responding"), so the pattern
-            # needs the wildcards; without them this handler never fired.
             visible: "(?i).*isn't responding.*"
           commands:
             - tapOn:
                 text: "Wait"
                 optional: true
 
-# ── iOS only: dismiss OS-level "Sign in with Apple ID" dialog if present ──
-- runFlow:
-    when:
-      platform: iOS
-    commands:
-      - runFlow:
-          when:
-            visible: "Cancel"
-          commands:
-            - tapOn: "Cancel"
-
-# ── Splash screen ──
-# The splash primary CTA was renamed "Continue" → "Get started" (16be42f4);
-# it still starts the app as a guest and advances to the experience question.
 - extendedWaitUntil:
-    visible: "Get started"
-    timeout: 180000
-
-# ── Onboarding: Experience question ──
-# First onboarding screen. Anonymous sign-in can take a while on first
-# launch (clearState wipes the account), so the timeout is generous.
-# If sign-in fails the splash comes back with "Get started" (the button shows
-# a spinner, not its label, while signing in), so tap it again like a user
-# would (run 36313758914 sat on the splash after one attempt).
-- retry:
-    maxRetries: 2
-    commands:
-      - runFlow:
-          when:
-            visible: "Get started"
-          commands:
-            - tapOn: "Get started"
-      - extendedWaitUntil:
-          visible: "Never tried it"
-          timeout: 45000
-- tapOn: "Never tried it"
-
-# The timing test shows either the early ask (A) or reminders (B).
-- extendedWaitUntil:
-    visible: "See how to help|.*Donate.*|Stay on Track with Meditation Reminders"
+    visible: "Home"
     timeout: 30000
-- runFlow:
-    when:
-      notVisible: "Stay on Track with Meditation Reminders"
-    file: dismiss_onboarding_donation.yaml
-
-# ── Onboarding: Notifications / daily reminders (re-added 26.6, sits
-# between the donation primer and battery/tracking). Skip it for the
-# smoke run — the system permission dialog is OS-driven and would
-# otherwise stall the flow. Since the time-chips A/B concluded (2026-08-25)
-# every user sees the "When will you meditate?" chips instead of a single
-# CTA button (CI grants POST_NOTIFICATIONS up front via adb).
-# The scrolling hero image (2607.10) pushes the CTA/chips below the fold on
-# small simulators, so wait on the always-visible title and scroll the skip
-# link into view before asserting/tapping it.
+- tapOn: "Explore"
 - extendedWaitUntil:
-    visible: "Stay on Track with Meditation Reminders"
-    timeout: 20000
-- scrollUntilVisible:
-    element:
-      text: "Skip for Now"
-    direction: DOWN
-- tapOn: "Skip for Now"
-
-# ── Onboarding: Battery optimization (Android only, conditional) + ──
-# ── Tracking permission (iOS only).                                 ──
-# Wait for the next screen to render before checking the conditionals.
-# Without this wait, `when: visible` races against the page transition
-# and falsely skips the block, then the later "Get started" assertion
-# times out on the still-visible previous screen.
-- extendedWaitUntil:
-    visible: "Update Setting|Help Us Improve Medito|Get started|Maybe later"
-    timeout: 30000
-- runFlow:
-    when:
-      visible: "Update Setting"
-    commands:
-      - tapOn:
-          text: "Skip for Now"
-          optional: true
-- runFlow:
-    when:
-      visible: "Help Us Improve Medito"
-    commands:
-      - tapOn: "Continue"
-      - runFlow:
-          when:
-            visible: "Allow"
-          commands:
-            - tapOn: "Allow"
-
-# ── Onboarding: Result screen — advance to Home. ──
-# Control arm shows a prominent "Get started". The first-meditation
-# experiment arm (beginners, 50/50) instead shows an inline meditation with a
-# quiet "Maybe later" skip — "Get started" there only appears AFTER the
-# session completes — so for the smoke run we skip the session via
-# "Maybe later". Tap whichever is present.
-# The scrolling hero image can leave the CTA below the fold on small
-# simulators — scroll it into view first.
-- scrollUntilVisible:
-    element:
-      text: "Get started|Maybe later"
-    direction: DOWN
-    timeout: 30000
-- tapOn:
-    text: "Get started|Maybe later"
-
-# B ends with the donation ask; A proceeds directly to Home.
-- extendedWaitUntil:
-    visible: "See how to help|.*Donate.*|(?s).*(Start here|Continue): .*|Dismiss"
-    timeout: 60000
-- runFlow:
-    when:
-      visible: "See how to help|.*Donate.*"
-      notVisible: "(?s).*(Start here|Continue): .*"
-    file: dismiss_onboarding_donation.yaml
-
-# A donation prompt dialog ("Medito is a registered nonprofit") sometimes
-# appears on Home post-onboarding — dismiss if present.
-- runFlow:
-    when:
-      visible: "Dismiss"
-    commands:
-      - tapOn:
-          text: "Dismiss"
-          optional: true
-
-# ── Play a session from the Home hero ──
-# Onboarding pins new users onto a pack, and Home leads with it as a hero
-# card. Its accessibility label is "<progress>, Start here: <pack> —
-# <session>\n..." (or "Continue: ..." once something in the pack has been
-# played; the leading progress value is merged in), so match the
-# eyebrow rather than a pack title, which depends on who the account is.
-# "Your Path" copy was removed from the app in e246b118.
-# On a fresh install, anonymous auth + home API can take up to 60s.
-- extendedWaitUntil:
-    visible: "(?s).*(Start here|Continue): .*"
-    timeout: 60000
-- tapOn:
-    text: "(?s).*(Start here|Continue): .*"
-
-# The hero starts a session via startSession(): a fresh install has no saved
-# guide/duration yet, so it opens the track view to pick them.
-# Track view loads with a play button. Wait for the bottom bar first so the
-# "Play" we tap is the track view's, never a card left behind on Home.
-- extendedWaitUntil:
-    visible: "Share Track"
+    visible: "No packs available"
     timeout: 15000
+- takeScreenshot: local-catalogue
+- tapOn: "Settings"
 - extendedWaitUntil:
-    visible: "Play"
+    visible: "Organize Home Layout"
     timeout: 15000
-- tapOn: "Play"
+- tapOn: "Home"
 
-# Player screen: verify playback started. The elapsed/total labels are hidden
-# from accessibility (2ce300a6); the seek bar's value reads "00:12 of 00:48",
-# with the "Playback position" label in front on some platforms.
-# Very short intro tracks can complete
-# before Maestro observes the elapsed timer on iOS CI, so accept the end screen
-# as proof that tapping Play advanced the session.
-- extendedWaitUntil:
-    visible: "(?s).*00:[0-5][1-9] of .*|.*day streak.*"
-    timeout: 20000
-- takeScreenshot: player-playing
-
-# ── End screen after session ──
-# Let the session play for a few seconds first, then skip to the end so the
-# track completes and the end screen must appear. (00:0X-00:5X only
-# — a minutes pattern would instantly match the always-visible total-duration
-# label instead of the elapsed timer.) Skip this wait if a very short session
-# has already completed.
+# Stats remain available without a network connection.
 - runFlow:
-    when:
-      notVisible: ".*day streak.*"
-    commands:
-      - extendedWaitUntil:
-          visible: "(?s).*(00:0[5-9]|00:[1-5][0-9]) of .*"
-          timeout: 30000
+    file: read_total_tracks.yaml
+    env:
+      STATS_KEY: local
 
-# Tap the skip-forward button (labelled "Skip forward 10 seconds", though it
-# skips 15s) until the track completes: the native seek clamps at the track
-# duration, which triggers completion and the end screen ("day streak" is
-# always shown on it). times caps the loop for safety (60 × 15s ≈ a 15-min
-# track); the tap is optional because the button disappears mid-loop once the
-# end screen starts animating in.
-- repeat:
-    times: 60
-    while:
-      notVisible: ".*day streak.*"
-    commands:
-      - tapOn:
-          text: "Skip forward 10 seconds"
-          optional: true
-      # A final skip tap can land on the end-screen reminder CTA after
-      # playback completes. Dismiss either reminder UI before checking streak.
-      - runFlow: dismiss_end_screen_reminder.yaml
-
-# Also cover a sheet that finishes opening after the final loop iteration.
-- runFlow: dismiss_end_screen_reminder.yaml
-
-# The end screen must now be visible — this is the actual assertion.
-- extendedWaitUntil:
-    visible: ".*day streak.*"
-    timeout: 30000
-- takeScreenshot: end-screen
+# The timer uses generated local silence, so no catalogue audio is required.
+- runFlow: local_timer.yaml
+- takeScreenshot: local-home
