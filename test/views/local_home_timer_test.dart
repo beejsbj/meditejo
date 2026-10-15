@@ -12,6 +12,7 @@ import 'package:medito/providers/home/home_provider.dart';
 import 'package:medito/providers/player/ios_audio_handler.dart';
 import 'package:medito/providers/player/player_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
+import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/providers/timer/timer_settings_provider.dart';
 import 'package:medito/utils/stats_manager.dart';
 import 'package:medito/views/home/home_view.dart';
@@ -172,13 +173,22 @@ Future<ProviderContainer> _home(
       ),
     ),
   );
+  final container = ProviderScope.containerOf(
+    tester.element(find.byType(HomeView)),
+  );
+  // The singleton's serialized preferences queue can finish outside FakeAsync.
+  // Give it real event-loop turns before settling loading animations.
+  await _pumpUntil(
+    tester,
+    () =>
+        container.read(statsProvider).hasValue &&
+        container.read(fetchHomeProvider).hasValue,
+    reason: 'Local history and the empty catalogue must finish loading',
+  );
   await tester.pumpAndSettle(
     const Duration(milliseconds: 100),
     EnginePhase.sendSemanticsUpdate,
     _settleTimeout,
-  );
-  final container = ProviderScope.containerOf(
-    tester.element(find.byType(HomeView)),
   );
   final catalogue = await container.read(fetchHomeProvider.future);
   expect(catalogue.shortcuts, isEmpty);
