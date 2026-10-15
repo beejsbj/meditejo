@@ -78,7 +78,6 @@ dependencies:
   webview_flutter: ^4.10.0
   xml: ^6.6.1
   home_widget: ^0.9.1
-  dynamic_app_icon_flutter_plus: ^0.0.8
   flutter_slidable: ^4.0.3
 
 dev_dependencies:
@@ -104,8 +103,7 @@ flutter:
     - assets/audio/
     - assets/
     - assets/images/
-    - assets/images/app_icons/ios/
-    - assets/images/app_icons/android/
+    - assets/images/app_icons/
     - assets/fonts/google-sans/OFL.txt
   fonts:
     - family: Google Sans

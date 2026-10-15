@@ -187,11 +187,11 @@ jobs:
           script: |
             curl -Ls "https://get.maestro.mobile.dev" | bash
             adb install build/app/outputs/apk/prod/release/app-prod-release.apk
-            adb shell pm grant meditofoundation.medito android.permission.POST_NOTIFICATIONS || true
+            adb shell pm grant io.github.beejsbj.meditejo android.permission.POST_NOTIFICATIONS || true
             # Kill Pixel Launcher before the test so it can't ANR and block the app
             adb shell am force-stop com.google.android.apps.nexuslauncher || true
             mkdir -p /tmp/maestro-debug
-            .maestro/run_flow.sh /tmp/maestro-debug -e APP_ID=meditofoundation.medito .maestro/smoke.yaml
+            .maestro/run_flow.sh /tmp/maestro-debug -e APP_ID=io.github.beejsbj.meditejo .maestro/smoke.yaml
 
       - name: Signed-in stats test on emulator
         # Its own emulator boot: the emulator has crashed outright (adb
@@ -225,7 +225,7 @@ jobs:
             adb shell am force-stop com.google.android.apps.nexuslauncher || true
             mkdir -p /tmp/maestro-debug
             sh -c 'nohup adb logcat -b all -v threadtime > /tmp/maestro-debug/signed-in-logcat.txt 2>&1 &'
-            .maestro/run_flow.sh /tmp/maestro-debug/signed-in -e APP_ID=meditofoundation.medito -e TEST_ACCOUNT_EMAIL="$TEST_ACCOUNT_EMAIL" -e TEST_ACCOUNT_OTP="$TEST_ACCOUNT_OTP" .maestro/signed_in_stats.yaml
+            .maestro/run_flow.sh /tmp/maestro-debug/signed-in -e APP_ID=io.github.beejsbj.meditejo -e TEST_ACCOUNT_EMAIL="$TEST_ACCOUNT_EMAIL" -e TEST_ACCOUNT_OTP="$TEST_ACCOUNT_OTP" .maestro/signed_in_stats.yaml
 
       - name: Signed-in stats test on emulator (retry on a fresh boot)
         if: steps.signed_in.outcome == 'failure'
@@ -254,7 +254,7 @@ jobs:
             adb shell am force-stop com.google.android.apps.nexuslauncher || true
             mkdir -p /tmp/maestro-debug
             sh -c 'nohup adb logcat -b all -v threadtime > /tmp/maestro-debug/signed-in-retry-logcat.txt 2>&1 &'
-            .maestro/run_flow.sh /tmp/maestro-debug/signed-in -e APP_ID=meditofoundation.medito -e TEST_ACCOUNT_EMAIL="$TEST_ACCOUNT_EMAIL" -e TEST_ACCOUNT_OTP="$TEST_ACCOUNT_OTP" .maestro/signed_in_stats.yaml
+            .maestro/run_flow.sh /tmp/maestro-debug/signed-in -e APP_ID=io.github.beejsbj.meditejo -e TEST_ACCOUNT_EMAIL="$TEST_ACCOUNT_EMAIL" -e TEST_ACCOUNT_OTP="$TEST_ACCOUNT_OTP" .maestro/signed_in_stats.yaml
 
       - name: Host diagnostics (emulator crash)
         # The emulator has vanished mid-flow with no output of its own (adb
@@ -345,7 +345,7 @@ jobs:
         id: cache-ios-app
         uses: actions/cache@v4
         with:
-          path: build/ios/iphonesimulator/Medito Dev.app
+          path: build/ios/iphonesimulator/Meditejo.app
           key: ${{ runner.os }}-ios-app-${{ hashFiles('lib/**/*.dart', 'pubspec.lock', 'ios/Podfile.lock', 'ios/Runner.xcodeproj/project.pbxproj', 'ios/Runner/**', 'ios/MeditoWidget/**', 'ios/*.entitlements', 'ios/*.plist') }}
 
       - name: Flutter pub get
@@ -473,12 +473,12 @@ jobs:
         # ~6 min per attempt; run_flow.sh may retry once.
         timeout-minutes: 20
         run: |
-          xcrun simctl install booted "build/ios/iphonesimulator/Medito Dev.app"
+          xcrun simctl install booted "build/ios/iphonesimulator/Meditejo.app"
           # Give SpringBoard a few extra seconds to settle before Maestro connects
           sleep 5
           mkdir -p /tmp/maestro-debug
           .maestro/run_flow.sh /tmp/maestro-debug \
-            -e APP_ID=org.meditofoundation \
+            -e APP_ID=io.github.beejsbj.meditejo \
             .maestro/smoke.yaml
 
       - name: Signed-in stats test on simulator
@@ -491,7 +491,7 @@ jobs:
           TEST_ACCOUNT_OTP: ${{ secrets.TEST_ACCOUNT_OTP }}
         run: |
           .maestro/run_flow.sh /tmp/maestro-debug/signed-in \
-            -e APP_ID=org.meditofoundation \
+            -e APP_ID=io.github.beejsbj.meditejo \
             -e TEST_ACCOUNT_EMAIL="$TEST_ACCOUNT_EMAIL" \
             -e TEST_ACCOUNT_OTP="$TEST_ACCOUNT_OTP" \
             .maestro/signed_in_stats.yaml
@@ -500,9 +500,9 @@ jobs:
         if: failure()
         run: |
           mkdir -p /tmp/maestro-debug
-          # The smoke build's executable is "Medito Dev" (dev flavor), not Runner.
+          # The smoke build's executable is "Meditejo" (dev flavor), not Runner.
           xcrun simctl spawn booted log show --last 30m --style compact --info --debug \
-            --predicate 'process BEGINSWITH "Medito"' > /tmp/maestro-debug/ios-app.log 2>&1 || true
+            --predicate 'process BEGINSWITH "Meditejo"' > /tmp/maestro-debug/ios-app.log 2>&1 || true
 
       - name: Scrub test account credentials from debug output
         if: failure()

@@ -114,16 +114,14 @@ class DeepLinkService {
 
       var pathSegments = <String>[];
 
-      if (uri.scheme == 'org.meditofoundation') {
-        // For custom scheme, if host is "medito", use pathSegments directly
-        // Otherwise, treat host as first path segment (e.g., org.meditofoundation://tracks/123)
-        if (uri.host == 'medito') {
+      if (uri.scheme == 'meditejo') {
+        // For custom scheme, if host is "meditejo", use pathSegments directly
+        // Otherwise, treat host as first path segment (e.g., meditejo://tracks/123)
+        if (uri.host == 'meditejo') {
           pathSegments = uri.pathSegments;
         } else {
           pathSegments = [uri.host, ...uri.pathSegments];
         }
-      } else if (uri.scheme == 'https' && uri.host == 'medito.app') {
-        pathSegments = uri.pathSegments;
       } else {
         if (context.mounted) {
           final localizations = AppLocalizations.of(context);
@@ -185,9 +183,9 @@ class DeepLinkService {
       // Include the track id when present so we can correlate widget taps
       // with content (Up Next widget only). Normalise across the two URI
       // forms used by the widgets:
-      //   Android: org.meditofoundation://medito/tracks/{id}?…
-      //   iOS:     org.meditofoundation://tracks/{id}?…
-      final normalised = uri.host == 'medito'
+      //   Android: meditejo://meditejo/tracks/{id}?…
+      //   iOS:     meditejo://tracks/{id}?…
+      final normalised = uri.host == 'meditejo'
           ? uri.pathSegments
           : <String>[uri.host, ...uri.pathSegments];
       final tracksIdx = normalised.indexOf('tracks');

@@ -145,7 +145,7 @@ class AppDelegate: FlutterAppDelegate {
     }
 
     private func presentAddVoiceShortcutUI(title: String, id: String, url: String) {
-        let activity = NSUserActivity(activityType: "org.meditofoundation")
+        let activity = NSUserActivity(activityType: "io.github.beejsbj.meditejo")
         activity.title = title
         activity.userInfo = ["url": url]
         activity.isEligibleForSearch = true

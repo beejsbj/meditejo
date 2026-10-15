@@ -14,7 +14,7 @@ flutter build apk --flavor prod --release --dart-define-from-file=../.prod.json
 
 # Define source and destination paths
 SOURCE_APK="build/app/outputs/apk/prod/release/app-prod-release.apk"
-DEST_APK="build/app/outputs/apk/prod/release/medito-${VERSION}.apk"
+DEST_APK="build/app/outputs/apk/prod/release/meditejo-${VERSION}.apk"
 
 # Check if the APK was built successfully
 if [ -f "$SOURCE_APK" ]; then
@@ -26,7 +26,7 @@ if [ -f "$SOURCE_APK" ]; then
   # Get full path
   FULL_PATH="$(pwd)/$DEST_APK"
 
-  echo "🏷️ APK renamed to medito-${VERSION}.apk"
+  echo "🏷️ APK renamed to meditejo-${VERSION}.apk"
   echo "📂 APK location: $DEST_APK"
   echo "📂 Full path: $FULL_PATH"
 else

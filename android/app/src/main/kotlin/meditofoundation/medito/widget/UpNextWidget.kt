@@ -90,9 +90,9 @@ class UpNextWidget : GlanceAppWidget() {
         // a deep link (no path) instead of launching MainActivity directly so
         // that the empty-state tap is also attributable.
         val tapUri = if (trackId.isNotEmpty()) {
-            "org.meditofoundation://medito/tracks/$trackId?source=home_widget&widget=up_next"
+            "meditejo://meditejo/tracks/$trackId?source=home_widget&widget=up_next"
         } else {
-            "org.meditofoundation://medito/?source=home_widget&widget=up_next"
+            "meditejo://meditejo/?source=home_widget&widget=up_next"
         }
         val tapAction = actionStartActivity(
             Intent(Intent.ACTION_VIEW, Uri.parse(tapUri))
@@ -129,7 +129,7 @@ class UpNextWidget : GlanceAppWidget() {
             PlayButton(size = 40.dp, palette = palette)
             Spacer(modifier = GlanceModifier.height(6.dp))
             WidgetText(
-                text = title.ifEmpty { "Medito" },
+                text = title.ifEmpty { "Meditejo" },
                 fontSize = 12f,
                 weight = WidgetWeight.SemiBold,
                 color = palette.foreground,

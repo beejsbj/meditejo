@@ -11,7 +11,7 @@ const kNoneBackgroundSoundId = '0';
 
 // A local playback mode, never a downloadable/looping ambient sound.
 const kSessionBellsId = 'medito-session-bells';
-const kSessionBellsUri = 'medito://session-bells';
+const kSessionBellsUri = 'meditejo://session-bells';
 const kSessionBellAsset = 'assets/audio/session_bell_v2.wav';
 const kSessionBellsSound = BackgroundSoundsModel(
   id: kSessionBellsId,

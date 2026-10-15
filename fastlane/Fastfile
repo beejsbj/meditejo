@@ -32,7 +32,7 @@ platform :ios do
       skip_metadata: true,
       skip_screenshots: true,
       team_id: ENV["APP_STORE_CONNECT_TEAM_ID"],
-      ipa: "./build/ios/ipa/Medito.ipa"
+      ipa: "./build/ios/ipa/Meditejo.ipa"
     )
   end
 end

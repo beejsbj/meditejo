@@ -1,3 +1,5 @@
+ENV["DEVELOPER_APP_IDENTIFIER"] ||= "io.github.beejsbj.meditejo"
+
 default_platform(:ios)
 
 def match_readonly?
