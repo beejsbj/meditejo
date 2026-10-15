@@ -26,3 +26,16 @@ gradle.beforeProject { project ->
         }
     }
 }
+// Dynamic versions aggregate metadata across repositories. Unused blocked
+// repositories can therefore fail a dependency which Google Maven provides.
+gradle.projectsEvaluated {
+    gradle.rootProject.allprojects { project ->
+        project.repositories.findAll { repository ->
+            repository instanceof org.gradle.api.artifacts.repositories.MavenArtifactRepository &&
+                repository.url.host in ['jitpack.io', 'jcenter.bintray.com']
+        }.each { repository ->
+            println "Omitted blocked repository for ${project.path}: ${repository.url}"
+            project.repositories.remove(repository)
+        }
+    }
+}

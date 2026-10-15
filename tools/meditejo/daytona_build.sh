@@ -153,5 +153,5 @@ wait "$monitor_pid" 2>/dev/null
 set -e
 measure post-gradle
 if ((build_status)); then exit "$build_status"; fi
-cp "build/app/outputs/flutter-apk/app-$flavor-$mode.apk" ../outputs/daytona.apk
+mv "build/app/outputs/flutter-apk/app-$flavor-$mode.apk" ../outputs/daytona.apk
 du -h ../outputs/daytona.apk
