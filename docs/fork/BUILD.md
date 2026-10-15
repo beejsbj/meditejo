@@ -1,8 +1,8 @@
 # Android build route
 
-**Status: APK route not yet proven.** Both offline pub steps and the staged
-plugin-portal workaround passed. The next attempt reached app configuration
-but exhausted Daytona's 10 GiB disk. No APK has been produced; APK signing,
+**Status: blocked by Daytona's 10 GiB disk cap, including after pruning.** Both
+offline pub steps and the staged plugin-portal workaround passed. Two attempts
+reached app configuration but exhausted disk before producing an APK. APK signing,
 release/prod builds and phone updates remain unverified. The command below is
 the attempted route; continuation evidence is at the end.
 
@@ -269,9 +269,9 @@ and user build-tools are ready; local alignment/signing and certificate
 verification against an APK remain unverified. No phone installation, Gradle
 execution on bjslab or toolchain installation on the Mac occurred.
 
-The orchestrator needs to resolve access or cache handoff for Flutter's Gradle
-plugin dependencies before resuming the route. The build worker stopped at
-this blocker as instructed. No tracked Gradle files or app code were changed;
+At that stopping point, plugin access/cache handoff needed resolution. The
+continuation below resolves it and establishes the next blocker. No tracked
+Gradle files or app code were changed;
 wrapper routing, heap/worker limits and placeholders affect sandbox copies only.
 
 | Job | Lifecycle | Result | APK |
@@ -344,8 +344,60 @@ sandbox was canceled and its deletion verified. Total sandbox lifecycle was
 765.7 seconds; no APK/artifact was collected. The local runner exited 2 during
 concurrent cleanup, while its retained Gradle log proves the disk failure.
 
-The next attempt prunes the bundled pub preload, Flutter web/profile/opposite
+The next attempt pruned the bundled pub preload, Flutter web/profile/opposite
 Android-mode caches, SDK development examples/docs/engine source, Dart web/
-analysis/DevTools tooling, and SDK 35. It keeps all Android ABIs, the selected
-debug/release mode and the host compiler tools. Gradle uses the same version's
-binary distribution. All pruning affects only the disposable sandbox.
+analysis/DevTools tooling, and SDK 35. It kept all Android ABIs, the selected
+debug/release mode and the host compiler tools. Gradle used the same version's
+binary distribution. All pruning affected only the disposable sandbox.
+
+### Final retry: disk exhausted after pruning
+
+Job `meditejo-20261015-115252-22616` uploaded 720 files: 204,736,780 input
+bytes / 190,596,061 compressed bytes. The sandbox command and build wrapper
+both exited **1**. Gradle took **428.6 seconds**; sandbox creation through
+verified deletion took **562.7 seconds** (9 minutes 22.7 seconds).
+
+Pruning reduced pre-Gradle usage from 5.8 GiB to **4.7 GiB**, leaving **5.4
+GiB available**. Flutter was 1.4 GiB, Android SDK/NDK 2.7 GiB, pub cache 476
+MiB and the portal repository 100 KiB allocated. The binary Gradle wrapper
+occupied 277 MiB instead of 707 MiB. Flutter restored six small Android AOT
+host-tool directories during its artifact check; its final size was 1.5 GiB.
+No iOS/web precache ran, and download archives were deleted after extraction.
+
+The staged repository callback again ran for both Android and Flutter's
+included build. App configuration passed the previous plugin-resolution
+point. Gradle then exhausted disk while writing its transform caches:
+
+```text
+org.gradle.api.UncheckedIOException: Could not add entry '.../gradle-home/caches/8.14.3/transforms/087b6d876711743e64f394c9ad3b1252' to cache file-access.bin (.../gradle-home/caches/journal-1/file-access.bin).
+Caused by: java.io.IOException: No space left on device
+
+Failed to notify root build lifecycle listener.
+> Could not update .../gradle-home/caches/8.14.3/file-changes/last-build.bin
+
+BUILD FAILED in 7m 8s
+```
+
+Final filesystem usage was **100%, with 316 KiB free**: Flutter 1.5 GiB,
+Android SDK/NDK 2.7 GiB, pub cache 476 MiB, Gradle home **5.3 GiB**, and app
+build only 24 KiB. The artifact collection contained zero files. Runner state
+records `exit_code: 1`, `phase: cleaned`, `cleanup_verified: true`.
+
+| Continuation job | Sandbox lifecycle | Result | APK |
+| --- | ---: | --- | --- |
+| `meditejo-portal-probe-20261015` | 8.5 s | probe completed; portal curl 35, Central HTTP 200 | none |
+| `meditejo-20261015-113808-16333` | 765.7 s including inspection/cleanup | portal workaround passed; disk full; canceled | none |
+| `meditejo-20261015-115252-22616` | 562.7 s | exit 1; disk full after pruning | none |
+
+Stopped at this second blocker as instructed. The portal mirror is proven;
+the complete APK route is not. All sandboxes are deleted. No APK path, size
+or APK certificate verification exists, so the PR remains draft. The durable
+key is unchanged on bjslab. No Gradle ran on bjslab, and no phone operation
+or Mac toolchain installation occurred. The orchestrator needs a capacity
+resolution or an explicitly revised route before another build attempt.
+
+Local checks for the continuation: Bash syntax, Python compilation and
+`git diff --check` passed. The portal scripts also received a bounded
+independent review with no material issues. The original Flutter analysis
+and 38-test results above remain the local toolchain evidence; they were not
+rerun for script/documentation changes.
