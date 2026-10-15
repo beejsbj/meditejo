@@ -58,9 +58,10 @@ they provide no working Firebase services.
 The Android profile requests 4 CPUs, 8 GiB RAM and 25 GiB disk (the account
 has 30 GiB disk quota), with a 3,600 second command limit. Input/output limits
 are 1,024/512 MiB. In the sandbox copy only, Gradle uses a 4 GiB heap, at most
-two workers, and Kotlin compiles in process. The runner changes the standard
-Gradle distribution URL to the official GitHub release host because
-`services.gradle.org` is blocked. It preserves the Gradle version.
+two workers, and Kotlin compiles in process. The sandbox script changes the
+nested Android Gradle distribution URL to the official GitHub release host
+because `services.gradle.org` is blocked. The runner's automatic rewrite only
+handles root-level Gradle projects. The script preserves the Gradle version.
 
 ## Signing and outputs
 
@@ -99,6 +100,23 @@ after the build attempt.
   newer versions outside the current constraints. The lockfile did not change.
 - Unchanged tree before codegen: `flutter analyze --no-pub`, exit 1,
   1,197 issues in 17.4 seconds, including missing generated types.
+- After codegen: `flutter analyze --no-pub`, exit 1, **one info**, zero errors
+  and zero warnings in 23.2 seconds:
+
+  ```text
+  info • Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?' • test/services/fourthwall_service_test.dart:130:21 • use_null_aware_elements
+  1 issue found. (ran in 23.2s)
+  ```
+
+  This is also the unchanged tree's result: the build worker changed no tracked
+  Dart/app files, lockfile or Pigeon outputs. The difference from the initial
+  run is generated files, not source changes.
+- `flutter test --no-pub --concurrency=1 --reporter expanded` on
+  `test/utils/duration_extensions_test.dart`, `test/utils/day_boundary_test.dart`,
+  `test/services/audio/session_bell_schedule_test.dart` and
+  `test/models/timer_session_test.dart`: exit 0, **38 tests passed**. The test
+  reporter measured 6 seconds (initial compiler startup took additional time).
+  The full suite was not run on this memory-constrained shared host.
 - The README Pigeon command initially exited 255:
 
   ```text

@@ -25,6 +25,7 @@ cache=${PUB_CACHE:-$HOME/.pub-cache}
 [[ -d $cache/hosted ]] || { echo 'Run flutter pub get on bjslab first' >&2; exit 1; }
 stage=$(mktemp -d /tmp/meditejo-apk.XXXXXXXX)
 trap 'rm -rf "$stage"' EXIT
+echo 'Staging app source and public pub packages (no signing credentials)...'
 python3 "$root/tools/meditejo/stage_build.py" "$root" "$stage" "$cache"
 job="meditejo-$(date -u +%Y%m%d-%H%M%S)-$RANDOM"
 compute=(cockpit compute run --cwd "$stage" --profile android --disk 25

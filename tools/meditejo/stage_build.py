@@ -33,7 +33,7 @@ for name in sorted(set(names)):
     shutil.copy2(source, target)
 shutil.copy2(root / 'tools/meditejo/daytona_build.sh', stage / 'daytona_build.sh')
 # Only package sources/hashes, never pub credentials or active global executables.
-with tarfile.open(stage / 'pub-packages.tgz', 'w:gz') as archive:
+with tarfile.open(stage / 'pub-packages.tgz', 'w:gz', compresslevel=1) as archive:
     for name in ('hosted', 'hosted-hashes', 'git'):
         source = cache / name
         if source.exists():

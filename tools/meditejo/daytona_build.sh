@@ -21,6 +21,20 @@ sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358'
 # Report reachability without making an unused Maven repository fatal.
 curl -I --max-time 20 https://jitpack.io 2>&1 || true
 cd app
+# The runner rewrites only root-level Gradle projects. Flutter nests Android.
+python3 - <<'PY'
+from pathlib import Path
+import re
+p = Path('android/gradle/wrapper/gradle-wrapper.properties')
+value = p.read_text()
+value, count = re.subn(
+    r'https(\\?:)//(?:services|downloads)\.gradle\.org/distributions/gradle-([0-9.]+)-(bin|all)\.zip',
+    lambda m: f'https{m[1]}//github.com/gradle/gradle-distributions/releases/download/v{m[2]}/gradle-{m[2]}-{m[3]}.zip',
+    value,
+)
+p.write_text(value)
+print(f'Routed {count} nested Gradle wrapper URL(s) to the official GitHub release')
+PY
 flutter pub get --offline
 keytool -genkeypair -keystore /tmp/disposable.p12 -storetype PKCS12 \
   -storepass disposable -keypass disposable -alias disposable \
