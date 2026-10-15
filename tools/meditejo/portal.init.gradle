@@ -16,3 +16,13 @@ gradle.beforeSettings { settings ->
     }
     println "Meditejo staged plugin repository for ${settings.settingsDir}"
 }
+// Flutter's target-platform limits the app; native library plugins such as JNI
+// also need a filter, otherwise CMake configures every NDK target ABI.
+gradle.beforeProject { project ->
+    project.plugins.withId('com.android.library') {
+        project.extensions.getByName('android').defaultConfig.ndk.abiFilters.with {
+            clear()
+            add('arm64-v8a')
+        }
+    }
+}
