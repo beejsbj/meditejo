@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Find/build a committed SHA on GitHub; download and check its unsigned APK."""
 import argparse
+from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 from pathlib import Path
@@ -26,7 +27,7 @@ def api(endpoint, **fields):
 
 def parameters(run):
     if run['event'] == 'push':
-        match = re.fullmatch(r'apk/build/(dev|prod)/(release|debug)/[0-9a-f]{40}', run['head_branch'])
+        match = re.fullmatch(r'apk/build/(dev|prod)/(release|debug)/[0-9a-f]{40}(?:-[0-9]+)?', run['head_branch'])
         return match.groups() if match else ('dev', 'release')
     match = re.match(r'APK (dev|prod) (release|debug) ', run['display_title'])
     return match.groups() if match else None
@@ -49,35 +50,48 @@ def main():
                       and run['path'] == WORKFLOW and parameters(run) == options]
         return max(candidates, key=lambda run: run['id']) if candidates else None
 
-    run = find_run()
-    if run is None:
-        branch = f'apk/build/{args.flavor}/{args.mode}/{sha}'
+    def trigger(previous_id=0):
+        suffix = f'-{time.time_ns()}' if previous_id else ''
+        branch = f'apk/build/{args.flavor}/{args.mode}/{sha}{suffix}'
         # Explicit remote URL prevents an upstream remote from receiving a push.
         command('git', 'push', f'https://github.com/{REPO}.git', f'{sha}:refs/heads/{branch}', capture=False)
         deadline = time.monotonic() + 120
         while time.monotonic() < deadline:
-            run = find_run()
-            if run is not None:
-                break
+            candidate = find_run()
+            if candidate is not None and candidate['id'] > previous_id:
+                return candidate
             time.sleep(3)
-        if run is None:
-            raise SystemExit(f'No workflow appeared for {sha}; inspect https://github.com/{REPO}/actions')
+        raise SystemExit(f'No new workflow appeared for {sha}; inspect https://github.com/{REPO}/actions')
+
+    def watch(candidate):
+        print(f"Run: {candidate['html_url']}", flush=True)
+        command('gh', 'run', 'watch', str(candidate['id']), '--repo', REPO,
+                '--exit-status', '--compact', '--interval', '10', capture=False)
+
+    run = find_run() or trigger()
+    watch(run)
     run_id = str(run['id'])
-    print(f"Run: {run['html_url']}", flush=True)
-    command('gh', 'run', 'watch', run_id, '--repo', REPO, '--exit-status', '--compact', '--interval', '10', capture=False)
     artifact_name = f'meditejo-{args.flavor}-{args.mode}-{sha[:8]}'
     artifacts = api(f'actions/runs/{run_id}/artifacts')['artifacts']
     if not any(item['name'] == artifact_name and not item['expired'] for item in artifacts):
-        # Artifacts expire after seven days. Rebuild the same immutable commit.
-        previous_attempt = api(f'actions/runs/{run_id}')['run_attempt']
-        command('gh', 'run', 'rerun', run_id, '--repo', REPO, capture=False)
-        deadline = time.monotonic() + 120
-        while time.monotonic() < deadline:
-            state = api(f'actions/runs/{run_id}')
-            if state['status'] != 'completed' or state['run_attempt'] > previous_attempt:
-                break
-            time.sleep(3)
-        command('gh', 'run', 'watch', run_id, '--repo', REPO, '--exit-status', '--compact', '--interval', '10', capture=False)
+        # GitHub permits reruns only within 30 days of the original run.
+        created = datetime.fromisoformat(run['created_at'].replace('Z', '+00:00'))
+        if datetime.now(timezone.utc) - created >= timedelta(days=29):
+            run = trigger(run['id'])
+        else:
+            previous_attempt = api(f'actions/runs/{run_id}')['run_attempt']
+            command('gh', 'run', 'rerun', run_id, '--repo', REPO, capture=False)
+            deadline = time.monotonic() + 120
+            while time.monotonic() < deadline:
+                state = api(f'actions/runs/{run_id}')
+                if state['status'] != 'completed' or state['run_attempt'] > previous_attempt:
+                    run = state
+                    break
+                time.sleep(3)
+            else:
+                raise SystemExit(f'Rerun {run_id} did not start within 120 seconds')
+        watch(run)
+        run_id = str(run['id'])
     args.destination.mkdir(parents=True, exist_ok=True)
     command('gh', 'run', 'download', run_id, '--repo', REPO, '--name', artifact_name, '--dir', str(args.destination), capture=False)
     metadata = json.loads((args.destination / 'build.json').read_text())
