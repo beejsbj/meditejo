@@ -1,10 +1,10 @@
 # Android build route
 
-**Status: arm64 de-Medito retry in progress.** The older Medito/mock baseline
-exhausted Daytona's 10 GiB disk, including after pruning. The current target is
-PR #3 without mock mode; offline pub and the plugin-portal workaround are proven.
-APK signing, release/prod builds and phone updates remain unverified. Historical
-attempts and current continuation evidence are recorded below.
+**Status: blocked by the 10 GiB disk cap on the arm64 de-Medito source too.**
+PR #3 without mock mode passed offline pub, plugin resolution and project
+configuration, then exhausted disk during debug compilation despite pruning.
+No APK exists. APK signing, release/prod builds and phone updates remain
+unverified. Historical attempts and current continuation evidence follow.
 
 Build on Daytona; sign on bjslab. Never run Gradle on bjslab. This baseline is
 still Medito branded and must not be installed on the phone. The orchestrator
@@ -21,7 +21,7 @@ does the first install after the rename is integrated.
   run locally. Override with `MEDITEJO_BUILD_TOOLS` if needed. If absent,
   install only `build-tools;36.0.0` with a user SDK's `sdkmanager`, never a
   system package or a full local Gradle build.
-- Resolve and generate locally, one command at a time:
+- In the source checkout, resolve and generate locally, one command at a time:
 
   ```bash
   nice -n 10 flutter pub get
@@ -40,12 +40,16 @@ does the first install after the rename is integrated.
 ## One command
 
 ```bash
-tools/meditejo/build_apk.sh --flavor dev --app-id io.github.beejsbj.meditejo
+tools/meditejo/build_apk.sh --source /tmp/meditejo-demeditized-build \
+  --flavor dev --app-id io.github.beejsbj.meditejo
 ```
 
 The default source is the checkout containing the script. To build a different
 resolved/generated checkout, add `--source /absolute/path/to/checkout`; the build
 tools stay in this branch. No scripts need copying into the source checkout.
+The command above targets PR #3's temporary worktree; its creation is recorded
+in the de-Medito continuation below. After integration, omit `--source` to build
+the integrated checkout containing these scripts.
 The job collects its source HEAD in `outputs/source-revision.txt` and stages
 current working bytes, including generated files. Mock mode is retired.
 
@@ -422,3 +426,160 @@ Local checks for the continuation: Bash syntax, Python compilation and
 independent review with no material issues. The original Flutter analysis
 and 38-test results above remain the local toolchain evidence; they were not
 rerun for script/documentation changes.
+
+## De-Medito arm64 continuation (2026-10-15)
+
+The target changed to `origin/fork/remove-medito-backend` (PR #3), commit
+`37548a2543d875e27b8db7364b8ba3d78019999e`, in a detached temporary worktree:
+
+```bash
+git fetch origin fork/remove-medito-backend
+git worktree add --detach /tmp/meditejo-demeditized-build origin/fork/remove-medito-backend
+# Resolve/codegen in that checkout as described above, then from this branch:
+tools/meditejo/build_apk.sh --source /tmp/meditejo-demeditized-build \
+  --flavor dev --app-id io.github.beejsbj.meditejo
+```
+
+This builds PR #3's current native identity/labels with a parameterized base app
+ID; it does not integrate rename PR #2 and must not be installed yet. The dev
+flavor's final package ID is `io.github.beejsbj.meditejo.dev`. No mock define is
+passed, and no Firebase placeholder is needed on this source.
+
+Preparation on bjslab, under `nice -n 10`, sequentially:
+
+- `flutter pub get`: exit 0; no tracked source/lockfile changes.
+- `dart run pigeon --input pigeon_conf.dart --package_name=medito`: exit 0.
+  PR #3 removed `pigeons/`; the old unguarded wildcard command exited 255 on
+  literal `pigeons/*.dart`. The documented loop now skips nonexistent inputs.
+- `dart run build_runner build --delete-conflicting-outputs`: exit 0, 81
+  outputs in 109 seconds; no tracked generated changes.
+- `flutter analyze --no-pub`: exit 0, **no issues**, 12.3 seconds.
+- No new Flutter test run; PR #3's worker owns its test evidence. The original
+  build worker's 38 tests apply to the earlier source only.
+- Dry run `meditejo-20261015-121415-14836`: exit 0, 581 files, 230 resolved
+  pub package versions, 194,021,776 input bytes / 181,462,528 compressed bytes.
+  Inspected manifest: no key/password, keystore/local properties, Firebase JSON
+  or credential files. It includes the source revision and footprint helper.
+
+Remaining plugin inspection established that `path_provider_android 2.3.1`
+depends on `jni 1.0.0` and `jni_flutter 1.0.1`. JNI's `externalNativeBuild`
+uses `src/CMakeLists.txt` to compile `dartjni.c` and support C files, with NDK
+28.2.13676358 and compileSdk 35. Dropping the NDK is therefore invalid.
+The sandbox retains API 35 and shared NDK headers/host tools, and prunes other
+target sysroot libraries. Flutter artifacts retain the selected arm64 mode and
+small host AOT tools. No other platform precache or doctor runs.
+
+A bounded independent review caught that Flutter's `--target-platform` does
+not limit JNI's library module. The init script now applies an explicit
+`arm64-v8a` ABI filter to Android library modules before their configuration.
+The first launch, `meditejo-20261015-121516-21207`, was canceled before Gradle;
+its lifecycle was 33.0 seconds and deletion was verified. Its controlling runner exited 2 with HTTP 502 during
+upload concurrent with cancellation. It provides no compilation evidence.
+
+### Arm64 attempt: capacity held through Java compilation; blocked metadata
+
+Job `meditejo-20261015-121643-21037` used the corrected ABI filter and the
+source above. Input: 581 files, 194,022,165 bytes / 181,462,820 compressed.
+The source revision and footprint JSONL were collected. Exit **1**, Gradle
+**631.4 seconds**, sandbox lifecycle **769.8 seconds**, deletion verified.
+
+| Stage | Filesystem used | Available | Flutter | SDK incl. NDK | Gradle | Build |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Flutter extracted; archive deleted | 3.249 GiB | 6.751 GiB | 2.456 GiB | 0.462 GiB | negligible | 0 |
+| API 36 + NDK installed | 5.541 GiB | 4.459 GiB | 2.456 GiB | 2.749 GiB | negligible | 0 |
+| Pruned, before Gradle | 4.033 GiB | 5.967 GiB | 1.127 GiB | 2.570 GiB | negligible | negligible |
+| Largest observed sample | **9.467 GiB** | **0.533 GiB** | **1.130 GiB** | **2.809 GiB** | **4.789 GiB** | **0.294 GiB** |
+
+At that peak, the SDK comprises **1.977 GiB NDK** and **0.833 GiB other SDK
+packages**. Pub is another **0.421 GiB**. These allocated-byte measurements use
+GiB (2^30 bytes), unlike Flutter's APK display size. Gradle requested API 34
+in addition to 35/36; it was installed on demand. No build-tools 36 package
+was preinstalled. The distribution archive removal was confirmed in the log.
+
+This attempt did **not** exhaust disk. It reached plugin Java compilation,
+then failed because the dynamic AndroidX runner version searches all project
+repositories, including blocked JitPack and JCenter:
+
+```text
+Execution failed for task ':integration_test:compileDebugJavaWithJavac'.
+> Could not resolve all files for configuration ':integration_test:debugCompileClasspath'.
+   > Could not resolve androidx.test:runner:1.2+.
+      > Failed to list versions for androidx.test:runner.
+         > Unable to load Maven meta-data from https://jitpack.io/androidx/test/runner/maven-metadata.xml.
+            > Connection reset
+         > Unable to load Maven meta-data from https://jcenter.bintray.com/androidx/test/runner/maven-metadata.xml.
+            > Connection reset
+```
+
+The init script now omits those two blocked project repository hosts after
+project configuration. Google Maven/Maven Central remain; no version is
+pinned or changed, and tracked Gradle files remain unchanged. Artifact handoff
+uses `mv` to avoid another APK copy in the constrained sandbox.
+
+### Final arm64 retry: disk exhausted
+
+Job `meditejo-20261015-123057-23399` used the same PR #3 source without mock
+mode. Input: 581 files, 194,022,810 bytes / 181,463,232 compressed bytes.
+Both the sandbox command and wrapper exited **1**. Gradle took **580.6
+seconds**; creation through verified deletion took **717.5 seconds** (11 minutes
+57.5 seconds). The source revision and footprint JSONL were collected; no APK
+was produced. `phase: cleaned`, `cleanup_verified: true`.
+
+The log confirms JitPack/JCenter removal, including `:integration_test`.
+Resolution advanced beyond the prior AndroidX runner metadata error. The
+failure was disk space during Gradle transforms and compilation:
+
+```text
+java.io.IOException: No space left on device
+
+Failed to notify root build lifecycle listener.
+> Could not update .../gradle-home/caches/8.14.3/file-changes/last-build.bin
+
+BUILD FAILED in 9m 40s
+```
+
+Flutter again emitted a Java/Gradle incompatibility suggestion because it
+misparsed the routed GitHub distribution URL. The explicit exception above
+establishes disk exhaustion; it does not establish Java incompatibility.
+
+Largest observed sample, at exit:
+
+| Component | Allocated bytes | GiB |
+| --- | ---: | ---: |
+| Filesystem used | 10,736,771,072 | 9.999 |
+| Filesystem available | **647,168** | 0.0006 |
+| Flutter SDK | 1,212,907,520 | 1.130 |
+| Gradle home, including dependency/transform caches | **5,643,100,160** | **5.256** |
+| Android SDK including NDK | 3,016,290,304 | 2.809 |
+| ↳ NDK (already included above) | 2,122,350,592 | 1.977 |
+| ↳ Other SDK packages | 893,939,712 | 0.833 |
+| App/plugin build outputs | 385,626,112 | 0.359 |
+| Resolved pub cache | 452,042,752 | 0.421 |
+
+Applied levers: arm64 app and native-library filters, debug mode, Android-only
+precache, unused Flutter/NDK target files pruned, download archives deleted,
+Gradle build cache off, explicit `--no-daemon`, binary wrapper with its ZIP
+deleted after extraction, and SDK/build-tools packages installed only when
+required. NDK removal is ruled out by JNI's CMake source inspection. Native
+JNI compilation and APK packaging were not proven before failure. CMake was
+not explicitly preinstalled. Dependency/transform caches still grew even with
+Gradle's task build cache disabled.
+
+Retained evidence on bjslab:
+
+```text
+~/.local/state/daytona-run/meditejo-20261015-123057-23399/output.log
+~/.local/state/daytona-run/meditejo-20261015-123057-23399/artifacts/outputs/footprint.jsonl
+~/.local/state/daytona-run/meditejo-20261015-123057-23399/artifacts/outputs/source-revision.txt
+```
+
+Stopped as requested; no further build or alternative runner was set up. All
+three sandboxes from this continuation are deleted. The durable signing key
+remains on bjslab, unchanged; there is no APK path/size or APK certificate
+verification, and PR #1 stays draft. The orchestrator/Burooj own the alternative
+route decision. There was no local Gradle build, phone operation or Mac setup.
+
+Final local checks: Bash syntax, Python compilation and `git diff --check`
+passed. The ABI filter correction received independent static review. No
+tracked Gradle files, app code, app identity, lockfile or generated outputs
+were changed by this worker.
