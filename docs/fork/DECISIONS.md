@@ -1,0 +1,13 @@
+# Implementation decisions
+
+Decisions made while building Meditejo, newest last. Product decisions live in `BRIEF.md`; this file holds the implementation calls made on the way, with the reason for each, so they can be revisited deliberately. Mark a decision **provisional** when it waits on Burooj.
+
+## 2026-10-15
+
+- **Flutter 3.47.2 / Dart 3.13.2**, matching `flutter-version` in `.github/workflows`. On bjslab it is installed under the user at `~/.local/share/flutter`, with `flutter` and `dart` symlinked into `~/.local/bin`.
+- **The Dart package keeps the name `medito`.** Renaming it would rewrite every `package:medito/` import, conflict with all concurrent work, and make cherry-picking from upstream expensive. Users see the display name, application ID and icons, which do change.
+- **Application ID `io.github.beejsbj.meditejo`** (provisional). It is a reverse domain Burooj controls through GitHub, and F-Droid accepts it. Pick it before the first phone install, because changing it later means installing a separate app.
+- **One durable signing key, kept on bjslab.** Every APK installed on the phone is signed with the same Meditejo key, because a key change forces an uninstall, which deletes the local-only stats and favourites. The key never goes to Daytona: the cloud builds the APK and bjslab signs it with `apksigner`. Whether to back it up to BWS is Burooj's call (provisional).
+- **Build route:** resolve dependencies on bjslab, where pub.dev is reachable, and ship the pub cache with the Daytona upload (`--profile android`), where pub.dev is blocked. Gradle and the Flutter engine artifacts download inside the sandbox. Details are in `BUILD.md` once the route is proven.
+- **Medito mock mode is the baseline, built but not installed.** The phone's remote-control MCP has no uninstall tool, so only Meditejo-named builds with the durable key go onto the phone.
+- **Placeholder icon** until Burooj chooses a mark. This is a design decision to make later, not part of the build.
