@@ -1,5 +1,11 @@
 # Android build route
 
+**Status: blocked after the Daytona build attempt.** Both offline pub steps
+passed, but Gradle could not resolve Flutter's Kotlin DSL plugin 5.2.0 from
+the Gradle Central Plugin Repository. No APK was produced; APK signing,
+release/prod builds and phone updates are unverified. The command below is
+the attempted route, not a proven end-to-end build. See the final evidence.
+
 Build on Daytona; sign on bjslab. Never run Gradle on bjslab. This baseline is
 still Medito branded and must not be installed on the phone. The orchestrator
 does the first install after the rename is integrated.
@@ -80,7 +86,8 @@ directory or Daytona. Backing it up to BWS remains Burooj's decision.
 The script creates an identity only when both files are absent and refuses
 partial state; recover the original key/password instead of replacing either.
 
-Public certificate SHA-256:
+Public certificate SHA-256 (verified with `keytool -list -v`; no APK exists
+yet for `apksigner verify --print-certs`):
 
 ```text
 07:87:EC:F8:50:D8:DF:93:F9:02:DB:09:A9:8D:C6:1E:9C:E4:0F:E1:39:BF:54:35:A5:35:A6:2E:18:5A:50:31
@@ -96,8 +103,7 @@ appropriate before its expiry.
 
 ## Verification record (2026-10-15)
 
-Starting commit: `8d527429`. Results and cloud evidence are recorded below
-after the build attempt.
+Starting commit: `8d527429`. Results and cloud evidence from the build attempts:
 
 - `flutter pub get`: exit 0; one discontinued package and 144 packages with
   newer versions outside the current constraints. The lockfile did not change.
@@ -195,3 +201,63 @@ after the build attempt.
   both resolved graphs, and the script runs the SDK's Dart binary to resolve
   Flutter tooling offline before invoking Flutter. This corrects the cache
   selection without allowing unrelated hosted packages or Git dependencies.
+
+### Final attempt and blocker
+
+Job `meditejo-20261015-112548-15828` ran with 4 CPUs, 8 GiB RAM and 10 GiB
+disk. It uploaded 712 files, including 263 resolved pub.dev package versions:
+204,655,947 bytes before runner compression, 190,536,380 bytes uploaded.
+The sandbox lifecycle (creation through verified deletion) took **159.5
+seconds**, including **26.4 seconds** in `assembleDevDebug`. Runner exit: **1**.
+This excludes local staging and runner packaging time.
+
+Verified in this sandbox:
+
+- Flutter 3.47.2 archive download, checksum and Python extraction.
+- Flutter tooling's direct `dart pub get --offline`: `Got dependencies`.
+- API 36, build-tools 36.0.0 and NDK 28.2.13676358 installation.
+- App `flutter pub get --offline`: `Got dependencies!`.
+- Disposable key and Google Services placeholder generation.
+- Gradle invocation with the requested dev/mock/debug flags.
+
+Gradle failed before producing an APK:
+
+```text
+* Where:
+Build file '/tmp/flutter/packages/flutter_tools/gradle/build.gradle.kts' line: 7
+
+* What went wrong:
+Plugin [id: 'org.gradle.kotlin.kotlin-dsl', version: '5.2.0'] was not found in any of the following sources:
+
+- Gradle Core Plugins (plugin is not in 'org.gradle' namespace)
+- Included Builds (No included builds contain this plugin)
+- Plugin Repositories (could not resolve plugin artifact 'org.gradle.kotlin.kotlin-dsl:org.gradle.kotlin.kotlin-dsl.gradle.plugin:5.2.0')
+  Searched in the following repositories:
+    Gradle Central Plugin Repository
+
+BUILD FAILED in 26s
+```
+
+The log then prints a misleading Java/Gradle incompatibility suggestion:
+Flutter parses the GitHub distribution path as a version. The actual Gradle
+exception is plugin resolution, not demonstrated Java incompatibility. No
+Java or Gradle version was changed in response. The log does not establish
+the HTTP failure behind the plugin resolution error; JitPack's independent
+connection reset above is verified, but is not proven to cause this error.
+
+All created sandboxes were deleted and no APK was collected. The durable key
+and user build-tools are ready; local alignment/signing and certificate
+verification against an APK remain unverified. No phone installation, Gradle
+execution on bjslab or toolchain installation on the Mac occurred.
+
+The orchestrator needs to resolve access or cache handoff for Flutter's Gradle
+plugin dependencies before resuming the route. The build worker stopped at
+this blocker as instructed. No tracked Gradle files or app code were changed;
+wrapper routing, heap/worker limits and placeholders affect sandbox copies only.
+
+| Job | Lifecycle | Result | APK |
+| --- | ---: | --- | --- |
+| `meditejo-20261015-111134-26058` | 0.2 s rejection | 25 GiB exceeds 10 GiB limit | none |
+| `meditejo-20261015-111316-28609` | 94.5 s | exit 2, missing xz | none |
+| `meditejo-20261015-111652-7667` | 339.9 s | exit 69, SDK tooling cache omitted | none |
+| `meditejo-20261015-112548-15828` | 159.5 s | exit 1, Gradle Kotlin DSL plugin unresolved | none |
