@@ -56,8 +56,8 @@ mkdir -p "$output_dir"
 output="$output_dir/$name-${sha:0:8}.apk"
 "$build_tools/zipalign" -P 16 -f 4 "$apk" "$stage/aligned.apk"
 "$build_tools/apksigner" sign --ks "$signing/meditejo.p12" --ks-key-alias meditejo \
-  --ks-pass "file:$signing/password" --key-pass "file:$signing/password" \
-  --out "$stage/signed.apk" "$stage/aligned.apk"
+  --ks-pass "file:$signing/password" \
+  --out "$stage/signed.apk" "$stage/aligned.apk" </dev/null
 "$build_tools/zipalign" -c -P 16 4 "$stage/signed.apk"
 "$build_tools/apksigner" verify --print-certs "$stage/signed.apk" | tee "$stage/certificate.txt"
 signed_digest=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$stage/certificate.txt" | tr '[:upper:]' '[:lower:]' | tr -d ':')

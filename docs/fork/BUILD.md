@@ -1,6 +1,6 @@
 # Android build route
 
-GitHub Actions builds an **unsigned arm64 APK**; bjslab aligns and signs it.
+GitHub Actions builds an **unsigned APK targeting arm64**; bjslab aligns and signs it.
 No phone install is performed by this route. The orchestrator owns installation.
 The Daytona route is retired; its failures and measurements remain below.
 
@@ -21,7 +21,7 @@ The Daytona route is retired; its failures and measurements remain below.
 tools/meditejo/build_apk.sh apk/m1-phone --name meditejo-m1
 ```
 
-Defaults: current committed HEAD, flavor `dev`, mode `release`, arm64 only.
+Defaults: current committed HEAD, flavor `dev`, mode `release`, Flutter target arm64.
 Options: `--flavor dev|prod`, `--mode release|debug`, `--name OUTPUT_PREFIX`.
 Defaults can be changed through `MEDITEJO_FLAVOR`, `MEDITEJO_BUILD_MODE` and
 `MEDITEJO_APK_DIR`. Application ID comes from the selected checkout's Gradle
@@ -89,12 +89,72 @@ and never generates a replacement. Backup policy remains Burooj's decision.
 
 ## GitHub verification record (2026-10-15)
 
-Pending the first integration build from PR #2 head
-`b7c3f8ec2c3f52676fc7da4c0b59cb3df7984e30`, which includes PR #3, merged with
-this route on throwaway branch `apk/m1-phone`. No PR is opened for that branch.
-Actual successful run timings, artifact size and certificate verification will
-be recorded here after the retry. No Gradle, phone operation or key upload occurs
-on bjslab.
+**Verified:** the one command reused the successful Actions run, downloaded its
+artifact, checked its metadata/hash, aligned it, signed it on bjslab and verified
+the pinned certificate (exit 0). No key upload, local Gradle or phone operation.
+
+Source: exact PR #2 head `b7c3f8ec2c3f52676fc7da4c0b59cb3df7984e30` (includes
+PR #3), merged with build-route commit `50b5d925` on throwaway `apk/m1-phone`.
+Integration SHA: `9f7b3055a9d510a386d116f4a55a608dbe055d41`. The integration's
+`android/app/build.gradle` and `lib/` are identical to PR #2's head. Keep PR #2's
+Gradle version when resolving the initial merge conflict (it already has the
+unsigned-signing changes), and retain both workers' decision entries. No PR was
+opened for the integration branch.
+
+| Run | Result | Workflow wall | Gradle |
+| --- | --- | ---: | ---: |
+| [38757148462](https://github.com/beejsbj/meditejo/actions/runs/38757148462) (`7721e19b`) | failed, registrant mismatch below | 621 s (10m21s) | 448.0 s |
+| [38758895926](https://github.com/beejsbj/meditejo/actions/runs/38758895926) (`9f7b3055`) | **success**, dev/release | **686 s (11m26s)** | **532.8 s** |
+
+Workflow wall is API `created_at` through `updated_at` at completion, including
+queue/setup/upload/cleanup. The successful job itself took 11m22s. Pigeon and
+build_runner passed; build_runner wrote 81 outputs in 37 s. The unoptimized
+cold runner downloaded the required NDK 28.2, API 31 (a dependency request), and
+CMake 3.22.1 normally. End-of-job usage: Flutter including pub cache 3.0 GiB,
+Gradle 5.9 GiB, Android SDK 14 GiB, outputs 635 MiB; filesystem **81 GiB free**.
+These are final samples, not a continuously measured peak.
+
+Artifact: `meditejo-dev-release-9f7b3055`, unsigned APK **41,524,201 bytes**
+(artifact ZIP 41,524,648 bytes), expires 2026-10-22. Public build metadata has
+unsigned APK SHA-256 `73c2a2262d11225d94bdc3d67835bb62b432f626859bf9efeac3dbea163fa2b8`.
+The workflow confirmed the unsigned APK does not verify as signed before upload.
+
+Signed APK on bjslab:
+
+```text
+/home/admin/.local/share/meditejo/apk/meditejo-m1-9f7b3055.apk
+41,875,546 bytes (41.9 MB / 39.94 MiB)
+APK SHA-256: e5c7814c7fa1795620f87db48cb693ee8e1287cc924ebfd9f94f36b79861706c
+```
+
+`aapt2 dump badging` confirms label **Meditejo**, application ID
+`io.github.beejsbj.meditejo`, versionCode `302473`, versionName `2610.6.3-dev`,
+compile/target SDK 36 and no debuggable flag. Flutter engine/AOT libraries are
+arm64 only. Native dependency helpers also contain armeabi-v7a/x86_64 copies
+(~214 KB uncompressed in total); `--target-platform android-arm64` does not
+filter those transitive AAR/JNI contents. The target phone is arm64.
+`zipalign -c -P 16 4` passed (exit 0).
+
+`apksigner verify --print-certs` passed (exit 0):
+
+```text
+Signer #1 certificate DN: CN=Meditejo, OU=Personal Android signing
+Signer #1 certificate SHA-256 digest: 0787ecf850d8df93f902db09a98dc61e9ce40fe139bf5435a535a62e185a5031
+Signer #1 certificate SHA-1 digest: 3560f7ccd14d47414ed43b09ab72dff2e693a978
+Signer #1 certificate MD5 digest: 7740557f2d5ec09ccf9fa2fce13b6cc8
+```
+
+The first local signing invocation supplied the same single-line password file
+for both `--ks-pass` and `--key-pass`. apksigner consumes those as successive
+lines and failed with `end of file reached`. Fix: supply only `--ks-pass file:...`;
+it reuses that password for the PKCS12 private key. No password or key changed.
+The command then reused/downloaded the existing artifact and completed signing.
+
+Unverified: prod/debug variants, workflow_dispatch, automatic bootstrap pushes,
+expired-artifact recovery and phone installation/launch/update. This run proves
+the dev/release path and reuse of an existing run. Independent review found the
+30-day rerun limit; older artifacts now use a fresh uniquely named push ref.
+That recovery path is implemented but has not been exercised against expiration.
 
 First run [38757148462](https://github.com/beejsbj/meditejo/actions/runs/38757148462)
 used integration SHA `7721e19b` and failed after Gradle ran 448.0 s:
@@ -115,7 +175,8 @@ Android SDK 14 GiB, outputs 396 MiB; filesystem 82 GiB free.
 
 PR #1's existing CI at route commit `41806a0d` passed in 2m53s:
 [38757519645](https://github.com/beejsbj/meditejo/actions/runs/38757519645),
-816 tests passed, 1 skipped. Analyze: one existing info (16.3 s), tolerated by
+816 tests passed, 1 skipped. After the command fix, checks also passed at
+`50b5d925` in 3m08s ([38758898694](https://github.com/beejsbj/meditejo/actions/runs/38758898694)). Analyze: one existing info (16.3 s), tolerated by
 that CI's `--no-fatal-infos`. This is the build branch's baseline suite, distinct
 from PR #2/#3's 467-test de-Medito suite.
 
