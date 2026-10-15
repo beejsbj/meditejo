@@ -7,6 +7,10 @@ mode=$3
 mock=$4
 export PUB_CACHE="$PWD/pub-cache"
 export FLUTTER_SUPPRESS_ANALYTICS=true
+export GRADLE_USER_HOME="$PWD/gradle-home"
+export MEDITEJO_PORTAL_REPO="$PWD/portal-maven"
+mkdir -p "$GRADLE_USER_HOME/init.d"
+cp portal.init.gradle "$GRADLE_USER_HOME/init.d/meditejo-portal.gradle"
 mkdir -p "$PUB_CACHE" outputs
 tar -xzf pub-packages.tgz -C "$PUB_CACHE"
 rm pub-packages.tgz
@@ -26,6 +30,8 @@ git config --global --add safe.directory /tmp/flutter
 /tmp/flutter/bin/cache/dart-sdk/bin/dart pub get --offline --directory /tmp/flutter/packages/flutter_tools
 flutter config --no-analytics
 sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358'
+df -h . /tmp
+du -sh /tmp/flutter "$ANDROID_HOME" "$PUB_CACHE" "$MEDITEJO_PORTAL_REPO"
 # Report reachability without making an unused Maven repository fatal.
 curl -I --max-time 20 https://jitpack.io 2>&1 || true
 cd app
@@ -80,6 +86,12 @@ kotlin.compiler.execution.strategy=in-process
 EOF
 args=(build apk --no-pub --flavor "$flavor" "--$mode")
 if [[ $mock == true ]]; then args+=(--dart-define=MOCK_MODE=true); fi
+set +e
 flutter "${args[@]}"
+build_status=$?
+set -e
+df -h . /tmp
+du -sh /tmp/flutter "$ANDROID_HOME" "$PUB_CACHE" "$GRADLE_USER_HOME" build
+if ((build_status)); then exit "$build_status"; fi
 cp "build/app/outputs/flutter-apk/app-$flavor-$mode.apk" ../outputs/daytona.apk
 du -h ../outputs/daytona.apk

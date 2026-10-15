@@ -42,6 +42,23 @@ does the first install after the rename is integrated.
 tools/meditejo/build_apk.sh --flavor dev --app-id io.github.beejsbj.meditejo --mock
 ```
 
+The command also runs `tools/meditejo/fetch_portal.py` on bjslab, using plain
+HTTPS to stage the coordinates in `tools/meditejo/portal-artifacts.txt` as a
+small Maven repository. It fetches required POMs/JARs and optional module
+metadata, follows module artifact filenames and checks their published SHA-256
+when available. It never invokes Gradle locally. To inspect this step alone:
+
+```bash
+python3 tools/meditejo/fetch_portal.py /tmp/meditejo-portal-maven
+```
+
+The sandbox installs `portal.init.gradle` under its private
+`GRADLE_USER_HOME/init.d`. Its `beforeSettings` callback adds the staged repo,
+Google Maven and Maven Central before the portal. This also runs for Flutter's
+included Gradle build and plugins resolved during settings evaluation. Tracked
+Gradle files remain unchanged. Add exact missing coordinates to the list when
+a Gradle failure establishes that another portal artifact is needed.
+
 Debug is the default; add `--release` for release. Choose `--flavor prod` for
 the flavor without the `.dev` application ID suffix. `--app-id` is the base
 ID, before that suffix. Defaults can be changed with `MEDITEJO_FLAVOR` and
@@ -261,3 +278,25 @@ wrapper routing, heap/worker limits and placeholders affect sandbox copies only.
 | `meditejo-20261015-111316-28609` | 94.5 s | exit 2, missing xz | none |
 | `meditejo-20261015-111652-7667` | 339.9 s | exit 69, SDK tooling cache omitted | none |
 | `meditejo-20261015-112548-15828` | 159.5 s | exit 1, Gradle Kotlin DSL plugin unresolved | none |
+
+## Plugin portal continuation (2026-10-15)
+
+The cheap probe confirmed host-specific access:
+
+- bjslab `curl -sSI --max-time 20 https://plugins.gradle.org/m2/`: exit 0,
+  HTTP 200.
+- Daytona job `meditejo-portal-probe-20261015`: probe runner exit 0; the
+  portal curl itself exited 35 with `OpenSSL SSL_connect: Connection reset
+  by peer`. Maven Central's curl exited 0 with HTTP 200. Sandbox deleted.
+
+The missing marker's POM names the implementation dependency. Initial list:
+
+```text
+org.gradle.kotlin.kotlin-dsl:org.gradle.kotlin.kotlin-dsl.gradle.plugin:5.2.0
+org.gradle.kotlin:gradle-kotlin-dsl-plugins:5.2.0
+```
+
+HTTP fetch on bjslab passed: six files, 77,054 bytes, including marker and
+implementation POMs, implementation module metadata/JAR and its published
+source/Javadoc variants. Module artifact SHA-256 checks passed. A manifest
+inside the staged repository records each file's size and SHA-256.

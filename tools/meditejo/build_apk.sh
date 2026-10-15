@@ -27,6 +27,8 @@ stage=$(mktemp -d /tmp/meditejo-apk.XXXXXXXX)
 trap 'rm -rf "$stage"' EXIT
 echo 'Staging app source and public pub packages (no signing credentials)...'
 python3 "$root/tools/meditejo/stage_build.py" "$root" "$stage" "$cache"
+python3 "$root/tools/meditejo/fetch_portal.py" "$stage/portal-maven"
+cp "$root/tools/meditejo/portal.init.gradle" "$stage/portal.init.gradle"
 job="meditejo-$(date -u +%Y%m%d-%H%M%S)-$RANDOM"
 compute=(cockpit compute run --cwd "$stage" --profile android --disk 10
   --timeout 3600 --max-input-mb 1024 --max-output-mb 512

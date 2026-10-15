@@ -1,0 +1,14 @@
+// Applied to each settings instance, including Flutter's included Gradle build.
+// beforeSettings also covers plugins resolved while settings.gradle is evaluated.
+gradle.beforeSettings { settings ->
+    settings.pluginManagement.repositories {
+        maven {
+            name = 'MeditejoStagedPortal'
+            url = uri(System.getenv('MEDITEJO_PORTAL_REPO'))
+        }
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    println "Meditejo staged plugin repository for ${settings.settingsDir}"
+}
