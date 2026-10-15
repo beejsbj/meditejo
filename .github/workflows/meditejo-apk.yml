@@ -77,7 +77,7 @@ jobs:
           org.gradle.parallel=false
           org.gradle.daemon=false
           PROPERTIES
-          flutter build apk --no-pub --flavor "$FLAVOR" "--$MODE" \
+          flutter build apk --flavor "$FLAVOR" "--$MODE" \
             --target-platform android-arm64
       - name: Prepare unsigned artifact
         run: |

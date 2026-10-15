@@ -55,7 +55,7 @@ It fetches pub.dev dependencies, runs the guarded Pigeon loop with
 `--package_name=medito`, then build_runner, and builds with:
 
 ```bash
-flutter build apk --no-pub --flavor dev --release --target-platform android-arm64
+flutter build apk --flavor dev --release --target-platform android-arm64
 ```
 
 The guard skips absent `pigeons/*.dart`; PR #3 removed that directory. Normal
@@ -92,8 +92,32 @@ and never generates a replacement. Backup policy remains Burooj's decision.
 Pending the first integration build from PR #2 head
 `b7c3f8ec2c3f52676fc7da4c0b59cb3df7984e30`, which includes PR #3, merged with
 this route on throwaway branch `apk/m1-phone`. No PR is opened for that branch.
-Actual run timings, artifact size and certificate verification will be recorded
-here after the run. No Gradle, phone operation or key upload occurs on bjslab.
+Actual successful run timings, artifact size and certificate verification will
+be recorded here after the retry. No Gradle, phone operation or key upload occurs
+on bjslab.
+
+First run [38757148462](https://github.com/beejsbj/meditejo/actions/runs/38757148462)
+used integration SHA `7721e19b` and failed after Gradle ran 448.0 s:
+
+```text
+GeneratedPluginRegistrant.java:69: error: package dev.flutter.plugins.integration_test does not exist
+Execution failed for task ':app:compileDevReleaseJavaWithJavac'.
+BUILD FAILED in 7m 27s
+```
+
+Cause/fix: do **not** pass `--no-pub` to `flutter build apk`. Flutter 3.47.2's
+`regeneratePlatformSpecificToolingIfApplicable` returns early with that flag;
+the initial pub get generates a debug registrant containing integration_test,
+while release Gradle correctly excludes dev-only plugins. The normal build
+command regenerates the release registrant. No app or dependency change.
+At failure: Flutter (including its pub cache) 3.0 GiB, Gradle 5.9 GiB,
+Android SDK 14 GiB, outputs 396 MiB; filesystem 82 GiB free.
+
+PR #1's existing CI at route commit `41806a0d` passed in 2m53s:
+[38757519645](https://github.com/beejsbj/meditejo/actions/runs/38757519645),
+816 tests passed, 1 skipped. Analyze: one existing info (16.3 s), tolerated by
+that CI's `--no-fatal-infos`. This is the build branch's baseline suite, distinct
+from PR #2/#3's 467-test de-Medito suite.
 
 ## Routes tried
 
