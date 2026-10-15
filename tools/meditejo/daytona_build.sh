@@ -21,6 +21,9 @@ PY
 rm /tmp/flutter.tar.xz
 export PATH="/tmp/flutter/bin:$PATH"
 git config --global --add safe.directory /tmp/flutter
+# Flutter's universal-artifact check can resolve its own tools before it
+# forwards --offline to app pub get. Populate that graph using Dart directly.
+/tmp/flutter/bin/cache/dart-sdk/bin/dart pub get --offline --directory /tmp/flutter/packages/flutter_tools
 flutter config --no-analytics
 sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358'
 # Report reachability without making an unused Maven repository fatal.

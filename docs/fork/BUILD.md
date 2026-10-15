@@ -46,13 +46,14 @@ Use the same command with `--dry-run` to pack inputs and inspect the printed
 Daytona manifest without contacting Daytona or signing anything. The upload
 contains selected source plus `pub-packages.tgz` (only resolved pub.dev package
 sources and hashes from `${PUB_CACHE:-$HOME/.pub-cache}`, selected through
-`.dart_tool/package_config.json`; Git and external path dependencies are
+the app's and Flutter tooling's `.dart_tool/package_config.json`; Git and external path dependencies are
 rejected until explicitly supported). It includes ignored generated
 Dart files, which a normal Git-based runner upload omits. No host signing key,
 password, Firebase configuration or private environment JSON is staged.
 
 The sandbox downloads a checksum-pinned Flutter 3.47.2 archive from Google,
-extracts the supplied pub cache, runs `flutter pub get --offline`, and installs
+extracts the supplied pub cache, resolves Flutter tooling first with its Dart
+binary and `pub get --offline`, runs `flutter pub get --offline`, and installs
 API 36, build-tools 36.0.0 and NDK 28.2.13676358. It creates a disposable key
 and placeholder Google Services JSON there. These placeholders prove the build;
 they provide no working Firebase services.
@@ -172,3 +173,25 @@ after the build attempt.
 
   The sandbox script now uses Python's standard `tarfile`/`lzma` support to
   extract the verified archive; no additional package installation is needed.
+- Job `meditejo-20261015-111652-7667`: exit 69 after 339.9 seconds from sandbox
+  create to verified deletion. The checksum, Python extraction, API 36,
+  build-tools 36.0.0 and NDK installation passed. JitPack was unreachable:
+
+  ```text
+  curl: (35) OpenSSL SSL_connect: Connection reset by peer in connection to jitpack.io:443
+  ```
+
+  The first Flutter app pub command stopped before Gradle:
+
+  ```text
+  Got socket error trying to find package json_annotation at https://pub.dev.
+  Failed to update packages.
+  ```
+
+  The app-only cache selection omitted Flutter tooling's own graph (the app
+  uses `json_annotation` 4.11.0; Flutter tooling requires 4.12.0). Flutter's
+  universal-artifact preparation can run tooling pub resolution before
+  forwarding the app's `--offline` flag. The upload now includes the union of
+  both resolved graphs, and the script runs the SDK's Dart binary to resolve
+  Flutter tooling offline before invoking Flutter. This corrects the cache
+  selection without allowing unrelated hosted packages or Git dependencies.
