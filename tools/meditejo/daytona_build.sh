@@ -12,7 +12,12 @@ tar -xzf pub-packages.tgz -C "$PUB_CACHE"
 rm pub-packages.tgz
 curl --fail --location --retry 3 https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.47.2-stable.tar.xz -o /tmp/flutter.tar.xz
 echo '447878859d01ca9bfdb99a85f245af07ed8a15fedcd9d189c4749e8e92d1f185  /tmp/flutter.tar.xz' | sha256sum -c -
-tar -xf /tmp/flutter.tar.xz -C /tmp
+# The Android profile has Python but no xz executable.
+python3 - <<'PY'
+import tarfile
+with tarfile.open('/tmp/flutter.tar.xz', 'r:xz') as archive:
+    archive.extractall('/tmp')
+PY
 rm /tmp/flutter.tar.xz
 export PATH="/tmp/flutter/bin:$PATH"
 git config --global --add safe.directory /tmp/flutter

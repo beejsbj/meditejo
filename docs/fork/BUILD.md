@@ -155,3 +155,20 @@ after the build attempt.
   cache contents and future shared-cache growth. Public package sources are
   the only contents allowed in that archive; the signing directory is never
   part of it.
+- Supported-size job `meditejo-20261015-111316-28609`: exit 2 after
+  94.5 seconds from sandbox create to verified deletion. Input: 184,716,759
+  bytes (171,224,072 compressed), 712 files and 226 resolved pub.dev packages.
+  Flutter's 1,501 MiB archive downloaded in about 6 seconds and passed its
+  SHA-256 check, but extraction failed because the Android profile has no
+  `xz` executable:
+
+  ```text
+  /tmp/flutter.tar.xz: OK
+  tar (child): xz: Cannot exec: No such file or directory
+  tar (child): Error is not recoverable: exiting now
+  tar: Child returned status 2
+  tar: Error is not recoverable: exiting now
+  ```
+
+  The sandbox script now uses Python's standard `tarfile`/`lzma` support to
+  extract the verified archive; no additional package installation is needed.
