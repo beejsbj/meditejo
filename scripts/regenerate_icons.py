@@ -44,7 +44,8 @@ def vector(monochrome=False):
     ) + '</vector>\n'
 
 write('assets/images/ic_logo.svg', glyph)
-write('ios/Runner/AppIcon.icon/Assets/logo.svg', glyph)
+# Icon Composer's canvas is 1024pt; give the layer an explicit intrinsic size.
+write('ios/Runner/AppIcon.icon/Assets/logo.svg', glyph.replace('<svg ', '<svg width="1024" height="1024" ', 1))
 write('ios/MeditoWidget/Assets.xcassets/MeditoLogo.imageset/MeditoLogo.svg', glyph)
 icon = {
     "fill": {"solid": background},

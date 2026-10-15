@@ -63,7 +63,7 @@ Completer<void>? _initCompleter;
 
 Future<void> _configureStripe() async {
   // Configure Stripe settings - publishableKey and merchantIdentifier will be set from backend config
-  Stripe.urlScheme = 'medito'; // Update this to match your app's URL scheme
+  Stripe.urlScheme = 'meditejo'; // Matches the native custom URL scheme.
 
   // Note: Stripe.instance.applySettings() and merchantIdentifier will be set after
   // publishableKey is set from the backend config in PaymentServiceProvider.getPaymentConfig()
