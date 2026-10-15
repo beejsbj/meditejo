@@ -37,7 +37,8 @@ inputs. See [GitHub's trigger documentation](https://docs.github.com/en/actions/
 It uses `gh run watch --exit-status` and `gh run download`, verifies artifact
 metadata against the requested commit/configuration and APK SHA-256, aligns
 16 KiB native libraries, signs locally and verifies both alignment and signing
-certificate. Expired artifacts trigger a rerun of the same commit. A failed
+certificate. Expired artifacts trigger a rerun of the same commit (or a fresh uniquely
+named push run when the original is too old to rerun). A failed
 build stops before signing; inspect the printed run URL and use
 `gh run view RUN_ID --repo beejsbj/meditejo --log-failed`.
 
