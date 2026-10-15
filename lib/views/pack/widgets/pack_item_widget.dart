@@ -104,7 +104,7 @@ class PackItemWidget extends StatelessWidget {
 /// title and gives the control a ~48px touch target.
 ///
 /// The flip is optimistic — the icon changes the instant you tap, well ahead
-/// of the network write behind it. Because a user can tap repeatedly, a single
+/// of the local stats write behind it. Because a user can tap repeatedly, a single
 /// converger loop runs at a time: extra taps just update the desired state,
 /// and when the in-flight write finishes the loop persists again if the user
 /// has since changed their mind. A failed write reverts to the real state.

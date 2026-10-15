@@ -1,8 +1,5 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:medito/constants/strings/analytics_event_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
@@ -72,20 +69,6 @@ class _DndSheetState extends ConsumerState<DndSheet> {
       if (!granted) return;
     }
 
-    if (ref.read(dndProvider) != value) {
-      unawaited(
-        ref
-            .read(analyticsServiceProvider)
-            .logEvent(
-              name: AnalyticsEventConstants.dndSettingChanged,
-              parameters: {
-                AnalyticsEventConstants.paramEnabled: value.toString(),
-                AnalyticsEventConstants.paramSource:
-                    AnalyticsEventConstants.sourceSettings,
-              },
-            ),
-      );
-    }
     await notifier.setEnabled(value);
     if (mounted) Navigator.of(context).pop();
   }
@@ -93,41 +76,13 @@ class _DndSheetState extends ConsumerState<DndSheet> {
   /// Explain the permission, offer the system page, and report whether access
   /// is granted once the user is back.
   Future<bool> _recoverAccess() async {
-    final analytics = ref.read(analyticsServiceProvider);
-    const params = {
-      AnalyticsEventConstants.paramSource:
-          AnalyticsEventConstants.sourceSettings,
-    };
-
-    unawaited(
-      analytics.logEvent(
-        name: AnalyticsEventConstants.dndAccessPromptShown,
-        parameters: params,
-      ),
-    );
-
     final go = await _showAccessDialog();
     if (!go || !mounted) return false;
-
-    unawaited(
-      analytics.logEvent(
-        name: AnalyticsEventConstants.dndAccessSettingsOpened,
-        parameters: params,
-      ),
-    );
 
     final granted = await ref
         .read(dndProvider.notifier)
         .requestAccessViaSettings();
 
-    unawaited(
-      analytics.logEvent(
-        name: granted
-            ? AnalyticsEventConstants.dndAccessGranted
-            : AnalyticsEventConstants.dndAccessDenied,
-        parameters: params,
-      ),
-    );
     return granted;
   }
 

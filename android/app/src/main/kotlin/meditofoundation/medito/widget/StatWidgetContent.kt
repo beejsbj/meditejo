@@ -68,8 +68,7 @@ internal fun StatWidgetContent(
     palette: WidgetPalette,
     tapUri: String,
 ) {
-    // Tap fires a deep link with source params so DeepLinkService can log the widget tap
-    // analytics. No path segments → app just opens.
+    // Open the widget destination through a deep link; no path opens the app.
     val tapAction = actionStartActivity(
         Intent(Intent.ACTION_VIEW, Uri.parse(tapUri)).apply {
             setPackage(context.packageName)

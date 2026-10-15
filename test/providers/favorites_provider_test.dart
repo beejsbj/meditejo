@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/models/favorites/favorite_item.dart';
 import 'package:medito/providers/favorites/favorites_provider.dart';
+import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/repositories/favorites/favorites_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 FavoriteItem _item(String id, int timestamp) => FavoriteItem(
   id: id,
@@ -13,56 +17,53 @@ FavoriteItem _item(String id, int timestamp) => FavoriteItem(
   timestamp: timestamp,
 );
 
-/// In-memory stand-in for local prefs + the /favorites endpoint.
+/// Controls local write completion so the optimistic state can be observed.
 class _FakeRepository implements FavoritesRepository {
-  _FakeRepository({required this.local, required this.server});
+  _FakeRepository({required this.local});
 
   List<FavoriteItem> local;
-  List<FavoriteItem> server;
-  Map<String, int> removed = {};
-  bool failPosts = false;
-  final posts = <List<String>>[];
-
-  /// When set, GET waits on this and returns the server list as it was
-  /// when the request started (a slow fetch racing a removal).
-  Completer<void>? holdGet;
+  bool failSaves = false;
+  int saves = 0;
+  Completer<void>? holdSave;
 
   @override
   Future<List<FavoriteItem>> loadFavorites() async => [...local];
 
   @override
-  Future<void> saveFavorites(List<FavoriteItem> favorites) async =>
-      local = [...favorites];
-
-  @override
-  Future<List<FavoriteItem>> loadFavoritesFromServer() async {
-    final snapshot = [...server];
-    if (holdGet != null) await holdGet!.future;
-    return snapshot;
-  }
-
-  @override
-  Future<void> syncWithServer(List<FavoriteItem> favorites) async {
-    if (failPosts) throw Exception('Contains invalid characters');
-    posts.add(favorites.map((f) => f.id).toList());
-    server = [...favorites];
-  }
-
-  @override
-  Future<Map<String, int>> loadRemovedFavorites() async => {...removed};
-
-  @override
-  Future<void> saveRemovedFavorites(Map<String, int> value) async =>
-      removed = {...value};
-
-  @override
-  Future<void> clearLocal() async {
-    local = [];
-    removed = {};
+  Future<void> saveFavorites(List<FavoriteItem> favorites) async {
+    saves++;
+    if (holdSave != null) await holdSave!.future;
+    if (failSaves) throw StateError('Local storage unavailable');
+    local = [...favorites];
   }
 }
 
-Future<ProviderContainer> _start(_FakeRepository repo) async {
+class _FailingPreferences extends Fake implements SharedPreferences {
+  _FailingPreferences(this.prefs, {this.throwOnSave = false});
+
+  final SharedPreferences prefs;
+  final bool throwOnSave;
+  String? _cachedFailedValue;
+
+  @override
+  String? getString(String key) => _cachedFailedValue ?? prefs.getString(key);
+
+  @override
+  Future<bool> setString(String key, String value) async {
+    // The plugin updates its in-memory cache even when the disk write fails.
+    _cachedFailedValue = value;
+    if (throwOnSave) throw StateError('Local storage unavailable');
+    return false;
+  }
+
+  @override
+  Future<void> reload() async {
+    await prefs.reload();
+    _cachedFailedValue = null;
+  }
+}
+
+Future<ProviderContainer> _start(FavoritesRepository repo) async {
   final container = ProviderContainer(
     overrides: [favoritesRepositoryProvider.overrideWithValue(repo)],
   );
@@ -71,176 +72,264 @@ Future<ProviderContainer> _start(_FakeRepository repo) async {
   return container;
 }
 
-Future<void> _settle() => Future<void>.delayed(Duration.zero);
-
-List<String> _ids(ProviderContainer c) =>
-    c.read(favoritesNotifierProvider).value!.map((f) => f.id).toList();
+List<String> _ids(ProviderContainer container) => container
+    .read(favoritesNotifierProvider)
+    .value!
+    .map((item) => item.id)
+    .toList();
 
 void main() {
-  test(
-    'removal during a slow fetch is not undone by the stale response',
-    () async {
-      final repo = _FakeRepository(
-        local: [_item('a', 1), _item('b', 2)],
-        server: [_item('a', 1), _item('b', 2)],
-      )..holdGet = Completer<void>();
-      final container = await _start(repo);
+  late SharedPreferences prefs;
 
-      await container
-          .read(favoritesNotifierProvider.notifier)
-          .removeFromFavorites('a');
-      repo.holdGet!.complete();
-      await _settle();
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
 
-      expect(_ids(container), ['b']);
-      expect(repo.local.map((f) => f.id), ['b']);
-      expect(repo.server.map((f) => f.id), ['b']);
-    },
-  );
-
-  test(
-    'removal whose upload failed stays removed and is re-pushed later',
-    () async {
-      final repo = _FakeRepository(
-        local: [_item('a', 1), _item('b', 2)],
-        server: [_item('a', 1), _item('b', 2)],
-      );
-      var container = await _start(repo);
-      await _settle();
-
-      repo.failPosts = true;
-      await container
-          .read(favoritesNotifierProvider.notifier)
-          .removeFromFavorites('a');
-      expect(repo.server.map((f) => f.id), containsAll(['a', 'b']));
-
-      // Next launch, uploads working again.
-      container.dispose();
-      repo.failPosts = false;
-      container = await _start(repo);
-      await _settle();
-
-      expect(_ids(container), ['b']);
-      expect(repo.server.map((f) => f.id), ['b']);
-    },
-  );
-
-  test('removing the last favourite clears it on the server', () async {
-    final repo = _FakeRepository(
-      local: [_item('a', 1)],
-      server: [_item('a', 1)],
+  Future<ProviderContainer> startWithPreferences() async {
+    final container = ProviderContainer(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
     );
-    var container = await _start(repo);
-    await _settle();
+    addTearDown(container.dispose);
+    await container.read(favoritesNotifierProvider.future);
+    return container;
+  }
 
-    await container
-        .read(favoritesNotifierProvider.notifier)
-        .removeFromFavorites('a');
-    expect(repo.posts.last, isEmpty);
+  test(
+    'first launch has no favorites and does not write preferences',
+    () async {
+      final container = await startWithPreferences();
 
-    container.dispose();
-    container = await _start(repo);
-    await _settle();
-    expect(_ids(container), isEmpty);
+      expect(_ids(container), isEmpty);
+      expect(prefs.getKeys(), isEmpty);
+    },
+  );
+
+  test('saves full track and pack records and reloads them locally', () async {
+    final container = await startWithPreferences();
+    final notifier = container.read(favoritesNotifierProvider.notifier);
+    final track = _item('ds-1', 1);
+    const pack = FavoriteItem(
+      id: 'lib-course',
+      title: 'Metta course',
+      subtitle: 'Six sessions',
+      coverUrl: 'https://example.org/cover.jpg',
+      path: '/packs/lib-course',
+      type: FavoriteItemType.pack,
+      timestamp: 2,
+    );
+
+    await notifier.addToFavorites(track);
+    await notifier.addToFavorites(pack);
+    final expected = [track.toJson(), pack.toJson()];
+    expect(
+      jsonDecode(prefs.getString(SharedPreferenceConstants.favorites)!),
+      expected,
+    );
+    expect(prefs.getKeys(), {SharedPreferenceConstants.favorites});
+
+    await prefs.reload();
+    final nextLaunch = await startWithPreferences();
+    expect(
+      nextLaunch
+          .read(favoritesNotifierProvider)
+          .value!
+          .map((item) => item.toJson()),
+      expected,
+    );
+  });
+
+  test('loads existing favorites without rewriting local records', () async {
+    final existing = jsonEncode([_item('ds-existing', 10).toJson()]);
+    await prefs.setString(SharedPreferenceConstants.favorites, existing);
+
+    final container = await startWithPreferences();
+
+    expect(_ids(container), ['ds-existing']);
+    expect(prefs.getString(SharedPreferenceConstants.favorites), existing);
   });
 
   test(
-    'confirmed removals are forgotten; re-adding clears the removal',
+    'removal persists across reload and does not write tombstones',
     () async {
-      final repo = _FakeRepository(
-        local: [_item('a', 1), _item('b', 2)],
-        server: [_item('a', 1), _item('b', 2)],
-      );
-      final container = await _start(repo);
-      await _settle();
+      final container = await startWithPreferences();
       final notifier = container.read(favoritesNotifierProvider.notifier);
+      await notifier.addToFavorites(_item('a', 1));
+      await notifier.addToFavorites(_item('b', 2));
 
       await notifier.removeFromFavorites('a');
-      expect(repo.removed.keys, ['a']);
+      expect(_ids(container), ['b']);
 
-      await notifier.addToFavorites(_item('a', 3));
-      expect(repo.removed, isEmpty);
-
-      await notifier.removeFromFavorites('b');
-      await Future<void>.delayed(const Duration(milliseconds: 5));
-      await notifier.refreshFromServer();
-      expect(repo.removed, isEmpty, reason: 'server no longer has b');
+      await prefs.reload();
+      final nextLaunch = await startWithPreferences();
+      expect(_ids(nextLaunch), ['b']);
+      expect(prefs.getKeys(), {SharedPreferenceConstants.favorites});
     },
   );
 
-  test('never pushes an empty list when nothing was removed', () async {
-    final repo = _FakeRepository(local: [], server: []);
-    final container = await _start(repo);
-    await _settle();
+  test('removing the last favorite stays empty after reload', () async {
+    final container = await startWithPreferences();
+    final notifier = container.read(favoritesNotifierProvider.notifier);
+    await notifier.addToFavorites(_item('a', 1));
 
-    await container.read(favoritesNotifierProvider.notifier).syncWithServer();
-    expect(repo.posts, isEmpty);
+    await notifier.removeFromFavorites('a');
+    expect(_ids(container), isEmpty);
+    expect(prefs.getString(SharedPreferenceConstants.favorites), '[]');
+
+    await prefs.reload();
+    final nextLaunch = await startWithPreferences();
+    expect(_ids(nextLaunch), isEmpty);
   });
 
-  group('clearLocal (sign-out / account switch)', () {
-    test('drops the local copy without touching the server', () async {
-      final repo = _FakeRepository(
-        local: [_item('a', 1)],
-        server: [_item('a', 1)],
-      );
-      final container = await _start(repo);
-      await _settle();
-      repo.removed = {'x': 5};
+  test('a removed favorite can be added again and reloaded', () async {
+    final container = await startWithPreferences();
+    final notifier = container.read(favoritesNotifierProvider.notifier);
+    await notifier.addToFavorites(_item('a', 1));
+    await notifier.removeFromFavorites('a');
+    await notifier.addToFavorites(_item('a', 3));
 
-      await container.read(favoritesNotifierProvider.notifier).clearLocal();
-
-      expect(_ids(container), isEmpty);
-      expect(repo.local, isEmpty);
-      expect(repo.removed, isEmpty);
-      expect(repo.posts, isEmpty, reason: 'must not wipe the server copy');
-      expect(repo.server.map((f) => f.id), ['a']);
-    });
-
-    test('a fetch still in flight cannot bring the old list back', () async {
-      final repo = _FakeRepository(
-        local: [_item('a', 1)],
-        server: [_item('a', 1), _item('b', 2)],
-      )..holdGet = Completer<void>();
-      final container = await _start(repo);
-
-      await container.read(favoritesNotifierProvider.notifier).clearLocal();
-      repo.holdGet!.complete();
-      await _settle();
-      await _settle();
-
-      expect(_ids(container), isEmpty);
-      expect(repo.local, isEmpty);
-      expect(repo.posts, isEmpty);
-    });
-
-    test(
-      'rebuilding after sign-in loads the new account from the server',
-      () async {
-        // Signed in as the old account: its favourites are local and synced.
-        final repo = _FakeRepository(
-          local: [_item('old-account', 1)],
-          server: [_item('old-account', 1)],
-        );
-        final container = await _start(repo);
-        await _settle();
-
-        // Sign out, then sign in as a different account.
-        await container.read(favoritesNotifierProvider.notifier).clearLocal();
-        repo.server = [_item('new-account', 2)];
-        repo.posts.clear();
-        container.invalidate(favoritesNotifierProvider);
-        await container.read(favoritesNotifierProvider.future);
-        await _settle();
-        await _settle();
-
-        expect(_ids(container), ['new-account']);
-        expect(repo.server.map((f) => f.id), ['new-account']);
-        expect(
-          repo.posts.expand((p) => p),
-          isNot(contains('old-account')),
-          reason: 'the old account must never be uploaded to the new one',
-        );
-      },
+    await prefs.reload();
+    final nextLaunch = await startWithPreferences();
+    expect(_ids(nextLaunch), ['a']);
+    expect(
+      nextLaunch.read(favoritesNotifierProvider).value!.single.timestamp,
+      3,
     );
   });
+
+  test('refresh reloads local preferences', () async {
+    final container = await startWithPreferences();
+    await prefs.setString(
+      SharedPreferenceConstants.favorites,
+      jsonEncode([_item('saved-locally', 5).toJson()]),
+    );
+
+    await container.read(favoritesNotifierProvider.notifier).refresh();
+
+    expect(_ids(container), ['saved-locally']);
+  });
+
+  test('refresh can recover from invalid local data', () async {
+    await prefs.setString(SharedPreferenceConstants.favorites, 'invalid json');
+    final container = ProviderContainer(
+      // Riverpod retries build failures by default, keeping .future pending.
+      // Observe the failed load directly, then exercise the explicit retry.
+      retry: (_, _) => null,
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
+    addTearDown(container.dispose);
+    await expectLater(
+      container.read(favoritesNotifierProvider.future),
+      throwsA(isA<FormatException>()),
+    );
+    expect(container.read(favoritesNotifierProvider).hasError, isTrue);
+    expect(
+      container.read(favoritesNotifierProvider).error,
+      isA<FormatException>(),
+    );
+    expect(
+      prefs.getString(SharedPreferenceConstants.favorites),
+      'invalid json',
+      reason: 'A failed read must not overwrite the saved data',
+    );
+
+    await prefs.setString(
+      SharedPreferenceConstants.favorites,
+      jsonEncode([_item('recovered', 6).toJson()]),
+    );
+    await container.read(favoritesNotifierProvider.notifier).refresh();
+
+    expect(_ids(container), ['recovered']);
+    expect(container.read(favoritesNotifierProvider).hasError, isFalse);
+    expect(
+      container.read(favoritesNotifierProvider).value!.single.toJson(),
+      _item('recovered', 6).toJson(),
+    );
+  });
+
+  test('duplicate adds and missing removals do not save', () async {
+    final repo = _FakeRepository(local: [_item('a', 1)]);
+    final container = await _start(repo);
+    final notifier = container.read(favoritesNotifierProvider.notifier);
+
+    await notifier.addToFavorites(_item('a', 2));
+    await notifier.removeFromFavorites('missing');
+
+    expect(_ids(container), ['a']);
+    expect(
+      container.read(favoritesNotifierProvider).value!.single.timestamp,
+      1,
+    );
+    expect(repo.saves, 0);
+  });
+
+  for (final remove in [false, true]) {
+    final operation = remove ? 'remove' : 'add';
+
+    test('$operation updates the UI before local save finishes', () async {
+      final repo = _FakeRepository(local: [_item('a', 1)])
+        ..holdSave = Completer<void>();
+      final container = await _start(repo);
+      final notifier = container.read(favoritesNotifierProvider.notifier);
+
+      final pending = remove
+          ? notifier.removeFromFavorites('a')
+          : notifier.addToFavorites(_item('b', 2));
+      expect(_ids(container), remove ? isEmpty : ['a', 'b']);
+      expect(repo.local.map((item) => item.id), ['a']);
+
+      repo.holdSave!.complete();
+      await pending;
+      expect(repo.local.map((item) => item.id), remove ? isEmpty : ['a', 'b']);
+    });
+
+    test('$operation rolls back when local persistence throws', () async {
+      final repo = _FakeRepository(local: [_item('a', 1)])
+        ..holdSave = Completer<void>()
+        ..failSaves = true;
+      final container = await _start(repo);
+      final notifier = container.read(favoritesNotifierProvider.notifier);
+
+      final pending = remove
+          ? notifier.removeFromFavorites('a')
+          : notifier.addToFavorites(_item('b', 2));
+      expect(_ids(container), remove ? isEmpty : ['a', 'b']);
+
+      repo.holdSave!.complete();
+      await pending;
+      expect(_ids(container), ['a']);
+      expect(repo.local.map((item) => item.id), ['a']);
+
+      final nextLaunch = await _start(repo);
+      expect(_ids(nextLaunch), ['a']);
+    });
+
+    for (final throwOnSave in [false, true]) {
+      final failure = throwOnSave ? 'throws' : 'returns false';
+      test('$operation rolls back when SharedPreferences $failure', () async {
+        await prefs.setString(
+          SharedPreferenceConstants.favorites,
+          jsonEncode([_item('a', 1).toJson()]),
+        );
+        final repo = FavoritesRepositoryImpl(
+          prefs: _FailingPreferences(prefs, throwOnSave: throwOnSave),
+        );
+        final container = await _start(repo);
+        final notifier = container.read(favoritesNotifierProvider.notifier);
+
+        if (remove) {
+          await notifier.removeFromFavorites('a');
+        } else {
+          await notifier.addToFavorites(_item('b', 2));
+        }
+
+        expect(_ids(container), ['a']);
+        await notifier.refresh();
+        expect(_ids(container), ['a']);
+        await prefs.reload();
+        final nextLaunch = await startWithPreferences();
+        expect(_ids(nextLaunch), ['a']);
+      });
+    }
+  }
 }

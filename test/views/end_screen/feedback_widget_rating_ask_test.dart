@@ -68,7 +68,7 @@ void main() {
     ]);
   });
 
-  testWidgets('not shown after a donate tap on the same screen', (
+  testWidgets('not shown when the caller suppresses the rating ask', (
     tester,
   ) async {
     await pump(tester, eligible, suppress: true);

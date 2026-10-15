@@ -1,11 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
-import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/models/local_all_stats.dart';
-import 'package:medito/services/network/http_api_service.dart';
 import 'package:medito/services/stats_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medito/models/local_audio_completed.dart';
@@ -15,29 +12,9 @@ import 'package:medito/utils/consistency_score_history.dart';
 import 'package:medito/utils/day_boundary.dart';
 import 'package:medito/utils/logger.dart';
 
-// Key Rules for a Normal Streak (Without Streak Freezes)
-// 1.	Meditating every day increases the streak by 1. Each consecutive day of meditation adds to the streak.
-// 2.	Missing a day resets the streak to 0. If the user skips meditation for a full calendar day, the next time they open the app, the streak will be reset.
-// 3.	The streak only updates when the app is opened. If the user misses a day but does not open the app, the streak does not reset until they next launch it.
-// 4.	Meditation must be completed before midnight. The streak is based on calendar days, so meditating after midnight will count as the next day's session.
-// 5.	A new streak starts from 1 after a reset. If the streak is broken, meditating again starts a fresh streak from 1.
-
-// Key Rules for Streak Freezes
-// 	1.	Streak freezes prevent a reset but must be activated manually. If a user opens the app after missing a day, they will have the option to use a streak freeze before the streak resets.
-// 	2.	Each streak freeze covers only one missed day. If a user misses multiple days, they need an equal number of streak freezes to restore their streak.
-// 	3.	Streak freezes apply to specific missed days. If a freeze is used, it bridges the gap so the streak is not broken, but does not add to the streak counter since no meditation was completed.
-// 	4.	The app only suggests a streak restoration if the user has enough streak freezes. If a user misses multiple days but does not have enough streak freezes to cover all of them, the app does not offer a partial restoration.
-// 	5.	Streak freezes do not apply automatically. Users must choose to use them when they open the app after missing a day.
-// 	6.	After using a streak freeze, meditating that day continues the streak. If a streak freeze is applied and the user meditates, the streak progresses as if no days were missed.
-//  7. The streak applies to the days before today. The user can use multiple streak freezes to cover multiple days, but it will never restore a previously broken streak, only the current streak can be restored.
-
 class StatsManager {
   static final StatsManager _instance = StatsManager._internal();
   factory StatsManager() => _instance;
-
-  static const _syncLockKey = 'stats_sync_lock';
-  static const _syncLockTimeout = Duration(seconds: 30);
-  static const _syncTtl = Duration(seconds: 60);
 
   late StatsService _statsService;
   late SharedPreferences _prefs;
@@ -45,35 +22,10 @@ class StatsManager {
   bool _isInitialized = false;
   Completer<void>? _initCompleter;
   DateTime? _testDate;
-  DateTime? _lastSyncedAt;
-  bool _dirty = false;
   Duration _dayBoundaryOffset = Duration.zero;
-
-  // Bumped by clearAllStats. A sync that was already fetching when the stats
-  // were cleared (sign-out, account deletion) drops its result instead of
-  // writing the old account's history back.
-  int _clearGeneration = 0;
+  Future<void> _mutationTail = Future<void>.value();
 
   StatsManager._internal();
-
-  Future<bool> _acquireLock() async {
-    var prefs = _prefs;
-    var lastLockTime = prefs.getInt(_syncLockKey) ?? 0;
-    var now = _getCurrentDate().millisecondsSinceEpoch;
-
-    if (now - lastLockTime > _syncLockTimeout.inMilliseconds) {
-      var success = await prefs.setInt(_syncLockKey, now);
-      if (!success) return false;
-
-      var checkLock = prefs.getInt(_syncLockKey);
-      return checkLock == now;
-    }
-    return false;
-  }
-
-  Future<void> _releaseLock() async {
-    await _prefs.remove(_syncLockKey);
-  }
 
   Future<void> initialize() async {
     if (_isInitialized) return;
@@ -84,11 +36,7 @@ class StatsManager {
     _initCompleter = Completer<void>();
     try {
       _prefs = await SharedPreferences.getInstance();
-      _statsService = StatsService(
-        httpApiService: HttpApiService(),
-        prefs: _prefs,
-      );
-      await _loadLastSyncedAt(_prefs);
+      _statsService = StatsService(prefs: _prefs);
       _loadDayBoundaryOffset(_prefs);
       _isInitialized = true;
       _initCompleter!.complete();
@@ -100,331 +48,24 @@ class StatsManager {
     }
   }
 
-  Future<void> _loadLastSyncedAt([SharedPreferences? prefsArg]) async {
-    try {
-      var prefs = prefsArg ?? _prefs;
-      var lastSyncedTimestamp = prefs.getInt(
-        SharedPreferenceConstants.statsLastSyncedAt,
-      );
-      if (lastSyncedTimestamp != null && lastSyncedTimestamp > 0) {
-        _lastSyncedAt = DateTime.fromMillisecondsSinceEpoch(
-          lastSyncedTimestamp,
-        );
-      } else {
-        _lastSyncedAt = null;
-      }
-    } catch (e) {
-      // Handle case where SharedPreferences isn't initialized (e.g., in some tests)
-      // In this case, we just leave _lastSyncedAt as null
-      _lastSyncedAt = null;
-    }
-  }
+  /// Refreshes derived stats from the on-device history. Kept as `sync` for
+  /// existing lifecycle callers; `force` no longer triggers a network request.
+  Future<void> sync({bool force = false}) => _mutate(() async {
+    _allStats = calculateStreak(_allStats!);
+    final score = calculateConsistencyScore(_allStats!);
+    _allStats = _allStats!.copyWith(consistencyScore: score);
+    await _saveLocalAllStatsToSharedPrefs();
+    await saveConsistencyScoreHistory(score);
+    HomeWidgetService.updateWidgetFromStats(_allStats!).catchError((e) {
+      // Widget updates are not critical to local stats persistence.
+    });
+  });
 
-  Future<void> _saveLastSyncedAt() async {
-    try {
-      var prefs = _prefs;
-      if (_lastSyncedAt != null) {
-        await prefs.setInt(
-          SharedPreferenceConstants.statsLastSyncedAt,
-          _lastSyncedAt!.millisecondsSinceEpoch,
-        );
-      } else {
-        await prefs.remove(SharedPreferenceConstants.statsLastSyncedAt);
-      }
-    } catch (e) {
-      // Handle case where SharedPreferences isn't initialized (e.g., in some tests)
-      // Silently fail - this is OK in test scenarios
-    }
-  }
-
-  Future<void> sync({bool force = false}) async {
-    //dev.log'StatsManager: Starting sync (force: $force)');
-    if (!_isInitialized) {
-      await initialize();
-    }
-
-    // Early return if not forced and not dirty and within TTL
-    if (!force) {
-      final now = _getCurrentDate();
-      final withinTtl =
-          _lastSyncedAt != null && now.difference(_lastSyncedAt!) < _syncTtl;
-      if (!_dirty && withinTtl) {
-        //dev.log'StatsManager: Skipping sync - within TTL and not dirty');
-        // Callers use sync() to populate _allStats. Skipping the network
-        // round-trip must not leave the in-memory copy empty, otherwise the
-        // next mutation starts from scratch and wipes the local history.
-        _allStats ??= await _loadLocalAllStats();
-        return;
-      }
-    }
-
-    for (var i = 0; i < 3; i++) {
-      if (await _acquireLock()) {
-        try {
-          await _doSync();
-          return;
-        } finally {
-          await _releaseLock();
-        }
-      }
-      if (i < 2) await Future.delayed(Duration(milliseconds: 100));
-    }
-
-    //dev.log'StatsManager: Failed to acquire sync lock after retries');
-  }
-
-  Future<void> _doSync() async {
-    final generation = _clearGeneration;
-    //dev.log'StatsManager: Fetching remote stats');
-    var remoteStats = await _statsService.fetchAllStats();
-    if (generation != _clearGeneration) return;
-
-    // If we got empty stats but have valid local stats, keep the local stats
-    // but still recalculate streak against current date
-    if (remoteStats.totalTracksCompleted == 0 &&
-        (remoteStats.audioCompleted?.isEmpty ?? true) &&
-        _allStats != null &&
-        _allStats!.totalTracksCompleted > 0) {
-      //dev.log'StatsManager: Keeping local stats instead of empty remote stats');
-      _allStats = calculateStreak(_allStats!);
-      final newConsistencyScore = calculateConsistencyScore(_allStats!);
-      _allStats = _allStats!.copyWith(consistencyScore: newConsistencyScore);
-      await _saveLocalAllStatsToSharedPrefs();
-      return;
-    }
-
-    // Save the remote stats to a temporary variable instead of immediately
-    // overwriting _allStats
-    var tempRemoteStats = remoteStats;
-
-    // Pass the remote stats to merge instead of overwriting first
-    await _merge(tempRemoteStats);
-    if (generation != _clearGeneration) {
-      _allStats = LocalAllStats.empty();
-      return;
-    }
-
-    if (_allStats != null) {
-      // Store the current streak values before recalculating
-      var currentStreak = _allStats!.streakCurrent;
-      var longestStreak = _allStats!.streakLongest;
-
-      // Only recalculate streak in production, not during tests
-      try {
-        //dev.log'StatsManager: Calculating streak');
-        _allStats = calculateStreak(_allStats!);
-      } catch (_) {
-        _allStats = _allStats!.copyWith(
-          streakCurrent: currentStreak,
-          streakLongest: longestStreak,
-        );
-      }
-
-      final newConsistencyScore = calculateConsistencyScore(_allStats!);
-      _allStats = _allStats!.copyWith(consistencyScore: newConsistencyScore);
-
-      await saveConsistencyScoreHistory(newConsistencyScore);
-      await _saveLocalAllStatsToSharedPrefs();
-      await _statsService.postStats(_allStats!);
-      // Mark as synced and clear dirty flag after successful POST
-      _lastSyncedAt = _getCurrentDate();
-      await _saveLastSyncedAt();
-      _dirty = false;
-
-      // Update home widget (fire-and-forget to avoid blocking)
-      HomeWidgetService.updateWidgetFromStats(_allStats!).catchError((e) {
-        // Silently fail - widget updates are not critical
-      });
-    } else {
-      throw Exception("Stats are null");
-    }
-
-    //dev.log'StatsManager: Sync completed');
-  }
-
-  Future<LocalAllStats> get localAllStats async {
-    if (_allStats == null) {
-      _allStats = await _loadLocalAllStats();
-
-      // Load last synced time from SharedPreferences (not from stats.updated)
-      // This is the actual last sync time, not the last modification time
-      await _loadLastSyncedAt();
-
-      // If local stats are empty, sync with server to try to get valid stats
-      if (_allStats!.totalTracksCompleted == 0 &&
-          (_allStats!.audioCompleted?.isEmpty ?? true)) {
-        //dev.log'StatsManager: Local stats are empty, syncing with server');
-        await sync();
-      }
-    }
+  Future<LocalAllStats> get localAllStats => _serialize(() async {
+    await initialize();
+    await _ensureStatsLoaded();
     return _allStats!;
-  }
-
-  Future<void> _merge(LocalAllStats remoteStats) async {
-    // Check if remote stats contain recent dummy data
-    var now = _getCurrentDate();
-    var today = DateTime(now.year, now.month, now.day);
-
-    // Check if any dummy tracks are from today
-    var hasRecentDummyTracks =
-        remoteStats.audioCompleted?.any((audio) {
-          if (!audio.id.startsWith('dummy-track')) return false;
-
-          var trackDate = DateTime.fromMillisecondsSinceEpoch(audio.timestamp);
-          var trackDay = DateTime(
-            trackDate.year,
-            trackDate.month,
-            trackDate.day,
-          );
-
-          // Consider tracks from today as recent
-          return trackDay.isAtSameMomentAs(today);
-        }) ??
-        false;
-
-    // If remote stats contain recent dummy data, prefer remote data completely
-    if (hasRecentDummyTracks) {
-      //dev.log
-      //'StatsManager: Remote stats contain recent dummy data, using remote stats only');
-      _allStats = remoteStats.copyWith(
-        updated: _getCurrentDate().millisecondsSinceEpoch,
-      );
-      return;
-    }
-
-    // Use the current _allStats as localAllStats if available
-    LocalAllStats? localAllStats = _allStats;
-
-    // If _allStats is null, try to load from SharedPreferences
-    if (localAllStats == null) {
-      var prefs = _prefs;
-      var localAllStatsJson = prefs.getString(
-        SharedPreferenceConstants.localAllStatsKey,
-      );
-
-      if (localAllStatsJson != null && localAllStatsJson != 'null') {
-        localAllStats = LocalAllStats.fromJson(
-          jsonDecode(localAllStatsJson) as Map<String, dynamic>,
-        );
-        //dev.log
-        //'StatsManager: Loaded local stats from SharedPreferences: ${localAllStats.totalTracksCompleted}');
-      } else {
-        //dev.log'StatsManager: No local stats found in SharedPreferences');
-      }
-    } else {
-      //dev.log
-      //'StatsManager: Using existing _allStats as local stats: ${localAllStats.totalTracksCompleted}');
-    }
-
-    // If we have no remote stats but have local stats, use local
-    if (remoteStats.totalTracksCompleted == 0) {
-      if (localAllStats != null && localAllStats.totalTracksCompleted > 0) {
-        //dev.log'StatsManager: Using local stats');
-        _allStats = localAllStats.copyWith(
-          updated: _getCurrentDate().millisecondsSinceEpoch,
-        );
-        return;
-      }
-    }
-
-    // If we have no local stats but have remote stats, use remote
-    if (localAllStats == null || localAllStats.totalTracksCompleted == 0) {
-      if (remoteStats.totalTracksCompleted > 0) {
-        _allStats = remoteStats.copyWith(
-          updated: _getCurrentDate().millisecondsSinceEpoch,
-        );
-        return;
-      }
-    }
-
-    // If both exist, merge them properly
-    if (localAllStats != null) {
-      //dev.log'DEBUG - MERGING:');
-      //dev.log
-      // 'Local audio: ${localAllStats.audioCompleted?.map((a) => a.id).toList()}');
-      //dev.log
-      // 'Remote audio: ${remoteStats.audioCompleted?.map((a) => a.id).toList()}');
-
-      // Create a combined list of tracks checked
-      var combinedTracksChecked = {
-        ...localAllStats.tracksChecked ?? [],
-        ...remoteStats.tracksChecked ?? [],
-      }.toList();
-
-      // Deduplicate audio completed entries by ID and timestamp
-      final audioCompletedMap = <String, LocalAudioCompleted>{};
-
-      // Process local entries first
-      for (final audio in localAllStats.audioCompleted ?? []) {
-        final key = '${audio.id}_${audio.timestamp}';
-        audioCompletedMap[key] = audio;
-      }
-
-      // Process remote entries, overwriting local entries if they exist
-      for (final audio in remoteStats.audioCompleted ?? []) {
-        final key = '${audio.id}_${audio.timestamp}';
-        audioCompletedMap[key] = audio;
-      }
-
-      // Convert back to list
-      final deduplicatedAudioCompleted = audioCompletedMap.values.toList();
-
-      //dev.log
-      //'Deduplicated audio: ${deduplicatedAudioCompleted.map((a) => a.id).toList()}');
-
-      // Create a combined list of freeze usage dates, removing duplicates
-      var deduplicatedFreezeUsageDates = {
-        ...localAllStats.freezeUsageDates,
-        ...remoteStats.freezeUsageDates,
-      }.toList();
-
-      // Determine which base to use for other properties
-      var areRemoteStatsNewer = remoteStats.updated > localAllStats.updated;
-      var baseStats = areRemoteStatsNewer ? remoteStats : localAllStats;
-
-      // Lifetime counters are monotonic, so never let a freshly-created copy
-      // (e.g. a completion recorded before the local history was loaded)
-      // win just because it has the newer `updated` stamp. Take the larger
-      // value from either side, and never report fewer completions than we
-      // actually hold in the merged history.
-      // Legacy streak-freeze entries and the manual-edit form's dummy entries
-      // live in the history but are not completed tracks, so they do not
-      // count toward the floor.
-      final realCompletions = deduplicatedAudioCompleted
-          .where(
-            (a) =>
-                a.id != TypeConstants.streakFreeze &&
-                !a.id.startsWith('dummy-track'),
-          )
-          .length;
-      final mergedTotalTracks = [
-        localAllStats.totalTracksCompleted,
-        remoteStats.totalTracksCompleted,
-        realCompletions,
-      ].reduce((a, b) => a > b ? a : b);
-      final mergedTimeListened =
-          localAllStats.totalTimeListened > remoteStats.totalTimeListened
-          ? localAllStats.totalTimeListened
-          : remoteStats.totalTimeListened;
-      final mergedLongestStreak =
-          localAllStats.streakLongest > remoteStats.streakLongest
-          ? localAllStats.streakLongest
-          : remoteStats.streakLongest;
-
-      // Update with combined data
-      _allStats = baseStats.copyWith(
-        audioCompleted: deduplicatedAudioCompleted,
-        freezeUsageDates: deduplicatedFreezeUsageDates,
-        tracksChecked: combinedTracksChecked,
-        totalTracksCompleted: mergedTotalTracks,
-        totalTimeListened: mergedTimeListened,
-        streakLongest: mergedLongestStreak,
-        updated: _getCurrentDate().millisecondsSinceEpoch,
-      );
-    } else {
-      _allStats = remoteStats;
-    }
-  }
+  });
 
   // ⚠️ KEEP IN SYNC: ported to Kotlin in
   // android/app/src/main/kotlin/meditofoundation/medito/widget/StreakCalculator.kt
@@ -485,73 +126,68 @@ class StatsManager {
   }
 
   Future<void> _saveLocalAllStatsToSharedPrefs() async {
-    if (_allStats != null && _allStats?.totalTracksCompleted == 0) return;
-
-    //dev.log'StatsManager: Saving local stats');
-
-    var prefs = _prefs;
     if (_allStats != null) {
-      await prefs.setString(
-        SharedPreferenceConstants.localAllStatsKey,
-        jsonEncode(_allStats!.toJson()),
+      await _statsService.saveStats(_allStats!);
+    }
+  }
+
+  /// One stats writer at a time, including refreshes and checked-track edits.
+  /// Keep a private working copy so failed edits cannot mutate the last good
+  /// snapshot through shared lists. Readers wait until the write is settled.
+  Future<T> _serialize<T>(Future<T> Function() operation) {
+    final result = _mutationTail.then((_) => operation());
+    _mutationTail = result.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace __) {},
+    );
+    return result;
+  }
+
+  Future<void> _mutate(
+    Future<void> Function() operation, {
+    bool loadStats = true,
+  }) => _serialize(() async {
+    await initialize();
+    if (loadStats) await _ensureStatsLoaded();
+    final before = _allStats;
+    if (before != null) {
+      _allStats = before.copyWith(
+        tracksChecked: [...?before.tracksChecked],
+        audioCompleted: [...?before.audioCompleted],
+        freezeUsageDates: [...before.freezeUsageDates],
+        completionReceipts: [...before.completionReceipts],
       );
     }
-  }
-
-  Future<LocalAllStats> _loadLocalAllStats() async {
     try {
-      var prefs = _prefs;
-      var json = prefs.getString(SharedPreferenceConstants.localAllStatsKey);
-      if (json != null) {
-        var decodedJson = jsonDecode(json);
-        if (decodedJson is Map<String, dynamic>) {
-          return LocalAllStats.fromJson(decodedJson);
-        }
+      await operation();
+    } catch (_) {
+      _allStats = before;
+      try {
+        // StatsService repairs the preferences cache after failed writes.
+        // Also handles an ambiguous error after the platform committed.
+        _allStats = await _statsService.loadStats();
+      } catch (_) {
+        // Do not reuse a potentially uncommitted preferences cache.
+        _allStats = null;
       }
-    } catch (e) {
-      if (kDebugMode) {
-        //dev.log'Error loading local stats: $e');
-      }
+      rethrow;
     }
-    return LocalAllStats.empty();
-  }
+  });
 
-  /// Makes sure [_allStats] holds the best copy we have *before* anything is
-  /// mutated. The on-disk copy is authoritative when the in-memory one is
-  /// missing (fresh engine, e.g. Android replaying a completion that
-  /// finished while the app was killed). Only if there is nothing on disk do
-  /// we fall back to a network sync. Previously this relied on `sync()`,
-  /// which can legitimately return without loading anything (TTL
-  /// short-circuit, or the sync lock held by a concurrent foreground sync);
-  /// a completion arriving in that window then started from an empty stats
-  /// object and overwrote a year of history locally and on the server.
+  /// Load the persisted history before a first mutation, including histories
+  /// containing only checked tracks or legacy counters.
   Future<void> _ensureStatsLoaded() async {
     if (_allStats != null) return;
-    final fromDisk = await _loadLocalAllStats();
-    final diskIsEmpty =
-        fromDisk.totalTracksCompleted == 0 &&
-        (fromDisk.audioCompleted?.isEmpty ?? true);
-    if (!diskIsEmpty) {
-      _allStats = fromDisk;
-      return;
-    }
-    await sync();
-    _allStats ??= fromDisk;
+    final storedStats = await _statsService.loadStats();
+    _allStats ??= storedStats;
   }
 
   Future<void> addAudioCompleted(
     LocalAudioCompleted audioCompleted,
     int duration, {
-    bool skipPost = false,
-  }) async {
-    if (!_isInitialized) {
-      await initialize();
-    }
-    await _ensureStatsLoaded();
-
-    // Mark as dirty since we're about to modify stats
-    _dirty = true;
-
+    bool updateWidget = true,
+    String? completionId,
+  }) => _mutate(() async {
     if (AudioCompletionTracker.checkTrackCrossedMidnight(
       endTimestamp: audioCompleted.timestamp,
       duration: duration,
@@ -559,6 +195,24 @@ class StatsManager {
       audioCompleted = audioCompleted.copyWith(
         timestamp: audioCompleted.timestamp - duration,
       );
+    }
+
+    if (completionId != null) {
+      if (_allStats!.completionReceipts.contains(completionId)) return;
+      // Upgrade a replay from before receipts existed without counting it
+      // twice. Match the attributed history timestamp, including midnight.
+      final alreadyRecorded = (_allStats!.audioCompleted ?? []).any(
+        (entry) =>
+            entry.id == audioCompleted.id &&
+            entry.timestamp == audioCompleted.timestamp,
+      );
+      _allStats = _allStats!.copyWith(
+        completionReceipts: [..._allStats!.completionReceipts, completionId],
+      );
+      if (alreadyRecorded) {
+        await _saveLocalAllStatsToSharedPrefs();
+        return;
+      }
     }
 
     // Update stats with the completed audio
@@ -573,175 +227,84 @@ class StatsManager {
       _allStats = calculateStreak(_allStats!);
       final newConsistencyScore = calculateConsistencyScore(_allStats!);
       _allStats = _allStats!.copyWith(consistencyScore: newConsistencyScore);
-      await saveConsistencyScoreHistory(newConsistencyScore);
       await _saveLocalAllStatsToSharedPrefs();
+      await saveConsistencyScoreHistory(newConsistencyScore);
 
-      if (skipPost) {
-        // Caller is batching multiple inserts and will post + update the
-        // widget once at the end. Leave _dirty=true so flushPendingPost()
-        // knows there's unsynced state.
-        return;
-      }
-
-      await _statsService.postStats(_allStats!);
-      // Mark as synced and clear dirty flag after successful POST
-      _lastSyncedAt = _getCurrentDate();
-      await _saveLastSyncedAt();
-      _dirty = false;
+      // Batched manual inserts refresh the widget once in the caller.
+      if (!updateWidget) return;
 
       // Update home widget (fire-and-forget to avoid blocking)
       HomeWidgetService.updateWidgetFromStats(_allStats!).catchError((e) {
         // Silently fail - widget updates are not critical
       });
     }
-  }
+  });
 
   /// Adds the listening time of a repeated play-through without recording a
   /// new session. See [AudioCompletionTracker.addRepeatListeningTime].
-  Future<void> addRepeatListeningTime(int duration) async {
-    if (!_isInitialized) {
-      await initialize();
-    }
-    await _ensureStatsLoaded();
+  Future<void> addRepeatListeningTime(int duration, {String? completionId}) =>
+      _mutate(() async {
+        if (completionId != null) {
+          if (_allStats!.completionReceipts.contains(completionId)) return;
+          _allStats = _allStats!.copyWith(
+            completionReceipts: [
+              ..._allStats!.completionReceipts,
+              completionId,
+            ],
+          );
+        }
 
-    _dirty = true;
-    _allStats = AudioCompletionTracker.addRepeatListeningTime(
-      stats: _allStats,
-      duration: duration,
-    );
-    await _saveLocalAllStatsToSharedPrefs();
+        _allStats = AudioCompletionTracker.addRepeatListeningTime(
+          stats: _allStats,
+          duration: duration,
+        );
+        await _saveLocalAllStatsToSharedPrefs();
 
-    // The local write is the record; don't surface a post failure (the caller
-    // would retry and double-count). _dirty stays true so the next sync pushes.
-    try {
-      await _statsService.postStats(_allStats!);
-      _lastSyncedAt = _getCurrentDate();
-      await _saveLastSyncedAt();
-      _dirty = false;
-    } catch (e) {
-      AppLogger.e(
-        'STATS_MANAGER',
-        'addRepeatListeningTime: post failed, will retry on next sync',
-        e,
-      );
-    }
+        HomeWidgetService.updateWidgetFromStats(_allStats!).catchError((e) {
+          // Silently fail - widget updates are not critical
+        });
+      });
 
-    HomeWidgetService.updateWidgetFromStats(_allStats!).catchError((e) {
-      // Silently fail - widget updates are not critical
-    });
-  }
+  Future<void> removeAudioCompleted(LocalAudioCompleted session) =>
+      _mutate(() async {
+        if (_allStats == null) return;
 
-  /// Posts the current stats once, after a batch of [addAudioCompleted] calls
-  /// made with `skipPost: true`. No-op if there's nothing to flush.
-  Future<void> flushPendingPost() async {
-    if (!_dirty || _allStats == null) return;
-    await _statsService.postStats(_allStats!);
-    _lastSyncedAt = _getCurrentDate();
-    await _saveLastSyncedAt();
-    _dirty = false;
-  }
+        final currentList = _allStats!.audioCompleted ?? [];
+        final updatedList = currentList
+            .where(
+              (a) => !(a.id == session.id && a.timestamp == session.timestamp),
+            )
+            .toList();
 
-  /// Replaces the current stats with the given snapshot, recalculates
-  /// derived fields, persists locally, and syncs to the server.
-  ///
-  /// Used by the Settings → Advanced → Restore previous stats flow so a
-  /// user who logged into a different account can recover an earlier
-  /// snapshot taken from any account on this device.
-  Future<void> restoreFromBackup(LocalAllStats snapshot) async {
-    if (!_isInitialized) {
-      await initialize();
-    }
+        if (updatedList.length == currentList.length) {
+          // Nothing matched — don't write an update
+          return;
+        }
 
-    // Mark dirty *before* persisting so that, if the network post fails,
-    // flushPendingPost / the next sync still knows there's unsynced state
-    // to push.
-    _dirty = true;
+        final newTotalTracks = (_allStats!.totalTracksCompleted - 1).clamp(
+          0,
+          1 << 31,
+        );
 
-    _allStats = snapshot.copyWith(
-      updated: _getCurrentDate().millisecondsSinceEpoch,
-    );
+        _allStats = _allStats!.copyWith(
+          audioCompleted: updatedList,
+          totalTracksCompleted: newTotalTracks,
+          updated: _getCurrentDate().millisecondsSinceEpoch,
+        );
 
-    _allStats = calculateStreak(_allStats!);
-    final newConsistencyScore = calculateConsistencyScore(_allStats!);
-    _allStats = _allStats!.copyWith(consistencyScore: newConsistencyScore);
-    await saveConsistencyScoreHistory(newConsistencyScore);
-    await _saveLocalAllStatsToSharedPrefs();
+        _allStats = calculateStreak(_allStats!);
+        final newConsistencyScore = calculateConsistencyScore(_allStats!);
+        _allStats = _allStats!.copyWith(consistencyScore: newConsistencyScore);
+        await _saveLocalAllStatsToSharedPrefs();
+        await saveConsistencyScoreHistory(newConsistencyScore);
 
-    // Local restore is the user-visible operation — don't fail it just
-    // because the server sync hiccupped. _dirty stays true so the next
-    // sync retries automatically.
-    try {
-      await _statsService.postStats(_allStats!);
-      _lastSyncedAt = _getCurrentDate();
-      await _saveLastSyncedAt();
-      _dirty = false;
-    } catch (e) {
-      AppLogger.e(
-        'STATS_MANAGER',
-        'restoreFromBackup: post failed, will retry on next sync',
-        e,
-      );
-    }
+        HomeWidgetService.updateWidgetFromStats(_allStats!).catchError((e) {
+          // Silently fail - widget updates are not critical
+        });
+      });
 
-    HomeWidgetService.updateWidgetFromStats(_allStats!).catchError((e) {
-      // Silently fail - widget updates are not critical
-    });
-  }
-
-  Future<void> removeAudioCompleted(LocalAudioCompleted session) async {
-    if (!_isInitialized) {
-      await initialize();
-    }
-    await _ensureStatsLoaded();
-    if (_allStats == null) return;
-
-    final currentList = _allStats!.audioCompleted ?? [];
-    final updatedList = currentList
-        .where((a) => !(a.id == session.id && a.timestamp == session.timestamp))
-        .toList();
-
-    if (updatedList.length == currentList.length) {
-      // Nothing matched — don't write an update
-      return;
-    }
-
-    _dirty = true;
-
-    final newTotalTracks = (_allStats!.totalTracksCompleted - 1).clamp(
-      0,
-      1 << 31,
-    );
-
-    _allStats = _allStats!.copyWith(
-      audioCompleted: updatedList,
-      totalTracksCompleted: newTotalTracks,
-      updated: _getCurrentDate().millisecondsSinceEpoch,
-    );
-
-    _allStats = calculateStreak(_allStats!);
-    final newConsistencyScore = calculateConsistencyScore(_allStats!);
-    _allStats = _allStats!.copyWith(consistencyScore: newConsistencyScore);
-    await saveConsistencyScoreHistory(newConsistencyScore);
-    await _saveLocalAllStatsToSharedPrefs();
-    await _statsService.postStats(_allStats!);
-    _lastSyncedAt = _getCurrentDate();
-    await _saveLastSyncedAt();
-    _dirty = false;
-
-    HomeWidgetService.updateWidgetFromStats(_allStats!).catchError((e) {
-      // Silently fail - widget updates are not critical
-    });
-  }
-
-  Future<void> addTrackChecked(String? id) async {
+  Future<void> addTrackChecked(String? id) => _mutate(() async {
     assert(id != null, 'Track ID cannot be null');
-    if (!_isInitialized) {
-      await initialize();
-    }
-    await _ensureStatsLoaded();
-
-    // Mark as dirty since we're about to modify stats
-    _dirty = true;
 
     var updatedTracksChecked = _allStats?.tracksChecked ?? [];
     if (!updatedTracksChecked.contains(id)) {
@@ -753,68 +316,41 @@ class StatsManager {
       );
 
       await _saveLocalAllStatsToSharedPrefs();
-      await _statsService.postStats(_allStats!);
-      // Mark as synced and clear dirty flag after successful POST
-      _lastSyncedAt = _getCurrentDate();
-      await _saveLastSyncedAt();
-      _dirty = false;
     }
-  }
+  });
 
   /// Bulk variant of [addTrackChecked]/[removeTrackChecked] used by the
-  /// pack screen's "mark all" action. Applies every change in a single save +
-  /// POST instead of one network round-trip per track.
-  Future<void> setTracksChecked(
-    List<String> ids, {
-    required bool checked,
-  }) async {
-    if (!_isInitialized) {
-      await initialize();
-    }
-    await _ensureStatsLoaded();
-
-    _dirty = true;
-
-    var updatedTracksChecked = _allStats?.tracksChecked ?? [];
-    var changed = false;
-    if (checked) {
-      for (final id in ids) {
-        if (!updatedTracksChecked.contains(id)) {
-          updatedTracksChecked.add(id);
-          changed = true;
+  /// pack screen's "mark all" action. Applies every change in a single local save.
+  Future<void> setTracksChecked(List<String> ids, {required bool checked}) =>
+      _mutate(() async {
+        var updatedTracksChecked = _allStats?.tracksChecked ?? [];
+        var changed = false;
+        if (checked) {
+          for (final id in ids) {
+            if (!updatedTracksChecked.contains(id)) {
+              updatedTracksChecked.add(id);
+              changed = true;
+            }
+          }
+        } else {
+          for (final id in ids) {
+            if (updatedTracksChecked.remove(id)) {
+              changed = true;
+            }
+          }
         }
-      }
-    } else {
-      for (final id in ids) {
-        if (updatedTracksChecked.remove(id)) {
-          changed = true;
+
+        if (changed) {
+          _allStats = _allStats?.copyWith(
+            tracksChecked: updatedTracksChecked,
+            updated: _getCurrentDate().millisecondsSinceEpoch,
+          );
+
+          await _saveLocalAllStatsToSharedPrefs();
         }
-      }
-    }
+      });
 
-    if (changed) {
-      _allStats = _allStats?.copyWith(
-        tracksChecked: updatedTracksChecked,
-        updated: _getCurrentDate().millisecondsSinceEpoch,
-      );
-
-      await _saveLocalAllStatsToSharedPrefs();
-      await _statsService.postStats(_allStats!);
-      _lastSyncedAt = _getCurrentDate();
-      await _saveLastSyncedAt();
-      _dirty = false;
-    }
-  }
-
-  Future<void> removeTrackChecked(String trackId) async {
-    if (!_isInitialized) {
-      await initialize();
-    }
-    await _ensureStatsLoaded();
-
-    // Mark as dirty since we're about to modify stats
-    _dirty = true;
-
+  Future<void> removeTrackChecked(String trackId) => _mutate(() async {
     var updatedTracksChecked = _allStats?.tracksChecked ?? [];
     if (updatedTracksChecked.remove(trackId)) {
       _allStats = _allStats?.copyWith(
@@ -823,38 +359,18 @@ class StatsManager {
       );
 
       await _saveLocalAllStatsToSharedPrefs();
-      await _statsService.postStats(_allStats!);
-      // Mark as synced and clear dirty flag after successful POST
-      _lastSyncedAt = _getCurrentDate();
-      await _saveLastSyncedAt();
-      _dirty = false;
     }
-  }
+  });
 
-  Future<void> clearAllStats() async {
-    if (!_isInitialized) {
-      await initialize();
-    }
-    _clearGeneration++;
-    _dirty = false;
-    var prefs = _prefs;
-    await prefs.remove(SharedPreferenceConstants.localAllStatsKey);
+  Future<void> clearAllStats() => _mutate(() async {
     _allStats = LocalAllStats.empty();
-    // Reset sync timestamp so that sync will run after clearing
-    _lastSyncedAt = null;
-    await _saveLastSyncedAt();
-  }
+    await _statsService.clearStats();
+  }, loadStats: false);
 
   bool get isInitialized => _isInitialized;
 
-  Future<bool> hasLocalStats() async {
-    if (!_isInitialized) {
-      await initialize();
-    }
-    _allStats ??= await _loadLocalAllStats();
-
-    return _allStats?.audioCompleted?.isNotEmpty == true;
-  }
+  Future<bool> hasLocalStats() async =>
+      (await localAllStats).audioCompleted?.isNotEmpty == true;
 
   // ⚠️ KEEP IN SYNC: ported to Kotlin in
   // android/app/src/main/kotlin/meditofoundation/medito/widget/ConsistencyWidget.kt
@@ -901,7 +417,22 @@ class StatsManager {
 
     allActivityDates.sort();
     var firstSessionDate = allActivityDates.first;
-    var daysSinceFirstSession = today.difference(firstSessionDate).inDays + 1;
+    // Count calendar days, not elapsed 24-hour periods. Local midnights can
+    // be 23 or 25 hours apart across daylight-saving changes.
+    var daysSinceFirstSession =
+        DateTime.utc(today.year, today.month, today.day)
+            .difference(
+              DateTime.utc(
+                firstSessionDate.year,
+                firstSessionDate.month,
+                firstSessionDate.day,
+              ),
+            )
+            .inDays +
+        1;
+
+    DateTime calendarDaysAfter(DateTime date, int days) =>
+        DateTime(date.year, date.month, date.day + days);
 
     if (daysSinceFirstSession == 1) {
       return allActivityDates.any((date) => date.isAtSameMomentAs(today))
@@ -919,13 +450,13 @@ class StatsManager {
     const alpha = 0.1;
     const gracePenalty = 0.5; // value used for a single isolated missed day
 
-    var day29 = firstSessionDate.add(const Duration(days: 28));
+    var day29 = calendarDaysAfter(firstSessionDate, 28);
     var activeDaysAtDay29 = allActivityDates
         .where((d) => !d.isAfter(day29))
         .length;
     var ema = activeDaysAtDay29 / 29.0;
 
-    var day30 = firstSessionDate.add(const Duration(days: 29));
+    var day30 = calendarDaysAfter(firstSessionDate, 29);
     var currentDay = day30;
 
     while (!currentDay.isAfter(today)) {
@@ -940,8 +471,8 @@ class StatsManager {
       if (hadActivity) {
         dayValue = 1.0;
       } else {
-        var prevDay = currentDay.subtract(const Duration(days: 1));
-        var nextDay = currentDay.add(const Duration(days: 1));
+        var prevDay = calendarDaysAfter(currentDay, -1);
+        var nextDay = calendarDaysAfter(currentDay, 1);
         var prevActive = allActivityDates.any(
           (d) =>
               d.year == prevDay.year &&
@@ -961,7 +492,7 @@ class StatsManager {
       }
 
       ema = alpha * dayValue + (1 - alpha) * ema;
-      currentDay = currentDay.add(const Duration(days: 1));
+      currentDay = calendarDaysAfter(currentDay, 1);
     }
 
     return ema.clamp(0.0, 1.0);
@@ -971,11 +502,6 @@ class StatsManager {
   @visibleForTesting
   void setStatsForTesting(LocalAllStats stats) {
     _allStats = stats;
-  }
-
-  @visibleForTesting
-  void setStatsServiceForTesting(StatsService service) {
-    _statsService = service;
   }
 
   @visibleForTesting
@@ -991,8 +517,9 @@ class StatsManager {
   /// If stats are already loaded and the offset actually changed, the streak
   /// and consistency score are recomputed straight away. The calendar
   /// re-buckets from the raw sessions as soon as the offset changes, so
-  /// leaving the stored streak until the next sync made the two disagree.
-  Future<void> setDayBoundaryOffset(Duration offset) async {
+  /// leaving the stored streak until the next refresh made the two disagree.
+  Future<void> setDayBoundaryOffset(Duration offset) => _mutate(() async {
+    await initialize();
     final changed = offset != _dayBoundaryOffset;
     _dayBoundaryOffset = offset;
     try {
@@ -1006,12 +533,11 @@ class StatsManager {
 
     if (!changed || _allStats == null) return;
 
-    _dirty = true;
     _allStats = calculateStreak(_allStats!);
     final newConsistencyScore = calculateConsistencyScore(_allStats!);
     _allStats = _allStats!.copyWith(consistencyScore: newConsistencyScore);
     await _saveLocalAllStatsToSharedPrefs();
-  }
+  });
 
   void _loadDayBoundaryOffset(SharedPreferences prefs) {
     try {
@@ -1033,26 +559,12 @@ class StatsManager {
 
   @visibleForTesting
   void resetForTesting() {
+    _mutationTail = Future<void>.value();
     _allStats = null;
     _isInitialized = false;
     _initCompleter = null;
     _testDate = null;
-    _lastSyncedAt = null;
-    _dirty = false;
     _dayBoundaryOffset = Duration.zero;
-  }
-
-  @visibleForTesting
-  Future<void> setLastSyncedAtForTesting(DateTime? dateTime) async {
-    _lastSyncedAt = dateTime;
-    if (dateTime != null) {
-      await _prefs.setInt(
-        SharedPreferenceConstants.statsLastSyncedAt,
-        dateTime.millisecondsSinceEpoch,
-      );
-    } else {
-      await _prefs.remove(SharedPreferenceConstants.statsLastSyncedAt);
-    }
   }
 
   DateTime _getCurrentDate() {
@@ -1065,17 +577,6 @@ class StatsManager {
   /// pin the clock.
   DateTime get currentDate => _getCurrentDate();
 
-  // Test helpers
   @visibleForTesting
-  Future<void> initializeForTesting({StatsService? statsService}) async {
-    if (!_isInitialized) {
-      _prefs = await SharedPreferences.getInstance();
-      _statsService =
-          statsService ??
-          StatsService(httpApiService: HttpApiService(), prefs: _prefs);
-      await _loadLastSyncedAt(_prefs);
-      _loadDayBoundaryOffset(_prefs);
-      _isInitialized = true;
-    }
-  }
+  Future<void> initializeForTesting() => initialize();
 }

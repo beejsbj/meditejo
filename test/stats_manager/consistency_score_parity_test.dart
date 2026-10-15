@@ -33,6 +33,16 @@ void main() {
   final referenceDate = DateTime.parse(fixture['referenceDate'] as String);
   final cases = fixture['cases'] as List<dynamic>;
 
+  // Day offsets describe calendar dates, not elapsed 24-hour durations.
+  // In particular, subtracting 24 hours across spring-forward can skip a
+  // local date and make the thirty_days_perfect fixture contain a gap.
+  DateTime atDayOffset(int offset) => DateTime(
+    referenceDate.year,
+    referenceDate.month,
+    referenceDate.day + offset,
+    12,
+  );
+
   group('Consistency score parity fixture', () {
     for (final rawCase in cases) {
       final testCase = rawCase as Map<String, dynamic>;
@@ -44,27 +54,36 @@ void main() {
       final expectedPercent = testCase['expectedPercent'] as int;
 
       test(name, () {
-        statsManager.setCurrentDateForTesting(referenceDate);
+        statsManager.setCurrentDateForTesting(atDayOffset(0));
 
         final audioCompleted = audioOffsets
             .map(
               (offset) => LocalAudioCompleted(
                 id: 'audio-$offset',
-                timestamp: referenceDate
-                    .add(Duration(days: offset))
-                    .millisecondsSinceEpoch,
+                timestamp: atDayOffset(offset).millisecondsSinceEpoch,
               ),
             )
             .toList();
 
+        if (name == 'thirty_days_perfect') {
+          final localDates = audioCompleted.map((entry) {
+            final date = DateTime.fromMillisecondsSinceEpoch(entry.timestamp);
+            return DateTime(date.year, date.month, date.day);
+          }).toSet();
+          expect(localDates, {
+            for (var day = -29; day <= 0; day++)
+              DateTime(
+                referenceDate.year,
+                referenceDate.month,
+                referenceDate.day + day,
+              ),
+          }, reason: 'Perfect history must cover all 30 inclusive local dates');
+        }
+
         final stats = LocalAllStats.empty().copyWith(
           audioCompleted: audioCompleted,
           freezeUsageDates: freezeOffsets
-              .map(
-                (offset) => referenceDate
-                    .add(Duration(days: offset))
-                    .millisecondsSinceEpoch,
-              )
+              .map((offset) => atDayOffset(offset).millisecondsSinceEpoch)
               .toList(),
         );
 

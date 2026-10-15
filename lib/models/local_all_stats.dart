@@ -1,22 +1,10 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:medito/models/local_audio_completed.dart';
-import 'package:medito/models/stats/all_stats_model.dart';
 
 part 'local_all_stats.g.dart';
 
-// NOTE ON SCHEMA EVOLUTION AND BACKUPS:
-// When this class changes in the future (adding, removing, or modifying fields),
-// it will affect the stored backups in StatsBackupService.
-//
-// Schema versioning is implemented in the StatsBackupService (not in this model)
-// by storing a 'version' field alongside the serialized stats.
-//
-// If/when the schema changes:
-// 1. Increment the version number in StatsBackupService
-// 2. Add a mapper/migration function in StatsBackupService to handle old versions
-// 3. Ensure backward compatibility by properly mapping old data to new structure
-//
-// This approach keeps this model clean while handling versioning at the backup level.
+// Keep persisted field names compatible with existing on-device histories.
+// Legacy freeze fields remain readable so old streak history is preserved.
 
 @JsonSerializable()
 class LocalAllStats {
@@ -35,6 +23,14 @@ class LocalAllStats {
   final List<int> freezeUsageDates;
   final double consistencyScore;
 
+  /// Durable acknowledgements saved atomically with counters/history. IDs are
+  /// JSON arrays [kind, trackId, originalEndTimestampMs], with kind either
+  /// 'completion' or 'repeat'. Use the original timestamp, before midnight
+  /// attribution. Retain receipts after session deletion to prevent replay
+  /// resurrecting it. Old histories default to an empty list.
+  @JsonKey(defaultValue: [])
+  final List<String> completionReceipts;
+
   LocalAllStats({
     required this.streakCurrent,
     required this.streakLongest,
@@ -47,6 +43,7 @@ class LocalAllStats {
     this.maxStreakFreezes = 0,
     required this.freezeUsageDates,
     this.consistencyScore = 0,
+    this.completionReceipts = const [],
   });
 
   factory LocalAllStats.empty() {
@@ -62,42 +59,6 @@ class LocalAllStats {
       maxStreakFreezes: defaultMaxStreakFreezes,
       freezeUsageDates: [],
       consistencyScore: 0,
-    );
-  }
-
-  factory LocalAllStats.fromAllStats(AllStats stats) {
-    return LocalAllStats(
-      streakCurrent: 0,
-      streakLongest: stats.streakLongest,
-      totalTracksCompleted: stats.totalTracksCompleted,
-      totalTimeListened: stats.totalTimeListened,
-      tracksChecked: stats.tracksChecked ?? [],
-      audioCompleted:
-          stats.audioCompleted
-              ?.map((e) => LocalAudioCompleted.fromAudioCompleted(e))
-              .toList() ??
-          [],
-      updated: stats.updated,
-      streakFreezes: stats.streakFreezes > 0 ? stats.streakFreezes : 1,
-      maxStreakFreezes: stats.maxStreakFreezes > 0
-          ? stats.maxStreakFreezes
-          : defaultMaxStreakFreezes,
-      freezeUsageDates: stats.freezeUsageDates,
-      consistencyScore: 0,
-    );
-  }
-
-  AllStats toAllStats() {
-    return AllStats(
-      streakLongest: streakLongest,
-      totalTracksCompleted: totalTracksCompleted,
-      totalTimeListened: totalTimeListened,
-      tracksChecked: tracksChecked,
-      audioCompleted: audioCompleted?.map((e) => e.toAudioCompleted()).toList(),
-      updated: updated,
-      streakFreezes: streakFreezes ?? 0,
-      maxStreakFreezes: maxStreakFreezes ?? 0,
-      freezeUsageDates: freezeUsageDates,
     );
   }
 
@@ -118,6 +79,7 @@ class LocalAllStats {
     int? maxStreakFreezes,
     List<int>? freezeUsageDates,
     double? consistencyScore,
+    List<String>? completionReceipts,
   }) {
     return LocalAllStats(
       streakCurrent: streakCurrent ?? this.streakCurrent,
@@ -131,6 +93,7 @@ class LocalAllStats {
       maxStreakFreezes: maxStreakFreezes ?? this.maxStreakFreezes,
       freezeUsageDates: freezeUsageDates ?? this.freezeUsageDates,
       consistencyScore: consistencyScore ?? this.consistencyScore,
+      completionReceipts: completionReceipts ?? this.completionReceipts,
     );
   }
 }

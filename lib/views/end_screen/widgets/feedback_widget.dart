@@ -3,14 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
-import 'package:medito/constants/strings/analytics_event_constants.dart';
 import 'package:medito/providers/review_service_provider.dart';
-import 'package:medito/services/analytics/firebase_analytics_service.dart';
 import 'package:medito/l10n/app_localizations.dart';
-
-const _reviewAskSourceParams = <String, Object>{
-  AnalyticsEventConstants.paramSource: AnalyticsEventConstants.sourceEndScreen,
-};
 
 class FeedbackWidget extends ConsumerStatefulWidget {
   const FeedbackWidget({
@@ -19,8 +13,7 @@ class FeedbackWidget extends ConsumerStatefulWidget {
     this.initiallyShowRatingAsk = false,
   });
 
-  /// Read at 😊-tap time: true when another ask already got a response on
-  /// this end screen (a donate tap), so the rating ask waits for another day.
+  /// Allows callers to defer the optional rating ask.
   final ValueGetter<bool>? suppressRatingAsk;
 
   /// Opens straight on the rating ask; for widget previews only.
@@ -176,23 +169,11 @@ class FeedbackWidgetState extends ConsumerState<FeedbackWidget> {
 
   void _handleRate() {
     setState(() => _showRatingAsk = false);
-    unawaited(
-      FirebaseAnalyticsService().logEvent(
-        name: AnalyticsEventConstants.reviewPromptRateTap,
-        parameters: _reviewAskSourceParams,
-      ),
-    );
     unawaited(ref.read(reviewServiceProvider).openStore());
   }
 
   void _handleNotNow() {
     setState(() => _showRatingAsk = false);
-    unawaited(
-      FirebaseAnalyticsService().logEvent(
-        name: AnalyticsEventConstants.reviewPromptNotNowTap,
-        parameters: _reviewAskSourceParams,
-      ),
-    );
   }
 
   Widget _buildThanksMessage() {
@@ -214,13 +195,6 @@ class FeedbackWidgetState extends ConsumerState<FeedbackWidget> {
       _showThankYouMessage = true;
     });
 
-    unawaited(
-      FirebaseAnalyticsService().logEvent(
-        name: FirebaseAnalyticsService.eventPostMeditationFeedback,
-        parameters: {'type': 'thumbs_up'},
-      ),
-    );
-
     final reviewService = ref.read(reviewServiceProvider);
     final showAsk = await reviewService.onHappyFeedback(
       suppress: widget.suppressRatingAsk?.call() ?? false,
@@ -233,34 +207,18 @@ class FeedbackWidgetState extends ConsumerState<FeedbackWidget> {
     await reviewService.markShown();
     if (!mounted) return;
     setState(() => _showRatingAsk = true);
-    unawaited(
-      FirebaseAnalyticsService().logEvent(
-        name: AnalyticsEventConstants.reviewPromptShown,
-        parameters: _reviewAskSourceParams,
-      ),
-    );
   }
 
-  Future<void> _handleNeutralFeedback() async {
+  void _handleNeutralFeedback() {
     setState(() {
       _showThankYouMessage = true;
     });
-
-    await FirebaseAnalyticsService().logEvent(
-      name: FirebaseAnalyticsService.eventPostMeditationFeedback,
-      parameters: {'type': 'neutral'},
-    );
   }
 
-  Future<void> _handleNegativeFeedback() async {
+  void _handleNegativeFeedback() {
     setState(() {
       _showThankYouMessage = true;
     });
-
-    await FirebaseAnalyticsService().logEvent(
-      name: FirebaseAnalyticsService.eventPostMeditationFeedback,
-      parameters: {'type': 'thumbs_down'},
-    );
   }
 
   Widget _buildEmotionButton(

@@ -40,10 +40,6 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<key>FIREBASE_ANALYTICS_COLLECTION_DEACTIVATED</key>
-	<true/>
-	<key>FirebaseAppDelegateProxyEnabled</key>
-	<false/>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>sms</string>
@@ -66,7 +62,6 @@
 		<string>audio</string>
 		<string>fetch</string>
 		<string>processing</string>
-		<string>remote-notification</string>
 	</array>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
@@ -119,7 +114,5 @@
 	</array>
 	<key>NSSiriUsageDescription</key>
 	<string>Add voice shortcuts to quickly play your favourite meditations</string>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>This helps us understand how our meditation content is helping people, so we can improve it and keep Medito free for everyone.</string>
 </dict>
 </plist>

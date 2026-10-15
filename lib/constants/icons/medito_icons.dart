@@ -52,7 +52,6 @@ class MeditoIcons {
   static const shareAndroid = AssetConstants.iconShareAndroid;
   static const shareIos = AssetConstants.iconShareIos;
   static const shield = AssetConstants.iconShield;
-  static const shop = AssetConstants.iconShop;
   static const siri = AssetConstants.iconSiri;
   static const sleep = AssetConstants.iconSleep;
   static const snow = AssetConstants.iconSnow;

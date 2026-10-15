@@ -1,9 +1,0 @@
-{
-  "es": [
-    "trackingPermissionTitle",
-    "trackingPermissionBody",
-    "trackingPermissionPrivacyNote",
-    "trackingPermissionAllow",
-    "addHomeScreenWidget"
-  ]
-}

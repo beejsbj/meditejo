@@ -5,7 +5,6 @@ import 'package:medito/constants/constants.dart';
 import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/explore/track_search_provider.dart';
-import 'package:medito/services/analytics/firebase_analytics_service.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/views/explore/widgets/pack_grid_sliver.dart';
 import 'package:medito/views/home/widgets/header/home_header_widget.dart';
@@ -22,14 +21,7 @@ class ExploreView extends ConsumerStatefulWidget {
 }
 
 class ExploreViewState extends ConsumerState<ExploreView> {
-  final _analytics = FirebaseAnalyticsService();
   bool _hasLoadedData = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _analytics.logScreenView(screenName: 'ExploreView');
-  }
 
   /// Fetches the pack list the first time the tab is shown.
   void loadData() {
@@ -72,8 +64,7 @@ class ExploreViewState extends ConsumerState<ExploreView> {
                     ),
                   ),
                 ),
-                // Browse-by-tag strip. Renders nothing until GET /tags succeeds,
-                // so an app build shipped before the API change looks unchanged.
+                // Browse-by-tag strip, hidden when the local catalog has no tags.
                 const SliverToBoxAdapter(
                   child: ExploreTagChips(
                     padding: EdgeInsets.only(top: padding8),

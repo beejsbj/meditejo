@@ -6,7 +6,6 @@ import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/providers.dart';
-import 'package:medito/routes/routes.dart';
 import 'package:medito/views/debug/debug_info_screen.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
 import 'package:medito/views/home/widgets/header/home_header_widget.dart';
@@ -14,13 +13,11 @@ import 'package:medito/views/home/widgets/home_gradient_border.dart';
 import 'package:medito/views/onboarding/onboarding_pager_screen.dart';
 import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
 import 'package:medito/views/settings/manage_defaults_screen.dart';
-import 'package:medito/views/settings/restore_stats_screen.dart';
 import 'package:medito/views/settings/widgets/day_boundary_offset_dialog.dart';
 import 'package:medito/widgets/medito_icon.dart';
 
 /// "Advanced" settings, previously an expandable section at the bottom of the
-/// Settings page. Defaults, stats restore, day boundary, debug info and the
-/// legal links.
+/// Settings page. Defaults, day boundary, debug info and open-source licenses.
 class AdvancedSettingsScreen extends ConsumerWidget {
   const AdvancedSettingsScreen({super.key});
 
@@ -55,11 +52,6 @@ class AdvancedSettingsScreen extends ConsumerWidget {
         onTap: () => _push(context, const ManageDefaultsScreen()),
       ),
       RowItemWidget(
-        icon: Icon(Icons.restore_outlined, color: onSurface),
-        title: l10n.restorePreviousStats,
-        onTap: () => _push(context, const RestoreStatsScreen()),
-      ),
-      RowItemWidget(
         icon: Icon(Icons.bedtime_outlined, color: onSurface),
         title: 'When my day starts',
         subTitle: dayOffset == 0 ? 'Midnight (default)' : '$dayOffset:00 AM',
@@ -69,38 +61,16 @@ class AdvancedSettingsScreen extends ConsumerWidget {
         icon: Icon(Icons.bug_report_outlined, color: onSurface),
         title: l10n.debugInfo,
         onTap: () {
-          ref.invalidate(meProvider);
           _push(context, const DebugInfoScreen());
         },
       ),
-      // Replaying onboarding re-fires experiment exposure and paywall events
-      // and resets persisted onboarding state, so it must never ship enabled.
+      // Setup replay is a development aid.
       if (kDebugMode)
         RowItemWidget(
           icon: MeditoIcon(assetName: MeditoIcons.arrowRight, color: onSurface),
           title: l10n.onboarding,
           onTap: () => _push(context, const OnboardingPagerScreen()),
         ),
-      RowItemWidget(
-        icon: MeditoIcon(assetName: MeditoIcons.document, color: onSurface),
-        title: l10n.termsOfService,
-        onTap: () => handleNavigation(
-          'url',
-          ['https://meditofoundation.org/terms-of-service'],
-          context,
-          ref: ref,
-        ),
-      ),
-      RowItemWidget(
-        icon: MeditoIcon(assetName: MeditoIcons.privacy, color: onSurface),
-        title: l10n.privacyPolicy,
-        onTap: () => handleNavigation(
-          TypeConstants.route,
-          [RouteConstants.analytics],
-          context,
-          ref: ref,
-        ),
-      ),
       RowItemWidget(
         icon: Icon(Icons.description_outlined, color: onSurface),
         title: 'Licenses',

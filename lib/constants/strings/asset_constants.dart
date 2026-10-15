@@ -65,7 +65,6 @@ class AssetConstants {
       'assets/images/share-android-solid.svg';
   static const String iconShareIos = 'assets/images/share-ios.svg';
   static const String iconShield = 'assets/images/shield.svg';
-  static const String iconShop = 'assets/images/shop-window.svg';
   static const String iconSiri = 'assets/images/arc3d.svg';
   static const String iconSleep = 'assets/images/sound-off.svg';
   static const String iconSnow = 'assets/images/snow-flake.svg';

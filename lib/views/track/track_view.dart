@@ -9,7 +9,6 @@ import 'package:medito/providers/guide_name_preference_provider.dart';
 import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/routes/routes.dart';
-import 'package:medito/services/analytics/firebase_analytics_service.dart';
 import 'package:medito/utils/track_variant_selector.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/player/player_view.dart';
@@ -32,8 +31,6 @@ class TrackView extends ConsumerStatefulWidget {
 
 class _TrackViewState extends ConsumerState<TrackView>
     with AutomaticKeepAliveClientMixin<TrackView> {
-  final _analytics = FirebaseAnalyticsService();
-
   @override
   bool get wantKeepAlive => true;
 
@@ -41,19 +38,6 @@ class _TrackViewState extends ConsumerState<TrackView>
   // Drives the button's spinner and disables it so a second tap can't fire a
   // duplicate playback + navigation.
   bool _isStarting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _logScreenView();
-  }
-
-  Future<void> _logScreenView() async {
-    await _analytics.logScreenView(
-      screenName: 'TrackView',
-      parameters: {'trackid': widget.trackId},
-    );
-  }
 
   @override
   Widget build(BuildContext context) {

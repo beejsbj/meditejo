@@ -1,25 +1,22 @@
-import 'package:medito/constants/config_constants.dart';
-import 'package:medito/constants/pack_sequence.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/models/models.dart';
-import 'package:medito/providers/providers.dart';
+import 'package:medito/providers/pack/pack_provider.dart';
+import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/services/home_widget_service.dart';
+import 'package:medito/services/local_catalogue.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'up_next_provider.g.dart';
 
-// De-duplicates widget pushes — the provider re-derives on every stats refresh
-// even when the surfaced session hasn't actually changed.
 String? _lastPushedWidgetSignature;
 
-/// The pack the home screen treats as the user's current "up next" course.
-/// Persisted under [SharedPreferenceConstants.upNextPackId]; null falls back
-/// to the configured basics pack.
+/// An empty ID means no course is pinned. There is no bundled course fallback.
 @riverpod
 String upNextPackId(Ref ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return prefs.getString(SharedPreferenceConstants.upNextPackId) ??
-      ConfigConstants.basicsPackId;
+  return ref
+          .watch(sharedPreferencesProvider)
+          .getString(SharedPreferenceConstants.upNextPackId) ??
+      '';
 }
 
 class UpNextData {
@@ -27,10 +24,7 @@ class UpNextData {
   final PackItemsModel? nextSession;
   final int completedCount;
   final int totalCount;
-
-  /// First remaining pack with unfinished sessions; null at the end of the path.
   final String? nextPackId;
-
   final bool isEndOfPath;
 
   const UpNextData({
@@ -42,110 +36,73 @@ class UpNextData {
     this.isEndOfPath = false,
   });
 
+  const UpNextData.empty()
+    : pack = const PackModel(id: '', title: ''),
+      nextSession = null,
+      completedCount = 0,
+      totalCount = 0,
+      nextPackId = null,
+      isEndOfPath = false;
+
   double get progressPercentage =>
       totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
-  /// `totalCount > 0` stops an unloaded pack satisfying `0 >= 0`.
   bool get isCompleted => totalCount > 0 && completedCount >= totalCount;
 }
 
-/// Derives the home-screen "up next" surface from [packProvider], which
-/// already merges per-item completion against [statsProvider]. Watching it
-/// means up-next reacts automatically when a track completes — no manual
-/// invalidation needed at the play sites.
-///
-/// When the pinned pack finishes the widget renders a completed state; the pin
-/// is not cleared behind the user's back.
+/// Resolve an explicitly pinned source course through the local repository.
+/// Completion is derived locally; no seed IDs or global course sequence apply.
 @Riverpod(keepAlive: true)
 AsyncValue<UpNextData> upNext(Ref ref) {
   final packId = ref.watch(upNextPackIdProvider);
-  final packAsync = ref.watch(packProvider(packId: packId));
-
-  return packAsync.when(
-    loading: () => const AsyncLoading(),
-    error: (error, stack) => AsyncError(error, stack),
-    data: (pack) {
-      final completedCount = pack.items
-          .where((item) => item.isCompleted == true)
-          .length;
-      final isCompleted =
-          pack.items.isNotEmpty && completedCount >= pack.items.length;
-
-      // isEmpty must short-circuit: the orElse reads `first` and would throw.
-      final nextSession = (isCompleted || pack.items.isEmpty)
-          ? null
-          : pack.items.firstWhere(
-              (item) => item.isCompleted != true,
-              orElse: () => pack.items.first,
-            );
-
-      final signature = nextSession != null
-          ? '${nextSession.id}|${pack.title}|$completedCount/${pack.items.length}'
-          : '|${pack.title}|$completedCount/${pack.items.length}';
-
-      if (signature != _lastPushedWidgetSignature) {
-        _lastPushedWidgetSignature = signature;
-        if (nextSession != null) {
-          HomeWidgetService.updateUpNextWidget(
-            title: nextSession.title,
-            packTitle: pack.title,
-            trackId: nextSession.id,
-            subtitle: nextSession.subtitle,
-            completed: completedCount,
-            total: pack.items.length,
-          ).ignore();
-        } else {
-          // Pack finished — clear the widget so it stops showing a stale track.
-          // Tapping the empty-state widget just opens the app.
-          HomeWidgetService.updateUpNextWidget(
-            title: '',
-            packTitle: '',
-            trackId: '',
-            subtitle: '',
-            completed: completedCount,
-            total: pack.items.length,
-          ).ignore();
-        }
-      }
-
-      // Resolve the CTA before offering it: users may already have completed
-      // several later packs (including via the legacy megapack).
-      final nextPack = isCompleted
-          ? _nextUnfinishedPack(ref, PackSequence.nextPackAfter(packId))
-          : const AsyncData<String?>(null);
-      return nextPack.whenData(
-        (nextPackId) => UpNextData(
-          pack: pack,
-          nextSession: nextSession,
-          completedCount: completedCount,
-          totalCount: pack.items.length,
-          nextPackId: nextPackId,
-          isEndOfPath:
-              isCompleted &&
-              nextPackId == null &&
-              (PackSequence.contains(packId) ||
-                  PackSequence.isPathTerminal(packId)),
-        ),
-      );
-    },
-  );
-}
-
-/// Watch each candidate so completion changes also update the offered pack.
-/// Loading/errors must propagate: an unknown pack is not a completed pack.
-AsyncValue<String?> _nextUnfinishedPack(Ref ref, String? packId) {
-  if (packId == null) return const AsyncData(null);
+  if (packId.isEmpty) {
+    _updateWidget(const UpNextData.empty());
+    return const AsyncData(UpNextData.empty());
+  }
 
   return ref
       .watch(packProvider(packId: packId))
       .when(
         loading: () => const AsyncLoading(),
-        error: (error, stack) => AsyncError(error, stack),
+        error: (error, stack) {
+          // Old pins can outlive their source or a catalogue entry. Keep the pin
+          // for a future source refresh while leaving Home usable now.
+          _updateWidget(const UpNextData.empty());
+          return error is CatalogueEntryUnavailable
+              ? const AsyncData(UpNextData.empty())
+              : AsyncError(error, stack);
+        },
         data: (pack) {
-          if (pack.items.any((item) => item.isCompleted != true)) {
-            return AsyncData(packId);
-          }
-          return _nextUnfinishedPack(ref, PackSequence.nextPackAfter(packId));
+          final completed = pack.items
+              .where((item) => item.isCompleted == true)
+              .length;
+          final remaining = pack.items.where(
+            (item) => item.isCompleted != true,
+          );
+          final data = UpNextData(
+            pack: pack,
+            nextSession: remaining.firstOrNull,
+            completedCount: completed,
+            totalCount: pack.items.length,
+          );
+          _updateWidget(data);
+          return AsyncData(data);
         },
       );
+}
+
+void _updateWidget(UpNextData data) {
+  final session = data.nextSession;
+  final signature =
+      '${data.pack.id}|${session?.id}|${data.completedCount}/${data.totalCount}';
+  if (signature == _lastPushedWidgetSignature) return;
+  _lastPushedWidgetSignature = signature;
+  HomeWidgetService.updateUpNextWidget(
+    title: session?.title ?? '',
+    packTitle: session == null ? '' : data.pack.title,
+    trackId: session?.id ?? '',
+    subtitle: session?.subtitle ?? '',
+    completed: data.completedCount,
+    total: data.totalCount,
+  ).ignore();
 }

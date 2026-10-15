@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/exceptions/app_error.dart';
-import 'package:medito/services/network/download_service.dart';
+import 'package:medito/services/download_service.dart';
 
 /// Regression tests for the download path used by background sounds and track
 /// downloads. Callers decide whether something is downloaded by checking that
