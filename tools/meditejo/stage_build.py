@@ -33,7 +33,11 @@ for name in sorted(set(names)):
     target = stage / 'app' / name
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, target)
-shutil.copy2(root / 'tools/meditejo/daytona_build.sh', stage / 'daytona_build.sh')
+for name in ('daytona_build.sh', 'footprint.py'):
+    shutil.copy2(pathlib.Path(__file__).resolve().parent / name, stage / name)
+revision = subprocess.check_output(['git', '-C', str(root), 'rev-parse', 'HEAD'], text=True).strip()
+(stage / 'source-revision.txt').write_text(revision + '\n')
+print(f'Staging source {root} at {revision} (current working bytes)', flush=True)
 # Use the resolved package graph, not unrelated packages in the shared cache.
 # External Git/path dependencies need an explicit staging policy first.
 cache = cache.resolve()

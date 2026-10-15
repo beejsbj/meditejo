@@ -1,10 +1,10 @@
 # Android build route
 
-**Status: blocked by Daytona's 10 GiB disk cap, including after pruning.** Both
-offline pub steps and the staged plugin-portal workaround passed. Two attempts
-reached app configuration but exhausted disk before producing an APK. APK signing,
-release/prod builds and phone updates remain unverified. The command below is
-the attempted route; continuation evidence is at the end.
+**Status: arm64 de-Medito retry in progress.** The older Medito/mock baseline
+exhausted Daytona's 10 GiB disk, including after pruning. The current target is
+PR #3 without mock mode; offline pub and the plugin-portal workaround are proven.
+APK signing, release/prod builds and phone updates remain unverified. Historical
+attempts and current continuation evidence are recorded below.
 
 Build on Daytona; sign on bjslab. Never run Gradle on bjslab. This baseline is
 still Medito branded and must not be installed on the phone. The orchestrator
@@ -26,6 +26,7 @@ does the first install after the rename is integrated.
   ```bash
   nice -n 10 flutter pub get
   for f in pigeon_conf.dart pigeons/*.dart; do
+    [[ -f $f ]] || continue
     nice -n 10 dart run pigeon --input "$f" --package_name=medito || break
   done
   nice -n 10 dart run build_runner build --delete-conflicting-outputs
@@ -39,8 +40,14 @@ does the first install after the rename is integrated.
 ## One command
 
 ```bash
-tools/meditejo/build_apk.sh --flavor dev --app-id io.github.beejsbj.meditejo --mock
+tools/meditejo/build_apk.sh --flavor dev --app-id io.github.beejsbj.meditejo
 ```
+
+The default source is the checkout containing the script. To build a different
+resolved/generated checkout, add `--source /absolute/path/to/checkout`; the build
+tools stay in this branch. No scripts need copying into the source checkout.
+The job collects its source HEAD in `outputs/source-revision.txt` and stages
+current working bytes, including generated files. Mock mode is retired.
 
 The command also runs `tools/meditejo/fetch_portal.py` on bjslab, using plain
 HTTPS to stage the coordinates in `tools/meditejo/portal-artifacts.txt` as a
@@ -59,7 +66,8 @@ included Gradle build and plugins resolved during settings evaluation. Tracked
 Gradle files remain unchanged. Add exact missing coordinates to the list when
 a Gradle failure establishes that another portal artifact is needed.
 
-Debug is the default; add `--release` for release. Choose `--flavor prod` for
+Debug and `--target-platform android-arm64` are the defaults; this APK targets
+Burooj's arm64 S23+. Add `--release` for release. Choose `--flavor prod` for
 the flavor without the `.dev` application ID suffix. `--app-id` is the base
 ID, before that suffix. Defaults can be changed with `MEDITEJO_FLAVOR` and
 `MEDITEJO_APP_ID`. The build script supplies the ID through sandbox-only
@@ -77,9 +85,14 @@ password, Firebase configuration or private environment JSON is staged.
 The sandbox downloads a checksum-pinned Flutter 3.47.2 archive from Google,
 extracts the supplied pub cache, resolves Flutter tooling first with its Dart
 binary and `pub get --offline`, runs `flutter pub get --offline`, and installs
-API 36, build-tools 36.0.0 and NDK 28.2.13676358. It creates a disposable key
-and placeholder Google Services JSON there. These placeholders prove the build;
-they provide no working Firebase services.
+API 36 and NDK 28.2.13676358. It precaches Android only, skips doctor, deletes
+archives after extraction and lets AGP install only the build-tools/CMake
+versions it actually requests. API 35 remains necessary for JNI. The current
+`path_provider_android` implementation depends on `jni`, which compiles C with
+CMake, so omitting the NDK would not be valid. Unused target sysroot libraries
+are removed; shared headers and host compiler tools remain. It creates a
+disposable signing key there. Older checkouts that apply Google Services get a
+placeholder JSON; PR #3 does not need or receive one.
 
 The Android profile requests 4 CPUs, 8 GiB RAM and 10 GiB disk, with a 3,600
 second command limit. Input/output limits
@@ -90,6 +103,14 @@ because `services.gradle.org` is blocked. The runner's automatic rewrite only
 handles root-level Gradle projects. The script preserves the Gradle version
 and selects `-bin` instead of `-all` to omit docs/sources. If an all-distribution
 checksum is present it stops rather than reuse that checksum for different bytes.
+Gradle build caching is disabled, and Flutter's `--no-android-gradle-daemon`
+passes `--no-daemon` to Gradle. An init script deletes the distribution ZIP after
+extraction. Transform/dependency caches still exist even with build caching off.
+Stage measurements and 15-second Gradle samples use `du -s -B1` and filesystem
+usage; they are collected in `outputs/footprint.jsonl`, including after a failed
+build when space permits. `android_sdk` includes `ndk`; the report also provides
+`android_sdk_without_ndk` so these are not double counted. Peak means the largest
+observed sample, not a continuous measurement.
 
 ## Signing and outputs
 

@@ -1,5 +1,9 @@
 // Applied to each settings instance, including Flutter's included Gradle build.
 // beforeSettings also covers plugins resolved while settings.gradle is evaluated.
+// The wrapper has finished extraction before init scripts run.
+gradle.gradleHomeDir.parentFile.listFiles().findAll { it.name.endsWith('.zip') }.each {
+    if (it.delete()) println "Removed unpacked Gradle distribution archive: ${it.name}"
+}
 gradle.beforeSettings { settings ->
     settings.pluginManagement.repositories {
         maven {

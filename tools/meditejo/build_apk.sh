@@ -3,30 +3,31 @@
 set -euo pipefail
 umask 077
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+source_dir=$root
 flavor=${MEDITEJO_FLAVOR:-dev}
 app_id=${MEDITEJO_APP_ID:-io.github.beejsbj.meditejo}
 mode=debug
-mock=false
 dry_run=false
 while (($#)); do
   case $1 in
     --flavor) flavor=${2:?Missing flavor}; shift 2 ;;
     --app-id) app_id=${2:?Missing app ID}; shift 2 ;;
-    --mock) mock=true; shift ;;
+    --source) source_dir=${2:?Missing source checkout}; shift 2 ;;
     --release) mode=release; shift ;;
     --dry-run) dry_run=true; shift ;;
-    -h|--help) echo 'build_apk.sh [--flavor dev|prod] [--app-id ID] [--mock] [--release] [--dry-run]'; exit 0 ;;
+    -h|--help) echo 'build_apk.sh [--source CHECKOUT] [--flavor dev|prod] [--app-id ID] [--release] [--dry-run]'; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done
 [[ $flavor == dev || $flavor == prod ]] || { echo 'Flavor must be dev or prod' >&2; exit 2; }
 [[ $app_id =~ ^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$ ]] || { echo 'Invalid application ID' >&2; exit 2; }
 cache=${PUB_CACHE:-$HOME/.pub-cache}
+source_dir=$(cd "$source_dir" && pwd)
 [[ -d $cache/hosted ]] || { echo 'Run flutter pub get on bjslab first' >&2; exit 1; }
 stage=$(mktemp -d /tmp/meditejo-apk.XXXXXXXX)
 trap 'rm -rf "$stage"' EXIT
 echo 'Staging app source and public pub packages (no signing credentials)...'
-python3 "$root/tools/meditejo/stage_build.py" "$root" "$stage" "$cache"
+python3 "$root/tools/meditejo/stage_build.py" "$source_dir" "$stage" "$cache"
 python3 "$root/tools/meditejo/fetch_portal.py" "$stage/portal-maven"
 cp "$root/tools/meditejo/portal.init.gradle" "$stage/portal.init.gradle"
 job="meditejo-$(date -u +%Y%m%d-%H%M%S)-$RANDOM"
@@ -34,7 +35,7 @@ compute=(cockpit compute run --cwd "$stage" --profile android --disk 10
   --timeout 3600 --max-input-mb 1024 --max-output-mb 512
   --collect 'outputs/**' --job "$job")
 if $dry_run; then compute+=(--dry-run); fi
-"${compute[@]}" -- bash daytona_build.sh "$flavor" "$app_id" "$mode" "$mock"
+"${compute[@]}" -- bash daytona_build.sh "$flavor" "$app_id" "$mode"
 if $dry_run; then exit 0; fi
 state=${DAYTONA_RUN_STATE:-$HOME/.local/state/daytona-run}
 apk="$state/$job/artifacts/outputs/daytona.apk"
