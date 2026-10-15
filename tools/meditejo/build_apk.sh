@@ -28,7 +28,7 @@ trap 'rm -rf "$stage"' EXIT
 echo 'Staging app source and public pub packages (no signing credentials)...'
 python3 "$root/tools/meditejo/stage_build.py" "$root" "$stage" "$cache"
 job="meditejo-$(date -u +%Y%m%d-%H%M%S)-$RANDOM"
-compute=(cockpit compute run --cwd "$stage" --profile android --disk 25
+compute=(cockpit compute run --cwd "$stage" --profile android --disk 10
   --timeout 3600 --max-input-mb 1024 --max-output-mb 512
   --collect 'outputs/**' --job "$job")
 if $dry_run; then compute+=(--dry-run); fi

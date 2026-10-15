@@ -44,8 +44,10 @@ ID, before that suffix. Defaults can be changed with `MEDITEJO_FLAVOR` and
 
 Use the same command with `--dry-run` to pack inputs and inspect the printed
 Daytona manifest without contacting Daytona or signing anything. The upload
-contains selected source plus `pub-packages.tgz` (only public package sources
-and hashes from `${PUB_CACHE:-$HOME/.pub-cache}`). It includes ignored generated
+contains selected source plus `pub-packages.tgz` (only resolved pub.dev package
+sources and hashes from `${PUB_CACHE:-$HOME/.pub-cache}`, selected through
+`.dart_tool/package_config.json`; Git and external path dependencies are
+rejected until explicitly supported). It includes ignored generated
 Dart files, which a normal Git-based runner upload omits. No host signing key,
 password, Firebase configuration or private environment JSON is staged.
 
@@ -55,8 +57,8 @@ API 36, build-tools 36.0.0 and NDK 28.2.13676358. It creates a disposable key
 and placeholder Google Services JSON there. These placeholders prove the build;
 they provide no working Firebase services.
 
-The Android profile requests 4 CPUs, 8 GiB RAM and 25 GiB disk (the account
-has 30 GiB disk quota), with a 3,600 second command limit. Input/output limits
+The Android profile requests 4 CPUs, 8 GiB RAM and 10 GiB disk, with a 3,600
+second command limit. Input/output limits
 are 1,024/512 MiB. In the sandbox copy only, Gradle uses a 4 GiB heap, at most
 two workers, and Kotlin compiles in process. The sandbox script changes the
 nested Android Gradle distribution URL to the official GitHub release host
@@ -98,6 +100,10 @@ after the build attempt.
 
 - `flutter pub get`: exit 0; one discontinued package and 144 packages with
   newer versions outside the current constraints. The lockfile did not change.
+- `dart run build_runner build --delete-conflicting-outputs`: exit 0, 135
+  outputs in 131 seconds. Both Pigeon inputs (`pigeon_conf.dart` and
+  `pigeons/watch_presence.dart`) passed with `--package_name=medito`, exit 0.
+  No tracked generated files changed, so none needed committing.
 - Unchanged tree before codegen: `flutter analyze --no-pub`, exit 1,
   1,197 issues in 17.4 seconds, including missing generated types.
 - After codegen: `flutter analyze --no-pub`, exit 1, **one info**, zero errors
@@ -128,3 +134,24 @@ after the build attempt.
 - build_runner reports that `--delete-conflicting-outputs` has been removed
   and is ignored. It also warns that SDK language 3.13 exceeds the pinned
   analyzer's 3.11 support; dependency upgrades are outside this build slice.
+
+### Daytona preparation and resource limit
+
+- Dry-run `meditejo-20261015-110659-5959`: exit 0, 632 files,
+  391,004,151 input bytes, 377,359,896 compressed bytes. This preliminary
+  manifest used the shared hosted cache and preceded completed codegen.
+- First real job `meditejo-20261015-111134-26058`: runner exit 1 before
+  sandbox creation, 712 files, 411,077,989 input bytes, 396,809,123 compressed
+  bytes. The API rejected the requested 25 GiB:
+
+  ```text
+  create sandbox: HTTP 400 (Disk request 25GB exceeds maximum allowed per sandbox (10GB).
+  Need higher resource limits per-sandbox? Contact us at support@daytona.io and let us know about your use case.)
+  ```
+
+  `doctor` showed a 30 GiB account quota but did not expose the container's
+  10 GiB per-sandbox cap. The command now requests 10 GiB. Dependency staging
+  was also narrowed to the app's resolved pub.dev packages, avoiding unrelated
+  cache contents and future shared-cache growth. Public package sources are
+  the only contents allowed in that archive; the signing directory is never
+  part of it.
