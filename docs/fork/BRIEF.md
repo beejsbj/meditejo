@@ -1,0 +1,69 @@
+# Fork brief: Meditejo
+
+This is a personal, open-source (AGPL-3.0) meditation app forked from Medito (`upstream` = meditohq/medito-app, branched from `develop` on 2026-10-13). Burooj owns the product decisions. This brief records what was settled in the founding conversation (Cockpit thread, 2026-10-13/14), so read it before planning.
+
+**The name:** *Meditejo* is Esperanto for "place of meditation" (*medit-* + *-ej-*, the place suffix, as in *lernejo* "school" and *preĝejo* "church"). It keeps Medito's Esperanto lineage (*medito*, "a meditation"). Pronounced meh-dee-TEH-yo.
+
+## Why it exists
+
+Burooj's practice material is scattered across Dharma Seed, YouTube and courses (Rob Burbea retreats, QRI Qualia Mastery, metta and jhana series). Every tab and every awkward player costs him the thread, so he stops practising. Waking Up worked for him because everything lives in one familiar, calm place. This app should be that place for *his* material.
+
+- Courses are first-class: an ordered multi-session pack with progress. The home screen leads with **"Continue your practice — <course> · Session 4 of 18"**.
+- Meditation-focused and polished. **Not a podcast app.** No gamification, no busy dashboards.
+- Fully personal: no account, no server-side stats, no donation ask, no shop.
+- **Useful from the first launch.** Built-in catalogues (Dharma Seed first) and a starter set of courses and soundscapes mean no setup before the first sit. Importing should be "paste any link → preview → add as course or single", never a hunt for raw media URLs. Mindra fails on both counts; see `docs/fork/mindra-review.md` for what to borrow (its session-recording model) and what to avoid.
+
+## Settled decisions
+
+1. **No Medito content.** Their audio is proprietary (meditofoundation.org/license), and their API URL and key are private build-time values. Remove the Medito catalogue, auth/account, stats POSTing, donation paywall, merch shop, Stripe, Meta SDK and Firebase analytics. **Keep their app code and UX:** player, pack/course view, bells, timer, background-sound player, downloads, favourites (already local), stats and streaks (make them local-only).
+2. **Rename** to Meditejo. Replace Medito's name, logos and app icons (`assets/*medito*`, iOS `.icon` bundles) and change the application ID. Keep AGPL notices and credit the Medito Foundation as the upstream project.
+3. **Content sources**, each surfaced through the existing pack/track UI:
+   - **Built-in Dharma Seed (first-party, searchable).** Unofficial API used by its official Android app: `POST https://www.dharmaseed.org/api/1/{talks,teachers,retreats}/` (multipart form). `detail=0` returns `{edition, items:[ids]}` for incremental sync (pass `edition` back). `detail=1&items=<ids>` returns full records.
+     - Talks carry `title, teacher_id, retreat_id, audio_url` (relative, prefix `https://dharmaseed.org`), `duration_in_minutes`, `rec_date`, `recording_type`, `description`.
+     - Retreats carry `name, start_date, talks:[ids]`. Teacher photos come from `/api/1/teachers/<id>/<photo>/?maxW=..`.
+     - There are about 49k talks and no search endpoint, so sync metadata to an on-device DB (SQLite/drift with FTS) and search locally, as their app does.
+     - Retreats map to courses; individual talks map to singles. Users can favourite talks and save retreats or teachers.
+     - Licence: CC BY-NC-ND, so stream unmodified with attribution. Be a polite API client: incremental sync, no hammering.
+   - **Other open catalogues**, after Dharma Seed works: dhammatalks.org (CC BY-NC; RSS plus yearly archive pages), the AudioDharma RSS feed, UCLA Mindful. Details and licences are in `docs/fork/content-sources.md`.
+   - **User imports, one pipeline:** RSS/podcast feeds, a Dharma Seed retreat or teacher URL, a single audio URL, local files, and YouTube videos/playlists as courses or singles.
+     - Every source produces the same course/session model.
+     - YouTube streams by storing the video ID and resolving a fresh stream URL at play time, as NewPipe does; the URLs expire after about 6 hours. Use **NewPipeExtractor** through a small Android platform channel, with yt-dlp (youtubedl-android) as an optional fallback for other sites. Downloading for offline use is optional. Burooj accepts the YouTube ToS risk, but such an app can't go on the Play Store; distribute through GitHub releases or F-Droid.
+4. **Seam.** The player only needs a `PlaybackRequest` (`lib/models/player/playback_request.dart`). Packs and tracks reach the UI through `PacksRepository`/`TrackRepository` (`lib/repositories/pack`, `lib/repositories/track`), and pack progress is computed locally from `tracksChecked` IDs (`lib/providers/pack/pack_provider.dart`).
+   - Route by ID prefix per source (`ds-`, `lib-`, `yt-`, …) to local or source-specific repositories that map into `PackModel`/`Track`, so PackView, the player, downloads and completion keep working.
+   - `MockHttpApiService` (`lib/mock/`) shows how all HTTP is intercepted today; replacing the Medito backend is the larger version of the same move.
+   - The home screen is composed from `HomeWidgetType` sections (`lib/providers/home/widget_order_provider.dart`), and that's where "Continue your practice" goes.
+5. **Waking Up-style practice features.**
+   - Medito already has start, middle and end bells (`lib/services/audio/session_bell_schedule.dart`), a timer and a background-sound layer.
+   - Generalise bells into a **cue system**: one scheduler for start, end and interval cues. The **pulse** belongs there too, a rhythmic cue (heartbeat, chirp, footstep, click) with BPM and an optional slow "settle" ramp, since it's just a very short interval. Burooj suggested this unification. Noice's segment model (random silence gaps between segments) fits sparse cues.
+   - Add **interval bells** and **"extend with silence"**: after a track ends, continue for N minutes with the background sound, then ring the closing bell.
+6. **Soundscapes: the sound library comes first, the mixer second.**
+   - Sources are in `docs/fork/soundscape-sources.md` , `docs/fork/blanket-deep-dive.md` and `docs/fork/blankie-review.md` (licence-as-data `sounds.json`, per-sound LUFS normalisation to about -27, baked loop crossfades; its fireplace is really CC BY-NC, so skip it) (Blanket: take originals from Freesound and redo its documented edits — loudness targets in its CONTRIBUTING.md; sounds ship under their own licences, outside the AGPL, with a NOTICE and in-app credits): Freesound CC0 picks, BigSoundBank, OpenGameArt, and Blanket's loop-edited set (Blanket is GPL-3.0; its files are CC0, CC BY or PD per its `SOUNDS_LICENSING.md`; avoid its CC BY-SA noise files). Keep a credits screen for CC BY items.
+   - **Synthesize, don't ship:** noise colours (white/pink/brown, ideally as a myNoise-style multi-band generator with per-band sliders), drones and **binaural beats** (myNoise has these). The pulse lives in the cue system and mixes like a layer.
+   - No heart-rate sync: Burooj doesn't wear a watch, and Health Connect only delivers batches (decided 2026-10-15). Adaptive behaviour, if any, comes from time of day and session phase.
+   - Mixer: several layers, each with its own volume, an optional slow "animate" drift and saved presets. `flutter_soloud` (MIT) is the leading candidate engine for gapless loops and synthesis; verify its API before committing.
+   - myNoise's own recordings are proprietary. Learn from its design but never copy its audio.
+
+## Build and run
+
+- **bjslab** is the main working machine: code, codegen and light checks. Flutter isn't installed yet; install the SDK under the user (not system-wide), matching `pubspec.yaml` (Flutter ≥ 3.47, Dart ^3.8).
+- **Heavy builds** (Gradle/APK) go elsewhere; read `cockpit handbook bjslab/capabilities/daytona` first.
+  - **Daytona** (`cockpit compute run --profile android`) can reach Flutter's SDK host (storage.googleapis.com), Google Maven (dl.google.com) and Maven Central, but **pub.dev is blocked** (probed 2026-10-14). Run `flutter pub get` on bjslab and ship the pub cache with the upload (the runner excludes dependency directories by default, so check `--dry-run`).
+  - **Mac** (`ssh macbook`, M1 with 16 GB; see `cockpit handbook bjslab/capabilities/macbook-ssh-access`) has `adb` but no Flutter or Android SDK. It's Burooj's live machine, so get his OK before installing toolchains there.
+- Medito's **mock mode** (`--dart-define=MOCK_MODE=true`, flavor `dev`) runs without keys and is a useful baseline before the backend is removed. The README covers the codegen steps (pigeon, build_runner) and the keystore placeholder.
+- **Test device:** Burooj's Samsung S23+, reached through its remote-control MCP over Tailscale. See the handbook's `s23+` section.
+  - That MCP can download or write files into Downloads and drive the UI, so an APK can be installed by placing it in Downloads and tapping through the installer.
+  - It has no uninstall tool. Its bearer token comes from `bjs-env bjss23`; never print it.
+
+## How to work
+
+- Keep the canonical checkout clean and work on feature branches or worktrees. Commit small, coherent slices with honest verification notes. Prefer one focused PR per slice on `beejsbj/meditejo`, and never open PRs against meditohq.
+- Suggested order:
+  1. Get the app building, plus the rename and de-Medito work (backend, account, paywall, shop, analytics removed; local-only stats).
+  2. Source/repository seam plus the Dharma Seed built-in (sync, search, retreats as courses, favourites).
+  3. Import pipeline (RSS/Dharma Seed URL/audio URL/files).
+  4. "Continue your practice" home.
+  5. YouTube.
+  6. Interval bells and extend-with-silence.
+  7. Sound library, then the mixer and synth (noise colours, drone, beater).
+  8. More open catalogues.
+- Bring product forks back to Burooj (naming, what the home shows, anything irreversible or outward-facing). Decide implementation details yourself and record them.
