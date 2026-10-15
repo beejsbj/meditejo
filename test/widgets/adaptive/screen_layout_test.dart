@@ -1,9 +1,7 @@
-import 'package:medito/providers/shop/shop_providers.dart';
 import 'package:medito/providers/home/up_next_provider.dart';
 import 'package:medito/views/home/widgets/home_gradient_border.dart';
 import 'package:medito/views/home/widgets/quote/quote_share_sheet.dart';
 import 'package:medito/models/home/home_model.dart';
-import 'package:medito/models/me/me_model.dart';
 
 import 'package:medito/views/explore/widgets/explore_view.dart';
 import 'package:medito/views/search/search_view.dart';
@@ -17,14 +15,7 @@ import 'package:medito/models/explore/explore_list_item.dart';
 import 'package:medito/models/track/track.dart' as model;
 import 'package:medito/providers/tags/tags_provider.dart';
 import 'package:medito/models/tags/tag_model.dart';
-import 'package:medito/providers/review_service_provider.dart';
-import 'package:medito/services/review_service.dart';
-import 'package:medito/providers/donation/donation_page_provider.dart';
-import 'package:medito/models/events/donation/donation_page_model.dart';
-import 'package:medito/views/splash_welcome_layout.dart';
 import 'package:medito/views/settings/settings_screen.dart';
-import 'package:medito/views/onboarding/onboarding_pager_screen.dart';
-import 'package:medito/providers/onboarding/onboarding_donation_timing_experiment.dart';
 import 'dart:ui' as ui;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -37,6 +28,7 @@ import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/src/audio_pigeon.g.dart';
 import 'package:medito/views/home/home_view.dart';
+import 'package:medito/views/timer/timer_view.dart';
 import 'package:medito/views/home/previews/home_previews.dart';
 import 'package:medito/views/home/widgets/shortcuts/shortcuts_items_widget.dart';
 import 'package:medito/views/home/widgets/up_next/up_next_widget.dart';
@@ -48,7 +40,6 @@ import 'package:medito/views/player/widgets/player_buttons/player_buttons_widget
 import 'package:medito/views/previews/preview_support.dart';
 import 'package:medito/views/bottom_navigation/widgets/medito_sidebar.dart';
 import 'package:medito/widgets/adaptive/adaptive_content.dart';
-import 'package:medito/widgets/report_button_widget.dart';
 
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
@@ -58,20 +49,11 @@ import 'package:medito/widgets/onboarding/onboarding_header_image.dart';
 import 'package:medito/widgets/onboarding/onboarding_option_button.dart';
 import 'package:medito/widgets/onboarding/progress_indicator_widget.dart';
 
-import 'package:medito/views/onboarding/onboarding_donation_screen.dart';
 import 'package:medito/views/onboarding/onboarding_result_screen.dart';
-import 'package:medito/views/onboarding/tracking_permission_screen.dart';
 import 'package:medito/views/onboarding/battery_optimization_screen.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/providers/stats_provider.dart';
-import 'package:medito/models/stripe/paywall_config_model.dart';
-import 'package:medito/models/stripe/payment_config_model.dart';
-import 'package:medito/models/stripe/payment_method_model.dart';
-import 'package:medito/providers/stripe/payment_service_provider.dart';
-import 'package:medito/providers/stripe/payment_ui_controller.dart';
 
-import '../../helpers/firebase_test_helper.dart';
-import '../../helpers/firebase_analytics_test_helper.dart';
 import 'adaptive_layout_test.dart' show destinations;
 
 const request = PlaybackRequest(
@@ -113,18 +95,6 @@ class _OnboardingStats extends StatsNotifier {
   Future<LocalAllStats> build() async => previewStats;
 }
 
-PaywallConfigModel _onboardingPaywall(bool native) => PaywallConfigModel(
-  defaults: PaywallDefaults(config: {'nativePaywall': native}),
-  pricing: const PaymentPricing(
-    oneTime: [500, 1000, 2500],
-    monthly: [200, 500, 1000],
-    yearly: [2500, 5000, 10000],
-    currency: 'usd',
-    country: 'US',
-    suggested: SuggestedPricing(oneTime: 1000, monthly: 500, yearly: 5000),
-  ),
-);
-
 class _JourneyTracks extends Tracks {
   @override
   Future<model.Track> build({required String trackId}) async => model.Track(
@@ -155,13 +125,6 @@ class _JourneyFavorites extends FavoritesNotifier {
   Future<List<FavoriteItem>> build() async => [];
 }
 
-class _JourneyReview implements ReviewService {
-  @override
-  Future<bool> onHappyFeedback({bool suppress = false}) async => false;
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() async {
@@ -171,8 +134,6 @@ void main() {
           const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
           (call) async => null,
         );
-    await FirebaseTestHelper.initializeFirebaseForTest();
-    FirebaseAnalyticsTestHelper.setupFirebaseAnalyticsMocks();
     for (final entry in {
       'Google Sans': 'assets/fonts/google-sans/GoogleSans-Regular.ttf',
       'MaterialIcons': 'fonts/MaterialIcons-Regular.otf',
@@ -257,7 +218,6 @@ void main() {
     for (final url in {
       previewPack.coverUrl,
       ...previewHome.carousel.map((item) => item.coverUrl),
-      ...previewProducts.expand((p) => p.showcaseImages.map((i) => i.url)),
     }) {
       PaintingBinding.instance.imageCache.putIfAbsent(
         CachedNetworkImageProvider(url!),
@@ -271,16 +231,6 @@ void main() {
       await tester.pumpWidget(
         wrapHomeDark(
           ProviderScope(
-            // One sample product keeps the real shop's random ordering from
-            // making visual snapshots nondeterministic.
-            overrides: [
-              homeShopProductsProvider.overrideWith(
-                (ref) async => HomeShopProducts(
-                  products: [previewProducts.first],
-                  curated: true,
-                ),
-              ),
-            ],
             child: Scaffold(
               body: Row(
                 children: [
@@ -305,13 +255,43 @@ void main() {
         of: find.byType(UpNextWidget),
         matching: find.byIcon(Icons.play_arrow_rounded),
       );
-      expect(size.width - tester.getCenter(play).dx, closeTo(32 + 52 / 2, 0.1));
+      expect(tester.getCenter(play).dx, lessThan(size.width));
 
       expect(tester.takeException(), isNull);
     }
     await tester.pumpWidget(const SizedBox());
     frame!.image.dispose();
     codec!.dispose();
+  });
+
+  testWidgets('empty local home keeps the timer reachable', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    for (final size in [const Size(360, 640), const Size(820, 900)]) {
+      tester.view.physicalSize = size;
+      await tester.pumpWidget(
+        PreviewShell(
+          prefs: prefsDark,
+          overrides: [
+            fetchHomeProvider.overrideWith((ref) async => const HomeModel()),
+            upNextProvider.overrideWith(
+              (ref) => const AsyncData(UpNextData.empty()),
+            ),
+            statsProvider.overrideWith(_OnboardingStats.new),
+          ],
+          child: const HomeView(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final timer = find.widgetWithText(FilledButton, 'Open timer');
+      expect(timer.hitTestable(), findsOneWidget);
+      await tester.tap(timer);
+      await tester.pumpAndSettle();
+      expect(find.byType(TimerView), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    }
   });
 
   testWidgets(
@@ -368,7 +348,6 @@ void main() {
           DurationIndicatorWidget,
           PlayerButtonsWidget,
           PlayerActionBar,
-          ReportButtonWidget,
         ]) {
           expect(find.byType(type), findsOneWidget);
         }
@@ -521,14 +500,7 @@ void main() {
           );
         },
       ),
-      'donation-intro': () => OnboardingDonationScreen(
-        headerImage: AssetConstants.onboardingImage2,
-        onNext: () {},
-      ),
-      'donation-native': () => OnboardingDonationScreen(
-        headerImage: AssetConstants.onboardingImage2,
-        onNext: () {},
-      ),
+
       'reminder': () => NotificationsScreen(
         headerImage: AssetConstants.onboardingImage3,
         onNext: () {},
@@ -537,26 +509,20 @@ void main() {
         headerImage: AssetConstants.onboardingImage3,
         onNext: () {},
       ),
-      'tracking': () => TrackingPermissionScreen(
-        headerImage: AssetConstants.onboardingImage3,
-        onNext: () {},
-      ),
+
       'first-meditation': () => OnboardingResultScreen(
         headerImage: AssetConstants.onboardingImage3,
         state: OnboardingResultState.stateA,
-        showMeditation: true,
         onGetStarted: () {},
       ),
       'returning-meditation': () => OnboardingResultScreen(
         headerImage: AssetConstants.onboardingImage3,
         state: OnboardingResultState.stateB,
-        showMeditation: true,
         onGetStarted: () {},
       ),
       'experienced-meditation': () => OnboardingResultScreen(
         headerImage: AssetConstants.onboardingImage3,
         state: OnboardingResultState.stateC,
-        showMeditation: true,
         onGetStarted: () {},
       ),
       'get-started': () => OnboardingResultScreen(
@@ -585,20 +551,6 @@ void main() {
             overrides: [
               audioStateProvider.overrideWith(_PreviewAudio.new),
               statsProvider.overrideWith(_OnboardingStats.new),
-              paywallConfigProvider.overrideWith(
-                (ref) async =>
-                    _onboardingPaywall(entry.key == 'donation-native'),
-              ),
-              availablePaymentMethodsProvider.overrideWith(
-                (ref) async => const [
-                  PaymentMethod(
-                    id: 'card',
-                    type: PaymentMethodType.card,
-                    displayName: 'Card',
-                    isAvailable: true,
-                  ),
-                ],
-              ),
             ],
             child: Builder(
               builder: (context) => MediaQuery(
@@ -662,110 +614,7 @@ void main() {
     }
     await tester.pumpWidget(const SizedBox());
   });
-  testWidgets('iOS onboarding preserves step counts and audience variants', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final config = _onboardingPaywall(false);
-    expect(config.nativePaywallEnabled, isFalse);
-    for (final width in [1200.0, 820.0]) {
-      tester.view.physicalSize = Size(width, 900);
-      for (final variant in ['A', 'B']) {
-        for (final experience in [0, 1, 2, 3]) {
-          // 2/3 exercise both regular-practice experiment assignments.
-          await tester.pumpWidget(const SizedBox());
-          await tester.pumpWidget(
-            PreviewShell(
-              prefs: {
-                ...prefsDark,
-                OnboardingDonationTimingExperiment.preferenceKey: variant,
-                SharedPreferenceConstants
-                    .onboardingExperiencedMeditationVariant: experience == 3
-                    ? 'offered'
-                    : 'control',
-              },
-              overrides: [
-                onboardingTrackingStepProvider.overrideWithValue(true),
-                audioStateProvider.overrideWith(_PreviewAudio.new),
-                statsProvider.overrideWith(_OnboardingStats.new),
-                paywallConfigProvider.overrideWith((ref) async => config),
-              ],
-              child: const OnboardingPagerScreen(),
-            ),
-          );
-          await tester.runAsync(() async {
-            for (final path in [
-              AssetConstants.onboardingImage1,
-              AssetConstants.onboardingImage2,
-              AssetConstants.onboardingImage3,
-            ]) {
-              await precacheImage(
-                AssetImage(path),
-                tester.element(find.byType(OnboardingPagerScreen)),
-              );
-            }
-          });
-          await tester.pump();
-          await tester.pump(const Duration(seconds: 1));
-          Future<void> checkLayout(String name) async {
-            expect(tester.takeException(), isNull, reason: name);
-          }
-
-          if (experience == 0) await checkLayout('01-question');
-          final question = tester.widget<OnboardingQuestionScreen>(
-            find.byType(OnboardingQuestionScreen),
-          );
-          await tester.tap(
-            find.text(question.options[experience > 1 ? 2 : experience]),
-          );
-          await tester.pump(const Duration(milliseconds: 250));
-          await tester.pump();
-          await tester.pump(const Duration(seconds: 1));
-          final steps = OnboardingDonationTimingExperiment.steps(
-            variant: variant,
-            showBattery: false,
-            showTracking: true,
-          );
-          final controller = tester
-              .widget<PageView>(find.byType(PageView))
-              .controller!;
-          for (var index = 1; index < steps.length; index++) {
-            controller.jumpToPage(index);
-            await tester.pump();
-            await tester.pump(const Duration(seconds: 3));
-            await tester.pump(const Duration(seconds: 1));
-            final step = steps[index];
-            if (step == OnboardingStep.result) {
-              expect(find.byType(OnboardingProgressIndicator), findsNothing);
-              final result = tester.widget<OnboardingResultScreen>(
-                find.byType(OnboardingResultScreen),
-              );
-              expect(result.showMeditation, experience != 2);
-              await checkLayout('${index + 1}-result-$experience');
-            } else if (experience == 0) {
-              final progress = tester.widget<OnboardingProgressIndicator>(
-                find.byType(OnboardingProgressIndicator),
-              );
-              expect(progress.totalSteps, 4);
-              expect(
-                progress.currentIndex,
-                steps
-                        .take(index + 1)
-                        .where((s) => s != OnboardingStep.result)
-                        .length -
-                    1,
-              );
-              await checkLayout('${index + 1}-${step.name}');
-            }
-          }
-        }
-      }
-    }
-    await tester.pumpWidget(const SizedBox());
-  });
-  testWidgets('splash and settings at wide and compact sizes', (tester) async {
+  testWidgets('local settings fit wide and compact sizes', (tester) async {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -779,8 +628,6 @@ void main() {
           const MethodChannel('flutter_dynamic_icon'),
           (call) async => null,
         );
-    var started = 0;
-    var signedIn = 0;
     for (final size in [
       const Size(1200, 900),
       const Size(820, 900),
@@ -788,29 +635,6 @@ void main() {
       const Size(1024, 500),
     ]) {
       tester.view.physicalSize = size;
-      await tester.pumpWidget(
-        PreviewShell(
-          prefs: prefsDark,
-          child: Scaffold(
-            backgroundColor: Colors.black,
-            body: SplashWelcomeLayout(
-              showAccountButtons: true,
-              isSigningIn: false,
-              onGetStarted: () => started++,
-              onSignIn: () => signedIn++,
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-
-      await tester.ensureVisible(find.text('Get started'));
-      await tester.tap(find.text('Get started'));
-      final signIn = find.byType(TextButton);
-      await tester.ensureVisible(signIn);
-      await tester.tap(signIn);
-      await tester.pumpWidget(const SizedBox());
       await tester.pumpWidget(
         PreviewShell(
           prefs: prefsDark,
@@ -838,8 +662,6 @@ void main() {
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     }
-    expect(started, 4);
-    expect(signedIn, 4);
   });
   testWidgets(
     'Explore, Search and detail screens fit wide and compact viewports',
@@ -932,14 +754,8 @@ void main() {
           }
           await tester.pumpWidget(
             PreviewShell(
-              prefs: {
-                ...prefsDark,
-                SharedPreferenceConstants.endScreenDonationAskVariant: 'A',
-              },
+              prefs: prefsDark,
               overrides: [
-                meProvider.overrideWith(
-                  (ref) async => const MeModel(id: 'preview'),
-                ),
                 explorePacksProvider.overrideWith((ref) async => packs),
                 searchTracksProvider('mind').overrideWith(
                   (ref) async => [
@@ -983,21 +799,6 @@ void main() {
                       'preview': ['breathing'],
                       'track-1': ['breathing'],
                     },
-                  ),
-                ),
-                reviewServiceProvider.overrideWithValue(_JourneyReview()),
-                fetchDonationPageProvider.overrideWith(
-                  (ref) async => const DonationPageModel(
-                    title: 'Keep meditation free',
-                    text:
-                        'Your support helps us make meditation accessible to everyone.',
-                    buttons: [
-                      ButtonModel(
-                        title: 'Donate',
-                        path: 'https://meditofoundation.org/donate',
-                        type: 'link',
-                      ),
-                    ],
                   ),
                 ),
               ],

@@ -9,19 +9,6 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
-  String get appName => 'Meditejo';
-
-  @override
-  String get privacyPolicyTitle => 'Política de Privacidad';
-
-  @override
-  String get unableToOpenPrivacyPolicy =>
-      'No se puede abrir la política de privacidad';
-
-  @override
-  String get meditoUrl => 'https://meditofoundation.org/';
-
-  @override
   String get downloads => 'Descargas';
 
   @override
@@ -47,22 +34,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get reorder => 'Reordenar';
 
   @override
-  String get meditationProducts => 'Tienda para Apoyar';
-
-  @override
-  String get blackFridayTitle => 'Apoya Meditación Gratuita';
-
-  @override
-  String get blackFridaySubtitle =>
-      'Este Black Friday, apoya la meditación gratuita para todos. Tu compra ayuda a mantener Medito gratis y accesible para millones en todo el mundo';
-
-  @override
-  String get blackFridaySeeAllButton => 'Visitar tienda';
-
-  @override
-  String get fromPrefix => 'De ';
-
-  @override
   String get emptyDownloadsMessage =>
       'Parece que aún no has descargado nada. Las descargas son útiles para ahorrar datos móviles o para acceder a sesiones en lugares sin señal.';
 
@@ -70,16 +41,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get meanWhileListen => 'Mientras tanto, puedes escuchar tu';
 
   @override
-  String get retrying => 'Reintentando...';
-
-  @override
-  String get tryAgain => 'Intentar de nuevo';
-
-  @override
   String get retry => 'Reintentar';
-
-  @override
-  String get statsSuccess => 'Estadísticas actualizadas';
 
   @override
   String get shareStatsText =>
@@ -87,21 +49,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get backgroundSounds => 'Sonido de Fondo';
-
-  @override
-  String get x06 => 'x0.6';
-
-  @override
-  String get x07 => 'x0.7';
-
-  @override
-  String get x08 => 'x0.8';
-
-  @override
-  String get x09 => 'x0.9';
-
-  @override
-  String get x1 => 'x1';
 
   @override
   String get searchMeditations => 'Buscar meditaciones';
@@ -123,22 +70,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get id => 'id';
 
   @override
-  String get env => 'env';
-
-  @override
   String get email => 'email';
 
   @override
   String get appVersion => 'appVersion';
-
-  @override
-  String get deviceModel => 'deviceModel';
-
-  @override
-  String get deviceOs => 'deviceOs';
-
-  @override
-  String get devicePlatform => 'devicePlatform';
 
   @override
   String get buildNumber => 'buildNumber';
@@ -148,9 +83,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get explore => 'Explorar';
-
-  @override
-  String get welcome => '👋 Bienvenido';
 
   @override
   String get thanksForSharing => 'Gracias por compartir  💜';
@@ -178,45 +110,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get min => 'min';
 
   @override
-  String get hey => '👋 Hola';
-
-  @override
   String get someThingWentWrong => 'Algo salió mal';
 
   @override
-  String get invalidEmail => 'Correo electrónico inválido.';
-
-  @override
-  String get emailForReceipt => 'Correo electrónico para recibo';
-
-  @override
-  String get emailForReceiptDescription =>
-      'Enviaremos el recibo de tu donación a esta dirección de correo electrónico. Esto nos ayuda a identificar tu pago para soporte y registros.';
-
-  @override
-  String get fieldRequired => 'Campo requerido';
-
-  @override
-  String get invalidInput => 'Entrada inválida';
-
-  @override
   String get connectionTimeout => 'Error de tiempo de espera de conexión';
-
-  @override
-  String get noInternetConnection => 'Sin conexión a internet';
-
-  @override
-  String get badRequest => 'Solicitud incorrecta';
-
-  @override
-  String get unauthorizedRequest =>
-      'Sesión expirada - por favor inicia sesión de nuevo';
-
-  @override
-  String get accessForbidden => 'Acceso prohibido';
-
-  @override
-  String get apiNotFound => 'API no encontrada';
 
   @override
   String get anErrorOccurred =>
@@ -227,46 +124,11 @@ class AppLocalizationsEs extends AppLocalizations {
       'No se puede cargar el audio. Por favor regresa e inténtalo de nuevo';
 
   @override
-  String get loadingError =>
-      'Parece que estás sin conexión o hubo un pequeño problema de nuestro lado';
-
-  @override
   String get timeout =>
       '¡Ups! Parece que hubo un error. Si el problema persiste, cierra la aplicación e inténtalo de nuevo.';
 
   @override
-  String get connectivityError =>
-      'Asegúrate de estar conectado a internet para usar Meditejo';
-
-  @override
   String get howDoYouFeel => '¿Cómo te sientes después de esta sesión?';
-
-  @override
-  String get yourFeedbackHelpsUs =>
-      'Tus comentarios nos ayudan a mejorar nuestro contenido y te permiten reflexionar sobre tu experiencia.';
-
-  @override
-  String get didYouKnow => '¿Sabías que?';
-
-  @override
-  String get meditoReliesOnYourDonationsToSurvive =>
-      'Medito depende únicamente de tus donaciones para sobrevivir. Producimos contenido gratuito para ayudar a la humanidad.';
-
-  @override
-  String get pickTimeHelpText => 'Selecciona la hora de tu recordatorio diario';
-
-  @override
-  String get reminderNotificationScheduled =>
-      'Notificación de recordatorio programada a las';
-
-  @override
-  String get dailyReminderTitle => 'Recordatorio Diario';
-
-  @override
-  String get setFor => 'Configurado para';
-
-  @override
-  String get signInSignUp => 'Iniciar sesión / Registrarse';
 
   @override
   String get settings => 'Configuración';
@@ -278,23 +140,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get history => 'Historial';
 
   @override
-  String get reminderNotificationCleared => 'Recordatorio cancelado';
-
-  @override
   String get cancel => 'Cancelar';
-
-  @override
-  String get areYouSure => '¿Estás seguro?';
-
-  @override
-  String get requestPermission => 'Solicitar Permiso';
-
-  @override
-  String get reminderPermissions => 'Permisos de Recordatorio';
-
-  @override
-  String get weNeedYourPermissionReminder =>
-      'Necesitamos permiso para enviarte recordatorios sobre el seguimiento de tu progreso de meditación. Esto te ayuda a mantener la consistencia en tu práctica.';
 
   @override
   String get syncWithHealth => 'Sincronizar con Apple Health';
@@ -315,17 +161,11 @@ class AppLocalizationsEs extends AppLocalizations {
       'Health Connect es necesario para sincronizar. ¿Instalarlo desde Play Store?';
 
   @override
-  String get confirmDeletionTitle => 'Confirmar Eliminación';
-
-  @override
   String get confirmDeletionFromPlayerTitle => 'Ya Descargado';
 
   @override
   String get confirmDeletionFromPlayerMessage =>
       'Esta meditación ya está en tus descargas. ¿Quieres eliminarla?';
-
-  @override
-  String get confirmDeletionMessage => '¿Estás seguro de que quieres eliminar';
 
   @override
   String get delete => 'Eliminar';
@@ -341,13 +181,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get goToDownloads => 'Ir a Descargas';
 
   @override
-  String get signInSuccess => 'Inicio de sesión exitoso';
-
-  @override
-  String get signInError =>
-      'Error al iniciar sesión. Por favor inténtalo de nuevo.';
-
-  @override
   String get backgroundSoundsDisabled =>
       'Los sonidos de fondo están deshabilitados para esta pista';
 
@@ -355,17 +188,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get neww => 'Nuevo';
 
   @override
-  String get statsLoadError =>
-      'No se pueden cargar las estadísticas. Por favor inténtalo más tarde.';
-
-  @override
-  String get statsLoading => 'Cargando estadísticas...';
-
-  @override
   String get loading => 'Cargando...';
-
-  @override
-  String get statsErrorRetry => 'Reintentar';
 
   @override
   String get currentStreak => 'Racha Actual';
@@ -401,306 +224,29 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minute => 'minuto';
 
   @override
-  String get showConsistencyScore => 'Mostrar Puntuación de Consistencia';
-
-  @override
-  String get showCurrentStreak => 'Mostrar Racha Actual';
-
-  @override
   String get alwaysShowStreakOnHomepage =>
       'Mostrar siempre la racha en la página de inicio';
-
-  @override
-  String get displayPreferenceSaved => 'Preferencia de visualización guardada';
 
   @override
   String get gotIt => 'Entendido';
 
   @override
-  String get signUpLogInTitle => 'Iniciar sesión en Meditejo';
-
-  @override
-  String get createAccountTitle => 'Crear cuenta';
-
-  @override
-  String get signInAgain => 'Iniciar sesión de nuevo';
-
-  @override
-  String get emailLabel => 'Correo electrónico';
-
-  @override
-  String get createAccountButtonText => 'Crear Cuenta';
-
-  @override
-  String get createAccountLogInButtonText => 'Iniciar sesión o Registrarse';
-
-  @override
-  String get getStarted => 'Empezar';
-
-  @override
-  String get splashSignInOrSignUp => 'Iniciar sesión o registrarse';
-
-  @override
-  String get sendMeMyPasswordText => 'Continuar';
-
-  @override
-  String get logInButtonText => 'Iniciar Sesión';
-
-  @override
-  String get authenticationFailed => 'Autenticación fallida';
-
-  @override
-  String get invalidVerificationCode =>
-      'Código de verificación inválido. Por favor, inténtalo de nuevo.';
-
-  @override
-  String get errorPrefix => 'Error: ';
-
-  @override
-  String retryInSeconds(Object seconds) {
-    return 'Reintentar en $seconds s';
-  }
-
-  @override
-  String resendCodeInSeconds(Object seconds) {
-    return 'Reenviar código en $seconds s';
-  }
-
-  @override
-  String get byContinuingAgreeTo => 'Al continuar, aceptas nuestros ';
-
-  @override
-  String get andText => ' y ';
-
-  @override
-  String get streakFreezeEarned =>
-      '¡Felicitaciones! Ganaste un congelamiento de racha por alcanzar un hito de 7 días.';
-
-  @override
-  String get emailVerificationText =>
-      'Te enviaremos un código por correo electrónico para verificar tu cuenta';
-
-  @override
-  String get createAccountBenefits =>
-      '◦ Rastrea tu viaje de atención plena \\n◦ Nunca pierdas tu progreso de meditación\\n◦ Construye una práctica de meditación duradera 💜';
-
-  @override
-  String get loginBenefits =>
-      '• Descarga tus datos guardados previamente\\n• Continúa tu viaje de meditación desde donde lo dejaste';
-
-  @override
-  String get accountTransitionWarningTitle => '¡Espera!';
-
-  @override
-  String get loginWarningQuestion =>
-      '¿Quieres continuar con este correo electrónico?';
-
-  @override
-  String get loginWarningExplanation =>
-      'Si ya tienes una cuenta de Meditejo:\n• Tus datos de meditación anteriores se descargarán\n• Tu progreso actual no guardado se perderá\n\nSi eres nuevo en Meditejo:\n• Se creará una nueva cuenta\n• Tu progreso actual se guardará en esta cuenta';
-
-  @override
-  String get createNewAccount => 'Crear Nueva Cuenta';
-
-  @override
-  String get continueLogin => 'Sí, continuar';
-
-  @override
-  String get cancelAction => 'Cancelar';
-
-  @override
   String get goBack => 'Regresar';
-
-  @override
-  String get userProfileTitle => 'Perfil de Usuario';
-
-  @override
-  String get userProfileEmailLabel => 'Correo electrónico:';
-
-  @override
-  String get signOutButtonText => 'Cerrar Sesión';
-
-  @override
-  String get signOutSuccessMessage => 'Has cerrado sesión exitosamente';
-
-  @override
-  String get signOutErrorMessage =>
-      'Error al cerrar sesión. Por favor inténtalo de nuevo.';
-
-  @override
-  String get deleteAccountTitle => 'Eliminar Cuenta';
-
-  @override
-  String get deleteAccountConfirmation =>
-      'Esto elimina tu cuenta de forma permanente, incluidas tus estadísticas y favoritos. No se puede deshacer.';
-
-  @override
-  String get deleteAccountButtonText => 'Eliminar Cuenta';
-
-  @override
-  String get accountMarkedForDeletion =>
-      'Tu cuenta ha sido marcada para eliminación.';
-
-  @override
-  String get deleteAccountError => 'Error al eliminar la cuenta.';
-
-  @override
-  String get deleteAccountDonationNotice =>
-      'Eliminar tu cuenta no cancela una donación recurrente (mensual o anual). Puedes cancelarla en el portal de donaciones con el correo con el que donaste.';
-
-  @override
-  String get deleteAccountManageDonations => 'Gestionar donaciones';
-
-  @override
-  String get deleteAccountReasonTitle => '¿Por qué te vas?';
-
-  @override
-  String get deleteAccountReasonSubtitle =>
-      'Es opcional, pero nos ayuda a mejorar Meditejo.';
-
-  @override
-  String get deleteAccountReasonNotUsing => 'Ya no la uso';
-
-  @override
-  String get deleteAccountReasonPrivacy => 'Preocupaciones de privacidad';
-
-  @override
-  String get deleteAccountReasonSwitchingApp => 'Me cambio a otra app';
-
-  @override
-  String get deleteAccountReasonTechnicalIssues => 'Problemas técnicos';
-
-  @override
-  String get deleteAccountReasonTooManyNotifications =>
-      'Demasiadas notificaciones';
-
-  @override
-  String get deleteAccountReasonOther => 'Otra cosa';
-
-  @override
-  String get deleteAccountDetailsHint =>
-      '¿Algo más que quieras contarnos? (opcional)';
-
-  @override
-  String get deleteAccountFinalButton => 'Eliminar mi cuenta';
-
-  @override
-  String get deleteAccountFailed =>
-      'No se pudo eliminar la cuenta, inténtalo de nuevo.';
-
-  @override
-  String get deleteAccountUnconfirmed =>
-      'No pudimos confirmar que tu cuenta se eliminó. Revisa tu conexión e inténtalo de nuevo.';
-
-  @override
-  String get accountDeletedTitle => 'Tu cuenta ha sido eliminada';
-
-  @override
-  String get accountDeletedBody =>
-      'Tu perfil, estadísticas y favoritos se han eliminado. Puedes seguir usando Meditejo sin una cuenta.';
-
-  @override
-  String get accountMarkedForDeletionError =>
-      'Esta cuenta ha sido marcada para eliminación y no se puede acceder.';
-
-  @override
-  String get faqTitle => 'Preguntas Frecuentes';
 
   @override
   String get editStatsTitle => 'Editar estadísticas';
 
   @override
-  String get telegramTitle => 'Únete a nuestra comunidad de Telegram';
-
-  @override
-  String get whatsappTitle => 'Síguenos en WhatsApp';
-
-  @override
-  String get donateTitle => 'Donar';
-
-  @override
-  String get contactUsTitle => 'Contáctanos';
-
-  @override
-  String get accountTitle => 'Cuenta';
-
-  @override
   String get path => 'Ruta';
-
-  @override
-  String get stepTitle => 'Paso';
 
   @override
   String get completed => 'Completado';
 
   @override
-  String get locked => 'Bloqueado';
-
-  @override
-  String get pathLoadError =>
-      'Error al cargar la ruta. Por favor inténtalo de nuevo.';
-
-  @override
-  String get stepCompleted => '¡Paso completado!';
-
-  @override
-  String get stepCompletionError =>
-      'Error al completar el paso. Por favor inténtalo de nuevo.';
-
-  @override
-  String get meditatedOutsideApp =>
-      '¿Meditaste fuera de la aplicación? Escucha la última sesión desbloqueada para desbloquear el siguiente paso en la ruta';
-
-  @override
-  String get enterMeditationDuration =>
-      'Por favor ingresa la duración de tu meditación fuera de la aplicación';
-
-  @override
-  String get meditationMarkingError =>
-      'Error al marcar la meditación. Por favor inténtalo de nuevo.';
-
-  @override
-  String get listenToUnlockNextStep =>
-      'Escucha la última sesión desbloqueada para desbloquear el siguiente paso en la aplicación';
-
-  @override
-  String get unknownTaskType => 'Tipo de tarea desconocido';
-
-  @override
-  String get invalidDuration =>
-      'Duración inválida. Por favor ingresa un número positivo.';
-
-  @override
   String get submit => 'Enviar';
 
   @override
-  String get journalEntry => 'Entrada de Diario';
-
-  @override
-  String get writeYourJournalEntryHere =>
-      'Escribe tu entrada de diario aquí...';
-
-  @override
-  String get journalEntrySaved => 'Entrada de diario guardada';
-
-  @override
-  String get sessionCompleted => '¡Sesión completada exitosamente!';
-
-  @override
-  String get taskUpdateError =>
-      'Error al actualizar la tarea. Por favor inténtalo de nuevo.';
-
-  @override
-  String get syncingPath => 'Sincronizando tu progreso...';
-
-  @override
-  String get stepLocked => 'Completa los pasos anteriores para desbloquear';
-
-  @override
   String get duration => 'Duración';
-
-  @override
-  String get tapToReadArticle => 'Toca para leer el artículo';
 
   @override
   String get monday => 'L';
@@ -731,19 +277,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get dayStreak => 'días de racha';
 
   @override
-  String get dailyQuote => 'Cita Diaria';
-
-  @override
-  String get termsOfService => 'Términos de Servicio';
-
-  @override
-  String get privacyPolicy => 'Política de Privacidad';
-
-  @override
-  String get offlineMode =>
-      'Ahora estás en modo sin conexión debido a un error.';
-
-  @override
   String get addToSiri => 'Agregar a Siri';
 
   @override
@@ -763,67 +296,10 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get followingDeepLink => 'Siguiendo enlace profundo...';
-
-  @override
   String get invalidDeepLink => 'Enlace profundo inválido';
 
   @override
   String get deepLinkError => 'No se puede manejar el enlace profundo';
-
-  @override
-  String get statsInitError =>
-      'La sincronización de estadísticas puede haber fallado. Por favor verifica tu conexión.';
-
-  @override
-  String get appInitError =>
-      'Error en la inicialización de la aplicación. Entrando en modo sin conexión.';
-
-  @override
-  String get noConnection => 'Sin conexión';
-
-  @override
-  String get continueAsGuest => 'Continuar';
-
-  @override
-  String get isMonthlyDonor => 'd';
-
-  @override
-  String get otpLabel => 'Ingresa el código de verificación';
-
-  @override
-  String get invalidOtpError =>
-      'Por favor ingresa un código válido de 6 dígitos';
-
-  @override
-  String get otpSentSuccess =>
-      'Revisa tu correo electrónico para el código de verificación';
-
-  @override
-  String get otpInstructions => 'Ingresa el código que acabamos de enviar a';
-
-  @override
-  String get resendCode => '¿No recibiste el código? Reenvíalo';
-
-  @override
-  String get verifyOtpButtonText => 'Continuar';
-
-  @override
-  String get warningTitle => 'Advertencia';
-
-  @override
-  String get localStatsWarning =>
-      'Iniciar sesión en una nueva cuenta resultará en la pérdida de tus estadísticas locales actuales. ¿Deseas continuar?';
-
-  @override
-  String get proceed => 'Continuar';
-
-  @override
-  String get errorNotFound => 'Recurso no encontrado';
-
-  @override
-  String get requestOtpBeforeDeepLink =>
-      'Solicita primero un código OTP antes de usar un enlace profundo';
 
   @override
   String get shortcutsTitle => 'Accesos Directos';
@@ -841,58 +317,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get customiseHomeLayout => 'Organizar Diseño de Inicio';
 
   @override
-  String get featuresIntegrations => 'Características e Integraciones';
-
-  @override
-  String get account => 'Cuenta';
-
-  @override
-  String get supportCommunity => 'Apoyo y Comunidad';
-
-  @override
   String get helpLegal => 'Ayuda y Legal';
 
   @override
   String get advanced => 'Avanzado';
 
   @override
-  String get restorePreviousStats => 'Restaurar estadísticas anteriores';
-
-  @override
-  String get restorePreviousStatsExplainer =>
-      'Elige una copia para restaurar. Las copias se guardan automáticamente cuando se sincronizan tus estadísticas, y las 20 más recientes se conservan en este dispositivo, incluidas las de otras cuentas que hayas usado aquí.';
-
-  @override
-  String get noBackupsAvailable =>
-      'Aún no hay copias de estadísticas en este dispositivo.';
-
-  @override
-  String backupSummary(int streak, int sessions, int minutes) {
-    String _temp0 = intl.Intl.pluralLogic(
-      sessions,
-      locale: localeName,
-      other: '$sessions sesiones',
-      one: '1 sesión',
-    );
-    return 'Racha $streak · $_temp0 · $minutes min';
-  }
-
-  @override
-  String get restoreStatsConfirmTitle => '¿Restaurar estas estadísticas?';
-
-  @override
-  String get restoreStatsConfirmBody =>
-      'Tus estadísticas actuales en este dispositivo se sustituirán por la copia seleccionada, y la copia se subirá a la cuenta actualmente conectada. Esta acción no se puede deshacer.';
-
-  @override
   String get restore => 'Restaurar';
-
-  @override
-  String get restoreStatsSuccess => 'Estadísticas restauradas';
-
-  @override
-  String get restoreStatsFailed =>
-      'No se pudieron restaurar las estadísticas. Inténtalo de nuevo.';
 
   @override
   String daysSelected(int count) {
@@ -955,25 +386,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get enableNotificationsTitleLearn => 'Sigue aprendiendo';
 
   @override
-  String get enableNotificationsBodyLearn =>
-      'Un recordatorio diario es lo que más ayuda a los principiantes a mantener la práctica.';
-
-  @override
   String get enableNotificationsTitleHabit => 'Crea el hábito que buscas';
 
   @override
-  String get enableNotificationsBodyHabit =>
-      'Las personas que configuran un recordatorio tienen muchas más probabilidades de meditar con regularidad.';
-
-  @override
   String get enableNotificationsTitleStress => 'Hazlo parte de tu día';
-
-  @override
-  String get enableNotificationsBodyStress =>
-      'Solo unos minutos al día bastan para empezar a notar la diferencia.';
-
-  @override
-  String get enableNotificationsCta => 'Habilitar Notificaciones';
 
   @override
   String get notificationPreviewTimestamp => 'ahora';
@@ -1001,9 +417,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get reminderSlotMorning => 'Mañana';
-
-  @override
-  String get reminderSlotAfternoon => 'Tarde';
 
   @override
   String get reminderSlotEvening => 'Noche';
@@ -1073,345 +486,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get skip => 'Omitir';
 
   @override
-  String get donationTitle =>
-      'Millones encuentran calma aquí gratis. Ayuda a que siga así.';
-
-  @override
-  String get donationBody =>
-      'Medito es gestionado por un pequeño equipo sin fines de lucro. Sin anuncios, sin inversores, sin muros de pago — solo donaciones de personas que usan la app.';
-
-  @override
-  String get donationPrimerCta => 'Descubre cómo ayudar';
-
-  @override
-  String get donateNow => 'Conviértete en colaborador';
-
-  @override
-  String get noThanks => 'No gracias';
-
-  @override
-  String get next => 'Siguiente';
-
-  @override
-  String get remindLater => 'Recordármelo Más Tarde';
-
-  @override
-  String get allSetTitle => '¡Todo Listo!';
-
-  @override
-  String get startMeditating => 'Comenzar a Meditar';
-
-  @override
-  String get trackingPermissionTitle => 'Ayúdanos a Mejorar Meditejo';
-
-  @override
-  String get trackingPermissionBody =>
-      'Tu privacidad importa. Usamos datos anónimos para entender cómo se usa Meditejo y así mejorarlo para todos. Nunca recopilamos información personal ni vendemos tus datos.';
-
-  @override
-  String get trackingPermissionPrivacyNote =>
-      'Tus datos siguen siendo anónimos y nunca se comparten con terceros.';
-
-  @override
-  String get trackingPermissionAllow => 'Continuar';
-
-  @override
-  String get onboardingFirstMeditationTitle => 'Tu primera meditación';
-
-  @override
-  String get onboardingFirstMeditationHook => 'Tu primer momento de calma.';
-
-  @override
-  String get onboardingFirstMeditationDuration => 'Poco más de 2 minutos';
-
-  @override
-  String get onboardingFirstMeditationSubtitle =>
-      'No hay nada que hacer bien. Solo relájate y escucha.';
-
-  @override
-  String get onboardingFirstMeditationBegin => 'Empezar';
-
-  @override
-  String get onboardingFirstMeditationSkip => 'Quizás más tarde';
-
-  @override
-  String get onboardingFirstMeditationSkipShort => 'Omitir';
-
-  @override
-  String get onboardingFirstMeditationDone => 'Eso es todo. Acabas de meditar.';
-
-  @override
-  String get onboardingFirstMeditationContinue => 'Continuar';
-
-  @override
-  String get splashHeadline => 'Meditación Hecha Simple';
-
-  @override
-  String get splashSubtitle =>
-      'Gratis para siempre. Sin anuncios. Sin ánimo de lucro.';
-
-  @override
-  String get splashBenefit1Subtitle =>
-      'Explora horas de meditaciones guiadas, cursos avanzados y más. Sin muro de pago.';
-
-  @override
-  String get splashBenefit2Subtitle =>
-      'Mantente motivado diariamente, rastrea el progreso y construye hábitos duraderos.';
-
-  @override
-  String get splashBenefit3Subtitle =>
-      'Las donaciones nos mantienen funcionando para que todos puedan acceder a la atención plena—sin necesidad de anuncios.';
-
-  @override
-  String get continueText => 'Continuar';
-
-  @override
-  String get setReminderB => 'Recuérdamelo Cada Día';
-
-  @override
-  String get donationContinueToPayment => 'Continuar al pago';
-
-  @override
-  String get donationEmailLabel => 'Correo electrónico';
-
-  @override
-  String get donationEmailHelper =>
-      'Para tu recibo y para gestionar tu donación.';
-
-  @override
-  String get donationEmailRequired =>
-      'Introduce tu correo para poder enviarte el recibo.';
-
-  @override
-  String get donationEmailInvalid =>
-      'Ese correo electrónico no parece correcto.';
-
-  @override
-  String emailTypoSuggestion(String email) {
-    return '¿Quisiste decir $email?';
-  }
-
-  @override
-  String get emailTypoDialogTitle => 'Revisa tu correo';
-
-  @override
-  String emailTypoDialogTyped(String email) {
-    return 'Escribiste $email.';
-  }
-
-  @override
-  String get emailTypoUseSuggestion => 'Usar este';
-
-  @override
-  String get emailTypoKeepTyped => 'Dejar el mío';
-
-  @override
-  String get donationThankYouTitle => '¡Gracias por Tu Apoyo!';
-
-  @override
-  String get donationThankYouBody =>
-      'Tu generosidad ayuda a mantener Medito gratis y accesible para todos. Estamos profundamente agradecidos por tu contribución a difundir la atención plena en todo el mundo.';
-
-  @override
-  String get donationVisitFoundation => 'Visitar Fundación Medito';
-
-  @override
-  String get donationContinue => 'Continuar';
-
-  @override
-  String get streakFreezesAvailable => 'Congelaciones de Racha Disponibles';
-
-  @override
-  String get freezeUsedMessage =>
-      '¡Se usó una congelación de racha para mantener tu racha!';
-
-  @override
-  String get streakAtRisk => 'Te perdiste un día';
-
-  @override
-  String get streakFreezeAvailable =>
-      'Tienes 1 congelación de racha disponible. ¿Te gustaría usarla para proteger tu racha actual?';
-
-  @override
-  String streakFreezesAvailableMessage(Object count) {
-    return '¡Pero está bien! Tienes $count congelaciones de racha disponibles. ¿Te gustaría usar una para proteger tu racha actual?';
-  }
-
-  @override
-  String get useStreakFreeze => 'Usar Congelación de Racha';
-
-  @override
-  String get streakFreezesBeta => 'Congelaciones de Racha (Beta)';
-
-  @override
-  String get streakFreezesBetaDescription =>
-      'Habilita la capacidad de usar congelaciones de racha para mantener tu racha de meditación cuando te pierdas un día';
-
-  @override
   String get notNow => 'Ahora No';
-
-  @override
-  String get helpTitle => 'Ayuda';
-
-  @override
-  String get meditationInterruptionTitle =>
-      'Las meditaciones se detienen inesperadamente';
-
-  @override
-  String get meditationInterruptionContent =>
-      'Esto probablemente se debe a la configuración de optimización de batería de tu teléfono. Visita DontKillMyApp.com para instrucciones específicas sobre cómo permitir que Meditejo funcione correctamente en segundo plano en tu dispositivo.';
-
-  @override
-  String get supportTitle => 'Quiero apoyarte';
-
-  @override
-  String get supportContent =>
-      'Puedes apoyar a la Fundación Medito a través de varios métodos';
-
-  @override
-  String get stopDonationTitle => 'Quiero detener mi donación mensual';
-
-  @override
-  String get stopDonationContent =>
-      'Ve al portal de donaciones. Necesitas la dirección de correo electrónico que usaste para configurarlas';
-
-  @override
-  String get statsWrongTitle => 'Mis estadísticas están mal';
-
-  @override
-  String get statsWrongContent =>
-      'Puedes editarlas en la página dedicada de edición de estadísticas.';
-
-  @override
-  String get contactUsContent =>
-      'Si tienes alguna pregunta no abordada en esta página, algún comentario, o si necesitas asistencia, intenta actualizar la aplicación. Si eso no ayuda, por favor contáctanos. ¡Estamos aquí para ayudar!';
-
-  @override
-  String get contactUsActionText => 'Contáctanos';
-
-  @override
-  String get downloadTracksTitle => 'Cómo descargar pistas';
-
-  @override
-  String get downloadTracksContent =>
-      'Para descargar una pista, comienza reproduciéndola y luego busca el ícono de descarga (una flecha hacia abajo) en la parte inferior de la pantalla del reproductor—es el segundo ícono.\\n\\nUna vez descargada, puedes acceder a tus pistas tocando el mosaico \"Descargas\" en la pantalla de inicio.';
-
-  @override
-  String get openBatterySettingsText => 'Visitar DontKillMyApp.com';
-
-  @override
-  String get dontKillMyAppUrl => 'https://dontkillmyapp.com';
-
-  @override
-  String get goToDonationPortalText => 'Ir al Portal de Donaciones';
-
-  @override
-  String get editStatsActionText => 'Editar Estadísticas';
-
-  @override
-  String get donateViaDonationFormText => 'Donar vía Formulario de Donación';
-
-  @override
-  String get donateViaPayPalText => 'Donar vía PayPal';
-
-  @override
-  String get donateViaBankTransferText => 'Donar vía Transferencia Bancaria';
-
-  @override
-  String get donationFormUrl => 'https://donate.meditofoundation.org';
-
-  @override
-  String get payPalDonationUrl => 'https://paypal.me/meditofoundation';
-
-  @override
-  String get bankTransferDetailsUrl =>
-      'https://meditofoundation.org/about/bank-details';
-
-  @override
-  String get donationPortalUrl => 'https://bit.ly/3yFqVbM';
-
-  @override
-  String get contactFormBaseUrl => 'https://tally.so/r/wLGBaO';
-
-  @override
-  String get batteryOptimizationTitle =>
-      'Tu dispositivo tiene optimización de batería adicional';
-
-  @override
-  String get batteryOptimizationDescription =>
-      'Sigue los pasos y deshabilita las optimizaciones para permitir el funcionamiento suave de esta aplicación';
-
-  @override
-  String get autoStartTitle => 'Habilitar Inicio Automático';
-
-  @override
-  String get autoStartDescription =>
-      'Sigue los pasos y habilita el inicio automático de esta aplicación';
-
-  @override
-  String get batteryOptimizationAlreadyDisabled =>
-      'La optimización de batería ya está deshabilitada para Meditejo';
-
-  @override
-  String get donationRetentionTitle => 'Por Favor Reconsidera';
-
-  @override
-  String get donationRetentionMainMessage =>
-      'Millones de personas dependen de Medito, y operamos únicamente con donaciones.';
-
-  @override
-  String get donationRetentionBenefitsHeading => 'Tu apoyo nos ayuda a:';
-
-  @override
-  String get donationRetentionBenefit1 =>
-      'Agregar contenido de meditación nuevo regularmente';
-
-  @override
-  String get donationRetentionBenefit2 =>
-      'Desarrollar nuevas características para mejorar tu experiencia';
-
-  @override
-  String get donationRetentionBenefit3 =>
-      'Mantener Medito gratis y accesible para todos';
-
-  @override
-  String get donationRetentionFinancialMessage =>
-      'Si estás experimentando dificultades financieras, lo entendemos. Pero si puedes continuar tu apoyo, incluso con una cantidad reducida, haría una diferencia significativa.';
-
-  @override
-  String get stayAsDonorButtonText => 'Permanecer como donante';
-
-  @override
-  String get continueToCancellationButtonText => 'Continuar a la cancelación';
-
-  @override
-  String get donationRetentionThankYouMessage =>
-      '¡Gracias! Tu apoyo continuo significa el mundo para nosotros y ayuda a millones de personas a acceder a la meditación.';
-
-  @override
-  String get errorNetworkMessage => 'No se puede conectar al servidor';
 
   @override
   String get errorNoInternetMessage => 'Sin conexión a internet';
 
   @override
   String get errorTimeoutMessage => 'Tiempo de conexión agotado';
-
-  @override
-  String get errorHostLookupMessage =>
-      'No se pudo conectar con los servidores de Medito. Revisa si tienes una VPN, un bloqueador de anuncios o un DNS privado activado.';
-
-  @override
-  String get errorConnectTimeoutMessage =>
-      'Se agotó el tiempo de conexión con los servidores de Medito. Inténtalo de nuevo.';
-
-  @override
-  String get errorServerUnreachableMessage =>
-      'No se pudo conectar con los servidores de Medito. Inténtalo más tarde.';
-
-  @override
-  String get errorUnauthorizedMessage =>
-      'Sesión expirada, por favor inicia sesión de nuevo';
 
   @override
   String get errorNotFoundMessage => 'Contenido no encontrado';
@@ -1423,10 +504,6 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get errorUnknownMessage =>
       'Algo salió mal, por favor inténtalo de nuevo';
-
-  @override
-  String get inactiveEmailError =>
-      'Esta dirección de correo electrónico actualmente no puede recibir mensajes debido a restricciones del proveedor de correo electrónico o problemas de entrega. Por favor intenta usar una dirección de correo electrónico diferente.';
 
   @override
   String get enableDndDuringMeditation =>
@@ -1482,97 +559,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Para silenciar tu teléfono durante la meditación, Android debe dar a Meditejo acceso a No molestar. En la siguiente pantalla, busca Meditejo en la lista y actívalo; después vuelve a la app.';
 
   @override
-  String get mindClear => 'Mente Clara';
-
-  @override
-  String get donateToMedito => 'Donar Ahora';
-
-  @override
   String get currency => 'Moneda';
 
   @override
   String get custom => 'Cantidad Personalizada';
-
-  @override
-  String get payWithPaypal => 'Donar con PayPal';
-
-  @override
-  String get bankTransfer => 'Transferencia Bancaria';
-
-  @override
-  String get changeCurrency => 'Cambiar Moneda';
-
-  @override
-  String get chooseAmount => 'Elige una cantidad';
-
-  @override
-  String get otherPaymentMethods => 'Otros métodos de donación';
-
-  @override
-  String get donationSecurityMessage =>
-      'Todas las donaciones se procesan de forma segura. Somos una organización sin fines de lucro registrada dedicada a hacer la meditación accesible para todos.';
-
-  @override
-  String get donationImpactTitle => 'Tu donación nos ayuda a:';
-
-  @override
-  String get donationImpactPoints =>
-      '• Crear contenido de meditación gratuito nuevo\\n• Mantener la aplicación sin anuncios\\n• Hacer el bienestar mental accesible para todos\\n• Nos ayuda a mantener la meditación gratis para todos';
-
-  @override
-  String get donationSecurityInfo =>
-      'No vendemos ni intercambiamos tu información con nadie.';
-
-  @override
-  String get foundationRegistrationInfo =>
-      'Fundación Medito o en holandés, Stichting Medito es una organización sin fines de lucro registrada en los Países Bajos.';
-
-  @override
-  String get foundationContactInfo =>
-      'KvK-nummer: 75284251 - RSIN: 860222627 - Email: hello@meditofoundation.org';
-
-  @override
-  String get redirectingToSecurePayment =>
-      'Redirigiendo a una página de pago segura...';
-
-  @override
-  String get couldNotOpenDonationPage =>
-      'No se pudo abrir la página de donación.';
-
-  @override
-  String get monthlyDonation => 'Mensual';
-
-  @override
-  String get singleDonation => 'Una vez';
-
-  @override
-  String get monthlyDonationImpact =>
-      '£10/mes puede llevar meditación a cientos, ayudando a combatir la depresión y la ansiedad.';
-
-  @override
-  String get oneTimeDonationImpact =>
-      'Tu donación apoya directamente recursos de atención plena gratuitos, trayendo paz a miles hoy.';
-
-  @override
-  String get donationSuccessful => '¡Donación Exitosa!';
-
-  @override
-  String get completePaymentInForm =>
-      'Completa el pago en el formulario de abajo';
-
-  @override
-  String get pleaseCompletePayment =>
-      'Por favor completa tu pago en el formulario seguro';
-
-  @override
-  String get processingDonation => 'Procesando tu donación...';
-
-  @override
-  String get thankYouForSupport => '¡Gracias por tu apoyo!';
-
-  @override
-  String get tapAmountToStart =>
-      'Toca una cantidad arriba para comenzar tu donación';
 
   @override
   String get impactCardHelpMessage =>
@@ -1608,83 +598,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get packs => 'Paquetes';
 
   @override
-  String get shopTitle => 'Tienda';
-
-  @override
-  String get emailExistsDialogTitle => 'Cuenta Existente Encontrada';
-
-  @override
-  String get emailExistsDialogMessage =>
-      'Parece que has iniciado sesión con una dirección de correo electrónico antes. ¿Te gustaría iniciar sesión con tu dirección de correo electrónico otra vez?';
-
-  @override
-  String get emailExistsContinueNewAccount => 'Continuar';
-
-  @override
-  String get emailExistsSignInWithEmail =>
-      'Iniciar sesión con Correo Electrónico';
-
-  @override
-  String get emailMismatchDialogTitle => 'Otro correo';
-
-  @override
-  String get emailMismatchDialogMessage =>
-      'Este teléfono inició sesión antes con otra dirección de correo. Si esa es tu cuenta, vuelve atrás y usa ese correo. Si no, continúa para crear una cuenta nueva. Tu progreso actual se queda con el correo original.';
-
-  @override
-  String get emailMismatchStartNewAccount => 'Continuar';
-
-  @override
-  String get emailMismatchGoBack => 'Volver';
-
-  @override
-  String get analyticsTrackingTitle => 'Recolección de Datos';
-
-  @override
-  String get analyticsTrackingContent =>
-      'Recopilamos datos de uso anónimos para ayudarnos a mejorar la aplicación. No se recopila información personal.';
-
-  @override
-  String get turnOffAnalyticsText => 'Desactivar Análisis';
-
-  @override
-  String get turnOnAnalyticsText => 'Activar Análisis';
-
-  @override
-  String get analyticsDisabledMessage =>
-      'El seguimiento de análisis ha sido deshabilitado';
-
-  @override
-  String get analyticsEnabledMessage =>
-      'El seguimiento de análisis ha sido habilitado';
-
-  @override
-  String get iosTrackingDialogTitle => 'Recolección de Datos';
-
-  @override
-  String get iosTrackingDialogContent =>
-      'Esto deshabilitará el seguimiento de análisis en la aplicación. Ten en cuenta que también puedes controlar los permisos de seguimiento a nivel del sistema en tu Configuración de iOS bajo Privacidad y Seguridad > Seguimiento.';
-
-  @override
-  String get androidTrackingDialogContent =>
-      'Esto deshabilitará el seguimiento de análisis en la aplicación. Podemos recopilar identificadores limitados (por ejemplo, ID de usuario y, cuando esté permitido, ID de dispositivo/publicidad) para medir el uso y mejorar las funciones.';
-
-  @override
-  String get iosTrackingDialogCancel => 'Cancelar';
-
-  @override
-  String get iosTrackingDialogDisable => 'Deshabilitar Seguimiento';
-
-  @override
-  String get newProductLabel => 'NUEVO';
-
-  @override
-  String get packsSectionHeader => 'Paquetes';
-
-  @override
-  String get tracksSectionHeader => 'Pistas';
-
-  @override
   String get noResultsFound => 'No se encontraron resultados para tu búsqueda';
 
   @override
@@ -1693,25 +606,6 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get consistencyScoreInfoMessage =>
       'Tu puntuación de consistencia refleja con qué regularidad has meditado desde que empezaste. Los días recientes pesan más, pero los días que faltaste antes siguen afectando ligeramente la puntuación. A diferencia de las rachas, no se reinicia cuando faltas un día.';
-
-  @override
-  String get accountDeletionInitiated =>
-      'Proceso de eliminación de cuenta iniciado. Por favor completa los pasos en tu navegador.';
-
-  @override
-  String get reportError => 'Reportar Error';
-
-  @override
-  String get errorReportedMessage => 'Gracias, tu reporte ha sido enviado.';
-
-  @override
-  String get language => 'Idioma';
-
-  @override
-  String get languageSubtitle => 'Cambiar idioma de la aplicación';
-
-  @override
-  String get selectLanguage => 'Seleccionar idioma';
 
   @override
   String get systemLanguage => 'Sistema';
@@ -1726,83 +620,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get spanish => 'Español (beta)';
 
   @override
-  String get reportTrack => 'Reportar Track';
-
-  @override
-  String get reportForThisTrack => 'Reportar para este track';
-
-  @override
-  String get reportAtCurrentPosition => 'Reportar en';
-
-  @override
-  String reportTrackDescription(String trackTitle) {
-    return 'Reportar un problema con \"$trackTitle\"';
-  }
-
-  @override
-  String get reportDialogQuestion => '¿Qué te gustaría reportar?';
-
-  @override
-  String get reportDialogHelpLink =>
-      'Por favor, revisa la página de ayuda si tu problema ya ha sido resuelto';
-
-  @override
-  String get helpPage => 'Ayuda';
-
-  @override
-  String get storageReadError => 'Error al leer datos del almacenamiento local';
-
-  @override
-  String get accountInactiveError => 'La cuenta está inactiva';
-
-  @override
-  String get rateLimitError => 'Algo salió mal';
-
-  @override
-  String get backgroundSoundNone => 'Ninguno';
-
-  @override
-  String get customAmount => 'Cantidad Personalizada';
-
-  @override
-  String get debugInfoLabel => 'Información de depuración';
-
-  @override
-  String get writeBelowThisLine => '--- Escribe debajo de esta línea ---';
-
-  @override
-  String get fieldRequiredError => 'Campo requerido';
-
-  @override
-  String get invalidEmailError => 'Correo electrónico inválido.';
-
-  @override
-  String get invalidInputError => 'Entrada inválida';
-
-  @override
-  String get connectivityErrorMessage =>
-      'Asegúrate de estar conectado a internet para usar Meditejo';
-
-  @override
-  String get timeoutErrorMessage =>
-      '¡Ups! Parece que hubo un error. Si el problema persiste, cierra la aplicación e inténtalo de nuevo.';
-
-  @override
-  String get anErrorOccurredMessage =>
-      'Ocurrió un error desconocido. O tenemos problemas o estás sin conexión.';
-
-  @override
-  String get reminderNotificationTitle => 'Recordatorio de Meditación Diaria';
-
-  @override
-  String get reminderNotificationBody =>
-      'Es hora de tu meditación diaria. Tómate un momento para relajarte y concentrarte.';
-
-  @override
   String get helpLegalSection => 'Ayuda';
-
-  @override
-  String get supportCommunitySection => 'Apoyo y Comunidad';
 
   @override
   String get customizationSection => 'Personalización';
@@ -1837,9 +655,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get appIconTitle => 'Icono de la app';
-
-  @override
-  String get appIconDefault => 'Predeterminado';
 
   @override
   String get appIconNearBlack => 'Casi negro';
@@ -1883,65 +698,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get selectTheme => 'Seleccionar Tema';
-
-  @override
-  String get processing => 'Procesando...';
-
-  @override
-  String get thankYouForDonationMessage =>
-      '¡Gracias por tu donación! Tu apoyo nos ayuda a continuar nuestra misión.';
-
-  @override
-  String get paymentCancelled => 'Pago cancelado';
-
-  @override
-  String get processingPayment => 'Procesando pago...';
-
-  @override
-  String get preparingDonation => 'Preparando donación...';
-
-  @override
-  String get thisMayTakeAMoment => 'Esto puede tomar un momento';
-
-  @override
-  String paymentSuccessMessage(String amount, String currency) {
-    return '¡Pago exitoso! Gracias por tu donación de $amount $currency.';
-  }
-
-  @override
-  String paymentFailedMessage(String paymentIntentId) {
-    return 'El pago falló para el ID de intención de pago: $paymentIntentId';
-  }
-
-  @override
-  String get paymentCancelledMessage => 'El pago fue cancelado.';
-
-  @override
-  String get newMessageFallback => 'Nuevo mensaje';
-
-  @override
-  String get viewAction => 'Ver';
-
-  @override
-  String get thankYouForYourSupport => 'Gracias por Tu Apoyo';
-
-  @override
-  String get donorSupportMessage =>
-      'Dependemos de donantes como tú para seguir proporcionando mindfulness a todos.';
-
-  @override
-  String get donationInfoTitle => 'Por Qué Puedes Ver Esto';
-
-  @override
-  String get donationInfoMessage =>
-      'A veces no sabemos cuándo alguien ha donado. Estamos buscando formas de mejorar esto. Puedes ocultar este mensaje por un tiempo si ya has donado.';
-
-  @override
-  String get hideForNow => 'Ya He Donado';
-
-  @override
-  String get donationAskHiddenMessage =>
-      'Solicitud de donación oculta por 30 días';
 
   @override
   String get dailyReminders => 'Recordatorios Diarios';
@@ -2145,9 +901,6 @@ class AppLocalizationsEs extends AppLocalizations {
       'Ha pasado un mes desde que meditaste. Solo 2 minutos pueden ayudarte a sentirte mejor. Estamos aquí cuando estés listo.';
 
   @override
-  String get repeatModeNormal => 'Normal';
-
-  @override
   String get repeatModeOnce => 'Repetir una vez';
 
   @override
@@ -2180,13 +933,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get deleteSessionError => 'Error al eliminar la sesión.';
 
   @override
-  String get date => 'Fecha';
-
-  @override
   String get time => 'Hora';
-
-  @override
-  String get selectDate => 'Seleccionar fecha';
 
   @override
   String get singleDay => 'Un día';
@@ -2208,9 +955,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get selectTime => 'Seleccionar hora';
 
   @override
-  String get durationInMinutes => 'Duración (minutos)';
-
-  @override
   String get minutes => 'Minutos';
 
   @override
@@ -2230,9 +974,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get add => 'Agregar';
-
-  @override
-  String get addedManually => 'Agregado manualmente';
 
   @override
   String get manuallyAddedSession => 'Sesión agregada manualmente';
@@ -2294,15 +1035,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String upNextSessionCount(int current, int total) {
-    return 'Sesión $current de $total';
-  }
-
-  @override
   String get manageDefaults => 'Gestionar Predeterminados';
-
-  @override
-  String get defaults => 'Predeterminados';
 
   @override
   String get defaultGuideName => 'Guía Predeterminado';
@@ -2312,9 +1045,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get defaultGuideNameCleared => 'Guía predeterminado eliminado';
-
-  @override
-  String get defaultDurationCleared => 'Duración predeterminada eliminada';
 
   @override
   String get notSet => 'Sin configurar';
@@ -2366,9 +1096,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get backgroundSoundsSection => 'Sonidos';
 
   @override
-  String get reportIssue => 'Reportar problema';
-
-  @override
   String get viewStreak => 'Ver racha';
 
   @override
@@ -2381,27 +1108,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get dismiss => 'Cerrar';
 
   @override
-  String get donationInfo => 'Información sobre donaciones';
-
-  @override
   String get clearSearch => 'Borrar búsqueda';
 
   @override
-  String get saveJournalEntry => 'Guardar entrada del diario';
-
-  @override
   String get clearDefault => 'Borrar guía predeterminada';
-
-  @override
-  String get lockedContent => 'Bloqueado';
-
-  @override
-  String get yourPathExplainerText =>
-      'Aprende a meditar minuto a minuto. Las sesiones se alargan a medida que aprendes.';
-
-  @override
-  String get yourPathExplainerSwipeHint =>
-      'Desliza a la izquierda para omitir o abrir el paquete.';
 
   @override
   String get onboardingExperienceQuestion => '¿Has meditado antes?';
@@ -2418,85 +1128,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get onboardingExperienceRegular => 'Tengo una práctica regular';
-
-  @override
-  String get onboardingIntentQuestion => '¿Qué esperas obtener de Meditejo?';
-
-  @override
-  String get onboardingIntentSubtext =>
-      'Elige la que más resuene contigo ahora mismo.';
-
-  @override
-  String get onboardingIntentLearn => 'Aprender a meditar correctamente';
-
-  @override
-  String get onboardingIntentHabit => 'Crear un hábito diario';
-
-  @override
-  String get onboardingIntentStress =>
-      'Gestionar el estrés, el sueño o las emociones';
-
-  @override
-  String get onboardingStep1of2 => '1 de 2';
-
-  @override
-  String get onboardingStep2of2 => '2 de 2';
-
-  @override
-  String get onboardingAttributionQuestion => '¿Cómo conociste Meditejo?';
-
-  @override
-  String get onboardingAttributionSubtext =>
-      'Esto nos ayuda a llegar a más personas que lo necesitan.';
-
-  @override
-  String get onboardingAttributionGoogleAd => 'Anuncio de Google';
-
-  @override
-  String get onboardingAttributionSocialAd => 'Anuncio de Instagram o Facebook';
-
-  @override
-  String get onboardingAttributionFriend => 'Me lo recomendó un amigo';
-
-  @override
-  String get onboardingAttributionTherapist =>
-      'Terapeuta o profesional de la salud';
-
-  @override
-  String get onboardingAttributionAppStore => 'App Store';
-
-  @override
-  String get onboardingAttributionPlayStore => 'Play Store';
-
-  @override
-  String get onboardingAttributionOther => 'Otro';
-
-  @override
-  String get onboardingAttributionOtherLabel => '¿Otra cosa?';
-
-  @override
-  String get onboardingAttributionOtherHint => 'Cuéntanos dónde nos conociste';
-
-  @override
-  String get onboardingResultLearnHeading => 'Estás en el lugar correcto.';
-
-  @override
-  String get onboardingResultLearnBody =>
-      'Empezaremos con solo 1 minuto e iremos avanzando. Sin experiencia necesaria, solo preséntate.';
-
-  @override
-  String get onboardingResultEaseInHeading => 'Qué bueno tenerte aquí.';
-
-  @override
-  String get onboardingResultEaseInBody =>
-      'Te reintroduciremos con sesiones cortas que se complementan entre sí. Ve a tu propio ritmo.';
-
-  @override
-  String get onboardingResultPracticeHeading => 'Bienvenido a Meditejo.';
-
-  @override
-  String get onboardingResultPracticeBody =>
-      'Tu Diario es un gran lugar para mantener tu práctica. Una nueva sesión te espera cada día.';
 
   @override
   String get onboardingResultCta => 'Empezar';
@@ -2520,19 +1151,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get yourPathAllDone => 'Todas las sesiones completadas';
 
   @override
-  String get connectionErrorTitle => 'No se pudo cargar el paywall';
-
-  @override
-  String get connectionErrorMessage =>
-      'Por favor revisa tu conexión e inténtalo de nuevo.';
-
-  @override
-  String get tryAgainButton => 'Reintentar';
-
-  @override
-  String get closeButton => 'Cerrar';
-
-  @override
   String get markAllComplete => 'Marcar todo como completado';
 
   @override
@@ -2543,34 +1161,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get markTrackIncomplete => 'Marcar como no completado';
-
-  @override
-  String get accountPromptTitle => 'Guarda tu progreso';
-
-  @override
-  String get accountPromptBody =>
-      'Añade tu correo para que tu racha y tu historial te acompañen en un teléfono nuevo.';
-
-  @override
-  String get accountPromptCta => 'Guardar mi progreso';
-
-  @override
-  String donateAmountPerMonth(String amount) {
-    return 'Donar $amount/mes';
-  }
-
-  @override
-  String get donateWithApplePayPrefix => 'Donar con';
-
-  @override
-  String get donateOtherAmount => 'Otra cantidad';
-
-  @override
-  String get donateMostPopular => 'Más popular';
-
-  @override
-  String get donateMonthlyDisclosure =>
-      'Mensual, cancela cuando quieras. Pago seguro con Stripe.';
 
   @override
   String get tagSleep => 'Sueño';
@@ -2728,132 +1318,6 @@ class AppLocalizationsEs extends AppLocalizations {
       'Añadido a Inicio para que retomes donde lo dejaste.';
 
   @override
-  String get shopSubtitle =>
-      'Cada compra ayuda a que Medito siga siendo gratis para todos.';
-
-  @override
-  String get shopAllCollection => 'Todo';
-
-  @override
-  String shopFromPrice(String price) {
-    return 'Desde $price';
-  }
-
-  @override
-  String get shopSoldOut => 'Agotado';
-
-  @override
-  String get shopAddToBag => 'Añadir a la bolsa';
-
-  @override
-  String get shopAddedToBag => 'Añadido a la bolsa';
-
-  @override
-  String get shopSelectSize => 'Elige una talla';
-
-  @override
-  String get shopColour => 'Color';
-
-  @override
-  String get shopSize => 'Talla';
-
-  @override
-  String get shopOption => 'Opción';
-
-  @override
-  String get shopBagTitle => 'Tu bolsa';
-
-  @override
-  String get shopBagEmpty => 'Tu bolsa está vacía';
-
-  @override
-  String get shopBagEmptyBody =>
-      'Lo que añadas te esperará aquí hasta que estés listo.';
-
-  @override
-  String get shopBrowse => 'Explorar la tienda';
-
-  @override
-  String get shopSubtotal => 'Subtotal';
-
-  @override
-  String get shopShippingNote =>
-      'El envío y los impuestos se calculan al pagar.';
-
-  @override
-  String get shopCheckout => 'Pagar';
-
-  @override
-  String get shopCheckoutPrompt => '¿Ya hiciste tu pedido?';
-
-  @override
-  String get shopClearBag => 'Vaciar bolsa';
-
-  @override
-  String get shopSupportNote =>
-      'Medito es una organización sin ánimo de lucro. Cada compra apoya la meditación gratuita para todos.';
-
-  @override
-  String get shopLoadError => 'No pudimos cargar la tienda en este momento.';
-
-  @override
-  String get shopOpenInBrowser => 'Abrir en el navegador';
-
-  @override
-  String get shopRemoveItem => 'Quitar';
-
-  @override
-  String get shopIncreaseQuantity => 'Aumentar cantidad';
-
-  @override
-  String get shopDecreaseQuantity => 'Disminuir cantidad';
-
-  @override
-  String get shopViewBag => 'Ver bolsa';
-
-  @override
-  String get shopMoreDetails => 'Detalles';
-
-  @override
-  String shopBagItemCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count artículos',
-      one: '1 artículo',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get shopSeeAll => 'Ver todo';
-
-  @override
-  String get shopAddOnsTitle => 'Añade un detalle';
-
-  @override
-  String get shopSizeGuide => 'Guía de tallas';
-
-  @override
-  String get shopSizeChartNote =>
-      'Medidas de la prenda en plano, del proveedor. Pueden variar hasta 5 cm, así que compáralas con una camiseta que tengas.';
-
-  @override
-  String get shopMeasureLength => 'Largo';
-
-  @override
-  String get shopMeasureWidth => 'Ancho';
-
-  @override
-  String get shopMeasureSleeve => 'Manga';
-
-  @override
-  String get shopInches => 'in';
-
-  @override
-  String get shopCentimetres => 'cm';
-
-  @override
   String get timerTitle => 'Temporizador';
 
   @override
@@ -2926,9 +1390,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get dayNotMeditated => 'Sin meditar';
 
   @override
-  String get clearEmail => 'Borrar correo electrónico';
-
-  @override
   String get previousMonth => 'Mes anterior';
 
   @override
@@ -2947,16 +1408,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get clearField => 'Borrar';
-
-  @override
-  String shopPriceWas(String price, String compareAt) {
-    return '$price, antes $compareAt';
-  }
-
-  @override
-  String shopQuantity(int count) {
-    return 'Cantidad: $count';
-  }
 
   @override
   String get externalLink => 'Enlace externo';
@@ -3014,6 +1465,34 @@ class AppLocalizationsEs extends AppLocalizations {
     );
     return 'Hola de nuevo. Terminaste un temporizador de $_temp0 ayer.';
   }
+
+  @override
+  String get localHomeHeading => 'Un momento para meditar.';
+
+  @override
+  String get localIntroBeginHeading => 'Un momento para empezar.';
+
+  @override
+  String get localIntroReturnHeading => 'Retoma tu práctica con calma.';
+
+  @override
+  String get localIntroPracticeHeading => 'Un espacio para tu práctica.';
+
+  @override
+  String get localIntroBeginBody =>
+      'Busca una postura cómoda, programa unos minutos en el temporizador y presta atención a tu respiración. Cuando tu atención se disperse, vuelve a empezar con suavidad.';
+
+  @override
+  String get localIntroReturnBody =>
+      'Empieza con unos minutos de calma. El temporizador está listo cuando tú lo estés.';
+
+  @override
+  String get localIntroPracticeBody =>
+      'Usa el temporizador para meditar sin guía, con las campanas y la duración que prefieras.';
+
+  @override
+  String get localIntroDeviceOnlyNote =>
+      'Tu historial de práctica, tus favoritos y tus ajustes se guardan en este dispositivo.';
 
   @override
   String get aboutMeditejo => 'Acerca de Meditejo';

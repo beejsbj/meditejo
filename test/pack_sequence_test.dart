@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medito/constants/config_constants.dart';
 import 'package:medito/constants/pack_sequence.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/providers/home/up_next_provider.dart';
@@ -42,82 +41,11 @@ UpNextData _data(PackModel pack) {
 }
 
 void main() {
-  group('PackSequence', () {
-    test('walks the curated path in order', () {
-      for (var i = 0; i < PackSequence.ordered.length - 1; i++) {
-        expect(
-          PackSequence.nextPackAfter(PackSequence.ordered[i]),
-          PackSequence.ordered[i + 1],
-          reason: 'position ${i + 1} should hand off to ${i + 2}',
-        );
-      }
-    });
-
-    test('the last pack has no successor', () {
-      expect(PackSequence.nextPackAfter(PackSequence.ordered.last), isNull);
-      expect(PackSequence.isLast(PackSequence.ordered.last), isTrue);
-    });
-
-    test('off-path packs have no successor and are not last', () {
-      for (final id in [PackSequence.legacyMegapackId, 'not-a-real-pack']) {
-        expect(PackSequence.nextPackAfter(id), isNull);
-        expect(PackSequence.isLast(id), isFalse);
-        expect(PackSequence.contains(id), isFalse);
-        expect(PackSequence.positionOf(id), isNull);
-      }
-    });
-
-    test('the onboarding entry points sit on the path', () {
-      expect(PackSequence.positionOf(PackSequence.experiencedEntryPackId), 4);
-      expect(PackSequence.positionOf(PackSequence.beginnerEntryPackId), 1);
-      expect(
-        PackSequence.nextPackAfter(PackSequence.experiencedEntryPackId),
-        isNotNull,
-        reason: 'an experienced user must still have somewhere to progress to',
-      );
-    });
-
-    test('the legacy megapack is terminal but not on the path', () {
-      expect(PackSequence.legacyMegapackId, ConfigConstants.basicsPackId);
-      expect(
-        PackSequence.isPathTerminal(PackSequence.legacyMegapackId),
-        isTrue,
-      );
-      expect(PackSequence.contains(PackSequence.legacyMegapackId), isFalse);
-      expect(
-        PackSequence.ordered.contains(PackSequence.legacyMegapackId),
-        isFalse,
-      );
-    });
-
-    test('the last pack on the path is terminal', () {
-      expect(PackSequence.isPathTerminal(PackSequence.ordered.last), isTrue);
-      expect(PackSequence.isPathTerminal(PackSequence.ordered.first), isFalse);
-    });
-
-    test('the full path is 11 packs', () {
-      expect(PackSequence.ordered.length, 11);
-    });
-
-    test('positions are 1-based', () {
-      expect(PackSequence.positionOf(PackSequence.ordered.first), 1);
-      expect(
-        PackSequence.positionOf(PackSequence.ordered.last),
-        PackSequence.ordered.length,
-      );
-    });
-
-    test('modeFor separates the three Up Next cohorts', () {
-      expect(PackSequence.modeFor(PackSequence.legacyMegapackId), 'megapack');
-      for (final id in PackSequence.ordered) {
-        expect(PackSequence.modeFor(id), 'sequence', reason: 'pack $id');
-      }
-      expect(PackSequence.modeFor('hand-pinned-from-explore'), 'custom');
-    });
-
-    test('ids are unique — a duplicate would make the path loop', () {
-      expect(PackSequence.ordered.toSet().length, PackSequence.ordered.length);
-    });
+  test('ships no proprietary progression', () {
+    expect(PackSequence.ordered, isEmpty);
+    expect(PackSequence.beginnerEntryPackId, isEmpty);
+    expect(PackSequence.nextPackAfter('ds-retreat'), isNull);
+    expect(PackSequence.positionOf('ds-retreat'), isNull);
   });
 
   group('UpNextData completion', () {
@@ -128,31 +56,10 @@ void main() {
     });
 
     test('a partially complete pack surfaces the next session', () {
-      final data = _data(
-        _pack(id: PackSequence.ordered.first, total: 5, completed: 2),
-      );
+      final data = _data(_pack(id: 'ds-retreat', total: 5, completed: 2));
       expect(data.isCompleted, isFalse);
-      expect(data.nextSession?.id, '${PackSequence.ordered.first}-item-2');
+      expect(data.nextSession?.id, 'ds-retreat-item-2');
       expect(data.nextPackId, isNull, reason: 'no successor until completed');
-    });
-
-    test('completing a mid-path pack offers the next one', () {
-      final data = _data(
-        _pack(id: PackSequence.ordered.first, total: 3, completed: 3),
-      );
-      expect(data.isCompleted, isTrue);
-      expect(data.nextSession, isNull);
-      expect(data.nextPackId, PackSequence.ordered[1]);
-      expect(data.isEndOfPath, isFalse);
-    });
-
-    test('completing the final pack is the end of the path', () {
-      final data = _data(
-        _pack(id: PackSequence.ordered.last, total: 3, completed: 3),
-      );
-      expect(data.isCompleted, isTrue);
-      expect(data.nextPackId, isNull);
-      expect(data.isEndOfPath, isTrue);
     });
 
     test('completing the legacy megapack counts as the end of the path', () {

@@ -243,7 +243,7 @@ android_post_build() {
 if [ "$BUILD_ANDROID" = true ]; then
     print_colored $BLUE "🚀 Starting Android build..."
 
-    flutter build apk --flavor prod --release --dart-define-from-file=../.prod.json
+    flutter build apk --flavor prod --release
 
     if [ "$BUILD_IOS" = true ]; then
         # Run Android post-build in background while iOS builds
@@ -264,7 +264,7 @@ fi
 if [ "$BUILD_IOS" = true ]; then
     print_colored $BLUE "🚀 Starting iOS build and upload..."
 
-    flutter build ios --dart-define-from-file=../.prod.json --dart-define=ENABLE_DEVICE_PREVIEW=false --release
+    flutter build ios --release
 
     ARCHIVE_PATH="build/ios/archive/Runner.xcarchive"
     EXPORT_PATH="build/ios/ipa"
@@ -277,13 +277,6 @@ if [ "$BUILD_IOS" = true ]; then
       -configuration Release \
       -archivePath "$ARCHIVE_PATH" \
       archive
-
-    if [ -f "ios/upload_dsyms.sh" ]; then
-        print_colored $BLUE "📤 Uploading dSYMs to Firebase Crashlytics..."
-        ios/upload_dsyms.sh "$ARCHIVE_PATH"
-    else
-        print_colored $YELLOW "⚠️  upload_dsyms.sh not found. Skipping dSYM upload."
-    fi
 
     xcodebuild -exportArchive \
       -archivePath "$ARCHIVE_PATH" \

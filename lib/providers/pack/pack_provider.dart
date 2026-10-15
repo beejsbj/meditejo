@@ -14,7 +14,7 @@ Future<List<PackItemsModel>> fetchAllPacks(Ref ref) {
   );
 }
 
-/// Every pack's track ids (sub-packs included), from `GET /packs/tracks`.
+/// Every local catalogue pack's track IDs, including sub-packs.
 /// Empty on failure: a pack then simply shows no tick, never a wrong one.
 @Riverpod(keepAlive: true)
 Future<Map<String, List<String>>> packTrackIds(Ref ref) async {
@@ -41,7 +41,7 @@ Set<String> completedPackIds(Ref ref) {
   };
 }
 
-/// Raw pack fetched from the API. Refresh this provider for pull-to-refresh
+/// Raw pack read from the content repository. Refresh this provider for pull-to-refresh
 /// or error-retry; it doesn't watch stats, so completion changes don't
 /// trigger a re-fetch.
 @Riverpod(keepAlive: true)

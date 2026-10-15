@@ -14,7 +14,7 @@ class AppCreditsTile extends StatelessWidget {
       title: l10n.aboutMeditejo,
       onTap: () => showAboutDialog(
         context: context,
-        applicationName: l10n.appName,
+        applicationName: 'Meditejo',
         applicationIcon: Image.asset(
           'assets/images/app_icons/placeholder.png',
           width: 48,

@@ -34,38 +34,8 @@ class AppHistoryService {
     return _decodeList(raw);
   }
 
-  static Future<void> recordSignIn(
-    SharedPreferences prefs, {
-    required String userId,
-    String? email,
-  }) async {
-    final list = getSignInHistory(prefs);
-    final alreadyRecorded = list.any(
-      (e) => e['userId'] == userId && e['email'] == email,
-    );
-    if (alreadyRecorded) return;
-
-    list.add({
-      'userId': userId,
-      'email': email,
-      'signedInAt': DateTime.now().toIso8601String(),
-    });
-    await prefs.setString(
-      SharedPreferenceConstants.signedInUserHistory,
-      jsonEncode(list),
-    );
-  }
-
-  static List<Map<String, dynamic>> getSignInHistory(SharedPreferences prefs) {
-    final raw = prefs.getString(SharedPreferenceConstants.signedInUserHistory);
-    return _decodeList(raw);
-  }
-
   static String getVersionHistoryBase64(SharedPreferences prefs) =>
       _encodeBase64(getVersionHistory(prefs));
-
-  static String getSignInHistoryBase64(SharedPreferences prefs) =>
-      _encodeBase64(getSignInHistory(prefs));
 
   static String _encodeBase64(List<Map<String, dynamic>> list) {
     if (list.isEmpty) return '';

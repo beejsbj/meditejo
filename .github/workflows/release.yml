@@ -32,10 +32,6 @@ on:
         description: 'Submit builds to store review automatically (Play: production release publishes on approval; iOS: App Store version is submitted, released manually after approval)'
         type: boolean
         default: false
-      skip_android_signed_in_test:
-        description: 'Skip ONLY the Android signed-in Maestro test (the CI emulator crashes in it, Oct 2026). Verify sign-in on a real phone instead.'
-        type: boolean
-        default: false
       android_promote_to_production:
         description: 'Promote the latest Android INTERNAL release to production — no new build; goes to Play review and publishes on approval. Standalone: other toggles can stay off.'
         type: boolean
@@ -124,7 +120,7 @@ jobs:
           path: |
             lib/**/*.g.dart
             lib/**/*.freezed.dart
-          key: ${{ runner.os }}-buildrunner-${{ hashFiles('lib/**/*.dart', 'pubspec.lock') }}
+          key: ${{ runner.os }}-buildrunner-${{ hashFiles('lib/**/*.dart', 'pubspec.yaml', 'pubspec.lock') }}
           restore-keys: ${{ runner.os }}-buildrunner-
 
       - name: Run build_runner
@@ -137,50 +133,13 @@ jobs:
         with:
           path: |
             lib/src/audio_pigeon.g.dart
-            lib/src/watch_presence_pigeon.g.dart
             android/app/src/main/kotlin/meditofoundation/medito/pigeon/AudioPigeon.g.kt
-          key: ${{ runner.os }}-pigeon-${{ hashFiles('pigeon_conf.dart', 'pigeons/**', 'pubspec.lock') }}
-          restore-keys: ${{ runner.os }}-pigeon-
+          key: ${{ runner.os }}-pigeon-local-${{ hashFiles('pigeon_conf.dart', 'pigeons/**', 'pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-pigeon-local-
 
       - name: Run pigeon
         if: steps.cache-pigeon.outputs.cache-hit != 'true'
-        run: for f in pigeon_conf.dart pigeons/*.dart; do flutter pub run pigeon --input "$f" --package_name=medito || exit 1; done
-
-      - name: Write .prod.json
-        env:
-          PROD_ENV: ${{ secrets.PROD_ENV }}
-        run: |
-          python3 - <<'PY'
-          import json, os, sys
-
-          raw = os.environ["PROD_ENV"]
-
-          try:
-            data = json.loads(raw)
-          except json.JSONDecodeError:
-            data = {}
-            for line in raw.strip().strip("{}").splitlines():
-              line = line.strip().rstrip(",")
-              if ":" in line:
-                key, _, value = line.partition(":")
-                data[key.strip()] = value.strip()
-
-          if not data:
-            sys.exit("Failed to parse PROD_ENV secret")
-
-          with open(".prod.json", "w") as f:
-            json.dump(data, f, indent=2)
-          PY
-
-      - name: Write google-services.json
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-        run: printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
-
-      - name: Write firebase_options.dart
-        env:
-          FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART }}
-        run: printf '%s' "$FIREBASE_OPTIONS_DART" > lib/firebase_options.dart
+        run: for f in pigeon_conf.dart pigeons/*.dart; do [ -f "$f" ] || continue; flutter pub run pigeon --input "$f" --package_name=medito || exit 1; done
 
       - name: Write keystore.properties
         env:
@@ -195,8 +154,6 @@ jobs:
       - name: Build APK
         run: |
           flutter build apk --flavor prod --release \
-            --dart-define-from-file=.prod.json \
-            --dart-define=MOCK_MODE=false \
             --obfuscate --split-debug-info=./symbols
           # Sanity check: confirm the APK landed where the downstream
           # "Upload APK artifact" + Play upload steps expect it.
@@ -237,13 +194,10 @@ jobs:
         with:
           api-level: 34
           arch: x86_64
-          # No Google Play services: on google_apis, Android restarted GMS mid-run
-          # and killed the app with it (the donation webview binds GMS fonts,
-          # run 37440292038). Without Play the app takes its webview paths.
+          # Use the AOSP image for local playback and navigation.
           target: default
           profile: pixel_6
-          # The donation webview renders in software (swiftshader); on the default
-          # RAM/cores the emulator froze and went offline mid-run (09-30).
+          # Keep enough resources for software rendering on CI.
           ram-size: 4096M
           cores: 4
           force-avd-creation: false
@@ -257,90 +211,14 @@ jobs:
             mkdir -p /tmp/maestro-debug
             .maestro/run_flow.sh /tmp/maestro-debug -e APP_ID=io.github.beejsbj.meditejo .maestro/smoke.yaml
 
-      - name: Signed-in stats test on emulator
-        # Its own emulator boot: the emulator has crashed outright (adb
-        # "device not found") after rendering the donation webview late in
-        # a long session (run 37446734529), which no in-session retry can
-        # survive. The AVD keeps the installed app between boots.
-        id: signed_in
-        if: ${{ !inputs.skip_android_signed_in_test }}
-        continue-on-error: true
-        timeout-minutes: 25
-        uses: reactivecircus/android-emulator-runner@v2
-        env:
-          TEST_ACCOUNT_EMAIL: ${{ secrets.TEST_ACCOUNT_EMAIL }}
-          TEST_ACCOUNT_OTP: ${{ secrets.TEST_ACCOUNT_OTP }}
-        with:
-          api-level: 34
-          arch: x86_64
-          # No Google Play services: on google_apis, Android restarted GMS mid-run
-          # and killed the app with it (the donation webview binds GMS fonts,
-          # run 37440292038). Without Play the app takes its webview paths.
-          target: default
-          profile: pixel_6
-          # The donation webview renders in software (swiftshader); on the default
-          # RAM/cores the emulator froze and went offline mid-run (09-30).
-          ram-size: 4096M
-          cores: 4
-          force-avd-creation: false
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-          disable-animations: true
-          script: |
-            curl -Ls "https://get.maestro.mobile.dev" | bash
-            adb shell am force-stop com.google.android.apps.nexuslauncher || true
-            mkdir -p /tmp/maestro-debug
-            sh -c 'nohup adb logcat -b all -v threadtime > /tmp/maestro-debug/signed-in-logcat.txt 2>&1 &'
-            .maestro/run_flow.sh /tmp/maestro-debug/signed-in -e APP_ID=io.github.beejsbj.meditejo -e TEST_ACCOUNT_EMAIL="$TEST_ACCOUNT_EMAIL" -e TEST_ACCOUNT_OTP="$TEST_ACCOUNT_OTP" .maestro/signed_in_stats.yaml
-
-      - name: Signed-in stats test on emulator (retry on a fresh boot)
-        if: ${{ !inputs.skip_android_signed_in_test && steps.signed_in.outcome == 'failure' }}
-        timeout-minutes: 25
-        uses: reactivecircus/android-emulator-runner@v2
-        env:
-          TEST_ACCOUNT_EMAIL: ${{ secrets.TEST_ACCOUNT_EMAIL }}
-          TEST_ACCOUNT_OTP: ${{ secrets.TEST_ACCOUNT_OTP }}
-        with:
-          api-level: 34
-          arch: x86_64
-          # No Google Play services: on google_apis, Android restarted GMS mid-run
-          # and killed the app with it (the donation webview binds GMS fonts,
-          # run 37440292038). Without Play the app takes its webview paths.
-          target: default
-          profile: pixel_6
-          # The donation webview renders in software (swiftshader); on the default
-          # RAM/cores the emulator froze and went offline mid-run (09-30).
-          ram-size: 4096M
-          cores: 4
-          force-avd-creation: false
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-          disable-animations: true
-          script: |
-            curl -Ls "https://get.maestro.mobile.dev" | bash
-            adb shell am force-stop com.google.android.apps.nexuslauncher || true
-            mkdir -p /tmp/maestro-debug
-            sh -c 'nohup adb logcat -b all -v threadtime > /tmp/maestro-debug/signed-in-retry-logcat.txt 2>&1 &'
-            .maestro/run_flow.sh /tmp/maestro-debug/signed-in -e APP_ID=io.github.beejsbj.meditejo -e TEST_ACCOUNT_EMAIL="$TEST_ACCOUNT_EMAIL" -e TEST_ACCOUNT_OTP="$TEST_ACCOUNT_OTP" .maestro/signed_in_stats.yaml
-
       - name: Host diagnostics (emulator crash)
         # The emulator has vanished mid-flow with no output of its own (adb
         # "device not found", runs 37454547179 and 37462825805). The host
         # kernel log shows whether qemu was OOM-killed or segfaulted.
-        if: failure() || steps.signed_in.outcome == 'failure'
+        if: failure()
         run: |
           free -m || true
           sudo dmesg -T | grep -iE 'oom|killed process|segfault|qemu|emulator|out of memory' | tail -60 || true
-
-      - name: Scrub test account credentials from debug output
-        if: failure()
-        env:
-          TEST_ACCOUNT_EMAIL: ${{ secrets.TEST_ACCOUNT_EMAIL }}
-          TEST_ACCOUNT_OTP: ${{ secrets.TEST_ACCOUNT_OTP }}
-        run: |
-          [ -d /tmp/maestro-debug ] || exit 0
-          find /tmp/maestro-debug -type f ! -name '*.png' -print0 | while IFS= read -r -d '' f; do
-            TEST_ACCOUNT_EMAIL="$TEST_ACCOUNT_EMAIL" TEST_ACCOUNT_OTP="$TEST_ACCOUNT_OTP" \
-              perl -pi -e 's/\Q$ENV{TEST_ACCOUNT_EMAIL}\E/[redacted]/g if length $ENV{TEST_ACCOUNT_EMAIL}; s/\Q$ENV{TEST_ACCOUNT_OTP}\E/[redacted]/g if length $ENV{TEST_ACCOUNT_OTP}' "$f"
-          done
 
       - name: Upload Maestro debug output
         if: failure()
@@ -422,7 +300,7 @@ jobs:
           if_no_artifact_found: warn
 
       # OLD seed flow — checked out from the previous tag's tree, so it
-      # describes that binary's onboarding UI (not HEAD's).
+      # describes that binary's local UI (not HEAD's).
       - name: Extract OLD seed flow from previous tag
         if: steps.prev.outputs.sha != ''
         run: |
@@ -435,8 +313,8 @@ jobs:
       - name: Skip if no baseline available
         id: gate
         run: |
-          if [ ! -f /tmp/old/app-prod-release.apk ] || [ ! -s /tmp/old-maestro/.maestro/smoke.yaml ]; then
-            echo "No usable baseline (APK or seed flow missing) — skipping upgrade test." >> "$GITHUB_STEP_SUMMARY"
+          if [ ! -f /tmp/old/app-prod-release.apk ] || [ ! -s /tmp/old-maestro/.maestro/smoke.yaml ] || [ ! -s /tmp/old-maestro/.maestro/local_timer.yaml ]; then
+            echo "No local-only baseline (APK or local seed flow missing) — skipping upgrade test." >> "$GITHUB_STEP_SUMMARY"
             echo "run=false" >> "$GITHUB_OUTPUT"
           else
             echo "run=true" >> "$GITHUB_OUTPUT"
@@ -468,13 +346,10 @@ jobs:
         with:
           api-level: 34
           arch: x86_64
-          # No Google Play services: on google_apis, Android restarted GMS mid-run
-          # and killed the app with it (the donation webview binds GMS fonts,
-          # run 37440292038). Without Play the app takes its webview paths.
+          # Use the AOSP image for local playback and navigation.
           target: default
           profile: pixel_6
-          # The donation webview renders in software (swiftshader); on the default
-          # RAM/cores the emulator froze and went offline mid-run (09-30).
+          # Keep enough resources for software rendering on CI.
           ram-size: 4096M
           cores: 4
           force-avd-creation: false
@@ -486,7 +361,7 @@ jobs:
             adb install /tmp/old/app-prod-release.apk
             adb shell pm grant io.github.beejsbj.meditejo android.permission.POST_NOTIFICATIONS || true
             adb shell am force-stop com.google.android.apps.nexuslauncher || true
-            $HOME/.maestro/bin/maestro test -e APP_ID=io.github.beejsbj.meditejo /tmp/old-maestro/.maestro/smoke.yaml --no-ansi --debug-output /tmp/maestro-debug/seed || (echo "Seed failed once (usually the donation webview not loading in time); clearing app data and retrying" && adb shell pm clear io.github.beejsbj.meditejo && adb shell pm grant io.github.beejsbj.meditejo android.permission.POST_NOTIFICATIONS && $HOME/.maestro/bin/maestro test -e APP_ID=io.github.beejsbj.meditejo /tmp/old-maestro/.maestro/smoke.yaml --no-ansi --debug-output /tmp/maestro-debug/seed-retry)
+            $HOME/.maestro/bin/maestro test -e APP_ID=io.github.beejsbj.meditejo /tmp/old-maestro/.maestro/smoke.yaml --no-ansi --debug-output /tmp/maestro-debug/seed || (echo "Seed failed once; clearing app data and retrying" && adb shell pm clear io.github.beejsbj.meditejo && adb shell pm grant io.github.beejsbj.meditejo android.permission.POST_NOTIFICATIONS && $HOME/.maestro/bin/maestro test -e APP_ID=io.github.beejsbj.meditejo /tmp/old-maestro/.maestro/smoke.yaml --no-ansi --debug-output /tmp/maestro-debug/seed-retry)
 
       - name: Install new version and verify on a fresh boot
         if: steps.gate.outputs.run == 'true'
@@ -495,13 +370,10 @@ jobs:
         with:
           api-level: 34
           arch: x86_64
-          # No Google Play services: on google_apis, Android restarted GMS mid-run
-          # and killed the app with it (the donation webview binds GMS fonts,
-          # run 37440292038). Without Play the app takes its webview paths.
+          # Use the AOSP image for local playback and navigation.
           target: default
           profile: pixel_6
-          # The donation webview renders in software (swiftshader); on the default
-          # RAM/cores the emulator froze and went offline mid-run (09-30).
+          # Keep enough resources for software rendering on CI.
           ram-size: 4096M
           cores: 4
           force-avd-creation: false
@@ -653,7 +525,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: build/ios/iphonesimulator/Meditejo.app
-          key: ${{ runner.os }}-ios-app-${{ hashFiles('lib/**/*.dart', 'pubspec.lock', 'ios/Podfile.lock', 'ios/Runner.xcodeproj/project.pbxproj', 'ios/Runner/**', 'ios/MeditoWidget/**', 'ios/*.entitlements', 'ios/*.plist') }}
+          key: ${{ runner.os }}-ios-app-${{ hashFiles('lib/**/*.dart', 'pubspec.yaml', 'pubspec.lock', 'ios/Podfile.lock', 'ios/Runner.xcodeproj/project.pbxproj', 'ios/Runner/**', 'ios/MeditoWidget/**', 'ios/*.entitlements', 'ios/*.plist') }}
 
       - name: Flutter pub get
         if: steps.cache-ios-app.outputs.cache-hit != 'true'
@@ -667,7 +539,7 @@ jobs:
           path: |
             lib/**/*.g.dart
             lib/**/*.freezed.dart
-          key: ${{ runner.os }}-buildrunner-${{ hashFiles('lib/**/*.dart', 'pubspec.lock') }}
+          key: ${{ runner.os }}-buildrunner-${{ hashFiles('lib/**/*.dart', 'pubspec.yaml', 'pubspec.lock') }}
           restore-keys: ${{ runner.os }}-buildrunner-
 
       - name: Run build_runner
@@ -681,61 +553,14 @@ jobs:
         with:
           path: |
             lib/src/audio_pigeon.g.dart
-            lib/src/watch_presence_pigeon.g.dart
             android/app/src/main/kotlin/meditofoundation/medito/pigeon/AudioPigeon.g.kt
-          key: ${{ runner.os }}-pigeon-${{ hashFiles('pigeon_conf.dart', 'pigeons/**', 'pubspec.lock') }}
-          restore-keys: ${{ runner.os }}-pigeon-
+          key: ${{ runner.os }}-pigeon-local-${{ hashFiles('pigeon_conf.dart', 'pigeons/**', 'pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-pigeon-local-
 
       - name: Run pigeon
         if: steps.cache-ios-app.outputs.cache-hit != 'true' && steps.cache-pigeon.outputs.cache-hit != 'true'
-        run: for f in pigeon_conf.dart pigeons/*.dart; do flutter pub run pigeon --input "$f" --package_name=medito || exit 1; done
+        run: for f in pigeon_conf.dart pigeons/*.dart; do [ -f "$f" ] || continue; flutter pub run pigeon --input "$f" --package_name=medito || exit 1; done
 
-      - name: Write .prod.json
-        if: steps.cache-ios-app.outputs.cache-hit != 'true'
-        env:
-          PROD_ENV: ${{ secrets.PROD_ENV }}
-        run: |
-          python3 - <<'PY'
-          import json, os, sys
-
-          raw = os.environ["PROD_ENV"]
-
-          try:
-            data = json.loads(raw)
-          except json.JSONDecodeError:
-            data = {}
-            for line in raw.strip().strip("{}").splitlines():
-              line = line.strip().rstrip(",")
-              if ":" in line:
-                key, _, value = line.partition(":")
-                data[key.strip()] = value.strip()
-
-          if not data:
-            sys.exit("Failed to parse PROD_ENV secret")
-
-          with open(".prod.json", "w") as f:
-            json.dump(data, f, indent=2)
-          PY
-
-      - name: Write firebase_options.dart
-        if: steps.cache-ios-app.outputs.cache-hit != 'true'
-        env:
-          FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART }}
-        run: printf '%s' "$FIREBASE_OPTIONS_DART" > lib/firebase_options.dart
-
-      - name: Write GoogleService-Info.plist
-        if: steps.cache-ios-app.outputs.cache-hit != 'true'
-        env:
-          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
-        run: printf '%s' "$GOOGLE_SERVICE_INFO_PLIST" | base64 -d > ios/Runner/GoogleService-Info.plist
-
-      - name: Install FlutterFire CLI
-        if: steps.cache-ios-app.outputs.cache-hit != 'true'
-        run: dart pub global activate flutterfire_cli
-
-      # Populate the Flutter engine artifacts (Flutter.xcframework) that the
-      # Podfile post-install hook expects. The master channel does not
-      # precache iOS engine artifacts automatically, unlike stable.
       - name: Flutter precache iOS
         if: steps.cache-ios-app.outputs.cache-hit != 'true'
         run: flutter precache --ios
@@ -756,11 +581,7 @@ jobs:
       - name: Build iOS simulator app
         if: steps.cache-ios-app.outputs.cache-hit != 'true'
         run: |
-          flutter build ios --simulator --no-codesign \
-            --dart-define-from-file=.prod.json \
-            --dart-define=MOCK_MODE=false \
-            --dart-define=SMOKE_TEST_MODE=true \
-            --dart-define=IS_SIMULATOR=true
+          flutter build ios --simulator --no-codesign
 
       # Preserve the built .app so the upgrade-test job (next release) can
       # install it as the "old version" baseline. Tar to preserve the app
@@ -809,21 +630,6 @@ jobs:
             -e APP_ID=io.github.beejsbj.meditejo \
             .maestro/smoke.yaml
 
-      - name: Signed-in stats test on simulator
-        # Two sign-ins + two onboarding passes + a session: ~11 min on the
-        # macOS runner, so 12 cut off a run that had passed (36317083446).
-        # run_flow.sh may retry once.
-        timeout-minutes: 35
-        env:
-          TEST_ACCOUNT_EMAIL: ${{ secrets.TEST_ACCOUNT_EMAIL }}
-          TEST_ACCOUNT_OTP: ${{ secrets.TEST_ACCOUNT_OTP }}
-        run: |
-          .maestro/run_flow.sh /tmp/maestro-debug/signed-in \
-            -e APP_ID=io.github.beejsbj.meditejo \
-            -e TEST_ACCOUNT_EMAIL="$TEST_ACCOUNT_EMAIL" \
-            -e TEST_ACCOUNT_OTP="$TEST_ACCOUNT_OTP" \
-            .maestro/signed_in_stats.yaml
-
       - name: Save iOS app log
         if: failure()
         run: |
@@ -831,18 +637,6 @@ jobs:
           # The smoke build's executable is "Meditejo" (dev flavor), not Runner.
           xcrun simctl spawn booted log show --last 30m --style compact --info --debug \
             --predicate 'process BEGINSWITH "Meditejo"' > /tmp/maestro-debug/ios-app.log 2>&1 || true
-
-      - name: Scrub test account credentials from debug output
-        if: failure()
-        env:
-          TEST_ACCOUNT_EMAIL: ${{ secrets.TEST_ACCOUNT_EMAIL }}
-          TEST_ACCOUNT_OTP: ${{ secrets.TEST_ACCOUNT_OTP }}
-        run: |
-          [ -d /tmp/maestro-debug ] || exit 0
-          find /tmp/maestro-debug -type f ! -name '*.png' -print0 | while IFS= read -r -d '' f; do
-            TEST_ACCOUNT_EMAIL="$TEST_ACCOUNT_EMAIL" TEST_ACCOUNT_OTP="$TEST_ACCOUNT_OTP" \
-              perl -pi -e 's/\Q$ENV{TEST_ACCOUNT_EMAIL}\E/[redacted]/g if length $ENV{TEST_ACCOUNT_EMAIL}; s/\Q$ENV{TEST_ACCOUNT_OTP}\E/[redacted]/g if length $ENV{TEST_ACCOUNT_OTP}' "$f"
-          done
 
       - name: Upload Maestro debug output
         if: failure()
@@ -939,8 +733,8 @@ jobs:
       - name: Skip if no baseline available
         id: gate
         run: |
-          if [ ! -f /tmp/old/medito-sim.tar ] || [ ! -s /tmp/old-maestro/.maestro/smoke.yaml ]; then
-            echo "No usable baseline (.app or seed flow missing) — skipping upgrade test." >> "$GITHUB_STEP_SUMMARY"
+          if [ ! -f /tmp/old/medito-sim.tar ] || [ ! -s /tmp/old-maestro/.maestro/smoke.yaml ] || [ ! -s /tmp/old-maestro/.maestro/local_timer.yaml ]; then
+            echo "No local-only baseline (.app or local seed flow missing) — skipping upgrade test." >> "$GITHUB_STEP_SUMMARY"
             echo "run=false" >> "$GITHUB_OUTPUT"
           else
             mkdir -p /tmp/old/app
@@ -980,7 +774,7 @@ jobs:
           sleep 5
 
           # 2. Seed state using the OLD tag's smoke.yaml — matches that
-          #    binary's onboarding UI even if HEAD has renamed strings.
+          #    binary's local navigation even if HEAD has renamed strings.
           $HOME/.maestro/bin/maestro test \
             -e APP_ID=io.github.beejsbj.meditejo /tmp/old-maestro/.maestro/smoke.yaml \
             --no-ansi --debug-output /tmp/maestro-debug/seed
@@ -990,7 +784,7 @@ jobs:
           xcrun simctl install booted "/tmp/new/app/Meditejo.app"
           sleep 5
 
-          # 4. Verify upgraded app lands on home with state intact.
+          # 4. Verify the upgraded app opens Home and the local timer.
           #    Uses HEAD's upgrade.yaml — it validates the NEW binary.
           $HOME/.maestro/bin/maestro test \
             -e APP_ID=io.github.beejsbj.meditejo .maestro/upgrade.yaml \
@@ -1069,9 +863,6 @@ jobs:
       - name: Flutter precache iOS
         run: flutter precache --ios
 
-      - name: Install FlutterFire CLI
-        run: dart pub global activate flutterfire_cli
-
       - name: Cache build_runner outputs
         id: cache-buildrunner
         uses: actions/cache@v4
@@ -1079,7 +870,7 @@ jobs:
           path: |
             lib/**/*.g.dart
             lib/**/*.freezed.dart
-          key: ${{ runner.os }}-buildrunner-${{ hashFiles('lib/**/*.dart', 'pubspec.lock') }}
+          key: ${{ runner.os }}-buildrunner-${{ hashFiles('lib/**/*.dart', 'pubspec.yaml', 'pubspec.lock') }}
           restore-keys: ${{ runner.os }}-buildrunner-
 
       - name: Run build_runner
@@ -1092,54 +883,16 @@ jobs:
         with:
           path: |
             lib/src/audio_pigeon.g.dart
-            lib/src/watch_presence_pigeon.g.dart
             android/app/src/main/kotlin/meditofoundation/medito/pigeon/AudioPigeon.g.kt
-          key: ${{ runner.os }}-pigeon-${{ hashFiles('pigeon_conf.dart', 'pigeons/**', 'pubspec.lock') }}
-          restore-keys: ${{ runner.os }}-pigeon-
+          key: ${{ runner.os }}-pigeon-local-${{ hashFiles('pigeon_conf.dart', 'pigeons/**', 'pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-pigeon-local-
 
       - name: Run pigeon
         if: steps.cache-pigeon.outputs.cache-hit != 'true'
-        run: for f in pigeon_conf.dart pigeons/*.dart; do flutter pub run pigeon --input "$f" --package_name=medito || exit 1; done
-
-      - name: Write .prod.json
-        env:
-          PROD_ENV: ${{ secrets.PROD_ENV }}
-        run: |
-          python3 - <<'PY'
-          import json, os, sys
-
-          raw = os.environ["PROD_ENV"]
-
-          try:
-            data = json.loads(raw)
-          except json.JSONDecodeError:
-            data = {}
-            for line in raw.strip().strip("{}").splitlines():
-              line = line.strip().rstrip(",")
-              if ":" in line:
-                key, _, value = line.partition(":")
-                data[key.strip()] = value.strip()
-
-          if not data:
-            sys.exit("Failed to parse PROD_ENV secret")
-
-          with open(".prod.json", "w") as f:
-            json.dump(data, f, indent=2)
-          PY
-
-      - name: Write firebase_options.dart
-        env:
-          FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART }}
-        run: printf '%s' "$FIREBASE_OPTIONS_DART" > lib/firebase_options.dart
-
-      - name: Write GoogleService-Info.plist
-        env:
-          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
-        run: printf '%s' "$GOOGLE_SERVICE_INFO_PLIST" | base64 -d > ios/Runner/GoogleService-Info.plist
+        run: for f in pigeon_conf.dart pigeons/*.dart; do [ -f "$f" ] || continue; flutter pub run pigeon --input "$f" --package_name=medito || exit 1; done
 
       - name: Validate plist files
         run: |
-          plutil -lint ios/Runner/GoogleService-Info.plist
           plutil -lint ios/Runner/Info.plist
           plutil -lint ios/Runner/Runner.entitlements
           plutil -lint ios/Runner/RunnerRelease.entitlements
@@ -1233,13 +986,7 @@ jobs:
             fi
           fi
 
-      # Keep this build's dSYMs. They are the only copy: Apple stopped retaining
-      # dSYMs for uploads when bitcode went away, the runner is thrown away
-      # with the .xcarchive, and 2609.18.0 showed the in-lane Crashlytics upload
-      # can be cut short when the job ends. With the artifact, symbols can be
-      # re-uploaded later with
-      #   upload-symbols -gsp ios/Runner/GoogleService-Info.plist -p ios <dir>
-      # Runs even when a later step failed, as long as gym produced an archive.
+      # Retain release symbols for local crash debugging after the runner is gone.
       - name: Collect iOS dSYMs
         id: dsyms
         if: ${{ !cancelled() }}

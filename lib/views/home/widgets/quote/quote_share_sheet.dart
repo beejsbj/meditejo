@@ -1,5 +1,4 @@
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
-import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -10,11 +9,9 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:medito/constants/colors/color_constants.dart';
-import 'package:medito/constants/strings/analytics_event_constants.dart';
 import 'package:medito/constants/strings/asset_constants.dart';
 import 'package:medito/constants/styles/widget_styles.dart';
 import 'package:medito/models/home/home_model.dart';
-import 'package:medito/providers/providers.dart';
 import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -126,22 +123,6 @@ class _QuoteShareScreenState extends ConsumerState<QuoteShareScreen> {
 
   Future<void> _share() async {
     setState(() => _sharing = true);
-    // Log the share intent before the OS sheet appears — we can't observe
-    // whether the user completes the share, so this captures the moment they
-    // committed to it. Fire-and-forget so analytics never blocks the share.
-    unawaited(
-      ref
-          .read(analyticsServiceProvider)
-          .logEvent(
-            name: AnalyticsEventConstants.quoteShared,
-            parameters: {
-              AnalyticsEventConstants.paramQuoteId: widget.data.id,
-              AnalyticsEventConstants.paramQuoteAuthor: widget.data.author,
-              AnalyticsEventConstants.paramQuoteSharePalette:
-                  _palettes[_paletteIndex].name,
-            },
-          ),
-    );
     try {
       final boundary =
           _repaintKey.currentContext!.findRenderObject()!
@@ -388,7 +369,7 @@ class _ShareCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        'medito.app',
+                        'Meditejo',
                         style: TextStyle(
                           fontSize: 14,
                           color: palette.secondary,

@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart' hide RepeatMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:medito/constants/strings/analytics_event_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/player/repeat_mode.dart';
 import 'package:medito/providers/player/player_provider.dart';
 import 'package:medito/providers/player/repeat_state_provider.dart';
-import 'package:medito/services/analytics/firebase_analytics_service.dart';
 import 'package:medito/widgets/radio_option_card.dart';
 
 Future<void> showRepeatModeSheet(BuildContext context) {
@@ -36,10 +34,6 @@ class RepeatModeSheet extends ConsumerWidget {
       if (mode != current) {
         ref.read(repeatStateProvider.notifier).setRepeatMode(mode);
         ref.read(playerProvider.notifier).setRepeatMode(mode);
-        FirebaseAnalyticsService().logEvent(
-          name: AnalyticsEventConstants.playerRepeatChanged,
-          parameters: {'repeat_mode': mode.name},
-        );
       }
       Navigator.of(context).pop();
     }

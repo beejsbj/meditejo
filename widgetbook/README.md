@@ -1,17 +1,15 @@
 # medito_widgetbook
 
-A new Flutter project.
+Component previews for the app. Dependencies follow the local parent package;
+no backend credentials or service configuration are required.
 
-## Getting Started
+From this directory:
 
-This project is a starting point for a Flutter application.
+```sh
+flutter pub get
+dart run build_runner build
+flutter analyze
+flutter run -d chrome
+```
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Generated preview directories and plugin metadata are local build outputs.

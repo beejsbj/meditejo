@@ -6,18 +6,8 @@
 	<string>LaunchScreen</string>
 	<key>FLTEnableImpeller</key>
 	<true/>
-	<key>NSCameraUsageDescription</key>
-	<string>Scan your card to add it automatically</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
-	<key>GOOGLE_ANALYTICS_DEFAULT_ALLOW_ANALYTICS_STORAGE</key>
-	<true/>
-	<key>GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_STORAGE</key>
-	<true/>
-	<key>GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_USER_DATA</key>
-	<true/>
-	<key>GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_PERSONALIZATION_SIGNALS</key>
-	<true/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -40,10 +30,6 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<key>FIREBASE_ANALYTICS_COLLECTION_DEACTIVATED</key>
-	<true/>
-	<key>FirebaseAppDelegateProxyEnabled</key>
-	<false/>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>sms</string>
@@ -66,7 +52,6 @@
 		<string>audio</string>
 		<string>fetch</string>
 		<string>processing</string>
-		<string>remote-notification</string>
 	</array>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
@@ -118,7 +103,5 @@
 	</array>
 	<key>NSSiriUsageDescription</key>
 	<string>Add voice shortcuts to quickly play your favourite meditations</string>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>This helps us understand how our meditation content is helping people, so we can improve it and keep Medito free for everyone.</string>
 </dict>
 </plist>

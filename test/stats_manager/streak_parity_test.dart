@@ -35,9 +35,23 @@ void main() {
   );
   final cases = fixture['cases'] as List<dynamic>;
 
-  DateTime atHourOffset(num offsetHours) => referenceInstant.add(
-    Duration(milliseconds: (offsetHours * 3600000).round()),
-  );
+  DateTime atHourOffset(num offsetHours) {
+    final instant = referenceInstant.add(
+      Duration(milliseconds: (offsetHours * 3600000).round()),
+    );
+    // Kotlin evaluates these fixture clock readings in UTC. Recreate the
+    // same calendar fields locally for Dart, whose session timestamps are
+    // decoded in the host timezone. Do not mix UTC "now" with local sessions.
+    return DateTime(
+      instant.year,
+      instant.month,
+      instant.day,
+      instant.hour,
+      instant.minute,
+      instant.second,
+      instant.millisecond,
+    );
+  }
 
   group('Streak parity fixture', () {
     for (final rawCase in cases) {
@@ -66,6 +80,17 @@ void main() {
               ),
             )
             .toList();
+
+        if (name == 'future_ignored') {
+          final localDates = audioCompleted.map((entry) {
+            final date = DateTime.fromMillisecondsSinceEpoch(entry.timestamp);
+            return DateTime(date.year, date.month, date.day);
+          }).toSet();
+          expect(localDates, {
+            DateTime(now.year, now.month, now.day),
+            DateTime(now.year, now.month, now.day + 1),
+          }, reason: 'The fixture must contain today and a future local day');
+        }
 
         final stats = LocalAllStats.empty().copyWith(
           audioCompleted: audioCompleted,

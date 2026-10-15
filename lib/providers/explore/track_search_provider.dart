@@ -2,10 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/models/explore/explore_list_item.dart';
 import 'package:medito/repositories/explore/track_search_repository.dart';
 import 'package:medito/repositories/pack/packs_repository.dart';
-import 'package:medito/services/network/http_api_service.dart';
 
 final trackSearchRepositoryProvider = Provider<TrackSearchRepository>((ref) {
-  return TrackSearchRepository(HttpApiService());
+  return TrackSearchRepository();
 });
 
 final explorePacksProvider = FutureProvider.autoDispose<List<PackItem>>((

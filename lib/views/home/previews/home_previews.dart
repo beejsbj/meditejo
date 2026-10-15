@@ -6,7 +6,7 @@
 //
 // and open the printed URL. The real [HomeView] renders through the shared
 // [PreviewShell] with the home data providers overridden by fixtures, so no
-// backend, Firebase or device is needed. Edits to the home widgets hot-reload.
+// backend or device is needed. Edits to the home widgets hot-reload.
 //
 // Reference: https://flutter.dev/to/widget-previews
 
@@ -15,15 +15,12 @@ import 'package:flutter/widget_previews.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:medito/constants/constants.dart';
-import 'package:medito/mock/mock_data.dart';
 import 'package:medito/models/local_all_stats.dart';
-import 'package:medito/models/home/announcement/announcement_model.dart';
 import 'package:medito/models/local_audio_completed.dart';
-import 'package:medito/models/models.dart';
-import 'package:medito/providers/home/announcement_provider.dart';
+import 'package:medito/models/home/home_model.dart';
+import 'package:medito/models/home/shortcuts/shortcuts_model.dart';
+import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/home/home_provider.dart';
-import 'package:medito/providers/shop/shop_providers.dart';
-import 'package:medito/views/shop/previews/shop_previews.dart';
 import 'package:medito/providers/home/up_next_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/views/home/home_view.dart';
@@ -65,7 +62,6 @@ const Map<String, Object> homePrefsShortcutsFirst = {
     'upNext',
     'carousel',
     'quote',
-    'products',
   ],
 };
 
@@ -76,7 +72,6 @@ const Map<String, Object> homePrefsFeaturedFirst = {
     'upNext',
     'shortcuts',
     'quote',
-    'products',
   ],
 };
 
@@ -143,8 +138,6 @@ final previewHome = HomeModel(
     ),
   ],
   carousel: [
-    mockHome.carousel.first.copyWith(showBanner: true),
-    ...mockHome.carousel.skip(1),
     const HomeCarouselModel(
       id: 'carousel-3',
       title: 'Focus at Work',
@@ -178,7 +171,11 @@ final previewHome = HomeModel(
       type: 'pack',
     ),
   ],
-  todayQuote: mockHome.todayQuote,
+  todayQuote: const HomeQuoteModel(
+    id: 'preview-quote',
+    quote: 'Take a moment to notice your breath.',
+    author: 'Preview',
+  ),
 );
 
 /// Seven-session pack, three done, so the hero reads "3 of 7".
@@ -192,7 +189,10 @@ final PackModel previewPack = () {
     'Loving Kindness',
     'Open Awareness',
   ];
-  return mockPacks.first.copyWith(
+  return PackModel(
+    id: 'lib-preview-course',
+    title: 'A quiet practice',
+    coverUrl: 'https://preview.medito.test/cover.png',
     items: List.generate(
       titles.length,
       (i) => PackItemsModel(
@@ -294,9 +294,6 @@ LocalAllStats _stats({required bool doneToday}) {
 final previewStats = _stats(doneToday: false);
 final previewStatsDoneToday = _stats(doneToday: true);
 
-/// Shop row fixtures: the first few real products from the shop previews.
-final previewProducts = previewShopProducts.take(4).toList();
-
 /// [StatsNotifier] that serves a fixture instead of syncing.
 class _PreviewStatsNotifier extends StatsNotifier {
   _PreviewStatsNotifier(this._fixture);
@@ -309,16 +306,11 @@ class _PreviewStatsNotifier extends StatsNotifier {
 
 List<Override> _homeOverrides({
   required LocalAllStats stats,
-  AnnouncementModel? announcement,
   AsyncValue<UpNextData>? upNext,
 }) => [
   fetchHomeProvider.overrideWith((ref) async => previewHome),
   upNextProvider.overrideWith((ref) => upNext ?? AsyncData(previewUpNext)),
   statsProvider.overrideWith(() => _PreviewStatsNotifier(stats)),
-  fetchLatestAnnouncementProvider.overrideWith((ref) async => announcement),
-  homeShopProductsProvider.overrideWith(
-    (ref) async => HomeShopProducts(products: previewProducts, curated: true),
-  ),
 ];
 
 // Wrappers must be top-level functions so they can be referenced from a
@@ -333,15 +325,6 @@ Widget wrapHomeLight(Widget child) => PreviewShell(
   prefs: homePrefsLight,
   themeMode: ThemeMode.light,
   overrides: _homeOverrides(stats: previewStats),
-  child: child,
-);
-
-Widget wrapHomeAnnouncement(Widget child) => PreviewShell(
-  prefs: homePrefsDark,
-  overrides: _homeOverrides(
-    stats: previewStats,
-    announcement: mockAnnouncement,
-  ),
   child: child,
 );
 
@@ -428,14 +411,6 @@ Widget homeDark() => const HomeView();
 
 @Preview(group: 'Home', name: 'Light', size: phoneSize, wrapper: wrapHomeLight)
 Widget homeLight() => const HomeView();
-
-@Preview(
-  group: 'Home',
-  name: 'Dark · announcement',
-  size: phoneSize,
-  wrapper: wrapHomeAnnouncement,
-)
-Widget homeAnnouncement() => const HomeView();
 
 @Preview(
   group: 'Home',

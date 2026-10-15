@@ -1,32 +1,11 @@
 appId: ${APP_ID}
-name: Upgrade Verification – Lands on Home After In-Place Update
+name: Upgrade Verification – Local Home and Timer
 ---
-
-# Launch WITHOUT clearState. The old version completed onboarding during the
-# seed phase, so if migrations work correctly we should skip straight to the
-# home screen — no splash-Continue, no onboarding, no re-auth.
+# Preserve the previous release's app container during the in-place update.
 - launchApp:
     stopApp: true
-
-# Home should appear quickly. If state was wiped by the upgrade, the splash
-# screen renders with a "Continue" CTA followed by the onboarding flow, so
-# home never appears and this times out — the failure screenshot will show
-# exactly the splash/onboarding screen a real user would be stuck on.
-#
-# Match the Home hero ("Start here: ..." / "Continue: ..."), not a pack
-# title: onboarding pins the seeded user onto the pack sequence, so the title
-# depends on the account. Same selector as smoke.yaml.
-#
-# Anonymous auth is already done (no network round-trip), but keep a
-# generous timeout for CI emulator cold-start variability.
-#
-# On a software-rendered emulator straight after a cold boot, SystemUI or
-# the launcher can raise an "isn't responding" dialog over the app a few
-# seconds after launch. It hides Home from the hierarchy even though Home is
-# right there behind it (local probe, 2026-09-15). Wait for either, dismiss
-# the dialog with "Wait", then assert Home for real.
 - extendedWaitUntil:
-    visible: "(?s).*(Start here|Continue): .*|(?i).*isn't responding.*"
+    visible: "Home|(?i).*isn't responding.*"
     timeout: 30000
 - runFlow:
     when:
@@ -36,30 +15,13 @@ name: Upgrade Verification – Lands on Home After In-Place Update
           text: "Wait"
           optional: true
 - extendedWaitUntil:
-    visible: "(?s).*(Start here|Continue): .*"
+    visible: "Home"
     timeout: 30000
 - takeScreenshot: post-upgrade-home
 
-# Confirm audio/pigeon layer still works after an in-place update.
-- tapOn:
-    text: "(?s).*(Start here|Continue): .*"
-
-# The seed run played a session, so this user has a saved guide/duration and
-# the hero goes straight into the player. Fall back to the track view's Play
-# in case the old version never saved them.
-- extendedWaitUntil:
-    visible: "Share Track|Skip forward 10 seconds"
-    timeout: 20000
 - runFlow:
-    when:
-      visible: "Share Track"
-    commands:
-      - extendedWaitUntil:
-          visible: "Play"
-          timeout: 15000
-      - tapOn: "Play"
-
-- extendedWaitUntil:
-    visible: "(?s).*00:[0-5][1-9] of .*"
-    timeout: 20000
-- takeScreenshot: post-upgrade-playing
+    file: read_total_tracks.yaml
+    env:
+      STATS_KEY: upgraded
+- runFlow: local_timer.yaml
+- takeScreenshot: post-upgrade-local-home

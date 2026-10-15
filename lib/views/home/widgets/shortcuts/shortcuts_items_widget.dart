@@ -1,13 +1,9 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
-import 'package:medito/constants/strings/analytics_event_constants.dart';
-import 'package:medito/models/models.dart';
-import 'package:medito/providers/providers.dart';
+import 'package:medito/models/home/shortcuts/shortcuts_model.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/utils/utils.dart';
 
@@ -28,27 +24,11 @@ class ShortcutsItemsWidget extends ConsumerWidget {
     WidgetRef ref,
     ShortcutsModel element,
   ) async {
-    final analytics = ref.read(analyticsServiceProvider);
-    unawaited(
-      analytics.logEvent(
-        name: AnalyticsEventConstants.shortcutTapped,
-        parameters: {
-          if (element.id != null)
-            AnalyticsEventConstants.paramShortcutId: element.id!,
-          if (element.title != null)
-            AnalyticsEventConstants.paramShortcutTitle: element.title!,
-          if (element.type != null)
-            AnalyticsEventConstants.paramShortcutType: element.type!,
-        },
-      ),
-    );
-    unawaited(analytics.logFirstActionAfterOnboardingIfNeeded('shortcut'));
     await handleNavigation(
       element.type,
       [element.path.toString().getIdFromPath()],
       context,
       ref: ref,
-      timerSource: AnalyticsEventConstants.sourceShortcut,
     );
   }
 

@@ -3,7 +3,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:medito/utils/logger.dart';
-import 'package:medito/services/analytics/crashlytics_service.dart';
 import 'package:medito/services/notifications/local_notifications.dart';
 
 final reminderProvider = Provider<ReminderProvider>((ref) {
@@ -13,8 +12,7 @@ final reminderProvider = Provider<ReminderProvider>((ref) {
 class ReminderProvider {
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
       LocalNotifications.plugin;
-  // Shared with push: initialising the plugin separately here replaced its
-  // tap callback with none, so reminder taps were never recorded.
+  // Share initialization so scheduling preserves the notification tap handler.
   final Future<void> _initFuture = LocalNotifications.ensureInitialized();
 
   Future<void> clearBadge() async {
@@ -47,11 +45,6 @@ class ReminderProvider {
       );
     } catch (e, s) {
       AppLogger.e('REMINDER', 'Error cancelling daily notification: $e', s);
-      CrashlyticsService().recordError(
-        e,
-        s,
-        reason: 'Failed to cancel daily notification',
-      );
     }
     try {
       await clearBadge();
@@ -98,9 +91,6 @@ class ReminderProvider {
                 priority: Priority.high,
               ),
             ),
-            // Was omitted entirely: the payload was built and logged but never
-            // attached, so every tap arrived with null and the handler's
-            // null-guard skipped navigation and analytics alike.
             payload: payload,
           );
           AppLogger.d(
@@ -116,12 +106,6 @@ class ReminderProvider {
           AppLogger.e(
             'XXXX',
             'Error scheduling reminder ID=${item.id} at ${item.scheduledDate}: $e',
-          );
-          CrashlyticsService().recordError(
-            e,
-            s,
-            reason:
-                'Failed to schedule daily reminder ${item.id} at ${item.scheduledDate}',
           );
         }
       }
@@ -143,12 +127,7 @@ class ReminderProvider {
     } catch (e, s) {
       AppLogger.e('REMINDER', 'Error scheduling daily reminder series: $e', s);
       AppLogger.e('XXXX', 'Error scheduling daily reminder series: $e');
-      CrashlyticsService().recordError(
-        e,
-        s,
-        reason:
-            'Failed to schedule daily reminder series (${items.length} items)',
-      );
+
       rethrow;
     }
   }
@@ -168,12 +147,6 @@ class ReminderProvider {
             'REMINDER',
             'Error cancelling daily reminder ${reminderSeriesBaseId + i}: $e',
             s,
-          );
-          CrashlyticsService().recordError(
-            e,
-            s,
-            reason:
-                'Failed to cancel daily reminder ${reminderSeriesBaseId + i}',
           );
         }
       }
@@ -195,11 +168,6 @@ class ReminderProvider {
       );
     } catch (e, s) {
       AppLogger.e('REMINDER', 'Error cancelling daily reminder series: $e', s);
-      CrashlyticsService().recordError(
-        e,
-        s,
-        reason: 'Failed to cancel daily reminder series',
-      );
     }
     try {
       await clearBadge();
@@ -231,11 +199,7 @@ class ReminderProvider {
       return pendingNotifications;
     } catch (e, s) {
       AppLogger.e('REMINDER', 'Error getting pending notifications: $e', s);
-      CrashlyticsService().recordError(
-        e,
-        s,
-        reason: 'Failed to get pending notifications',
-      );
+
       return [];
     }
   }
@@ -257,7 +221,7 @@ class ScheduledReminder {
   final String title;
   final String body;
 
-  /// JSON handed back to the tap handler so the open can be attributed.
+  /// JSON handed back to the local notification tap handler.
   /// Must be valid JSON: the handler decodes it.
   final String payload;
 

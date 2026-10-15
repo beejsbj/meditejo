@@ -1,15 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/views/home/home_styles.dart';
-import 'package:medito/constants/strings/analytics_event_constants.dart';
 import 'package:medito/constants/styles/widget_styles.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/home/home_model.dart';
-import 'package:medito/providers/providers.dart';
 import 'package:medito/views/home/widgets/quote/quote_share_sheet.dart';
 import 'package:medito/widgets/medito_icon.dart';
 
@@ -47,19 +43,6 @@ class QuoteWidgetState extends ConsumerState<QuoteWidget> {
   void _shareQuote() {
     final data = widget.data;
     if (data == null) return;
-
-    // Fire-and-forget — analytics shouldn't block navigation.
-    unawaited(
-      ref
-          .read(analyticsServiceProvider)
-          .logEvent(
-            name: AnalyticsEventConstants.quoteShareOpened,
-            parameters: {
-              AnalyticsEventConstants.paramQuoteId: data.id,
-              AnalyticsEventConstants.paramQuoteAuthor: data.author,
-            },
-          ),
-    );
 
     Navigator.of(
       context,

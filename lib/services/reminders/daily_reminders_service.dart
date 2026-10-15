@@ -1,27 +1,13 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../constants/constants.dart';
-import '../../constants/strings/analytics_event_constants.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_en.dart';
 import '../../providers/notification/reminder_provider.dart';
 import '../../utils/logger.dart';
 import '../../utils/stats_manager.dart';
-
-/// Identifies a daily reminder to the notification tap handler. Deliberately
-/// carries no `type`/`path`, so a tap does not deep-link — the point is
-/// attribution, not routing. Must stay valid JSON: the handler decodes it, and
-/// a bare string (what the series used to build, and then never attached)
-/// decodes to nothing.
-String reminderPayload(int day) => json.encode({
-  AnalyticsEventConstants.paramSource:
-      AnalyticsEventConstants.sourceLocalReminder,
-  AnalyticsEventConstants.paramNotificationDay: day,
-});
 
 /// The series re-anchors after every session so the streak and consistency
 /// numbers baked into each day's copy stay current. That part is deliberate.
@@ -160,7 +146,7 @@ class DailyRemindersScheduler {
           when: tzWhen,
           title: copy.$1,
           body: copy.$2,
-          payload: reminderPayload(i + 1),
+          payload: '{}',
         ),
       );
     }
@@ -179,7 +165,7 @@ class DailyRemindersScheduler {
         when: day30TzWhen,
         title: day30Copy.$1,
         body: day30Copy.$2,
-        payload: reminderPayload(30),
+        payload: '{}',
       ),
     );
 

@@ -54,7 +54,7 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
 
     // audio_service drives iOS only; Android plays through AudioPlayerService. If
     // the plugin attaches to this activity it starts a second FlutterEngine that
-    // runs main() again (duplicate auth/clientId, analytics init) and binds to a
+    // runs main() again, repeats app initialization, and binds to a
     // service we never declare, whose failure NPEs if it lands after a detach.
     // It must be gone before the activity attaches, which happens before
     // configureFlutterEngine, so build the engine here without it. The fragment
@@ -82,8 +82,6 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
         MeditoHealthConnectManager.setUp(flutterEngine.dartExecutor.binaryMessenger, healthConnectBridge)
 
         meditoAudioApi = MeditoAudioServiceCallbackApi(flutterEngine.dartExecutor.binaryMessenger)
-        WatchPresence.register(flutterEngine.dartExecutor.binaryMessenger, this)
-        InstallReferrer.register(flutterEngine.dartExecutor.binaryMessenger, this)
         checkAndSendCompletionData()
         
         // Set up platform channel for widget updates
@@ -145,7 +143,6 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
         createAudioServiceNotificationChannel()
         createReminderNotificationChannel()
         createNewsNotificationChannel()
-        createFirebaseNotificationChannel()
     }
 
     private fun createAudioServiceNotificationChannel() {
@@ -182,21 +179,6 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
         val importance = NotificationManager.IMPORTANCE_HIGH
         val channel = NotificationChannel(REMINDER_CHANNEL_ID, channelName, importance).apply {
             description = "Notification for meditation reminders"
-        }
-
-        val notificationManager: NotificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.createNotificationChannel(channel)
-    }
-
-    private fun createFirebaseNotificationChannel() {
-        val channelName = "Meditejo Notifications"
-        val importance = NotificationManager.IMPORTANCE_HIGH
-        val channel = NotificationChannel("high_importance_channel", channelName, importance).apply {
-            description = "Stay up-to-date with the latest from Meditejo"
-            enableLights(true)
-            enableVibration(true)
-            setShowBadge(false)
         }
 
         val notificationManager: NotificationManager =
@@ -351,7 +333,7 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
                 try {
                     withContext(Dispatchers.Main) {
                         meditoAudioApi?.handleCompletedTrack(completionData) {
-                            if (it.isSuccess) {
+                            if (it.getOrNull() == true) {
                                 activityScope.launch(Dispatchers.IO) {
                                     SharedPreferencesManager.clearCompletionData(this@MainActivity)
                                 }
@@ -385,6 +367,5 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
         const val ENGINE_ID = "medito_flutter_engine"
         const val REMINDER_CHANNEL_ID = "medito_reminder_channel"
         const val NEWS_CHANNEL_ID = "medito_news_channel"
-        const val FIREBASE_CHANNEL_ID = "high_importance_channel"
     }
 }

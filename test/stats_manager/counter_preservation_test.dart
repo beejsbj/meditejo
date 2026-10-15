@@ -5,198 +5,144 @@ import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/local_audio_completed.dart';
 import 'package:medito/utils/stats_manager.dart';
-import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../stats_manager_test.mocks.dart';
-
-/// Regression tests for a support case (Sept 2026) where a long-time user's
-/// lifetime counters collapsed to a handful of sessions while the completion
-/// history survived. Root cause: a completion was recorded while the
-/// in-memory stats were still null (fresh engine, sync short-circuited), so
-/// the tracker started from an empty object, saved it over the local copy and
-/// POSTed it; the following merge then took the counters from that fresh copy
-/// because it carried the newer `updated` stamp.
+/// A first completion in a fresh engine must load the on-device history
+/// before incrementing its counters. No server can recover an overwritten copy.
 void main() {
-  const oneDay = Duration(days: 1);
   final today = DateTime(2026, 9, 6, 12);
+  final manager = StatsManager();
 
-  late StatsManager statsManager;
-  late MockStatsService mockStatsService;
-
-  LocalAllStats historyStats({int days = 300}) {
-    final completions = List.generate(
-      days,
+  LocalAllStats historyStats() => LocalAllStats.empty().copyWith(
+    totalTracksCompleted: 1353,
+    totalTimeListened: 200 * 60 * 60 * 1000,
+    streakLongest: 312,
+    audioCompleted: List.generate(
+      300,
       (i) => LocalAudioCompleted(
         id: 'track-$i',
-        timestamp: today.subtract(oneDay * i).millisecondsSinceEpoch,
+        timestamp: today.subtract(Duration(days: i)).millisecondsSinceEpoch,
       ),
-    );
-    return LocalAllStats.empty().copyWith(
-      streakCurrent: days,
-      streakLongest: 312,
-      totalTracksCompleted: 1353,
-      totalTimeListened: 200 * 60 * 60 * 1000,
-      audioCompleted: completions,
-      tracksChecked: completions.map((c) => c.id).toList(),
-      updated: today.subtract(const Duration(hours: 1)).millisecondsSinceEpoch,
-    );
+    ),
+    tracksChecked: ['existing-track'],
+  );
+
+  Future<void> boot(LocalAllStats stats) async {
+    manager.resetForTesting();
+    SharedPreferences.setMockInitialValues({
+      SharedPreferenceConstants.localAllStatsKey: jsonEncode(stats.toJson()),
+    });
+    manager.setCurrentDateForTesting(today);
   }
 
-  Future<void> boot(Map<String, Object> prefs) async {
-    SharedPreferences.setMockInitialValues(prefs);
-    mockStatsService = MockStatsService();
-    when(mockStatsService.postStats(any)).thenAnswer((_) async {});
-    statsManager = StatsManager();
-    statsManager.resetForTesting();
-    statsManager.setStatsServiceForTesting(mockStatsService);
-    await statsManager.initializeForTesting(statsService: mockStatsService);
-    statsManager.setCurrentDateForTesting(today);
+  Future<LocalAllStats> restart() async {
+    manager.resetForTesting();
+    manager.setCurrentDateForTesting(today);
+    return manager.localAllStats;
   }
 
-  tearDown(() => statsManager.resetForTesting());
+  tearDown(manager.resetForTesting);
 
-  group('completion arriving before in-memory stats are loaded', () {
-    test('sync TTL short-circuit must not wipe the on-disk history', () async {
-      final history = historyStats();
-      await boot({
-        SharedPreferenceConstants.localAllStatsKey: jsonEncode(
-          history.toJson(),
-        ),
-        // A sync finished seconds ago, so sync() returns without a fetch.
-        SharedPreferenceConstants.statsLastSyncedAt: today
-            .subtract(const Duration(seconds: 5))
-            .millisecondsSinceEpoch,
-      });
-      when(mockStatsService.fetchAllStats()).thenAnswer((_) async {
-        fail('sync should short-circuit within the TTL');
-      });
+  test('first completion preserves lifetime counters and history', () async {
+    final history = historyStats();
+    await boot(history);
+    await manager.addAudioCompleted(
+      LocalAudioCompleted(
+        id: 'new-track',
+        timestamp: today.millisecondsSinceEpoch,
+      ),
+      600000,
+    );
 
-      await statsManager.addAudioCompleted(
-        LocalAudioCompleted(
-          id: 'new-track',
-          timestamp: today.millisecondsSinceEpoch,
-        ),
-        10 * 60 * 1000,
-      );
-
-      final result = statsManager.currentStats!;
-      expect(result.totalTracksCompleted, history.totalTracksCompleted + 1);
-      expect(
-        result.totalTimeListened,
-        history.totalTimeListened + 10 * 60 * 1000,
-      );
-      expect(result.audioCompleted!.length, history.audioCompleted!.length + 1);
-      expect(result.streakLongest, greaterThanOrEqualTo(312));
-
-      final posted =
-          verify(mockStatsService.postStats(captureAny)).captured.single
-              as LocalAllStats;
-      expect(posted.totalTracksCompleted, history.totalTracksCompleted + 1);
-    });
-
-    test('sync lock held by another sync must not wipe the history', () async {
-      final history = historyStats();
-      await boot({
-        SharedPreferenceConstants.localAllStatsKey: jsonEncode(
-          history.toJson(),
-        ),
-        // Foreground forced sync is mid-flight and owns the lock.
-        'stats_sync_lock': today.millisecondsSinceEpoch,
-      });
-      when(mockStatsService.fetchAllStats()).thenAnswer((_) async {
-        fail('sync should not run while the lock is held');
-      });
-
-      await statsManager.addAudioCompleted(
-        LocalAudioCompleted(
-          id: 'new-track',
-          timestamp: today.millisecondsSinceEpoch,
-        ),
-        10 * 60 * 1000,
-      );
-
-      expect(
-        statsManager.currentStats!.totalTracksCompleted,
-        history.totalTracksCompleted + 1,
-      );
-      expect(
-        statsManager.currentStats!.audioCompleted!.length,
-        history.audioCompleted!.length + 1,
-      );
-    });
+    final stored = await restart();
+    expect(stored.totalTracksCompleted, 1354);
+    expect(stored.totalTimeListened, history.totalTimeListened + 600000);
+    expect(stored.audioCompleted, hasLength(301));
+    expect(stored.streakLongest, 312);
+    expect(stored.tracksChecked, containsAll(['existing-track', 'new-track']));
   });
 
-  group('merge reconciles lifetime counters', () {
-    test('fresh local copy with newer `updated` does not win', () async {
-      await boot({});
+  test(
+    'refresh recalculates streak while preserving lifetime counters',
+    () async {
       final history = historyStats();
-      final fresh = LocalAllStats.empty().copyWith(
-        totalTracksCompleted: 1,
-        totalTimeListened: 9 * 60 * 1000,
-        streakCurrent: 1,
-        streakLongest: 1,
-        audioCompleted: [
-          LocalAudioCompleted(
-            id: 'new-track',
-            timestamp: today.millisecondsSinceEpoch,
-          ),
-        ],
-        tracksChecked: ['new-track'],
-        updated: today.millisecondsSinceEpoch,
+      await boot(history);
+      await manager.sync(force: true);
+      var stored = await restart();
+      expect(stored.totalTracksCompleted, 1353);
+      expect(stored.totalTimeListened, history.totalTimeListened);
+      expect(stored.streakCurrent, 300);
+      expect(stored.streakLongest, 312);
+
+      manager.setCurrentDateForTesting(today.add(const Duration(days: 2)));
+      await manager.sync();
+      stored = await restart();
+      expect(stored.streakCurrent, 0);
+      expect(stored.streakLongest, 312);
+      expect(stored.audioCompleted, hasLength(300));
+    },
+  );
+
+  test(
+    'timer sessions persist and do not mark catalogue tracks checked',
+    () async {
+      await boot(LocalAllStats.empty());
+      await manager.addAudioCompleted(
+        LocalAudioCompleted(
+          id: 'timer-600',
+          timestamp: today.millisecondsSinceEpoch,
+        ),
+        600000,
       );
-      statsManager.setStatsForTesting(fresh);
-      when(mockStatsService.fetchAllStats()).thenAnswer((_) async => history);
+      final stored = await restart();
+      expect(stored.totalTracksCompleted, 1);
+      expect(stored.totalTimeListened, 600000);
+      expect(stored.audioCompleted!.single.id, 'timer-600');
+      expect(stored.streakCurrent, 1);
+      expect(stored.tracksChecked, isEmpty);
+    },
+  );
 
-      await statsManager.sync(force: true);
-
-      final merged = statsManager.currentStats!;
-      expect(merged.totalTracksCompleted, history.totalTracksCompleted);
-      expect(merged.totalTimeListened, history.totalTimeListened);
-      expect(merged.streakLongest, history.streakLongest);
-      expect(merged.audioCompleted!.length, history.audioCompleted!.length + 1);
-      expect(merged.streakCurrent, history.audioCompleted!.length);
-    });
-
-    test('fresh remote copy with newer `updated` does not win', () async {
-      await boot({});
-      final history = historyStats();
-      final fresh = LocalAllStats.empty().copyWith(
-        totalTracksCompleted: 1,
-        totalTimeListened: 9 * 60 * 1000,
-        streakLongest: 1,
-        audioCompleted: [
-          LocalAudioCompleted(
-            id: 'new-track',
-            timestamp: today.millisecondsSinceEpoch,
-          ),
-        ],
-        tracksChecked: ['new-track'],
-        updated: today.millisecondsSinceEpoch,
+  test(
+    'deleting the final session persists an empty completion history',
+    () async {
+      final session = LocalAudioCompleted(
+        id: 'manual2',
+        timestamp: today.millisecondsSinceEpoch,
       );
-      statsManager.setStatsForTesting(history);
-      when(mockStatsService.fetchAllStats()).thenAnswer((_) async => fresh);
-
-      await statsManager.sync(force: true);
-
-      final merged = statsManager.currentStats!;
-      expect(merged.totalTracksCompleted, history.totalTracksCompleted);
-      expect(merged.totalTimeListened, history.totalTimeListened);
-      expect(merged.streakLongest, history.streakLongest);
-    });
-
-    test('counter never reports fewer completions than the history', () async {
-      await boot({});
-      final history = historyStats().copyWith(totalTracksCompleted: 5);
-      statsManager.setStatsForTesting(history);
-      when(mockStatsService.fetchAllStats()).thenAnswer((_) async => history);
-
-      await statsManager.sync(force: true);
-
-      expect(
-        statsManager.currentStats!.totalTracksCompleted,
-        history.audioCompleted!.length,
+      await boot(
+        LocalAllStats.empty().copyWith(
+          totalTracksCompleted: 1,
+          audioCompleted: [session],
+        ),
       );
-    });
+      await manager.removeAudioCompleted(session);
+      final stored = await restart();
+      expect(stored.totalTracksCompleted, 0);
+      expect(stored.audioCompleted, isEmpty);
+      expect(stored.streakCurrent, 0);
+    },
+  );
+
+  test(
+    'checked tracks survive bulk edits with no completed sessions',
+    () async {
+      await boot(LocalAllStats.empty().copyWith(tracksChecked: ['old']));
+      await manager.setTracksChecked(['ds-1', 'ds-2'], checked: true);
+      await manager.removeTrackChecked('old');
+      final stored = await restart();
+      expect(stored.tracksChecked, ['ds-1', 'ds-2']);
+      expect(stored.totalTracksCompleted, 0);
+    },
+  );
+
+  test('cleared history stays empty after refreshing and restarting', () async {
+    await boot(historyStats());
+    await manager.sync();
+    await manager.clearAllStats();
+    await manager.sync(force: true);
+    final stored = await restart();
+    expect(stored.totalTracksCompleted, 0);
+    expect(stored.audioCompleted, isEmpty);
   });
 }

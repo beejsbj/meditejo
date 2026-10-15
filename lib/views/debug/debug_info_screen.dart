@@ -159,15 +159,6 @@ class DebugInfoScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           const Divider(),
           const SizedBox(height: 8),
-          _buildHistorySection(
-            context,
-            title: 'Sign-In History',
-            body: _formatSignInHistory(ref),
-            base64: AppHistoryService.getSignInHistoryBase64(
-              ref.read(sharedPreferencesProvider),
-            ),
-            emptyText: 'No sign-ins recorded yet',
-          ),
           if (kDebugMode) ...[
             const SizedBox(height: 24),
             const Divider(),
@@ -490,22 +481,6 @@ class DebugInfoScreen extends ConsumerWidget {
         .join('\n');
   }
 
-  String _formatSignInHistory(WidgetRef ref) {
-    final prefs = ref.read(sharedPreferencesProvider);
-    final history = AppHistoryService.getSignInHistory(prefs);
-    if (history.isEmpty) return '';
-    final df = DateFormat('yyyy-MM-dd HH:mm');
-    return history
-        .map((e) {
-          final userId = e['userId'] ?? '';
-          final email = (e['email'] as String?) ?? '';
-          final at = _parseDateOrEmpty(e['signedInAt'], df);
-          final emailPart = email.isEmpty ? '' : ' — $email';
-          return '• $at\n  id: $userId$emailPart';
-        })
-        .join('\n');
-  }
-
   String _parseDateOrEmpty(dynamic iso, DateFormat df) {
     if (iso is! String || iso.isEmpty) return '';
     try {
@@ -566,11 +541,6 @@ class DebugInfoScreen extends ConsumerWidget {
     final versionHistoryB64 = AppHistoryService.getVersionHistoryBase64(prefs);
     if (versionHistoryB64.isNotEmpty) {
       fullInfo = '$fullInfo\n\nversion_history_b64: $versionHistoryB64';
-    }
-
-    final signInHistoryB64 = AppHistoryService.getSignInHistoryBase64(prefs);
-    if (signInHistoryB64.isNotEmpty) {
-      fullInfo = '$fullInfo\n\nsignin_history_b64: $signInHistoryB64';
     }
 
     // Surfaced in plaintext (not just inside stats_b64) so support can see the

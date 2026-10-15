@@ -1,6 +1,5 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -9,17 +8,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
-import 'package:medito/constants/strings/analytics_event_constants.dart';
-import 'package:medito/providers/providers.dart';
-import 'package:medito/repositories/auth/auth_repository.dart';
 import 'package:medito/routes/routes.dart';
-import 'package:medito/services/analytics/firebase_analytics_service.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/debug/debug_info_screen.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
 import 'package:medito/views/settings/advanced_settings_screen.dart';
 import 'package:medito/views/settings/health_sync_tile.dart';
-import 'package:medito/views/settings/widgets/account_section_widget.dart';
 import 'package:medito/views/settings/widgets/dnd_setting_tile.dart';
 import 'package:medito/views/settings/widgets/reminder_tile.dart';
 import 'package:medito/views/settings/widgets/app_icon_tile.dart';
@@ -33,13 +27,6 @@ import 'package:medito/src/audio_pigeon.g.dart';
 
 import '../home/widgets/header/home_header_widget.dart';
 import '../home/widgets/home_gradient_border.dart';
-
-final bearerTokenProvider = FutureProvider<String>((ref) async {
-  final authRepository = ref.watch(authRepositorySyncProvider);
-  final bearerToken = await authRepository.getToken();
-
-  return bearerToken;
-});
 
 class SettingsItem {
   final String section;
@@ -70,51 +57,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   static final _isHealthSyncAvailable =
       !kIsWeb && (Platform.isIOS || Platform.isAndroid);
   static final _isDndSupported = !kIsWeb && Platform.isAndroid;
-  final _analytics = FirebaseAnalyticsService();
-
-  @override
-  void initState() {
-    super.initState();
-    _logScreenView();
-  }
-
-  Future<void> _logScreenView() async {
-    await _analytics.logScreenView(screenName: 'SettingsScreen');
-  }
 
   @override
   Widget build(BuildContext context) {
     final List<SettingsItem> settingsItems = [
-      SettingsItem(
-        section: AppLocalizations.of(context)!.helpLegalSection,
-        type: TypeConstants.url,
-        title: AppLocalizations.of(context)!.helpTitle,
-        icon: MeditoIcon(
-          assetName: MeditoIcons.help,
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
-        path: 'https://medito.support.site/',
-      ),
-      SettingsItem(
-        section: AppLocalizations.of(context)!.supportCommunitySection,
-        type: TypeConstants.route,
-        title: AppLocalizations.of(context)!.donateTitle,
-        icon: MeditoIcon(
-          assetName: MeditoIcons.heart,
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
-        path: RouteConstants.donation,
-      ),
-      SettingsItem(
-        section: AppLocalizations.of(context)!.supportCommunitySection,
-        type: TypeConstants.route,
-        title: AppLocalizations.of(context)!.shopTitle,
-        icon: MeditoIcon(
-          assetName: MeditoIcons.shop,
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
-        path: RouteConstants.shop,
-      ),
       SettingsItem(
         section: AppLocalizations.of(context)!.helpLegalSection,
         type: TypeConstants.route,
@@ -125,26 +71,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         path: '${RouteConstants.stats}:history',
       ),
-      SettingsItem(
-        section: AppLocalizations.of(context)!.supportCommunitySection,
-        type: TypeConstants.url,
-        title: AppLocalizations.of(context)!.telegramTitle,
-        icon: MeditoIcon(
-          assetName: MeditoIcons.telegram,
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
-        path: 'https://t.me/meditoapp',
-      ),
-      SettingsItem(
-        section: AppLocalizations.of(context)!.supportCommunitySection,
-        type: TypeConstants.url,
-        title: AppLocalizations.of(context)!.whatsappTitle,
-        icon: MeditoIcon(
-          assetName: MeditoIcons.whatsapp,
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
-        path: 'https://whatsapp.com/channel/0029Vaov2lZ5kg77zmTZfd2X',
-      ),
+
       SettingsItem(
         section: AppLocalizations.of(context)!.customizationSection,
         type: TypeConstants.theme,
@@ -242,30 +169,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void handleItemPress(BuildContext context, SettingsItem item) async {
     if (item.path == TypeConstants.addWidget) {
       if (Platform.isIOS) {
-        unawaited(
-          ref
-              .read(analyticsServiceProvider)
-              .logEvent(
-                name: AnalyticsEventConstants.homeWidgetInstructionsShown,
-              ),
-        );
         await showAddWidgetSheet(context);
         return;
       }
       try {
         final widgetManager = MeditoWidgetManager();
-        final dialogShown = await widgetManager.pinWidget('consistency');
-        unawaited(
-          ref
-              .read(analyticsServiceProvider)
-              .logEvent(
-                name: AnalyticsEventConstants.homeWidgetPinRequested,
-                parameters: {
-                  AnalyticsEventConstants.paramWidgetType: 'consistency',
-                  'dialog_shown': dialogShown ? 'true' : 'false',
-                },
-              ),
-        );
+        await widgetManager.pinWidget('consistency');
       } catch (e) {
         // Silently fail - Android system dialog handles user interaction
       }
@@ -277,12 +186,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       [item.path.toString().getIdFromPath(), item.path],
       context,
       ref: ref,
-      sourceRouteName: switch (item.path) {
-        RouteConstants.donation =>
-          FirebaseAnalyticsService.paywallSourceSettings,
-        RouteConstants.shop => AnalyticsEventConstants.sourceSettings,
-        _ => null,
-      },
     );
   }
 
@@ -411,11 +314,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     WidgetRef ref,
     List<SettingsItem> settingsItems,
   ) {
-    final authRepository = ref.watch(authRepositorySyncProvider);
-    final user = authRepository.currentUser;
-    final isEffectivelySignedIn =
-        user != null && user.email != null && user.email!.isNotEmpty;
-
     final allCustomizationItems =
         _getItemsBySection(
               settingsItems,
@@ -436,12 +334,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final otherCustomizationItems = allCustomizationItems
         .where((item) => item.path != TypeConstants.addWidget)
         .toList();
-
-    // Support & Community card
-    final communityItems = _getItemsBySection(
-      settingsItems,
-      AppLocalizations.of(context)!.supportCommunitySection,
-    );
 
     // Help & Legal card
     final helpItems = _getItemsBySection(
@@ -475,23 +367,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       sliver: SliverList(
         delegate: SliverChildListDelegate([
           const ReminderTile(),
-          if (!isEffectivelySignedIn) ...[
-            _buildSectionTitle(context, AppLocalizations.of(context)!.account),
-            _buildSectionCard([const AccountSectionWidget(inCard: true)]),
-          ],
-          _buildSectionTitle(
-            context,
-            AppLocalizations.of(context)!.supportCommunity,
-          ),
-          _buildSectionCard([
-            for (var i = 0; i < communityItems.length; i++)
-              _buildMenuItemTile(
-                context,
-                ref,
-                communityItems[i],
-                isLast: i == communityItems.length - 1,
-              ),
-          ]),
           _buildSectionTitle(
             context,
             AppLocalizations.of(context)!.customization,
@@ -516,10 +391,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
           ]),
-          if (isEffectivelySignedIn) ...[
-            _buildSectionTitle(context, AppLocalizations.of(context)!.account),
-            _buildSectionCard([const AccountSectionWidget(inCard: true)]),
-          ],
           SizedBox(height: MediaQuery.paddingOf(context).bottom + padding16),
         ]),
       ),

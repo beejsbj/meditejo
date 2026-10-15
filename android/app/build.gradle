@@ -1,7 +1,5 @@
 plugins {
     id 'com.android.application'
-    id 'com.google.gms.google-services'
-    id 'com.google.firebase.crashlytics'
     id 'kotlin-android'
     id 'org.jetbrains.kotlin.plugin.compose'
     id 'dev.flutter.flutter-gradle-plugin'
@@ -34,39 +32,6 @@ def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-}
-
-def facebookAppId = System.getenv('FACEBOOK_APP_ID') ?: ''
-def facebookClientToken = System.getenv('FACEBOOK_CLIENT_TOKEN') ?: ''
-
-def envJsonFile = rootProject.file("../.prod.json")
-if (!envJsonFile.exists()) {
-    envJsonFile = rootProject.file("../.staging.json")
-}
-if (envJsonFile.exists()) {
-    try {
-        def jsonText = envJsonFile.text
-        if (!facebookAppId) {
-            def appIdMatch = jsonText =~ /"FACEBOOK_APP_ID"\s*:\s*"([^"]+)"/
-            if (appIdMatch) {
-                facebookAppId = appIdMatch[0][1]
-            }
-        }
-        if (!facebookClientToken) {
-            def tokenMatch = jsonText =~ /"FACEBOOK_CLIENT_TOKEN"\s*:\s*"([^"]+)"/
-            if (tokenMatch) {
-                facebookClientToken = tokenMatch[0][1]
-            }
-        }
-    } catch (Exception e) {
-        println "Warning: Could not parse environment JSON file: ${e.message}"
-    }
-}
-
-def isDebugBuild = project.gradle.startParameter.taskNames.any { it.toLowerCase().contains('debug') }
-if (isDebugBuild) {
-    println "Facebook App ID: ${facebookAppId ?: 'NOT SET'}"
-    println "Facebook Client Token: ${facebookClientToken ?: 'NOT SET'}"
 }
 
 android {
@@ -120,8 +85,6 @@ android {
             scheme: "meditejo"
         ]
         
-        resValue "string", "facebook_app_id", facebookAppId
-        resValue "string", "facebook_client_token", facebookClientToken
         resValue "string", "app_name_override", "Meditejo"
     }
 
@@ -184,15 +147,10 @@ flutter {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation platform('com.google.firebase:firebase-bom:33.2.0')
-    implementation 'com.google.firebase:firebase-analytics'
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
 
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.json:json:20240303'
-
-    // Google Pay dependencies
-    implementation 'com.google.android.gms:play-services-wallet:19.3.0'
 
     // Media3 dependencies
     def media3_version = "1.2.1"
@@ -214,10 +172,6 @@ dependencies {
 
     // Health Connect (MindfulnessSessionRecord added in 1.1.0, Oct 2025)
     implementation "androidx.health.connect:connect-client:1.1.0"
-
-    // Play install referrer (InstallReferrer.kt). Already pulled in by the
-    // Facebook SDK; declared because we call it directly.
-    implementation "com.android.installreferrer:installreferrer:2.2"
 }
 
 

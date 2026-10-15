@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
 
 /// One primary icon while the Meditejo mark is being chosen.
@@ -19,7 +18,7 @@ class AppIconTile extends StatelessWidget {
   Widget build(BuildContext context) => RowItemWidget(
     icon: icon,
     title: title,
-    subTitle: AppLocalizations.of(context)!.appName,
+    subTitle: 'Meditejo',
     hasUnderline: hasUnderline,
     isTrailingIcon: false,
     trailing: ClipRRect(

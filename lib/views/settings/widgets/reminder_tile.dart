@@ -1,10 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
-import 'package:medito/constants/strings/analytics_event_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/notification/reminder_provider.dart';
 import 'package:medito/providers/providers.dart';
@@ -87,7 +84,7 @@ class _ReminderTileState extends ConsumerState<ReminderTile> {
 
     switch (choice) {
       case ReminderChoiceSlot(:final slot):
-        await _enableAt(slot.time, slotId: slot.analyticsId);
+        await _enableAt(slot.time);
       case ReminderChoiceCustom():
         await _pickCustomTime(initial: current);
       case ReminderChoiceOff():
@@ -102,7 +99,7 @@ class _ReminderTileState extends ConsumerState<ReminderTile> {
       initialEntryMode: TimePickerEntryMode.input,
     );
     if (picked == null || !mounted) return;
-    await _enableAt(picked, slotId: 'custom');
+    await _enableAt(picked);
   }
 
   /// Explain that notifications are switched off for the app, offer the
@@ -110,28 +107,8 @@ class _ReminderTileState extends ConsumerState<ReminderTile> {
   /// carry on instead of making them pick a time a second time. Returns true
   /// if permission is now granted.
   Future<bool> _recoverBlockedPermission() async {
-    final analytics = ref.read(analyticsServiceProvider);
-    const params = {
-      AnalyticsEventConstants.paramSource:
-          AnalyticsEventConstants.sourceSettings,
-    };
-
-    unawaited(
-      analytics.logEvent(
-        name: AnalyticsEventConstants.notificationSettingsPromptShown,
-        parameters: params,
-      ),
-    );
-
     final go = await showNotificationsBlockedDialog(context);
     if (!go) return false;
-
-    unawaited(
-      analytics.logEvent(
-        name: AnalyticsEventConstants.notificationSettingsOpened,
-        parameters: params,
-      ),
-    );
 
     final granted = await openSettingsAndAwaitPermission();
     if (!mounted) return false;
@@ -139,12 +116,6 @@ class _ReminderTileState extends ConsumerState<ReminderTile> {
     setState(() => _notificationsBlocked = !granted);
     if (!granted) return false;
 
-    unawaited(
-      analytics.logEvent(
-        name: AnalyticsEventConstants.notificationPermissionRecovered,
-        parameters: params,
-      ),
-    );
     return true;
   }
 
@@ -176,32 +147,14 @@ class _ReminderTileState extends ConsumerState<ReminderTile> {
     return accepted;
   }
 
-  Future<void> _enableAt(TimeOfDay time, {required String slotId}) async {
+  Future<void> _enableAt(TimeOfDay time) async {
     setState(() => _busy = true);
     try {
       if (!await _ensurePermission() || !mounted) return;
 
-      final anchor = await _service().enableAt(
-        time,
-        l10n: AppLocalizations.of(context),
-      );
+      await _service().enableAt(time, l10n: AppLocalizations.of(context));
       await ref.read(reminderEnabledProvider.notifier).setEnabled(true);
       await ref.read(reminderTimeProvider.notifier).setTime(time);
-
-      unawaited(
-        ref
-            .read(analyticsServiceProvider)
-            .logEvent(
-              name: AnalyticsEventConstants.notificationsEnabled,
-              parameters: {
-                AnalyticsEventConstants.paramSource:
-                    AnalyticsEventConstants.sourceSettings,
-                AnalyticsEventConstants.paramReminderSlot: slotId,
-                AnalyticsEventConstants.paramReminderHour: anchor.hour,
-                AnalyticsEventConstants.paramReminderMinute: anchor.minute,
-              },
-            ),
-      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -212,18 +165,6 @@ class _ReminderTileState extends ConsumerState<ReminderTile> {
     try {
       await ref.read(reminderEnabledProvider.notifier).setEnabled(false);
       await _service().disable();
-
-      unawaited(
-        ref
-            .read(analyticsServiceProvider)
-            .logEvent(
-              name: AnalyticsEventConstants.notificationsDisabled,
-              parameters: {
-                AnalyticsEventConstants.paramSource:
-                    AnalyticsEventConstants.sourceSettings,
-              },
-            ),
-      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }

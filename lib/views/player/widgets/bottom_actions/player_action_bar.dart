@@ -1,5 +1,3 @@
-import 'package:medito/constants/strings/analytics_event_constants.dart';
-import 'package:medito/services/analytics/firebase_analytics_service.dart';
 import 'package:flutter/material.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
@@ -45,9 +43,6 @@ class PlayerActionBar extends StatelessWidget {
         rightItem: BottomActionBarItem(
           child: _buildBackgroundSoundWidget(),
           onTap: () {
-            FirebaseAnalyticsService().logEvent(
-              name: AnalyticsEventConstants.playerBackgroundSoundsOpened,
-            );
             showBackgroundSoundSheet(context);
           },
           semanticLabel: l10n.backgroundSounds,
@@ -69,9 +64,6 @@ class PlayerActionBar extends StatelessWidget {
         child: _buildBackgroundSoundWidget(),
         onTap: request.hasBackgroundSound
             ? () {
-                FirebaseAnalyticsService().logEvent(
-                  name: AnalyticsEventConstants.playerBackgroundSoundsOpened,
-                );
                 showBackgroundSoundSheet(context);
               }
             : () => _showBackgroundSoundDisabledMessage(context),
@@ -82,10 +74,6 @@ class PlayerActionBar extends StatelessWidget {
         onTap: () => showSpeedSheet(
           context,
           onSpeedChanged: (speed) {
-            FirebaseAnalyticsService().logEvent(
-              name: AnalyticsEventConstants.playerSpeedChanged,
-              parameters: {'speed': speed, 'track_id': request.trackId},
-            );
             onSpeedChanged(speed);
           },
         ),
@@ -101,10 +89,6 @@ class PlayerActionBar extends StatelessWidget {
   }
 
   void _showBackgroundSoundDisabledMessage(BuildContext context) {
-    FirebaseAnalyticsService().logEvent(
-      name: AnalyticsEventConstants.playerBackgroundSoundsUnavailable,
-      parameters: {'track_id': request.trackId},
-    );
     scaffoldMessengerKey.currentState?.showSnackBar(
       SnackBar(
         content: Text(AppLocalizations.of(context)!.backgroundSoundsDisabled),

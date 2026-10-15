@@ -301,11 +301,8 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
   /// Resolves [sound] to a local file — downloading it first if needed — and
   /// plays it.
   ///
-  /// Every failure is handled here. The previous `.then` chain had no error
-  /// handler, so a failed download became an unhandled async error, which
-  /// `PlatformDispatcher.onError` records in Crashlytics as a *fatal* — a
-  /// dropped connection showed up as an app crash. It also left
-  /// `downloadingBgSound` set, so the tile's spinner never stopped.
+  /// Handles download and playback failures locally and clears
+  /// `downloadingBgSound` so the tile's spinner always stops.
   Future<void> _downloadAndPlay(
     BackgroundSoundsModel sound, {
     bool forceRedownload = false,

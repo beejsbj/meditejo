@@ -1,5 +1,3 @@
-import 'package:medito/constants/strings/analytics_event_constants.dart';
-import 'package:medito/services/analytics/firebase_analytics_service.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -40,12 +38,6 @@ class VolumeSliderWidget extends ConsumerWidget {
           ref
               .read(backgroundSoundsNotifierProvider.notifier)
               .handleOnChangeVolume(newValue);
-        },
-        onChangeEnd: (double newValue) {
-          FirebaseAnalyticsService().logEvent(
-            name: AnalyticsEventConstants.backgroundSoundVolumeChanged,
-            parameters: {'volume': newValue.round()},
-          );
         },
         semanticFormatterCallback: (double newValue) {
           return '${newValue.round()} ';

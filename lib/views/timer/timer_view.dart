@@ -4,17 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
-import 'package:medito/constants/strings/analytics_event_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/models/models.dart';
 import 'package:medito/models/timer/timer_session.dart';
-import 'package:medito/providers/providers.dart';
+import 'package:medito/providers/player/player_provider.dart';
 import 'package:medito/providers/timer/timer_settings_provider.dart';
-import 'package:medito/repositories/background_sounds/background_sounds_repository.dart';
-import 'package:medito/services/analytics/firebase_analytics_service.dart';
 import 'package:medito/services/audio/timer_audio_file.dart';
-import 'package:medito/repositories/track/track_repository.dart';
-import 'package:medito/widgets/network_image_widget.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/views/home/widgets/home_gradient_border.dart';
@@ -28,11 +22,7 @@ import 'widgets/timer_duration_wheels.dart';
 /// then sit with the regular player. Works fully offline — the session is a
 /// locally generated silent track, so nothing is fetched.
 class TimerView extends ConsumerStatefulWidget {
-  const TimerView({super.key, required this.source});
-
-  /// Where the screen was opened from, for timer_opened (see
-  /// [AnalyticsEventConstants.timerOpened]).
-  final String source;
+  const TimerView({super.key});
 
   @override
   ConsumerState<TimerView> createState() => _TimerViewState();
@@ -41,64 +31,6 @@ class TimerView extends ConsumerStatefulWidget {
 class _TimerViewState extends ConsumerState<TimerView> {
   final _wheels = GlobalKey<TimerDurationWheelsState>();
   bool _starting = false;
-
-  /// How the countdown length was set, for timer_started: remembered or
-  /// default until the user touches a chip (preset) or the wheels (wheel).
-  late String _lengthSource;
-
-  /// Cover of the old timer track, shown in the player when it could be
-  /// fetched. Never awaited: offline the player falls back to its dark
-  /// backdrop and the timer starts just the same.
-  String? _coverUrl;
-
-  BackgroundSoundsRepository get _soundRepo =>
-      ref.read(backgroundSoundsRepositoryProvider);
-
-  @override
-  void initState() {
-    super.initState();
-    // Last known cover first: its image is in the disk cache, so the
-    // backdrop shows offline too. The fetch below refreshes it.
-    _coverUrl = ref
-        .read(sharedPreferencesProvider)
-        .getString(SharedPreferenceConstants.timerCoverUrl);
-    unawaited(_loadCover());
-    _lengthSource =
-        ref
-                .read(sharedPreferencesProvider)
-                .getInt(SharedPreferenceConstants.timerMinutes) ==
-            null
-        ? 'default'
-        : 'remembered';
-    final analytics = FirebaseAnalyticsService();
-    unawaited(
-      analytics.logEvent(
-        name: AnalyticsEventConstants.timerOpened,
-        parameters: {AnalyticsEventConstants.paramSource: widget.source},
-      ),
-    );
-    unawaited(analytics.logScreenView(screenName: 'TimerView'));
-  }
-
-  Future<void> _loadCover() async {
-    try {
-      final track = await ref
-          .read(trackRepositoryProvider)
-          .fetchTrack(kLegacyTimerTrackId);
-      final url = track.coverUrl;
-      if (!mounted || url.isEmpty || HTTPConstants.isDeadDomain(url)) return;
-      unawaited(
-        ref
-            .read(sharedPreferencesProvider)
-            .setString(SharedPreferenceConstants.timerCoverUrl, url),
-      );
-      if (url != _coverUrl) setState(() => _coverUrl = url);
-      // Warm the image so the player opens with it instead of fading it in.
-      unawaited(precacheImage(NetworkImage(url), context, onError: (_, _) {}));
-    } catch (e) {
-      AppLogger.d('TIMER', 'Timer cover unavailable: $e');
-    }
-  }
 
   Future<void> _start() async {
     final settings = ref.read(timerSettingsProvider);
@@ -117,26 +49,8 @@ class _TimerViewState extends ConsumerState<TimerView> {
         title: settings.mode == TimerMode.stopwatch
             ? l10n.timerModeStopwatch
             : l10n.timerTitle,
-        coverUrl: _coverUrl,
       );
-      unawaited(
-        FirebaseAnalyticsService().logEvent(
-          name: AnalyticsEventConstants.timerStarted,
-          parameters: {
-            AnalyticsEventConstants.paramTimerMode: settings.mode.name,
-            AnalyticsEventConstants.paramDurationMinutes:
-                settings.mode == TimerMode.stopwatch ? 0 : settings.minutes,
-            if (settings.mode == TimerMode.countdown)
-              AnalyticsEventConstants.paramLengthSource: _lengthSource,
-            // Ambient sound and bells, as last left in the player.
-            AnalyticsEventConstants.paramSoundId:
-                _soundRepo.getSelectedBgSoundFromSharedPreferences()?.id ??
-                kNoneBackgroundSoundId,
-            AnalyticsEventConstants.paramSessionBells:
-                _soundRepo.getSessionBellsEnabled(forTimer: true) ? 1 : 0,
-          },
-        ),
-      );
+
       if (!mounted) return;
       ref.read(playerProvider.notifier).prepare(request);
       unawaited(
@@ -159,7 +73,6 @@ class _TimerViewState extends ConsumerState<TimerView> {
 
   void _selectPreset(int minutes) {
     unawaited(HapticFeedback.selectionClick());
-    _lengthSource = 'preset';
     ref.read(timerSettingsProvider.notifier).setMinutes(minutes);
     _wheels.currentState?.animateTo(minutes);
   }
@@ -170,9 +83,6 @@ class _TimerViewState extends ConsumerState<TimerView> {
     final settings = ref.watch(timerSettingsProvider);
     final isStopwatch = settings.mode == TimerMode.stopwatch;
 
-    final coverUrl = _coverUrl;
-
-    // Laid out like the track screen: cover card, title, then the controls.
     return Scaffold(
       bottomNavigationBar: SingleBackButtonActionBar(
         onBackPressed: () => Navigator.pop(context),
@@ -188,21 +98,6 @@ class _TimerViewState extends ConsumerState<TimerView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (coverUrl != null) ...[
-                        AspectRatio(
-                          aspectRatio: 16 / 9,
-                          child: HomeGradientBorder(
-                            backgroundColor: Theme.of(context).cardColor,
-                            borderRadius: 20,
-                            borderWidth: 0.5,
-                            child: NetworkImageWidget(
-                              url: coverUrl,
-                              shouldCache: true,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                      ],
                       MeditoSegmentedTabs(
                         labels: [l10n.timerTitle, l10n.timerModeStopwatch],
                         selectedIndex: settings.mode.index,
@@ -236,7 +131,6 @@ class _TimerViewState extends ConsumerState<TimerView> {
                                     // Only user drags report here; a
                                     // preset's spin is suppressed.
                                     onChanged: (minutes) {
-                                      _lengthSource = 'wheel';
                                       ref
                                           .read(timerSettingsProvider.notifier)
                                           .setMinutes(minutes);

@@ -4,10 +4,7 @@ import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/local_audio_completed.dart';
 import 'package:medito/utils/stats_manager.dart';
 import 'package:medito/utils/stats_updater.dart';
-import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../stats_manager_test.mocks.dart';
 
 /// Pins down the bug fix: when stats change via manual add / delete (or the
 /// real audio-completion path), the Daily reminder series must be
@@ -23,7 +20,6 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late StatsManager statsManager;
-  late MockStatsService mockStatsService;
   late DateTime today;
   late List<({int endMs, int durationMs})> calls;
 
@@ -35,17 +31,11 @@ void main() {
       SharedPreferenceConstants.savedMinutes: 0,
     });
 
-    mockStatsService = MockStatsService();
     statsManager = StatsManager();
-    statsManager.setStatsServiceForTesting(mockStatsService);
-    await statsManager.initializeForTesting(statsService: mockStatsService);
+    await statsManager.initializeForTesting();
 
     today = DateTime(2026, 4, 28);
     statsManager.setCurrentDateForTesting(today);
-
-    when(
-      mockStatsService.postStats(any),
-    ).thenAnswer((_) async => Future.value());
 
     statsManager.setStatsForTesting(
       LocalAllStats.empty().copyWith(streakCurrent: 0, streakLongest: 0),
@@ -94,8 +84,7 @@ void main() {
           statsManager: statsManager,
         );
         expect(added, 3);
-        // Exactly one reschedule for the whole batch — same batching rule as
-        // postStats.
+        // Exactly one reschedule for the whole batch.
         expect(calls, hasLength(1));
         // Anchored at noon on the latest day in the batch (Apr 26).
         expect(

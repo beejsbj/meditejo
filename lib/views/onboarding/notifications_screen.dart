@@ -1,23 +1,16 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'dart:async';
-
 import 'package:medito/widgets/onboarding/onboarding_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
-import 'package:medito/constants/strings/analytics_event_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/notification/reminder_provider.dart';
-import 'package:medito/providers/onboarding/onboarding_picker_mode_experiment.dart';
 import 'package:medito/providers/settings/settings_providers.dart';
-import 'package:medito/services/analytics/firebase_analytics_service.dart';
 import 'package:medito/widgets/onboarding/onboarding_header_image.dart';
-import 'package:medito/services/notifications/firebase_notifications_service.dart';
 import 'package:medito/utils/notification_permission_flow.dart';
-import 'package:medito/utils/permission_handler.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/services/reminders/reminder_slots.dart';
@@ -53,33 +46,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
 
   late final AnimationController _previewAnimation;
 
-  /// Which time-of-day chip was picked; tagged on the reminder-set event as
-  /// paramReminderSlot.
-  String? _selectedSlot;
-
-  /// Tagged on every event fired from this screen so analytics can
-  /// distinguish the post-donation placement (re-introduced 26.6) from the
-  /// pre-donation placement (removed 26.5.19). The time-chips A/B
-  /// (onboarding_reminder_time_chips) concluded 2026-08-25 with chips shipped
-  /// to everyone, so the experiment tags are gone.
-  /// Sticky arm of the custom-picker entry-mode A/B
-  /// (onboarding_reminder_picker_mode). Resolved in [initState] so every event
-  /// from this screen carries it.
-  late final String _pickerModeVariant;
-
-  Map<String, Object> get _eventParams => {
-    'placement': 'post_donation',
-    AnalyticsEventConstants.paramExperimentName:
-        OnboardingPickerModeExperiment.experimentName,
-    AnalyticsEventConstants.paramVariantId: _pickerModeVariant,
-  };
-
   @override
   void initState() {
     super.initState();
-    _pickerModeVariant = OnboardingPickerModeExperiment.resolveVariant(
-      ref.read(sharedPreferencesProvider),
-    );
     _previewAnimation = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -87,19 +56,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
     Future.delayed(const Duration(milliseconds: 250), () {
       if (mounted) _previewAnimation.forward();
     });
-    FirebaseAnalyticsService().logEvent(
-      name: FirebaseAnalyticsService.eventOnboardingNotificationsPreviewShown,
-      parameters: _eventParams,
-    );
-    // Tagged at screen level, not at picker-open: only ~27% open the picker,
-    // and the guardrail that matters (onboarding completion) has to be
-    // comparable across the whole screen audience.
-    unawaited(
-      FirebaseAnalyticsService().logEvent(
-        name: AnalyticsEventConstants.onboardingExperimentExposure,
-        parameters: _eventParams,
-      ),
-    );
   }
 
   @override
@@ -112,7 +68,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
     if (!mounted) return;
 
     setState(() => _isProcessing = true);
-    final handler = ref.read(firebaseMessagingProvider);
 
     // Request notification permission if not already granted
     var status = await Permission.notification.status;
@@ -123,20 +78,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
       // dialog is far cheaper than one spent on the system's. Only users who
       // already tapped a chip or the CTA reach this, so it adds no step for
       // the people who skip the screen.
-      unawaited(
-        FirebaseAnalyticsService().logEvent(
-          name: AnalyticsEventConstants.onboardingReminderPrimerShown,
-          parameters: _eventParams,
-        ),
-      );
       final proceed = await showNotificationPermissionPrimer(context);
       if (!proceed) {
-        unawaited(
-          FirebaseAnalyticsService().logEvent(
-            name: AnalyticsEventConstants.onboardingReminderPrimerDeclined,
-            parameters: _eventParams,
-          ),
-        );
         // Must clear _isProcessing or the chips and CTA stay disabled and the
         // screen becomes the dead end this release is fixing.
         await recordReminderNotEnabled(ref.read(sharedPreferencesProvider));
@@ -150,15 +93,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
     if (!mounted) return;
 
     if (status.isGranted) {
-      await handler.initialize(context, ref);
-
-      // Log analytics event for permission granted in onboarding context
-      await FirebaseAnalyticsService().logEvent(
-        name: FirebaseAnalyticsService
-            .eventOnboardingNotificationsPermissionGranted,
-        parameters: _eventParams,
-      );
-
       // Automatically set up reminders and advance
       await _setupRemindersAndAdvance();
     } else {
@@ -166,20 +100,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
       // reads as enabled and hides the end-screen reminder card from this user.
       // Written before the recovery flow below, which sets it true on success.
       await recordReminderNotEnabled(ref.read(sharedPreferencesProvider));
-
-      // Permission denied - log analytics event for onboarding context
-      if (status.isDenied || status.isPermanentlyDenied) {
-        await FirebaseAnalyticsService().logEvent(
-          name: FirebaseAnalyticsService
-              .eventOnboardingNotificationsPermissionDenied,
-          parameters: {
-            ..._eventParams,
-            'permission_status': status.isPermanentlyDenied
-                ? 'permanently_denied'
-                : 'denied',
-          },
-        );
-      }
 
       // iOS only asks once: when the permission is permanently denied the
       // request() above returns instantly with no dialog, which used to leave
@@ -189,7 +109,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
       if (status.isPermanentlyDenied && mounted) {
         final recovered = await _recoverBlockedPermission();
         if (recovered && mounted) {
-          await handler.initialize(context, ref);
           await _setupRemindersAndAdvance();
           return;
         }
@@ -205,152 +124,68 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
   /// Explain, offer the phone's settings, and report whether they came back
   /// having granted it. See [openSettingsAndAwaitPermission].
   Future<bool> _recoverBlockedPermission() async {
-    const params = {AnalyticsEventConstants.paramSource: 'onboarding'};
-
-    unawaited(
-      FirebaseAnalyticsService().logEvent(
-        name: AnalyticsEventConstants.notificationSettingsPromptShown,
-        parameters: {..._eventParams, ...params},
-      ),
-    );
-
     final go = await showNotificationsBlockedDialog(context);
     if (!go) return false;
-
-    unawaited(
-      FirebaseAnalyticsService().logEvent(
-        name: AnalyticsEventConstants.notificationSettingsOpened,
-        parameters: {..._eventParams, ...params},
-      ),
-    );
 
     final granted = await openSettingsAndAwaitPermission();
     if (!granted) return false;
 
-    unawaited(
-      FirebaseAnalyticsService().logEvent(
-        name: AnalyticsEventConstants.notificationPermissionRecovered,
-        parameters: {..._eventParams, ...params},
-      ),
-    );
     return true;
   }
 
   Future<void> _setupRemindersAndAdvance() async {
     if (!mounted) return;
-
-    final accepted = await PermissionHandler.requestNotificationPermission(
-      context,
-    );
-    if (!accepted || !mounted) {
-      setState(() => _isProcessing = false);
-      return;
-    }
-
-    final prefs = ref.read(sharedPreferencesProvider);
-    await prefs.setBool(SharedPreferenceConstants.dailyReminderEnabled, true);
-
-    final savedHour = prefs.getInt(SharedPreferenceConstants.savedHours);
-    final savedMinute = prefs.getInt(SharedPreferenceConstants.savedMinutes);
-    final now = DateTime.now();
-    DateTime anchorLocal;
-    if (savedHour != null && savedMinute != null) {
-      final candidate = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        savedHour,
-        savedMinute,
+    try {
+      final prefs = ref.read(sharedPreferencesProvider);
+      final time = TimeOfDay(
+        hour: prefs.getInt(SharedPreferenceConstants.savedHours) ?? 7,
+        minute: prefs.getInt(SharedPreferenceConstants.savedMinutes) ?? 0,
       );
-      anchorLocal = candidate.isBefore(now)
-          ? candidate.add(const Duration(days: 1))
-          : candidate;
-    } else {
-      anchorLocal = now.add(const Duration(days: 1));
-    }
-
-    // Logged after the anchor is resolved rather than on entry, so the hour
-    // reported is the one the reminder series is actually scheduled for. That
-    // makes the two arms comparable: the chips arm reports the slot the user
-    // chose, the control arm reports the silent "same time tomorrow" default.
-    await FirebaseAnalyticsService().logEvent(
-      name: FirebaseAnalyticsService.eventOnboardingReminderSetTap,
-      parameters: {
-        ..._eventParams,
-        AnalyticsEventConstants.paramReminderSlot: ?_selectedSlot,
-        AnalyticsEventConstants.paramReminderHour: anchorLocal.hour,
-        AnalyticsEventConstants.paramReminderMinute: anchorLocal.minute,
-      },
-    );
-
-    final scheduler = DailyRemindersScheduler(
-      prefs: prefs,
-      reminders: ref.read(reminderProvider),
-    );
-    await scheduler.scheduleSeriesFromAnchor(
-      anchorLocal,
-      l10n: AppLocalizations.of(context),
-    );
-
-    if (mounted) {
-      await ref
-          .read(reminderTimeProvider.notifier)
-          .setTime(
-            TimeOfDay(hour: anchorLocal.hour, minute: anchorLocal.minute),
-          );
-      setState(() => _isProcessing = false);
-      _navigateNext();
+      await DailyRemindersService(
+        prefs: prefs,
+        reminders: ref.read(reminderProvider),
+      ).enableAt(time, l10n: AppLocalizations.of(context));
+      await ref.read(reminderEnabledProvider.notifier).setEnabled(true);
+      await ref.read(reminderTimeProvider.notifier).setTime(time);
+      if (mounted) _navigateNext();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not set the reminder. Please try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
   void _navigateNext() => widget.onNext?.call();
 
-  /// Chips arm: persist the chosen slot time so [_setupRemindersAndAdvance]
+  /// Persist the chosen time so [_setupRemindersAndAdvance]
   /// anchors the reminder series to it, then run the shared permission flow.
-  Future<void> _onSlotSelected(String slot, TimeOfDay time) async {
+  Future<void> _onSlotSelected(TimeOfDay time) async {
     if (_isProcessing) return;
-    _selectedSlot = slot;
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setInt(SharedPreferenceConstants.savedHours, time.hour);
     await prefs.setInt(SharedPreferenceConstants.savedMinutes, time.minute);
     await _handleNotificationsPermission();
   }
 
-  /// Dismissing the picker used to return silently — no event, no navigation,
-  /// an unchanged screen — so the tap looked like it had done nothing and the
-  /// drop-off was invisible. Both ends are now logged, and a dismissal gets
-  /// feedback pointing at the ways forward.
+  /// Keep the reminder choices available when the custom picker is dismissed.
   Future<void> _onCustomTimeTap() async {
     if (_isProcessing) return;
 
-    unawaited(
-      FirebaseAnalyticsService().logEvent(
-        name: AnalyticsEventConstants.onboardingReminderCustomTap,
-        parameters: _eventParams,
-      ),
-    );
-
-    // A/B: `input` is the mode that has always shipped and half of the people
-    // who opened it backed out; `dial` is the Material default and needs no
-    // typing. See OnboardingPickerModeExperiment.
     final picked = await showTimePicker(
       context: context,
       initialTime: const TimeOfDay(hour: 7, minute: 0),
-      initialEntryMode:
-          _pickerModeVariant == OnboardingPickerModeExperiment.variantDial
-          ? TimePickerEntryMode.dial
-          : TimePickerEntryMode.input,
+      initialEntryMode: TimePickerEntryMode.dial,
     );
 
     if (!mounted) return;
 
     if (picked == null) {
-      unawaited(
-        FirebaseAnalyticsService().logEvent(
-          name: AnalyticsEventConstants.onboardingReminderCustomCancel,
-          parameters: _eventParams,
-        ),
-      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.reminderCustomCancelled),
@@ -359,7 +194,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
       return;
     }
 
-    await _onSlotSelected('custom', picked);
+    await _onSlotSelected(picked);
   }
 
   String _notificationsTitle(AppLocalizations l10n) {
@@ -477,11 +312,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
                                 width: double.infinity,
                                 child: TextButton(
                                   onPressed: () async {
-                                    await FirebaseAnalyticsService().logEvent(
-                                      name: FirebaseAnalyticsService
-                                          .eventOnboardingReminderSkipTap,
-                                      parameters: _eventParams,
-                                    );
                                     _navigateNext();
                                   },
                                   child: Text(
@@ -742,9 +572,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
       button: true,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: _isProcessing
-            ? null
-            : () => _onSlotSelected(slot.analyticsId, slot.time),
+        onTap: _isProcessing ? null : () => _onSlotSelected(slot.time),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
           decoration: BoxDecoration(

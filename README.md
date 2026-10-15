@@ -1,6 +1,6 @@
 # Meditejo
 
-Meditejo is Burooj’s personal meditation app, bringing courses and practice material into one calm place. The fork is under active development; the first milestone is a working Android build. *Meditejo* is Esperanto for “place of meditation”.
+Meditejo is Burooj’s personal meditation app, bringing courses and practice material into one calm place. The fork is under active development: the local timer works offline, and the catalogue is currently empty pending source integrations. *Meditejo* is Esperanto for “place of meditation”.
 
 Based on [Medito](https://github.com/meditohq/medito-app) by the [Medito Foundation](https://meditofoundation.org). Meditejo is an independent fork. Medito’s audio catalogue is not included in the fork’s intended content library.
 

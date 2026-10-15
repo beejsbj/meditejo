@@ -6,7 +6,7 @@ import 'package:medito/models/models.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/repositories/pack/packs_repository.dart';
-import 'package:medito/services/network/http_api_service.dart';
+import 'package:medito/services/local_catalogue.dart';
 
 class _Stats extends StatsNotifier {
   _Stats(this.checked);
@@ -17,18 +17,11 @@ class _Stats extends StatsNotifier {
       LocalAllStats.empty().copyWith(tracksChecked: checked);
 }
 
-class _FakeClient implements HttpApiService {
-  _FakeClient(this.response);
-  final Map<String, dynamic> response;
+class _PackCatalogue extends LocalCatalogue {
+  _PackCatalogue(this.packTrackIds);
 
   @override
-  Future<Map<String, dynamic>> getRequest(
-    String path, {
-    Map<String, dynamic>? queryParams,
-  }) async => response;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+  final Map<String, List<String>> packTrackIds;
 }
 
 class _FakeRepo implements PackRepositoryImpl {
@@ -99,17 +92,14 @@ void main() {
     });
 
     test('never ticks a pack with no tracks', () async {
-      final container = _container(
-        _FakeRepo(packTracks: {'empty': []}),
-        ['a'],
-      );
+      final container = _container(_FakeRepo(packTracks: {'empty': []}), ['a']);
 
       expect(await _completed(container), isEmpty);
     });
 
-    test('shows no ticks when the endpoint fails', () async {
+    test('shows no ticks when the catalogue fails', () async {
       final container = _container(
-        _FakeRepo(error: Exception('offline')),
+        _FakeRepo(error: Exception('catalogue unavailable')),
         ['a'],
       );
 
@@ -159,18 +149,16 @@ void main() {
     expect(items.map((i) => i.isCompleted), [true, false, true]);
   });
 
-  test('fetchPackTrackIds parses the packTracks map', () async {
-    final repo = PackRepositoryImpl(
-      client: _FakeClient({
-        'packTracks': {
-          'sleep': ['a', 'b'],
-          'odd': 'not a list',
-        },
-      }),
-    );
+  test('fetchPackTrackIds uses the injected local catalogue map', () async {
+    final catalogue = _PackCatalogue({
+      'lib-course': ['lib-session-a', 'lib-session-b'],
+      'lib-empty': [],
+    });
+    final repo = PackRepositoryImpl(catalogue: catalogue);
 
     expect(await repo.fetchPackTrackIds(), {
-      'sleep': ['a', 'b'],
+      'lib-course': ['lib-session-a', 'lib-session-b'],
+      'lib-empty': [],
     });
   });
 }

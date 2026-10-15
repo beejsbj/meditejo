@@ -8,21 +8,14 @@ import 'dart:io';
 
 import 'package:medito/constants/constants.dart';
 import 'package:medito/exceptions/app_error.dart';
-import 'package:medito/models/events/donation/donation_page_model.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/timer/timer_session.dart';
-import 'package:medito/utils/audio_session_tracker.dart';
 import 'package:medito/utils/stats_updater.dart' show handleStats;
 import 'package:medito/utils/logger.dart';
 import 'package:medito/utils/pending_end_screen.dart';
 import 'package:medito/utils/utils.dart';
-import 'package:medito/models/stripe/paywall_config_model.dart';
-import 'package:medito/providers/donation/donation_page_provider.dart';
-import 'package:medito/providers/donation/end_screen_donation_experiment.dart';
-import 'package:medito/providers/stripe/payment_service_provider.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/stats_provider.dart';
-import 'package:medito/services/analytics/firebase_analytics_service.dart';
 import 'package:medito/views/end_screen/end_screen_view.dart';
 import 'package:medito/views/player/session_completion_gate.dart';
 import 'package:medito/views/player/widgets/artist_title_widget.dart';
@@ -31,9 +24,7 @@ import 'package:medito/views/player/widgets/duration_indicator_widget.dart';
 import 'package:medito/views/player/widgets/stopwatch_elapsed_widget.dart';
 import 'package:medito/views/player/widgets/player_buttons/player_buttons_widget.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
-import 'package:medito/constants/strings/analytics_event_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/widgets/report_button_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -67,25 +58,12 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
 
   /// Keeps a previous session's completed state from opening the end screen.
   final _completionGate = SessionCompletionGate();
-  final _analytics = FirebaseAnalyticsService();
   // Snapshot of stats taken when the player opens, before the session can
   // affect them. EndScreenView uses this as the "before" value so its
   // AnimatedSwitcher actually animates from old streak -> new streak.
   LocalAllStats? _statsAtSessionStart;
   // Read once: dispose() clears the pending end screen and may not use ref.
   late final SharedPreferences _prefs;
-
-  // Holds the end-screen donation ask alive while the player is open so the
-  // fetch happens NOW, while the network is known to be up. When a session
-  // ends with the screen off, the end screen is pushed on the next resume and
-  // Android often hasn't restored connectivity yet — ~3.7% of those asks failed
-  // to load (Sep 2026, GA4). A successful prefetch is kept alive by the
-  // provider itself; a failed one is dropped when this subscription closes so
-  // the end screen retries fresh.
-  ProviderSubscription<AsyncValue<DonationPageModel>>? _donationAskWarmup;
-  // Same idea for the localized end_screen ladder, only for installs already
-  // in the inline-pay arm (peek, never assign here — the card assigns).
-  ProviderSubscription<AsyncValue<PaywallConfigModel>>? _endScreenConfigWarmup;
 
   @override
   void initState() {
@@ -98,37 +76,12 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
     ref
         .read(backgroundSoundsNotifierProvider.notifier)
         .setTimerScope(ref.read(playerProvider)?.isTimer ?? false);
-    _logScreenView();
     // A listener rather than build(): build only sees the latest value, and a
     // not-completed reading between two completed ones must still arm the gate.
     ref.listenManual(
       audioStateProvider.select((s) => s.isCompleted),
       (_, isCompleted) => _completionGate.completionChanged(isCompleted),
     );
-    _donationAskWarmup = ref.listenManual(fetchDonationPageProvider, (_, _) {});
-    try {
-      if (EndScreenDonationExperiment.isInlineVariant(
-        ref.read(sharedPreferencesProvider),
-      )) {
-        _endScreenConfigWarmup = ref.listenManual(
-          endScreenPaywallConfigProvider,
-          (_, _) {},
-        );
-        // Also applies Stripe's publishable key, which the inline pay button
-        // needs before it can open a sheet (keepAlive provider: no handle).
-        unawaited(
-          ref
-              .read(paymentConfigProvider.future)
-              .then(
-                (_) {},
-                onError: (Object e) =>
-                    AppLogger.w('PLAYER', 'Payment config warm-up failed: $e'),
-              ),
-        );
-      }
-    } catch (e) {
-      AppLogger.w('PLAYER', 'End-screen config warm-up skipped: $e');
-    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startPlayback();
     });
@@ -145,13 +98,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
     _completionGate.reset();
     // So the end screen can be rebuilt if the app is killed before this
     // session's completion gets to open it.
-    unawaited(
-      PendingEndScreen.start(
-        _prefs,
-        request,
-        _statsAtSessionStart,
-      ),
-    );
+    unawaited(PendingEndScreen.start(_prefs, request, _statsAtSessionStart));
     try {
       await ref.read(playerProvider.notifier).play(request);
       if (!mounted) return;
@@ -190,17 +137,11 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
 
   @override
   void dispose() {
-    // Analytics: leaving the player (e.g. system back gesture) abandons a
-    // paused session. No-op if it's still playing (continues in background) or
-    // already completed/stopped.
-    unawaited(AudioSessionTracker.instance.onPlayerClosed());
     // Gone with this screen either way: the end screen opened, or the
     // session was closed before it finished.
     PendingEndScreen.playerUnmounted();
     unawaited(PendingEndScreen.clear(_prefs));
     _playbackStartFallback?.cancel();
-    _donationAskWarmup?.close();
-    _endScreenConfigWarmup?.close();
     super.dispose();
   }
 
@@ -213,37 +154,23 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
 
   void _precacheImage(String imageUrl) {
     if (imageUrl.isNotEmpty && Uri.tryParse(imageUrl)?.hasScheme == true) {
-      if (!HTTPConstants.isDeadDomain(imageUrl)) {
-        try {
-          final networkImage = NetworkImage(imageUrl);
-          unawaited(
-            precacheImage(networkImage, context).catchError((error) {
-              AppLogger.d(
-                'PlayerView',
-                'Failed to precache image: \$imageUrl, error: \$error',
-              );
-            }),
-          );
-        } catch (e) {
-          AppLogger.d(
-            'PlayerView',
-            'Failed to create or precache image: \$imageUrl, error: \$e',
-          );
-        }
+      try {
+        final networkImage = NetworkImage(imageUrl);
+        unawaited(
+          precacheImage(networkImage, context).catchError((error) {
+            AppLogger.d(
+              'PlayerView',
+              'Failed to precache image: \$imageUrl, error: \$error',
+            );
+          }),
+        );
+      } catch (e) {
+        AppLogger.d(
+          'PlayerView',
+          'Failed to create or precache image: \$imageUrl, error: \$e',
+        );
       }
     }
-  }
-
-  Future<void> _logScreenView() async {
-    final currentlyPlayingTrack = ref.read(playerProvider);
-    final parameters = currentlyPlayingTrack != null
-        ? {'trackid': currentlyPlayingTrack.trackId}
-        : null;
-
-    await _analytics.logScreenView(
-      screenName: 'PlayerView',
-      parameters: parameters,
-    );
   }
 
   Future<void> _initializePlayer() async {
@@ -374,16 +301,6 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
       seconds: ref.read(audioStateProvider).position ~/ 1000,
     );
     final recorded = elapsed >= kMinRecordedTimerSession;
-    unawaited(
-      _analytics.logEvent(
-        name: AnalyticsEventConstants.timerEnded,
-        parameters: {
-          AnalyticsEventConstants.paramTimerMode: request.timerMode.name,
-          AnalyticsEventConstants.paramElapsedSeconds: elapsed.inSeconds,
-          AnalyticsEventConstants.paramRecorded: recorded ? 1 : 0,
-        },
-      ),
-    );
 
     if (!recorded) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -393,9 +310,6 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
       return;
     }
 
-    // Marks the analytics session complete before _stopAudio's stop() would
-    // log it as abandoned; handleStats confirms it again once recorded.
-    unawaited(AudioSessionTracker.instance.onCompleted(fileId: request.fileId));
     // Same path as a native completion, so stats, history, streak, Health,
     // reminders and the home widget all update, offline included.
     unawaited(
@@ -591,8 +505,7 @@ class PlayerScreenLayout extends StatelessWidget {
                           ),
                         ),
                       ),
-                    if (imageUrl.isNotEmpty &&
-                        !HTTPConstants.isDeadDomain(imageUrl))
+                    if (imageUrl.isNotEmpty)
                       // ImageFiltered (not BackdropFilter) — blurs only the
                       // cover image itself, never the screen behind. Using
                       // BackdropFilter here leaks the underlying route
@@ -652,14 +565,6 @@ class PlayerScreenLayout extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (!isTimer)
-                        Positioned(
-                          top: 16,
-                          right: 16,
-                          child: ReportButtonWidget(
-                            request: currentlyPlayingTrack,
-                          ),
-                        ),
                     ],
                   ),
                 ),

@@ -5,9 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../constants/types/type_constants.dart';
-import '../../services/analytics/crashlytics_service.dart';
 import '../../src/audio_pigeon.g.dart';
-import '../../utils/audio_session_tracker.dart';
+import '../../utils/logger.dart';
 import '../../utils/stats_updater.dart';
 import '../../utils/stats_updater.dart' as stats_updater;
 
@@ -20,13 +19,6 @@ class AudioStateProvider implements MeditoAudioServiceCallbackApi {
   @override
   void updatePlaybackState(PlaybackState state) {
     notifier.updatePlaybackState(state);
-    // Android position feed for session analytics (the poll runs ~1/s).
-    AudioSessionTracker.instance.onPositionUpdate(
-      positionMs: state.position,
-      durationMs: state.duration,
-      isPlaying: state.isPlaying,
-      isCompleted: state.isCompleted,
-    );
   }
 
   @override
@@ -36,15 +28,9 @@ class AudioStateProvider implements MeditoAudioServiceCallbackApi {
     int positionMs,
     int durationMs,
   ) {
-    CrashlyticsService().recordError(
-      Exception('ExoPlayer $errorCode: $message'),
-      StackTrace.current,
-      reason: 'ExoPlayer onPlayerError',
-      information: [
-        'errorCode=$errorCode',
-        'positionMs=$positionMs',
-        'durationMs=$durationMs',
-      ],
+    AppLogger.e(
+      'PLAYER',
+      'ExoPlayer $errorCode: $message at $positionMs/$durationMs ms',
     );
   }
 
@@ -52,15 +38,13 @@ class AudioStateProvider implements MeditoAudioServiceCallbackApi {
   @override
   Future<bool> handleCompletedTrack(CompletionData completionData) async {
     try {
-      await handleStats({
+      return await handleStats({
         TypeConstants.trackIdKey: completionData.trackId,
         TypeConstants.durationIdKey: completionData.duration,
         TypeConstants.fileIdKey: completionData.fileId,
         TypeConstants.guideIdKey: completionData.guideId,
         TypeConstants.timestampIdKey: completionData.timestamp,
       });
-
-      return true;
     } on Exception catch (_) {
       return false;
     }
@@ -115,13 +99,6 @@ class AudioStateNotifier extends Notifier<PlaybackState> {
           isCompleted: isCompleted,
           position: event.position.inMilliseconds,
           duration: event.duration.inMilliseconds,
-        );
-        // iOS position feed for session analytics.
-        AudioSessionTracker.instance.onPositionUpdate(
-          positionMs: event.position.inMilliseconds,
-          durationMs: event.duration.inMilliseconds,
-          isPlaying: event.playerState.playing,
-          isCompleted: isCompleted,
         );
       });
     }

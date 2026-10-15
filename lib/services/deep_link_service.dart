@@ -1,18 +1,13 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:medito/constants/strings/analytics_event_constants.dart';
-import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/app_globals.dart' show appReadyCompleter;
-import 'package:medito/providers/providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/widgets/snackbar_widget.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class DeepLinkService {
   final AppLinks _appLinks = AppLinks();
@@ -28,8 +23,7 @@ class DeepLinkService {
   static const _dedupeWindow = Duration(milliseconds: 1500);
 
   // Completes once the initial link check finishes (hit or miss).
-  // SplashView awaits this before applying stored UTM parameters to ensure
-  // deferred deep links from Apple Search Ads are stored first.
+  // Exposed for callers that need to wait for initial navigation.
   static final Completer<void> _initialLinkCompleter = Completer<void>();
   static Future<void> get initialLinkProcessed => _initialLinkCompleter.future;
 
@@ -67,7 +61,7 @@ class DeepLinkService {
     }
   }
 
-  // Waits until the app has finished auth/init, then navigates.
+  // Waits until the local app is ready, then navigates.
   Future<void> _navigateWhenReady(String path, String id) async {
     try {
       await appReadyCompleter.future.timeout(const Duration(seconds: 15));
@@ -104,14 +98,6 @@ class DeepLinkService {
     _lastHandledAt = now;
 
     try {
-      // Detect home-screen widget taps via the `source` query param so we can
-      // attribute opens. Both iOS and Android widgets append
-      // `?source=home_widget&widget=<type>` to their tap URIs.
-      _logIfHomeWidgetTap(uri);
-
-      // Extract and store UTM parameters before navigation
-      await _storeUtmParameters(uri);
-
       var pathSegments = <String>[];
 
       if (uri.scheme == 'meditejo') {
@@ -132,18 +118,9 @@ class DeepLinkService {
         return;
       }
 
-      // If no path segments, just open the app (e.g., for UTM-only links from Apple Ads)
+      // Empty links simply open the app.
       if (pathSegments.isEmpty) {
-        AppLogger.d(
-          'DEEPLINK',
-          'No path segments, opening app (UTM parameters already processed)',
-        );
-        return;
-      }
-
-      // Handle OTP links
-      if (pathSegments[0] == 'otp' ||
-          (pathSegments.length > 1 && pathSegments[1] == 'otp')) {
+        AppLogger.d('DEEPLINK', 'No path segments, opening app');
         return;
       }
 
@@ -162,92 +139,6 @@ class DeepLinkService {
           showSnackBar(context, localizations.deepLinkError);
         }
       }
-    }
-  }
-
-  void _logIfHomeWidgetTap(Uri uri) {
-    try {
-      final source = uri.queryParameters['source'];
-      if (source != AnalyticsEventConstants.widgetDeepLinkSource) return;
-
-      final widgetType = uri.queryParameters['widget'] ?? 'unknown';
-      final params = <String, Object>{
-        AnalyticsEventConstants.paramWidgetType: widgetType,
-        'platform': Platform.isIOS ? 'ios' : 'android',
-      };
-      final placement = uri.queryParameters['placement'];
-      if (placement != null) {
-        params[AnalyticsEventConstants.paramWidgetPlacement] = placement;
-      }
-
-      // Include the track id when present so we can correlate widget taps
-      // with content (Up Next widget only). Normalise across the two URI
-      // forms used by the widgets:
-      //   Android: meditejo://meditejo/tracks/{id}?…
-      //   iOS:     meditejo://tracks/{id}?…
-      final normalised = uri.host == 'meditejo'
-          ? uri.pathSegments
-          : <String>[uri.host, ...uri.pathSegments];
-      final tracksIdx = normalised.indexOf('tracks');
-      if (tracksIdx != -1 && tracksIdx + 1 < normalised.length) {
-        params[AnalyticsEventConstants.paramSessionId] =
-            normalised[tracksIdx + 1];
-      }
-
-      unawaited(
-        ref
-            .read(analyticsServiceProvider)
-            .logEvent(
-              name: AnalyticsEventConstants.homeWidgetTapped,
-              parameters: params,
-            ),
-      );
-      AppLogger.d('DEEPLINK', 'Home widget tap logged: $widgetType');
-    } catch (e) {
-      AppLogger.w('DEEPLINK', 'Failed to log home widget tap: $e');
-    }
-  }
-
-  Future<void> _storeUtmParameters(Uri uri) async {
-    try {
-      final queryParameters = uri.queryParameters;
-      AppLogger.d('DEEPLINK', 'Query parameters: $queryParameters');
-
-      if (queryParameters.isEmpty) {
-        AppLogger.d('DEEPLINK', 'No query parameters found in deep link');
-        return;
-      }
-
-      final prefs = await SharedPreferences.getInstance();
-      var storedCount = 0;
-
-      final utmParams = [
-        SharedPreferenceConstants.utmSource,
-        SharedPreferenceConstants.utmMedium,
-        SharedPreferenceConstants.utmCampaign,
-        SharedPreferenceConstants.utmTerm,
-        SharedPreferenceConstants.utmContent,
-      ];
-
-      for (final paramKey in utmParams) {
-        final value = queryParameters[paramKey];
-        if (value != null && value.isNotEmpty) {
-          await prefs.setString(paramKey, value);
-          storedCount++;
-          AppLogger.d('DEEPLINK', 'Stored UTM parameter: $paramKey = $value');
-        }
-      }
-
-      if (storedCount > 0) {
-        AppLogger.d(
-          'DEEPLINK',
-          'Stored $storedCount UTM parameter(s) for later application',
-        );
-      } else {
-        AppLogger.d('DEEPLINK', 'No UTM parameters found in query string');
-      }
-    } catch (e) {
-      AppLogger.e('DEEPLINK', 'Error storing UTM parameters', e);
     }
   }
 }

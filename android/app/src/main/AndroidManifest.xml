@@ -13,17 +13,12 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 
     <!-- Health Connect: mindfulness session sync -->
     <uses-permission android:name="android.permission.health.READ_MINDFULNESS" />
     <uses-permission android:name="android.permission.health.WRITE_MINDFULNESS" />
 
     <queries>
-        <!-- Watch companion apps, for WatchPresence.kt. -->
-        <package android:name="com.google.android.wearable.app" />
-        <package android:name="com.google.android.apps.wear.companion" />
-        <package android:name="com.samsung.android.app.watchmanager" />
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
@@ -58,31 +53,6 @@
         android:usesCleartextTraffic="true">
 
         <meta-data
-            android:name="com.facebook.sdk.ApplicationId"
-            android:value="@string/facebook_app_id" />
-        <meta-data
-            android:name="com.facebook.sdk.ClientToken"
-            android:value="@string/facebook_client_token" />
-
-        <meta-data
-            android:name="com.google.android.gms.wallet.api.enabled"
-            android:value="true" />
-
-        <!-- Firebase Analytics default consent settings -->
-        <meta-data
-            android:name="google_analytics_default_allow_analytics_storage"
-            android:value="true" />
-        <meta-data
-            android:name="google_analytics_default_allow_ad_storage"
-            android:value="true" />
-        <meta-data
-            android:name="google_analytics_default_allow_ad_user_data"
-            android:value="true" />
-        <meta-data
-            android:name="google_analytics_default_allow_ad_personalization_signals"
-            android:value="true" />
-
-        <meta-data
             android:name="io.flutter.embedding.android.EnableImpeller"
             android:value="true" />
 
@@ -104,7 +74,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Intent filter for custom scheme (supports paths and UTM-only links) -->
+            <!-- Intent filter for custom scheme -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
@@ -114,8 +84,6 @@
                 <data android:scheme="meditejo" />
                 <data android:host="meditejo" />
             </intent-filter>
-
-
 
             <!-- Health Connect: shown when the user taps "About this permission" -->
             <intent-filter>
@@ -136,20 +104,9 @@
             </intent-filter>
         </activity-alias>
 
-
-
-
-
-
-
-
-
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="high_importance_channel" />
         <meta-data
             android:name="flutter_deeplinking_enabled"
             android:value="true" />
@@ -218,10 +175,6 @@
                 android:name="androidx.emoji2.text.EmojiCompatInitializer"
                 tools:node="remove" />
         </provider>
-
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@drawable/logo" />
 
         <receiver
             android:name="meditofoundation.medito.widget.MeditationWidgetReceiver"

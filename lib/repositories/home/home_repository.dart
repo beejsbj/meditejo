@@ -1,7 +1,6 @@
-import 'package:medito/constants/constants.dart';
 import 'package:medito/models/home/announcement/announcement_model.dart';
-import 'package:medito/models/models.dart';
-import 'package:medito/services/network/http_api_service.dart';
+import 'package:medito/models/home/home_model.dart';
+import 'package:medito/services/local_catalogue.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'home_repository.g.dart';
@@ -13,27 +12,18 @@ abstract class HomeRepository {
 }
 
 class HomeRepositoryImpl extends HomeRepository {
-  final HttpApiService client;
-  final Ref ref;
+  HomeRepositoryImpl({this.catalogue = const LocalCatalogue()});
 
-  HomeRepositoryImpl({required this.ref, required this.client});
-
-  @override
-  Future<HomeModel> fetchHome() async {
-    var response = await client.getRequest(HTTPConstants.home);
-    final model = HomeModel.fromJson(response);
-    return model;
-  }
+  final LocalCatalogue catalogue;
 
   @override
-  Future<AnnouncementModel?> fetchLatestAnnouncement() async {
-    var response = await client.getRequest(HTTPConstants.latestAnnouncement);
+  Future<HomeModel> fetchHome() async => catalogue.home;
 
-    return AnnouncementModel.fromJson(response);
-  }
+  @override
+  Future<AnnouncementModel?> fetchLatestAnnouncement() async => null;
 }
 
 @riverpod
 HomeRepositoryImpl homeRepository(Ref ref) {
-  return HomeRepositoryImpl(ref: ref, client: HttpApiService());
+  return HomeRepositoryImpl();
 }
