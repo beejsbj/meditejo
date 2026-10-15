@@ -96,7 +96,7 @@ name: Smoke Test – Onboarding, Navigate, Verify Content
 # and falsely skips the block, then the later "Get started" assertion
 # times out on the still-visible previous screen.
 - extendedWaitUntil:
-    visible: "Update Setting|Help Us Improve Medito|Get started|Maybe later"
+    visible: "Update Setting|Help Us Improve Meditejo|Get started|Maybe later"
     timeout: 30000
 - runFlow:
     when:
@@ -107,7 +107,7 @@ name: Smoke Test – Onboarding, Navigate, Verify Content
           optional: true
 - runFlow:
     when:
-      visible: "Help Us Improve Medito"
+      visible: "Help Us Improve Meditejo"
     commands:
       - tapOn: "Continue"
       - runFlow:

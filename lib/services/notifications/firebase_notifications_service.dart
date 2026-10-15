@@ -106,8 +106,8 @@ class FirebaseMessagingHandler {
 
     _channel = const AndroidNotificationChannel(
       'high_importance_channel', // id
-      'Medito Notifications', // title
-      description: 'Stay up-to-date with the latest from Medito', // description
+      'Meditejo Notifications', // title
+      description: 'Stay up-to-date with the latest from Meditejo', // description
       importance: Importance.high,
     );
 

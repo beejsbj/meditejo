@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appName => 'Medito';
+  String get appName => 'Meditejo';
 
   @override
   String get privacyPolicyTitle => 'Privacy Policy';
@@ -82,7 +82,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareStatsText =>
-      'Discover calmness for FREE with #Medito I\'ve found my inner peace; now it\'s your turn! Join me on this mindful journey and start exploring today 💜 Download https://medito.app #Calm #Meditation #Headspace';
+      'My meditation practice with Meditejo. https://github.com/beejsbj/meditejo';
 
   @override
   String get backgroundSounds => 'Background Sound';
@@ -164,14 +164,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get thanksForSharingSad => 'Sad face';
 
   @override
-  String get ratingAskTitle => 'Could you leave Medito a rating?';
+  String get ratingAskTitle => 'Could you leave Meditejo a rating?';
 
   @override
   String get ratingAskBody =>
       'It only takes a moment, and it helps more people find free meditation.';
 
   @override
-  String get ratingAskCta => 'Rate Medito';
+  String get ratingAskCta => 'Rate Meditejo';
 
   @override
   String get min => 'min';
@@ -234,7 +234,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get connectivityError =>
-      'Make sure you are connected to the internet to use Medito';
+      'Make sure you are connected to the internet to use Meditejo';
 
   @override
   String get howDoYouFeel => 'How do you feel after this session?';
@@ -302,7 +302,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get permissionExplanation =>
-      'Permissions set. To change them, go to Settings > Privacy and Security > Health > Medito';
+      'Permissions set. To change them, go to Settings > Privacy and Security > Health > Meditejo';
 
   @override
   String get permissionExplanationAndroid =>
@@ -411,7 +411,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gotIt => 'Got it';
 
   @override
-  String get signUpLogInTitle => 'Sign in to Medito';
+  String get signUpLogInTitle => 'Sign in to Meditejo';
 
   @override
   String get createAccountTitle => 'Create account';
@@ -490,7 +490,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loginWarningExplanation =>
-      'If you already have a Medito account:\n• Your previous meditation data will be downloaded\n• Your current unsaved progress will be lost\n\nIf you\'re new to Medito:\n• A new account will be created\n• Your current progress will be saved to this account';
+      'If you already have a Meditejo account:\n• Your previous meditation data will be downloaded\n• Your current unsaved progress will be lost\n\nIf you\'re new to Meditejo:\n• A new account will be created\n• Your current progress will be saved to this account';
 
   @override
   String get createNewAccount => 'Create New Account';
@@ -548,7 +548,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteAccountReasonSubtitle =>
-      'Optional, but it helps us improve Medito.';
+      'Optional, but it helps us improve Meditejo.';
 
   @override
   String get deleteAccountReasonNotUsing => 'I\'m not using it anymore';
@@ -589,7 +589,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountDeletedBody =>
-      'Your profile, stats and favorites have been removed. You can keep using Medito without an account.';
+      'Your profile, stats and favorites have been removed. You can keep using Meditejo without an account.';
 
   @override
   String get accountMarkedForDeletionError =>
@@ -742,12 +742,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String shareTrackText(Object link, Object trackName) {
-    return 'Take a moment to breathe. Try this meditation session: \"$trackName\" on Medito. $link';
+    return 'Take a moment to breathe. Try this meditation session: \"$trackName\" on Meditejo. $link';
   }
 
   @override
   String sharePackText(Object link, Object packName) {
-    return 'Check out $packName on Medito! $link #Meditation #Mindfulness';
+    return 'Check out $packName on Meditejo! $link #Meditation #Mindfulness';
   }
 
   @override
@@ -1003,7 +1003,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationsBlockedBody =>
-      'Medito can\'t send reminders because notifications are switched off for the app in your phone\'s settings. You can switch them back on there.';
+      'Meditejo can\'t send reminders because notifications are switched off for the app in your phone\'s settings. You can switch them back on there.';
 
   @override
   String get openSettings => 'Open Settings';
@@ -1042,7 +1042,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingBatteryBody =>
-      'Your phone can pause Medito mid-session. One quick change prevents this.';
+      'Your phone can pause Meditejo mid-session. One quick change prevents this.';
 
   @override
   String get onboardingBatteryOptimize => 'Update Setting';
@@ -1083,11 +1083,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get startMeditating => 'Start Meditating';
 
   @override
-  String get trackingPermissionTitle => 'Help Us Improve Medito';
+  String get trackingPermissionTitle => 'Help Us Improve Meditejo';
 
   @override
   String get trackingPermissionBody =>
-      'Your privacy matters. We use anonymous data to understand how people use Medito, so we can make it better for everyone. We never collect personal information or sell your data.';
+      'Your privacy matters. We use anonymous data to understand how people use Meditejo, so we can make it better for everyone. We never collect personal information or sell your data.';
 
   @override
   String get trackingPermissionPrivacyNote =>
@@ -1237,7 +1237,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get meditationInterruptionContent =>
-      'This is likely due to your phone\'s battery optimization settings. Visit DontKillMyApp.com for specific instructions on how to allow Medito to run properly in the background on your device.';
+      'This is likely due to your phone\'s battery optimization settings. Visit DontKillMyApp.com for specific instructions on how to allow Meditejo to run properly in the background on your device.';
 
   @override
   String get supportTitle => 'I want to support you';
@@ -1328,7 +1328,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get batteryOptimizationAlreadyDisabled =>
-      'Battery optimization is already disabled for Medito';
+      'Battery optimization is already disabled for Meditejo';
 
   @override
   String get donationRetentionTitle => 'Please Reconsider';
@@ -1446,14 +1446,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dndFootnote =>
-      'Needs Do Not Disturb access on Android. Medito only changes it during a session.';
+      'Needs Do Not Disturb access on Android. Meditejo only changes it during a session.';
 
   @override
   String get dndAccessTitle => 'Allow Do Not Disturb access';
 
   @override
   String get dndAccessBody =>
-      'To silence your phone during meditation, Android needs to give Medito Do Not Disturb access. On the next screen, find Medito in the list and turn it on, then come back to the app.';
+      'To silence your phone during meditation, Android needs to give Meditejo Do Not Disturb access. On the next screen, find Meditejo in the list and turn it on, then come back to the app.';
 
   @override
   String get mindClear => 'Mind Clear';
@@ -1750,7 +1750,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get connectivityErrorMessage =>
-      'Make sure you are connected to the internet to use Medito';
+      'Make sure you are connected to the internet to use Meditejo';
 
   @override
   String get timeoutErrorMessage =>
@@ -1780,7 +1780,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addHomeScreenWidget => 'Add Home Screen Widget';
 
   @override
-  String get addWidgetSheetTitle => 'Add a Medito widget';
+  String get addWidgetSheetTitle => 'Add a Meditejo widget';
 
   @override
   String get addWidgetStepHold =>
@@ -1792,7 +1792,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addWidgetStepSearch =>
-      'Search for Medito and choose Streak, Consistency or Continue.';
+      'Search for Meditejo and choose Streak, Consistency or Continue.';
 
   @override
   String get addWidgetStepAdd => 'Tap Add Widget, then Done.';
@@ -2385,7 +2385,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingIntentQuestion =>
-      'What are you hoping to get from Medito?';
+      'What are you hoping to get from Meditejo?';
 
   @override
   String get onboardingIntentSubtext =>
@@ -2407,7 +2407,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingStep2of2 => '2 of 2';
 
   @override
-  String get onboardingAttributionQuestion => 'How did you hear about Medito?';
+  String get onboardingAttributionQuestion =>
+      'How did you hear about Meditejo?';
 
   @override
   String get onboardingAttributionSubtext =>
@@ -2457,7 +2458,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'We\'ll ease you back in with short sessions that build on each other. Go at whatever pace suits you.';
 
   @override
-  String get onboardingResultPracticeHeading => 'Welcome to Medito.';
+  String get onboardingResultPracticeHeading => 'Welcome to Meditejo.';
 
   @override
   String get onboardingResultPracticeBody =>
@@ -2959,4 +2960,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String endScreenRestoredTimerYesterday(int minutes) {
     return 'Welcome back. You finished a $minutes-minute timer yesterday.';
   }
+
+  @override
+  String get aboutMeditejo => 'About Meditejo';
+
+  @override
+  String get forkCredit =>
+      'Meditejo is based on Medito by the Medito Foundation (meditofoundation.org), licensed under AGPL-3.0.';
+
+  @override
+  String get sourceCode => 'Source code';
+
+  @override
+  String get upstreamProject => 'Upstream project';
 }

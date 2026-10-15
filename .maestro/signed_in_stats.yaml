@@ -23,8 +23,8 @@ name: Signed-in Stats – Pull, Complete a Session, Server Round-trip
 # meditation (onboarding_result_screen.dart _meditationTrackId), so it exists
 # in prod content and keeps the skip-to-end loop short.
 #
-# Not a deep link: on iOS, org.meditofoundation:// raises a system "Open in
-# Medito?" alert, and after returning from it the app's accessibility tree
+# Not a deep link: on iOS, meditejo:// raises a system "Open in
+# Meditejo?" alert, and after returning from it the app's accessibility tree
 # stayed on Home while the track view was on screen (run 36315034796), so
 # Maestro could never find the track view's controls.
 - tapOn: "Search"

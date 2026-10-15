@@ -10,7 +10,7 @@ final meditoErrorWidgetProvider =
         var shouldShowDownloads =
             data.shouldShowCheckDownloadButton ||
             data.message ==
-                'Make sure you are connected to the internet to use Medito' ||
+                'Make sure you are connected to the internet to use Meditejo' ||
             data.message ==
                 'Oops! It seems like there was an error. If the problem persists, Close the app and try again.';
 

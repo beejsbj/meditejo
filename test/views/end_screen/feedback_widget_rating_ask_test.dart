@@ -41,12 +41,12 @@ void main() {
     await pump(tester, eligible);
     await tapHappy(tester);
 
-    expect(find.text('Could you leave Medito a rating?'), findsOneWidget);
-    expect(find.text('Rate Medito'), findsOneWidget);
+    expect(find.text('Could you leave Meditejo a rating?'), findsOneWidget);
+    expect(find.text('Rate Meditejo'), findsOneWidget);
 
     await tester.tap(find.text('Not Now'));
     await tester.pumpAndSettle();
-    expect(find.text('Could you leave Medito a rating?'), findsNothing);
+    expect(find.text('Could you leave Meditejo a rating?'), findsNothing);
     expect(find.textContaining('Thanks for sharing'), findsOneWidget);
 
     final prefs = ProviderScope.containerOf(
@@ -58,7 +58,7 @@ void main() {
   testWidgets('not shown before the third happy day', (tester) async {
     await pump(tester, const {});
     await tapHappy(tester);
-    expect(find.text('Could you leave Medito a rating?'), findsNothing);
+    expect(find.text('Could you leave Meditejo a rating?'), findsNothing);
 
     final prefs = ProviderScope.containerOf(
       tester.element(find.byType(FeedbackWidget)),
@@ -73,7 +73,7 @@ void main() {
   ) async {
     await pump(tester, eligible, suppress: true);
     await tapHappy(tester);
-    expect(find.text('Could you leave Medito a rating?'), findsNothing);
+    expect(find.text('Could you leave Meditejo a rating?'), findsNothing);
   });
 
   testWidgets('neutral face never shows the ask', (tester) async {
@@ -81,6 +81,6 @@ void main() {
     await tester.tap(find.text('😐'));
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
-    expect(find.text('Could you leave Medito a rating?'), findsNothing);
+    expect(find.text('Could you leave Meditejo a rating?'), findsNothing);
   });
 }

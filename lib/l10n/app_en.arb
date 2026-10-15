@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appName": "Medito",
+  "appName": "Meditejo",
   "privacyPolicyTitle": "Privacy Policy",
   "unableToOpenPrivacyPolicy": "Unable to open privacy policy",
   "meditoUrl": "https://meditofoundation.org/",
@@ -29,7 +29,7 @@
   "tryAgain": "Try again",
   "retry": "Retry",
   "statsSuccess": "Stats updated",
-  "shareStatsText": "Discover calmness for FREE with #Medito I've found my inner peace; now it's your turn! Join me on this mindful journey and start exploring today 💜 Download https://medito.app #Calm #Meditation #Headspace",
+  "shareStatsText": "My meditation practice with Meditejo. https://github.com/beejsbj/meditejo",
   "backgroundSounds": "Background Sound",
   "x06": "x0.6",
   "x07": "x0.7",
@@ -62,12 +62,12 @@
   "thanksForSharingNeutral": "Neutral face",
   "thanksForSharingHappy": "Happy face",
   "thanksForSharingSad": "Sad face",
-  "ratingAskTitle": "Could you leave Medito a rating?",
+  "ratingAskTitle": "Could you leave Meditejo a rating?",
   "@ratingAskTitle": {
     "description": "Title of the one-time ask for a store rating, shown on the end screen after the user taps the happy face"
   },
   "ratingAskBody": "It only takes a moment, and it helps more people find free meditation.",
-  "ratingAskCta": "Rate Medito",
+  "ratingAskCta": "Rate Meditejo",
   "@ratingAskCta": {
     "description": "Button that opens the App Store / Play Store review page"
   },
@@ -89,7 +89,7 @@
   "unableToLoadAudio": "Unable to load audio. Please go back and try again",
   "loadingError": "It looks like you're offline or there was little hiccup from our end",
   "timeout": "Oops! It seems like there was an error. If the problem persists, Close the app and try again.",
-  "connectivityError": "Make sure you are connected to the internet to use Medito",
+  "connectivityError": "Make sure you are connected to the internet to use Meditejo",
   "howDoYouFeel": "How do you feel after this session?",
   "yourFeedbackHelpsUs": "Your feedback helps us improve our content and allows you to reflect on your experience.",
   "didYouKnow": "Did you know?",
@@ -110,7 +110,7 @@
   "weNeedYourPermissionReminder": "We need permission to send you reminders about tracking your meditation progress. This helps you maintain consistency in your practice.",
   "syncWithHealth": "Sync with Apple Health",
   "syncWithHealthConnect": "Sync with Health Connect",
-  "permissionExplanation": "Permissions set. To change them, go to Settings > Privacy and Security > Health > Medito",
+  "permissionExplanation": "Permissions set. To change them, go to Settings > Privacy and Security > Health > Meditejo",
   "permissionExplanationAndroid": "Permissions set. To change them, open Health Connect from your device settings.",
   "healthConnectNotInstalled": "Health Connect is required to sync. Install it from the Play Store?",
   "confirmDeletionTitle": "Confirm Deletion",
@@ -145,7 +145,7 @@
   "alwaysShowStreakOnHomepage": "Always show streak on homepage",
   "displayPreferenceSaved": "Display preference saved",
   "gotIt": "Got it",
-  "signUpLogInTitle": "Sign in to Medito",
+  "signUpLogInTitle": "Sign in to Meditejo",
   "createAccountTitle": "Create account",
   "signInAgain": "Sign in again",
   "emailLabel": "Email",
@@ -174,7 +174,7 @@
   "loginBenefits": "• Download your previously saved data\\n• Continue your meditation journey from where you left off",
   "accountTransitionWarningTitle": "Wait!",
   "loginWarningQuestion": "Do you want to continue with this email?",
-  "loginWarningExplanation": "If you already have a Medito account:\n• Your previous meditation data will be downloaded\n• Your current unsaved progress will be lost\n\nIf you're new to Medito:\n• A new account will be created\n• Your current progress will be saved to this account",
+  "loginWarningExplanation": "If you already have a Meditejo account:\n• Your previous meditation data will be downloaded\n• Your current unsaved progress will be lost\n\nIf you're new to Meditejo:\n• A new account will be created\n• Your current progress will be saved to this account",
   "createNewAccount": "Create New Account",
   "continueLogin": "Yes, continue",
   "cancelAction": "Cancel",
@@ -194,7 +194,7 @@
   "deleteAccountManageDonations": "Manage donations",
   "deleteAccountReasonTitle": "Why are you leaving?",
   "@deleteAccountReasonTitle": {"description": "Heading of the delete-account reason picker screen"},
-  "deleteAccountReasonSubtitle": "Optional, but it helps us improve Medito.",
+  "deleteAccountReasonSubtitle": "Optional, but it helps us improve Meditejo.",
   "deleteAccountReasonNotUsing": "I'm not using it anymore",
   "deleteAccountReasonPrivacy": "Privacy concerns",
   "deleteAccountReasonSwitchingApp": "I'm switching to another app",
@@ -208,7 +208,7 @@
   "@deleteAccountUnconfirmed": {"description": "Delete-account error when the request never got a definite answer (network dropped or timed out after retries)"},
   "accountDeletedTitle": "Your account has been deleted",
   "@accountDeletedTitle": {"description": "Confirmation screen shown after the account was deleted (required by Apple)"},
-  "accountDeletedBody": "Your profile, stats and favorites have been removed. You can keep using Medito without an account.",
+  "accountDeletedBody": "Your profile, stats and favorites have been removed. You can keep using Meditejo without an account.",
   "accountMarkedForDeletionError": "This account has been marked for deletion and cannot be accessed.",
   "faqTitle": "FAQ",
   "editStatsTitle": "Edit stats",
@@ -256,8 +256,8 @@
   "addToSiri": "Add to Siri",
   "shareTrack": "Share Track",
   "open": "Open",
-  "shareTrackText": "Take a moment to breathe. Try this meditation session: \"{trackName}\" on Medito. {link}",
-  "sharePackText": "Check out {packName} on Medito! {link} #Meditation #Mindfulness",
+  "shareTrackText": "Take a moment to breathe. Try this meditation session: \"{trackName}\" on Meditejo. {link}",
+  "sharePackText": "Check out {packName} on Meditejo! {link} #Meditation #Mindfulness",
   "followingDeepLink": "Following deep link...",
   "invalidDeepLink": "Invalid deep link",
   "deepLinkError": "Unable to handle deep link",
@@ -408,13 +408,13 @@
   "@notificationsBlockedTitle": {
     "description": "Title of the dialog shown when notification permission is permanently denied, so no OS prompt can be raised and the phone's settings are the only route"
   },
-  "notificationsBlockedBody": "Medito can't send reminders because notifications are switched off for the app in your phone's settings. You can switch them back on there.",
+  "notificationsBlockedBody": "Meditejo can't send reminders because notifications are switched off for the app in your phone's settings. You can switch them back on there.",
   "@notificationsBlockedBody": {
     "description": "Body of the dialog shown when notification permission is permanently denied"
   },
   "openSettings": "Open Settings",
   "@openSettings": {
-    "description": "Button that opens the phone's settings app on the Medito page"
+    "description": "Button that opens the phone's settings app on the Meditejo page"
   },
   "turnOnInSettings": "Turn On in Settings",
   "@turnOnInSettings": {
@@ -453,7 +453,7 @@
     "description": "Last row of the reminder time bottom sheet; cancels the scheduled reminders"
   },
   "onboardingBatteryTitle": "One Setting, Smoother Meditations",
-  "onboardingBatteryBody": "Your phone can pause Medito mid-session. One quick change prevents this.",
+  "onboardingBatteryBody": "Your phone can pause Meditejo mid-session. One quick change prevents this.",
   "onboardingBatteryOptimize": "Update Setting",
   "skipForNow": "Skip for Now",
   "skip": "Skip",
@@ -469,8 +469,8 @@
   "remindLater": "Remind Me Later",
   "allSetTitle": "You're All Set!",
   "startMeditating": "Start Meditating",
-  "trackingPermissionTitle": "Help Us Improve Medito",
-  "trackingPermissionBody": "Your privacy matters. We use anonymous data to understand how people use Medito, so we can make it better for everyone. We never collect personal information or sell your data.",
+  "trackingPermissionTitle": "Help Us Improve Meditejo",
+  "trackingPermissionBody": "Your privacy matters. We use anonymous data to understand how people use Meditejo, so we can make it better for everyone. We never collect personal information or sell your data.",
   "trackingPermissionPrivacyNote": "Your data stays anonymous and is never shared with third parties.",
   "trackingPermissionAllow": "Continue",
   "onboardingFirstMeditationTitle": "Your first meditation",
@@ -528,7 +528,7 @@
   "notNow": "Not Now",
   "helpTitle": "Help",
   "meditationInterruptionTitle": "Meditations stop unexpectedly",
-  "meditationInterruptionContent": "This is likely due to your phone's battery optimization settings. Visit DontKillMyApp.com for specific instructions on how to allow Medito to run properly in the background on your device.",
+  "meditationInterruptionContent": "This is likely due to your phone's battery optimization settings. Visit DontKillMyApp.com for specific instructions on how to allow Meditejo to run properly in the background on your device.",
   "supportTitle": "I want to support you",
   "supportContent": "You can support Medito Foundation through several methods",
   "stopDonationTitle": "I want to stop my monthly donation",
@@ -555,7 +555,7 @@
   "batteryOptimizationDescription": "Follow the steps and disable the optimizations to allow smooth functioning of this app",
   "autoStartTitle": "Enable Auto Start",
   "autoStartDescription": "Follow the steps and enable the auto start of this app",
-  "batteryOptimizationAlreadyDisabled": "Battery optimization is already disabled for Medito",
+  "batteryOptimizationAlreadyDisabled": "Battery optimization is already disabled for Meditejo",
   "donationRetentionTitle": "Please Reconsider",
   "donationRetentionMainMessage": "Millions of people rely on Medito, and we operate solely on donations.",
   "donationRetentionBenefitsHeading": "Your support helps us:",
@@ -622,7 +622,7 @@
   "@dndOffDescription": {
     "description": "Description under the Off option in the silence-phone sheet"
   },
-  "dndFootnote": "Needs Do Not Disturb access on Android. Medito only changes it during a session.",
+  "dndFootnote": "Needs Do Not Disturb access on Android. Meditejo only changes it during a session.",
   "@dndFootnote": {
     "description": "Small note under the silence-phone options explaining the Android permission"
   },
@@ -630,7 +630,7 @@
   "@dndAccessTitle": {
     "description": "Title of the dialog shown when the user turns on silence-phone without the Android permission"
   },
-  "dndAccessBody": "To silence your phone during meditation, Android needs to give Medito Do Not Disturb access. On the next screen, find Medito in the list and turn it on, then come back to the app.",
+  "dndAccessBody": "To silence your phone during meditation, Android needs to give Meditejo Do Not Disturb access. On the next screen, find Meditejo in the list and turn it on, then come back to the app.",
   "@dndAccessBody": {
     "description": "Body of the dialog explaining the Android Do Not Disturb access permission before opening system settings"
   },
@@ -802,7 +802,7 @@
   "@invalidInputError": {
     "description": "Error message for invalid input"
   },
-  "connectivityErrorMessage": "Make sure you are connected to the internet to use Medito",
+  "connectivityErrorMessage": "Make sure you are connected to the internet to use Meditejo",
   "@connectivityErrorMessage": {
     "description": "Error message when there's no internet connection"
   },
@@ -838,7 +838,7 @@
   "@addHomeScreenWidget": {
     "description": "Title for adding home screen widget option in customization section"
   },
-  "addWidgetSheetTitle": "Add a Medito widget",
+  "addWidgetSheetTitle": "Add a Meditejo widget",
   "@addWidgetSheetTitle": {
     "description": "Title of the iOS sheet explaining how to add a home screen widget"
   },
@@ -850,7 +850,7 @@
   "@addWidgetStepEdit": {
     "description": "Step 2 of adding an iOS home screen widget; Edit / Add Widget are iOS button labels"
   },
-  "addWidgetStepSearch": "Search for Medito and choose Streak, Consistency or Continue.",
+  "addWidgetStepSearch": "Search for Meditejo and choose Streak, Consistency or Continue.",
   "@addWidgetStepSearch": {
     "description": "Step 3; Streak, Consistency and Continue are the iOS widget gallery names (English-only in the widget extension), keep them untranslated"
   },
@@ -1623,7 +1623,7 @@
   "@onboardingExperienceRegular": {
     "description": "Option 3 on onboarding screen 1 — user has a regular meditation practice"
   },
-  "onboardingIntentQuestion": "What are you hoping to get from Medito?",
+  "onboardingIntentQuestion": "What are you hoping to get from Meditejo?",
   "@onboardingIntentQuestion": {
     "description": "Question on onboarding screen 2 — asking about the user's intention"
   },
@@ -1651,9 +1651,9 @@
   "@onboardingStep2of2": {
     "description": "Step indicator label on onboarding question screen 2 (of 2)"
   },
-  "onboardingAttributionQuestion": "How did you hear about Medito?",
+  "onboardingAttributionQuestion": "How did you hear about Meditejo?",
   "@onboardingAttributionQuestion": {
-    "description": "Question on onboarding attribution screen — asking how the user discovered Medito"
+    "description": "Question on onboarding attribution screen — asking how the user discovered Meditejo"
   },
   "onboardingAttributionSubtext": "This helps us reach more people who need it.",
   "@onboardingAttributionSubtext": {
@@ -1661,31 +1661,31 @@
   },
   "onboardingAttributionGoogleAd": "Google ad",
   "@onboardingAttributionGoogleAd": {
-    "description": "Attribution option — user found Medito via a Google ad"
+    "description": "Attribution option — user found Meditejo via a Google ad"
   },
   "onboardingAttributionSocialAd": "Instagram or Facebook ad",
   "@onboardingAttributionSocialAd": {
-    "description": "Attribution option — user found Medito via an Instagram or Facebook ad"
+    "description": "Attribution option — user found Meditejo via an Instagram or Facebook ad"
   },
   "onboardingAttributionFriend": "A friend told me",
   "@onboardingAttributionFriend": {
-    "description": "Attribution option — user heard about Medito from a friend"
+    "description": "Attribution option — user heard about Meditejo from a friend"
   },
   "onboardingAttributionTherapist": "Therapist or healthcare professional",
   "@onboardingAttributionTherapist": {
-    "description": "Attribution option — user was recommended Medito by a therapist or healthcare professional"
+    "description": "Attribution option — user was recommended Meditejo by a therapist or healthcare professional"
   },
   "onboardingAttributionAppStore": "App Store",
   "@onboardingAttributionAppStore": {
-    "description": "Attribution option (iOS only) — user found Medito by browsing the App Store"
+    "description": "Attribution option (iOS only) — user found Meditejo by browsing the App Store"
   },
   "onboardingAttributionPlayStore": "Play Store",
   "@onboardingAttributionPlayStore": {
-    "description": "Attribution option (Android only) — user found Medito by browsing the Play Store"
+    "description": "Attribution option (Android only) — user found Meditejo by browsing the Play Store"
   },
   "onboardingAttributionOther": "Other",
   "@onboardingAttributionOther": {
-    "description": "Attribution option — user found Medito via some other means"
+    "description": "Attribution option — user found Meditejo via some other means"
   },
   "onboardingAttributionOtherLabel": "Something else?",
   "@onboardingAttributionOtherLabel": {
@@ -1711,7 +1711,7 @@
   "@onboardingResultEaseInBody": {
     "description": "Body text on the onboarding result screen for State B"
   },
-  "onboardingResultPracticeHeading": "Welcome to Medito.",
+  "onboardingResultPracticeHeading": "Welcome to Meditejo.",
   "@onboardingResultPracticeHeading": {
     "description": "Heading on the onboarding result screen for users with a regular practice (State C)"
   },
@@ -2202,5 +2202,10 @@
   "endScreenRestoredTimerEarlierToday": "Welcome back. You finished a {minutes}-minute timer earlier today.",
   "@endScreenRestoredTimerEarlierToday": {"description": "As endScreenRestoredEarlierToday, for a Timer session", "placeholders": {"minutes": {"type": "int"}}},
   "endScreenRestoredTimerYesterday": "Welcome back. You finished a {minutes}-minute timer yesterday.",
-  "@endScreenRestoredTimerYesterday": {"description": "As endScreenRestoredYesterday, for a Timer session", "placeholders": {"minutes": {"type": "int"}}}
+  "@endScreenRestoredTimerYesterday": {"description": "As endScreenRestoredYesterday, for a Timer session", "placeholders": {"minutes": {"type": "int"}}},
+
+  "aboutMeditejo": "About Meditejo",
+  "forkCredit": "Meditejo is based on Medito by the Medito Foundation (meditofoundation.org), licensed under AGPL-3.0.",
+  "sourceCode": "Source code",
+  "upstreamProject": "Upstream project"
 }

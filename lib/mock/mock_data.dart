@@ -323,7 +323,7 @@ const mockBackgroundSounds = [
 
 const mockAnnouncement = AnnouncementModel(
   id: 'announcement-1',
-  text: 'Welcome to Medito mock mode! You are running with sample data.',
+  text: 'Welcome to Meditejo mock mode! You are running with sample data.',
   colorBackground: '#1C1C1E',
   colorText: '#FFFFFF',
 );

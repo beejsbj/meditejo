@@ -1,7 +1,7 @@
 # lib/mock/ — Mock Mode
 
 This folder is **not test code**. It is a shipped demo environment that lets
-anyone run the Medito app locally without needing real backend credentials
+anyone run the Meditejo app locally without needing real backend credentials
 (API keys, auth URLs, Stripe keys, Firebase config, etc.).
 
 ## How to run in mock mode
