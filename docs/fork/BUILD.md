@@ -1,10 +1,10 @@
 # Android build route
 
-**Status: blocked after the Daytona build attempt.** Both offline pub steps
-passed, but Gradle could not resolve Flutter's Kotlin DSL plugin 5.2.0 from
-the Gradle Central Plugin Repository. No APK was produced; APK signing,
-release/prod builds and phone updates are unverified. The command below is
-the attempted route, not a proven end-to-end build. See the final evidence.
+**Status: APK route not yet proven.** Both offline pub steps and the staged
+plugin-portal workaround passed. The next attempt reached app configuration
+but exhausted Daytona's 10 GiB disk. No APK has been produced; APK signing,
+release/prod builds and phone updates remain unverified. The command below is
+the attempted route; continuation evidence is at the end.
 
 Build on Daytona; sign on bjslab. Never run Gradle on bjslab. This baseline is
 still Medito branded and must not be installed on the phone. The orchestrator
@@ -85,9 +85,11 @@ The Android profile requests 4 CPUs, 8 GiB RAM and 10 GiB disk, with a 3,600
 second command limit. Input/output limits
 are 1,024/512 MiB. In the sandbox copy only, Gradle uses a 4 GiB heap, at most
 two workers, and Kotlin compiles in process. The sandbox script changes the
-nested Android Gradle distribution URL to the official GitHub release host
+nested Android Gradle distribution URL to the official GitHub binary release host
 because `services.gradle.org` is blocked. The runner's automatic rewrite only
-handles root-level Gradle projects. The script preserves the Gradle version.
+handles root-level Gradle projects. The script preserves the Gradle version
+and selects `-bin` instead of `-all` to omit docs/sources. If an all-distribution
+checksum is present it stops rather than reuse that checksum for different bytes.
 
 ## Signing and outputs
 
@@ -219,7 +221,7 @@ Starting commit: `8d527429`. Results and cloud evidence from the build attempts:
   Flutter tooling offline before invoking Flutter. This corrects the cache
   selection without allowing unrelated hosted packages or Git dependencies.
 
-### Final attempt and blocker
+### Initial stopping point: Gradle plugin resolution
 
 Job `meditejo-20261015-112548-15828` ran with 4 CPUs, 8 GiB RAM and 10 GiB
 disk. It uploaded 712 files, including 263 resolved pub.dev package versions:
@@ -300,3 +302,50 @@ HTTP fetch on bjslab passed: six files, 77,054 bytes, including marker and
 implementation POMs, implementation module metadata/JAR and its published
 source/Javadoc variants. Module artifact SHA-256 checks passed. A manifest
 inside the staged repository records each file's size and SHA-256.
+
+Build attempt `meditejo-20261015-113808-16333` confirmed the init callback in
+both settings instances:
+
+```text
+Meditejo staged plugin repository for .../work/app/android
+Meditejo staged plugin repository for /tmp/flutter/packages/flutter_tools/gradle
+```
+
+Before Gradle, the 10 GiB filesystem used 5.8 GiB with 4.3 GiB available.
+Observed directory sizes: Flutter 2.5 GiB, Android SDK/NDK 2.9 GiB, resolved pub
+cache 476 MiB and portal repository 100 KiB allocated. Flutter's downloaded
+archive and the uploaded pub archive were already deleted after extraction;
+no iOS/web precache ran.
+
+The portal workaround passed: Gradle advanced beyond the previous Kotlin DSL
+failure and reached the app's Android configuration. No additional portal-only
+coordinate was reported. The attempt then failed while resolving `:health`'s
+buildscript dependencies because the 10 GiB disk was full:
+
+```text
+A problem occurred configuring project ':health'.
+> Could not resolve all artifacts for configuration 'classpath'.
+  > Could not download protos-31.13.0.jar (com.android.tools.analytics-library:protos:31.13.0)
+    > Could not get resource 'https://dl.google.com/dl/android/maven2/com/android/tools/analytics-library/protos/31.13.0/protos-31.13.0.jar'.
+      > No space left on device
+```
+
+The first Gradle attempt took 379.8 seconds and Flutter's automatic retry took
+6.5 seconds. After failure: filesystem 100% full with 68 KiB free; Flutter
+2.5 GiB, SDK/NDK 2.9 GiB, pub cache 476 MiB, Gradle home 4.3 GiB and app build
+only 24 KiB. Gradle home contained 707 MiB of wrapper distributions, 2.5 GiB
+of version-specific caches and 1.1 GiB of downloaded modules. This was a disk
+failure, not a missing portal coordinate or proven Java incompatibility.
+
+The helper did not reach a terminal status record after disk exhaustion.
+Read-only process inspection found no remaining Java processes. The bundled
+pub preload (216 MiB) was removed to recover space for inspection, then the
+sandbox was canceled and its deletion verified. Total sandbox lifecycle was
+765.7 seconds; no APK/artifact was collected. The local runner exited 2 during
+concurrent cleanup, while its retained Gradle log proves the disk failure.
+
+The next attempt prunes the bundled pub preload, Flutter web/profile/opposite
+Android-mode caches, SDK development examples/docs/engine source, Dart web/
+analysis/DevTools tooling, and SDK 35. It keeps all Android ABIs, the selected
+debug/release mode and the host compiler tools. Gradle uses the same version's
+binary distribution. All pruning affects only the disposable sandbox.

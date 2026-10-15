@@ -30,6 +30,36 @@ git config --global --add safe.directory /tmp/flutter
 /tmp/flutter/bin/cache/dart-sdk/bin/dart pub get --offline --directory /tmp/flutter/packages/flutter_tools
 flutter config --no-analytics
 sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358'
+# The account hard-caps disk at 10 GiB. Keep only APK tooling for this mode;
+# retain all Android ABIs and the host tools used by Flutter's compiler.
+export MEDITEJO_BUILD_MODE="$mode"
+python3 - <<'PY'
+import os
+from pathlib import Path
+import shutil
+flutter = Path('/tmp/flutter')
+cache = flutter / 'bin/cache'
+engine = cache / 'artifacts/engine'
+paths = [flutter / '.pub-preload-cache', cache / 'flutter_web_sdk',
+         flutter / 'dev', flutter / 'examples', flutter / 'docs', flutter / 'engine',
+         cache / 'dart-sdk/bin/resources/devtools',
+         Path(os.environ['ANDROID_HOME']) / 'platforms/android-35',
+         Path(os.environ['ANDROID_HOME']) / 'build-tools/35.0.0']
+paths.extend(engine.glob('*-profile'))
+paths.extend(engine.glob('linux-*-release'))
+if os.environ['MEDITEJO_BUILD_MODE'] == 'debug':
+    paths.extend(engine.glob('android-*-release'))
+else:
+    paths.extend(engine / name for name in ('android-arm', 'android-arm64', 'android-x64', 'android-x86'))
+for pattern in ('analysis_server*', 'dartdevc*', 'dart2js*', 'dart2wasm*'):
+    paths.extend((cache / 'dart-sdk/bin/snapshots').glob(pattern))
+for path in paths:
+    if path.is_dir():
+        shutil.rmtree(path)
+    elif path.exists():
+        path.unlink()
+print('Pruned web/desktop/profile tooling, opposite Android build mode, SDK 35 and bundled pub preload')
+PY
 df -h . /tmp
 du -sh /tmp/flutter "$ANDROID_HOME" "$PUB_CACHE" "$MEDITEJO_PORTAL_REPO"
 # Report reachability without making an unused Maven repository fatal.
@@ -41,13 +71,15 @@ from pathlib import Path
 import re
 p = Path('android/gradle/wrapper/gradle-wrapper.properties')
 value = p.read_text()
+if 'distributionSha256Sum' in value and '-all.zip' in value:
+    raise SystemExit('Binary Gradle distribution needs its own checksum; update the sandbox routing policy')
 value, count = re.subn(
     r'https(\\?:)//(?:services|downloads)\.gradle\.org/distributions/gradle-([0-9.]+)-(bin|all)\.zip',
-    lambda m: f'https{m[1]}//github.com/gradle/gradle-distributions/releases/download/v{m[2]}/gradle-{m[2]}-{m[3]}.zip',
+    lambda m: f'https{m[1]}//github.com/gradle/gradle-distributions/releases/download/v{m[2]}/gradle-{m[2]}-bin.zip',
     value,
 )
 p.write_text(value)
-print(f'Routed {count} nested Gradle wrapper URL(s) to the official GitHub release')
+print(f'Routed {count} nested Gradle wrapper URL(s) to the official GitHub binary release (no docs/sources)')
 PY
 flutter pub get --offline
 keytool -genkeypair -keystore /tmp/disposable.p12 -storetype PKCS12 \
