@@ -69,7 +69,8 @@ class HealthKitManager {
         permissions: [HealthDataAccess.WRITE],
       );
     } catch (e) {
-      return false;
+      // Indeterminate, not a confirmed missing grant.
+      return null;
     }
   }
 
@@ -79,7 +80,10 @@ class HealthKitManager {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getBool(_syncEnabledKey);
     if (saved != null) return saved;
-    final enabled = await isHealthSyncPermitted() == true;
+    final permitted = await isHealthSyncPermitted();
+    // An indeterminate check skips this write but leaves migration pending.
+    if (permitted == null) return false;
+    final enabled = permitted;
     // A Settings action may have completed while the OS check was pending.
     final updated = prefs.getBool(_syncEnabledKey);
     if (updated != null) return updated;

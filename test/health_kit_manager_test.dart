@@ -60,6 +60,19 @@ void main() {
     verifyNever(() => bridge.requestMindfulnessPermissions());
   });
 
+  test('failed migration check stays pending and recovers', () async {
+    when(
+      () => bridge.hasMindfulnessPermissions(),
+    ).thenThrow(Exception('channel down'));
+    expect(await manager.isSyncEnabled(), isFalse);
+    expect(await manager.writeMindfulnessData(start, end), isFalse);
+    when(
+      () => bridge.hasMindfulnessPermissions(),
+    ).thenAnswer((_) async => true);
+    expect(await manager.isSyncEnabled(), isTrue);
+    verifyNever(() => bridge.requestMindfulnessPermissions());
+  });
+
   test('explicit off persists even with an OS grant', () async {
     when(
       () => bridge.hasMindfulnessPermissions(),
