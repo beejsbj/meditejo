@@ -1,0 +1,105 @@
+name: Meditejo APK
+run-name: APK ${{ inputs.flavor || 'push' }} ${{ inputs.build_mode || github.ref_name }} ${{ github.sha }}
+
+on:
+  push:
+    branches: ['apk/**']
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: Android flavor
+        type: choice
+        options: [dev, prod]
+        default: dev
+      build_mode:
+        description: Build mode
+        type: choice
+        options: [release, debug]
+        default: release
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Select build parameters
+        env:
+          INPUT_FLAVOR: ${{ inputs.flavor }}
+          INPUT_MODE: ${{ inputs.build_mode }}
+        run: |
+          flavor=${INPUT_FLAVOR:-dev}
+          mode=${INPUT_MODE:-release}
+          # Bootstrap refs encode options before workflow_dispatch is available.
+          if [[ $GITHUB_EVENT_NAME == push && $GITHUB_REF_NAME =~ ^apk/build/(dev|prod)/(release|debug)/[0-9a-f]{40}(-[0-9]+)?$ ]]; then
+            flavor=${BASH_REMATCH[1]}
+            mode=${BASH_REMATCH[2]}
+          fi
+          [[ $flavor == dev || $flavor == prod ]]
+          [[ $mode == release || $mode == debug ]]
+          echo "FLAVOR=$flavor" >> "$GITHUB_ENV"
+          echo "MODE=$mode" >> "$GITHUB_ENV"
+          echo "SHORT_SHA=${GITHUB_SHA:0:8}" >> "$GITHUB_ENV"
+      - name: Disk before build
+        run: |
+          df -h .
+          # These preinstalled tools are unrelated to this Android build.
+          sudo rm -rf /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2.12.0
+        with:
+          flutter-version: '3.47.2'
+          cache: false
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Generate Pigeon and model code
+        run: |
+          for f in pigeon_conf.dart pigeons/*.dart; do
+            [[ -f $f ]] || continue
+            dart run pigeon --input "$f" --package_name=medito
+          done
+          dart run build_runner build --delete-conflicting-outputs
+      - name: Build arm64 APK without phone credentials
+        run: |
+          # Keep the JVM within the hosted runner's memory budget.
+          cat >> android/gradle.properties <<'PROPERTIES'
+
+          org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=1G -XX:+HeapDumpOnOutOfMemoryError
+          org.gradle.workers.max=2
+          org.gradle.parallel=false
+          org.gradle.daemon=false
+          PROPERTIES
+          flutter build apk --flavor "$FLAVOR" "--$MODE" \
+            --target-platform android-arm64
+      - name: Prepare unsigned artifact
+        run: |
+          python3 tools/meditejo/prepare_unsigned.py \
+            "build/app/outputs/flutter-apk/app-$FLAVOR-$MODE.apk" artifact
+          tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          "$tools/aapt2" dump badging artifact/unsigned.apk > /tmp/apk-badging.txt
+          sed -n '1p' /tmp/apk-badging.txt
+          if "$tools/apksigner" verify artifact/unsigned.apk; then
+            echo 'Artifact unexpectedly has a valid signature' >&2
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: meditejo-${{ env.FLAVOR }}-${{ env.MODE }}-${{ env.SHORT_SHA }}
+          path: artifact/
+          retention-days: 7
+          compression-level: 0
+          if-no-files-found: error
+          overwrite: true
+      - name: Disk after build
+        if: always()
+        run: |
+          df -h .
+          du -sh "$FLUTTER_ROOT" "$HOME/.gradle" "$ANDROID_HOME" build 2>/dev/null || true
