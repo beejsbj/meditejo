@@ -42,6 +42,20 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
    - No heart-rate sync: Burooj doesn't wear a watch, and Health Connect only delivers batches (decided 2026-10-15). Adaptive behaviour, if any, comes from time of day and session phase.
    - Mixer: several layers, each with its own volume, an optional slow "animate" drift and saved presets. `flutter_soloud` (MIT) is the leading candidate engine for gapless loops and synthesis; verify its API before committing.
    - myNoise's own recordings are proprietary. Learn from its design but never copy its audio.
+7. **Learned from Waking Up** (decided 2026-10-16; evidence in `docs/fork/research/waking-up-ux.md`).
+   - **Home:** keep the "Continue your practice" hero. Below it, add a Waking Up-style **Customize**: a short set of "Today" supports the user can switch on and off (timer, soundscape, and so on), up to **three pinned courses**, and a quiet continue-listening row.
+   - **Stats:** take the consistency score and streaks off Home and put them on the stats screen. Word them as feedback, not a score, in the spirit of *"These stats are feedback, not a score."*
+   - **Explore:** content-kind chips separate **Practice** (guided meditations) from **Talks** (dharma talks, Q&A). Dharma Seed's `recording_type` supplies the kind.
+   - **Player settings:** a Waking Up-style **Customize sheet** in the player, shared with the timer. It is the single home for the cue system and soundscapes:
+     - countdown;
+     - starting, ending and interval cues, including the pulse;
+     - extend with silence;
+     - background sounds with a volume mix, with separate defaults for practice and talks;
+     - autoplay with an optional interlude;
+     - a live "Finishes at …" line.
+
+     Each row shows its current value and opens a small sub-sheet. Burooj singled out this UX.
+   - **Completion:** mark completion on real listening, not when a session is opened.
 
 ## Build and run
 
