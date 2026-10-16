@@ -65,7 +65,8 @@ class HealthKitManager {
       }
       return await health.hasPermissions(
         [HealthDataType.MINDFULNESS],
-        permissions: [HealthDataAccess.READ_WRITE],
+        // HealthKit cannot disclose read grants; only writing is needed here.
+        permissions: [HealthDataAccess.WRITE],
       );
     } catch (e) {
       return false;
@@ -105,6 +106,9 @@ class HealthKitManager {
           [HealthDataType.MINDFULNESS],
           permissions: [HealthDataAccess.READ_WRITE],
         );
+        // On iOS requestAuthorization reports that the sheet completed, not
+        // whether access was granted. Check the observable write grant.
+        granted = granted && await isHealthSyncPermitted() == true;
       }
     } catch (error) {
       AppLogger.e('HEALTH', 'Health permission request failed', error);

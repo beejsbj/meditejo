@@ -135,6 +135,12 @@ void main() {
           permissions: any(named: 'permissions'),
         ),
       ).thenAnswer((_) async => true);
+      when(
+        () => health.hasPermissions(
+          [HealthDataType.MINDFULNESS],
+          permissions: [HealthDataAccess.WRITE],
+        ),
+      ).thenAnswer((_) async => true);
       expect(await manager.setSyncEnabled(true), isTrue);
       expect(await manager.isSyncEnabled(), isTrue);
       verify(
@@ -167,4 +173,20 @@ void main() {
       );
     },
   );
+  test('iOS completed sheet without a write grant leaves sync off', () async {
+    final health = MockHealth();
+    manager = HealthKitManager.forTesting(health: health, isAndroid: false);
+    when(
+      () => health.requestAuthorization(
+        any(),
+        permissions: any(named: 'permissions'),
+      ),
+    ).thenAnswer((_) async => true);
+    when(
+      () =>
+          health.hasPermissions(any(), permissions: any(named: 'permissions')),
+    ).thenAnswer((_) async => false);
+    expect(await manager.setSyncEnabled(true), isFalse);
+    expect(await manager.isSyncEnabled(), isFalse);
+  });
 }
