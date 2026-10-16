@@ -15,6 +15,7 @@ import 'package:medito/views/player/widgets/bottom_actions/single_back_action_ba
 import 'package:medito/views/settings/manage_defaults_screen.dart';
 import 'package:medito/views/settings/widgets/day_boundary_offset_dialog.dart';
 import 'package:medito/widgets/medito_icon.dart';
+import 'package:medito/views/settings/widgets/app_credits_tile.dart';
 
 /// "Advanced" settings, previously an expandable section at the bottom of the
 /// Settings page. Defaults, day boundary, debug info and open-source licenses.
@@ -71,12 +72,13 @@ class AdvancedSettingsScreen extends ConsumerWidget {
           title: l10n.onboarding,
           onTap: () => _push(context, const OnboardingPagerScreen()),
         ),
+      const AppCreditsTile(),
       RowItemWidget(
         icon: Icon(Icons.description_outlined, color: onSurface),
         title: 'Licenses',
         hasUnderline: false,
         onTap: () =>
-            showLicensePage(context: context, applicationName: 'Medito'),
+            showLicensePage(context: context, applicationName: 'Meditejo'),
       ),
     ];
 

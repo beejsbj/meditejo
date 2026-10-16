@@ -32,8 +32,6 @@ def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-} else {
-    throw new FileNotFoundException("keystore.properties file not found. Please create it from keystore.properties.example")
 }
 
 android {
@@ -57,8 +55,8 @@ android {
     }
 
     project.ext {
-        APP_ID = keystoreProperties['appId']
-        KEYSTORE_STORE_FILE = rootProject.file(keystoreProperties['storeFile'])
+        APP_ID = keystoreProperties['appId'] ?: 'io.github.beejsbj.meditejo'
+        KEYSTORE_STORE_FILE = keystoreProperties['storeFile'] ? rootProject.file(keystoreProperties['storeFile']) : null
         KEYSTORE_STORE_PASSWORD = keystoreProperties['storePassword']
         KEYSTORE_KEY_ALIAS = keystoreProperties['keyAlias']
         KEYSTORE_KEY_PASSWORD = keystoreProperties['keyPassword']
@@ -83,11 +81,11 @@ android {
         versionName project.VERSION_NAME
         multiDexEnabled true
         manifestPlaceholders += [
-            hostName: "medito.app",
-            scheme: "https"
+            hostName: "meditejo",
+            scheme: "meditejo"
         ]
         
-        resValue "string", "app_name_override", "Medito"
+        resValue "string", "app_name_override", "Meditejo"
     }
 
     buildFeatures {
@@ -122,7 +120,7 @@ android {
             debuggable true
         }
         release {
-            signingConfig signingConfigs.release
+            signingConfig project.KEYSTORE_STORE_FILE ? signingConfigs.release : null
             debuggable false
             minifyEnabled true
             shrinkResources false
@@ -134,7 +132,7 @@ android {
     productFlavors {
         dev {
             dimension "default"
-            applicationIdSuffix ".dev"
+            // One durable phone install across dev/prod; only the version differs.
             versionNameSuffix "-dev"
         }
         prod {

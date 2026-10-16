@@ -100,16 +100,14 @@ class DeepLinkService {
     try {
       var pathSegments = <String>[];
 
-      if (uri.scheme == 'org.meditofoundation') {
-        // For custom scheme, if host is "medito", use pathSegments directly
-        // Otherwise, treat host as first path segment (e.g., org.meditofoundation://tracks/123)
-        if (uri.host == 'medito') {
+      if (uri.scheme == 'meditejo') {
+        // For custom scheme, if host is "meditejo", use pathSegments directly
+        // Otherwise, treat host as first path segment (e.g., meditejo://tracks/123)
+        if (uri.host == 'meditejo') {
           pathSegments = uri.pathSegments;
         } else {
           pathSegments = [uri.host, ...uri.pathSegments];
         }
-      } else if (uri.scheme == 'https' && uri.host == 'medito.app') {
-        pathSegments = uri.pathSegments;
       } else {
         if (context.mounted) {
           final localizations = AppLocalizations.of(context);

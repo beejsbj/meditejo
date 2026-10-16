@@ -9,7 +9,7 @@
   "emptyDownloadsMessage": "Du hast noch nichts heruntergeladen. Downloads sparen mobile Daten und ermöglichen dir Sitzungen auch ohne Empfang.",
   "meanWhileListen": "In der Zwischenzeit kannst du hier weiterhören:",
   "retry": "Wiederholen",
-  "shareStatsText": "Entdecke die Ruhe – KOSTENLOS mit #Medito. Ich habe meinen inneren Frieden gefunden – jetzt bist du dran! Begleite mich auf dieser Achtsamkeitsreise und fang noch heute an, sie zu erkunden 💜 Lade die App unter https://medito.app herunter #Ruhe #Meditation #Headspace",
+  "shareStatsText": "Meine Meditationspraxis mit Meditejo. https://github.com/beejsbj/meditejo",
   "backgroundSounds": "Hintergrundklang",
   "searchMeditations": "Meditationen suchen",
   "share": "Teilen",
@@ -25,9 +25,9 @@
   "thanksForSharingNeutral": "Neutrales Gesicht",
   "thanksForSharingHappy": "Fröhliches Gesicht",
   "thanksForSharingSad": "Trauriges Gesicht",
-  "ratingAskTitle": "Würdest du Medito bewerten?",
+  "ratingAskTitle": "Würdest du Meditejo bewerten?",
   "ratingAskBody": "Es dauert nur einen Moment und hilft mehr Menschen, kostenlose Meditation zu finden.",
-  "ratingAskCta": "Medito bewerten",
+  "ratingAskCta": "Meditejo bewerten",
   "min": "Min.",
   "someThingWentWrong": "Etwas ist schiefgelaufen",
   "connectionTimeout": "Zeitüberschreitung bei der Verbindung",
@@ -41,7 +41,7 @@
   "cancel": "Abbrechen",
   "syncWithHealth": "Mit Apple Health synchronisieren",
   "syncWithHealthConnect": "Mit Health Connect synchronisieren",
-  "permissionExplanation": "Berechtigungen eingerichtet. Du kannst sie unter Einstellungen > Datenschutz & Sicherheit > Health > Medito ändern",
+  "permissionExplanation": "Berechtigungen eingerichtet. Du kannst sie unter Einstellungen > Datenschutz & Sicherheit > Health > Meditejo ändern",
   "permissionExplanationAndroid": "Berechtigungen eingerichtet. Öffne Health Connect in deinen Geräteeinstellungen, um sie zu ändern.",
   "healthConnectNotInstalled": "Für die Synchronisierung wird Health Connect benötigt. Möchtest du es aus dem Play Store installieren?",
   "confirmDeletionFromPlayerTitle": "Bereits heruntergeladen",
@@ -85,8 +85,8 @@
   "addToSiri": "Zu Siri hinzufügen",
   "shareTrack": "Track teilen",
   "open": "Öffnen",
-  "shareTrackText": "Nimm dir einen Moment zum Durchatmen. Probiere diese Meditationssitzung auf Medito aus: \"{trackName}\". {link}",
-  "sharePackText": "Entdecke {packName} auf Medito! {link} #Meditation #Achtsamkeit",
+  "shareTrackText": "Nimm dir einen Moment zum Durchatmen. Probiere diese Meditationssitzung auf Meditejo aus: \"{trackName}\". {link}",
+  "sharePackText": "Entdecke {packName} auf Meditejo! {link} #Meditation #Achtsamkeit",
   "invalidDeepLink": "Ungültiger Link",
   "deepLinkError": "Link konnte nicht geöffnet werden",
   "shortcutsTitle": "Kurzbefehle",
@@ -182,13 +182,13 @@
   "@notificationsBlockedTitle": {
     "description": "Title of the dialog shown when notification permission is permanently denied, so no OS prompt can be raised and the phone's settings are the only route"
   },
-  "notificationsBlockedBody": "Medito kann keine Erinnerungen versenden, da die Benachrichtigungen für die App in den Einstellungen Ihres Smartphones deaktiviert sind. Dort können Sie sie wieder aktivieren.",
+  "notificationsBlockedBody": "Meditejo kann keine Erinnerungen versenden, da die Benachrichtigungen für die App in den Einstellungen Ihres Smartphones deaktiviert sind. Dort können Sie sie wieder aktivieren.",
   "@notificationsBlockedBody": {
     "description": "Body of the dialog shown when notification permission is permanently denied"
   },
   "openSettings": "Einstellungen öffnen",
   "@openSettings": {
-    "description": "Button that opens the phone's settings app on the Medito page"
+    "description": "Button that opens the phone's settings app on the Meditejo page"
   },
   "turnOnInSettings": "In den Einstellungen aktivieren",
   "@turnOnInSettings": {
@@ -227,7 +227,7 @@
     "description": "Last row of the reminder time bottom sheet; cancels the scheduled reminders"
   },
   "onboardingBatteryTitle": "Eine Einstellung für ungestörte Meditationen",
-  "onboardingBatteryBody": "Dein Smartphone kann Medito während einer Sitzung anhalten. Eine kleine Änderung an den Einstellungen verhindert das.",
+  "onboardingBatteryBody": "Dein Smartphone kann Meditejo während einer Sitzung anhalten. Eine kleine Änderung an den Einstellungen verhindert das.",
   "onboardingBatteryOptimize": "Einstellung ändern",
   "skipForNow": "Vorerst überspringen",
   "skip": "Überspringen",
@@ -285,10 +285,10 @@
   "@addHomeScreenWidget": {
     "description": "Title for adding home screen widget option in customization section"
   },
-  "addWidgetSheetTitle": "Medito-Widget hinzufügen",
+  "addWidgetSheetTitle": "Meditejo-Widget hinzufügen",
   "addWidgetStepHold": "Halte eine freie Stelle auf deinem Home-Bildschirm gedrückt, bis die Apps wackeln.",
   "addWidgetStepEdit": "Tippe oben auf „Bearbeiten“ und dann auf „Widget hinzufügen“. Bei älteren iOS-Versionen tippst du auf +.",
-  "addWidgetStepSearch": "Suche nach Medito und wähle Streak, Consistency oder Continue.",
+  "addWidgetStepSearch": "Suche nach Meditejo und wähle Streak, Consistency oder Continue.",
   "addWidgetStepAdd": "Tippe auf „Widget hinzufügen“ und dann auf „Fertig“.",
   "addWidgetFootnote": "Dein Widget aktualisiert sich nach jeder Meditation. Für den Sperrbildschirm: Halte ihn gedrückt und tippe auf „Anpassen“ und dann auf „Widgets hinzufügen“.",
   "themeTitle": "Erscheinungsbild",
@@ -892,9 +892,9 @@
   "dndOff": "Aus",
   "dndOnDescription": "„Nicht stören“ einschalten, während eine Sitzung läuft, und danach wieder ausschalten. Wecker klingeln weiterhin.",
   "dndOffDescription": "Benachrichtigungen deines Telefons während der Sitzungen unverändert lassen.",
-  "dndFootnote": "Benötigt unter Android Zugriff auf „Nicht stören“. Medito ändert die Einstellung nur während einer Sitzung.",
+  "dndFootnote": "Benötigt unter Android Zugriff auf „Nicht stören“. Meditejo ändert die Einstellung nur während einer Sitzung.",
   "dndAccessTitle": "Zugriff auf „Nicht stören“ erlauben",
-  "dndAccessBody": "Damit dein Telefon während der Meditation stumm bleibt, muss Android Medito Zugriff auf „Nicht stören“ gewähren. Suche auf dem nächsten Bildschirm Medito in der Liste, aktiviere den Zugriff und kehre dann zur App zurück.",
+  "dndAccessBody": "Damit dein Telefon während der Meditation stumm bleibt, muss Android Meditejo Zugriff auf „Nicht stören“ gewähren. Suche auf dem nächsten Bildschirm Meditejo in der Liste, aktiviere den Zugriff und kehre dann zur App zurück.",
   "systemThemeDescription": "Folgt der Einstellung deines Geräts",
   "dailyReminders": "Tägliche Erinnerungen",
   "turnOnReminders": "Erinnerungen aktivieren",
@@ -999,5 +999,10 @@
   "localIntroBeginBody": "Setze dich bequem hin, stelle den Timer auf ein paar Minuten und nimm deinen Atem wahr. Wenn deine Aufmerksamkeit abschweift, beginne sanft von Neuem.",
   "localIntroReturnBody": "Beginne mit ein paar ruhigen Minuten. Der Timer ist bereit, sobald du es bist.",
   "localIntroPracticeBody": "Nutze den Timer für eine Meditation ohne Anleitung, mit den Glocken und der Dauer deiner Wahl.",
-  "localIntroDeviceOnlyNote": "Dein Praxisverlauf, deine Favoriten und deine Einstellungen bleiben auf diesem Gerät."
+  "localIntroDeviceOnlyNote": "Dein Praxisverlauf, deine Favoriten und deine Einstellungen bleiben auf diesem Gerät.",
+
+  "aboutMeditejo": "Über Meditejo",
+  "forkCredit": "Meditejo basiert auf Medito von der Medito Foundation (meditofoundation.org), lizenziert unter AGPL-3.0.",
+  "sourceCode": "Quellcode",
+  "upstreamProject": "Ursprüngliches Projekt"
 }

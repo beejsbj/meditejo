@@ -45,7 +45,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get shareStatsText =>
-      '¡Descubre la calma GRATIS con #Medito! He encontrado mi paz interior; ¡ahora es tu turno! Únete a mí en este viaje consciente y comienza a explorar hoy 💜 Descarga https://medito.app #Calma #Meditación #Headspace';
+      'Mi práctica de meditación con Meditejo. https://github.com/beejsbj/meditejo';
 
   @override
   String get backgroundSounds => 'Sonido de Fondo';
@@ -97,14 +97,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get thanksForSharingSad => 'Cara triste';
 
   @override
-  String get ratingAskTitle => '¿Podrías valorar Medito?';
+  String get ratingAskTitle => '¿Podrías valorar Meditejo?';
 
   @override
   String get ratingAskBody =>
       'Solo te llevará un momento y ayudará a que más personas descubran la meditación gratuita.';
 
   @override
-  String get ratingAskCta => 'Valorar Medito';
+  String get ratingAskCta => 'Valorar Meditejo';
 
   @override
   String get min => 'min';
@@ -150,7 +150,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get permissionExplanation =>
-      'Permisos configurados. Para cambiarlos, ve a Configuración > Privacidad y Seguridad > Salud > Medito';
+      'Permisos configurados. Para cambiarlos, ve a Configuración > Privacidad y Seguridad > Salud > Meditejo';
 
   @override
   String get permissionExplanationAndroid =>
@@ -287,12 +287,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String shareTrackText(Object link, Object trackName) {
-    return 'Tómate un momento para respirar. Prueba esta sesión de meditación: \"$trackName\" en Medito. $link';
+    return 'Tómate un momento para respirar. Prueba esta sesión de meditación: \"$trackName\" en Meditejo. $link';
   }
 
   @override
   String sharePackText(Object link, Object packName) {
-    return '¡Echa un vistazo a $packName en Medito! $link #Meditación #Mindfulness';
+    return '¡Echa un vistazo a $packName en Meditejo! $link #Meditación #Mindfulness';
   }
 
   @override
@@ -433,7 +433,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get notificationsBlockedBody =>
-      'Medito no puede enviarte recordatorios porque las notificaciones están desactivadas para la aplicación en los ajustes de tu teléfono. Puedes volver a activarlas ahí.';
+      'Meditejo no puede enviarte recordatorios porque las notificaciones están desactivadas para la aplicación en los ajustes de tu teléfono. Puedes volver a activarlas ahí.';
 
   @override
   String get openSettings => 'Abrir ajustes';
@@ -549,14 +549,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get dndFootnote =>
-      'Requiere acceso a No molestar en Android. Medito solo lo cambia durante una sesión.';
+      'Requiere acceso a No molestar en Android. Meditejo solo lo cambia durante una sesión.';
 
   @override
   String get dndAccessTitle => 'Permitir acceso a No molestar';
 
   @override
   String get dndAccessBody =>
-      'Para silenciar tu teléfono durante la meditación, Android debe dar a Medito acceso a No molestar. En la siguiente pantalla, busca Medito en la lista y actívalo; después vuelve a la app.';
+      'Para silenciar tu teléfono durante la meditación, Android debe dar a Meditejo acceso a No molestar. En la siguiente pantalla, busca Meditejo en la lista y actívalo; después vuelve a la app.';
 
   @override
   String get currency => 'Moneda';
@@ -629,7 +629,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get addHomeScreenWidget => 'Añadir Widget a la Pantalla de Inicio';
 
   @override
-  String get addWidgetSheetTitle => 'Añade un widget de Medito';
+  String get addWidgetSheetTitle => 'Añade un widget de Meditejo';
 
   @override
   String get addWidgetStepHold =>
@@ -641,7 +641,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get addWidgetStepSearch =>
-      'Busca Medito y elige Streak, Consistency o Continue.';
+      'Busca Meditejo y elige Streak, Consistency o Continue.';
 
   @override
   String get addWidgetStepAdd => 'Toca Añadir widget y luego OK.';
@@ -1493,4 +1493,17 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get localIntroDeviceOnlyNote =>
       'Tu historial de práctica, tus favoritos y tus ajustes se guardan en este dispositivo.';
+
+  @override
+  String get aboutMeditejo => 'Acerca de Meditejo';
+
+  @override
+  String get forkCredit =>
+      'Meditejo está basado en Medito de Medito Foundation (meditofoundation.org), bajo la licencia AGPL-3.0.';
+
+  @override
+  String get sourceCode => 'Código fuente';
+
+  @override
+  String get upstreamProject => 'Proyecto original';
 }

@@ -44,7 +44,7 @@ class _PackViewBottomBarState extends ConsumerState<PackViewBottomBar> {
   }
 
   void _sharePack(BuildContext context) {
-    final deepLink = 'https://medito.app/packs/${widget.packId}';
+    final deepLink = 'meditejo://meditejo/packs/${widget.packId}';
     final shareText = AppLocalizations.of(
       context,
     )!.sharePackText(widget.packName, deepLink);
@@ -70,7 +70,7 @@ class _PackViewBottomBarState extends ConsumerState<PackViewBottomBar> {
                     title:
                         '${AppLocalizations.of(context)!.open} ${widget.packName}',
                     id: widget.packId,
-                    url: 'org.meditofoundation://packs/${widget.packId}',
+                    url: 'meditejo://meditejo/packs/${widget.packId}',
                   );
                   Navigator.pop(context);
                 },

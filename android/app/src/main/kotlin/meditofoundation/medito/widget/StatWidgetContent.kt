@@ -97,7 +97,7 @@ internal fun StatWidgetContent(
                     ) {
                         stat.Icon(28.dp)
                         Spacer(modifier = GlanceModifier.defaultWeight())
-                        MeditoLogo(palette)
+                        MeditejoLogo(palette)
                     }
                     Spacer(modifier = GlanceModifier.defaultWeight())
                     stat.Figure(if (size.height >= STAT_WIDE_TALL.height) 56f else 48f)
@@ -126,7 +126,7 @@ internal fun StatWidgetContent(
                         stat.Unit(14f)
                     }
                     Spacer(modifier = GlanceModifier.defaultWeight())
-                    MeditoLogo(palette)
+                    MeditejoLogo(palette)
                 }
                 Spacer(modifier = GlanceModifier.defaultWeight())
                 ActivityGrid(today, activityDays, weeks = 4, dot = 14.dp, gap = null, palette = palette)
@@ -194,11 +194,11 @@ private class StatParts(
 }
 
 /**
- * The Medito "m", quiet in the corner. Android launchers don't label widgets with the app name
- * the way iOS does, so this is the only thing saying the widget is Medito's.
+ * The Meditejo circle, quiet in the corner. Android launchers don't label widgets with the app name
+ * the way iOS does, so this is the only thing saying the widget is Meditejo's.
  */
 @Composable
-private fun MeditoLogo(palette: WidgetPalette) {
+private fun MeditejoLogo(palette: WidgetPalette) {
     Image(
         provider = ImageProvider(R.drawable.widget_logo),
         contentDescription = null,

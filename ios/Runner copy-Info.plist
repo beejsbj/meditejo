@@ -82,7 +82,7 @@
 		<string>medito-widget-update</string>
 	</array>
 	<key>CFBundleDisplayName</key>
-	<string>Medito</string>
+	<string>Meditejo</string>
 	<key>UIRequiresFullScreen</key>
 	<string>YES</string>
 	<key>FlutterDeepLinkingEnabled</key>
@@ -94,13 +94,12 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>org.meditofoundation</string>
+				<string>meditejo</string>
 			</array>
 		</dict>
 	</array>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:medito.app</string>
 	</array>
 	<key>NSSiriUsageDescription</key>
 	<string>Add voice shortcuts to quickly play your favourite meditations</string>

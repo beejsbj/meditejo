@@ -2,7 +2,7 @@ appId: ${APP_ID}
 name: Local Timer Playback
 ---
 # Enter through the existing local route, independent of catalogue shortcuts.
-- openLink: "org.meditofoundation://medito/route/timer"
+- openLink: "meditejo://meditejo/route/timer"
 - extendedWaitUntil:
     visible: "Stopwatch"
     timeout: 15000

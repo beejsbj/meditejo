@@ -58,7 +58,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-print_colored $GREEN "🚀 Medito Build & Deploy Script"
+print_colored $GREEN "🚀 Meditejo Build & Deploy Script"
 print_colored $GREEN "==============================="
 
 if [ "$BUILD_ANDROID" = true ] && [ "$BUILD_IOS" = true ]; then
@@ -165,7 +165,7 @@ flutter test
 # Generate common variables
 DATED_APKS_DIR="dated_apks"
 DATE_STAMP=$(date +"%d%b%Y")
-ANDROID_LOG="/tmp/medito_android_postbuild_$$.log"
+ANDROID_LOG="/tmp/meditejo_android_postbuild_$$.log"
 ANDROID_BG_PID=""
 ANDROID_BG_FAILED=false
 
@@ -174,7 +174,7 @@ android_post_build() {
     mkdir -p "$DATED_APKS_DIR"
 
     SOURCE_APK="build/app/outputs/apk/prod/release/app-prod-release.apk"
-    DEST_APK="$DATED_APKS_DIR/medito-$CURRENT_VERSION-$DATE_STAMP.apk"
+    DEST_APK="$DATED_APKS_DIR/meditejo-$CURRENT_VERSION-$DATE_STAMP.apk"
 
     cp "$SOURCE_APK" "$DEST_APK"
     print_colored $GREEN "✅ APK copied to $DEST_APK"
@@ -286,7 +286,7 @@ if [ "$BUILD_IOS" = true ]; then
     IPA_PATH="$EXPORT_PATH/Runner.ipa"
 
     if [ -f "$IPA_PATH" ]; then
-        NEW_IPA_PATH="$EXPORT_PATH/medito-${CURRENT_VERSION}-${DATE_STAMP}.ipa"
+        NEW_IPA_PATH="$EXPORT_PATH/meditejo-${CURRENT_VERSION}-${DATE_STAMP}.ipa"
         cp "$IPA_PATH" "$NEW_IPA_PATH"
 
         print_colored $GREEN "✅ iOS IPA built: $NEW_IPA_PATH"

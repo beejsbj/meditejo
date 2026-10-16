@@ -140,7 +140,7 @@ Future<void> initializeAudioService() async {
 }
 
 class ParentWidget extends ConsumerStatefulWidget {
-  static const String _title = 'Medito';
+  static const String _title = 'Meditejo';
 
   const ParentWidget({super.key});
 

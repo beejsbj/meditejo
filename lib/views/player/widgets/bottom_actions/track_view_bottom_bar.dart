@@ -45,7 +45,7 @@ class _TrackViewBottomBarState extends ConsumerState<TrackViewBottomBar> {
   }
 
   void _shareTrack(BuildContext context) {
-    final deepLink = 'https://medito.app/tracks/${widget.trackId}';
+    final deepLink = 'meditejo://meditejo/tracks/${widget.trackId}';
     final shareText = AppLocalizations.of(
       context,
     )!.shareTrackText(widget.trackTitle, deepLink);
@@ -71,7 +71,7 @@ class _TrackViewBottomBarState extends ConsumerState<TrackViewBottomBar> {
                     title:
                         '${AppLocalizations.of(context)!.open} ${widget.trackTitle}',
                     id: widget.trackId,
-                    url: 'org.meditofoundation://tracks/${widget.trackId}',
+                    url: 'meditejo://meditejo/tracks/${widget.trackId}',
                   );
                   Navigator.pop(context);
                 },

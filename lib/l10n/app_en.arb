@@ -17,7 +17,7 @@
   "emptyDownloadsMessage": "It looks like you haven't downloaded anything yet. Downloads are useful to save mobile data or to access sessions in places without signal.",
   "meanWhileListen": "Meanwhile, you can listen to your",
   "retry": "Retry",
-  "shareStatsText": "Discover calmness for FREE with #Medito I've found my inner peace; now it's your turn! Join me on this mindful journey and start exploring today 💜 Download https://medito.app #Calm #Meditation #Headspace",
+  "shareStatsText": "My meditation practice with Meditejo. https://github.com/beejsbj/meditejo",
   "backgroundSounds": "Background Sound",
   "searchMeditations": "Search meditations",
   "search": "Search",
@@ -40,12 +40,12 @@
   "thanksForSharingNeutral": "Neutral face",
   "thanksForSharingHappy": "Happy face",
   "thanksForSharingSad": "Sad face",
-  "ratingAskTitle": "Could you leave Medito a rating?",
+  "ratingAskTitle": "Could you leave Meditejo a rating?",
   "@ratingAskTitle": {
     "description": "Title of the one-time ask for a store rating, shown on the end screen after the user taps the happy face"
   },
   "ratingAskBody": "It only takes a moment, and it helps more people find free meditation.",
-  "ratingAskCta": "Rate Medito",
+  "ratingAskCta": "Rate Meditejo",
   "@ratingAskCta": {
     "description": "Button that opens the App Store / Play Store review page"
   },
@@ -62,7 +62,7 @@
   "cancel": "Cancel",
   "syncWithHealth": "Sync with Apple Health",
   "syncWithHealthConnect": "Sync with Health Connect",
-  "permissionExplanation": "Permissions set. To change them, go to Settings > Privacy and Security > Health > Medito",
+  "permissionExplanation": "Permissions set. To change them, go to Settings > Privacy and Security > Health > Meditejo",
   "permissionExplanationAndroid": "Permissions set. To change them, open Health Connect from your device settings.",
   "healthConnectNotInstalled": "Health Connect is required to sync. Install it from the Play Store?",
   "confirmDeletionFromPlayerTitle": "Already Downloaded",
@@ -105,8 +105,8 @@
   "addToSiri": "Add to Siri",
   "shareTrack": "Share Track",
   "open": "Open",
-  "shareTrackText": "Take a moment to breathe. Try this meditation session: \"{trackName}\" on Medito. {link}",
-  "sharePackText": "Check out {packName} on Medito! {link} #Meditation #Mindfulness",
+  "shareTrackText": "Take a moment to breathe. Try this meditation session: \"{trackName}\" on Meditejo. {link}",
+  "sharePackText": "Check out {packName} on Meditejo! {link} #Meditation #Mindfulness",
   "invalidDeepLink": "Invalid deep link",
   "deepLinkError": "Unable to handle deep link",
   "shortcutsTitle": "Shortcuts",
@@ -223,13 +223,13 @@
   "@notificationsBlockedTitle": {
     "description": "Title of the dialog shown when notification permission is permanently denied, so no OS prompt can be raised and the phone's settings are the only route"
   },
-  "notificationsBlockedBody": "Medito can't send reminders because notifications are switched off for the app in your phone's settings. You can switch them back on there.",
+  "notificationsBlockedBody": "Meditejo can't send reminders because notifications are switched off for the app in your phone's settings. You can switch them back on there.",
   "@notificationsBlockedBody": {
     "description": "Body of the dialog shown when notification permission is permanently denied"
   },
   "openSettings": "Open Settings",
   "@openSettings": {
-    "description": "Button that opens the phone's settings app on the Medito page"
+    "description": "Button that opens the phone's settings app on the Meditejo page"
   },
   "turnOnInSettings": "Turn On in Settings",
   "@turnOnInSettings": {
@@ -268,7 +268,7 @@
     "description": "Last row of the reminder time bottom sheet; cancels the scheduled reminders"
   },
   "onboardingBatteryTitle": "One Setting, Smoother Meditations",
-  "onboardingBatteryBody": "Your phone can pause Medito mid-session. One quick change prevents this.",
+  "onboardingBatteryBody": "Your phone can pause Meditejo mid-session. One quick change prevents this.",
   "onboardingBatteryOptimize": "Update Setting",
   "skipForNow": "Skip for Now",
   "skip": "Skip",
@@ -323,7 +323,7 @@
   "@dndOffDescription": {
     "description": "Description under the Off option in the silence-phone sheet"
   },
-  "dndFootnote": "Needs Do Not Disturb access on Android. Medito only changes it during a session.",
+  "dndFootnote": "Needs Do Not Disturb access on Android. Meditejo only changes it during a session.",
   "@dndFootnote": {
     "description": "Small note under the silence-phone options explaining the Android permission"
   },
@@ -331,7 +331,7 @@
   "@dndAccessTitle": {
     "description": "Title of the dialog shown when the user turns on silence-phone without the Android permission"
   },
-  "dndAccessBody": "To silence your phone during meditation, Android needs to give Medito Do Not Disturb access. On the next screen, find Medito in the list and turn it on, then come back to the app.",
+  "dndAccessBody": "To silence your phone during meditation, Android needs to give Meditejo Do Not Disturb access. On the next screen, find Meditejo in the list and turn it on, then come back to the app.",
   "@dndAccessBody": {
     "description": "Body of the dialog explaining the Android Do Not Disturb access permission before opening system settings"
   },
@@ -366,7 +366,7 @@
   "@addHomeScreenWidget": {
     "description": "Title for adding home screen widget option in customization section"
   },
-  "addWidgetSheetTitle": "Add a Medito widget",
+  "addWidgetSheetTitle": "Add a Meditejo widget",
   "@addWidgetSheetTitle": {
     "description": "Title of the iOS sheet explaining how to add a home screen widget"
   },
@@ -378,7 +378,7 @@
   "@addWidgetStepEdit": {
     "description": "Step 2 of adding an iOS home screen widget; Edit / Add Widget are iOS button labels"
   },
-  "addWidgetStepSearch": "Search for Medito and choose Streak, Consistency or Continue.",
+  "addWidgetStepSearch": "Search for Meditejo and choose Streak, Consistency or Continue.",
   "@addWidgetStepSearch": {
     "description": "Step 3; Streak, Consistency and Continue are the iOS widget gallery names (English-only in the widget extension), keep them untranslated"
   },
@@ -1459,5 +1459,10 @@
   "localIntroDeviceOnlyNote": "Your practice history, favourites and settings stay on this device.",
   "@localIntroDeviceOnlyNote": {
     "description": "Explains that practice history, favourites and preferences are stored on the device."
-  }
+  },
+
+  "aboutMeditejo": "About Meditejo",
+  "forkCredit": "Meditejo is based on Medito by the Medito Foundation (meditofoundation.org), licensed under AGPL-3.0.",
+  "sourceCode": "Source code",
+  "upstreamProject": "Upstream project"
 }

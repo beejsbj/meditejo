@@ -24,7 +24,7 @@ import '../utils/logger.dart';
 }
 
 class HomeWidgetService {
-  static const String _appGroupId = 'group.org.medito.widget';
+  static const String _appGroupId = 'group.io.github.beejsbj.meditejo.widget';
 
   // Coalesces rapid back-to-back broadcast requests into a single platform
   // round trip. Multiple sources (stats refresh, up-next change, theme change)

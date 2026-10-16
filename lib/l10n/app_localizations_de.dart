@@ -46,7 +46,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get shareStatsText =>
-      'Entdecke die Ruhe – KOSTENLOS mit #Medito. Ich habe meinen inneren Frieden gefunden – jetzt bist du dran! Begleite mich auf dieser Achtsamkeitsreise und fang noch heute an, sie zu erkunden 💜 Lade die App unter https://medito.app herunter #Ruhe #Meditation #Headspace';
+      'Meine Meditationspraxis mit Meditejo. https://github.com/beejsbj/meditejo';
 
   @override
   String get backgroundSounds => 'Hintergrundklang';
@@ -98,14 +98,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get thanksForSharingSad => 'Trauriges Gesicht';
 
   @override
-  String get ratingAskTitle => 'Würdest du Medito bewerten?';
+  String get ratingAskTitle => 'Würdest du Meditejo bewerten?';
 
   @override
   String get ratingAskBody =>
       'Es dauert nur einen Moment und hilft mehr Menschen, kostenlose Meditation zu finden.';
 
   @override
-  String get ratingAskCta => 'Medito bewerten';
+  String get ratingAskCta => 'Meditejo bewerten';
 
   @override
   String get min => 'Min.';
@@ -151,7 +151,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get permissionExplanation =>
-      'Berechtigungen eingerichtet. Du kannst sie unter Einstellungen > Datenschutz & Sicherheit > Health > Medito ändern';
+      'Berechtigungen eingerichtet. Du kannst sie unter Einstellungen > Datenschutz & Sicherheit > Health > Meditejo ändern';
 
   @override
   String get permissionExplanationAndroid =>
@@ -288,12 +288,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String shareTrackText(Object link, Object trackName) {
-    return 'Nimm dir einen Moment zum Durchatmen. Probiere diese Meditationssitzung auf Medito aus: \"$trackName\". $link';
+    return 'Nimm dir einen Moment zum Durchatmen. Probiere diese Meditationssitzung auf Meditejo aus: \"$trackName\". $link';
   }
 
   @override
   String sharePackText(Object link, Object packName) {
-    return 'Entdecke $packName auf Medito! $link #Meditation #Achtsamkeit';
+    return 'Entdecke $packName auf Meditejo! $link #Meditation #Achtsamkeit';
   }
 
   @override
@@ -436,7 +436,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get notificationsBlockedBody =>
-      'Medito kann keine Erinnerungen versenden, da die Benachrichtigungen für die App in den Einstellungen Ihres Smartphones deaktiviert sind. Dort können Sie sie wieder aktivieren.';
+      'Meditejo kann keine Erinnerungen versenden, da die Benachrichtigungen für die App in den Einstellungen Ihres Smartphones deaktiviert sind. Dort können Sie sie wieder aktivieren.';
 
   @override
   String get openSettings => 'Einstellungen öffnen';
@@ -477,7 +477,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get onboardingBatteryBody =>
-      'Dein Smartphone kann Medito während einer Sitzung anhalten. Eine kleine Änderung an den Einstellungen verhindert das.';
+      'Dein Smartphone kann Meditejo während einer Sitzung anhalten. Eine kleine Änderung an den Einstellungen verhindert das.';
 
   @override
   String get onboardingBatteryOptimize => 'Einstellung ändern';
@@ -553,14 +553,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get dndFootnote =>
-      'Benötigt unter Android Zugriff auf „Nicht stören“. Medito ändert die Einstellung nur während einer Sitzung.';
+      'Benötigt unter Android Zugriff auf „Nicht stören“. Meditejo ändert die Einstellung nur während einer Sitzung.';
 
   @override
   String get dndAccessTitle => 'Zugriff auf „Nicht stören“ erlauben';
 
   @override
   String get dndAccessBody =>
-      'Damit dein Telefon während der Meditation stumm bleibt, muss Android Medito Zugriff auf „Nicht stören“ gewähren. Suche auf dem nächsten Bildschirm Medito in der Liste, aktiviere den Zugriff und kehre dann zur App zurück.';
+      'Damit dein Telefon während der Meditation stumm bleibt, muss Android Meditejo Zugriff auf „Nicht stören“ gewähren. Suche auf dem nächsten Bildschirm Meditejo in der Liste, aktiviere den Zugriff und kehre dann zur App zurück.';
 
   @override
   String get currency => 'Währung';
@@ -633,7 +633,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get addHomeScreenWidget => 'Widget zum Startbildschirm hinzufügen';
 
   @override
-  String get addWidgetSheetTitle => 'Medito-Widget hinzufügen';
+  String get addWidgetSheetTitle => 'Meditejo-Widget hinzufügen';
 
   @override
   String get addWidgetStepHold =>
@@ -645,7 +645,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get addWidgetStepSearch =>
-      'Suche nach Medito und wähle Streak, Consistency oder Continue.';
+      'Suche nach Meditejo und wähle Streak, Consistency oder Continue.';
 
   @override
   String get addWidgetStepAdd =>
@@ -1484,4 +1484,17 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get localIntroDeviceOnlyNote =>
       'Dein Praxisverlauf, deine Favoriten und deine Einstellungen bleiben auf diesem Gerät.';
+
+  @override
+  String get aboutMeditejo => 'Über Meditejo';
+
+  @override
+  String get forkCredit =>
+      'Meditejo basiert auf Medito von der Medito Foundation (meditofoundation.org), lizenziert unter AGPL-3.0.';
+
+  @override
+  String get sourceCode => 'Quellcode';
+
+  @override
+  String get upstreamProject => 'Ursprüngliches Projekt';
 }

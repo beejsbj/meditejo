@@ -7,11 +7,11 @@ set -e
 ./build_apk.sh
 
 # Get the package name from the app
-PACKAGE_NAME="meditofoundation.medito"
+PACKAGE_NAME="io.github.beejsbj.meditejo"
 
 # Get the APK path (using the same logic as build_prod_apk.sh)
 VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
-APK_PATH="build/app/outputs/apk/prod/release/medito-${VERSION}-prod.apk"
+APK_PATH="build/app/outputs/apk/prod/release/meditejo-${VERSION}.apk"
 
 # Get the first connected device
 DEVICE_SERIAL=$(adb devices | grep -v "List" | head -n 1 | cut -f1)

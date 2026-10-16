@@ -1,7 +1,7 @@
 import SwiftUI
 import WidgetKit
 
-private let appGroupId = "group.org.medito.widget"
+private let appGroupId = "group.io.github.beejsbj.meditejo.widget"
 
 struct UpNextEntry: TimelineEntry {
     let date: Date

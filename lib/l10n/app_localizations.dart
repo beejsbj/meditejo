@@ -169,7 +169,7 @@ abstract class AppLocalizations {
   /// No description provided for @shareStatsText.
   ///
   /// In en, this message translates to:
-  /// **'Discover calmness for FREE with #Medito I\'ve found my inner peace; now it\'s your turn! Join me on this mindful journey and start exploring today 💜 Download https://medito.app #Calm #Meditation #Headspace'**
+  /// **'My meditation practice with Meditejo. https://github.com/beejsbj/meditejo'**
   String get shareStatsText;
 
   /// No description provided for @backgroundSounds.
@@ -271,7 +271,7 @@ abstract class AppLocalizations {
   /// Title of the one-time ask for a store rating, shown on the end screen after the user taps the happy face
   ///
   /// In en, this message translates to:
-  /// **'Could you leave Medito a rating?'**
+  /// **'Could you leave Meditejo a rating?'**
   String get ratingAskTitle;
 
   /// No description provided for @ratingAskBody.
@@ -283,7 +283,7 @@ abstract class AppLocalizations {
   /// Button that opens the App Store / Play Store review page
   ///
   /// In en, this message translates to:
-  /// **'Rate Medito'**
+  /// **'Rate Meditejo'**
   String get ratingAskCta;
 
   /// No description provided for @min.
@@ -367,7 +367,7 @@ abstract class AppLocalizations {
   /// No description provided for @permissionExplanation.
   ///
   /// In en, this message translates to:
-  /// **'Permissions set. To change them, go to Settings > Privacy and Security > Health > Medito'**
+  /// **'Permissions set. To change them, go to Settings > Privacy and Security > Health > Meditejo'**
   String get permissionExplanation;
 
   /// No description provided for @permissionExplanationAndroid.
@@ -625,13 +625,13 @@ abstract class AppLocalizations {
   /// No description provided for @shareTrackText.
   ///
   /// In en, this message translates to:
-  /// **'Take a moment to breathe. Try this meditation session: \"{trackName}\" on Medito. {link}'**
+  /// **'Take a moment to breathe. Try this meditation session: \"{trackName}\" on Meditejo. {link}'**
   String shareTrackText(Object link, Object trackName);
 
   /// No description provided for @sharePackText.
   ///
   /// In en, this message translates to:
-  /// **'Check out {packName} on Medito! {link} #Meditation #Mindfulness'**
+  /// **'Check out {packName} on Meditejo! {link} #Meditation #Mindfulness'**
   String sharePackText(Object link, Object packName);
 
   /// No description provided for @invalidDeepLink.
@@ -841,10 +841,10 @@ abstract class AppLocalizations {
   /// Body of the dialog shown when notification permission is permanently denied
   ///
   /// In en, this message translates to:
-  /// **'Medito can\'t send reminders because notifications are switched off for the app in your phone\'s settings. You can switch them back on there.'**
+  /// **'Meditejo can\'t send reminders because notifications are switched off for the app in your phone\'s settings. You can switch them back on there.'**
   String get notificationsBlockedBody;
 
-  /// Button that opens the phone's settings app on the Medito page
+  /// Button that opens the phone's settings app on the Meditejo page
   ///
   /// In en, this message translates to:
   /// **'Open Settings'**
@@ -913,7 +913,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingBatteryBody.
   ///
   /// In en, this message translates to:
-  /// **'Your phone can pause Medito mid-session. One quick change prevents this.'**
+  /// **'Your phone can pause Meditejo mid-session. One quick change prevents this.'**
   String get onboardingBatteryBody;
 
   /// No description provided for @onboardingBatteryOptimize.
@@ -1045,7 +1045,7 @@ abstract class AppLocalizations {
   /// Small note under the silence-phone options explaining the Android permission
   ///
   /// In en, this message translates to:
-  /// **'Needs Do Not Disturb access on Android. Medito only changes it during a session.'**
+  /// **'Needs Do Not Disturb access on Android. Meditejo only changes it during a session.'**
   String get dndFootnote;
 
   /// Title of the dialog shown when the user turns on silence-phone without the Android permission
@@ -1057,7 +1057,7 @@ abstract class AppLocalizations {
   /// Body of the dialog explaining the Android Do Not Disturb access permission before opening system settings
   ///
   /// In en, this message translates to:
-  /// **'To silence your phone during meditation, Android needs to give Medito Do Not Disturb access. On the next screen, find Medito in the list and turn it on, then come back to the app.'**
+  /// **'To silence your phone during meditation, Android needs to give Meditejo Do Not Disturb access. On the next screen, find Meditejo in the list and turn it on, then come back to the app.'**
   String get dndAccessBody;
 
   /// No description provided for @currency.
@@ -1195,7 +1195,7 @@ abstract class AppLocalizations {
   /// Title of the iOS sheet explaining how to add a home screen widget
   ///
   /// In en, this message translates to:
-  /// **'Add a Medito widget'**
+  /// **'Add a Meditejo widget'**
   String get addWidgetSheetTitle;
 
   /// Step 1 of adding an iOS home screen widget
@@ -1213,7 +1213,7 @@ abstract class AppLocalizations {
   /// Step 3; Streak, Consistency and Continue are the iOS widget gallery names (English-only in the widget extension), keep them untranslated
   ///
   /// In en, this message translates to:
-  /// **'Search for Medito and choose Streak, Consistency or Continue.'**
+  /// **'Search for Meditejo and choose Streak, Consistency or Continue.'**
   String get addWidgetStepSearch;
 
   /// Step 4; Add Widget / Done are iOS button labels
@@ -2697,6 +2697,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your practice history, favourites and settings stay on this device.'**
   String get localIntroDeviceOnlyNote;
+
+  /// No description provided for @aboutMeditejo.
+  ///
+  /// In en, this message translates to:
+  /// **'About Meditejo'**
+  String get aboutMeditejo;
+
+  /// No description provided for @forkCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Meditejo is based on Medito by the Medito Foundation (meditofoundation.org), licensed under AGPL-3.0.'**
+  String get forkCredit;
+
+  /// No description provided for @sourceCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Source code'**
+  String get sourceCode;
+
+  /// No description provided for @upstreamProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Upstream project'**
+  String get upstreamProject;
 }
 
 class _AppLocalizationsDelegate

@@ -16,146 +16,7 @@
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
-	<key>CFBundleIcons</key>
-	<dict>
-		<key>CFBundlePrimaryIcon</key>
-		<dict>
-			<key>CFBundleIconFiles</key>
-			<array/>
-			<key>UIPrerenderedIcon</key>
-			<false/>
-		</dict>
-		<key>CFBundleAlternateIcons</key>
-		<dict>
-			<key>nearblack</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>nearblack</string>
-				</array>
-				<key>UIPrerenderedIcon</key>
-				<false/>
-			</dict>
-			<key>classic</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>classic</string>
-				</array>
-				<key>UIPrerenderedIcon</key>
-				<false/>
-			</dict>
-			<key>blush</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>blush</string>
-				</array>
-				<key>UIPrerenderedIcon</key>
-				<false/>
-			</dict>
-			<key>ocean</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>ocean</string>
-				</array>
-				<key>UIPrerenderedIcon</key>
-				<false/>
-			</dict>
-			<key>forest</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>forest</string>
-				</array>
-				<key>UIPrerenderedIcon</key>
-				<false/>
-			</dict>
-			<key>goldenhour</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>goldenhour</string>
-				</array>
-				<key>UIPrerenderedIcon</key>
-				<false/>
-			</dict>
-		</dict>
-	</dict>
-	<key>CFBundleIcons~ipad</key>
-	<dict>
-		<key>CFBundlePrimaryIcon</key>
-		<dict>
-			<key>CFBundleIconFiles</key>
-			<array/>
-			<key>UIPrerenderedIcon</key>
-			<false/>
-		</dict>
-		<key>CFBundleAlternateIcons</key>
-		<dict>
-			<key>nearblack</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>nearblack</string>
-					<string>nearblack-83.5</string>
-				</array>
-				<key>UIPrerenderedIcon</key>
-				<false/>
-			</dict>
-			<key>classic</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>classic</string>
-					<string>classic-83.5</string>
-				</array>
-				<key>UIPrerenderedIcon</key>
-				<false/>
-			</dict>
-			<key>blush</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>blush</string>
-					<string>blush-83.5</string>
-				</array>
-				<key>UIPrerenderedIcon</key>
-				<false/>
-			</dict>
-			<key>ocean</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>ocean</string>
-					<string>ocean-83.5</string>
-				</array>
-				<key>UIPrerenderedIcon</key>
-				<false/>
-			</dict>
-			<key>forest</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>forest</string>
-					<string>forest-83.5</string>
-				</array>
-				<key>UIPrerenderedIcon</key>
-				<false/>
-			</dict>
-			<key>goldenhour</key>
-			<dict>
-				<key>CFBundleIconFiles</key>
-				<array>
-					<string>goldenhour</string>
-					<string>goldenhour-83.5</string>
-				</array>
-				<key>UIPrerenderedIcon</key>
-				<false/>
-			</dict>
-		</dict>
-	</dict>
+
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -184,7 +45,7 @@
 		<true/>
 	</dict>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Medito does not record audio. This entry is only required by the audio playback framework the app uses.</string>
+	<string>Meditejo does not record audio. This entry is only required by the audio playback framework the app uses.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
@@ -241,7 +102,7 @@
 		<string>medito-widget-update</string>
 	</array>
 	<key>CFBundleDisplayName</key>
-	<string>Medito</string>
+	<string>Meditejo</string>
 	<key>UIRequiresFullScreen</key>
 	<string>YES</string>
 	<key>FlutterDeepLinkingEnabled</key>
@@ -253,13 +114,12 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>org.meditofoundation</string>
+				<string>meditejo</string>
 			</array>
 		</dict>
 	</array>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:medito.app</string>
 	</array>
 	<key>NSSiriUsageDescription</key>
 	<string>Add voice shortcuts to quickly play your favourite meditations</string>

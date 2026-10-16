@@ -112,7 +112,7 @@ class HealthConnectBridge(
                     endZoneOffset = ZoneOffset.UTC,
                     mindfulnessSessionType = MindfulnessSessionRecord
                         .MINDFULNESS_SESSION_TYPE_MEDITATION,
-                    title = "Medito",
+                    title = "Meditejo",
                     notes = null,
                     metadata = Metadata.autoRecorded(
                         device = androidx.health.connect.client.records.metadata

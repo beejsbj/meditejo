@@ -166,7 +166,7 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
         val channelName = "News and Updates"
         val importance = NotificationManager.IMPORTANCE_HIGH
         val channel = NotificationChannel(NEWS_CHANNEL_ID, channelName, importance).apply {
-            description = "Stay up-to-date with the latest news and updates from Medito"
+            description = "Stay up-to-date with the latest news and updates from Meditejo"
         }
 
         val notificationManager: NotificationManager =

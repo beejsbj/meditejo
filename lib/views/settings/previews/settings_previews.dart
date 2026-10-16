@@ -18,7 +18,6 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/views/settings/settings_screen.dart';
 import 'package:medito/views/settings/advanced_settings_screen.dart';
 import 'package:medito/views/settings/widgets/app_icon_tile.dart';
-import 'package:medito/views/settings/widgets/app_icon_option.dart';
 import 'package:medito/views/settings/widgets/day_boundary_offset_dialog.dart';
 import 'package:medito/views/settings/widgets/dnd_setting_tile.dart';
 import 'package:medito/views/settings/widgets/reminder_tile.dart';
@@ -256,17 +255,6 @@ Widget reminderSheetCustomLight() => const Align(
 Widget themeSheet() => const Align(
   alignment: Alignment.bottomCenter,
   child: Material(child: ThemeSheet()),
-);
-
-@Preview(
-  group: 'Dialogs',
-  name: 'App icon sheet',
-  size: Size(390, 560),
-  wrapper: wrapDark,
-)
-Widget appIconSheet() => const Align(
-  alignment: Alignment.bottomCenter,
-  child: Material(child: AppIconSheet(current: AppIconOption.ocean)),
 );
 
 @Preview(

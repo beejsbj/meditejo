@@ -369,7 +369,7 @@ class _ShareCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        'medito.app',
+                        'Meditejo',
                         style: TextStyle(
                           fontSize: 14,
                           color: palette.secondary,
