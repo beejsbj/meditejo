@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/scaffold_messenger_key.dart';
 import 'package:health/health.dart';
 import 'package:medito/src/audio_pigeon.g.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,6 +36,7 @@ void main() {
       ).thenAnswer((_) async => granted);
       await tester.pumpWidget(
         MaterialApp(
+          scaffoldMessengerKey: scaffoldMessengerKey,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(body: HealthSyncTile(manager: manager)),
