@@ -4,21 +4,32 @@ import 'package:health/health.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../src/audio_pigeon.g.dart';
+import 'logger.dart';
 
 class HealthKitManager {
-  static const _authRequestedKey = 'healthAuthRequested';
+  static const _syncEnabledKey = 'healthSyncEnabled';
 
   static final HealthKitManager _instance = HealthKitManager._internal();
-  final Health health = Health();
-  final MeditoHealthConnectManager _androidBridge =
-      MeditoHealthConnectManager();
+  final Health health;
+  final MeditoHealthConnectManager _androidBridge;
+  final bool _isAndroid;
   bool _configured = false;
 
   factory HealthKitManager() {
     return _instance;
   }
 
-  HealthKitManager._internal();
+  HealthKitManager._internal()
+    : health = Health(),
+      _androidBridge = MeditoHealthConnectManager(),
+      _isAndroid = Platform.isAndroid;
+
+  HealthKitManager.forTesting({
+    required this.health,
+    required bool isAndroid,
+    MeditoHealthConnectManager? androidBridge,
+  }) : _isAndroid = isAndroid,
+       _androidBridge = androidBridge ?? MeditoHealthConnectManager();
 
   Future<void> _ensureConfigured() async {
     if (_configured) return;
@@ -29,7 +40,7 @@ class HealthKitManager {
   }
 
   Future<bool> isHealthConnectAvailable() async {
-    if (!Platform.isAndroid) return true;
+    if (!_isAndroid) return true;
     try {
       final status = await _androidBridge.getStatus();
       return status == HealthConnectStatus.available;
@@ -39,7 +50,7 @@ class HealthKitManager {
   }
 
   Future<void> installHealthConnect() async {
-    if (!Platform.isAndroid) return;
+    if (!_isAndroid) return;
     try {
       await _androidBridge.openHealthConnectInstall();
     } catch (_) {}
@@ -48,7 +59,7 @@ class HealthKitManager {
   Future<bool?> isHealthSyncPermitted() async {
     try {
       await _ensureConfigured();
-      if (Platform.isAndroid) {
+      if (_isAndroid) {
         if (!await isHealthConnectAvailable()) return false;
         return await _androidBridge.hasMindfulnessPermissions();
       }
@@ -61,39 +72,45 @@ class HealthKitManager {
     }
   }
 
-  /// Whether we've already shown the system permission prompt at least once.
-  /// Used to avoid nagging the user every session after they decline.
-  Future<bool> hasRequestedAuthorization() async {
+  /// Migrate once using a silent permission check. A previous prompt alone
+  /// does not mean the user agreed to sync.
+  Future<bool> isSyncEnabled() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_authRequestedKey) ?? false;
+    final saved = prefs.getBool(_syncEnabledKey);
+    if (saved != null) return saved;
+    final enabled = await isHealthSyncPermitted() == true;
+    // A Settings action may have completed while the OS check was pending.
+    final updated = prefs.getBool(_syncEnabledKey);
+    if (updated != null) return updated;
+    await prefs.setBool(_syncEnabledKey, enabled);
+    return enabled;
   }
 
-  /// Requests authorization only if we've never prompted before. Returns the
-  /// resulting permission state (false if we'd already asked and won't re-ask).
-  /// Use this for automatic/background triggers (player open, session sync).
-  /// Explicit user actions (the Settings tile) should call
-  /// [requestAuthorization] directly so they can always re-prompt.
-  Future<bool> maybeRequestAuthorization() async {
-    if (await hasRequestedAuthorization()) return false;
-    return requestAuthorization();
-  }
-
-  Future<bool> requestAuthorization() async {
-    try {
-      await _ensureConfigured();
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_authRequestedKey, true);
-      if (Platform.isAndroid) {
-        if (!await isHealthConnectAvailable()) return false;
-        return await _androidBridge.requestMindfulnessPermissions();
-      }
-      return await health.requestAuthorization(
-        [HealthDataType.MINDFULNESS],
-        permissions: [HealthDataAccess.READ_WRITE],
-      );
-    } catch (e) {
+  /// Called only by the Settings switch. Disabling never changes OS permissions.
+  Future<bool> setSyncEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!enabled) {
+      await prefs.setBool(_syncEnabledKey, false);
       return false;
     }
+    var granted = false;
+    try {
+      await _ensureConfigured();
+      if (_isAndroid) {
+        if (await isHealthConnectAvailable()) {
+          granted = await _androidBridge.requestMindfulnessPermissions();
+        }
+      } else {
+        granted = await health.requestAuthorization(
+          [HealthDataType.MINDFULNESS],
+          permissions: [HealthDataAccess.READ_WRITE],
+        );
+      }
+    } catch (error) {
+      AppLogger.e('HEALTH', 'Health permission request failed', error);
+    }
+    await prefs.setBool(_syncEnabledKey, granted);
+    return granted;
   }
 
   Future<bool> isSessionSynced(int timestamp) async {
@@ -112,31 +129,24 @@ class HealthKitManager {
 
   Future<bool> writeMindfulnessData(DateTime start, DateTime end) async {
     try {
-      await _ensureConfigured();
-
-      if (Platform.isAndroid) {
-        if (!await isHealthConnectAvailable()) return false;
-        var hasPermissions = await _androidBridge.hasMindfulnessPermissions();
-        if (!hasPermissions) {
-          hasPermissions = await maybeRequestAuthorization();
-        }
-        if (!hasPermissions) return false;
-        return await _androidBridge.writeMindfulnessSession(
+      if (!await isSyncEnabled()) return false;
+      if (await isHealthSyncPermitted() != true) {
+        AppLogger.w(
+          'HEALTH',
+          'Skipping sync: Health permission is unavailable',
+        );
+        return false;
+      }
+      if (_isAndroid) {
+        final written = await _androidBridge.writeMindfulnessSession(
           start.millisecondsSinceEpoch,
           end.millisecondsSinceEpoch,
         );
+        if (!written) AppLogger.w('HEALTH', 'Health write failed');
+        return written;
       }
 
-      var hasPermissions = await isHealthSyncPermitted();
-      if (hasPermissions == null || !hasPermissions) {
-        // Always re-request rather than maybeRequestAuthorization() — iOS
-        // updates can reset HealthKit permissions without clearing our
-        // "already asked" flag, causing silent sync failures.
-        hasPermissions = await requestAuthorization();
-      }
-      if (!hasPermissions) return false;
-
-      return await health.writeHealthData(
+      final written = await health.writeHealthData(
         value: 0,
         type: HealthDataType.MINDFULNESS,
         startTime: start,
@@ -144,7 +154,10 @@ class HealthKitManager {
         unit: HealthDataUnit.NO_UNIT,
         recordingMethod: RecordingMethod.automatic,
       );
+      if (!written) AppLogger.w('HEALTH', 'Health write failed');
+      return written;
     } catch (error) {
+      AppLogger.e('HEALTH', 'Health write failed', error);
       return false;
     }
   }
