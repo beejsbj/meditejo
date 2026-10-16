@@ -1,10 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/providers/providers.dart';
-import 'package:medito/services/analytics/firebase_analytics_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ReminderTimeNotifier extends Notifier<TimeOfDay?> {
@@ -50,7 +47,6 @@ class ReminderEnabledNotifier extends Notifier<bool> {
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool(SharedPreferenceConstants.dailyReminderEnabled, value);
     state = value;
-    unawaited(FirebaseAnalyticsService.applyRemindersOnProperty());
   }
 }
 
@@ -69,7 +65,6 @@ class ZenModeNotifier extends Notifier<bool> {
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool(SharedPreferenceConstants.zenModeEnabled, value);
     state = value;
-    unawaited(FirebaseAnalyticsService.setZenModeProperty(value));
   }
 }
 

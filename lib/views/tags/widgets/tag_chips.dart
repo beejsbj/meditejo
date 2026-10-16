@@ -135,8 +135,8 @@ class TrackTagChips extends ConsumerWidget {
   }
 }
 
-/// Tags shared by at least half of a pack's tracks. Packs are not tagged on
-/// the server; this is derived from the track map on the device.
+/// Tags shared by at least half of a pack's tracks, derived from the local
+/// track map.
 class PackTagChips extends ConsumerWidget {
   const PackTagChips({
     super.key,

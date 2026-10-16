@@ -85,10 +85,7 @@ class UpNextWidget : GlanceAppWidget() {
             else                       -> Layout.TINY
         }
 
-        // Append source params so DeepLinkService can attribute the tap to the
-        // home-screen widget for analytics. When trackId is empty we still fire
-        // a deep link (no path) instead of launching MainActivity directly so
-        // that the empty-state tap is also attributable.
+        // Open the saved track through a deep link. An empty widget opens the app.
         val tapUri = if (trackId.isNotEmpty()) {
             "org.meditofoundation://medito/tracks/$trackId?source=home_widget&widget=up_next"
         } else {

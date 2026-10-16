@@ -263,11 +263,11 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         // which previously left the player notification stuck until reboot.
         if (finish) finishPlayback()
 
-        // Fire-and-forget the analytics callback. If it completes we can clear the
-        // persisted record; if it doesn't, the replay path handles it next launch.
+        // Send without delaying teardown. Clear only when Dart confirms the stats
+        // were saved; false replies and transport failures remain for replay.
         CoroutineScope(Dispatchers.Main).launch {
             meditoAudioApi?.handleCompletedTrack(completionData) { result ->
-                if (result.isSuccess) {
+                if (result.getOrNull() == true) {
                     SharedPreferencesManager.clearCompletionData(this@AudioPlayerService)
                 }
             }
@@ -577,14 +577,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         // Only stop service if not playing
         if (!primaryPlayer.isPlaying) {
             serviceScope.launch {
-                // Session analytics: the user swiped the app away while the
-                // track was paused — i.e. abandoned it. Push one last position
-                // snapshot to Dart before teardown so AudioSessionTracker has
-                // the freshest position to attribute the audio_session_abandoned
-                // event (fired in Dart, or replayed on next launch from the
-                // persisted record). Skipped if the track already completed —
-                // that path reports its own event. Mirrors how completion is
-                // surfaced to Dart rather than firing Firebase from native code.
+                // Send Dart the final playback state before tearing down a
+                // paused session. Completed sessions use their completion callback.
                 if (!isCompletionHandled) {
                     try {
                         updatePlaybackState()

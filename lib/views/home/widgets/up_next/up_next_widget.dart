@@ -5,8 +5,6 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:medito/constants/colors/color_constants.dart';
-import 'package:medito/constants/config_constants.dart';
-import 'package:medito/constants/pack_sequence.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/constants/styles/widget_styles.dart';
 import 'package:medito/providers/home/up_next_provider.dart';
@@ -18,7 +16,6 @@ import 'package:medito/routes/routes.dart';
 import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/widgets/snackbar_widget.dart';
 import 'dart:async';
-import 'package:medito/constants/strings/analytics_event_constants.dart';
 import 'package:medito/providers/providers.dart';
 import '../../home_styles.dart';
 import '../home_gradient_border.dart';
@@ -26,22 +23,6 @@ import '../home_gradient_border.dart';
 const _kCardBorderRadius = kHomeHeroRadius;
 const _kPlayButtonSize = 52.0;
 const _kProgressBarHeight = 3.0;
-
-/// Shared context for every Up Next event so the four are comparable.
-/// Experience level is omitted — it is a user property, already on every event.
-Map<String, Object> _upNextEventParams(UpNextData data, UpNextStyle style) {
-  final packId = data.pack.id;
-  final position = PackSequence.positionOf(packId);
-  return {
-    AnalyticsEventConstants.paramUpNextStyle: style.name,
-    AnalyticsEventConstants.paramPackId: packId,
-    AnalyticsEventConstants.paramUpNextMode: PackSequence.modeFor(packId),
-    AnalyticsEventConstants.paramPackSequencePosition:
-        position?.toString() ?? 'none',
-    AnalyticsEventConstants.paramSessionIndexInPack: data.completedCount + 1,
-    AnalyticsEventConstants.paramPackTotalSessions: data.totalCount,
-  };
-}
 
 /// How the Up Next content is presented.
 enum UpNextStyle {
@@ -207,11 +188,6 @@ class _UpNextCompletedState extends ConsumerState<_UpNextCompleted> {
   void initState() {
     super.initState();
     widget.primaryAction?._attach(_onStartNextPack);
-    // Once per pack, not per mount — see _logShown.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _logShown();
-      _logImpression();
-    });
   }
 
   @override
@@ -229,82 +205,11 @@ class _UpNextCompletedState extends ConsumerState<_UpNextCompleted> {
     super.dispose();
   }
 
-  void _logImpression() {
-    if (!mounted) return;
-    unawaited(
-      ref
-          .read(analyticsServiceProvider)
-          .logEvent(
-            name: AnalyticsEventConstants.upNextShown,
-            parameters: {
-              ..._upNextEventParams(widget.data, widget.style),
-              AnalyticsEventConstants.paramUpNextState: 'completed',
-            },
-          ),
-    );
-  }
-
-  /// Logged once per pack per install. The card stays on Home until the next
-  /// pack is pinned, so logging per mount counted Home visits, not completions
-  /// (~10 up_next_path_completed per user, Sep 2026).
-  void _logShown() {
-    final prefs = ref.read(sharedPreferencesProvider);
-    final logged =
-        prefs.getStringList(
-          SharedPreferenceConstants.upNextCompletedLoggedPacks,
-        ) ??
-        const <String>[];
-    final packId = widget.data.pack.id;
-    if (logged.contains(packId)) return;
-    unawaited(
-      prefs.setStringList(
-        SharedPreferenceConstants.upNextCompletedLoggedPacks,
-        [...logged, packId],
-      ),
-    );
-
-    final analytics = ref.read(analyticsServiceProvider);
-
-    unawaited(
-      analytics.logEvent(
-        name: AnalyticsEventConstants.upNextPackCompleted,
-        parameters: {
-          ..._upNextEventParams(widget.data, widget.style),
-          AnalyticsEventConstants.paramHasNextPack:
-              widget.data.nextPackId != null ? 'true' : 'false',
-        },
-      ),
-    );
-
-    if (widget.data.isEndOfPath) {
-      unawaited(
-        analytics.logEvent(
-          name: AnalyticsEventConstants.upNextPathCompleted,
-          parameters: _upNextEventParams(widget.data, widget.style),
-        ),
-      );
-    }
-  }
-
   Future<void> _onStartNextPack() async {
     final nextPackId = widget.data.nextPackId;
     if (nextPackId == null || _pinning) return;
 
     setState(() => _pinning = true);
-
-    unawaited(
-      ref
-          .read(analyticsServiceProvider)
-          .logEvent(
-            name: AnalyticsEventConstants.upNextNextPackPinned,
-            parameters: {
-              ..._upNextEventParams(widget.data, widget.style),
-              AnalyticsEventConstants.paramNextPackId: nextPackId,
-              AnalyticsEventConstants.paramNextPackSequencePosition:
-                  PackSequence.positionOf(nextPackId)?.toString() ?? 'none',
-            },
-          ),
-    );
 
     // Same key and invalidation as the pack view's manual pin.
     await ref
@@ -339,7 +244,7 @@ class _UpNextCompletedState extends ConsumerState<_UpNextCompleted> {
         ? l10n.upNextPackCompletedSubtitle(widget.data.completedCount)
         : l10n.upNextPathCompletedSubtitle;
 
-    // Title from the API, not a hardcoded list; generic label while it loads.
+    // Use the source course title when it is available.
     var ctaLabel = l10n.upNextPackCompletedCta;
     if (hasNext) {
       final nextTitle = ref
@@ -517,24 +422,6 @@ class _UpNextContentState extends ConsumerState<_UpNextContent>
   void initState() {
     super.initState();
     widget.primaryAction?._attach(_onPrimaryAction);
-    // Keyed by session id, so this runs again when the card moves on to the
-    // next session.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      unawaited(
-        ref
-            .read(analyticsServiceProvider)
-            .logEvent(
-              name: AnalyticsEventConstants.upNextShown,
-              parameters: {
-                AnalyticsEventConstants.paramSessionId:
-                    widget.data.nextSession!.id,
-                ..._upNextEventParams(widget.data, widget.style),
-                AnalyticsEventConstants.paramUpNextState: 'session',
-              },
-            ),
-      );
-    });
   }
 
   @override
@@ -572,12 +459,6 @@ class _UpNextContentState extends ConsumerState<_UpNextContent>
     final eyebrow = widget.data.completedCount == 0
         ? l10n.upNextStartHere
         : l10n.upNextTitle;
-    // Only hand-picked packs: series packs are where Home returns to, and
-    // are replaced by starting another pack rather than removed.
-    final canRemove =
-        widget.data.pack.id != ConfigConstants.basicsPackId &&
-        !PackSequence.contains(widget.data.pack.id);
-
     return Opacity(
       opacity: _skipping ? 0.0 : 1.0,
       child: Padding(
@@ -589,7 +470,7 @@ class _UpNextContentState extends ConsumerState<_UpNextContent>
             controller: _slidable,
             endActionPane: ActionPane(
               motion: const BehindMotion(),
-              extentRatio: canRemove ? 0.75 : 0.5,
+              extentRatio: 0.75,
               // No full-swipe action: every action is a button behind the
               // menu, so a swipe only ever reveals them.
               children: [
@@ -606,14 +487,13 @@ class _UpNextContentState extends ConsumerState<_UpNextContent>
                   label: l10n.skip,
                   onPressed: () => _onSkip(context),
                 ),
-                if (canRemove)
-                  _swipeAction(
-                    palette: palette,
-                    showDivider: true,
-                    icon: Icons.close_rounded,
-                    label: l10n.removeFromHomeShort,
-                    onPressed: () => _onRemove(context),
-                  ),
+                _swipeAction(
+                  palette: palette,
+                  showDivider: true,
+                  icon: Icons.close_rounded,
+                  label: l10n.removeFromHomeShort,
+                  onPressed: () => _onRemove(context),
+                ),
               ],
             ),
             // One stop for the whole card: without excludeSemantics its texts,
@@ -631,9 +511,8 @@ class _UpNextContentState extends ConsumerState<_UpNextContent>
                 CustomSemanticsAction(label: l10n.skip): () => _onSkip(context),
                 CustomSemanticsAction(label: l10n.openPack): () =>
                     _onOpenPack(context),
-                if (canRemove)
-                  CustomSemanticsAction(label: l10n.removeFromHome): () =>
-                      _onRemove(context),
+                CustomSemanticsAction(label: l10n.removeFromHome): () =>
+                    _onRemove(context),
               },
               child: GestureDetector(
                 // The hero style has no card surface behind the content, so
@@ -799,14 +678,6 @@ class _UpNextContentState extends ConsumerState<_UpNextContent>
   }
 
   void _onOpenPack(BuildContext context) {
-    unawaited(
-      ref
-          .read(analyticsServiceProvider)
-          .logEvent(
-            name: AnalyticsEventConstants.upNextPackOpened,
-            parameters: _upNextEventParams(widget.data, widget.style),
-          ),
-    );
     handleNavigation(
       TypeConstants.pack,
       [widget.data.pack.id],
@@ -815,31 +686,16 @@ class _UpNextContentState extends ConsumerState<_UpNextContent>
     );
   }
 
-  /// Home goes back to the series pack the user was on before picking this
-  /// one, or the no-pin default.
+  /// Removes the explicit pin, without restoring retired course sequences.
   Future<void> _onRemove(BuildContext context) async {
     final packId = widget.data.pack.id;
-    unawaited(
-      ref
-          .read(analyticsServiceProvider)
-          .logEvent(
-            name: AnalyticsEventConstants.packUnpinned,
-            parameters: {AnalyticsEventConstants.paramPackId: packId},
-          ),
-    );
 
     final prefs = ref.read(sharedPreferencesProvider);
     // This widget is replaced once the pin changes, so Undo can't use ref.
     final container = ProviderScope.containerOf(context, listen: false);
     final l10n = AppLocalizations.of(context)!;
-    final returnTo = prefs.getString(
-      SharedPreferenceConstants.upNextReturnPackId,
-    );
-    if (returnTo == null) {
-      await prefs.remove(SharedPreferenceConstants.upNextPackId);
-    } else {
-      await prefs.setString(SharedPreferenceConstants.upNextPackId, returnTo);
-    }
+    await prefs.remove(SharedPreferenceConstants.upNextReturnPackId);
+    await prefs.remove(SharedPreferenceConstants.upNextPackId);
     ref.invalidate(upNextPackIdProvider);
 
     showSnackBar(
@@ -858,23 +714,6 @@ class _UpNextContentState extends ConsumerState<_UpNextContent>
     if (nextSession == null || _skipping) return;
 
     setState(() => _skipping = true);
-
-    unawaited(
-      ref
-          .read(analyticsServiceProvider)
-          .logEvent(
-            name: AnalyticsEventConstants.upNextSkipped,
-            parameters: {
-              AnalyticsEventConstants.paramSessionId: nextSession.id,
-              ..._upNextEventParams(widget.data, widget.style),
-            },
-          ),
-    );
-    unawaited(
-      ref
-          .read(analyticsServiceProvider)
-          .logFirstActionAfterOnboardingIfNeeded('up_next_skip'),
-    );
 
     final statsManager = ref.read(statsManagerProvider);
     await statsManager.initialize();
@@ -896,23 +735,6 @@ class _UpNextContentState extends ConsumerState<_UpNextContent>
       unawaited(_slidable.close());
       return;
     }
-
-    unawaited(
-      ref
-          .read(analyticsServiceProvider)
-          .logEvent(
-            name: AnalyticsEventConstants.upNextTapped,
-            parameters: {
-              AnalyticsEventConstants.paramSessionId: nextSession.id,
-              ..._upNextEventParams(widget.data, widget.style),
-            },
-          ),
-    );
-    unawaited(
-      ref
-          .read(analyticsServiceProvider)
-          .logFirstActionAfterOnboardingIfNeeded('up_next'),
-    );
 
     setState(() => _isStarting = true);
     try {

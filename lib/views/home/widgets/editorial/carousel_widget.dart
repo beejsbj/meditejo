@@ -1,13 +1,10 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/colors/color_constants.dart';
 import 'package:medito/constants/styles/widget_styles.dart';
 import 'package:medito/models/home/home_model.dart';
-import 'package:medito/providers/providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/utils/utils.dart';
 
@@ -201,11 +198,6 @@ class _CarouselWidgetState extends ConsumerState<CarouselWidget> {
   void _onItemTap(int index) {
     if (index >= widget.carouselItems.length) return;
     final item = widget.carouselItems[index];
-    unawaited(
-      ref
-          .read(analyticsServiceProvider)
-          .logFirstActionAfterOnboardingIfNeeded('carousel'),
-    );
     handleNavigation(
       item.type,
       [item.path.toString().getIdFromPath(), item.path],

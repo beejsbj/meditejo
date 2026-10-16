@@ -19,6 +19,16 @@ void main() {
     statsManager.resetForTesting();
   });
 
+  DateTime calendarDaysBefore(DateTime date, int days) => DateTime(
+    date.year,
+    date.month,
+    date.day - days,
+    date.hour,
+    date.minute,
+    date.second,
+    date.millisecond,
+  );
+
   group('Consistency Score Tests', () {
     test('calculateConsistencyScore - no sessions returns 0', () {
       // Arrange
@@ -72,9 +82,10 @@ void main() {
           ...List.generate(30, (index) {
             return LocalAudioCompleted(
               id: 'past-$index',
-              timestamp: now
-                  .subtract(Duration(days: 11 + index))
-                  .millisecondsSinceEpoch,
+              timestamp: calendarDaysBefore(
+                now,
+                11 + index,
+              ).millisecondsSinceEpoch,
             );
           }),
         ];
@@ -103,39 +114,27 @@ void main() {
           LocalAudioCompleted(id: '1', timestamp: now.millisecondsSinceEpoch),
           LocalAudioCompleted(
             id: '2',
-            timestamp: now
-                .subtract(const Duration(days: 2))
-                .millisecondsSinceEpoch,
+            timestamp: calendarDaysBefore(now, 2).millisecondsSinceEpoch,
           ),
           LocalAudioCompleted(
             id: '3',
-            timestamp: now
-                .subtract(const Duration(days: 3))
-                .millisecondsSinceEpoch,
+            timestamp: calendarDaysBefore(now, 3).millisecondsSinceEpoch,
           ),
           LocalAudioCompleted(
             id: '4',
-            timestamp: now
-                .subtract(const Duration(days: 5))
-                .millisecondsSinceEpoch,
+            timestamp: calendarDaysBefore(now, 5).millisecondsSinceEpoch,
           ),
           LocalAudioCompleted(
             id: '5',
-            timestamp: now
-                .subtract(const Duration(days: 6))
-                .millisecondsSinceEpoch,
+            timestamp: calendarDaysBefore(now, 6).millisecondsSinceEpoch,
           ),
           LocalAudioCompleted(
             id: '6',
-            timestamp: now
-                .subtract(const Duration(days: 8))
-                .millisecondsSinceEpoch,
+            timestamp: calendarDaysBefore(now, 8).millisecondsSinceEpoch,
           ),
           LocalAudioCompleted(
             id: '7',
-            timestamp: now
-                .subtract(const Duration(days: 9))
-                .millisecondsSinceEpoch,
+            timestamp: calendarDaysBefore(now, 9).millisecondsSinceEpoch,
           ),
         ];
 
@@ -159,9 +158,7 @@ void main() {
           audioCompleted: [
             LocalAudioCompleted(
               id: '1',
-              timestamp: now
-                  .subtract(const Duration(days: 40))
-                  .millisecondsSinceEpoch,
+              timestamp: calendarDaysBefore(now, 40).millisecondsSinceEpoch,
             ),
           ],
         );
@@ -189,9 +186,7 @@ void main() {
             ),
             LocalAudioCompleted(
               id: '3',
-              timestamp: now
-                  .subtract(const Duration(days: 1))
-                  .millisecondsSinceEpoch,
+              timestamp: calendarDaysBefore(now, 1).millisecondsSinceEpoch,
             ),
           ],
         );
@@ -281,6 +276,36 @@ void main() {
       // Assert
       expect(result, 1.0); // Both days should count despite DST change
     });
+
+    test(
+      'perfect calendar-day history stays perfect across both DST changes',
+      () {
+        for (final now in [
+          DateTime(2024, 3, 15, 12),
+          DateTime(2024, 11, 7, 12),
+        ]) {
+          statsManager.setCurrentDateForTesting(now);
+          final stats = LocalAllStats.empty().copyWith(
+            audioCompleted: [
+              for (var day = 0; day < 45; day++)
+                LocalAudioCompleted(
+                  id: 'daily-$day',
+                  timestamp: calendarDaysBefore(
+                    now,
+                    day,
+                  ).millisecondsSinceEpoch,
+                ),
+            ],
+          );
+
+          expect(
+            statsManager.calculateConsistencyScore(stats),
+            1.0,
+            reason: 'All 45 local dates are active through $now',
+          );
+        }
+      },
+    );
 
     test('calculateConsistencyScore - handles leap year dates correctly', () {
       // Arrange
@@ -424,7 +449,7 @@ void main() {
       var sessions = List.generate(30, (index) {
         return LocalAudioCompleted(
           id: 'track-$index',
-          timestamp: now.subtract(Duration(days: index)).millisecondsSinceEpoch,
+          timestamp: calendarDaysBefore(now, index).millisecondsSinceEpoch,
         );
       });
 
@@ -553,7 +578,7 @@ void main() {
       var sessions = List.generate(30, (index) {
         return LocalAudioCompleted(
           id: 'track-$index',
-          timestamp: now.subtract(Duration(days: index)).millisecondsSinceEpoch,
+          timestamp: calendarDaysBefore(now, index).millisecondsSinceEpoch,
         );
       });
 

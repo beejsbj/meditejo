@@ -1,9 +1,5 @@
 {
   "@@locale": "en",
-  "appName": "Medito",
-  "privacyPolicyTitle": "Privacy Policy",
-  "unableToOpenPrivacyPolicy": "Unable to open privacy policy",
-  "meditoUrl": "https://meditofoundation.org/",
   "downloads": "Downloads",
   "volume": "Volume",
   "home": "Home",
@@ -18,24 +14,11 @@
   "@reorder": {
     "description": "Accessibility label for a drag handle that reorders a list item"
   },
-  "meditationProducts": "Shop to Support",
-  "blackFridayTitle": "Support Free Meditation",
-  "blackFridaySubtitle": "This Black Friday, support free meditation for everyone. Your purchase helps keep Medito free and accessible to millions worldwide",
-  "blackFridaySeeAllButton": "Visit store",
-  "fromPrefix": "From ",
   "emptyDownloadsMessage": "It looks like you haven't downloaded anything yet. Downloads are useful to save mobile data or to access sessions in places without signal.",
   "meanWhileListen": "Meanwhile, you can listen to your",
-  "retrying": "Retrying...",
-  "tryAgain": "Try again",
   "retry": "Retry",
-  "statsSuccess": "Stats updated",
   "shareStatsText": "Discover calmness for FREE with #Medito I've found my inner peace; now it's your turn! Join me on this mindful journey and start exploring today 💜 Download https://medito.app #Calm #Meditation #Headspace",
   "backgroundSounds": "Background Sound",
-  "x06": "x0.6",
-  "x07": "x0.7",
-  "x08": "x0.8",
-  "x09": "x0.9",
-  "x1": "x1",
   "searchMeditations": "Search meditations",
   "search": "Search",
   "@search": {
@@ -48,16 +31,11 @@
   "share": "Share",
   "tapToShare": "Tap to share",
   "id": "id",
-  "env": "env",
   "email": "email",
   "appVersion": "appVersion",
-  "deviceModel": "deviceModel",
-  "deviceOs": "deviceOs",
-  "devicePlatform": "devicePlatform",
   "buildNumber": "buildNumber",
   "debugInfo": "Debug info",
   "explore": "Explore",
-  "welcome": "👋 Welcome",
   "thanksForSharing": "Thanks for sharing  💜",
   "thanksForSharingNeutral": "Neutral face",
   "thanksForSharingHappy": "Happy face",
@@ -72,63 +50,30 @@
     "description": "Button that opens the App Store / Play Store review page"
   },
   "min": "min",
-  "hey": "👋 Hey",
   "someThingWentWrong": "Something went wrong",
-    "invalidEmail": "Invalid Email.",
-    "emailForReceipt": "Email for Receipt",
-    "emailForReceiptDescription": "We'll send your donation receipt to this email address. This helps us identify your payment for support and records.",
-    "fieldRequired": "Field is Required",
-  "invalidInput": "Invalid Input",
   "connectionTimeout": "Error connection timeout",
-  "noInternetConnection": "No internet connection",
-  "badRequest": "Bad request",
-  "unauthorizedRequest": "Session expired - please sign in again",
-  "accessForbidden": "Access forbidden",
-  "apiNotFound": "Api not found",
   "anErrorOccurred": "An unknown error occurred. Either we're having issues or you're offline.",
   "unableToLoadAudio": "Unable to load audio. Please go back and try again",
-  "loadingError": "It looks like you're offline or there was little hiccup from our end",
   "timeout": "Oops! It seems like there was an error. If the problem persists, Close the app and try again.",
-  "connectivityError": "Make sure you are connected to the internet to use Medito",
   "howDoYouFeel": "How do you feel after this session?",
-  "yourFeedbackHelpsUs": "Your feedback helps us improve our content and allows you to reflect on your experience.",
-  "didYouKnow": "Did you know?",
-  "meditoReliesOnYourDonationsToSurvive": "Medito relies only on your donations to survive. We produce free content to help humanity.",
-  "pickTimeHelpText": "Select your daily reminder time",
-  "reminderNotificationScheduled": "Reminder notification scheduled at",
-  "dailyReminderTitle": "Daily Reminder",
-  "setFor": "Set for",
-  "signInSignUp": "Sign in / Sign up",
   "settings": "Settings",
   "stats": "Stats",
   "history": "History",
-  "reminderNotificationCleared": "Reminder cancelled",
   "cancel": "Cancel",
-  "areYouSure": "Are you sure?",
-  "requestPermission": "Request Permission",
-  "reminderPermissions": "Reminder Permissions",
-  "weNeedYourPermissionReminder": "We need permission to send you reminders about tracking your meditation progress. This helps you maintain consistency in your practice.",
   "syncWithHealth": "Sync with Apple Health",
   "syncWithHealthConnect": "Sync with Health Connect",
   "permissionExplanation": "Permissions set. To change them, go to Settings > Privacy and Security > Health > Medito",
   "permissionExplanationAndroid": "Permissions set. To change them, open Health Connect from your device settings.",
   "healthConnectNotInstalled": "Health Connect is required to sync. Install it from the Play Store?",
-  "confirmDeletionTitle": "Confirm Deletion",
   "confirmDeletionFromPlayerTitle": "Already Downloaded",
   "confirmDeletionFromPlayerMessage": "This meditation is already in your downloads. Do you want to delete it?",
-  "confirmDeletionMessage": "Are you sure you want to delete",
   "delete": "Delete",
   "copy": "Copy",
   "debugInfoCopied": "Debug info copied to clipboard",
   "goToDownloads": "Go to Downloads",
-  "signInSuccess": "Sign in successful",
-  "signInError": "Sign in failed. Please try again.",
   "backgroundSoundsDisabled": "Background sounds are disabled for this track",
   "neww": "New",
-  "statsLoadError": "Unable to load stats. Please try again later.",
-  "statsLoading": "Loading stats...",
   "loading": "Loading...",
-  "statsErrorRetry": "Retry",
   "currentStreak": "Current Streak",
   "longestStreak": "Longest Streak",
   "consistencyScore": "Consistency Score",
@@ -140,106 +85,14 @@
   "hoursFull": "hours",
   "hourFull": "hour",
   "minute": "minute",
-  "showConsistencyScore": "Show Consistency Score",
-  "showCurrentStreak": "Show Current Streak",
   "alwaysShowStreakOnHomepage": "Always show streak on homepage",
-  "displayPreferenceSaved": "Display preference saved",
   "gotIt": "Got it",
-  "signUpLogInTitle": "Sign in to Medito",
-  "createAccountTitle": "Create account",
-  "signInAgain": "Sign in again",
-  "emailLabel": "Email",
-  "createAccountButtonText": "Create Account",
-  "createAccountLogInButtonText": "Sign in or Sign up",
-  "getStarted": "Get started",
-  "@getStarted": {
-    "description": "Primary button on the splash screen; starts the app as a guest"
-  },
-  "splashSignInOrSignUp": "Sign in or sign up",
-  "@splashSignInOrSignUp": {
-    "description": "Secondary link on the splash screen to sign in or create an account"
-  },
-  "sendMeMyPasswordText": "Continue",
-  "logInButtonText": "Sign In",
-  "authenticationFailed": "Authentication failed",
-  "invalidVerificationCode": "Invalid verification code. Please try again.",
-  "errorPrefix": "Error: ",
-  "retryInSeconds": "Retry in {seconds} s",
-  "resendCodeInSeconds": "Resend code in {seconds} s",
-  "byContinuingAgreeTo": "By continuing, you agree to our ",
-  "andText": " and ",
-  "streakFreezeEarned": "Congratulations! You earned a streak freeze for reaching a 7-day milestone!",
-  "emailVerificationText": "We'll send you a code by email to verify your account",
-  "createAccountBenefits": "• Track your mindfulness journey\n• Never lose your meditation progress\n• Build a lasting meditation practice 💜",
-  "loginBenefits": "• Download your previously saved data\\n• Continue your meditation journey from where you left off",
-  "accountTransitionWarningTitle": "Wait!",
-  "loginWarningQuestion": "Do you want to continue with this email?",
-  "loginWarningExplanation": "If you already have a Medito account:\n• Your previous meditation data will be downloaded\n• Your current unsaved progress will be lost\n\nIf you're new to Medito:\n• A new account will be created\n• Your current progress will be saved to this account",
-  "createNewAccount": "Create New Account",
-  "continueLogin": "Yes, continue",
-  "cancelAction": "Cancel",
   "goBack": "Go Back",
-  "userProfileTitle": "User Profile",
-  "userProfileEmailLabel": "Email:",
-  "signOutButtonText": "Sign Out",
-  "signOutSuccessMessage": "You have been signed out successfully",
-  "signOutErrorMessage": "Failed to sign out. Please try again.",
-  "deleteAccountTitle": "Delete Account",
-  "deleteAccountConfirmation": "This permanently deletes your account, including your stats and favorites. It can't be undone.",
-  "deleteAccountButtonText": "Delete Account",
-  "accountMarkedForDeletion": "Your account has been marked for deletion.",
-  "deleteAccountError": "Failed to delete account.",
-  "deleteAccountDonationNotice": "Deleting your account does not cancel a recurring (monthly or yearly) donation. You can cancel it in the donation portal with the email you donated with.",
-  "@deleteAccountDonationNotice": {"description": "Shown in the delete-account confirmation dialog; account deletion does not cancel Stripe subscriptions"},
-  "deleteAccountManageDonations": "Manage donations",
-  "deleteAccountReasonTitle": "Why are you leaving?",
-  "@deleteAccountReasonTitle": {"description": "Heading of the delete-account reason picker screen"},
-  "deleteAccountReasonSubtitle": "Optional, but it helps us improve Medito.",
-  "deleteAccountReasonNotUsing": "I'm not using it anymore",
-  "deleteAccountReasonPrivacy": "Privacy concerns",
-  "deleteAccountReasonSwitchingApp": "I'm switching to another app",
-  "deleteAccountReasonTechnicalIssues": "Technical problems",
-  "deleteAccountReasonTooManyNotifications": "Too many notifications",
-  "deleteAccountReasonOther": "Something else",
-  "deleteAccountDetailsHint": "Anything else you'd like to tell us? (optional)",
-  "deleteAccountFinalButton": "Delete my account",
-  "deleteAccountFailed": "Failed to delete account, please try again.",
-  "deleteAccountUnconfirmed": "We couldn't confirm your account was deleted. Check your connection and try again.",
-  "@deleteAccountUnconfirmed": {"description": "Delete-account error when the request never got a definite answer (network dropped or timed out after retries)"},
-  "accountDeletedTitle": "Your account has been deleted",
-  "@accountDeletedTitle": {"description": "Confirmation screen shown after the account was deleted (required by Apple)"},
-  "accountDeletedBody": "Your profile, stats and favorites have been removed. You can keep using Medito without an account.",
-  "accountMarkedForDeletionError": "This account has been marked for deletion and cannot be accessed.",
-  "faqTitle": "FAQ",
   "editStatsTitle": "Edit stats",
-  "telegramTitle": "Join our Telegram community",
-  "whatsappTitle": "Follow us on WhatsApp",
-  "donateTitle": "Donate",
-  "contactUsTitle": "Contact us",
-  "accountTitle": "Account",
   "path": "Path",
-  "stepTitle": "Step",
   "completed": "Completed",
-  "locked": "Locked",
-  "pathLoadError": "Failed to load path. Please try again.",
-  "stepCompleted": "Step completed!",
-  "stepCompletionError": "Failed to complete step. Please try again.",
-  "meditatedOutsideApp": "You meditated outside the app? Listen to the last unlocked session to unlock the next step in the path",
-  "enterMeditationDuration": "Please enter the duration of your meditation outside the app",
-  "meditationMarkingError": "Failed to mark meditation. Please try again.",
-  "listenToUnlockNextStep": "Listen to the last unlocked session to unlock the next step in the app",
-  "unknownTaskType": "Unknown task type",
-  "invalidDuration": "Invalid duration. Please enter a positive number.",
   "submit": "Submit",
-  "journalEntry": "Journal Entry",
-  "writeYourJournalEntryHere": "Write your journal entry here...",
-  "journalEntrySaved": "Journal entry saved",
-  "sessionCompleted": "Session completed successfully!",
-  "taskUpdateError": "Failed to update task. Please try again.",
-  "syncingPath": "Syncing your progress...",
-  "stepLocked": "Complete previous steps to unlock",
   "duration": "Duration",
-  "tapToReadArticle": "Tap to read article",
   "monday": "M",
   "tuesday": "T",
   "wednesday": "W",
@@ -249,76 +102,49 @@
   "sunday": "S",
   "dailyPracticeMessage": "Practicing daily grows your streak, but it also makes you more mindful and happier!",
   "dayStreak": "day streak",
-  "dailyQuote": "Daily Quote",
-  "termsOfService": "Terms of Service",
-  "privacyPolicy": "Privacy Policy",
-  "offlineMode": "You are now in offline mode due to an error.",
   "addToSiri": "Add to Siri",
   "shareTrack": "Share Track",
   "open": "Open",
   "shareTrackText": "Take a moment to breathe. Try this meditation session: \"{trackName}\" on Medito. {link}",
   "sharePackText": "Check out {packName} on Medito! {link} #Meditation #Mindfulness",
-  "followingDeepLink": "Following deep link...",
   "invalidDeepLink": "Invalid deep link",
   "deepLinkError": "Unable to handle deep link",
-  "statsInitError": "Stats sync may have failed. Please check your connection.",
-  "appInitError": "App initialization failed. Entering offline mode.",
-  "noConnection": "No connection",
-  "continueAsGuest": "Continue",
-  "isMonthlyDonor": "d",
-  "otpLabel": "Enter verification code",
-  "invalidOtpError": "Please enter a valid 6-digit code",
-  "otpSentSuccess": "Check your email for the verification code",
-  "otpInstructions": "Enter the code we just sent to",
-  "resendCode": "Didn't get the code? Resend it",
-  "verifyOtpButtonText": "Continue",
-  "warningTitle": "Warning",
-  "localStatsWarning": "Signing into a new account will result in the loss of your current local stats. Do you wish to proceed?",
-  "proceed": "Proceed",
-  "errorNotFound": "Resource not found",
-  "requestOtpBeforeDeepLink": "Please request an OTP first before using a deep link",
   "shortcutsTitle": "Shortcuts",
   "carouselTitle": "Featured",
   "quoteTitle": "Daily Quote",
   "customization": "Customisation",
   "customiseHomeLayout": "Organize Home Layout",
-  "featuresIntegrations": "Features & Integrations",
-  "account": "Account",
-  "supportCommunity": "Support & Community",
   "helpLegal": "Help & Legal",
   "advanced": "Advanced",
-  "restorePreviousStats": "Restore previous stats",
-  "restorePreviousStatsExplainer": "Pick a snapshot to restore. Snapshots are saved automatically when your stats sync, and the most recent 20 are kept on this device — including snapshots taken from other accounts you've signed into here.",
-  "noBackupsAvailable": "No stats snapshots are stored on this device yet.",
-  "backupSummary": "Streak {streak} · {sessions, plural, =1{1 session} other{{sessions} sessions}} · {minutes} min",
-  "@backupSummary": {
-    "placeholders": {
-      "streak": {"type": "int"},
-      "sessions": {"type": "int"},
-      "minutes": {"type": "int"}
-    }
-  },
-  "restoreStatsConfirmTitle": "Restore these stats?",
-  "restoreStatsConfirmBody": "Your current stats on this device will be replaced with the selected snapshot, and the snapshot will be uploaded for the currently signed-in account. This can't be undone.",
   "restore": "Restore",
-  "restoreStatsSuccess": "Stats restored",
-  "restoreStatsFailed": "Couldn't restore stats. Please try again.",
   "daysSelected": "{count, plural, =1{1 day selected} other{{count} days selected}}",
   "@daysSelected": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "newStreak": "New streak",
   "newSessions": "New sessions",
   "addSessionsToSelectedDays": "Add sessions to selected days",
   "addSessionsTitle": "{count, plural, =1{Add 1 session} other{Add {count} sessions}}",
   "@addSessionsTitle": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "daysAlreadyHaveSession": "{filled, plural, =1{1 of {total} days already has a session and will be skipped.} other{{filled} of {total} days already have a session and will be skipped.}}",
   "@daysAlreadyHaveSession": {
     "placeholders": {
-      "filled": {"type": "int"},
-      "total": {"type": "int"}
+      "filled": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "minutesPerDayOptional": "Minutes per day (optional)",
@@ -332,27 +158,14 @@
   "@enableNotificationsTitleLearn": {
     "description": "Notifications screen title for users who want to learn to meditate (intent: learn_properly)"
   },
-  "enableNotificationsBodyLearn": "A daily reminder is the single biggest thing that helps beginners stick with it.",
-  "@enableNotificationsBodyLearn": {
-    "description": "Notifications screen body for users who want to learn to meditate (intent: learn_properly)"
-  },
   "enableNotificationsTitleHabit": "Build the habit you're after",
   "@enableNotificationsTitleHabit": {
     "description": "Notifications screen title for users who want to build a habit (intent: build_habit)"
-  },
-  "enableNotificationsBodyHabit": "People who set a reminder are far more likely to meditate regularly.",
-  "@enableNotificationsBodyHabit": {
-    "description": "Notifications screen body for users who want to build a habit (intent: build_habit)"
   },
   "enableNotificationsTitleStress": "Make it part of your day",
   "@enableNotificationsTitleStress": {
     "description": "Notifications screen title for users managing stress, sleep, or emotions (intent: stress_sleep_emotions)"
   },
-  "enableNotificationsBodyStress": "Just a few minutes daily is enough to start feeling the difference.",
-  "@enableNotificationsBodyStress": {
-    "description": "Notifications screen body for users managing stress, sleep, or emotions (intent: stress_sleep_emotions)"
-  },
-  "enableNotificationsCta": "Enable Notifications",
   "notificationPreviewTimestamp": "now",
   "@notificationPreviewTimestamp": {
     "description": "Timestamp shown on a fake iOS notification preview, mirroring iOS's 'now' label for a notification that just arrived"
@@ -369,15 +182,21 @@
   "@onboardingStepIndicator": {
     "description": "Progress label under the onboarding pages, next to the circular progress ring",
     "placeholders": {
-      "current": {"type": "int"},
-      "total": {"type": "int"}
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "onboardingReminderCurrentlySet": "Daily reminder set for {time}",
   "@onboardingReminderCurrentlySet": {
     "description": "Shown on the onboarding reminder screen when a reminder is already set, above the chips that let the user change it",
     "placeholders": {
-      "time": {"type": "String"}
+      "time": {
+        "type": "String"
+      }
     }
   },
   "reminderChipsQuestion": "When will you meditate?",
@@ -387,10 +206,6 @@
   "reminderSlotMorning": "Morning",
   "@reminderSlotMorning": {
     "description": "Time-of-day chip label; shown with a concrete time, e.g. 'Morning · 7:00 AM'"
-  },
-  "reminderSlotAfternoon": "Afternoon",
-  "@reminderSlotAfternoon": {
-    "description": "Time-of-day chip label; shown with a concrete time, e.g. 'Afternoon · 1:00 PM'. CURRENTLY UNUSED — the afternoon preset was swapped for reminderSlotNight, and is kept so that swap is a one-line revert."
   },
   "reminderSlotEvening": "Evening",
   "@reminderSlotEvening": {
@@ -457,126 +272,12 @@
   "onboardingBatteryOptimize": "Update Setting",
   "skipForNow": "Skip for Now",
   "skip": "Skip",
-  "donationTitle": "Millions find calm here for free. Help keep it that way.",
-  "donationBody": "Medito is run by a small nonprofit team — no ads, no investors, no paywalls. It stays free because people like you choose to support it.",
-  "donationPrimerCta": "See how to help",
-  "@donationPrimerCta": {
-    "description": "CTA button on the onboarding donation primer screen, opens the donation paywall"
-  },
-  "donateNow": "Become a supporter",
-  "noThanks": "No thanks",
-  "next": "Next",
-  "remindLater": "Remind Me Later",
-  "allSetTitle": "You're All Set!",
-  "startMeditating": "Start Meditating",
-  "trackingPermissionTitle": "Help Us Improve Medito",
-  "trackingPermissionBody": "Your privacy matters. We use anonymous data to understand how people use Medito, so we can make it better for everyone. We never collect personal information or sell your data.",
-  "trackingPermissionPrivacyNote": "Your data stays anonymous and is never shared with third parties.",
-  "trackingPermissionAllow": "Continue",
-  "onboardingFirstMeditationTitle": "Your first meditation",
-  "onboardingFirstMeditationHook": "Your first moment of calm.",
-  "onboardingFirstMeditationDuration": "Just over 2 minutes",
-  "onboardingFirstMeditationSubtitle": "Nothing to get right. Just sit back and listen.",
-  "onboardingFirstMeditationBegin": "Start",
-  "onboardingFirstMeditationSkip": "Maybe later",
-  "onboardingFirstMeditationSkipShort": "Skip",
-  "onboardingFirstMeditationDone": "That's it. You just meditated.",
-  "onboardingFirstMeditationContinue": "Continue",
-  "splashHeadline": "Meditation Made Simple",
-  "splashSubtitle": "Free forever. No ads. Not-for-profit.",
-  "@splashSubtitle": {
-    "description": "One-line value proposition under the splash headline"
-  },
-  "splashBenefit1Subtitle": "Explore hours of guided meditations, advanced courses, and more. No paywall.",
-  "splashBenefit2Subtitle": "Stay motivated daily, track progress, and build lasting habits.",
-  "splashBenefit3Subtitle": "Donations keep us going so everyone can access mindfulness—no ads needed.",
-  "continueText": "Continue",
-  "setReminderB": "Remind Me Daily",
-  "@setReminderB": {
-    "description": "CTA on the onboarding notifications screen"
-  },
-  "donationContinueToPayment": "Continue to payment",
-  "donationEmailLabel": "Email address",
-  "donationEmailHelper": "For your receipt and to manage your donation.",
-  "donationEmailRequired": "Enter your email so we can send a receipt.",
-  "donationEmailInvalid": "That email address does not look right.",
-  "emailTypoSuggestion": "Did you mean {email}?",
-  "@emailTypoSuggestion": {
-    "description": "Tappable hint under an email field when the domain looks mistyped, e.g. gmil.com.",
-    "placeholders": {"email": {"type": "String"}}
-  },
-  "emailTypoDialogTitle": "Check your email",
-  "emailTypoDialogTyped": "You typed {email}.",
-  "@emailTypoDialogTyped": {
-    "description": "First line of the email typo confirm dialog.",
-    "placeholders": {"email": {"type": "String"}}
-  },
-  "emailTypoUseSuggestion": "Use this",
-  "emailTypoKeepTyped": "Keep mine",
-  "donationThankYouTitle": "Thank You for Your Support!",
-  "donationThankYouBody": "Your generosity helps keep Medito free and accessible to everyone. We're deeply grateful for your contribution to spreading mindfulness worldwide.",
-  "donationVisitFoundation": "Visit Medito Foundation",
-  "donationContinue": "Continue",
-  "streakFreezesAvailable": "Streak Freezes Available",
-  "freezeUsedMessage": "A streak freeze was used to maintain your streak!",
-  "streakAtRisk": "You missed a day",
-  "streakFreezeAvailable": "You have 1 streak freeze available. Would you like to use it to protect your current streak?",
-  "streakFreezesAvailableMessage": "But it's OK! You have {count} streak freezes available. Would you like to use one to protect your current streak?",
-  "useStreakFreeze": "Use Streak Freeze",
-  "streakFreezesBeta": "Streak Freezes (Beta)",
-  "streakFreezesBetaDescription": "Enable the ability to use streak freezes to maintain your meditation streak when you miss a day",
   "notNow": "Not Now",
-  "helpTitle": "Help",
-  "meditationInterruptionTitle": "Meditations stop unexpectedly",
-  "meditationInterruptionContent": "This is likely due to your phone's battery optimization settings. Visit DontKillMyApp.com for specific instructions on how to allow Medito to run properly in the background on your device.",
-  "supportTitle": "I want to support you",
-  "supportContent": "You can support Medito Foundation through several methods",
-  "stopDonationTitle": "I want to stop my monthly donation",
-  "stopDonationContent": "Go to the donation portal. You need the email address you used to set them up",
-  "statsWrongTitle": "My stats are wrong",
-  "statsWrongContent": "You can edit them at the dedicated stats editing page.",
-  "contactUsContent": "If you have any questions not addressed on this page, any feedback, or if you need assistance, try updating the app. If that doesn't help, please reach out to us. We're here to help!",
-  "contactUsActionText": "Contact Us",
-  "downloadTracksTitle": "How to download tracks",
-  "downloadTracksContent": "To download a track, start playing it and then look for the download icon (a down arrow) at the bottom of the player screen—it's the second icon.\\n\\nOnce downloaded, you can access your tracks by tapping the \"Downloads\" tile on the home screen.",
-  "openBatterySettingsText": "Visit DontKillMyApp.com",
-  "dontKillMyAppUrl": "https://dontkillmyapp.com",
-  "goToDonationPortalText": "Go to Donation Portal",
-  "editStatsActionText": "Edit Stats",
-  "donateViaDonationFormText": "Donate via Donation Form",
-  "donateViaPayPalText": "Donate via PayPal",
-  "donateViaBankTransferText": "Donate via Bank Transfer",
-  "donationFormUrl": "https://donate.meditofoundation.org",
-  "payPalDonationUrl": "https://paypal.me/meditofoundation",
-  "bankTransferDetailsUrl": "https://meditofoundation.org/about/bank-details",
-  "donationPortalUrl": "https://bit.ly/3yFqVbM",
-  "contactFormBaseUrl": "https://tally.so/r/wLGBaO",
-  "batteryOptimizationTitle": "Your device has additional battery optimization",
-  "batteryOptimizationDescription": "Follow the steps and disable the optimizations to allow smooth functioning of this app",
-  "autoStartTitle": "Enable Auto Start",
-  "autoStartDescription": "Follow the steps and enable the auto start of this app",
-  "batteryOptimizationAlreadyDisabled": "Battery optimization is already disabled for Medito",
-  "donationRetentionTitle": "Please Reconsider",
-  "donationRetentionMainMessage": "Millions of people rely on Medito, and we operate solely on donations.",
-  "donationRetentionBenefitsHeading": "Your support helps us:",
-  "donationRetentionBenefit1": "Add new meditation content regularly",
-  "donationRetentionBenefit2": "Develop new features to improve your experience",
-  "donationRetentionBenefit3": "Keep Medito free and accessible for everyone",
-  "donationRetentionFinancialMessage": "If you're experiencing financial difficulties, we understand. But if you can continue your support, even at a reduced amount, it would make a significant difference.",
-  "stayAsDonorButtonText": "Stay as a donor",
-  "continueToCancellationButtonText": "Continue to cancellation",
-  "donationRetentionThankYouMessage": "Thank you! Your continued support means the world to us and helps millions of people access meditation.",
-  "errorNetworkMessage": "Unable to connect to server",
   "errorNoInternetMessage": "No internet connection",
   "errorTimeoutMessage": "Connection timed out",
-  "errorHostLookupMessage": "Couldn't reach Medito's servers. Check for a VPN, ad blocker or Private DNS setting.",
-  "errorConnectTimeoutMessage": "Connection to Medito's servers timed out. Please try again.",
-  "errorServerUnreachableMessage": "Couldn't connect to Medito's servers. Please try again later.",
-  "errorUnauthorizedMessage": "Session expired, please sign in again",
   "errorNotFoundMessage": "Content not found",
   "errorServerMessage": "Server error, please try again later",
   "errorUnknownMessage": "Something went wrong, please try again",
-  "inactiveEmailError": "This email address is currently unable to receive messages due to email provider restrictions or delivery issues. Please try using a different email address.",
   "enableDndDuringMeditation": "Silence phone during meditation",
   "zenMode": "Zen Mode",
   "@zenMode": {
@@ -634,54 +335,8 @@
   "@dndAccessBody": {
     "description": "Body of the dialog explaining the Android Do Not Disturb access permission before opening system settings"
   },
-  "mindClear": "Mind Clear",
-  "@mindClear": {
-    "description": "Message shown in zen mode after completing meditation"
-  },
-  "donateToMedito": "Donate Now",
   "currency": "Currency",
   "custom": "Custom Amount",
-  "payWithPaypal": "Donate with PayPal",
-  "bankTransfer": "Bank Transfer",
-  "changeCurrency": "Change Currency",
-  "chooseAmount": "Choose an amount",
-  "otherPaymentMethods": "Other donation methods",
-  "donationSecurityMessage": "All donations are securely processed. We are a registered non-profit organisation dedicated to making meditation accessible to everyone.",
-  "donationImpactTitle": "Your donation helps us to:",
-  "donationImpactPoints": "• Create new free meditation content\n• Maintain the app without ads\n• Make mental wellbeing accessible to all\n• Helps us keep meditation free for everyone",
-  "donationSecurityInfo": "We do not sell or trade your information with anyone.",
-  "foundationRegistrationInfo": "Medito Foundation or in Dutch, Stichting Medito is a non-profit organisation registered in the Netherlands.",
-  "foundationContactInfo": "KvK-nummer: 75284251\nRSIN: 860222627\nEmail: hello@meditofoundation.org",
-  "redirectingToSecurePayment": "Redirecting to a secure payment page...",
-  "couldNotOpenDonationPage": "Could not open the donation page.",
-  "monthlyDonation": "Monthly",
-  "singleDonation": "One-time",
-  "monthlyDonationImpact": "£10/month can bring meditation to hundreds, helping fight depression and anxiety.",
-  "oneTimeDonationImpact": "Your donation directly supports free mindfulness resources, bringing peace to thousands today.",
-  "donationSuccessful": "Donation Successful!",
-  "@donationSuccessful": {
-    "description": "Shown in donate button when payment completes successfully"
-  },
-  "completePaymentInForm": "Complete payment in the form below",
-  "@completePaymentInForm": {
-    "description": "Shown in donate button when Stripe bottom sheet is open"
-  },
-  "pleaseCompletePayment": "Please complete your payment in the secure form",
-  "@pleaseCompletePayment": {
-    "description": "Helper text when Stripe bottom sheet is open"
-  },
-  "processingDonation": "Processing your donation...",
-  "@processingDonation": {
-    "description": "Helper text when payment is being processed"
-  },
-  "thankYouForSupport": "Thank you for your support!",
-  "@thankYouForSupport": {
-    "description": "Helper text shown after successful donation"
-  },
-  "tapAmountToStart": "Tap an amount above to start your donation",
-  "@tapAmountToStart": {
-    "description": "Default helper text in donate button"
-  },
   "impactCardHelpMessage": "Help millions worldwide access free meditation",
   "impactCardTestimonial": "\"Medito pulled me through a seriously dark period in my life\" - Medito meditator",
   "favorites": "Favorites",
@@ -692,143 +347,16 @@
   "all": "All",
   "tracks": "Tracks",
   "packs": "Packs",
-  "shopTitle": "Shop",
-  "emailExistsDialogTitle": "Existing Account Found",
-  "emailExistsDialogMessage": "Looks like you have signed in with an email address before. Would you like to sign in with your email address again?",
-  "emailExistsContinueNewAccount": "Continue",
-  "emailExistsSignInWithEmail": "Sign in with Email",
-  "emailMismatchDialogTitle": "Different email",
-  "emailMismatchDialogMessage": "This phone was signed in with a different email address before. If that is your account, go back and use that email. Otherwise continue to create a new account. Your existing progress stays with the original email.",
-  "emailMismatchStartNewAccount": "Continue",
-  "emailMismatchGoBack": "Go back",
-  "analyticsTrackingTitle": "Data Collection",
-  "analyticsTrackingContent": "We collect usage data and limited identifiers (such as a user ID and, where permitted, device or advertising identifiers) to help us improve the app and understand feature usage. You can turn analytics off at any time. See our Privacy Policy for details.",
-  "turnOffAnalyticsText": "Turn Off Analytics",
-  "turnOnAnalyticsText": "Turn On Analytics",
-  "analyticsDisabledMessage": "Analytics tracking has been disabled",
-  "analyticsEnabledMessage": "Analytics tracking has been enabled",
-  "iosTrackingDialogTitle": "Data Collection",
-  "iosTrackingDialogContent": "This will disable analytics tracking in the app. We may collect limited identifiers (e.g. user ID and, where permitted, device/advertising IDs) to measure usage and improve features. You can also control tracking permissions in iOS Settings > Privacy & Security > Tracking.",
-  "androidTrackingDialogContent": "This will disable analytics tracking in the app. We may collect limited identifiers (e.g. user ID and, where permitted, device/advertising IDs) to measure usage and improve features.",
-  "iosTrackingDialogCancel": "Cancel",
-  "iosTrackingDialogDisable": "Disable Tracking",
-  "newProductLabel": "NEW",
-  "packsSectionHeader": "Packs",
-  "tracksSectionHeader": "Tracks",
   "noResultsFound": "No results found for your search",
   "consistencyScoreInfoTitle": "Consistency Score",
   "consistencyScoreInfoMessage": "Your consistency score reflects how regularly you've meditated since you started. Recent days carry more weight, but earlier missed days still gently affect the score. Unlike streaks, it doesn't reset on a missed day.",
-  "accountDeletionInitiated": "Account deletion process initiated. Please complete the steps in your browser.",
-  "reportError": "Report Error",
-  "errorReportedMessage": "Thank you, your report has been sent.",
-  "language": "Language",
-  "languageSubtitle": "Change app language",
-  "selectLanguage": "Select Language",
   "systemLanguage": "System",
   "english": "English",
   "german": "Deutsch",
   "spanish": "Español (beta)",
-  "reportTrack": "Report Track",
-  "@reportTrack": {
-    "description": "Title for reporting issues with a meditation track"
-  },
-  "reportForThisTrack": "Report for this track",
-  "@reportForThisTrack": {
-    "description": "Button text to report issues for the entire track"
-  },
-  "reportAtCurrentPosition": "Report at",
-  "@reportAtCurrentPosition": {
-    "description": "Button text to report issues at the current playback position"
-  },
-  "reportTrackDescription": "Report an issue with \"{trackTitle}\"",
-  "@reportTrackDescription": {
-    "description": "Dialog description text for reporting track issues",
-    "placeholders": {
-      "trackTitle": {
-        "type": "String",
-        "description": "Title of the track being reported"
-      }
-    }
-  },
-  "reportDialogQuestion": "What would you like to report?",
-  "@reportDialogQuestion": {
-    "description": "Question shown in the report dialog"
-  },
-  "reportDialogHelpLink": "Please check the help page if your issue has been addressed",
-  "@reportDialogHelpLink": {
-    "description": "Help link text in the report dialog"
-  },
-  "helpPage": "Help",
-  "@helpPage": {
-    "description": "Label for the help page link"
-  },
-  "storageReadError": "Failed to read data from local storage",
-  "@storageReadError": {
-    "description": "Error message when reading from local storage fails"
-  },
-  "accountInactiveError": "This email address is currently unable to receive messages due to email provider restrictions or delivery issues. Please try using a different email address.",
-  "@accountInactiveError": {
-    "description": "Error message when account is inactive"
-  },
-  "rateLimitError": "Something went wrong",
-  "@rateLimitError": {
-    "description": "Error message for rate limit errors"
-  },
-  "backgroundSoundNone": "None",
-  "@backgroundSoundNone": {
-    "description": "Title for the 'no background sound' option"
-  },
-  "customAmount": "Custom Amount",
-  "@customAmount": {
-    "description": "Label for custom donation amount"
-  },
-  "debugInfoLabel": "Debug info",
-  "@debugInfoLabel": {
-    "description": "Label for debug information"
-  },
-  "writeBelowThisLine": "--- Write below this line ---",
-  "@writeBelowThisLine": {
-    "description": "Text indicating where to write in debug reports"
-  },
-  "fieldRequiredError": "Field is Required",
-  "@fieldRequiredError": {
-    "description": "Error message when a required field is empty"
-  },
-  "invalidEmailError": "Invalid Email.",
-  "@invalidEmailError": {
-    "description": "Error message for invalid email format"
-  },
-  "invalidInputError": "Invalid Input",
-  "@invalidInputError": {
-    "description": "Error message for invalid input"
-  },
-  "connectivityErrorMessage": "Make sure you are connected to the internet to use Medito",
-  "@connectivityErrorMessage": {
-    "description": "Error message when there's no internet connection"
-  },
-  "timeoutErrorMessage": "Oops! It seems like there was an error. If the problem persists, Close the app and try again.",
-  "@timeoutErrorMessage": {
-    "description": "Error message for timeout errors"
-  },
-  "anErrorOccurredMessage": "An unknown error occurred. Either we're having issues or you're offline.",
-  "@anErrorOccurredMessage": {
-    "description": "Generic error message for unknown errors"
-  },
-  "reminderNotificationTitle": "Daily Meditation Reminder",
-  "@reminderNotificationTitle": {
-    "description": "Title for daily meditation reminder notifications"
-  },
-  "reminderNotificationBody": "It's time for your daily meditation. Take a moment to relax and focus.",
-  "@reminderNotificationBody": {
-    "description": "Body text for daily meditation reminder notifications"
-  },
   "helpLegalSection": "Help",
   "@helpLegalSection": {
     "description": "Section title for help settings"
-  },
-  "supportCommunitySection": "Support & Community",
-  "@supportCommunitySection": {
-    "description": "Section title for support and community settings"
   },
   "customizationSection": "Customisation",
   "@customizationSection": {
@@ -869,10 +397,6 @@
   "appIconTitle": "App Icon",
   "@appIconTitle": {
     "description": "Title for app icon selection setting in customization section"
-  },
-  "appIconDefault": "Default",
-  "@appIconDefault": {
-    "description": "Label for the default app icon option"
   },
   "appIconNearBlack": "Dark",
   "@appIconNearBlack": {
@@ -929,90 +453,6 @@
   "selectTheme": "Select Theme",
   "@selectTheme": {
     "description": "Dialog title for theme selection"
-  },
-  "processing": "Processing...",
-  "@processing": {
-    "description": "Loading text shown while processing donation"
-  },
-  "thankYouForDonationMessage": "Thank you for your donation! Your support helps us continue our mission.",
-  "@thankYouForDonationMessage": {
-    "description": "Success message shown after successful donation"
-  },
-  "paymentCancelled": "Payment cancelled",
-  "@paymentCancelled": {
-    "description": "Message shown when payment is cancelled"
-  },
-  "processingPayment": "Processing payment...",
-  "@processingPayment": {
-    "description": "Loading text while payment is being processed"
-  },
-  "preparingDonation": "Preparing donation...",
-  "@preparingDonation": {
-    "description": "Loading text while preparing donation"
-  },
-  "thisMayTakeAMoment": "This may take a moment",
-  "@thisMayTakeAMoment": {
-    "description": "Helper text shown while loading donation options"
-  },
-  "paymentSuccessMessage": "Payment successful! Thank you for your donation of {amount} {currency}.",
-  "@paymentSuccessMessage": {
-    "description": "Success message shown after successful payment",
-    "placeholders": {
-      "amount": {
-        "type": "String",
-        "description": "The donation amount"
-      },
-      "currency": {
-        "type": "String", 
-        "description": "The currency code"
-      }
-    }
-  },
-  "paymentFailedMessage": "Payment failed for payment intent id: {paymentIntentId}",
-  "@paymentFailedMessage": {
-    "description": "Error message shown when payment fails",
-    "placeholders": {
-      "paymentIntentId": {
-        "type": "String",
-        "description": "The payment intent ID"
-      }
-    }
-  },
-  "paymentCancelledMessage": "Payment was cancelled.",
-  "@paymentCancelledMessage": {
-    "description": "Message shown when payment is cancelled by user"
-  },
-  "newMessageFallback": "New message",
-  "@newMessageFallback": {
-    "description": "Fallback text for notifications when no body is provided"
-  },
-  "viewAction": "View",
-  "@viewAction": {
-    "description": "Action label for notification actions"
-  },
-  "thankYouForYourSupport": "Thank You for Your Support",
-  "@thankYouForYourSupport": {
-    "description": "Title shown to existing donors in the donation widget"
-  },
-  "donorSupportMessage": "We rely on donors like you to continue providing mindfulness to everyone.",
-  "@donorSupportMessage": {
-    "description": "Message shown to existing donors explaining their importance"
-  },
-  "donationInfoTitle": "Why You Might See This",
-  "@donationInfoTitle": {
-    "description": "Title for the donation info dialog explaining why users might see the donation ask"
-  },
-  "donationInfoMessage": "Sometimes we don't know when someone has donated. We are looking at how to improve this. You can hide this message for a while if you've already donated.",
-  "@donationInfoMessage": {
-    "description": "Message explaining why users might see the donation ask even if they've donated"
-  },
-  "hideForNow": "I've Already Donated",
-  "@hideForNow": {
-    "description": "Button text to temporarily hide the donation ask"
-  },
-  "donationAskHiddenMessage": "Donation ask hidden for 30 days",
-  "@donationAskHiddenMessage": {
-    "description": "Message shown after hiding the donation ask"
   },
   "dailyReminders": "Daily Reminders",
   "@dailyReminders": {
@@ -1262,10 +702,6 @@
   "@reminderDay30Body": {
     "description": "Daily reminder day 30 body"
   },
-  "repeatModeNormal": "Normal",
-  "@repeatModeNormal": {
-    "description": "Tooltip text for repeat mode when set to normal (no repeat)"
-  },
   "repeatModeOnce": "Repeat Once",
   "@repeatModeOnce": {
     "description": "Tooltip text for repeat mode when set to repeat once"
@@ -1306,17 +742,9 @@
   "@deleteSessionError": {
     "description": "Error snackbar shown when deleting a session fails"
   },
-  "date": "Date",
-  "@date": {
-    "description": "Label for date selection"
-  },
   "time": "Time",
   "@time": {
     "description": "Label for time selection"
-  },
-  "selectDate": "Select date",
-  "@selectDate": {
-    "description": "Placeholder text for date selection"
   },
   "singleDay": "Single day",
   "@singleDay": {
@@ -1341,10 +769,6 @@
   "selectTime": "Select time",
   "@selectTime": {
     "description": "Placeholder text for time selection"
-  },
-  "durationInMinutes": "Duration (minutes)",
-  "@durationInMinutes": {
-    "description": "Placeholder text for duration input in minutes"
   },
   "minutes": "Minutes",
   "@minutes": {
@@ -1374,10 +798,6 @@
   "@add": {
     "description": "Button text to add a session"
   },
-  "addedManually": "Added manually",
-  "@addedManually": {
-    "description": "Text shown for manually added meditation sessions"
-  },
   "manuallyAddedSession": "Manually added session",
   "@manuallyAddedSession": {
     "description": "Placeholder text shown for manually added sessions when no custom title is provided"
@@ -1396,14 +816,18 @@
   },
   "upNextTitle": "Continue",
   "@upNextTitle": {
-    "description": "Eyebrow on the home hero once the pack is under way (CONTINUE \u00b7 pack), and the section name in Customise Home"
+    "description": "Eyebrow on the home hero once the pack is under way (CONTINUE · pack), and the section name in Customise Home"
   },
   "upNextProgress": "{completed} of {total}",
   "@upNextProgress": {
     "description": "Caption next to the pack progress bar on the Your Path card, e.g. 3 of 7",
     "placeholders": {
-      "completed": {"type": "int"},
-      "total": {"type": "int"}
+      "completed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "upNextPackCompletedTitle": "You finished {packTitle}",
@@ -1451,29 +875,15 @@
   "upNextNextPackPinnedSnack": "{packTitle} is ready on Home",
   "@upNextNextPackPinnedSnack": {
     "description": "Snackbar after the completed hero's button puts the next pack in the series on Home",
-    "placeholders": {"packTitle": {"type": "String"}}
-  },
-  "upNextSessionCount": "Session {current} of {total}",
-  "@upNextSessionCount": {
-    "description": "Shows the current session number out of total sessions",
     "placeholders": {
-      "current": {
-        "type": "int",
-        "description": "Current session number"
-      },
-      "total": {
-        "type": "int",
-        "description": "Total number of sessions"
+      "packTitle": {
+        "type": "String"
       }
     }
   },
   "manageDefaults": "Manage Defaults",
   "@manageDefaults": {
     "description": "Title for the manage defaults screen"
-  },
-  "defaults": "Defaults",
-  "@defaults": {
-    "description": "Section title for defaults"
   },
   "defaultGuideName": "Default Guide Name",
   "@defaultGuideName": {
@@ -1486,10 +896,6 @@
   "defaultGuideNameCleared": "Default guide name cleared",
   "@defaultGuideNameCleared": {
     "description": "Message shown when default guide name is cleared"
-  },
-  "defaultDurationCleared": "Default duration cleared",
-  "@defaultDurationCleared": {
-    "description": "Message shown when default duration is cleared"
   },
   "notSet": "Not set",
   "@notSet": {
@@ -1555,10 +961,6 @@
   "@backgroundSoundsSection": {
     "description": "Background sound sheet: label above the list of ambient sounds"
   },
-  "reportIssue": "Report issue",
-  "@reportIssue": {
-    "description": "Accessibility label for the report button in the player"
-  },
   "viewStreak": "View streak",
   "@viewStreak": {
     "description": "Accessibility label for the streak circle button on the home screen"
@@ -1575,33 +977,13 @@
   "@dismiss": {
     "description": "Accessibility label for dismiss/close buttons"
   },
-  "donationInfo": "Donation info",
-  "@donationInfo": {
-    "description": "Accessibility label for the donation information button"
-  },
   "clearSearch": "Clear search",
   "@clearSearch": {
     "description": "Accessibility label for the clear search button"
   },
-  "saveJournalEntry": "Save journal entry",
-  "@saveJournalEntry": {
-    "description": "Accessibility label for the save button in the journal entry screen"
-  },
   "clearDefault": "Clear default guide",
   "@clearDefault": {
     "description": "Accessibility label for the button that clears the saved default guide preference"
-  },
-  "lockedContent": "Locked",
-  "@lockedContent": {
-    "description": "Accessibility label for a locked track item"
-  },
-  "yourPathExplainerText": "Learn meditation one minute at a time. Sessions get longer as you learn.",
-  "@yourPathExplainerText": {
-    "description": "Stage 1 text in the Your Path explainer strip shown below the card on the home screen"
-  },
-  "yourPathExplainerSwipeHint": "Swipe left to skip or open the pack.",
-  "@yourPathExplainerSwipeHint": {
-    "description": "Stage 2 text in the Your Path explainer strip, shown after the user taps Got it"
   },
   "onboardingExperienceQuestion": "Have you meditated before?",
   "@onboardingExperienceQuestion": {
@@ -1622,102 +1004,6 @@
   "onboardingExperienceRegular": "I have a regular practice",
   "@onboardingExperienceRegular": {
     "description": "Option 3 on onboarding screen 1 — user has a regular meditation practice"
-  },
-  "onboardingIntentQuestion": "What are you hoping to get from Medito?",
-  "@onboardingIntentQuestion": {
-    "description": "Question on onboarding screen 2 — asking about the user's intention"
-  },
-  "onboardingIntentSubtext": "Pick whichever feels most true right now.",
-  "@onboardingIntentSubtext": {
-    "description": "Subtext below the question on onboarding screen 2"
-  },
-  "onboardingIntentLearn": "Learn how to meditate properly",
-  "@onboardingIntentLearn": {
-    "description": "Option 1 on onboarding screen 2 — user wants to learn to meditate"
-  },
-  "onboardingIntentHabit": "Build a regular habit",
-  "@onboardingIntentHabit": {
-    "description": "Option 2 on onboarding screen 2 — user wants to build a regular habit"
-  },
-  "onboardingIntentStress": "Manage stress, sleep, or emotions",
-  "@onboardingIntentStress": {
-    "description": "Option 3 on onboarding screen 2 — user wants to manage stress, sleep, or emotions"
-  },
-  "onboardingStep1of2": "1 of 2",
-  "@onboardingStep1of2": {
-    "description": "Step indicator label on onboarding question screen 1 (of 2)"
-  },
-  "onboardingStep2of2": "2 of 2",
-  "@onboardingStep2of2": {
-    "description": "Step indicator label on onboarding question screen 2 (of 2)"
-  },
-  "onboardingAttributionQuestion": "How did you hear about Medito?",
-  "@onboardingAttributionQuestion": {
-    "description": "Question on onboarding attribution screen — asking how the user discovered Medito"
-  },
-  "onboardingAttributionSubtext": "This helps us reach more people who need it.",
-  "@onboardingAttributionSubtext": {
-    "description": "Subtext below the attribution question on onboarding"
-  },
-  "onboardingAttributionGoogleAd": "Google ad",
-  "@onboardingAttributionGoogleAd": {
-    "description": "Attribution option — user found Medito via a Google ad"
-  },
-  "onboardingAttributionSocialAd": "Instagram or Facebook ad",
-  "@onboardingAttributionSocialAd": {
-    "description": "Attribution option — user found Medito via an Instagram or Facebook ad"
-  },
-  "onboardingAttributionFriend": "A friend told me",
-  "@onboardingAttributionFriend": {
-    "description": "Attribution option — user heard about Medito from a friend"
-  },
-  "onboardingAttributionTherapist": "Therapist or healthcare professional",
-  "@onboardingAttributionTherapist": {
-    "description": "Attribution option — user was recommended Medito by a therapist or healthcare professional"
-  },
-  "onboardingAttributionAppStore": "App Store",
-  "@onboardingAttributionAppStore": {
-    "description": "Attribution option (iOS only) — user found Medito by browsing the App Store"
-  },
-  "onboardingAttributionPlayStore": "Play Store",
-  "@onboardingAttributionPlayStore": {
-    "description": "Attribution option (Android only) — user found Medito by browsing the Play Store"
-  },
-  "onboardingAttributionOther": "Other",
-  "@onboardingAttributionOther": {
-    "description": "Attribution option — user found Medito via some other means"
-  },
-  "onboardingAttributionOtherLabel": "Something else?",
-  "@onboardingAttributionOtherLabel": {
-    "description": "Label above the free-text field on the attribution question, prompting users to type their own answer"
-  },
-  "onboardingAttributionOtherHint": "Tell us where you heard about us",
-  "@onboardingAttributionOtherHint": {
-    "description": "Placeholder text inside the free-text attribution field"
-  },
-  "onboardingResultLearnHeading": "You're in the right place.",
-  "@onboardingResultLearnHeading": {
-    "description": "Heading on the onboarding result screen for users who are new or want to learn (State A)"
-  },
-  "onboardingResultLearnBody": "We'll start you off with just 1 minute and build from there. No experience needed — just show up.",
-  "@onboardingResultLearnBody": {
-    "description": "Body text on the onboarding result screen for State A"
-  },
-  "onboardingResultEaseInHeading": "Good to have you here.",
-  "@onboardingResultEaseInHeading": {
-    "description": "Heading on the onboarding result screen for users with some experience (State B)"
-  },
-  "onboardingResultEaseInBody": "We'll ease you back in with short sessions that build on each other. Go at whatever pace suits you.",
-  "@onboardingResultEaseInBody": {
-    "description": "Body text on the onboarding result screen for State B"
-  },
-  "onboardingResultPracticeHeading": "Welcome to Medito.",
-  "@onboardingResultPracticeHeading": {
-    "description": "Heading on the onboarding result screen for users with a regular practice (State C)"
-  },
-  "onboardingResultPracticeBody": "Your Daily is a great place to keep your practice going. A fresh session is waiting for you every day.",
-  "@onboardingResultPracticeBody": {
-    "description": "Body text on the onboarding result screen for State C"
   },
   "onboardingResultCta": "Get started",
   "@onboardingResultCta": {
@@ -1747,22 +1033,6 @@
   "@yourPathAllDone": {
     "description": "Pack screen status row subtitle when every session in Your Path is complete"
   },
-  "connectionErrorTitle": "Couldn't load paywall",
-  "@connectionErrorTitle": {
-    "description": "Title shown when the donation paywall webview fails to load"
-  },
-  "connectionErrorMessage": "Please check your connection and try again.",
-  "@connectionErrorMessage": {
-    "description": "Body text shown when the donation paywall webview fails to load"
-  },
-  "tryAgainButton": "Try again",
-  "@tryAgainButton": {
-    "description": "Retry button on the paywall load-error screen"
-  },
-  "closeButton": "Close",
-  "@closeButton": {
-    "description": "Close button on the paywall load-error screen"
-  },
   "markAllComplete": "Mark all complete",
   "@markAllComplete": {
     "description": "Button at the bottom of a pack track list that marks every track complete"
@@ -1779,28 +1049,6 @@
   "@markTrackIncomplete": {
     "description": "Accessibility label for the per-track toggle when the track is complete"
   },
-  "accountPromptTitle": "Keep your progress safe",
-  "@accountPromptTitle": {
-    "description": "Title of the end-screen card that invites an anonymous user to add an email to their account"
-  },
-  "accountPromptBody": "Add your email so your streak and history follow you to a new phone.",
-  "@accountPromptBody": {
-    "description": "Body of the end-screen account-conversion card"
-  },
-  "accountPromptCta": "Save my progress",
-  "@accountPromptCta": {
-    "description": "Primary button on the end-screen account-conversion card"
-  },
-  "donateAmountPerMonth": "Donate {amount}/month",
-  "@donateAmountPerMonth": {"description": "Primary pay button on the inline end-screen donation card", "placeholders": {"amount": {"type": "String", "example": "$5"}}},
-  "donateWithApplePayPrefix": "Donate with",
-  "@donateWithApplePayPrefix": {"description": "Text before the Apple Pay mark on the Apple Pay button"},
-  "donateOtherAmount": "Other amount",
-  "@donateOtherAmount": {"description": "Link on the inline end-screen donation card that opens the full donation page"},
-  "donateMostPopular": "Most popular",
-  "@donateMostPopular": {"description": "Badge on the suggested amount chip"},
-  "donateMonthlyDisclosure": "Monthly, cancel any time. Secure payment via Stripe.",
-  "@donateMonthlyDisclosure": {"description": "Small print under the inline pay button"},
   "tagSleep": "Sleep",
   "@tagSleep": {
     "description": "Content tag chip label (server tag id: sleep)"
@@ -1999,114 +1247,72 @@
   "@packAddedToHome": {
     "description": "Snackbar after the pack screen Start/Continue button puts a new pack on Home; offers Undo"
   },
-  "shopSubtitle": "Every purchase helps keep Medito free for everyone.",
-  "@shopSubtitle": {"description": "Line under the Shop title on the native shop screen"},
-  "shopAllCollection": "All",
-  "@shopAllCollection": {"description": "First filter chip on the shop screen: every product, no collection filter"},
-  "shopFromPrice": "From {price}",
-  "@shopFromPrice": {"description": "Product card price when sizes cost different amounts; price is already formatted with currency, e.g. 'From $28'", "placeholders": {"price": {"type": "String", "example": "$28"}}},
-  "shopSoldOut": "Sold out",
-  "@shopSoldOut": {"description": "Badge/label on a product or size that can't be bought right now"},
-  "shopAddToBag": "Add to bag",
-  "@shopAddToBag": {"description": "Primary button on the product page"},
-  "shopAddedToBag": "Added to bag",
-  "@shopAddedToBag": {"description": "Product page button label for a moment after adding"},
-  "shopSelectSize": "Select a size",
-  "@shopSelectSize": {"description": "Product page primary button while no size is chosen"},
-  "shopColour": "Colour",
-  "@shopColour": {"description": "Label above the colour swatches on the product page"},
-  "shopSize": "Size",
-  "@shopSize": {"description": "Label above the size pills on the product page"},
-  "shopOption": "Option",
-  "@shopOption": {"description": "Label above option pills for products without colour or size, e.g. gift card amounts"},
-  "shopBagTitle": "Your bag",
-  "@shopBagTitle": {"description": "Title of the shopping bag sheet"},
-  "shopBagEmpty": "Your bag is empty",
-  "@shopBagEmpty": {"description": "Empty state title in the shopping bag sheet"},
-  "shopBagEmptyBody": "Anything you add will wait here until you're ready.",
-  "@shopBagEmptyBody": {"description": "Empty state body in the shopping bag sheet"},
-  "shopBrowse": "Browse the shop",
-  "@shopBrowse": {"description": "Button in the empty bag that opens the shop"},
-  "shopSubtotal": "Subtotal",
-  "@shopSubtotal": {"description": "Bag sheet: sum of item prices before shipping and tax"},
-  "shopShippingNote": "Shipping and taxes are calculated at checkout.",
-  "@shopShippingNote": {"description": "Bag sheet note under the subtotal"},
-  "shopCheckout": "Checkout",
-  "@shopCheckout": {"description": "Bag sheet button that opens the secure checkout page"},
-  "shopCheckoutPrompt": "Already placed your order?",
-  "@shopCheckoutPrompt": {"description": "Bag sheet card shown after the user returned from checkout; offers to clear the bag"},
-  "shopClearBag": "Clear bag",
-  "@shopClearBag": {"description": "Button that removes everything from the shopping bag"},
-  "shopSupportNote": "Medito is a nonprofit. Every purchase supports free meditation for everyone.",
-  "@shopSupportNote": {"description": "Note near the bottom of a product page"},
-  "shopLoadError": "We couldn't load the shop right now.",
-  "@shopLoadError": {"description": "Error state on the shop and product pages"},
-  "shopOpenInBrowser": "Open in browser",
-  "@shopOpenInBrowser": {"description": "Fallback button on shop error states; opens shop.medito.app"},
-  "shopRemoveItem": "Remove",
-  "@shopRemoveItem": {"description": "Bag sheet: remove a line from the bag"},
-  "shopIncreaseQuantity": "Increase quantity",
-  "@shopIncreaseQuantity": {"description": "Accessibility label for the + button in the bag"},
-  "shopDecreaseQuantity": "Decrease quantity",
-  "@shopDecreaseQuantity": {"description": "Accessibility label for the − button in the bag"},
-  "shopViewBag": "View bag",
-  "@shopViewBag": {"description": "Accessibility label for the bag icon; also snackbar action after adding an item"},
-  "shopMoreDetails": "Details",
-  "@shopMoreDetails": {"description": "Fallback title for a product info section with no title"},
-  "shopBagItemCount": "{count, plural, =1{1 item} other{{count} items}}",
-  "@shopBagItemCount": {"description": "Count of units in the shopping bag, under the bag title", "placeholders": {"count": {"type": "int"}}},
-  "shopSeeAll": "See all",
-  "@shopSeeAll": {"description": "Last tile of the home shop carousel; opens the full shop"},
-  "shopAddOnsTitle": "Add a little something",
-  "@shopAddOnsTitle": {"description": "Bag sheet: heading over a row of cheap add-on products (stickers)"},
-  "shopSizeGuide": "Size guide",
-  "@shopSizeGuide": {"description": "Product page: link next to the size picker that opens the size chart"},
-  "shopSizeChartNote": "Garment measurements laid flat, from the supplier. They can vary by up to 2 in (5 cm), so compare with a tee you own.",
-  "@shopSizeChartNote": {"description": "Under the size chart on the product page"},
-  "shopMeasureLength": "Length",
-  "@shopMeasureLength": {"description": "Size chart column: garment length"},
-  "shopMeasureWidth": "Width",
-  "@shopMeasureWidth": {"description": "Size chart column: garment chest width, laid flat"},
-  "shopMeasureSleeve": "Sleeve",
-  "@shopMeasureSleeve": {"description": "Size chart column: sleeve length"},
-  "shopInches": "in",
-  "@shopInches": {"description": "Size chart unit toggle: inches (abbreviation)"},
-  "shopCentimetres": "cm",
-  "@shopCentimetres": {"description": "Size chart unit toggle: centimetres (abbreviation)"},
   "timerTitle": "Timer",
-  "@timerTitle": {"description": "Title of the home Timer screen and of a timer session in the player"},
+  "@timerTitle": {
+    "description": "Title of the home Timer screen and of a timer session in the player"
+  },
   "timerModeStopwatch": "Stopwatch",
-  "@timerModeStopwatch": {"description": "Timer screen mode toggle: counts up until the user ends the session"},
+  "@timerModeStopwatch": {
+    "description": "Timer screen mode toggle: counts up until the user ends the session"
+  },
   "timerHoursLabel": "Hours",
-  "@timerHoursLabel": {"description": "Label under the hours wheel on the Timer screen"},
+  "@timerHoursLabel": {
+    "description": "Label under the hours wheel on the Timer screen"
+  },
   "timerMinutesLabel": "Minutes",
-  "@timerMinutesLabel": {"description": "Label under the minutes wheel on the Timer screen"},
+  "@timerMinutesLabel": {
+    "description": "Label under the minutes wheel on the Timer screen"
+  },
   "timerStopwatchCaption": "The time counts up from zero. Tap stop when you're done and the session is saved.",
-  "@timerStopwatchCaption": {"description": "Body of the card explaining Stopwatch mode on the Timer screen"},
+  "@timerStopwatchCaption": {
+    "description": "Body of the card explaining Stopwatch mode on the Timer screen"
+  },
   "timerStart": "Start",
-  "@timerStart": {"description": "Timer screen primary button"},
+  "@timerStart": {
+    "description": "Timer screen primary button"
+  },
   "timerEndSession": "End session",
-  "@timerEndSession": {"description": "Player button that ends a timer session early (or finishes a stopwatch) and records it"},
+  "@timerEndSession": {
+    "description": "Player button that ends a timer session early (or finishes a stopwatch) and records it"
+  },
   "timerElapsed": "elapsed",
-  "@timerElapsed": {"description": "Caption under the elapsed time in a stopwatch session"},
+  "@timerElapsed": {
+    "description": "Caption under the elapsed time in a stopwatch session"
+  },
   "timerTooShort": "Sessions under a minute aren't saved",
-  "@timerTooShort": {"description": "Snackbar when a timer session is ended before one minute"},
+  "@timerTooShort": {
+    "description": "Snackbar when a timer session is ended before one minute"
+  },
   "timerHistoryTitle": "Timer · {duration}",
   "@timerHistoryTitle": {
-    "description": "History row for a timer session, e.g. 'Timer \u00b7 20 min'",
-    "placeholders": {"duration": {"type": "String"}}
+    "description": "History row for a timer session, e.g. 'Timer · 20 min'",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
   },
   "timerPresetSemantics": "{minutes, plural, =1{1 minute} other{{minutes} minutes}}",
   "@timerPresetSemantics": {
     "description": "Screen reader label of a duration chip on the Timer screen",
-    "placeholders": {"minutes": {"type": "int"}}
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
   },
   "soundNeedsConnection": "Not downloaded. Connect to play",
-  "@soundNeedsConnection": {"description": "Background sound row offline when the sound was never downloaded, so it cannot play"},
+  "@soundNeedsConnection": {
+    "description": "Background sound row offline when the sound was never downloaded, so it cannot play"
+  },
   "timerStopwatchTitle": "Sit for as long as you like",
-  "@timerStopwatchTitle": {"description": "Title of the card explaining Stopwatch mode on the Timer screen"},
+  "@timerStopwatchTitle": {
+    "description": "Title of the card explaining Stopwatch mode on the Timer screen"
+  },
   "openTimer": "Open timer",
-  "@openTimer": {"description": "Offline screen link that opens the Timer, which works without a connection"},
+  "@openTimer": {
+    "description": "Offline screen link that opens the Timer, which works without a connection"
+  },
   "downloadingAudio": "Downloading",
   "@downloadingAudio": {
     "description": "Screen-reader label for the player's download button while a download is in progress (value is the percentage)"
@@ -2135,10 +1341,6 @@
   "@dayNotMeditated": {
     "description": "Screen-reader status for a day on the streak row / calendar with no meditation"
   },
-  "clearEmail": "Clear email",
-  "@clearEmail": {
-    "description": "Tooltip / screen-reader label of the button that clears the email field on the sign-in screen"
-  },
   "previousMonth": "Previous month",
   "@previousMonth": {
     "description": "Screen-reader label of the stats calendar's previous-month arrow"
@@ -2160,27 +1362,6 @@
   "@clearField": {
     "description": "Tooltip / screen-reader label of an icon button that clears a text field"
   },
-  "shopPriceWas": "{price}, was {compareAt}",
-  "@shopPriceWas": {
-    "description": "Screen-reader reading of a sale price with the struck-through original price, e.g. '£25, was £30'",
-    "placeholders": {
-      "price": {
-        "type": "String"
-      },
-      "compareAt": {
-        "type": "String"
-      }
-    }
-  },
-  "shopQuantity": "Quantity: {count}",
-  "@shopQuantity": {
-    "description": "Screen-reader reading of the quantity number between the bag's minus and plus buttons",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "externalLink": "External link",
   "@externalLink": {
     "description": "Screen-reader label of the link icon on pack rows that open a web page"
@@ -2190,17 +1371,93 @@
     "description": "Screen-reader suffix on the Home streak circle once today's meditation is done"
   },
   "endScreenDone": "Done",
-  "@endScreenDone": {"description": "Button that closes an end screen shown on the next launch and returns to Home"},
+  "@endScreenDone": {
+    "description": "Button that closes an end screen shown on the next launch and returns to Home"
+  },
   "endScreenRestoredLastNight": "Welcome back. You finished “{title}” last night.",
-  "@endScreenRestoredLastNight": {"description": "Top line of an end screen shown on the next launch because the app was closed before it could appear (e.g. the user fell asleep). The session ended between 6pm yesterday and 5am today.", "placeholders": {"title": {"type": "String"}}},
+  "@endScreenRestoredLastNight": {
+    "description": "Top line of an end screen shown on the next launch because the app was closed before it could appear (e.g. the user fell asleep). The session ended between 6pm yesterday and 5am today.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "endScreenRestoredEarlierToday": "Welcome back. You finished “{title}” earlier today.",
-  "@endScreenRestoredEarlierToday": {"description": "As endScreenRestoredLastNight, for a session that ended earlier today", "placeholders": {"title": {"type": "String"}}},
+  "@endScreenRestoredEarlierToday": {
+    "description": "As endScreenRestoredLastNight, for a session that ended earlier today",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "endScreenRestoredYesterday": "Welcome back. You finished “{title}” yesterday.",
-  "@endScreenRestoredYesterday": {"description": "As endScreenRestoredLastNight, for a session that ended yesterday during the day", "placeholders": {"title": {"type": "String"}}},
+  "@endScreenRestoredYesterday": {
+    "description": "As endScreenRestoredLastNight, for a session that ended yesterday during the day",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "endScreenRestoredTimerLastNight": "Welcome back. You finished a {minutes}-minute timer last night.",
-  "@endScreenRestoredTimerLastNight": {"description": "As endScreenRestoredLastNight, for a Timer session of {minutes} minutes", "placeholders": {"minutes": {"type": "int"}}},
+  "@endScreenRestoredTimerLastNight": {
+    "description": "As endScreenRestoredLastNight, for a Timer session of {minutes} minutes",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "endScreenRestoredTimerEarlierToday": "Welcome back. You finished a {minutes}-minute timer earlier today.",
-  "@endScreenRestoredTimerEarlierToday": {"description": "As endScreenRestoredEarlierToday, for a Timer session", "placeholders": {"minutes": {"type": "int"}}},
+  "@endScreenRestoredTimerEarlierToday": {
+    "description": "As endScreenRestoredEarlierToday, for a Timer session",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "endScreenRestoredTimerYesterday": "Welcome back. You finished a {minutes}-minute timer yesterday.",
-  "@endScreenRestoredTimerYesterday": {"description": "As endScreenRestoredYesterday, for a Timer session", "placeholders": {"minutes": {"type": "int"}}}
+  "@endScreenRestoredTimerYesterday": {
+    "description": "As endScreenRestoredYesterday, for a Timer session",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "localHomeHeading": "Time to sit.",
+  "@localHomeHeading": {
+    "description": "Calm home heading above the locally available meditation timer."
+  },
+  "localIntroBeginHeading": "A little time to begin.",
+  "@localIntroBeginHeading": {
+    "description": "Local introduction heading for someone new to meditation."
+  },
+  "localIntroReturnHeading": "Ease back into your practice.",
+  "@localIntroReturnHeading": {
+    "description": "Local introduction heading for someone with some meditation experience."
+  },
+  "localIntroPracticeHeading": "Space for your practice.",
+  "@localIntroPracticeHeading": {
+    "description": "Local introduction heading for someone with a regular meditation practice."
+  },
+  "localIntroBeginBody": "Find a comfortable seat, set a short timer, and notice your breath. When your attention wanders, gently begin again.",
+  "@localIntroBeginBody": {
+    "description": "Instructions for a first unguided meditation using the local timer."
+  },
+  "localIntroReturnBody": "Start with a few quiet minutes. The timer is ready whenever you are.",
+  "@localIntroReturnBody": {
+    "description": "Encouragement to resume practice using the local timer."
+  },
+  "localIntroPracticeBody": "Use the timer for an unguided sit, with the bells and duration you prefer.",
+  "@localIntroPracticeBody": {
+    "description": "Introduction to the local timer and its configurable bells and duration."
+  },
+  "localIntroDeviceOnlyNote": "Your practice history, favourites and settings stay on this device.",
+  "@localIntroDeviceOnlyNote": {
+    "description": "Explains that practice history, favourites and preferences are stored on the device."
+  }
 }

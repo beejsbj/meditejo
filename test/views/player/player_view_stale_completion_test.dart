@@ -4,17 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medito/models/events/donation/donation_page_model.dart';
 import 'package:medito/models/local_all_stats.dart';
-import 'package:medito/models/me/me_model.dart';
 import 'package:medito/models/player/playback_request.dart';
-import 'package:medito/models/stripe/paywall_config_model.dart';
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
-import 'package:medito/providers/donation/donation_page_provider.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/review_service_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
-import 'package:medito/providers/stripe/payment_service_provider.dart';
 import 'package:medito/services/review_service.dart';
 import 'package:medito/src/audio_pigeon.g.dart';
 import 'package:medito/views/end_screen/end_screen_view.dart';
@@ -22,9 +17,6 @@ import 'package:medito/views/home/previews/home_previews.dart';
 import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/previews/preview_support.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../helpers/firebase_analytics_test_helper.dart';
-import '../../helpers/firebase_test_helper.dart';
 
 const _welcome = PlaybackRequest(
   trackId: 'welcome',
@@ -121,15 +113,9 @@ void main() {
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(
-      const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
-      (call) async => null,
-    );
-    messenger.setMockMethodCallHandler(
       const MethodChannel('flutter.baseflow.com/permissions/methods'),
       (call) async => 0,
     );
-    await FirebaseTestHelper.initializeFirebaseForTest();
-    FirebaseAnalyticsTestHelper.setupFirebaseAnalyticsMocks();
   });
 
   testWidgets(
@@ -147,26 +133,7 @@ void main() {
               _SilentBackgroundSounds.new,
             ),
             statsProvider.overrideWith(_Stats.new),
-            endScreenPaywallConfigProvider.overrideWith(
-              (ref) => Completer<PaywallConfigModel>().future,
-            ),
             reviewServiceProvider.overrideWithValue(_Review()),
-            meProvider.overrideWith(
-              (ref) async => const MeModel(id: 'test-user'),
-            ),
-            fetchDonationPageProvider.overrideWith(
-              (ref) async => const DonationPageModel(
-                title: 'Keep meditation free',
-                text: 'Your support keeps Medito free.',
-                buttons: [
-                  ButtonModel(
-                    title: 'Donate',
-                    path: 'https://meditofoundation.org/donate',
-                    type: 'link',
-                  ),
-                ],
-              ),
-            ),
           ],
           child: const PlayerView(),
         ),

@@ -5,10 +5,8 @@ import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/models/models.dart';
-import 'package:medito/providers/favorites/favorites_provider.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/routes/routes.dart';
-import 'package:medito/services/analytics/firebase_analytics_service.dart';
 import 'package:medito/views/pack/widgets/pack_item_widget.dart';
 import 'package:medito/views/pack/widgets/pack_path_button.dart';
 import 'package:medito/views/player/widgets/bottom_actions/pack_view_bottom_bar.dart';
@@ -44,21 +42,12 @@ class _PackViewState extends ConsumerState<PackView>
 
   /// SliverAppBar.large's collapsed toolbar height (Material 3).
   static const _collapsedAppBarHeight = 64.0;
-  final _analytics = FirebaseAnalyticsService();
   bool _markingAll = false;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
-    _logScreenView();
-  }
-
-  Future<void> _logScreenView() async {
-    await _analytics.logScreenView(
-      screenName: 'PackView',
-      parameters: {'packid': widget.id},
-    );
   }
 
   @override
@@ -168,10 +157,6 @@ class _PackViewState extends ConsumerState<PackView>
   }) {
     return RefreshIndicator(
       onRefresh: () async {
-        if (widget.id == 'favorites') {
-          // If this is the favorites screen, refresh the favorites list from the server
-          await ref.read(favoritesNotifierProvider.notifier).syncWithServer();
-        }
         return ref.refresh(packDataProvider(packId: widget.id));
       },
       child: CustomScrollView(

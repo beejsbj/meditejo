@@ -1,7 +1,4 @@
-import 'dart:convert';
-
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medito/constants/strings/analytics_event_constants.dart';
 import 'package:medito/services/reminders/daily_reminders_service.dart';
 
 void main() {
@@ -72,38 +69,6 @@ void main() {
       );
       expect(anchorPreferringSavedTime(sessionAnchor, 7, null), sessionAnchor);
       expect(anchorPreferringSavedTime(sessionAnchor, null, 0), sessionAnchor);
-    });
-  });
-
-  group('reminderPayload', () {
-    test('is valid JSON the tap handler can decode', () {
-      // The series previously built `scheduledDate.toIso8601String()` — not
-      // valid JSON — and then never attached it at all, so every tap arrived
-      // with a null payload and was neither routed nor counted.
-      final decoded = json.decode(reminderPayload(3));
-      expect(decoded, isA<Map<String, dynamic>>());
-    });
-
-    test('carries the source and day the handler reads', () {
-      final decoded = json.decode(reminderPayload(3)) as Map<String, dynamic>;
-      expect(
-        decoded[AnalyticsEventConstants.paramSource],
-        AnalyticsEventConstants.sourceLocalReminder,
-      );
-      expect(decoded[AnalyticsEventConstants.paramNotificationDay], 3);
-    });
-
-    test('carries an int day, not a string', () {
-      // The handler only logs the day when it is an int; a string would be
-      // silently dropped and the per-day open rate would come back empty.
-      final decoded = json.decode(reminderPayload(30)) as Map<String, dynamic>;
-      expect(decoded[AnalyticsEventConstants.paramNotificationDay], isA<int>());
-    });
-
-    test('omits type/path so a tap does not deep-link', () {
-      final decoded = json.decode(reminderPayload(1)) as Map<String, dynamic>;
-      expect(decoded['type'], isNull);
-      expect(decoded['path'], isNull);
     });
   });
 

@@ -14,115 +14,58 @@ The app is free, forever: no ads, no spam, no need to sign up or pay. Medito App
 
 **NOTE:** If you install the Medito app using the APK file, please make sure to verify that the APK file is signed by Medito Foundation. See [VERIFY_APK](docs/VERIFY_APK.md) for more information.
 
-### Contributions (Running in Mock Mode (no keys required))
+### Local development
 
-Contributors can run the app without any API keys or Firebase setup using mock mode. All network calls are intercepted and return hardcoded sample data — no real credentials are needed.
+This checkout uses local state and has no account or app-service credentials to configure. The catalogue is currently empty; the timer works offline. Source integration is tracked in [the fork brief](docs/fork/BRIEF.md).
 
-1. Clone the repository and install dependencies:
-   ```
-   git clone https://github.com/meditohq/medito-app.git
-   cd medito-app
+1. Install the Flutter version pinned in `.github/workflows/ci-develop.yml`, then install dependencies:
+   ```sh
    flutter pub get
    ```
-
-1. Generate required code (Pigeon + Riverpod):
-   ```
-   for f in pigeon_conf.dart pigeons/*.dart; do flutter pub run pigeon --input "$f"; done
+2. Generate native bridges and Riverpod/model code:
+   ```sh
+   for f in pigeon_conf.dart pigeons/*.dart; do [ -f "$f" ] || continue; flutter pub run pigeon --input "$f" --package_name=medito || exit 1; done
    dart run build_runner build --delete-conflicting-outputs
    ```
-
-1. Create `android/keystore.properties` using your own debug keystore. The Android SDK auto-creates one at `~/.android/debug.keystore` with default credentials:
-
-   ```
+3. For Android, copy the signing template and enter your own keystore details:
+   ```sh
    cp android/keystore.properties.example android/keystore.properties
    ```
-
-   Then edit `android/keystore.properties` with your keystore details:
-
-   ```
-   storePassword=<your-keystore-password>
-   keyPassword=<your-key-password>
-   keyAlias=<your-key-alias>
-   storeFile=<absolute-path-to-your-keystore>
-   appId=meditofoundation.medito
-   versionCode=1
-   versionName=1.0.0
+   The default Android debug keystore is `~/.android/debug.keystore`: store/key password `android`, alias `androiddebugkey`. Set `storeFile` to its absolute path and retain the application ID from the template.
+4. Run locally:
+   ```sh
+   # Android
+   flutter run --flavor dev -d <android-device-id>
+   # iOS
+   flutter run -d <ios-device-id>
    ```
 
-   For the default Android debug keystore the password, key password, and alias are `android`, `android`, and `androiddebugkey` respectively.
+### Editor configurations
 
-1. Create a placeholder `android/app/google-services.json` (Firebase is skipped in mock mode, but Gradle requires the file)
-2. Run the app using the **"Flutter (Mock)"** run configuration in VS Code or Android Studio, or from the terminal:
-   ```
-   flutter run --flavor dev --dart-define=MOCK_MODE=true -d <device-id>
-   ```
-
-In mock mode, Firebase, the paywall webview, Stripe, and Meta SDK are all skipped. The app runs with sample content so you can work on UI and logic without real credentials.
-
-### Setup (with real keys)
-
-1. Clone the repository:
-   ```
-   git clone https://github.com/meditohq/medito-app.git
-   cd medito-app
-   ```
-
-1. Install dependencies:
-   ```
-   flutter pub get
-   ```
-
-1. Set up environment files:
-   - Create `.env.staging` and `.env.production` files in the root directory.
-   - Contact a team member for the contents of these files.
-1. Set up Firebase:
-   - You need `google-services.json` (for Android) and `GoogleService-Info.plist` (for iOS) from the Firebase console.
-   - You also need the `/lib/firebase_options.dart` file.
-   - Contact a team member for the contents of these files.
-
-### Generating Code
-
-To generate Pigeon code. This is required to communicate with native iOS and Android code. `pigeon_conf.dart` holds the Android-only APIs; each file in `pigeons/` is a separate input (e.g. `watch_presence.dart`, which also generates Swift).
-
-```
-for f in pigeon_conf.dart pigeons/*.dart; do flutter pub run pigeon --input "$f"; done
-```
-
-To generate API and state management code with Riverpod:
-
-```
-dart run build_runner build --delete-conflicting-outputs
-```
-
-### Development and Production Configurations
-
-This project supports separate development and production configurations. Here's how to set up and use them in different IDEs:
-
-#### Visual Studio Code
-
-Add the following to your `.vscode/launch.json` (this file is gitignored, so each developer maintains their own):
+For VS Code, use the following `.vscode/launch.json` (ignored by git, so each developer keeps their own):
 
 ```json
 {
   "version": "0.2.0",
   "configurations": [
-    { "name": "Flutter (Dev)", "request": "launch", "type": "dart", "args": ["--flavor", "dev", "--dart-define-from-file=../.staging.json"] },
+    { "name": "Flutter (Dev)", "request": "launch", "type": "dart", "args": ["--flavor", "dev"] },
     { "name": "Flutter (Prod)", "request": "launch", "type": "dart", "args": ["--flavor", "prod"] },
-    { "name": "Flutter (Mock)", "request": "launch", "type": "dart", "args": ["--flavor", "dev", "--dart-define=MOCK_MODE=true"] }
+    { "name": "Flutter (iOS)", "request": "launch", "type": "dart" }
   ]
 }
 ```
 
-#### Android Studio
+In Android Studio, create a Flutter run configuration with `--flavor dev` or `--flavor prod` as its additional arguments for Android. Use the default Flutter configuration for iOS.
 
-1. Open the project in Android Studio.
-2. In the toolbar, you'll see a dropdown next to the run button.
-3. Select "Flutter (Dev)", "Flutter (Prod)", or "Flutter (Mock)" from this dropdown.
-4. Click the run button or press Shift+F10 to run the selected configuration.
+### Smoke checks
 
-These configurations are defined in `.run/Flutter (Dev).run.xml`, `.run/Flutter (Prod).run.xml`, and `.run/Flutter (Mock).run.xml`.
+The Maestro flows cover local navigation, stats access, and timer playback. They require an installed app and Maestro, with the existing application ID passed as `APP_ID`:
 
-Ensure that your `android/app/build.gradle` file has the corresponding flavor configurations set up correctly.
+```sh
+.maestro/run_flow.sh /tmp/maestro-debug -e APP_ID=meditofoundation.medito .maestro/smoke.yaml
+```
+
+Use `org.meditofoundation` for the current iOS bundle. Upgrade jobs keep the previous release's seed flow and skip until a previous release includes the local timer flow. Store signing and upload credentials are still required for release workflows.
 
 ## Android Setup
 

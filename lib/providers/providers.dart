@@ -1,6 +1,4 @@
 export 'device_and_app_info/device_and_app_info_provider.dart';
-export 'home/home_provider.dart';
-export 'me/me_provider.dart';
 export 'meditation/download_track_provider.dart';
 export 'pack/pack_provider.dart';
 export 'player/audio_state_provider.dart';
@@ -14,10 +12,4 @@ export 'day_boundary_offset_provider.dart';
 export 'dnd_provider.dart';
 export 'settings/reminder_prompt_provider.dart';
 export 'settings/settings_providers.dart';
-
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:medito/services/analytics/firebase_analytics_service.dart';
-
-final analyticsServiceProvider = Provider<FirebaseAnalyticsService>(
-  (ref) => FirebaseAnalyticsService(),
-);
+export 'home/home_provider.dart';

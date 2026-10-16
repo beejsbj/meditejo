@@ -1,26 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/local_audio_completed.dart';
-import 'package:medito/services/stats_service.dart';
 import 'package:medito/utils/audio_completion_tracker.dart';
 import 'package:medito/utils/stats_manager.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-@GenerateMocks([StatsService])
-import 'stats_manager_test.mocks.dart';
 
 void main() {
   late StatsManager statsManager;
-  late MockStatsService mockStatsService;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
-    mockStatsService = MockStatsService();
     statsManager = StatsManager();
-    statsManager.setStatsServiceForTesting(mockStatsService);
-    await statsManager.initializeForTesting(statsService: mockStatsService);
+    await statsManager.initializeForTesting();
   });
 
   tearDown(() {
@@ -31,8 +22,6 @@ void main() {
     test(
       'addAudioCompleted - adjusts timestamp if track crosses midnight',
       () async {
-        when(mockStatsService.postStats(any)).thenAnswer((_) async => {});
-
         // Arrange
         statsManager.setStatsForTesting(LocalAllStats.empty());
         var testDate = DateTime(2025, 3, 1);
@@ -70,8 +59,6 @@ void main() {
     test(
       'addAudioCompleted - keeps end timestamp if track doesn\'t cross midnight',
       () async {
-        when(mockStatsService.postStats(any)).thenAnswer((_) async => {});
-
         // Arrange
         statsManager.setStatsForTesting(LocalAllStats.empty());
         var testDate = DateTime(2025, 3, 1);
@@ -108,8 +95,6 @@ void main() {
     test(
       'addAudioCompleted - handles track ending exactly at midnight',
       () async {
-        when(mockStatsService.postStats(any)).thenAnswer((_) async => {});
-
         // Arrange
         statsManager.setStatsForTesting(LocalAllStats.empty());
         var testDate = DateTime(2025, 3, 1);
@@ -148,8 +133,6 @@ void main() {
     test(
       'addAudioCompleted - handles track starting exactly at midnight',
       () async {
-        when(mockStatsService.postStats(any)).thenAnswer((_) async => {});
-
         // Arrange
         statsManager.setStatsForTesting(LocalAllStats.empty());
         var testDate = DateTime(2025, 3, 1);
@@ -188,8 +171,6 @@ void main() {
     test(
       'addAudioCompleted - handles track crossing multiple midnights',
       () async {
-        when(mockStatsService.postStats(any)).thenAnswer((_) async => {});
-
         // Arrange
         statsManager.setStatsForTesting(LocalAllStats.empty());
         var testDate = DateTime(2025, 3, 3); // Monday
@@ -229,8 +210,6 @@ void main() {
     test(
       'addAudioCompleted - handles track just crossing midnight boundary',
       () async {
-        when(mockStatsService.postStats(any)).thenAnswer((_) async => {});
-
         // Arrange
         statsManager.setStatsForTesting(LocalAllStats.empty());
         var testDate = DateTime(2025, 3, 1);

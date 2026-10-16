@@ -13,12 +13,14 @@ dependencies:
     sdk: flutter
   medito:
     path: ../
+  flutter_svg: ^2.2.4
   widgetbook: ^3.22.0
   widgetbook_annotation: ^3.11.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_lints: ^6.0.0
   build_runner: ^2.14.1
   widgetbook_generator: ^3.22.0
 

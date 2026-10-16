@@ -2,30 +2,15 @@ library;
 
 import 'package:medito/constants/config_constants.dart';
 
-/// The curated progression of packs behind "Your Path".
-///
-/// Order comes from the Medito team (2026-08-26). Positions 1-3 are the
-/// beginner on-ramp; onboarding pins `regular_practice` users at position 4.
+/// Optional source-provided progression behind "Your Path".
 class PackSequence {
   const PackSequence._();
 
-  static const List<String> ordered = <String>[
-    'ELaBsJpiCol1RxdH', // 1  Getting started
-    'HU1qzJUX2B4bAtrO', // 2  Learning to sit
-    '5fms1CqfGpNDOQeV', // 3  Mindfulness
-    'J3DsFVgKjZdbDiif', // 4  Deepen your practice
-    'arRkkXD3Eh3N2Stf', // 5  Open awareness
-    'BurMBDEI1HfmZmJz', // 6  Gratitude
-    'QI0140HekrZ6SoLN', // 7  Compassion
-    'Izv6OObcu3X2H9fu', // 8  30-Day mindfulness challenge
-    'bmiHrmpuOGAGrtu2', // 9  Great thinkers
-    'O2u0wyHNBcHA6u36', // 10 Personal insights
-    'MN4dbqPbkKSPGGdo', // 11 Meditative insights
-  ];
+  // Sources may provide a progression later. No proprietary courses ship.
+  static const List<String> ordered = <String>[];
+  static const String experiencedEntryPackId = '';
 
-  static const String experiencedEntryPackId = 'J3DsFVgKjZdbDiif';
-
-  static String get beginnerEntryPackId => ordered.first;
+  static String get beginnerEntryPackId => ordered.isEmpty ? '' : ordered.first;
 
   /// Every pack above concatenated into one. Retired by attrition: it stays the
   /// no-pin fallback so pre-change users keep their place in it.

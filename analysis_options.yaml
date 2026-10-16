@@ -2,7 +2,6 @@ include: package:flutter_lints/flutter.yaml
 
 analyzer:
   errors:
-    # Ignore specific Firebase-related errors if they're false positives
     missing_required_param: ignore
     missing_return: ignore
   exclude:

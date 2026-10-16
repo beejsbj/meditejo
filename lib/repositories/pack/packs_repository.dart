@@ -1,6 +1,5 @@
-import 'package:medito/constants/constants.dart';
 import 'package:medito/models/pack/pack_model.dart';
-import 'package:medito/services/network/http_api_service.dart';
+import 'package:medito/services/local_catalogue.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'packs_repository.g.dart';
@@ -15,59 +14,22 @@ abstract class PacksRepository {
 }
 
 class PackRepositoryImpl extends PacksRepository {
-  final HttpApiService client;
+  PackRepositoryImpl({this.catalogue = const LocalCatalogue()});
 
-  PackRepositoryImpl({required this.client});
-
-  @override
-  Future<List<PackModel>> fetchAllPacks() async {
-    final response = await client.getRequest(HTTPConstants.packs);
-
-    // Handle different response structures
-    dynamic responseData = response;
-    responseData = response['data'] ?? response['results'] ?? response;
-
-    // Verify final data format
-    if (responseData is! List) {
-      throw FormatException(
-        '''Expected array of packs, got ${responseData.runtimeType}.
-        Full response: ${response.toString()}''',
-      );
-    }
-
-    return (responseData)
-        .map<PackModel>(
-          (json) => PackModel.fromJson(json as Map<String, dynamic>),
-        )
-        .toList();
-  }
+  final LocalCatalogue catalogue;
 
   @override
-  Future<PackModel> fetchPacks(String packId) async {
-    var response = await client.getRequest('${HTTPConstants.packs}/$packId');
-
-    return PackModel.fromJson(response);
-  }
+  Future<List<PackModel>> fetchAllPacks() async => catalogue.packs;
 
   @override
-  Future<Map<String, List<String>>> fetchPackTrackIds() async {
-    final response = await client.getRequest(HTTPConstants.packTracks);
-    final packTracks = response['packTracks'];
-    if (packTracks is! Map) {
-      throw FormatException('Expected packTracks map, got $response');
-    }
-    return {
-      for (final entry in packTracks.entries)
-        if (entry.value is List)
-          entry.key as String: [
-            for (final id in entry.value as List)
-              if (id is String) id,
-          ],
-    };
-  }
+  Future<PackModel> fetchPacks(String packId) async => catalogue.pack(packId);
+
+  @override
+  Future<Map<String, List<String>>> fetchPackTrackIds() async =>
+      catalogue.packTrackIds;
 }
 
 @Riverpod(keepAlive: true)
 PackRepositoryImpl packRepository(Ref _) {
-  return PackRepositoryImpl(client: HttpApiService());
+  return PackRepositoryImpl();
 }

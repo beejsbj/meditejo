@@ -8,23 +8,23 @@ void main() {
     test('DNS failure is classified as hostLookup', () {
       final e = NetworkConnectionError.fromSocketException(
         const SocketException(
-          'Failed host lookup: \'auth.medito.app\'',
+          'Failed host lookup: \'example.invalid\'',
           osError: OSError('No address associated with hostname', 7),
         ),
       );
       expect(e.kind, NetworkFailureKind.hostLookup);
-      expect(e.message, contains("Couldn't reach Medito's servers"));
+      expect(e.message, 'No internet connection');
       expect(e.detail, contains('errno 7'));
     });
 
     test('HttpClient connectionTimeout is classified as connectTimeout', () {
       final e = NetworkConnectionError.fromSocketException(
         const SocketException(
-          'HTTP connection timed out after 0:00:30, host: auth.medito.app, port: 443',
+          'HTTP connection timed out after 0:00:30, host: example.invalid, port: 443',
         ),
       );
       expect(e.kind, NetworkFailureKind.connectTimeout);
-      expect(e.message, contains('timed out'));
+      expect(e.message, 'No internet connection');
     });
 
     test(

@@ -1,4 +1,3 @@
-import '../models/timer/timer_session.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -13,7 +12,6 @@ import '../providers/stats_provider.dart';
 import '../providers/settings/settings_providers.dart';
 import '../routes/routes.dart';
 import '../l10n/app_localizations.dart';
-import 'audio_session_tracker.dart';
 import 'completed_tracks_storage.dart';
 import 'health_kit_manager.dart';
 import 'stats_manager.dart';
@@ -21,8 +19,6 @@ import '../models/local_audio_completed.dart';
 import 'logger.dart';
 import 'pending_end_screen.dart';
 import '../services/home_widget_service.dart';
-import '../services/analytics/firebase_analytics_service.dart';
-import '../constants/strings/analytics_event_constants.dart';
 
 export 'consistency_score_history.dart';
 
@@ -132,25 +128,42 @@ Future<void> _rescheduleReminders({
   }
 }
 
-// Completions already recorded by this engine, keyed by track + timestamp.
-// Android persists each completion natively and replays it on resume, so a
-// replay can race the live callback for the same session and record it (stats
-// and the audio_session_completed event) twice. Dropped again on failure so a
-// retry of a genuinely failed completion still goes through.
-final Set<String> _recordedCompletions = {};
+// Only in-flight work lives in memory. Durable receipts in LocalAllStats are
+// the authority after completion, failure, or an engine restart.
+final Map<String, Future<bool>> _inFlightCompletions = {};
+
+String _completionId(String kind, Map<String, dynamic> payload) => jsonEncode([
+  kind,
+  payload[TypeConstants.trackIdKey],
+  payload[TypeConstants.timestampIdKey],
+]);
+
+Future<bool> _joinCompletion(String id, Future<bool> Function() operation) {
+  final pending = _inFlightCompletions[id];
+  if (pending != null) return pending;
+  final future = Future<bool>.sync(operation).whenComplete(() {
+    _inFlightCompletions.remove(id);
+  });
+  _inFlightCompletions[id] = future;
+  return future;
+}
 
 Future<bool> handleStats(
   Map<String, dynamic> payload, {
-  StatsManager? statsManager, // For testing
-}) async {
-  final completionKey =
-      '${payload[TypeConstants.trackIdKey]}@${payload[TypeConstants.timestampIdKey]}';
-  if (!_recordedCompletions.add(completionKey)) {
-    AppLogger.d('STATS', 'Duplicate completion $completionKey ignored');
-    return true;
-  }
+  StatsManager? statsManager,
+}) {
+  final id = _completionId('completion', payload);
+  return _joinCompletion(id, () => _handleStats(payload, id, statsManager));
+}
+
+Future<bool> _handleStats(
+  Map<String, dynamic> payload,
+  String completionId,
+  StatsManager? statsManager,
+) async {
   try {
-    statsManager ??= StatsManager()..initialize();
+    statsManager ??= StatsManager();
+    await statsManager.initialize();
 
     var newAudioCompleted = LocalAudioCompleted(
       id: payload[TypeConstants.trackIdKey],
@@ -159,38 +172,14 @@ Future<bool> handleStats(
 
     var duration = payload[TypeConstants.durationIdKey];
 
-    await statsManager.addAudioCompleted(newAudioCompleted, duration);
+    await statsManager.addAudioCompleted(
+      newAudioCompleted,
+      duration,
+      completionId: completionId,
+    );
     AppLogger.d(
       'STATS',
       'Stats updated successfully for track ${newAudioCompleted.id}',
-    );
-
-    // Log Firebase analytics event for audio session completion
-    try {
-      final fileId = payload[TypeConstants.fileIdKey] as String?;
-      // Timer sessions report a fixed guide (native completion passes the
-      // empty artist), so they filter out of narrator stats in one place.
-      final guide = isTimerSessionId('${payload[TypeConstants.trackIdKey]}')
-          ? AnalyticsEventConstants.timerGuide
-          : payload[TypeConstants.guideIdKey] as String?;
-
-      await FirebaseAnalyticsService().logEvent(
-        name: AnalyticsEventConstants.audioSessionCompleted,
-        parameters: {
-          AnalyticsEventConstants.paramAudioFileId: fileId ?? 'unknown',
-          AnalyticsEventConstants.paramAudioFileGuide: guide ?? 'unknown',
-          AnalyticsEventConstants.paramAudioFileDuration: duration,
-        },
-      );
-      AppLogger.d('STATS', 'Logged audio_session_completed event to Firebase');
-    } catch (analyticsError) {
-      AppLogger.e('STATS', 'Failed to log analytics event', analyticsError);
-    }
-
-    // Tell the session tracker this session completed so it clears the
-    // in-progress record and does not also fire audio_session_abandoned.
-    await AudioSessionTracker.instance.onCompleted(
-      fileId: payload[TypeConstants.fileIdKey] as String?,
     );
 
     // Refresh stats from local; upNextProvider rebuilds reactively.
@@ -230,7 +219,7 @@ Future<bool> handleStats(
     );
 
     // Last: the first sync can show the Health permission sheet, and nothing
-    // above (recording and posting the session) should wait for the user to
+    // above (recording the session locally) should wait for the user to
     // answer it.
     await _syncHealthKit(payload).catchError((e) {
       AppLogger.e('STATS', 'HealthKit sync error', e);
@@ -238,16 +227,10 @@ Future<bool> handleStats(
 
     return true;
   } catch (e) {
-    _recordedCompletions.remove(completionKey);
     AppLogger.e('STATS', 'Failed to update stats', e);
     return false;
   }
 }
-
-// Timestamps of repeat play-throughs already recorded by this engine. Android
-// persists each repeat and replays it on resume, so a replay can race the live
-// callback for the same play-through.
-final Set<int> _recordedRepeatTimestamps = {};
 
 /// Records a repeated play-through (repeat once / forever) of a track whose
 /// first play-through was already recorded by [handleStats]. Adds its minutes
@@ -255,18 +238,26 @@ final Set<int> _recordedRepeatTimestamps = {};
 /// session. Takes the same payload shape as [handleStats].
 Future<bool> handleRepeatPlaythrough(
   Map<String, dynamic> payload, {
-  StatsManager? statsManager, // For testing
-}) async {
-  final timestamp = payload[TypeConstants.timestampIdKey] as int;
-  if (!_recordedRepeatTimestamps.add(timestamp)) return true;
-  try {
-    await _syncHealthKit(payload).catchError((e) {
-      AppLogger.e('STATS', 'HealthKit sync error', e);
-    });
+  StatsManager? statsManager,
+}) {
+  final id = _completionId('repeat', payload);
+  return _joinCompletion(
+    id,
+    () => _handleRepeatPlaythrough(payload, id, statsManager),
+  );
+}
 
-    statsManager ??= StatsManager()..initialize();
+Future<bool> _handleRepeatPlaythrough(
+  Map<String, dynamic> payload,
+  String completionId,
+  StatsManager? statsManager,
+) async {
+  try {
+    statsManager ??= StatsManager();
+    await statsManager.initialize();
     await statsManager.addRepeatListeningTime(
       payload[TypeConstants.durationIdKey] as int,
+      completionId: completionId,
     );
     AppLogger.d(
       'STATS',
@@ -274,9 +265,11 @@ Future<bool> handleRepeatPlaythrough(
     );
 
     await _refreshStatsAndUpNext();
+    await _syncHealthKit(payload).catchError((e) {
+      AppLogger.e('STATS', 'HealthKit sync error', e);
+    });
     return true;
   } catch (e) {
-    _recordedRepeatTimestamps.remove(timestamp);
     AppLogger.e('STATS', 'Failed to record repeat play-through', e);
     return false;
   }
@@ -311,14 +304,14 @@ Future<int> processPendingCompletedTracks([SharedPreferences? prefs]) async {
         ? CompletedTracksStorage(prefs)
         : await CompletedTracksStorage.create();
 
-    final pendingTracksJson = storage.getPendingTracks();
+    final pendingTracksJson = await storage.loadPendingTracks();
     if (pendingTracksJson.isEmpty) {
       _isProcessingPendingTracks = false;
       return 0;
     }
 
     int successCount = 0;
-    List<String> failedTracks = [];
+    final acknowledgedTracks = <String>[];
 
     // Process each pending track
     for (var trackJson in pendingTracksJson) {
@@ -330,17 +323,16 @@ Future<int> processPendingCompletedTracks([SharedPreferences? prefs]) async {
         final success = await handleStats(payload);
         if (success) {
           successCount++;
-        } else {
-          failedTracks.add(trackJson);
+          acknowledgedTracks.add(trackJson);
         }
       } catch (e) {
-        failedTracks.add(trackJson);
         AppLogger.e('STATS', 'Error processing track', e);
       }
     }
 
-    // Update storage with the tracks that failed to process
-    await storage.updatePendingTracks(failedTracks);
+    // Remove only acknowledged snapshot entries from the current queue.
+    // Enqueues that happened while awaiting a completion must survive.
+    await storage.removeCompletedTracks(acknowledgedTracks);
 
     return successCount;
   } catch (e) {
@@ -361,7 +353,12 @@ Future<void> storeTrackCompletion(
   await storage.addCompletedTrack(payload);
 }
 
+@visibleForTesting
+Future<void> Function(Map<String, dynamic> payload)? healthSyncOverride;
+
 Future<void> _syncHealthKit(Map<String, dynamic> payload) async {
+  final override = healthSyncOverride;
+  if (override != null) return override(payload);
   var healthKitManager = HealthKitManager();
 
   if (!await healthKitManager.isSessionSynced(
@@ -439,7 +436,8 @@ Future<bool> deleteSession({
   StatsManager? statsManager,
 }) async {
   try {
-    statsManager ??= StatsManager()..initialize();
+    statsManager ??= StatsManager();
+    await statsManager.initialize();
     await statsManager.removeAudioCompleted(session);
 
     await _refreshStatsAndUpNext();
@@ -495,7 +493,8 @@ Future<bool> addManualSession({
     );
 
     // Initialize stats manager if not provided
-    statsManager ??= StatsManager()..initialize();
+    statsManager ??= StatsManager();
+    await statsManager.initialize();
 
     // Add the manual session (this will update streaks, consistency score, etc.)
     await statsManager.addAudioCompleted(manualSession, durationMs);
@@ -544,7 +543,8 @@ Future<int> addManualSessions({
   required int durationMinutes,
   StatsManager? statsManager,
 }) async {
-  statsManager ??= StatsManager()..initialize();
+  statsManager ??= StatsManager();
+  await statsManager.initialize();
   final durationMs = durationMinutes * 60 * 1000;
   // Read "now" from the manager so test clock injection
   // (setCurrentDateForTesting) flows through here too.
@@ -569,7 +569,11 @@ Future<int> addManualSessions({
         id: manualId,
         timestamp: dateTime.millisecondsSinceEpoch,
       );
-      await statsManager.addAudioCompleted(entry, durationMs, skipPost: true);
+      await statsManager.addAudioCompleted(
+        entry,
+        durationMs,
+        updateWidget: false,
+      );
       added++;
       if (entry.timestamp > latestTimestamp) {
         latestTimestamp = entry.timestamp;
@@ -580,12 +584,6 @@ Future<int> addManualSessions({
   }
 
   if (added > 0) {
-    // Post the batched result once, instead of once per day.
-    try {
-      await statsManager.flushPendingPost();
-    } catch (e) {
-      AppLogger.e('STATS', 'Failed to post batched manual sessions', e);
-    }
     await _refreshStatsAndUpNext();
     try {
       final updatedStats = await statsManager.localAllStats;

@@ -10,10 +10,6 @@ import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/stats_provider.dart';
-import 'package:medito/services/analytics/firebase_analytics_service.dart';
-import 'package:medito/services/installed_widgets_service.dart';
-import 'package:medito/services/watch_presence_service.dart';
-import 'package:medito/constants/strings/analytics_event_constants.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/utils/pending_end_screen.dart';
 import 'package:medito/views/end_screen/end_screen_view.dart';
@@ -68,10 +64,6 @@ class _BottomNavigationBarViewState
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _restorePendingEndScreen(),
     );
-    if (_currentPageIndex == _homeIndex) {
-      unawaited(reportWatchPresence());
-      unawaited(reportInstalledHomeWidgets());
-    }
   }
 
   @override
@@ -95,11 +87,7 @@ class _BottomNavigationBarViewState
         'END_SCREEN',
         'Restoring end screen: ${pending.request.fileId}',
       );
-      unawaited(
-        ref
-            .read(analyticsServiceProvider)
-            .logEvent(name: AnalyticsEventConstants.endScreenRestored),
-      );
+
       unawaited(
         Navigator.of(context).push(
           PageRouteBuilder<void>(
@@ -208,29 +196,10 @@ class _BottomNavigationBarViewState
   }
 
   void _onDestinationSelected(int index) {
-    final entering = index != _currentPageIndex;
-
     // Leaving Search dismisses the keyboard so it doesn't linger over another
     // tab. (Entering Search focuses the field below.)
     if (index != _searchIndex) {
       FocusManager.instance.primaryFocus?.unfocus();
-    }
-
-    if (entering) {
-      const tabTargets = {
-        _homeIndex: 'tab_home',
-        _exploreIndex: 'tab_explore',
-        _searchIndex: 'search',
-        3: 'tab_settings',
-      };
-      final target = tabTargets[index];
-      if (target != null) {
-        unawaited(
-          ref
-              .read(analyticsServiceProvider)
-              .logFirstActionAfterOnboardingIfNeeded(target),
-        );
-      }
     }
 
     setState(() {
@@ -243,27 +212,14 @@ class _BottomNavigationBarViewState
           .setInt(SharedPreferenceConstants.lastMainTabIndex, index);
     }
 
-    // Refresh watch presence and installed widgets each time Home is shown
-    // (pairing and the home screen may have changed).
-    if (index == _homeIndex && entering) {
-      unawaited(reportWatchPresence());
-      unawaited(reportInstalledHomeWidgets());
-    }
-
     // Load explore data only on the first visit to the explore tab.
     if (index == _exploreIndex) {
       _exploreViewKey.currentState?.loadData();
     }
 
     // Selecting Search focuses the field so the user can type immediately;
-    // re-tapping the active tab re-opens the keyboard too. The screen view is
-    // logged only on actual entry, not on every re-tap.
+    // re-tapping the active tab re-opens the keyboard too.
     if (index == _searchIndex) {
-      if (entering) {
-        unawaited(
-          FirebaseAnalyticsService().logScreenView(screenName: 'Search'),
-        );
-      }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _searchViewKey.currentState?.focusInput();
       });

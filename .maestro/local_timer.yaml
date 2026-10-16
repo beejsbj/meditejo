@@ -1,0 +1,36 @@
+appId: ${APP_ID}
+name: Local Timer Playback
+---
+# Enter through the existing local route, independent of catalogue shortcuts.
+- openLink: "org.meditofoundation://medito/route/timer"
+- extendedWaitUntil:
+    visible: "Stopwatch"
+    timeout: 15000
+- tapOn: "3 minutes"
+- tapOn: "Start"
+- extendedWaitUntil:
+    visible: "Pause"
+    timeout: 20000
+# Require elapsed playback, beyond the initial playing state.
+- extendedWaitUntil:
+    visible: "(?s).*00:0[1-9] of 03:00.*"
+    timeout: 20000
+- takeScreenshot: local-timer-playing
+
+# Verify the native player's pause and resume controls.
+- tapOn: "Pause"
+- extendedWaitUntil:
+    visible: "Play"
+    timeout: 10000
+- tapOn: "Play"
+- extendedWaitUntil:
+    visible: "Pause"
+    timeout: 10000
+- tapOn: "Close"
+- extendedWaitUntil:
+    visible: "Stopwatch"
+    timeout: 10000
+- tapOn: "Go Back"
+- extendedWaitUntil:
+    visible: "Home"
+    timeout: 10000

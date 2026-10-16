@@ -17,12 +17,13 @@ const double _kOverscrollBleed = 260.0;
 /// [HomeHero] and the home list, which hands its first section to the hero
 /// whenever there is an image to lay it over.
 final homeHeroCoverProvider = Provider.autoDispose<String?>((ref) {
+  final packId = ref.watch(upNextPackIdProvider);
   final upNext = ref.watch(upNextProvider);
-  // Resolving the next unfinished pack can temporarily be loading. The
-  // pinned pack is already known: keep its hero instead of collapsing it.
+  if (packId.isEmpty && upNext.value?.pack.coverUrl == null) return null;
+  // Keep the explicit pin's artwork while its local completion data loads.
   final pack =
       upNext.value?.pack ??
-      ref.watch(packProvider(packId: ref.watch(upNextPackIdProvider))).value;
+      (packId.isEmpty ? null : ref.watch(packProvider(packId: packId)).value);
   final cover = pack?.coverUrl;
   return (cover == null || cover.isEmpty) ? null : cover;
 });

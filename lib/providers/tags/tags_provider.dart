@@ -2,18 +2,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/models/explore/explore_list_item.dart';
 import 'package:medito/models/tags/tag_model.dart';
 import 'package:medito/repositories/tags/tags_repository.dart';
-import 'package:medito/services/network/http_api_service.dart';
 import 'package:medito/utils/logger.dart';
 
 final tagsRepositoryProvider = Provider<TagsRepository>((ref) {
-  return TagsRepositoryImpl(client: HttpApiService());
+  return TagsRepositoryImpl();
 });
 
-/// Raw `GET /tags` result, fetched once per app run.
+/// Local tag catalog, loaded once per app run.
 ///
-/// Tag surfaces must never block or break a screen when this fails (e.g. an
-/// app build shipped before the API), so they read [tagCatalogProvider]
-/// below instead of this one. Two retries, then give up until next launch.
+/// Tag surfaces read [tagCatalogProvider] so a catalog failure hides tags
+/// without blocking the screen. Two retries, then give up until next launch.
 final tagCatalogFetchProvider = FutureProvider<TagCatalog>(
   (ref) => ref.watch(tagsRepositoryProvider).fetchCatalog(),
   retry: (retryCount, error) =>
