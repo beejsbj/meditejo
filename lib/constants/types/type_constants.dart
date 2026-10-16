@@ -10,7 +10,6 @@ class TypeConstants {
   static const String timestampIdKey = 'timestamp';
   static const String guideIdKey = 'guide';
   static const String durationIdKey = 'duration';
-  static const String account = 'account';
   static const String downloads = 'downloads';
   static const String customiseHomeLayout = 'customiseHomeLayout';
   static const String route = 'route';
@@ -38,15 +37,10 @@ class TypeConstants {
 }
 
 class RouteConstants {
-  static const String donation = 'donation';
   static const String stats = 'stats';
-  static const String analytics = 'analytics';
 
   /// Native home Timer (countdown / stopwatch).
   static const String timer = 'timer';
-
-  /// Native shop. `shop` opens the grid, `shop:<product-slug>` a product.
-  static const String shop = 'shop';
 }
 
 class LocaleConstants {

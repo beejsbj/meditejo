@@ -20,24 +20,6 @@ class NetworkImageWidget extends StatelessWidget {
     this.errorWidget,
   });
 
-  static final Map<double, String> _resolutionSuffixes = {
-    3.0: '_3x.webp',
-    2.0: '_2x.webp',
-    1.0: '_1x.webp',
-  };
-
-  String _getWebPImageUrl(BuildContext context, String imagePath) {
-    var pixelRatio = MediaQuery.of(context).devicePixelRatio;
-    var suffix = _resolutionSuffixes.entries
-        .firstWhere(
-          (entry) => pixelRatio >= entry.key,
-          orElse: () => _resolutionSuffixes.entries.last,
-        )
-        .value;
-
-    return '$contentBaseUrl$imagePath$suffix';
-  }
-
   // Artwork only, never labelled: excluded so each card doesn't pick up an
   // "image" trait (or a stray unlabelled image stop) from it.
   @override
@@ -45,22 +27,19 @@ class NetworkImageWidget extends StatelessWidget {
       ExcludeSemantics(child: _buildImage(context));
 
   Widget _buildImage(BuildContext context) {
-    // Skip loading images from dead domains
-    if (HTTPConstants.isDeadDomain(url)) {
+    final uri = Uri.tryParse(url);
+    if (uri == null ||
+        (uri.scheme != 'http' && uri.scheme != 'https') ||
+        uri.host.isEmpty) {
       return errorWidget ??
           Image.asset(AssetConstants.placeholder, fit: BoxFit.cover);
     }
 
-    var scaledImageUrl = url.startsWith('http')
-        ? url
-        : _getWebPImageUrl(context, url);
-    var originalImageUrl = url.startsWith('http') ? url : '$contentBaseUrl$url';
-
-    return scaledImageUrl.endsWith('.svg')
-        ? _buildSvgImage(scaledImageUrl)
+    return uri.path.endsWith('.svg')
+        ? _buildSvgImage(url)
         : shouldCache
-        ? _buildCachedImage(scaledImageUrl, originalImageUrl)
-        : _buildNetworkImage(scaledImageUrl, originalImageUrl);
+        ? _buildCachedImage(url)
+        : _buildNetworkImage(url);
   }
 
   Widget _buildSvgImage(String url) {
@@ -73,9 +52,9 @@ class NetworkImageWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildCachedImage(String scaledUrl, String originalUrl) {
+  Widget _buildCachedImage(String url) {
     return CachedNetworkImage(
-      imageUrl: scaledUrl,
+      imageUrl: url,
       imageBuilder: (context, imageProvider) => Container(
         decoration: BoxDecoration(
           image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
@@ -83,32 +62,15 @@ class NetworkImageWidget extends StatelessWidget {
         foregroundDecoration: BoxDecoration(gradient: gradient),
       ),
       placeholder: (_, _) => _shimmerLoading(),
-      errorWidget: (context, url, error) {
-        // If scaled image fails, try original
-        if (url != originalUrl) {
-          return CachedNetworkImage(
-            imageUrl: originalUrl,
-            imageBuilder: (context, imageProvider) => Container(
-              decoration: BoxDecoration(
-                image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
-              ),
-              foregroundDecoration: BoxDecoration(gradient: gradient),
-            ),
-            placeholder: (_, _) => _shimmerLoading(),
-            errorWidget: (context, url, error) =>
-                errorWidget ??
-                Image.asset(AssetConstants.placeholder, fit: BoxFit.cover),
-          );
-        }
-        return errorWidget ??
-            Image.asset(AssetConstants.placeholder, fit: BoxFit.cover);
-      },
+      errorWidget: (context, url, error) =>
+          errorWidget ??
+          Image.asset(AssetConstants.placeholder, fit: BoxFit.cover),
     );
   }
 
-  Widget _buildNetworkImage(String scaledUrl, String originalUrl) {
+  Widget _buildNetworkImage(String url) {
     return Image.network(
-      scaledUrl,
+      url,
       fit: BoxFit.cover,
       height: height,
       width: width,
@@ -116,26 +78,9 @@ class NetworkImageWidget extends StatelessWidget {
       cacheWidth: width?.round(),
       loadingBuilder: (_, child, loadingProgress) =>
           loadingProgress == null ? child : _shimmerLoading(),
-      errorBuilder: (context, error, stackTrace) {
-        // If scaled image fails, try original
-        if (scaledUrl != originalUrl) {
-          return Image.network(
-            originalUrl,
-            fit: BoxFit.cover,
-            height: height,
-            width: width,
-            cacheHeight: height?.round(),
-            cacheWidth: width?.round(),
-            loadingBuilder: (_, child, loadingProgress) =>
-                loadingProgress == null ? child : _shimmerLoading(),
-            errorBuilder: (context, error, stackTrace) =>
-                errorWidget ??
-                Image.asset(AssetConstants.placeholder, fit: BoxFit.cover),
-          );
-        }
-        return errorWidget ??
-            Image.asset(AssetConstants.placeholder, fit: BoxFit.cover);
-      },
+      errorBuilder: (context, error, stackTrace) =>
+          errorWidget ??
+          Image.asset(AssetConstants.placeholder, fit: BoxFit.cover),
     );
   }
 

@@ -1,5 +1,3 @@
-import 'package:medito/constants/strings/analytics_event_constants.dart';
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,7 +11,6 @@ import 'audio_state_provider.dart';
 import 'download/audio_downloader_provider.dart';
 import 'ios_audio_handler.dart';
 import 'repeat_state_provider.dart';
-import '../../utils/audio_session_tracker.dart';
 import '../../utils/logger.dart';
 
 final _api = pigeon.MeditoAudioServiceApi();
@@ -48,19 +45,6 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     ref.read(audioStateProvider.notifier).resetState();
     await _playTrack(request);
     state = request;
-
-    // Analytics: playback actually started. Fired after _playTrack so a failed
-    // start (which rethrows above) does not count as a started session. Also
-    // abandons any prior session that never completed (track switch).
-    unawaited(
-      AudioSessionTracker.instance.onStarted(
-        fileId: request.fileId,
-        guide: request.isTimer
-            ? AnalyticsEventConstants.timerGuide
-            : request.guideName,
-        durationMs: request.duration,
-      ),
-    );
   }
 
   /// Sets the current request WITHOUT starting playback, so the player screen
@@ -238,9 +222,6 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
   }
 
   void stop() {
-    // Analytics: closing the player ends the session. No-op if it already
-    // completed (the completion path also calls stop()).
-    unawaited(AudioSessionTracker.instance.onStopped());
     if (Platform.isAndroid) {
       _api.stopAudio();
     } else {

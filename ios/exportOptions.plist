@@ -4,20 +4,7 @@
 <dict>
     <key>method</key>
     <string>app-store-connect</string>
-    <key>teamID</key>
-    <string>JLKV36C38P</string>
-    <key>team</key>
-    <string>Medito Stichting</string>
     <key>signingStyle</key>
-    <string>manual</string>
-    <key>provisioningProfiles</key>
-    <dict>
-        <key>org.meditofoundation</key>
-        <string>match AppStore org.meditofoundation</string>
-        <key>org.meditofoundation.widget</key>
-        <string>match AppStore org.meditofoundation.widget</string>
-    </dict>
-    <key>signingCertificate</key>
-    <string>Apple Distribution: Medito Stichting (JLKV36C38P)</string>
+    <string>automatic</string>
 </dict>
 </plist>

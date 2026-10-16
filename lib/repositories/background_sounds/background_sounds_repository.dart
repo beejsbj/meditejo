@@ -2,11 +2,9 @@ import '../../utils/logger.dart';
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:medito/constants/constants.dart';
-import 'package:medito/exceptions/app_error.dart';
-import 'package:medito/models/models.dart';
-import 'package:medito/providers/providers.dart';
-import 'package:medito/services/network/http_api_service.dart';
+import 'package:medito/constants/strings/shared_preference_constants.dart';
+import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
+import 'package:medito/services/local_catalogue.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:medito/models/background_sounds/background_sounds_model.dart';
 
@@ -17,8 +15,7 @@ abstract class BackgroundSoundsRepository {
 
   Future<List<BackgroundSoundsModel>?> fetchLocallySavedBackgroundSounds();
 
-  /// The sound list as last fetched online, or the sounds this device has
-  /// picked before if it has never been fetched. Never touches the network.
+  /// Available local ambient recordings. Never returns legacy remote sounds.
   List<BackgroundSoundsModel> fetchCachedBackgroundSounds();
 
   Future<void> updateItemsInSavedBgSoundList(BackgroundSoundsModel sound);
@@ -43,111 +40,44 @@ abstract class BackgroundSoundsRepository {
 }
 
 class BackgroundSoundsRepositoryImpl extends BackgroundSoundsRepository {
-  final HttpApiService client;
   final Ref ref;
+  final LocalCatalogue catalogue;
 
-  BackgroundSoundsRepositoryImpl({required this.client, required this.ref});
-
-  @override
-  Future<List<BackgroundSoundsModel>> fetchBackgroundSounds() async {
-    try {
-      final response = await client.getRequest(HTTPConstants.backgroundSounds);
-
-      final results = response['results'];
-      if (results is! List) {
-        throw const ServerError();
-      }
-
-      final sounds = [
-        const BackgroundSoundsModel(
-          id: kNoneBackgroundSoundId,
-          title: 'None', // This will be localized in the UI layer
-          duration: 0,
-          path: '',
-        ),
-      ];
-
-      for (final item in results) {
-        try {
-          if (item is! Map) continue;
-
-          final map = Map<String, dynamic>.fromEntries(
-            item.entries.map((e) => MapEntry(e.key.toString(), e.value)),
-          );
-
-          final sound = BackgroundSoundsModel.fromJson(map);
-          sounds.add(sound);
-        } catch (e) {
-          AppLogger.e('BACKGROUND', 'Error parsing background sound: $e');
-          // Skip invalid items instead of failing the whole request
-          continue;
-        }
-      }
-
-      _cacheCatalog(sounds);
-      return sounds;
-    } catch (e) {
-      AppLogger.e('BACKGROUND', 'Error fetching background sounds: $e');
-      if (e is AppError) rethrow;
-      throw const ServerError();
-    }
-  }
-
-  void _cacheCatalog(List<BackgroundSoundsModel> sounds) {
-    final encoded = jsonEncode([
-      for (final s in sounds)
-        if (s.id != kNoneBackgroundSoundId) s.toJson(),
-    ]);
-    unawaited(
-      ref
-          .read(sharedPreferencesProvider)
-          .setString(SharedPreferenceConstants.bgSoundCatalog, encoded),
-    );
-  }
+  BackgroundSoundsRepositoryImpl({
+    required this.ref,
+    this.catalogue = const LocalCatalogue(),
+  });
 
   @override
-  List<BackgroundSoundsModel> fetchCachedBackgroundSounds() {
-    try {
-      final prefs = ref.read(sharedPreferencesProvider);
-      final catalog = prefs.getString(SharedPreferenceConstants.bgSoundCatalog);
-      if (catalog != null) {
-        return [
-          for (final item in jsonDecode(catalog) as List)
-            BackgroundSoundsModel.fromJson(Map<String, Object?>.from(item)),
-        ];
-      }
-      return [
-        for (final item
-            in prefs.getStringList(SharedPreferenceConstants.listBgSound) ??
-                const <String>[])
-          BackgroundSoundsModel.fromJson(jsonDecode(item)),
-      ];
-    } catch (e) {
-      AppLogger.w('BACKGROUND', 'Unreadable cached sound list: $e');
-      return const [];
-    }
-  }
+  Future<List<BackgroundSoundsModel>> fetchBackgroundSounds() async =>
+      catalogue.backgroundSounds;
+
+  @override
+  List<BackgroundSoundsModel> fetchCachedBackgroundSounds() =>
+      catalogue.backgroundSounds;
 
   @override
   Future<List<BackgroundSoundsModel>?>
   fetchLocallySavedBackgroundSounds() async {
+    final pref = ref.read(sharedPreferencesProvider);
+    final saved =
+        pref.getStringList(SharedPreferenceConstants.listBgSound) ?? [];
+    final available = catalogue.backgroundSounds;
+    return [
+      for (final sound in available)
+        if (saved.any((entry) => _savedSoundId(entry) == sound.id)) sound,
+    ];
+  }
+
+  String? _savedSoundId(String entry) {
     try {
-      var pref = ref.read(sharedPreferencesProvider);
-      var soundList =
-          pref.getStringList(SharedPreferenceConstants.listBgSound) ?? [];
-      if (soundList.isNotEmpty) {
-        var sounds = <BackgroundSoundsModel>[];
-        for (var element in soundList) {
-          sounds.add(BackgroundSoundsModel.fromJson(json.decode(element)));
-        }
-
-        return sounds;
-      }
-    } catch (err) {
-      AppLogger.d('BACKGROUND', err.toString());
+      final value = jsonDecode(entry);
+      return value is Map && value['id'] is String
+          ? value['id'] as String
+          : null;
+    } on FormatException {
+      return null;
     }
-
-    return null;
   }
 
   @override
@@ -197,9 +127,12 @@ class BackgroundSoundsRepositoryImpl extends BackgroundSoundsRepository {
         .getString(SharedPreferenceConstants.bgSound);
 
     if (bgSoundJson == null) return null;
-    final sound = BackgroundSoundsModel.fromJson(json.decode(bgSoundJson));
-    // Saved before bells became a switch: the bells live in their own pref.
-    return sound.id == kSessionBellsId ? null : sound;
+    final id = _savedSoundId(bgSoundJson);
+    // Resolve through the local catalogue so stale saved URLs never play.
+    for (final sound in catalogue.backgroundSounds) {
+      if (sound.id == id) return sound;
+    }
+    return null;
   }
 
   @override
@@ -258,5 +191,5 @@ class BackgroundSoundsRepositoryImpl extends BackgroundSoundsRepository {
 
 @riverpod
 BackgroundSoundsRepository backgroundSoundsRepository(Ref ref) {
-  return BackgroundSoundsRepositoryImpl(client: HttpApiService(), ref: ref);
+  return BackgroundSoundsRepositoryImpl(ref: ref);
 }

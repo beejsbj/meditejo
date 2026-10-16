@@ -3,10 +3,7 @@ import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/utils/stats_manager.dart';
 import 'package:medito/utils/stats_updater.dart';
-import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../stats_manager_test.mocks.dart';
 
 /// Behavioural tests for the bulk-backfill helper used by the calendar's
 /// long-press range selection.
@@ -16,8 +13,7 @@ import '../stats_manager_test.mocks.dart';
 ///   1. Stamp every entry at noon on the right calendar day with the
 ///      afternoon ("manual2") session ID, regardless of caller-provided
 ///      time-of-day.
-///   2. Avoid the original 1-network-call-per-day bug — exactly one
-///      `postStats` per bulk invocation, even for a 30-day backfill.
+///   2. Persist the full backfill on this device, including across restarts.
 void main() {
   // The bulk helper calls into _refreshStatsAndUpNext which touches
   // navigatorKey.currentContext via a GlobalKey. That getter requires the
@@ -26,22 +22,15 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late StatsManager statsManager;
-  late MockStatsService mockStatsService;
   late DateTime today;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
-    mockStatsService = MockStatsService();
     statsManager = StatsManager();
-    statsManager.setStatsServiceForTesting(mockStatsService);
-    await statsManager.initializeForTesting(statsService: mockStatsService);
+    await statsManager.initializeForTesting();
 
     today = DateTime(2026, 4, 28);
     statsManager.setCurrentDateForTesting(today);
-
-    when(
-      mockStatsService.postStats(any),
-    ).thenAnswer((_) async => Future.value());
 
     statsManager.setStatsForTesting(
       LocalAllStats.empty().copyWith(streakCurrent: 0, streakLongest: 0),
@@ -53,18 +42,17 @@ void main() {
   });
 
   group('addManualSessions — input handling', () {
-    test('empty list returns 0 and never posts', () async {
+    test('empty list returns 0 without adding entries', () async {
       final added = await addManualSessions(
         dates: const [],
         durationMinutes: 10,
         statsManager: statsManager,
       );
       expect(added, 0);
-      verifyNever(mockStatsService.postStats(any));
       expect(statsManager.currentStats!.audioCompleted ?? const [], isEmpty);
     });
 
-    test('all-future list returns 0 and never posts', () async {
+    test('all-future list returns 0 without adding entries', () async {
       final added = await addManualSessions(
         dates: [
           DateTime(2026, 5, 1),
@@ -75,7 +63,6 @@ void main() {
         statsManager: statsManager,
       );
       expect(added, 0);
-      verifyNever(mockStatsService.postStats(any));
       expect(statsManager.currentStats!.audioCompleted ?? const [], isEmpty);
     });
 
@@ -184,11 +171,8 @@ void main() {
     });
   });
 
-  group('addManualSessions — network behaviour', () {
-    test('30-day backfill posts exactly once (regression)', () async {
-      // The original implementation called postStats inside every
-      // addAudioCompleted, so 30 days = 30 sequential network calls. After
-      // the skipPost+flushPendingPost refactor, it should be exactly one.
+  group('addManualSessions — local persistence', () {
+    test('30-day backfill survives restarting the stats manager', () async {
       final dates = [for (var d = 1; d <= 30; d++) DateTime(2026, 3, d, 12)];
       final added = await addManualSessions(
         dates: dates,
@@ -196,45 +180,24 @@ void main() {
         statsManager: statsManager,
       );
       expect(added, 30);
-      verify(mockStatsService.postStats(any)).called(1);
+      statsManager.resetForTesting();
+      final stored = await statsManager.localAllStats;
+      expect(stored.audioCompleted, hasLength(30));
+      expect(stored.totalTracksCompleted, 30);
+      expect(stored.totalTimeListened, 30 * 10 * 60 * 1000);
     });
 
-    test('single-day add posts exactly once', () async {
-      final added = await addManualSessions(
-        dates: [DateTime(2026, 4, 26)],
-        durationMinutes: 10,
-        statsManager: statsManager,
-      );
-      expect(added, 1);
-      verify(mockStatsService.postStats(any)).called(1);
-    });
-
-    test('all-future invocation does not post', () async {
-      final added = await addManualSessions(
-        dates: [DateTime(2026, 5, 1), DateTime(2026, 5, 2)],
-        durationMinutes: 10,
-        statsManager: statsManager,
-      );
-      expect(added, 0);
-      verifyNever(mockStatsService.postStats(any));
-    });
-
-    test(
-      'two consecutive bulk calls each post once (state stays tidy)',
-      () async {
+    test('consecutive bulk calls preserve every session locally', () async {
+      for (final day in [24, 25, 26, 27]) {
         await addManualSessions(
-          dates: [DateTime(2026, 4, 26), DateTime(2026, 4, 27)],
+          dates: [DateTime(2026, 4, day)],
           durationMinutes: 10,
           statsManager: statsManager,
         );
-        await addManualSessions(
-          dates: [DateTime(2026, 4, 24), DateTime(2026, 4, 25)],
-          durationMinutes: 10,
-          statsManager: statsManager,
-        );
-        verify(mockStatsService.postStats(any)).called(2);
-      },
-    );
+      }
+      statsManager.resetForTesting();
+      expect((await statsManager.localAllStats).audioCompleted, hasLength(4));
+    });
   });
 
   group('addManualSessions — streak side effects', () {

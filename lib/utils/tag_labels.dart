@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:medito/l10n/app_localizations.dart';
 
-/// User-facing label for a server tag id. Unknown ids (a tag added on the
-/// server before the app learned about it) fall back to the humanised id, so
+/// User-facing label for a catalogue tag id. Unknown ids (a tag added on the
+/// catalogue before the app learned about it) fall back to the humanised id, so
 /// new tags still render without an app update.
 String tagLabel(BuildContext context, String tagId) {
   final l10n = AppLocalizations.of(context)!;

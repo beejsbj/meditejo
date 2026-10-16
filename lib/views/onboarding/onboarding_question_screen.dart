@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math';
 
 import 'package:medito/widgets/onboarding/onboarding_content.dart';

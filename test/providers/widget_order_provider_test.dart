@@ -7,303 +7,93 @@ import 'package:medito/providers/shared_preference/shared_preference_provider.da
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  group('HomeWidgetOrderNotifier', () {
-    late SharedPreferences prefs;
-    late ProviderContainer container;
+  late SharedPreferences prefs;
+  late ProviderContainer container;
+  const defaults = [
+    HomeWidgetType.upNext,
+    HomeWidgetType.shortcuts,
+    HomeWidgetType.carousel,
+    HomeWidgetType.quote,
+  ];
 
-    setUp(() async {
-      SharedPreferences.setMockInitialValues({});
-      prefs = await SharedPreferences.getInstance();
-      container = ProviderContainer(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      );
-    });
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+    container = ProviderContainer(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
+  });
 
-    tearDown(() async {
-      container.dispose();
-      await prefs.clear();
-    });
+  tearDown(() => container.dispose());
 
-    group('Default order', () {
-      test('returns default order when no custom order saved', () async {
-        await prefs.setBool(
-          SharedPreferenceConstants.blackFridayDismissed,
-          true,
-        );
-        final order = container.read(homeWidgetOrderProvider);
-        expect(order, [
-          HomeWidgetType.upNext,
-          HomeWidgetType.shortcuts,
-          HomeWidgetType.carousel,
-          HomeWidgetType.quote,
-          HomeWidgetType.products,
-        ]);
-      });
-    });
+  test('new installs show only local practice sections', () {
+    expect(container.read(homeWidgetOrderProvider), defaults);
+  });
 
-    group('Custom order', () {
-      test('returns saved custom order', () async {
-        final customOrder = [
-          HomeWidgetType.quote,
-          HomeWidgetType.shortcuts,
-          HomeWidgetType.products,
-          HomeWidgetType.carousel,
-        ];
-        await prefs.setStringList(
-          SharedPreferenceConstants.homeWidgetOrder,
-          customOrder.map((e) => e.name).toList(),
-        );
+  test('preserves the relative order of saved local sections', () async {
+    await prefs.setStringList(SharedPreferenceConstants.homeWidgetOrder, [
+      'quote',
+      'shortcuts',
+      'upNext',
+      'carousel',
+    ]);
+    expect(container.read(homeWidgetOrderProvider), [
+      HomeWidgetType.quote,
+      HomeWidgetType.shortcuts,
+      HomeWidgetType.upNext,
+      HomeWidgetType.carousel,
+    ]);
+  });
 
-        final order = container.read(homeWidgetOrderProvider);
-        expect(order, [HomeWidgetType.upNext, ...customOrder]);
-      });
+  test(
+    'migrates retired sections without moving shortcuts ahead of quote',
+    () async {
+      await prefs.setStringList(SharedPreferenceConstants.homeWidgetOrder, [
+        'products',
+        'donation',
+        'unknown',
+        'quote',
+        'shortcuts',
+        'quote',
+      ]);
+      expect(container.read(homeWidgetOrderProvider), [
+        HomeWidgetType.upNext,
+        HomeWidgetType.quote,
+        HomeWidgetType.shortcuts,
+        HomeWidgetType.carousel,
+      ]);
+    },
+  );
 
-      test('preserves custom order when not Black Friday', () async {
-        final customOrder = [
-          HomeWidgetType.carousel,
-          HomeWidgetType.shortcuts,
-          HomeWidgetType.quote,
-          HomeWidgetType.products,
-        ];
-        await prefs.setStringList(
-          SharedPreferenceConstants.homeWidgetOrder,
-          customOrder.map((e) => e.name).toList(),
-        );
-        await prefs.setBool(
-          SharedPreferenceConstants.blackFridayDismissed,
-          true,
-        );
+  test('an entirely retired order recovers the default sections', () async {
+    await prefs.setStringList(SharedPreferenceConstants.homeWidgetOrder, [
+      'products',
+      'donation',
+    ]);
+    expect(container.read(homeWidgetOrderProvider), defaults);
+  });
 
-        final order = container.read(homeWidgetOrderProvider);
-        // When not Black Friday (current date), should return custom order with upNext prepended
-        expect(order, [HomeWidgetType.upNext, ...customOrder]);
-      });
-    });
+  test('updates both state and saved order', () async {
+    final order = defaults.reversed.toList();
+    await container.read(homeWidgetOrderProvider.notifier).updateOrder(order);
+    expect(container.read(homeWidgetOrderProvider), order);
+    expect(
+      prefs.getStringList(SharedPreferenceConstants.homeWidgetOrder),
+      order.map((type) => type.name).toList(),
+    );
+  });
 
-    group('Black Friday dismissal', () {
-      test('restores custom order when dismissed', () async {
-        final customOrder = [
-          HomeWidgetType.carousel,
-          HomeWidgetType.shortcuts,
-          HomeWidgetType.quote,
-          HomeWidgetType.products,
-        ];
-        await prefs.setStringList(
-          SharedPreferenceConstants.homeWidgetOrder,
-          customOrder.map((e) => e.name).toList(),
-        );
-        await prefs.setBool(
-          SharedPreferenceConstants.blackFridayDismissed,
-          true,
-        );
-
-        final order = container.read(homeWidgetOrderProvider);
-        // Should return custom order when dismissed, even during Black Friday, with upNext prepended
-        expect(order, [HomeWidgetType.upNext, ...customOrder]);
-      });
-
-      test('restores custom order after dismissing and refreshing', () async {
-        final customOrder = [
-          HomeWidgetType.quote,
-          HomeWidgetType.carousel,
-          HomeWidgetType.shortcuts,
-          HomeWidgetType.products,
-        ];
-        await prefs.setStringList(
-          SharedPreferenceConstants.homeWidgetOrder,
-          customOrder.map((e) => e.name).toList(),
-        );
-        await prefs.setBool(
-          SharedPreferenceConstants.blackFridayDismissed,
-          true,
-        );
-
-        final notifier = container.read(homeWidgetOrderProvider.notifier);
-        notifier.refreshOrder();
-
-        final order = container.read(homeWidgetOrderProvider);
-        expect(order, [HomeWidgetType.upNext, ...customOrder]);
-      });
-    });
-
-    group('Order updates', () {
-      test('updateOrder saves new order', () async {
-        final newOrder = [
-          HomeWidgetType.quote,
-          HomeWidgetType.carousel,
-          HomeWidgetType.shortcuts,
-          HomeWidgetType.products,
-        ];
-
-        final notifier = container.read(homeWidgetOrderProvider.notifier);
-        await notifier.updateOrder(newOrder);
-
-        final savedOrder = prefs.getStringList(
-          SharedPreferenceConstants.homeWidgetOrder,
-        );
-        expect(savedOrder, newOrder.map((e) => e.name).toList());
-      });
-
-      test('updateOrder updates state immediately', () async {
-        final newOrder = [
-          HomeWidgetType.quote,
-          HomeWidgetType.carousel,
-          HomeWidgetType.shortcuts,
-          HomeWidgetType.products,
-        ];
-
-        final notifier = container.read(homeWidgetOrderProvider.notifier);
-        await notifier.updateOrder(newOrder);
-
-        final order = container.read(homeWidgetOrderProvider);
-        expect(order, newOrder);
-      });
-
-      test('refreshOrder reloads from preferences', () async {
-        final customOrder = [
-          HomeWidgetType.carousel,
-          HomeWidgetType.shortcuts,
-          HomeWidgetType.quote,
-          HomeWidgetType.products,
-        ];
-        await prefs.setStringList(
-          SharedPreferenceConstants.homeWidgetOrder,
-          customOrder.map((e) => e.name).toList(),
-        );
-        await prefs.setBool(
-          SharedPreferenceConstants.blackFridayDismissed,
-          true,
-        );
-
-        final notifier = container.read(homeWidgetOrderProvider.notifier);
-        notifier.refreshOrder();
-
-        final order = container.read(homeWidgetOrderProvider);
-        expect(order, [HomeWidgetType.upNext, ...customOrder]);
-      });
-    });
-
-    group('Edge cases', () {
-      test('adds back a missing section at the bottom', () async {
-        final customOrder = [
-          HomeWidgetType.carousel,
-          HomeWidgetType.quote,
-          HomeWidgetType.products,
-        ];
-        await prefs.setStringList(
-          SharedPreferenceConstants.homeWidgetOrder,
-          customOrder.map((e) => e.name).toList(),
-        );
-
-        final order = container.read(homeWidgetOrderProvider);
-        expect(order, [
-          HomeWidgetType.upNext,
-          ...customOrder,
-          HomeWidgetType.shortcuts,
-        ]);
-      });
-
-      test('adds back products for orders saved before it existed', () async {
-        final customOrder = [
-          HomeWidgetType.shortcuts,
-          HomeWidgetType.carousel,
-          HomeWidgetType.quote,
-          HomeWidgetType.upNext,
-        ];
-        await prefs.setStringList(
-          SharedPreferenceConstants.homeWidgetOrder,
-          customOrder.map((e) => e.name).toList(),
-        );
-        await prefs.setBool(
-          SharedPreferenceConstants.blackFridayDismissed,
-          true,
-        );
-
-        final order = container.read(homeWidgetOrderProvider);
-        expect(order, [...customOrder, HomeWidgetType.products]);
-
-        container.read(homeWidgetOrderProvider.notifier).refreshOrder();
-        expect(container.read(homeWidgetOrderProvider), [
-          ...customOrder,
-          HomeWidgetType.products,
-        ]);
-      });
-
-      test('fills in every section for a partial order', () async {
-        final customOrder = [HomeWidgetType.shortcuts, HomeWidgetType.products];
-        await prefs.setStringList(
-          SharedPreferenceConstants.homeWidgetOrder,
-          customOrder.map((e) => e.name).toList(),
-        );
-
-        final order = container.read(homeWidgetOrderProvider);
-        expect(order, [
-          HomeWidgetType.upNext,
-          ...customOrder,
-          HomeWidgetType.carousel,
-          HomeWidgetType.quote,
-        ]);
-      });
-
-      test('drops duplicates and unknown section names', () async {
-        await prefs.setStringList(SharedPreferenceConstants.homeWidgetOrder, [
-          'quote',
-          'removedSection',
-          'shortcuts',
-          'quote',
-        ]);
-
-        final order = container.read(homeWidgetOrderProvider);
-        expect(order, [
-          HomeWidgetType.upNext,
-          HomeWidgetType.quote,
-          HomeWidgetType.shortcuts,
-          HomeWidgetType.carousel,
-          HomeWidgetType.products,
-        ]);
-      });
-    });
-
-    group('Custom order preservation during Black Friday', () {
-      test(
-        'updateOrder preserves custom order when saving during Black Friday',
-        () async {
-          final originalCustomOrder = [
-            HomeWidgetType.carousel,
-            HomeWidgetType.shortcuts,
-            HomeWidgetType.quote,
-            HomeWidgetType.products,
-          ];
-          await prefs.setStringList(
-            SharedPreferenceConstants.homeWidgetOrder,
-            originalCustomOrder.map((e) => e.name).toList(),
-          );
-
-          final notifier = container.read(homeWidgetOrderProvider.notifier);
-
-          final reorderedOrder = [
-            HomeWidgetType.carousel,
-            HomeWidgetType.shortcuts,
-            HomeWidgetType.products,
-            HomeWidgetType.quote,
-          ];
-
-          await notifier.updateOrder(reorderedOrder);
-
-          final savedOrder = prefs.getStringList(
-            SharedPreferenceConstants.homeWidgetOrder,
-          );
-          final savedOrderTypes = savedOrder!
-              .map((e) => HomeWidgetType.fromString(e))
-              .toList();
-
-          expect(savedOrderTypes.length, 4);
-          expect(savedOrderTypes.contains(HomeWidgetType.shortcuts), true);
-          expect(savedOrderTypes.contains(HomeWidgetType.products), true);
-          expect(savedOrderTypes.contains(HomeWidgetType.carousel), true);
-          expect(savedOrderTypes.contains(HomeWidgetType.quote), true);
-        },
-      );
-    });
+  test('refresh reloads a changed local preference', () async {
+    final notifier = container.read(homeWidgetOrderProvider.notifier);
+    await prefs.setStringList(SharedPreferenceConstants.homeWidgetOrder, [
+      'quote',
+    ]);
+    notifier.refreshOrder();
+    expect(container.read(homeWidgetOrderProvider), [
+      HomeWidgetType.upNext,
+      HomeWidgetType.quote,
+      HomeWidgetType.shortcuts,
+      HomeWidgetType.carousel,
+    ]);
   });
 }

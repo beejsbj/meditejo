@@ -40,15 +40,6 @@
 -keep class j$.util.LongSummaryStatistics { *; }
 -keep class j$.util.DoubleSummaryStatistics { *; }
 
-# Stripe rules
--dontwarn com.stripe.android.pushProvisioning.PushProvisioningActivity$g
--dontwarn com.stripe.android.pushProvisioning.PushProvisioningActivityStarter$Args
--dontwarn com.stripe.android.pushProvisioning.PushProvisioningActivityStarter$Error
--dontwarn com.stripe.android.pushProvisioning.PushProvisioningActivityStarter
--dontwarn com.stripe.android.pushProvisioning.PushProvisioningEphemeralKeyProvider
-# Keep Stripe classes
--keep class com.stripe.** { *; }
-
 # Keep Flutter core error class
 -keep class io.flutter.plugin.common.FlutterError { *; }
 
@@ -59,7 +50,6 @@
 
 # Handle Google Play Services Kotlin compatibility
 -dontwarn com.google.android.gms.**
--dontwarn com.google.firebase.**
 
 # Ignore all warnings to prevent build failure
 -ignorewarnings

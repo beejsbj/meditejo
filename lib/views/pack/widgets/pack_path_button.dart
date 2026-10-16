@@ -1,10 +1,6 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/colors/color_constants.dart';
-import 'package:medito/constants/pack_sequence.dart';
-import 'package:medito/constants/strings/analytics_event_constants.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
@@ -231,7 +227,6 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
     if (_starting) return;
     setState(() => _starting = true);
     try {
-      _logTap(next);
       await _putOnHome(context);
       if (!context.mounted) return;
       await widget.onStartSession(
@@ -245,75 +240,21 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
     }
   }
 
-  /// Every tap on the button, before it changes anything. [packPinned] alone
-  /// misses the usual case: continuing a pack that is already on Home.
-  void _logTap(PackItemsModel next) {
-    final completed = pack.items
-        .where((item) => item.isCompleted == true)
-        .length;
-    final position = PackSequence.positionOf(pack.id);
-    unawaited(
-      ref
-          .read(analyticsServiceProvider)
-          .logEvent(
-            name: AnalyticsEventConstants.packPathButtonTapped,
-            parameters: {
-              AnalyticsEventConstants.paramPackId: pack.id,
-              AnalyticsEventConstants.paramSessionId: next.id,
-              AnalyticsEventConstants.paramButtonLabel: completed == 0
-                  ? 'start'
-                  : 'continue',
-              AnalyticsEventConstants.paramAlreadyPinned:
-                  ref.read(upNextPackIdProvider) == pack.id ? 'true' : 'false',
-              AnalyticsEventConstants.paramSessionIndexInPack: completed + 1,
-              AnalyticsEventConstants.paramPackTotalSessions: pack.items.length,
-              AnalyticsEventConstants.paramPackSequencePosition:
-                  position?.toString() ?? 'none',
-              AnalyticsEventConstants.paramUpNextMode: PackSequence.modeFor(
-                pack.id,
-              ),
-            },
-          ),
-    );
-  }
-
   /// Makes this pack the one Home continues. A no-op (and no snackbar) when it
   /// already is. Progress lives in stats, so replacing loses nothing.
   Future<void> _putOnHome(BuildContext context) async {
     final previousId = ref.read(upNextPackIdProvider);
     if (previousId == pack.id) return;
 
-    unawaited(
-      ref
-          .read(analyticsServiceProvider)
-          .logEvent(
-            name: AnalyticsEventConstants.packPinned,
-            parameters: {
-              AnalyticsEventConstants.paramPackId: pack.id,
-              AnalyticsEventConstants.paramPreviousPackId: previousId,
-            },
-          ),
-    );
-
     final prefs = ref.read(sharedPreferencesProvider);
-    // Null when Home was on the default pack without an explicit choice; Undo
-    // restores exactly that.
+    // Null when Home was unpinned; Undo restores exactly that.
     final previousRaw = prefs.getString(SharedPreferenceConstants.upNextPackId);
     // Container, not ref: Undo is usually tapped from the player.
     final container = ProviderScope.containerOf(context, listen: false);
     final l10n = AppLocalizations.of(context)!;
 
-    // Remember where the user was in the series so removing this pack from
-    // Home later returns there. Hopping between hand-picked packs keeps the
-    // original series position.
-    if (previousRaw == null) {
-      await prefs.remove(SharedPreferenceConstants.upNextReturnPackId);
-    } else if (PackSequence.contains(previousRaw)) {
-      await prefs.setString(
-        SharedPreferenceConstants.upNextReturnPackId,
-        previousRaw,
-      );
-    }
+    // Retired course sequences must not become a return target for this pin.
+    await prefs.remove(SharedPreferenceConstants.upNextReturnPackId);
     await prefs.setString(SharedPreferenceConstants.upNextPackId, pack.id);
     ref.invalidate(upNextPackIdProvider);
 

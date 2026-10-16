@@ -14,7 +14,7 @@ import '../../utils/stats_updater.dart';
 import '../../utils/logger.dart';
 
 class IosAudioHandler extends BaseAudioHandler {
-  final _player = AudioPlayer();
+  final AudioPlayer _player;
   late final sessionBells = IosSessionBells(_player);
   // Distinguish a repeat boundary from terminal completion; never wait for bells.
   final _sessionCompleted = BehaviorSubject<bool>.seeded(false);
@@ -33,7 +33,7 @@ class IosAudioHandler extends BaseAudioHandler {
   static const _pauseGracePeriod = Duration(minutes: 3);
   Timer? _pauseDeactivationTimer;
 
-  IosAudioHandler();
+  IosAudioHandler({AudioPlayer? player}) : _player = player ?? AudioPlayer();
 
   Future<void> ensureInitialized() async {
     if (_isInitialized) return;
@@ -161,8 +161,8 @@ class IosAudioHandler extends BaseAudioHandler {
         // Playback has finished and is not repeating. Release the audio
         // session first so iOS does not keep the app alive in the background,
         // which otherwise drains battery for as long as the session stays
-        // active after the meditation ends. Reporting the completion runs
-        // afterwards because it does network/I/O that can be slow and must
+        // active after the meditation ends. Recording the completion runs
+        // afterwards because local storage and platform updates can be slow and must
         // not delay session release.
         _cancelPauseDeactivationTimer();
         // The ambient background player loops and keeps rendering audio after
@@ -473,7 +473,7 @@ class IosAudioHandler extends BaseAudioHandler {
         AudioSource.uri(Uri.parse(request.remoteUrl)),
       );
     } else {
-      await _player.setAsset(downloadPath);
+      await _player.setFilePath(downloadPath);
     }
 
     await setCustomRepeatMode(_currentRepeatMode);

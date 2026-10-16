@@ -54,8 +54,7 @@ Future<void> repairReminderFlagOnce(
 /// someone who was going to refuse. Declining this dialog costs nothing — the
 /// system prompt is never raised, and a later surface can ask again.
 ///
-/// Pure UI: callers log their own analytics so each surface keeps its own
-/// funnel. Returns true if the user chose to continue to the system prompt.
+/// Returns true if the user chose to continue to the system prompt.
 Future<bool> showNotificationPermissionPrimer(BuildContext context) async {
   final l10n = AppLocalizations.of(context)!;
 

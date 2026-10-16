@@ -14,7 +14,7 @@ import androidx.media3.exoplayer.ExoPlayer
 
 /** Native scheduling continues with the screen locked, without a Dart timer. */
 internal class SessionBellPlayer(context: Context, private val primary: Player) : Player.Listener {
-    companion object { const val URI = "medito://session-bells" }
+    companion object { const val URI = "meditejo://session-bells" }
     private val handler = Handler(Looper.getMainLooper())
     private val schedule = SessionBellSchedule()
     private val bell = ExoPlayer.Builder(context).build().apply {

@@ -1,36 +1,25 @@
-import 'package:medito/constants/strings/analytics_event_constants.dart';
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:medito/widgets/adaptive/adaptive_home_sections.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/providers/stats_provider.dart';
-import 'package:medito/providers/notification/reminder_provider.dart';
-import 'package:medito/services/reminders/daily_reminders_service.dart';
-import 'package:permission_handler/permission_handler.dart';
-
-import 'package:medito/constants/enums/home_widget_type.dart';
-import 'package:medito/exceptions/app_error.dart';
-import 'package:medito/models/models.dart';
-import 'package:medito/providers/shop/shop_providers.dart';
-import 'package:medito/services/shop/fourthwall_service.dart';
-import 'package:medito/providers/home/widget_order_provider.dart';
-import 'package:medito/widgets/widgets.dart';
-import 'package:medito/routes/routes.dart';
 import 'package:medito/constants/constants.dart';
+import 'package:medito/constants/enums/home_widget_type.dart';
+import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/models/home/home_model.dart';
+import 'package:medito/providers/home/home_provider.dart';
+import 'package:medito/providers/home/widget_order_provider.dart';
+import 'package:medito/providers/pack/pack_provider.dart';
+import 'package:medito/providers/stats_provider.dart';
+import 'package:medito/routes/routes.dart';
+import 'package:medito/views/downloads/downloads_view.dart';
+import 'package:medito/views/favorites/favorites_view.dart';
+import 'package:medito/views/timer/timer_view.dart';
+import 'package:medito/widgets/adaptive/adaptive_home_sections.dart';
+
 import 'home_styles.dart';
-import 'widgets/announcement/home_announcement_section.dart';
 import 'widgets/editorial/carousel_widget.dart';
 import 'widgets/header/home_hero.dart';
-import 'widgets/products/home_products_section.dart';
 import 'widgets/quote/quote_widget.dart';
 import 'widgets/shortcuts/shortcuts_items_widget.dart';
 import 'widgets/up_next/up_next_widget.dart';
-
-import '../../providers/home/announcement_provider.dart';
-import 'package:medito/providers/providers.dart';
-import 'package:medito/services/analytics/firebase_analytics_service.dart';
 
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({super.key});
@@ -40,158 +29,118 @@ class HomeView extends ConsumerStatefulWidget {
 }
 
 class _HomeViewState extends ConsumerState<HomeView>
-    with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
-  final _analytics = FirebaseAnalyticsService();
-
-  /// Lets a tap on the hero image do what Up Next's play button does.
+    with AutomaticKeepAliveClientMixin {
   final _upNextPrimaryAction = UpNextPrimaryAction();
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _logScreenView();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fixBrokenNotificationPermission();
-    });
-  }
-
-  Future<void> _fixBrokenNotificationPermission() async {
-    final prefs = ref.read(sharedPreferencesProvider);
-    if (!(prefs.getBool(SharedPreferenceConstants.notifPermissionFixNeeded) ??
-        false)) {
-      return;
-    }
-
-    await prefs.remove(SharedPreferenceConstants.notifPermissionFixNeeded);
-
-    final status = await Permission.notification.request();
-
-    if (!mounted) return;
-
-    if (status.isGranted) {
-      final service = DailyRemindersService(
-        prefs: prefs,
-        reminders: ref.read(reminderProvider),
-      );
-      await service.enable(l10n: AppLocalizations.of(context));
-      await ref.read(reminderEnabledProvider.notifier).setEnabled(true);
-    } else {
-      // They declined again — reset so the end-screen prompt can show later.
-      await prefs.setBool(
-        SharedPreferenceConstants.dailyReminderEnabled,
-        false,
-      );
-      await prefs.remove(
-        SharedPreferenceConstants.reminderPromptDismissedForever,
-      );
-      await prefs.remove(SharedPreferenceConstants.reminderPromptSnoozeUntil);
-    }
-  }
-
-  Future<void> _logScreenView() async {
-    await _analytics.logScreenView(screenName: 'HomeView');
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    // Local actions remain available while catalogue content loads or fails.
+    final homeData = ref.watch(fetchHomeProvider).value ?? const HomeModel();
+    final hasHero = ref.watch(homeHeroCoverProvider) != null;
+    final fullOrder = ref.watch(homeWidgetOrderProvider);
+    final first = fullOrder.firstOrNull;
+    final heroType =
+        hasHero &&
+            (first == HomeWidgetType.upNext || first == HomeWidgetType.quote)
+        ? first
+        : null;
+    final order = heroType == null ? fullOrder : fullOrder.sublist(1);
 
-    final home = ref.watch(fetchHomeProvider);
-
-    return home.when(
-      loading: () => const _HomeLoadingView(),
-      error: (err, stack) {
-        final error = err is AppError ? err : const UnknownError();
-
-        return MeditoErrorWidget(
-          error: error,
-          onTap: () => _onRefresh(),
-          isLoading: home.isLoading,
-        );
-      },
-      data: (HomeModel homeData) {
-        // With a cover to lay it over, Your Path or the quote move into the
-        // hero when they are first in the user's order, and the list starts
-        // from the second section. Anything else on top stays in the list
-        // under a short image banner.
-        final hasHero = ref.watch(homeHeroCoverProvider) != null;
-        final fullOrder = ref.watch(homeWidgetOrderProvider);
-        final first = fullOrder.firstOrNull;
-        final heroType =
-            hasHero &&
-                (first == HomeWidgetType.upNext ||
-                    first == HomeWidgetType.quote)
-            ? first
-            : null;
-        final widgetOrder = heroType == null ? fullOrder : fullOrder.sublist(1);
-
-        return Scaffold(
-          // No top inset either: the hero image runs under the status bar
-          // and positions the greeting itself.
-          body: SafeArea(
-            top: false,
-            bottom: false,
-            child: RefreshIndicator(
-              onRefresh: _onRefresh,
-              edgeOffset: MediaQuery.paddingOf(context).top + padding16,
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  HomeHero(
-                    onStatsButtonTap: () => _onStatsButtonTapped(context),
-                    announcement: const HomeAnnouncementSection(),
-                    onImageTap: heroType == HomeWidgetType.upNext
-                        ? _upNextPrimaryAction.trigger
-                        : null,
-                    child: heroType == null
-                        ? null
-                        : _buildSection(heroType, homeData, inHero: true),
-                  ),
-                  // Banner / no-hero mode only: with an overlaid section the
-                  // hero shows the announcement above it instead.
-                  if (heroType == null)
-                    const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.only(top: 12),
-                        child: HomeAnnouncementSection(),
-                      ),
-                    ),
-                  SliverToBoxAdapter(
-                    child: AdaptiveHomeSections(
-                      children: [
-                        for (final type in widgetOrder)
-                          Padding(
-                            key: ValueKey(type),
-                            padding: const EdgeInsets.only(
-                              bottom: kHomeSectionGap,
-                            ),
-                            child: _buildSection(type, homeData),
-                          ),
-                      ],
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: EdgeInsets.only(
-                      bottom: MediaQuery.paddingOf(context).bottom + 8,
-                    ),
-                  ),
-                ],
+    return Scaffold(
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: _onRefresh,
+          edgeOffset: MediaQuery.paddingOf(context).top + padding16,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              HomeHero(
+                onStatsButtonTap: () => handleNavigation(
+                  TypeConstants.route,
+                  [RouteConstants.stats],
+                  context,
+                  ref: ref,
+                ),
+                onImageTap: heroType == HomeWidgetType.upNext
+                    ? _upNextPrimaryAction.trigger
+                    : null,
+                child: heroType == null
+                    ? null
+                    : _buildSection(heroType, homeData, inHero: true),
               ),
-            ),
+              SliverToBoxAdapter(child: _buildLocalActions(context)),
+              SliverToBoxAdapter(
+                child: AdaptiveHomeSections(
+                  children: [
+                    for (final type in order)
+                      Padding(
+                        key: ValueKey(type),
+                        padding: const EdgeInsets.only(bottom: kHomeSectionGap),
+                        child: _buildSection(type, homeData),
+                      ),
+                  ],
+                ),
+              ),
+              SliverPadding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.paddingOf(context).bottom + padding16,
+                ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  /// One home section. [inHero] lays it over the hero image: Up Next drops
-  /// its card and explainer strip; the others are re-themed by the hero.
+  Widget _buildLocalActions(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.all(padding16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.localHomeHeading,
+            style: Theme.of(context).textTheme.headlineMedium,
+          ),
+          const SizedBox(height: padding16),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(
+              context,
+            ).push<void>(MaterialPageRoute(builder: (_) => const TimerView())),
+            icon: const Icon(Icons.timer_outlined),
+            label: Text(l10n.openTimer),
+          ),
+          const SizedBox(height: padding8),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: padding16,
+            children: [
+              TextButton.icon(
+                onPressed: () => Navigator.of(context).push<void>(
+                  MaterialPageRoute(builder: (_) => const FavoritesView()),
+                ),
+                icon: const Icon(Icons.favorite_border),
+                label: Text(l10n.favorites),
+              ),
+              TextButton.icon(
+                onPressed: () => Navigator.of(context).push<void>(
+                  MaterialPageRoute(builder: (_) => const DownloadsView()),
+                ),
+                icon: const Icon(Icons.download_outlined),
+                label: Text(l10n.downloads),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSection(
     HomeWidgetType type,
     HomeModel homeData, {
@@ -199,16 +148,18 @@ class _HomeViewState extends ConsumerState<HomeView>
   }) {
     final key = ValueKey('${type.name}${inHero ? '_hero' : ''}');
     return switch (type) {
-      HomeWidgetType.shortcuts => ShortcutsItemsWidget(
-        key: key,
-        data: homeData.shortcuts,
-      ),
-      HomeWidgetType.carousel => CarouselWidget(
-        key: key,
-        carouselItems: homeData.carousel,
-      ),
-      HomeWidgetType.quote => QuoteWidget(key: key, data: homeData.todayQuote),
-      HomeWidgetType.products => HomeProductsSection(key: key),
+      HomeWidgetType.shortcuts =>
+        homeData.shortcuts.isEmpty
+            ? const SizedBox.shrink()
+            : ShortcutsItemsWidget(key: key, data: homeData.shortcuts),
+      HomeWidgetType.carousel =>
+        homeData.carousel.isEmpty
+            ? const SizedBox.shrink()
+            : CarouselWidget(key: key, carouselItems: homeData.carousel),
+      HomeWidgetType.quote =>
+        homeData.todayQuote == null
+            ? const SizedBox.shrink()
+            : QuoteWidget(key: key, data: homeData.todayQuote),
       HomeWidgetType.upNext => UpNextWidget(
         key: key,
         style: inHero ? UpNextStyle.hero : UpNextStyle.card,
@@ -218,121 +169,14 @@ class _HomeViewState extends ConsumerState<HomeView>
   }
 
   Future<void> _onRefresh() async {
-    ref.invalidate(fetchLatestAnnouncementProvider);
-    ref.invalidate(refreshHomeAPIsProvider);
-    // The shop row fetches lazily; only refresh it if it already has.
-    for (final collection in [
-      FourthwallService.homeCollection,
-      FourthwallService.allCollection,
-    ]) {
-      final shop = shopListingProvider(collection);
-      if (ref.exists(shop)) ref.invalidate(shop);
-    }
-    // Refetch all pack data; upNext is derived and will re-derive automatically.
+    ref.invalidate(fetchHomeProvider);
     ref.invalidate(packDataProvider);
     await Future.wait([
       ref.read(statsProvider.notifier).refresh(),
-      ref.read(fetchLatestAnnouncementProvider.future),
-      ref.read(refreshHomeAPIsProvider.future),
+      ref.read(fetchHomeProvider.future),
     ]);
-  }
-
-  void _onStatsButtonTapped(BuildContext context) {
-    ref
-        .read(analyticsServiceProvider)
-        .logFirstActionAfterOnboardingIfNeeded('stats');
-    handleNavigation(
-      TypeConstants.route,
-      [RouteConstants.stats],
-      context,
-      ref: ref,
-    );
   }
 
   @override
   bool get wantKeepAlive => true;
-}
-
-/// Loading state for the home tab. If loading drags on (offline or a bad
-/// connection can hold this spinner for up to the 30s request timeout), a
-/// subtle "Go to Downloads" escape hatch fades in so downloaded sessions
-/// stay reachable. A normal load resolves before the button ever appears.
-class _HomeLoadingView extends StatefulWidget {
-  const _HomeLoadingView();
-
-  @override
-  State<_HomeLoadingView> createState() => _HomeLoadingViewState();
-}
-
-class _HomeLoadingViewState extends State<_HomeLoadingView> {
-  var _showDownloadsButton = false;
-
-  @override
-  void initState() {
-    super.initState();
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) setState(() => _showDownloadsButton = true);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          const Center(child: CircularProgressIndicator()),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 32,
-            child: SafeArea(
-              child: Center(
-                child: AnimatedOpacity(
-                  opacity: _showDownloadsButton ? 1 : 0,
-                  duration: const Duration(milliseconds: 500),
-                  // Both work without a connection: downloaded sessions and
-                  // the timer (local silent audio).
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextButton(
-                        onPressed: _showDownloadsButton
-                            ? () => handleNavigation(TypeConstants.flow, [
-                                TypeConstants.downloads,
-                              ], context)
-                            : null,
-                        child: Text(
-                          AppLocalizations.of(context)!.goToDownloads,
-                          style: TextStyle(
-                            color: context.brandAccent.withValues(alpha: 0.8),
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: _showDownloadsButton
-                            ? () => handleNavigation(
-                                TypeConstants.route,
-                                [RouteConstants.timer],
-                                context,
-                                timerSource:
-                                    AnalyticsEventConstants.sourceOffline,
-                              )
-                            : null,
-                        child: Text(
-                          AppLocalizations.of(context)!.openTimer,
-                          style: TextStyle(
-                            color: context.brandAccent.withValues(alpha: 0.8),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

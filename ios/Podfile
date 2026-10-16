@@ -60,10 +60,6 @@ post_install do |installer|
         'PERMISSION_NOTIFICATIONS=1',
       ]
       
-      # Add app tracking transparency framework
-      config.build_settings['OTHER_LDFLAGS'] ||= '$(inherited)'
-      config.build_settings['OTHER_LDFLAGS'] += ' -framework AppTrackingTransparency'
-
       # Finally, force Automatic signing for Pods targets AFTER other settings
       config.build_settings['CODE_SIGN_STYLE'] = 'Automatic'
 

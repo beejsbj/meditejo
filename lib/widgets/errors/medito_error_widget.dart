@@ -1,21 +1,13 @@
-import 'package:medito/constants/strings/analytics_event_constants.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/providers/error_widget/report_cooldown_provider.dart';
 import 'package:medito/providers/providers.dart';
-import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/routes/routes.dart';
-import 'package:medito/services/analytics/crashlytics_service.dart';
-import 'package:medito/views/splash_view.dart';
-import 'package:medito/widgets/widgets.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:medito/repositories/auth/auth_repository.dart';
 
 import '../../views/downloads/downloads_view.dart';
-import 'package:medito/utils/utils.dart';
 
 class MeditoErrorWidget extends ConsumerWidget {
   const MeditoErrorWidget({
@@ -35,25 +27,13 @@ class MeditoErrorWidget extends ConsumerWidget {
 
   String _getErrorMessage(BuildContext context) {
     return switch (error) {
-      NetworkConnectionError(kind: NetworkFailureKind.hostLookup) =>
-        AppLocalizations.of(context)!.errorHostLookupMessage,
-      NetworkConnectionError(kind: NetworkFailureKind.connectTimeout) =>
-        AppLocalizations.of(context)!.errorConnectTimeoutMessage,
-      NetworkConnectionError(kind: NetworkFailureKind.connectionRefused) =>
-        AppLocalizations.of(context)!.errorServerUnreachableMessage,
       NetworkConnectionError() => AppLocalizations.of(
         context,
       )!.errorNoInternetMessage,
       TimeoutError() => AppLocalizations.of(context)!.errorTimeoutMessage,
-      UnauthorizedError() => AppLocalizations.of(
-        context,
-      )!.errorUnauthorizedMessage,
       NotFoundError() => AppLocalizations.of(context)!.errorNotFoundMessage,
       ServerError() => AppLocalizations.of(context)!.errorServerMessage,
       UnknownError() => AppLocalizations.of(context)!.errorUnknownMessage,
-      RefreshTokenError() => AppLocalizations.of(
-        context,
-      )!.errorUnauthorizedMessage,
       _ => AppLocalizations.of(context)!.errorUnknownMessage,
     };
   }
@@ -75,7 +55,6 @@ class MeditoErrorWidget extends ConsumerWidget {
       uiState.message,
       uiState.shouldShowCheckDownloadButton,
       textStyle,
-      ref,
     );
 
     if (isScaffold) {
@@ -90,10 +69,7 @@ class MeditoErrorWidget extends ConsumerWidget {
     String message,
     bool isShowCheckDownload,
     TextStyle? textStyle,
-    WidgetRef ref,
   ) {
-    final isCoolingDown = ref.watch(isCoolingDownProvider);
-
     return SizedBox(
       width: MediaQuery.of(context).size.width,
       child: Padding(
@@ -137,144 +113,59 @@ class MeditoErrorWidget extends ConsumerWidget {
               textAlign: TextAlign.center,
             ),
             height16,
-            if (error is UnauthorizedError || error is RefreshTokenError)
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 300,
-                    child: OutlinedButton(
-                      onPressed: onTap,
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+            Column(
+              spacing: 4,
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 300,
+                  child: OutlinedButton(
+                    onPressed: onTap,
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(AppLocalizations.of(context)!.retry),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: 300,
-                    child: LoadingButtonWidget(
-                      btnText: AppLocalizations.of(context)!.signInAgain,
-                      onPressed: () async {
-                        final authRepository = ref.read(
-                          authRepositorySyncProvider,
-                        );
-                        await authRepository.signOut();
-                        await ref.read(statsManagerProvider).clearAllStats();
-                        if (context.mounted) {
-                          ref.read(meRefreshProvider)();
-
-                          // Add a small delay to let the me provider refresh before navigation
-                          await Future.delayed(
-                            const Duration(milliseconds: 100),
-                          );
-
-                          if (context.mounted) {
-                            // Navigate to splash screen from UI
-                            Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(
-                                builder: (context) => const SplashView(),
-                              ),
-                              (route) => false,
-                            );
-                          }
-                        }
-                      },
-                      isLoading: isLoading,
-                      bgColor: ColorConstants.accentDark,
-                      textColor: ColorConstants.onyx,
-                    ),
-                  ),
-                ],
-              )
-            else
-              Column(
-                spacing: 4,
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 300,
-                    child: OutlinedButton(
-                      onPressed: onTap,
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(AppLocalizations.of(context)!.retry),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 300,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        handleNavigation(TypeConstants.flow, [
-                          TypeConstants.downloads,
-                        ], context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: context.brandAccent,
-                        foregroundColor: context.onBrandAccent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(AppLocalizations.of(context)!.goToDownloads),
-                    ),
-                  ),
-                  // The timer plays local audio, so it works offline too.
-                  SizedBox(
-                    width: 300,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        handleNavigation(
-                          TypeConstants.route,
-                          [RouteConstants.timer],
-                          context,
-                          timerSource: AnalyticsEventConstants.sourceOffline,
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(AppLocalizations.of(context)!.openTimer),
-                    ),
-                  ),
-                ],
-              ),
-            SizedBox(
-              width: 300,
-              child: TextButton(
-                onPressed: isCoolingDown
-                    ? null
-                    : () {
-                        CrashlyticsService().recordAppError(error);
-                        ref
-                            .read(reportCooldownProvider.notifier)
-                            .startCooldown();
-                        showSnackBar(
-                          context,
-                          AppLocalizations.of(context)!.errorReportedMessage,
-                        );
-                      },
-                style: TextButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                ),
-                child: Text(
-                  AppLocalizations.of(context)!.reportError,
-                  style: TextStyle(
-                    color: isCoolingDown
-                        ? ColorConstants.accentDark.withOpacityValue(0.5)
-                        : ColorConstants.accentDark,
+                    child: Text(AppLocalizations.of(context)!.retry),
                   ),
                 ),
-              ),
+                SizedBox(
+                  width: 300,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      handleNavigation(TypeConstants.flow, [
+                        TypeConstants.downloads,
+                      ], context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: context.brandAccent,
+                      foregroundColor: context.onBrandAccent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Text(AppLocalizations.of(context)!.goToDownloads),
+                  ),
+                ),
+                // The timer plays local audio, so it works offline too.
+                SizedBox(
+                  width: 300,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      handleNavigation(TypeConstants.route, [
+                        RouteConstants.timer,
+                      ], context);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Text(AppLocalizations.of(context)!.openTimer),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

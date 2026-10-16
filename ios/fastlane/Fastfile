@@ -1,3 +1,5 @@
+ENV["DEVELOPER_APP_IDENTIFIER"] ||= "io.github.beejsbj.meditejo"
+
 default_platform(:ios)
 
 def match_readonly?
@@ -5,14 +7,6 @@ def match_readonly?
 
   return value.strip.downcase != "false"
 end
-
-# Dart-defines forwarded to `flutter build ios`. Kept in one constant so the
-# beta and release lanes cannot drift apart.
-DART_DEFINES = [
-  "--dart-define-from-file=.prod.json",
-  "--dart-define=MOCK_MODE=false",
-  "--dart-define=ENABLE_DEVICE_PREVIEW=false",
-].join(" ")
 
 platform :ios do
 
@@ -133,71 +127,6 @@ platform :ios do
     upload_to_app_store(**upload_options)
     cleanup_keychain() unless use_existing_build
   end
-
-  # Retroactive symbol upload for a build already on App Store Connect, for when
-  # a release shipped before the dSYM upload worked — 2608.18.0+302443 did
-  # exactly that. Pulls the dSYMs Apple kept from the upload rather than
-  # rebuilding, because a rebuild produces different binary UUIDs and would not
-  # symbolicate the shipped build.
-  #
-  # Crashlytics accepts symbols after the fact, so run this before the build
-  # ramps: reports that arrive unsymbolicated are not reprocessed later.
-  #
-  #   fastlane ios symbols app_version:2608.18.0 build_number:302443
-  lane :symbols do |options|
-    version = options[:app_version].to_s
-    build = options[:build_number].to_s
-    UI.user_error!("pass app_version: and build_number:") if version.empty? || build.empty?
-
-    app_store_connect_api_key(
-      key_id: ENV["ASC_KEY_ID"],
-      issuer_id: ENV["ASC_ISSUER_ID"],
-      key_content: ENV["ASC_KEY_CONTENT"],
-      is_key_content_base64: false,
-      in_house: false
-    )
-
-    repo_root = File.expand_path("../..", __dir__)
-    output = File.join("/tmp", "dsyms-#{version}-#{build}")
-    FileUtils.mkdir_p(output)
-
-    download_dsyms(
-      app_identifier: ENV["DEVELOPER_APP_IDENTIFIER"],
-      version: version,
-      build_number: build,
-      output_directory: output
-    )
-
-    paths = lane_context[SharedValues::DSYM_PATHS] || []
-    if paths.empty?
-      UI.user_error!(
-        "App Store Connect returned no dSYMs for #{version} (#{build}). Apple only " \
-        "keeps them when the upload included symbols; if it did not, this build " \
-        "cannot be symbolicated retroactively and the fix is to ship a new build."
-      )
-    end
-
-    binary = crashlytics_upload_symbols_binary(repo_root)
-    UI.user_error!("upload-symbols not found; set FIREBASE_UPLOAD_SYMBOLS.") if binary.nil?
-
-    UI.message("Uploading #{paths.count} dSYM(s) for #{version} (#{build}) via #{binary}")
-    upload_symbols_to_crashlytics(
-      dsym_paths: paths,
-      gsp_path: File.join(repo_root, "ios/Runner/GoogleService-Info.plist"),
-      binary_path: binary
-    )
-  end
-
-  # Uploads dSYMs for an archive that is already on disk, without rebuilding.
-  # Use when a release built but the upload step failed, or to symbolise a local
-  # archive: `fastlane ios upload_dsyms [archive:path/to/Runner.xcarchive]`.
-  lane :upload_dsyms do |options|
-    if options[:archive]
-      lane_context[SharedValues::XCODEBUILD_ARCHIVE] = options[:archive]
-    end
-    upload_dsyms_to_crashlytics
-  end
-
 end
 
 # Builds and code-signs the .ipa with `flutter build ios --no-codesign` +
@@ -212,15 +141,15 @@ end
 #   3. apply_code_signing() puts each target on manual signing in the pbxproj so
 #      the archive step matches, and build_app's export_options maps each bundle
 #      ID to its profile — the widget extension needs its own entry or
-#      exportArchive fails on the App Groups / Apple Pay entitlements.
+#      exportArchive fails on the App Groups entitlements.
 #   4. build_app sets IPA_OUTPUT_PATH and XCODEBUILD_ARCHIVE, so the subsequent
 #      upload_to_testflight/upload_to_app_store finds the ipa with no `ipa:`
-#      param, and the dSYM upload below finds the archive.
+#      param.
 def build_release
   widget_bundle_id = fetch_profiles()
 
   Dir.chdir("..") do
-    sh("flutter build ios --release #{DART_DEFINES} --no-codesign")
+    sh("flutter build ios --release --no-codesign")
   end
 
   apply_code_signing(widget_bundle_id)
@@ -236,102 +165,6 @@ def build_release
         widget_bundle_id => ENV["sigh_#{widget_bundle_id}_appstore_profile-name"]
       }
     }
-  )
-
-  upload_dsyms_to_crashlytics
-end
-
-# Uploads the archive's dSYMs to Crashlytics.
-#
-# Why this exists in addition to the Runner target's "Crashlytics: upload dSYM"
-# build phase: Crashlytics cannot process an incoming iOS crash report without
-# matching symbols, and unprocessed reports never surface in the console at all.
-# Every 2607.x build shipped with no symbols uploaded (the phase used to call
-# `flutterfire upload-crashlytics-symbols`, which needs an
-# ios/firebase_app_id_file.json this repo has never had, so it uploaded nothing
-# and exited 0) — result: >20k iOS users on 2607.21.0 and zero crashes on
-# record, while 23 users on an old 3.5.x build reported 93.
-#
-# The archive folder carries the dSYMs for Flutter.framework and every plugin,
-# not just Runner, so uploading it covers the frames most crashes land in.
-# Bitcode is gone, so App Store Connect has no dSYMs of its own to fall back on
-# (`download_dsyms` returns nothing) — if this step does not run, the symbols
-# for that build are lost for good.
-# Locates Firebase's upload-symbols. Firebase arrives via Swift Package Manager
-# here (Flutter's SPM integration leaves only the non-SPM plugins as pods), so
-# Pods/FirebaseCrashlytics/upload-symbols does not exist — hard-coding it is what
-# made the dSYM lane unrunnable on 2608.18.0. FIREBASE_UPLOAD_SYMBOLS lets a job
-# with no build (e.g. the retroactive symbols lane) point at a standalone copy.
-def crashlytics_upload_symbols_binary(repo_root)
-  [
-    ENV["FIREBASE_UPLOAD_SYMBOLS"],
-    *Dir.glob(File.expand_path("~/Library/Developer/Xcode/DerivedData/**/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols")),
-    *Dir.glob(File.join(repo_root, "build/**/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols")),
-    File.join(repo_root, "ios/Pods/FirebaseCrashlytics/upload-symbols"),
-  ].compact.find { |path| File.exist?(path) }
-end
-
-def upload_dsyms_to_crashlytics
-  if ENV["SKIP_DSYM_UPLOAD"].to_s.strip.downcase == "true"
-    UI.important("SKIP_DSYM_UPLOAD=true — skipping Crashlytics dSYM upload")
-    return
-  end
-
-  # build_app sets lane_context[XCODEBUILD_ARCHIVE], which is the reliable
-  # path. The glob below is the fallback for `fastlane ios upload_dsyms` runs
-  # with no build in the same process: `flutter build ipa` archives to
-  # <repo>/build/ios/archive/ and names the bundle after the SCHEME — Medito,
-  # not Runner.
-  #
-  # Anchor on __dir__ rather than a relative path. Fastfile-relative paths
-  # resolve from ios/fastlane/, so "../build/ios/archive" meant
-  # ios/build/ios/archive — a directory that has never existed. That is why
-  # 2608.18.0+302443 shipped unsymbolicated even though the archive was sitting
-  # right there: the earlier Runner->glob fix corrected the name but not the
-  # depth, and the miss is silent by design.
-  repo_root = File.expand_path("../..", __dir__)
-  archive_dir = File.join(repo_root, "build", "ios", "archive")
-  archive = lane_context[SharedValues::XCODEBUILD_ARCHIVE] ||
-            Dir.glob(File.join(archive_dir, "*.xcarchive"))
-               .max_by { |path| File.mtime(path) }
-  dsyms = archive ? Dir.glob(File.join(archive, "dSYMs", "*.dSYM")).sort : []
-
-  if dsyms.empty?
-    # Deliberately not fatal. Three 2608.18.0 attempts died on crash tooling
-    # while the app itself built fine; a donor-facing release must not be held
-    # hostage to symbol upload. The build phase may also have uploaded already.
-    UI.important(
-      "No dSYMs found (archive: #{archive || "none under #{archive_dir}"}). " \
-      "Crashes from this build may not be symbolicated. Check that the Release " \
-      "config still sets DEBUG_INFORMATION_FORMAT=dwarf-with-dsym, then re-run " \
-      "`fastlane ios upload_dsyms archive:<path>` against the archive."
-    )
-    return
-  end
-
-  # Firebase arrives via Swift Package Manager, not CocoaPods — Flutter's SPM
-  # integration leaves only the non-SPM plugins as pods, so
-  # Pods/FirebaseCrashlytics/upload-symbols does not exist here. Hard-coding it
-  # is what made this lane unrunnable on 2608.18.0. Look in the SPM checkouts
-  # (DerivedData and the local .swiftpm/build dirs) and fall back to Pods.
-  binary = crashlytics_upload_symbols_binary(repo_root)
-
-  if binary.nil?
-    # Not fatal: shipping the release matters more than symbolising it, and the
-    # in-build phase may already have uploaded. Loud enough to notice.
-    UI.important(
-      "upload-symbols not found in the SPM checkout or Pods — skipping the " \
-      "archive dSYM upload. Crashes from this build may not be symbolicated; " \
-      "re-run `fastlane ios upload_dsyms` once the binary path is known."
-    )
-    return
-  end
-
-  UI.message("Uploading #{dsyms.count} dSYM(s) to Crashlytics via #{binary}")
-  upload_symbols_to_crashlytics(
-    dsym_paths: dsyms,
-    gsp_path: "Runner/GoogleService-Info.plist",
-    binary_path: binary
   )
 end
 

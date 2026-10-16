@@ -2,10 +2,38 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../constants/types/type_constants.dart';
-import 'logger.dart';
+// Both history and pending payloads use the legacy preferences cache. A
+// failed write reloads the whole cache, so serialize these keys together.
+final _statsPreferencesQueues = Expando<_StatsPreferencesQueue>();
 
-/// Helper class to manage storage of completed track data in SharedPreferences
+Future<T> serializeStatsPreferences<T>(
+  SharedPreferences prefs,
+  Future<T> Function() operation,
+) {
+  final queue = _statsPreferencesQueues[prefs] ??= _StatsPreferencesQueue();
+  final result = queue.tail.then((_) async {
+    if (queue.needsReload) {
+      await prefs.reload();
+      queue.needsReload = false;
+    }
+    try {
+      return await operation();
+    } catch (_) {
+      // Legacy preferences update their cache before the platform replies.
+      // Reload actual storage rather than overwriting an ambiguous commit.
+      queue.needsReload = true;
+      await prefs.reload();
+      queue.needsReload = false;
+      rethrow;
+    }
+  });
+  queue.tail = result.then<void>((_) {}, onError: (Object _, StackTrace _) {});
+  return result;
+}
+
+/// Pending completions share one mutation queue across storage instances in
+/// this engine. A drain acknowledges entries against the current queue, never
+/// replaces it with an older snapshot.
 class CompletedTracksStorage {
   static const String completedTracksKey = 'completed_tracks_data';
 
@@ -13,47 +41,46 @@ class CompletedTracksStorage {
 
   CompletedTracksStorage(this._prefs);
 
-  /// Creates a CompletedTracksStorage instance by obtaining SharedPreferences
   static Future<CompletedTracksStorage> create() async {
-    final prefs = await SharedPreferences.getInstance();
-    return CompletedTracksStorage(prefs);
+    return CompletedTracksStorage(await SharedPreferences.getInstance());
   }
 
-  /// Add a new completed track payload to storage
-  Future<void> addCompletedTrack(Map<String, dynamic> payload) async {
-    try {
-      final currentList = _prefs.getStringList(completedTracksKey) ?? [];
-      currentList.add(jsonEncode(payload));
+  Future<T> _serialized<T>(Future<T> Function() operation) =>
+      serializeStatsPreferences(_prefs, operation);
 
-      await _prefs.setStringList(completedTracksKey, currentList);
-      final trackId = payload[TypeConstants.trackIdKey];
-      AppLogger.d(
-        'STORAGE',
-        'Stored track completion for later processing: $trackId',
-      );
-    } catch (e) {
-      AppLogger.e('STORAGE', 'Error storing completed track', e);
-    }
+  Future<void> _write(List<String> tracks) async {
+    final saved = await _prefs.setStringList(completedTracksKey, tracks);
+    if (!saved) throw StateError('Could not save pending completions');
   }
 
-  /// Get all pending completed tracks
-  List<String> getPendingTracks() {
-    return _prefs.getStringList(completedTracksKey) ?? [];
-  }
+  Future<void> addCompletedTrack(Map<String, dynamic> payload) =>
+      _serialized(() => _write([...getPendingTracks(), jsonEncode(payload)]));
 
-  /// Update the list of pending tracks (typically to remove processed ones)
-  Future<void> updatePendingTracks(List<String> tracks) async {
-    await _prefs.setStringList(completedTracksKey, tracks);
-  }
+  List<String> getPendingTracks() =>
+      List<String>.of(_prefs.getStringList(completedTracksKey) ?? []);
 
-  /// Returns whether there are any pending tracks
-  bool hasPendingTracks() {
-    final pendingTracks = _prefs.getStringList(completedTracksKey) ?? [];
-    return pendingTracks.isNotEmpty;
-  }
+  /// Waits for earlier enqueues before taking a drain snapshot.
+  Future<List<String>> loadPendingTracks() =>
+      _serialized(() async => getPendingTracks());
 
-  /// Clear all pending tracks
-  Future<void> clearPendingTracks() async {
-    await _prefs.setStringList(completedTracksKey, []);
-  }
+  /// Removes one occurrence per acknowledged snapshot entry. New enqueues and
+  /// failed/unreadable entries remain available for the next drain.
+  Future<void> removeCompletedTracks(List<String> acknowledged) =>
+      _serialized(() async {
+        if (acknowledged.isEmpty) return;
+        final current = getPendingTracks();
+        for (final entry in acknowledged) {
+          current.remove(entry);
+        }
+        await _write(current);
+      });
+
+  bool hasPendingTracks() => getPendingTracks().isNotEmpty;
+
+  Future<void> clearPendingTracks() => _serialized(() => _write([]));
+}
+
+class _StatsPreferencesQueue {
+  Future<void> tail = Future<void>.value();
+  bool needsReload = false;
 }

@@ -7,53 +7,25 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0D4562B77FF4244FD7A0BF1F /* blush@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 11B39ECC271C6439638C9ACA /* blush@2x.png */; };
-		0E56EAD091A3D2694CF3FA38 /* blush@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = F5F696C23AC21F365306D45A /* blush@3x.png */; };
-		9956A5D296C34F048C5E16B1 /* classic@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 0BBFDA482A614471ACEB6AA2 /* classic@2x.png */; };
-		EA038FA9FDD44FFC876BD637 /* classic@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 92533D48FC1445F8A9835B38 /* classic@3x.png */; };
-		B09C70E0D2A642E886AE9FA9 /* classic@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 1C7AAB90810A445B83AC1E36 /* classic@2x~ipad.png */; };
-		D73C3F41BAB3461BB99C5D25 /* classic-83.5@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 58C716697FBE49889455C64E /* classic-83.5@2x~ipad.png */; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		27250C9A2E843752008B6308 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		A0B1C2D3000000000000000A /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B1C2D3000000000000000F /* SceneDelegate.swift */; };
-		2467F21AEE3AE9185ACAC5D0 /* WatchPresencePigeon.g.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78D326E08984B2290ABEC442 /* WatchPresencePigeon.g.swift */; };
 		27250C9F2E843752008B6308 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		27250CA32E843752008B6308 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		27250CA42E843752008B6308 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
-		27250CA52E843752008B6308 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 8BD257942AC4B7C80012213D /* GoogleService-Info.plist */; };
 		27250CA62E843752008B6308 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		E1C0E1C0E1C0E1C0E1C0E1C1 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = E1C0E1C0E1C0E1C0E1C0E1C0 /* AppIcon.icon */; };
 		E1C0E1C0E1C0E1C0E1C0E1C2 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = E1C0E1C0E1C0E1C0E1C0E1C0 /* AppIcon.icon */; };
 		27250CA72E843752008B6308 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		286F501132BCE08B5ED702C1 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D823902C8C535090C29E3B7 /* Pods_Runner.framework */; };
-		2AB55F368BB0C48A3099C502 /* forest@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 101421EE97843C1D2CD49583 /* forest@3x.png */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		34902A6B292214B6EB757F62 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A9020A8043DD32631839BE6F /* Pods_RunnerTests.framework */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		A0B1C2D3000000000000000B /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B1C2D3000000000000000F /* SceneDelegate.swift */; };
-		53632A0D3B806475AB2C207E /* WatchPresencePigeon.g.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78D326E08984B2290ABEC442 /* WatchPresencePigeon.g.swift */; };
-		75FFF940D93AA63726585B1C /* ocean@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 1642F495F0BF67E432218A44 /* ocean@3x.png */; };
-		7F3A591E80D70D658C77967D /* goldenhour@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = AC169176E7723242F1D76211 /* goldenhour@2x.png */; };
-		8779BC35DF1AAC24F2EB5EC0 /* forest@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = A6E4B2292C6E7C1E5F56AFA5 /* forest@2x.png */; };
-		8BD257952AC4B7C80012213D /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 8BD257942AC4B7C80012213D /* GoogleService-Info.plist */; };
-		8EECB3F8D0C2591655DDD85E /* goldenhour@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 8EA0F658C4F29C790453417C /* goldenhour@3x.png */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
-		B94EBB14C84430DEFDEAABA1 /* nearblack@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 3695491DE3C75B6C6589CADB /* nearblack@3x.png */; };
-		BBBB00001111222233334441 /* nearblack@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = AAAA00001111222233334441 /* nearblack@2x~ipad.png */; };
-		BBBB00001111222233334442 /* nearblack-83.5@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = AAAA00001111222233334442 /* nearblack-83.5@2x~ipad.png */; };
-		BBBB00001111222233334443 /* blush@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = AAAA00001111222233334443 /* blush@2x~ipad.png */; };
-		BBBB00001111222233334444 /* blush-83.5@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = AAAA00001111222233334444 /* blush-83.5@2x~ipad.png */; };
-		BBBB00001111222233334445 /* ocean@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = AAAA00001111222233334445 /* ocean@2x~ipad.png */; };
-		BBBB00001111222233334446 /* ocean-83.5@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = AAAA00001111222233334446 /* ocean-83.5@2x~ipad.png */; };
-		BBBB00001111222233334447 /* forest@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = AAAA00001111222233334447 /* forest@2x~ipad.png */; };
-		BBBB00001111222233334448 /* forest-83.5@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = AAAA00001111222233334448 /* forest-83.5@2x~ipad.png */; };
-		BBBB00001111222233334449 /* goldenhour@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = AAAA00001111222233334449 /* goldenhour@2x~ipad.png */; };
-		BBBB0000111122223333444A /* goldenhour-83.5@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = AAAA0000111122223333444A /* goldenhour-83.5@2x~ipad.png */; };
-		CC934284185658B1ADA4785C /* nearblack@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = DD285FFF1378316BD5FCFEC6 /* nearblack@2x.png */; };
-		CC9F9E6509D2EF1445F7D052 /* ocean@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 8569F526DAB5AAE67011AF21 /* ocean@2x.png */; };
 		EDFD4D0B2C9359BF0066E874 /* MeditoWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDFD4D0A2C9359BF0066E874 /* MeditoWidgetBundle.swift */; };
 		EDFD4D0D2C9359BF0066E874 /* WidgetShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDFD4D0C2C9359BF0066E874 /* WidgetShared.swift */; };
 		A1B2C3D42F1A000100000002 /* StatCalculators.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F1A000100000001 /* StatCalculators.swift */; };
@@ -100,15 +72,8 @@
 /* Begin PBXFileReference section */
 		0486B7CC9C4218C886196CB6 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		0FFC4805F01806064CC598A5 /* Pods-RunnerTests.release-prod.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release-prod.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release-prod.xcconfig"; sourceTree = "<group>"; };
-		101421EE97843C1D2CD49583 /* forest@3x.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "forest@3x.png"; sourceTree = "<group>"; };
-		11B39ECC271C6439638C9ACA /* blush@2x.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "blush@2x.png"; sourceTree = "<group>"; };
-		0BBFDA482A614471ACEB6AA2 /* classic@2x.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "classic@2x.png"; sourceTree = "<group>"; };
-		92533D48FC1445F8A9835B38 /* classic@3x.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "classic@3x.png"; sourceTree = "<group>"; };
-		1C7AAB90810A445B83AC1E36 /* classic@2x~ipad.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "classic@2x~ipad.png"; sourceTree = "<group>"; };
-		58C716697FBE49889455C64E /* classic-83.5@2x~ipad.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "classic-83.5@2x~ipad.png"; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
-		1642F495F0BF67E432218A44 /* ocean@3x.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "ocean@3x.png"; sourceTree = "<group>"; };
 		24D0B291C26CB2CCD78E20CC /* Pods-Runner.profile-dev.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile-dev.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile-dev.xcconfig"; sourceTree = "<group>"; };
 		270582582DE8CCDB00033AF9 /* MeditoWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MeditoWidgetExtension.entitlements; sourceTree = "<group>"; };
 		270582592DE8CCDB00033AF9 /* MeditoWidgetExtensionRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MeditoWidgetExtensionRelease.entitlements; sourceTree = "<group>"; };
@@ -118,7 +83,6 @@
 		32E5F811F97EF8E9F497DF92 /* Pods-Runner.debug-dev.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug-dev.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug-dev.xcconfig"; sourceTree = "<group>"; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		3695491DE3C75B6C6589CADB /* nearblack@3x.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "nearblack@3x.png"; sourceTree = "<group>"; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
 		4DEB2B518C79BF83188E4EAD /* Pods-RunnerTests.profile-prod.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile-prod.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile-prod.xcconfig"; sourceTree = "<group>"; };
 		562C54457B5AD73CC565B087 /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
@@ -127,35 +91,19 @@
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A0B1C2D3000000000000000F /* SceneDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		78D326E08984B2290ABEC442 /* WatchPresencePigeon.g.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WatchPresencePigeon.g.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
-		8569F526DAB5AAE67011AF21 /* ocean@2x.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "ocean@2x.png"; sourceTree = "<group>"; };
 		8B72EB2FA75CFF73922EBDE7 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		8B7AADD52A559F5C004A5611 /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
-		8BD257942AC4B7C80012213D /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
-		8EA0F658C4F29C790453417C /* goldenhour@3x.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "goldenhour@3x.png"; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
-		97C146EE1CF9000F007C117D /* Medito Dev.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Medito Dev.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		97C146EE1CF9000F007C117D /* Meditejo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Meditejo.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		97C146FB1CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9D823902C8C535090C29E3B7 /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		A6E4B2292C6E7C1E5F56AFA5 /* forest@2x.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "forest@2x.png"; sourceTree = "<group>"; };
 		A7146AD3A13BBF4F494FABD8 /* Pods-Runner.release-prod.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release-prod.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release-prod.xcconfig"; sourceTree = "<group>"; };
 		A9020A8043DD32631839BE6F /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		AAAA00001111222233334441 /* nearblack@2x~ipad.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "nearblack@2x~ipad.png"; sourceTree = "<group>"; };
-		AAAA00001111222233334442 /* nearblack-83.5@2x~ipad.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "nearblack-83.5@2x~ipad.png"; sourceTree = "<group>"; };
-		AAAA00001111222233334443 /* blush@2x~ipad.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "blush@2x~ipad.png"; sourceTree = "<group>"; };
-		AAAA00001111222233334444 /* blush-83.5@2x~ipad.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "blush-83.5@2x~ipad.png"; sourceTree = "<group>"; };
-		AAAA00001111222233334445 /* ocean@2x~ipad.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "ocean@2x~ipad.png"; sourceTree = "<group>"; };
-		AAAA00001111222233334446 /* ocean-83.5@2x~ipad.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "ocean-83.5@2x~ipad.png"; sourceTree = "<group>"; };
-		AAAA00001111222233334447 /* forest@2x~ipad.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "forest@2x~ipad.png"; sourceTree = "<group>"; };
-		AAAA00001111222233334448 /* forest-83.5@2x~ipad.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "forest-83.5@2x~ipad.png"; sourceTree = "<group>"; };
-		AAAA00001111222233334449 /* goldenhour@2x~ipad.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "goldenhour@2x~ipad.png"; sourceTree = "<group>"; };
-		AAAA0000111122223333444A /* goldenhour-83.5@2x~ipad.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "goldenhour-83.5@2x~ipad.png"; sourceTree = "<group>"; };
-		AC169176E7723242F1D76211 /* goldenhour@2x.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "goldenhour@2x.png"; sourceTree = "<group>"; };
 		B0005ABE56C0BD68C1811D4A /* Pods-RunnerTests.profile-dev.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile-dev.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile-dev.xcconfig"; sourceTree = "<group>"; };
 		BB0B0E732488A1D670FFA76D /* Pods-Runner.debug-prod.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug-prod.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug-prod.xcconfig"; sourceTree = "<group>"; };
 		BC957D59D1CBF4ED522FE216 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
@@ -163,7 +111,6 @@
 		D254B14FB671A44EA78C4DCE /* Pods_MeditoWidgetExtension.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_MeditoWidgetExtension.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		D2B0B14E44D70527A0679E0E /* Pods-RunnerTests.debug-prod.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug-prod.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug-prod.xcconfig"; sourceTree = "<group>"; };
 		D824AF5E86BAF1075761917E /* Pods-RunnerTests.release-dev.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release-dev.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release-dev.xcconfig"; sourceTree = "<group>"; };
-		DD285FFF1378316BD5FCFEC6 /* nearblack@2x.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "nearblack@2x.png"; sourceTree = "<group>"; };
 		DF7C673A0BFFFE28F1BB7522 /* Pods-RunnerTests.debug-dev.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug-dev.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug-dev.xcconfig"; sourceTree = "<group>"; };
 		EDFD4CFD2C9359BE0066E874 /* MeditoWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MeditoWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		EDFD4CFE2C9359BF0066E874 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
@@ -177,7 +124,6 @@
 		EDFD4D0E2C9359BF0066E874 /* StreakWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreakWidget.swift; sourceTree = "<group>"; };
 		EDFD4D102C9359BF0066E874 /* ConsistencyWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsistencyWidget.swift; sourceTree = "<group>"; };
 		EDFD4D2A2C9359BF0066E874 /* UpNextWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpNextWidget.swift; sourceTree = "<group>"; };
-		F5F696C23AC21F365306D45A /* blush@3x.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "blush@3x.png"; sourceTree = "<group>"; };
 		E1C0E1C0E1C0E1C0E1C0E1C0 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposericon; path = AppIcon.icon; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -298,7 +244,7 @@
 		97C146EF1CF9000F007C117D /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				97C146EE1CF9000F007C117D /* Medito Dev.app */,
+				97C146EE1CF9000F007C117D /* Meditejo.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
 				EDFD4CFD2C9359BE0066E874 /* MeditoWidgetExtension.appex */,
 				27250CAF2E843752008B6308 /* Runner copy.app */,
@@ -316,36 +262,10 @@
 				97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */,
 				97C147021CF9000F007C117D /* Info.plist */,
 				1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */,
-				8BD257942AC4B7C80012213D /* GoogleService-Info.plist */,
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				A0B1C2D3000000000000000F /* SceneDelegate.swift */,
-				78D326E08984B2290ABEC442 /* WatchPresencePigeon.g.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
-				DD285FFF1378316BD5FCFEC6 /* nearblack@2x.png */,
-				3695491DE3C75B6C6589CADB /* nearblack@3x.png */,
-				11B39ECC271C6439638C9ACA /* blush@2x.png */,
-				F5F696C23AC21F365306D45A /* blush@3x.png */,
-				0BBFDA482A614471ACEB6AA2 /* classic@2x.png */,
-				92533D48FC1445F8A9835B38 /* classic@3x.png */,
-				1C7AAB90810A445B83AC1E36 /* classic@2x~ipad.png */,
-				58C716697FBE49889455C64E /* classic-83.5@2x~ipad.png */,
-				8569F526DAB5AAE67011AF21 /* ocean@2x.png */,
-				1642F495F0BF67E432218A44 /* ocean@3x.png */,
-				A6E4B2292C6E7C1E5F56AFA5 /* forest@2x.png */,
-				101421EE97843C1D2CD49583 /* forest@3x.png */,
-				AC169176E7723242F1D76211 /* goldenhour@2x.png */,
-				8EA0F658C4F29C790453417C /* goldenhour@3x.png */,
-				AAAA00001111222233334441 /* nearblack@2x~ipad.png */,
-				AAAA00001111222233334442 /* nearblack-83.5@2x~ipad.png */,
-				AAAA00001111222233334443 /* blush@2x~ipad.png */,
-				AAAA00001111222233334444 /* blush-83.5@2x~ipad.png */,
-				AAAA00001111222233334445 /* ocean@2x~ipad.png */,
-				AAAA00001111222233334446 /* ocean-83.5@2x~ipad.png */,
-				AAAA00001111222233334447 /* forest@2x~ipad.png */,
-				AAAA00001111222233334448 /* forest-83.5@2x~ipad.png */,
-				AAAA00001111222233334449 /* goldenhour@2x~ipad.png */,
-				AAAA0000111122223333444A /* goldenhour-83.5@2x~ipad.png */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -531,7 +451,6 @@
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				DA924EFF1FA9E02F0BAC8C9E /* [CP] Embed Pods Frameworks */,
 				1F09CDF1A6D489A27D3AF8EB /* [CP] Copy Pods Resources */,
-				0B1891764E04B3E106D6812F /* Crashlytics: upload dSYM */,
 			);
 			buildRules = (
 			);
@@ -543,7 +462,7 @@
 			);
 			name = Runner;
 			productName = Runner;
-			productReference = 97C146EE1CF9000F007C117D /* Medito Dev.app */;
+			productReference = 97C146EE1CF9000F007C117D /* Meditejo.app */;
 			productType = "com.apple.product-type.application";
 		};
 		EDFD4CFC2C9359BE0066E874 /* MeditoWidgetExtension */ = {
@@ -616,7 +535,6 @@
 			files = (
 				27250CA32E843752008B6308 /* LaunchScreen.storyboard in Resources */,
 				27250CA42E843752008B6308 /* AppFrameworkInfo.plist in Resources */,
-				27250CA52E843752008B6308 /* GoogleService-Info.plist in Resources */,
 				27250CA62E843752008B6308 /* Assets.xcassets in Resources */,
 				E1C0E1C0E1C0E1C0E1C0E1C2 /* AppIcon.icon in Resources */,
 				27250CA72E843752008B6308 /* Main.storyboard in Resources */,
@@ -636,34 +554,9 @@
 			files = (
 				97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */,
 				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
-				8BD257952AC4B7C80012213D /* GoogleService-Info.plist in Resources */,
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
 				E1C0E1C0E1C0E1C0E1C0E1C1 /* AppIcon.icon in Resources */,
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
-				CC934284185658B1ADA4785C /* nearblack@2x.png in Resources */,
-				B94EBB14C84430DEFDEAABA1 /* nearblack@3x.png in Resources */,
-				0D4562B77FF4244FD7A0BF1F /* blush@2x.png in Resources */,
-				0E56EAD091A3D2694CF3FA38 /* blush@3x.png in Resources */,
-				9956A5D296C34F048C5E16B1 /* classic@2x.png in Resources */,
-				EA038FA9FDD44FFC876BD637 /* classic@3x.png in Resources */,
-				B09C70E0D2A642E886AE9FA9 /* classic@2x~ipad.png in Resources */,
-				D73C3F41BAB3461BB99C5D25 /* classic-83.5@2x~ipad.png in Resources */,
-				CC9F9E6509D2EF1445F7D052 /* ocean@2x.png in Resources */,
-				75FFF940D93AA63726585B1C /* ocean@3x.png in Resources */,
-				8779BC35DF1AAC24F2EB5EC0 /* forest@2x.png in Resources */,
-				2AB55F368BB0C48A3099C502 /* forest@3x.png in Resources */,
-				7F3A591E80D70D658C77967D /* goldenhour@2x.png in Resources */,
-				8EECB3F8D0C2591655DDD85E /* goldenhour@3x.png in Resources */,
-				BBBB00001111222233334441 /* nearblack@2x~ipad.png in Resources */,
-				BBBB00001111222233334442 /* nearblack-83.5@2x~ipad.png in Resources */,
-				BBBB00001111222233334443 /* blush@2x~ipad.png in Resources */,
-				BBBB00001111222233334444 /* blush-83.5@2x~ipad.png in Resources */,
-				BBBB00001111222233334445 /* ocean@2x~ipad.png in Resources */,
-				BBBB00001111222233334446 /* ocean-83.5@2x~ipad.png in Resources */,
-				BBBB00001111222233334447 /* forest@2x~ipad.png in Resources */,
-				BBBB00001111222233334448 /* forest-83.5@2x~ipad.png in Resources */,
-				BBBB00001111222233334449 /* goldenhour@2x~ipad.png in Resources */,
-				BBBB0000111122223333444A /* goldenhour-83.5@2x~ipad.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -678,24 +571,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		0B1891764E04B3E106D6812F /* Crashlytics: upload dSYM */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Crashlytics: upload dSYM";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\n#!/bin/bash\n# Uploads this build's dSYM to Crashlytics. Symbols are not a nicety: without\n# them Crashlytics cannot process incoming iOS reports and they never appear in\n# the console AT ALL. That is how every 2607.x build reached >20k users with\n# zero recorded crashes while old 3.5.x builds kept reporting normally.\n#\n# Firebase reaches this project through Swift Package Manager, not CocoaPods:\n# Flutter's SPM integration leaves only the handful of non-SPM plugins as pods\n# (6 at 2608.18.0), so ios/Pods/FirebaseCrashlytics NEVER exists here. An\n# earlier version of this phase hard-failed on that missing path and took two\n# 2608.18.0 release archives down with it. Search the SPM checkout as well, and\n# never fail the build over symbols: the release lane uploads the archive's\n# dSYMs too (see ios/fastlane/Fastfile), and a donor-facing release must not be\n# blocked by crash tooling.\n\n# Debug builds produce no dSYM (DEBUG_INFORMATION_FORMAT=dwarf) and do not\n# report crashes, so never fail a developer build over symbol upload.\nif [ \"${CONFIGURATION}\" = \"Debug\" ]; then\n  exit 0\nfi\n\nGSP=\"${SRCROOT}/Runner/GoogleService-Info.plist\"\nif [ ! -f \"$GSP\" ]; then\n  echo \"warning: $GSP not found - skipping Crashlytics symbol upload.\"\n  exit 0\nfi\n\n# SPM checkout first (how Firebase actually arrives), CocoaPods second so a\n# future move back to pods keeps working.\nSPM_ROOT=\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics\"\nRUN_SCRIPT=\"\"\nfor candidate in \\\n  \"$SPM_ROOT/run\" \\\n  \"$PODS_ROOT/FirebaseCrashlytics/run\" \\\n  \"${SRCROOT}/Pods/FirebaseCrashlytics/run\"\ndo\n  if [ -f \"$candidate\" ]; then\n    RUN_SCRIPT=\"$candidate\"\n    break\n  fi\ndone\n\nif [ -z \"$RUN_SCRIPT\" ]; then\n  echo \"warning: Crashlytics run script not found (looked in the SPM checkout and Pods). This build's symbols come from the fastlane archive upload instead.\"\n  exit 0\nfi\n\n# The `run` wrapper adds --build-phase and performs the upload in the\n# BACKGROUND with output discarded, so a failure here is invisible - which is\n# why the release lane uploads the archive dSYMs again through fastlane.\n\"$RUN_SCRIPT\" -gsp \"$GSP\"\n";
-		};
 		1F09CDF1A6D489A27D3AF8EB /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -845,7 +720,6 @@
 			files = (
 				27250C9A2E843752008B6308 /* AppDelegate.swift in Sources */,
 				A0B1C2D3000000000000000A /* SceneDelegate.swift in Sources */,
-				2467F21AEE3AE9185ACAC5D0 /* WatchPresencePigeon.g.swift in Sources */,
 				27250C9F2E843752008B6308 /* GeneratedPluginRegistrant.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -864,7 +738,6 @@
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				A0B1C2D3000000000000000B /* SceneDelegate.swift in Sources */,
-				53632A0D3B806475AB2C207E /* WatchPresencePigeon.g.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -938,8 +811,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
-				PRODUCT_NAME = "Medito Dev";
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
+				PRODUCT_NAME = Meditejo;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -972,8 +845,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
-				PRODUCT_NAME = Medito;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
+				PRODUCT_NAME = Meditejo;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -1005,8 +878,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
-				PRODUCT_NAME = "Medito Dev";
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
+				PRODUCT_NAME = Meditejo;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -1039,7 +912,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1125,8 +998,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
-				PRODUCT_NAME = Medito;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
+				PRODUCT_NAME = Meditejo;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -1158,7 +1031,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1192,7 +1065,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1225,7 +1098,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1247,7 +1120,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = meditofoundation.medito.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -1265,7 +1138,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = meditofoundation.medito.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
@@ -1281,7 +1154,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = meditofoundation.medito.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
@@ -1366,7 +1239,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1389,7 +1262,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = meditofoundation.medito.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -1418,8 +1291,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
-				PRODUCT_NAME = Medito;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
+				PRODUCT_NAME = Meditejo;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -1451,7 +1324,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1473,7 +1346,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = meditofoundation.medito.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
@@ -1608,8 +1481,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
-				PRODUCT_NAME = Medito;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
+				PRODUCT_NAME = Meditejo;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -1754,8 +1627,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
-				PRODUCT_NAME = "Medito Dev";
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
+				PRODUCT_NAME = Meditejo;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -1788,8 +1661,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
-				PRODUCT_NAME = Medito;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
+				PRODUCT_NAME = Meditejo;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -1868,7 +1741,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = meditofoundation.medito.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -1886,7 +1759,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = meditofoundation.medito.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
@@ -1902,7 +1775,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = meditofoundation.medito.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
@@ -1982,8 +1855,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
-				PRODUCT_NAME = Medito;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
+				PRODUCT_NAME = Meditejo;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -2004,7 +1877,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = meditofoundation.medito.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
@@ -2086,7 +1959,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -2119,7 +1992,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -2148,7 +2021,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -2172,7 +2045,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
@@ -2195,7 +2068,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
@@ -2218,7 +2091,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -2242,7 +2115,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -2266,7 +2139,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
@@ -2289,7 +2162,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
@@ -2312,7 +2185,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
@@ -2335,7 +2208,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
@@ -2362,7 +2235,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 3.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = org.meditofoundation;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.beejsbj.meditejo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

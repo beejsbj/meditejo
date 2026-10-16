@@ -263,11 +263,11 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         // which previously left the player notification stuck until reboot.
         if (finish) finishPlayback()
 
-        // Fire-and-forget the analytics callback. If it completes we can clear the
-        // persisted record; if it doesn't, the replay path handles it next launch.
+        // Send without delaying teardown. Clear only when Dart confirms the stats
+        // were saved; false replies and transport failures remain for replay.
         CoroutineScope(Dispatchers.Main).launch {
             meditoAudioApi?.handleCompletedTrack(completionData) { result ->
-                if (result.isSuccess) {
+                if (result.getOrNull() == true) {
                     SharedPreferencesManager.clearCompletionData(this@AudioPlayerService)
                 }
             }
@@ -339,7 +339,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
 
     private fun createPrimaryMediaSourceFactory(): DefaultMediaSourceFactory {
         val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-            .setUserAgent("Medito-Android")
+            .setUserAgent("Meditejo-Android")
             .setConnectTimeoutMs(15_000)
             .setReadTimeoutMs(30_000)
             .setAllowCrossProtocolRedirects(true)
@@ -577,14 +577,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         // Only stop service if not playing
         if (!primaryPlayer.isPlaying) {
             serviceScope.launch {
-                // Session analytics: the user swiped the app away while the
-                // track was paused — i.e. abandoned it. Push one last position
-                // snapshot to Dart before teardown so AudioSessionTracker has
-                // the freshest position to attribute the audio_session_abandoned
-                // event (fired in Dart, or replayed on next launch from the
-                // persisted record). Skipped if the track already completed —
-                // that path reports its own event. Mirrors how completion is
-                // surfaced to Dart rather than firing Firebase from native code.
+                // Send Dart the final playback state before tearing down a
+                // paused session. Completed sessions use their completion callback.
                 if (!isCompletionHandled) {
                     try {
                         updatePlaybackState()
@@ -708,7 +702,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
 
     private fun createInitialNotification(): Notification {
         val initialNotification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Medito")
+            .setContentTitle("Meditejo")
             .setContentText("Preparing media playback...")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setSilent(true)
@@ -883,8 +877,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         if (!::primaryPlayer.isInitialized) return
 
         val mediaItem = primaryPlayer.currentMediaItem ?: return
-        val title = mediaItem.mediaMetadata?.title?.toString() ?: "Medito"
-        val artist = mediaItem.mediaMetadata?.artist?.toString() ?: "Medito"
+        val title = mediaItem.mediaMetadata?.title?.toString() ?: "Meditejo"
+        val artist = mediaItem.mediaMetadata?.artist?.toString() ?: "Meditejo"
 
         serviceScope.launch {
             try {
@@ -1400,10 +1394,10 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         const val CHANNEL_ID = "medito_reminder_channel"
         const val NOTIFICATION_ID = 101011
         private const val TAG = "MeditoAudioService"
-        const val ACTION_BIND_SERVICE = "meditofoundation.medito.BIND_SERVICE"
-        const val ACTION_PLAY_PAUSE = "meditofoundation.medito.ACTION_PLAY_PAUSE"
-        const val ACTION_SKIP_FORWARD = "meditofoundation.medito.ACTION_SKIP_FORWARD"
-        const val ACTION_SKIP_BACKWARD = "meditofoundation.medito.ACTION_SKIP_BACKWARD"
+        const val ACTION_BIND_SERVICE = "io.github.beejsbj.meditejo.BIND_SERVICE"
+        const val ACTION_PLAY_PAUSE = "io.github.beejsbj.meditejo.ACTION_PLAY_PAUSE"
+        const val ACTION_SKIP_FORWARD = "io.github.beejsbj.meditejo.ACTION_SKIP_FORWARD"
+        const val ACTION_SKIP_BACKWARD = "io.github.beejsbj.meditejo.ACTION_SKIP_BACKWARD"
         private const val KEY_ARTIST_URL = "artistUrl"
         private const val KEY_FILE_ID = "fileId"
         private const val SEEK_INTERVAL_MS = 15_000L

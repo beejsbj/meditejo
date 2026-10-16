@@ -5,9 +5,7 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/views/home/widgets/home_gradient_border.dart';
 import 'package:medito/widgets/medito_icon.dart';
 
-/// Shared layout for the end-screen soft-asks (reminders, account). Mirrors the
-/// donation card below it — left-aligned title with the ✕ in the corner, body,
-/// then a full-width CTA — so the stacked cards read as one family.
+/// Local reminder prompt with a dismiss action and a full-width CTA.
 class SoftAskCard extends StatelessWidget {
   const SoftAskCard({
     super.key,

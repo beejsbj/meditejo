@@ -78,7 +78,7 @@ class MeditationWidget : GlanceAppWidget() {
             today = today,
             activityDays = activityDays,
             palette = WidgetPalette.resolve(context, themePreference),
-            tapUri = "org.meditofoundation://medito/?source=home_widget&widget=streak",
+            tapUri = "meditejo://meditejo/?source=home_widget&widget=streak",
         )
     }
 

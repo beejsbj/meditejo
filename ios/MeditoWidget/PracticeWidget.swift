@@ -231,7 +231,7 @@ struct PracticeWidget: Widget {
             }
         }
         .configurationDisplayName("Practice")
-        .description("Your streak or consistency score, whichever you show on Home in Medito.")
+        .description("Your streak or consistency score, whichever you show on Home in Meditejo.")
         .supportedFamilies(families)
     }
 }

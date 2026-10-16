@@ -45,21 +45,12 @@ enum SearchFilter {
 /// overlay above the tabs while the nav capsule holds the search field, so
 /// the bottom padding follows the bar height from the enclosing Scaffold.
 class SearchResults extends ConsumerStatefulWidget {
-  const SearchResults({
-    super.key,
-    required this.query,
-    this.onBeforeNavigate,
-    this.onResults,
-  });
+  const SearchResults({super.key, required this.query, this.onBeforeNavigate});
 
   final String query;
 
   /// Runs before a result navigates, e.g. to dismiss the keyboard.
   final VoidCallback? onBeforeNavigate;
-
-  /// Called once per query when its results have loaded, with whether there
-  /// were any. Analytics is the caller's (see SearchQueryLogger).
-  final void Function(String query, bool hasResults)? onResults;
 
   @override
   ConsumerState<SearchResults> createState() => _SearchResultsState();
@@ -70,10 +61,6 @@ class _SearchResultsState extends ConsumerState<SearchResults> {
   int? _previousPacksCount;
   int? _previousTracksCount;
   bool _filterSwitchScheduled = false;
-
-  /// The last query reported via [SearchResults.onResults], so each query is
-  /// reported once (not on every rebuild).
-  String? _reportedQuery;
 
   @override
   void didUpdateWidget(covariant SearchResults oldWidget) {
@@ -183,14 +170,6 @@ class _SearchResultsState extends ConsumerState<SearchResults> {
 
     return tracksAsync.when(
       data: (tracks) {
-        if (query.isNotEmpty && _reportedQuery != query) {
-          _reportedQuery = query;
-          final hasResults = packs.isNotEmpty || tracks.isNotEmpty;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) widget.onResults?.call(query, hasResults);
-          });
-        }
-
         final shownPacks = _filter == SearchFilter.tracks
             ? <PackItem>[]
             : packs;

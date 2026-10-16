@@ -5,8 +5,8 @@
 //   flutter widget-preview start --web-server
 //
 // and open the printed URL. Previews render the REAL widgets through the
-// shared [PreviewShell] (in-memory SharedPreferences + fake AuthRepository),
-// so no backend, Firebase or device is needed. Edits hot-reload.
+// shared [PreviewShell] with in-memory SharedPreferences,
+// so no backend or device is needed. Edits hot-reload.
 //
 // Reference: https://flutter.dev/to/widget-previews
 
@@ -16,11 +16,8 @@ import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/views/settings/settings_screen.dart';
-import 'package:medito/views/settings/widgets/account_section_widget.dart';
 import 'package:medito/views/settings/advanced_settings_screen.dart';
-import 'package:medito/views/settings/delete_account_screen.dart';
 import 'package:medito/views/settings/widgets/app_icon_tile.dart';
-import 'package:medito/views/settings/widgets/app_icon_option.dart';
 import 'package:medito/views/settings/widgets/day_boundary_offset_dialog.dart';
 import 'package:medito/views/settings/widgets/dnd_setting_tile.dart';
 import 'package:medito/views/settings/widgets/reminder_tile.dart';
@@ -50,11 +47,8 @@ Widget wrapDark(Widget child) => PreviewShell(prefs: prefsDark, child: child);
 Widget wrapLight(Widget child) =>
     PreviewShell(prefs: prefsLight, themeMode: ThemeMode.light, child: child);
 
-Widget wrapSignedIn(Widget child) => PreviewShell(
-  prefs: prefsReminderOn,
-  email: 'preview@example.com',
-  child: child,
-);
+Widget wrapConfigured(Widget child) =>
+    PreviewShell(prefs: prefsReminderOn, child: child);
 
 Widget wrapDarkTile(Widget child) =>
     PreviewShell(prefs: prefsDark, padded: true, child: child);
@@ -66,12 +60,8 @@ Widget wrapLightTile(Widget child) => PreviewShell(
   child: child,
 );
 
-Widget wrapConfiguredTile(Widget child) => PreviewShell(
-  prefs: prefsReminderOn,
-  email: 'preview@example.com',
-  padded: true,
-  child: child,
-);
+Widget wrapConfiguredTile(Widget child) =>
+    PreviewShell(prefs: prefsReminderOn, padded: true, child: child);
 
 // ---------------------------------------------------------------------------
 // Full page
@@ -79,7 +69,7 @@ Widget wrapConfiguredTile(Widget child) => PreviewShell(
 
 @Preview(
   group: 'Settings page',
-  name: 'Signed out · dark',
+  name: 'Dark',
   size: phoneSize,
   wrapper: wrapDark,
 )
@@ -87,7 +77,7 @@ Widget settingsPageDark() => const SettingsScreen();
 
 @Preview(
   group: 'Settings page',
-  name: 'Signed out · light',
+  name: 'Light',
   size: phoneSize,
   wrapper: wrapLight,
 )
@@ -95,11 +85,11 @@ Widget settingsPageLight() => const SettingsScreen();
 
 @Preview(
   group: 'Settings page',
-  name: 'Signed in · reminder + zen on',
+  name: 'Reminder + zen on',
   size: phoneSize,
-  wrapper: wrapSignedIn,
+  wrapper: wrapConfigured,
 )
-Widget settingsPageSignedIn() => const SettingsScreen();
+Widget settingsPageConfigured() => const SettingsScreen();
 
 @Preview(
   group: 'Settings page',
@@ -137,22 +127,6 @@ Widget reminderTileOff() => const ReminderTile();
   wrapper: wrapConfiguredTile,
 )
 Widget reminderTileOn() => const ReminderTile();
-
-@Preview(
-  group: 'Tiles',
-  name: 'Account · signed out',
-  size: Size(390, 260),
-  wrapper: wrapDarkTile,
-)
-Widget accountSignedOut() => const AccountSectionWidget(inCard: true);
-
-@Preview(
-  group: 'Tiles',
-  name: 'Account · signed in',
-  size: Size(390, 260),
-  wrapper: wrapConfiguredTile,
-)
-Widget accountSignedIn() => const AccountSectionWidget(inCard: true);
 
 @Preview(
   group: 'Tiles',
@@ -221,7 +195,7 @@ Widget toggleTiles() => Builder(
   group: 'Settings page',
   name: 'Advanced screen',
   size: phoneSize,
-  wrapper: wrapSignedIn,
+  wrapper: wrapConfigured,
 )
 Widget advancedScreen() => const AdvancedSettingsScreen();
 
@@ -285,17 +259,6 @@ Widget themeSheet() => const Align(
 
 @Preview(
   group: 'Dialogs',
-  name: 'App icon sheet',
-  size: Size(390, 560),
-  wrapper: wrapDark,
-)
-Widget appIconSheet() => const Align(
-  alignment: Alignment.bottomCenter,
-  child: Material(child: AppIconSheet(current: AppIconOption.ocean)),
-);
-
-@Preview(
-  group: 'Dialogs',
   name: 'Zen mode sheet · on',
   size: Size(390, 320),
   wrapper: wrapConfiguredTile,
@@ -331,37 +294,3 @@ Widget dayBoundaryDialogLight() =>
     const Center(child: DayBoundaryOffsetDialog(currentHours: 0));
 
 // ---------------------------------------------------------------------------
-// Delete account
-// ---------------------------------------------------------------------------
-
-@Preview(
-  group: 'Delete account',
-  name: 'Confirmation dialog',
-  size: Size(390, 520),
-  wrapper: wrapSignedIn,
-)
-Widget deleteAccountDialog() => const DeleteAccountConfirmationDialog();
-
-@Preview(
-  group: 'Delete account',
-  name: 'Reason picker · dark',
-  size: Size(390, 844),
-  wrapper: wrapSignedIn,
-)
-Widget deleteAccountReasons() => const DeleteAccountScreen();
-
-@Preview(
-  group: 'Delete account',
-  name: 'Reason picker · light',
-  size: Size(390, 844),
-  wrapper: wrapLight,
-)
-Widget deleteAccountReasonsLight() => const DeleteAccountScreen();
-
-@Preview(
-  group: 'Delete account',
-  name: 'Account deleted',
-  size: Size(390, 844),
-  wrapper: wrapDark,
-)
-Widget accountDeleted() => const AccountDeletedScreen();

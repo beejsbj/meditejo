@@ -48,19 +48,7 @@ final class NetworkConnectionError extends AppError {
   /// than "No internet connection" when the phone is clearly online.
   factory NetworkConnectionError.fromSocketException(SocketException e) {
     final kind = classifySocketException(e);
-    return NetworkConnectionError(
-      message: switch (kind) {
-        NetworkFailureKind.hostLookup =>
-          "Couldn't reach Medito's servers. Check for a VPN, ad blocker or Private DNS setting.",
-        NetworkFailureKind.connectTimeout =>
-          "Connection to Medito's servers timed out. Please try again.",
-        NetworkFailureKind.connectionRefused =>
-          "Couldn't connect to Medito's servers. Please try again later.",
-        NetworkFailureKind.offline => 'No internet connection',
-      },
-      originalException: e,
-      kind: kind,
-    );
+    return NetworkConnectionError(originalException: e, kind: kind);
   }
 
   /// One-line summary of the underlying OS error, for logging.
@@ -116,19 +104,6 @@ final class NotFoundError extends AppError {
   const NotFoundError({super.message = 'Content not found'});
 }
 
-// Auth Errors
-final class UnauthorizedError extends AppError {
-  const UnauthorizedError({
-    super.message = 'Session expired, please sign in again',
-  });
-}
-
-final class RefreshTokenError extends AppError {
-  const RefreshTokenError({
-    super.message = 'Session expired, please sign in again',
-  });
-}
-
 final class RateLimitError extends AppError {
   final int? tryAfterSeconds;
 
@@ -138,48 +113,9 @@ final class RateLimitError extends AppError {
   });
 }
 
-final class EmailExistsError extends AppError {
-  final String? email;
-
-  const EmailExistsError({
-    this.email,
-    super.message =
-        'Looks like you have signed in with an email address before. Would you like to sign in with your email address again?',
-  });
-}
-
-/// Error indicating that the client ID is already associated with a different email address.
-final class EmailMismatchError extends AppError {
-  const EmailMismatchError({
-    super.message =
-        'This account is already linked to a different email address. Please use the original email.',
-  });
-}
-
-/// Error indicating an issue reading from local storage (SharedPreferences or SecureStorage).
+/// Error indicating an issue reading from local storage.
 class StorageReadError extends AppError {
   const StorageReadError({
     super.message = 'Failed to read data from local storage',
   });
 }
-
-/// Error indicating that the email provided is associated with an inactive account.
-class InactiveEmailError extends AppError {
-  const InactiveEmailError({
-    super.message =
-        'This email address is currently unable to receive messages due to email provider restrictions or delivery issues. Please try using a different email address.',
-  });
-}
-
-/// Compact, low-cardinality label for a failure, for analytics params
-/// ('network_offline', 'timeout', 'server', ...).
-String analyticsErrorKind(Object err) => switch (err) {
-  NetworkConnectionError(:final kind) => 'network_${kind.name}',
-  TimeoutError() => 'timeout',
-  ServerError() => 'server',
-  UnauthorizedError() || RefreshTokenError() => 'unauthorized',
-  RateLimitError() => 'rate_limit',
-  NotFoundError() => 'not_found',
-  AppError() => 'app_error',
-  _ => 'unknown',
-};

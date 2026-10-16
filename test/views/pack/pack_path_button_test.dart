@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medito/constants/config_constants.dart';
-import 'package:medito/constants/pack_sequence.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
@@ -12,6 +11,7 @@ import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/scaffold_messenger_key.dart';
 import 'package:medito/views/pack/widgets/pack_path_button.dart';
+import 'package:medito/views/home/widgets/up_next/up_next_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakePack extends Pack {
@@ -44,7 +44,6 @@ void main() {
   late AppLocalizations l10n;
   late List<String> started;
 
-  final basics = _pack(ConfigConstants.basicsPackId, 'Basics');
   final sleep = _pack('sleep', 'Sleep', tracks: 7, done: 3);
 
   setUp(() async {
@@ -66,11 +65,12 @@ void main() {
     PackModel pack, {
     List<PackModel> others = const [],
   }) async {
+    final packs = [pack, ...others]..sort((a, b) => a.id.compareTo(b.id));
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          for (final p in [basics, sleep, ...others])
+          for (final p in packs)
             packProvider(packId: p.id).overrideWith(() => _FakePack(p)),
         ],
         child: MaterialApp(
@@ -123,9 +123,7 @@ void main() {
     expect(find.text(l10n.packAddedToHome), findsOneWidget);
   });
 
-  testWidgets('Undo after replacing the default restores the default', (
-    tester,
-  ) async {
+  testWidgets('Undo after the first pin leaves Home unpinned', (tester) async {
     await pump(tester, sleep);
 
     await tester.tap(find.byIcon(Icons.play_arrow_rounded));
@@ -133,8 +131,11 @@ void main() {
     await tester.tap(find.text(l10n.undo));
     await tester.pumpAndSettle();
 
-    // Home was on the default without an explicit choice; Undo restores that.
     expect(prefs.getString(SharedPreferenceConstants.upNextPackId), isNull);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PackPathButton)),
+    );
+    expect(container.read(upNextPackIdProvider), isEmpty);
   });
 
   testWidgets('Undo restores an explicitly chosen previous pack', (
@@ -142,43 +143,101 @@ void main() {
   ) async {
     final work = _pack('work', 'Work life');
     await prefs.setString(SharedPreferenceConstants.upNextPackId, 'work');
+    await prefs.setString(
+      SharedPreferenceConstants.upNextReturnPackId,
+      'retired-course',
+    );
     await pump(tester, sleep, others: [work]);
 
     await tester.tap(find.byIcon(Icons.play_arrow_rounded));
     await tester.pumpAndSettle();
+    expect(
+      prefs.getString(SharedPreferenceConstants.upNextReturnPackId),
+      isNull,
+    );
     await tester.tap(find.text(l10n.undo));
     await tester.pumpAndSettle();
 
     expect(prefs.getString(SharedPreferenceConstants.upNextPackId), 'work');
-  });
-
-  testWidgets('remembers the series pack it replaced, for Remove on Home', (
-    tester,
-  ) async {
-    final gettingStarted = _pack(PackSequence.beginnerEntryPackId, 'Start');
-    final work = _pack('work', 'Work life');
-    await prefs.setString(
-      SharedPreferenceConstants.upNextPackId,
-      gettingStarted.id,
-    );
-    await pump(tester, work, others: [gettingStarted, work]);
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
-    await tester.pumpAndSettle();
     expect(
       prefs.getString(SharedPreferenceConstants.upNextReturnPackId),
-      gettingStarted.id,
-    );
-
-    // Hopping to another hand-picked pack keeps the series position.
-    await pump(tester, sleep, others: [gettingStarted, work]);
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
-    await tester.pumpAndSettle();
-    expect(prefs.getString(SharedPreferenceConstants.upNextPackId), 'sleep');
-    expect(
-      prefs.getString(SharedPreferenceConstants.upNextReturnPackId),
-      gettingStarted.id,
+      isNull,
     );
   });
+
+  testWidgets(
+    'Remove clears the pin and retired return target; Undo restores only the pin',
+    (tester) async {
+      await prefs.setString(SharedPreferenceConstants.upNextPackId, sleep.id);
+      await prefs.setString(
+        SharedPreferenceConstants.upNextReturnPackId,
+        'retired-course',
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            packProvider(packId: sleep.id).overrideWith(() => _FakePack(sleep)),
+          ],
+          child: MaterialApp(
+            scaffoldMessengerKey: scaffoldMessengerKey,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const Scaffold(body: UpNextWidget()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(UpNextWidget)),
+      );
+
+      await tester.drag(find.byType(Slidable), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.removeFromHomeShort));
+      await tester.pumpAndSettle();
+
+      expect(prefs.getString(SharedPreferenceConstants.upNextPackId), isNull);
+      expect(
+        prefs.getString(SharedPreferenceConstants.upNextReturnPackId),
+        isNull,
+      );
+      expect(container.read(upNextPackIdProvider), isEmpty);
+      expect(find.byType(Slidable), findsNothing);
+
+      await tester.tap(find.text(l10n.undo));
+      await tester.pumpAndSettle();
+
+      expect(container.read(upNextPackIdProvider), sleep.id);
+      expect(
+        prefs.getString(SharedPreferenceConstants.upNextReturnPackId),
+        isNull,
+      );
+      expect(find.byType(Slidable), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'manual pins replace each other and Undo restores the last choice',
+    (tester) async {
+      final work = _pack('work', 'Work life');
+      await pump(tester, work, others: [sleep]);
+      await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+      await tester.pumpAndSettle();
+      expect(started, ['work-1']);
+      expect(prefs.getString(SharedPreferenceConstants.upNextPackId), 'work');
+
+      await pump(tester, sleep, others: [work]);
+      await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+      await tester.pumpAndSettle();
+      expect(started, ['work-1', 'sleep-3']);
+      expect(prefs.getString(SharedPreferenceConstants.upNextPackId), 'sleep');
+
+      await tester.tap(find.text(l10n.undo));
+      await tester.pumpAndSettle();
+      expect(prefs.getString(SharedPreferenceConstants.upNextPackId), 'work');
+    },
+  );
 
   testWidgets('the pack already on Home just plays, with no snackbar', (
     tester,
@@ -223,11 +282,12 @@ void main() {
     expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
   });
 
-  test('upNextPackIdProvider falls back to the basics pack', () {
+  test('upNextPackIdProvider is empty when no pack has been pinned', () {
     final container = ProviderContainer(
       overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
     );
     addTearDown(container.dispose);
-    expect(container.read(upNextPackIdProvider), ConfigConstants.basicsPackId);
+    expect(container.read(upNextPackIdProvider), isEmpty);
+    expect(prefs.getString(SharedPreferenceConstants.upNextPackId), isNull);
   });
 }

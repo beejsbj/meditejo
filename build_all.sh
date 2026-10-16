@@ -58,7 +58,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-print_colored $GREEN "🚀 Medito Build & Deploy Script"
+print_colored $GREEN "🚀 Meditejo Build & Deploy Script"
 print_colored $GREEN "==============================="
 
 if [ "$BUILD_ANDROID" = true ] && [ "$BUILD_IOS" = true ]; then
@@ -165,7 +165,7 @@ flutter test
 # Generate common variables
 DATED_APKS_DIR="dated_apks"
 DATE_STAMP=$(date +"%d%b%Y")
-ANDROID_LOG="/tmp/medito_android_postbuild_$$.log"
+ANDROID_LOG="/tmp/meditejo_android_postbuild_$$.log"
 ANDROID_BG_PID=""
 ANDROID_BG_FAILED=false
 
@@ -174,7 +174,7 @@ android_post_build() {
     mkdir -p "$DATED_APKS_DIR"
 
     SOURCE_APK="build/app/outputs/apk/prod/release/app-prod-release.apk"
-    DEST_APK="$DATED_APKS_DIR/medito-$CURRENT_VERSION-$DATE_STAMP.apk"
+    DEST_APK="$DATED_APKS_DIR/meditejo-$CURRENT_VERSION-$DATE_STAMP.apk"
 
     cp "$SOURCE_APK" "$DEST_APK"
     print_colored $GREEN "✅ APK copied to $DEST_APK"
@@ -243,7 +243,7 @@ android_post_build() {
 if [ "$BUILD_ANDROID" = true ]; then
     print_colored $BLUE "🚀 Starting Android build..."
 
-    flutter build apk --flavor prod --release --dart-define-from-file=../.prod.json
+    flutter build apk --flavor prod --release
 
     if [ "$BUILD_IOS" = true ]; then
         # Run Android post-build in background while iOS builds
@@ -264,7 +264,7 @@ fi
 if [ "$BUILD_IOS" = true ]; then
     print_colored $BLUE "🚀 Starting iOS build and upload..."
 
-    flutter build ios --dart-define-from-file=../.prod.json --dart-define=ENABLE_DEVICE_PREVIEW=false --release
+    flutter build ios --release
 
     ARCHIVE_PATH="build/ios/archive/Runner.xcarchive"
     EXPORT_PATH="build/ios/ipa"
@@ -278,13 +278,6 @@ if [ "$BUILD_IOS" = true ]; then
       -archivePath "$ARCHIVE_PATH" \
       archive
 
-    if [ -f "ios/upload_dsyms.sh" ]; then
-        print_colored $BLUE "📤 Uploading dSYMs to Firebase Crashlytics..."
-        ios/upload_dsyms.sh "$ARCHIVE_PATH"
-    else
-        print_colored $YELLOW "⚠️  upload_dsyms.sh not found. Skipping dSYM upload."
-    fi
-
     xcodebuild -exportArchive \
       -archivePath "$ARCHIVE_PATH" \
       -exportPath "$EXPORT_PATH" \
@@ -293,7 +286,7 @@ if [ "$BUILD_IOS" = true ]; then
     IPA_PATH="$EXPORT_PATH/Runner.ipa"
 
     if [ -f "$IPA_PATH" ]; then
-        NEW_IPA_PATH="$EXPORT_PATH/medito-${CURRENT_VERSION}-${DATE_STAMP}.ipa"
+        NEW_IPA_PATH="$EXPORT_PATH/meditejo-${CURRENT_VERSION}-${DATE_STAMP}.ipa"
         cp "$IPA_PATH" "$NEW_IPA_PATH"
 
         print_colored $GREEN "✅ iOS IPA built: $NEW_IPA_PATH"

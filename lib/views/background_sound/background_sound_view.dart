@@ -1,7 +1,3 @@
-import 'package:medito/providers/providers.dart';
-import 'package:medito/models/timer/timer_session.dart';
-import 'package:medito/services/analytics/firebase_analytics_service.dart';
-import 'package:medito/constants/strings/analytics_event_constants.dart';
 import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
@@ -146,13 +142,6 @@ class _SessionBellsSwitch extends ConsumerWidget {
     );
 
     void toggle(bool value) {
-      FirebaseAnalyticsService().logEvent(
-        name: AnalyticsEventConstants.sessionBellsToggled,
-        parameters: {
-          'enabled': value ? 1 : 0,
-          'is_timer': (ref.read(playerProvider)?.isTimer ?? false) ? 1 : 0,
-        },
-      );
       ref
           .read(backgroundSoundsNotifierProvider.notifier)
           .setSessionBells(value);

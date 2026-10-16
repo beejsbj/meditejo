@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:medito/constants/constants.dart';
-import 'package:medito/models/models.dart';
-import 'package:medito/providers/providers.dart';
-import 'package:medito/services/network/http_api_service.dart';
+import 'package:medito/constants/strings/shared_preference_constants.dart';
+import 'package:medito/models/track/track.dart';
+import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
+import 'package:medito/services/local_catalogue.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'track_repository.g.dart';
@@ -23,19 +23,25 @@ abstract class TrackRepository {
 }
 
 class TrackRepositoryImpl extends TrackRepository {
-  final HttpApiService client;
   final Ref ref;
+  final LocalCatalogue catalogue;
 
-  TrackRepositoryImpl({required this.ref, required this.client});
+  TrackRepositoryImpl({
+    required this.ref,
+    this.catalogue = const LocalCatalogue(),
+  });
 
   @override
   Future<Track> fetchTrack(String trackId) async {
     try {
-      var response = await client.getRequest(
-        '${HTTPConstants.tracks}/$trackId',
-      );
-      return Track.fromJson(response);
-    } catch (e) {
+      return catalogue.track(trackId);
+    } on CatalogueEntryUnavailable {
+      // Saved favourites resolve by ID too. Keep downloaded metadata usable
+      // when its source catalogue is empty or no longer carries the track.
+      final downloads = await fetchTrackFromPreference();
+      for (final track in downloads) {
+        if (track.id == trackId) return track;
+      }
       rethrow;
     }
   }
@@ -96,5 +102,5 @@ class TrackRepositoryImpl extends TrackRepository {
 
 @riverpod
 TrackRepository trackRepository(Ref ref) {
-  return TrackRepositoryImpl(ref: ref, client: HttpApiService());
+  return TrackRepositoryImpl(ref: ref);
 }

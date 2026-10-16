@@ -212,7 +212,7 @@ struct WidgetContextReader<Content: View>: View {
 
 /// A widget's tap deep link. `placement` lets DeepLinkService split taps by where the widget sits.
 func widgetTapURL(_ widget: String, path: String = "medito/", placement: String = "home_screen") -> URL? {
-    URL(string: "org.meditofoundation://\(path)?source=home_widget&widget=\(widget)&placement=\(placement)")
+    URL(string: "meditejo://\(path)?source=home_widget&widget=\(widget)&placement=\(placement)")
 }
 
 /// Google Sans, registered from the containing app's Flutter bundle so the extension shares the

@@ -7,9 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/providers/providers.dart';
 import 'package:medito/utils/utils.dart';
-import 'package:medito/views/search/search_query_logger.dart';
 import 'package:medito/views/search/search_results.dart';
 import 'package:medito/widgets/medito_icon.dart';
 import 'package:medito/widgets/widgets.dart';
@@ -31,19 +29,6 @@ class SearchViewState extends ConsumerState<SearchView> {
   final _focusNode = FocusNode();
   Timer? _debounce;
   String _query = '';
-  late final SearchQueryLogger _queryLogger;
-
-  @override
-  void initState() {
-    super.initState();
-    // Captured here, not read per event: the logger flushes from dispose(),
-    // where ref can no longer be used.
-    final analytics = ref.read(analyticsServiceProvider);
-    _queryLogger = SearchQueryLogger(
-      log: (name, parameters) =>
-          unawaited(analytics.logEvent(name: name, parameters: parameters)),
-    );
-  }
 
   /// Called by the nav host when the Search tab is selected, so tapping Search
   /// drops the cursor straight into the field ready to type. Re-tapping the
@@ -62,7 +47,6 @@ class SearchViewState extends ConsumerState<SearchView> {
   @override
   void dispose() {
     _debounce?.cancel();
-    _queryLogger.dispose();
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -75,13 +59,11 @@ class SearchViewState extends ConsumerState<SearchView> {
       // The search backend is ASCII-only.
       final asciiQuery = value.replaceAll(RegExp(r'[^\x00-\x7F]'), '');
       setState(() => _query = asciiQuery);
-      _queryLogger.onQuery(asciiQuery);
     });
   }
 
   void _clear() {
     _debounce?.cancel();
-    _queryLogger.commit();
     _controller.clear();
     setState(() => _query = '');
     _focusNode.requestFocus();
@@ -133,7 +115,6 @@ class SearchViewState extends ConsumerState<SearchView> {
                             ),
                           ),
                     onChanged: _onChanged,
-                    onSubmitted: (_) => _queryLogger.commit(),
                   );
                 },
               ),
@@ -143,10 +124,7 @@ class SearchViewState extends ConsumerState<SearchView> {
                 query: _query,
                 onBeforeNavigate: () {
                   _focusNode.unfocus();
-                  _queryLogger.commit();
                 },
-                onResults: (query, hasResults) =>
-                    _queryLogger.onResults(query, hasResults: hasResults),
               ),
             ),
           ],

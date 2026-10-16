@@ -21,7 +21,7 @@ RELEASE_NOTES=$(awk '
 # Build the iOS app for production
 
 echo "\n[1/3] Building iOS app for production..."
-flutter build ios --dart-define-from-file=../.prod.json --dart-define=ENABLE_DEVICE_PREVIEW=false --release
+flutter build ios --release
 
 echo "\n[2/3] Exporting .ipa..."
 
@@ -39,14 +39,6 @@ xcodebuild -workspace ios/Runner.xcworkspace \
   -configuration Release \
   -archivePath "$ARCHIVE_PATH" \
   archive
-
-# Upload dSYMs to Firebase Crashlytics
-if [ -f "ios/upload_dsyms.sh" ]; then
-  echo "\n[2.5/3] Uploading dSYMs to Firebase Crashlytics..."
-  ios/upload_dsyms.sh "$ARCHIVE_PATH"
-else
-  echo "\n[Warning] upload_dsyms.sh not found. Skipping dSYM upload."
-fi
 
 # Export the .ipa
 xcodebuild -exportArchive \

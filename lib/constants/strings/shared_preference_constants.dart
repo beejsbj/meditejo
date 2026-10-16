@@ -1,181 +1,37 @@
 class SharedPreferenceConstants {
-  static const String user = 'user';
   static const String bgSoundVolume = 'bgSoundVolume';
   static const String bgSound = 'bgSound';
   static const String listBgSound = 'listBgSound';
-  // The full background sound list as last fetched (JSON list), so the
-  // pickers can list sounds offline and grey out the ones not downloaded.
   static const String bgSoundCatalog = 'bgSoundCatalog';
   static const String downloads = 'downloads';
   static const String currentPlayingTrack = 'currentPlayingTrack';
-  static const String shortcuts = 'shortcuts';
   static const String savedHours = 'savedHours';
   static const String savedMinutes = 'savedMinutes';
   static const String lastSelectedGuideName = 'lastSelectedGuideName';
-  static const String favoritePacks = 'favorite_packs';
   static const String favorites = 'favorites';
-  static const String removedFavorites = 'removed_favorites';
-
-  static const String userId = 'userId';
-  static const String userEmail = 'userEmail';
-
-  // New constants for stats
   static const String localAllStatsKey = 'local_all_stats';
-  static const String statsLastSyncedAt = 'stats_last_synced_at';
   static const String streakCircleDisplayPreference =
       'streak_circle_display_preference';
-  // Whole-hour offset (0..6) controlling when a new "day" begins for streak
-  // calculation. Default 0 = midnight; e.g. 4 means a session at 02:00 still
-  // counts toward the previous day. Stored as int; absent → default.
   static const String dayBoundaryOffsetHours = 'day_boundary_offset_hours';
-
   static const String homeWidgetOrder = 'homeWidgetOrder';
-
-  // DND settings
   static const String dndEnabled = 'dnd_enabled';
-  static const String isLoggedIn = 'is_logged_in';
-
-  // Locale preference - stores the user's preferred language setting
   static const String localePreference = 'locale_preference';
-
-  // Theme preference - stores the user's preferred theme mode
   static const String themePreference = 'theme_preference';
-
-  // Daily reminders
   static const String dailyReminderEnabled = 'daily_reminder_enabled';
   static const String reminderPromptDismissedForever =
       'reminder_prompt_dismissed_forever';
   static const String notifPermissionFixNeeded = 'notif_permission_fix_needed';
-
-  /// Set once repairReminderFlagOnce has run on this install.
   static const String reminderFlagRepaired = 'reminder_flag_repair_v1';
-
-  /// Epoch millis until which the post-session reminder prompt is suppressed.
-  /// Set by a soft dismiss ("Not now") instead of the permanent dismiss.
   static const String reminderPromptSnoozeUntil =
       'reminder_prompt_snooze_until';
-
-  // Account conversion (anonymous -> email) soft-ask on the end screen.
-  static const String accountPromptDismissedForever =
-      'account_prompt_dismissed_forever';
-
-  /// Epoch millis until which the post-session account-conversion prompt is
-  /// suppressed. Set by a soft dismiss ("Not now").
-  static const String accountPromptSnoozeUntil = 'account_prompt_snooze_until';
-
-  // Zen Mode
   static const String zenModeEnabled = 'zen_mode_enabled';
-
-  // Analytics consent flags
-  static const String analyticsFirebaseEnabled = 'analytics_firebase_enabled';
-  static const String analyticsMetaEnabled = 'analytics_meta_enabled';
-
-  // Historical consistency score data
   static const String consistencyScoreHistory = 'consistency_score_history';
-
-  // Black Friday positioning
-  static const String blackFridayDismissed = 'black_friday_dismissed';
-
-  // UTM parameters (stored from deep links, applied after user initialization)
-  static const String utmSource = 'utm_source';
-  static const String utmMedium = 'utm_medium';
-  static const String utmCampaign = 'utm_campaign';
-  static const String utmTerm = 'utm_term';
-  static const String utmContent = 'utm_content';
-
-  /// Set once Apple's AdServices API has answered for this install, so the
-  /// Apple Ads attribution lookup runs once (see AppleAdsAttributionService).
-  static const String appleAdsAttributionChecked =
-      'apple_ads_attribution_checked';
-
-  /// Set once the Play install referrer has been read for this install (see
-  /// PlayInstallReferrerService).
-  static const String playInstallReferrerChecked =
-      'play_install_referrer_checked';
-
-  // Donation snooze tracking
-  static const String donationAskSnoozedUntilMs =
-      'donation_ask_snoozed_until_ms';
-  static const String lastSuccessfulDonationAtMs =
-      'last_successful_donation_at_ms';
-  static const String lastSuccessfulDonationFrequency =
-      'last_successful_donation_frequency';
-
-  // Email the donor typed for their Stripe receipt in a native donation
-  // flow. Separate from the account email (they need not match): only used
-  // to prefill the sign-up screen so "add your email" is one tap.
-  static const String emailAddressForReceipt = 'email_address_for_receipt';
-
-  // Up Next pack preference
   static const String upNextPackId = 'up_next_pack_id';
-
-  /// The series pack Home returns to when a hand-picked pack is removed from
-  /// it. Absent means the no-pin default.
   static const String upNextReturnPackId = 'up_next_return_pack_id';
-
-  // Onboarding custom-time-picker entry-mode A/B test (dial vs keyboard) —
-  // sticky per-install variant.
-  static const String onboardingReminderPickerModeVariant =
-      'onboarding_reminder_picker_mode_variant';
-
-  // End-screen donation card A/B test (webview CTA vs inline amount chips +
-  // pay sheet) — sticky per-install variant.
-  static const String endScreenDonationAskVariant =
-      'end_screen_donation_ask_variant';
-
-  // First-meditation-for-experienced-users A/B test — sticky per-install
-  // variant. Only assigned for users who answer `regular_practice`.
-  static const String onboardingExperiencedMeditationVariant =
-      'onboarding_experienced_meditation_variant';
-
-  // Last selected main tab (home=0, explore=1)
   static const String lastMainTabIndex = 'last_main_tab_index';
-
-  // History of installed app versions seen on this device (JSON list)
   static const String installedVersionHistory = 'installed_version_history';
-
-  // History of sign-in events on this device (JSON list)
-  static const String signedInUserHistory = 'signed_in_user_history';
-
-  // True between onboarding completion and the user's first interactive tap.
-  // Used to log a single first_action_after_onboarding event.
-  static const String firstActionAfterOnboardingPending =
-      'first_action_after_onboarding_pending';
-
-  // In-progress audio session, persisted by AudioSessionTracker as a JSON blob
-  // {fileId, guide, durationMs, lastPositionMs, startMs}. Present only while a
-  // session is playing/paused; cleared on completion or abandonment. Replayed
-  // as an audio_session_abandoned event on next launch if a force-quit left it
-  // behind. See docs/ANALYTICS_SESSION_EVENTS.md.
-  static const String incompleteAudioSession = 'incompleteAudioSession';
-
-  /// Pack ids whose Up Next completed state has been logged, so
-  /// up_next_pack_completed / up_next_path_completed fire once per pack.
-  static const String upNextCompletedLoggedPacks =
-      'up_next_completed_logged_packs';
-
-  // The onboarding "experience" answer, persisted as an int index:
-  // 0 = never tried, 1 = a little, 2 = regular practice. Absent if the user
-  // onboarded before this was captured or skipped the question. Used to
-  // segment the first-session experience and downstream personalisation.
   static const String onboardingExperienceLevel = 'onboarding_experience_level';
-
-  // Native shop bag: JSON list of BagItem (variant id, quantity, and enough
-  // product detail to render offline). Cleared by the user after checkout.
-  static const String shopBag = 'shop_bag';
-
-  // Set when the user leaves for Fourthwall checkout with a non-empty bag, so
-  // the bag can offer to clear itself on return. We can't observe the order
-  // completing (checkout runs in the system browser sheet).
-  static const String shopBagCheckoutStarted = 'shop_bag_checkout_started';
-
-  // Home Timer: last countdown length in minutes.
   static const String timerMinutes = 'timer_minutes';
-  // Session bells on/off, separate from the ambient sound so both can play.
-  // Tracks default off; the Timer defaults on.
   static const String sessionBellsEnabled = 'session_bells_enabled';
   static const String timerSessionBellsEnabled = 'timer_session_bells_enabled';
-  // Cover URL of the timer track, last fetched; shown behind the Timer
-  // screen (offline from the image disk cache).
-  static const String timerCoverUrl = 'timer_cover_url';
 }

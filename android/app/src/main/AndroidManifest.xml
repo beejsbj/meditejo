@@ -13,17 +13,12 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 
     <!-- Health Connect: mindfulness session sync -->
     <uses-permission android:name="android.permission.health.READ_MINDFULNESS" />
     <uses-permission android:name="android.permission.health.WRITE_MINDFULNESS" />
 
     <queries>
-        <!-- Watch companion apps, for WatchPresence.kt. -->
-        <package android:name="com.google.android.wearable.app" />
-        <package android:name="com.google.android.apps.wear.companion" />
-        <package android:name="com.samsung.android.app.watchmanager" />
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
@@ -54,40 +49,15 @@
         android:label="@string/app_name_override"
         android:name="${applicationName}"
         android:enableOnBackInvokedCallback="true"
-        android:icon="@mipmap/ic_launcher_classic"
+        android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
-
-        <meta-data
-            android:name="com.facebook.sdk.ApplicationId"
-            android:value="@string/facebook_app_id" />
-        <meta-data
-            android:name="com.facebook.sdk.ClientToken"
-            android:value="@string/facebook_client_token" />
-
-        <meta-data
-            android:name="com.google.android.gms.wallet.api.enabled"
-            android:value="true" />
-
-        <!-- Firebase Analytics default consent settings -->
-        <meta-data
-            android:name="google_analytics_default_allow_analytics_storage"
-            android:value="true" />
-        <meta-data
-            android:name="google_analytics_default_allow_ad_storage"
-            android:value="true" />
-        <meta-data
-            android:name="google_analytics_default_allow_ad_user_data"
-            android:value="true" />
-        <meta-data
-            android:name="google_analytics_default_allow_ad_personalization_signals"
-            android:value="true" />
 
         <meta-data
             android:name="io.flutter.embedding.android.EnableImpeller"
             android:value="true" />
 
         <activity
-            android:name=".MainActivity"
+            android:name="meditofoundation.medito.MainActivity"
             android:allowBackup="false"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:exported="true"
@@ -104,41 +74,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Intent filter for custom scheme (supports paths and UTM-only links) -->
+            <!-- Intent filter for custom scheme -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="org.meditofoundation" />
-                <data android:host="medito" />
-            </intent-filter>
-
-            <!-- Intent filter for HTTPS links with paths -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data android:scheme="https" />
-                <data android:host="medito.app" />
-                <data android:pathPrefix="/tracks/" />
-                <data android:pathPrefix="/packs/" />
-                <data android:pathPrefix="/otp/" />
-                <data android:pathPrefix="/donation" />
-            </intent-filter>
-
-            <!-- Intent filter for HTTPS links without path (for UTM-only links) -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data android:scheme="https" />
-                <data android:host="medito.app" />
+                <data android:scheme="meditejo" />
+                <data android:host="meditejo" />
             </intent-filter>
 
             <!-- Health Connect: shown when the user taps "About this permission" -->
@@ -152,7 +96,7 @@
         <activity-alias
             android:name="ViewPermissionUsageActivity"
             android:exported="true"
-            android:targetActivity=".MainActivity"
+            android:targetActivity="meditofoundation.medito.MainActivity"
             android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
@@ -160,122 +104,15 @@
             </intent-filter>
         </activity-alias>
 
-        <activity-alias
-            android:name=".MainActivity.dusk"
-            android:targetActivity=".MainActivity"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher_dusk"
-            android:label="@string/app_name_override"
-            android:enabled="false">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name=".MainActivity.purple"
-            android:targetActivity=".MainActivity"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher_purple"
-            android:label="@string/app_name_override"
-            android:enabled="false">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name=".MainActivity.classic"
-            android:targetActivity=".MainActivity"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher_classic"
-            android:label="@string/app_name_override"
-            android:enabled="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name=".MainActivity.nearblack"
-            android:targetActivity=".MainActivity"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher_nearblack"
-            android:label="@string/app_name_override"
-            android:enabled="false">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name=".MainActivity.blush"
-            android:targetActivity=".MainActivity"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher_blush"
-            android:label="@string/app_name_override"
-            android:enabled="false">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name=".MainActivity.ocean"
-            android:targetActivity=".MainActivity"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher_ocean"
-            android:label="@string/app_name_override"
-            android:enabled="false">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name=".MainActivity.forest"
-            android:targetActivity=".MainActivity"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher_forest"
-            android:label="@string/app_name_override"
-            android:enabled="false">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name=".MainActivity.pink"
-            android:targetActivity=".MainActivity"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher_pink"
-            android:label="@string/app_name_override"
-            android:enabled="false">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="high_importance_channel" />
         <meta-data
             android:name="flutter_deeplinking_enabled"
             android:value="true" />
 
         <service
-            android:name=".AudioPlayerService"
+            android:name="meditofoundation.medito.AudioPlayerService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="false">
             <intent-filter>
@@ -339,12 +176,8 @@
                 tools:node="remove" />
         </provider>
 
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@drawable/logo" />
-
         <receiver
-            android:name=".widget.MeditationWidgetReceiver"
+            android:name="meditofoundation.medito.widget.MeditationWidgetReceiver"
             android:exported="true"
             android:label="@string/widget_label">
             <intent-filter>
@@ -357,7 +190,7 @@
         </receiver>
 
         <receiver
-            android:name=".widget.ConsistencyWidgetReceiver"
+            android:name="meditofoundation.medito.widget.ConsistencyWidgetReceiver"
             android:exported="true"
             android:label="@string/consistency_widget_label">
             <intent-filter>
@@ -370,7 +203,7 @@
         </receiver>
 
         <receiver
-            android:name=".widget.UpNextWidgetReceiver"
+            android:name="meditofoundation.medito.widget.UpNextWidgetReceiver"
             android:exported="true"
             android:label="@string/up_next_widget_label">
             <intent-filter>

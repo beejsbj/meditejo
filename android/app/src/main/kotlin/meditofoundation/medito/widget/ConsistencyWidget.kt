@@ -77,7 +77,7 @@ class ConsistencyWidget : GlanceAppWidget() {
             today = consistencyToday,
             activityDays = activityDays,
             palette = WidgetPalette.resolve(context, themePreference),
-            tapUri = "org.meditofoundation://medito/?source=home_widget&widget=consistency",
+            tapUri = "meditejo://meditejo/?source=home_widget&widget=consistency",
         )
     }
 

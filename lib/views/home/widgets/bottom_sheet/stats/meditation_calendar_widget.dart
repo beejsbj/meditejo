@@ -1,4 +1,3 @@
-import 'package:medito/constants/strings/analytics_event_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:medito/models/timer/timer_session.dart';
@@ -1200,11 +1199,8 @@ class _SessionItemWidget extends ConsumerWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => isTimer
-                  ? const TimerView(
-                      source: AnalyticsEventConstants.sourceHistory,
-                    )
-                  : TrackView(trackId: session.id),
+              builder: (context) =>
+                  isTimer ? const TimerView() : TrackView(trackId: session.id),
             ),
           );
         },

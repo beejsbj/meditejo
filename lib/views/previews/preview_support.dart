@@ -1,7 +1,7 @@
 // Shared scaffolding for `flutter widget-preview start` previews.
 //
 // Previews render the REAL widgets against an in-memory SharedPreferences and
-// a fake AuthRepository, so no backend, Firebase or device is needed. Each
+// local preferences, so no backend or device is needed. Each
 // screen's preview file (settings, home, ...) adds its own provider overrides
 // on top of this shell.
 
@@ -13,7 +13,6 @@ import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/providers.dart';
-import 'package:medito/repositories/auth/auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const phoneSize = Size(390, 844);
@@ -26,51 +25,6 @@ const Map<String, Object> prefsDark = {
 const Map<String, Object> prefsLight = {
   SharedPreferenceConstants.themePreference: 'light',
 };
-
-/// Minimal [AuthRepository] that never touches the network.
-class FakeAuthRepository implements AuthRepository {
-  FakeAuthRepository({this.email});
-
-  final String? email;
-
-  @override
-  User? get currentUser => User(id: 'preview-user', email: email);
-
-  @override
-  String? getUserEmail() => email;
-
-  @override
-  Future<String> getToken() async => 'preview-token';
-
-  @override
-  Future<void> initializeUser() async {}
-
-  @override
-  Future<bool> isLoggedIn() async => email != null;
-
-  @override
-  Future<void> migrateEmailToStorage() async {}
-
-  @override
-  Future<void> requestOtp(String email) async {}
-
-  @override
-  void resetAuthState() {}
-
-  @override
-  Future<void> signInAnonymously() async {}
-
-  @override
-  Future<bool> signOut() async => true;
-
-
-  @override
-
-  Future<void> signOutLocally() async {}
-
-  @override
-  Future<bool> verifyOtp(String email, String otp) async => true;
-}
 
 /// Per-preview in-memory [SharedPreferences]. The real
 /// `SharedPreferences.setMockInitialValues` is a process-wide singleton, so
@@ -159,7 +113,7 @@ class PreviewShell extends StatelessWidget {
   /// Wrap standalone tiles in a card-like surface with page padding.
   final bool padded;
 
-  /// Extra provider overrides layered on top of prefs and auth.
+  /// Extra provider overrides layered on top of preferences.
   final List<Override> overrides;
 
   /// App locale; null uses the previewer's. Times and copy are locale
@@ -175,9 +129,6 @@ class PreviewShell extends StatelessWidget {
     return ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(MemoryPrefs(prefs)),
-        authRepositorySyncProvider.overrideWithValue(
-          FakeAuthRepository(email: email),
-        ),
         ...overrides,
       ],
       child: Builder(
