@@ -11,10 +11,8 @@ enum LibraryKind {
   /// A Dharma Seed teacher the user follows; listed apart from the rest.
   teacher;
 
-  static LibraryKind parse(String? value) => values.firstWhere(
-    (k) => k.name == value,
-    orElse: () => single,
-  );
+  static LibraryKind parse(String? value) =>
+      values.firstWhere((k) => k.name == value, orElse: () => single);
 }
 
 /// Practice is something done along with the audio; Talks is listened to.

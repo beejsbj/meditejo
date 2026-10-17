@@ -56,36 +56,47 @@ void main() {
       expect((await store.entries()).map((e) => e.sourceId), ['a', 'c', 'b']);
     });
 
-    test('the user can override Practice/Talks and go back to the detected one', () async {
-      await store.add(draft('x', group: LibraryGroup.talks));
-      expect((await store.entry('x'))!.group, LibraryGroup.talks);
+    test(
+      'the user can override Practice/Talks and go back to the detected one',
+      () async {
+        await store.add(draft('x', group: LibraryGroup.talks));
+        expect((await store.entry('x'))!.group, LibraryGroup.talks);
 
-      await store.setGroup('x', LibraryGroup.practice);
-      var entry = (await store.entry('x'))!;
-      expect(entry.group, LibraryGroup.practice);
-      expect(entry.detectedGroup, LibraryGroup.talks);
-      expect(await store.groupOf('x'), LibraryGroup.practice);
+        await store.setGroup('x', LibraryGroup.practice);
+        var entry = (await store.entry('x'))!;
+        expect(entry.group, LibraryGroup.practice);
+        expect(entry.detectedGroup, LibraryGroup.talks);
+        expect(await store.groupOf('x'), LibraryGroup.practice);
 
-      await store.setGroup('x', null);
-      entry = (await store.entry('x'))!;
-      expect(entry.group, LibraryGroup.talks);
-    });
+        await store.setGroup('x', null);
+        entry = (await store.entry('x'))!;
+        expect(entry.group, LibraryGroup.talks);
+      },
+    );
 
-    test('a title override changes what is shown, not what the source said', () async {
-      await store.add(draft('x', title: 'Source title'));
-      await store.setTitle('x', '  My name  ');
-      var entry = (await store.entry('x'))!;
-      expect(entry.displayTitle, 'My name');
-      expect(entry.title, 'Source title');
+    test(
+      'a title override changes what is shown, not what the source said',
+      () async {
+        await store.add(draft('x', title: 'Source title'));
+        await store.setTitle('x', '  My name  ');
+        var entry = (await store.entry('x'))!;
+        expect(entry.displayTitle, 'My name');
+        expect(entry.title, 'Source title');
 
-      await store.setTitle('x', '   ');
-      entry = (await store.entry('x'))!;
-      expect(entry.displayTitle, 'Source title');
-    });
+        await store.setTitle('x', '   ');
+        entry = (await store.entry('x'))!;
+        expect(entry.displayTitle, 'Source title');
+      },
+    );
 
     test('remove and snapshot updates', () async {
       await store.add(draft('x'));
-      await store.updateSnapshot('x', itemCount: 12, durationMs: 5000, subtitle: 'new');
+      await store.updateSnapshot(
+        'x',
+        itemCount: 12,
+        durationMs: 5000,
+        subtitle: 'new',
+      );
       final entry = (await store.entry('x'))!;
       expect(entry.itemCount, 12);
       expect(entry.durationMs, 5000);
@@ -102,7 +113,11 @@ void main() {
       expect(store.revision.value, greaterThan(seen));
       final afterAdd = store.revision.value;
       await store.add(draft('x'));
-      expect(store.revision.value, afterAdd, reason: 'a refused duplicate changes nothing');
+      expect(
+        store.revision.value,
+        afterAdd,
+        reason: 'a refused duplicate changes nothing',
+      );
     });
   });
 
@@ -156,36 +171,58 @@ void main() {
     });
     tearDown(() => ds.close());
 
-    test('saved courses and teachers come across once, keeping their time', () async {
-      await ds.setSaved(DsSavedKind.retreat, 100, saved: true);
-      await ds.setSaved(DsSavedKind.retreat, 200, saved: true);
-      await ds.setSaved(DsSavedKind.teacher, 2, saved: true);
+    test(
+      'saved courses and teachers come across once, keeping their time',
+      () async {
+        await ds.setSaved(DsSavedKind.retreat, 100, saved: true);
+        await ds.setSaved(DsSavedKind.retreat, 200, saved: true);
+        await ds.setSaved(DsSavedKind.teacher, 2, saved: true);
 
-      final migrating = LibraryStore(db, prepare: (d) => migrateDharmaSeedSaves(d, ds));
-      final entries = await migrating.entries();
+        final migrating = LibraryStore(
+          db,
+          prepare: (d) => migrateDharmaSeedSaves(d, ds),
+        );
+        final entries = await migrating.entries();
 
-      expect(entries.map((e) => e.sourceId), unorderedEquals(['ds-retreat-100', 'ds-retreat-200', 'ds-teacher-2']));
-      final jhana = entries.firstWhere((e) => e.sourceId == 'ds-retreat-100');
-      expect(jhana.kind, LibraryKind.course);
-      expect(jhana.title, 'Jhana Retreat');
-      expect(jhana.group, LibraryGroup.practice, reason: '3 of 4 talks are guided meditation');
-      final talks = entries.firstWhere((e) => e.sourceId == 'ds-retreat-200');
-      expect(talks.group, LibraryGroup.talks);
-      expect(entries.firstWhere((e) => e.sourceId == 'ds-teacher-2').kind, LibraryKind.teacher);
+        expect(
+          entries.map((e) => e.sourceId),
+          unorderedEquals(['ds-retreat-100', 'ds-retreat-200', 'ds-teacher-2']),
+        );
+        final jhana = entries.firstWhere((e) => e.sourceId == 'ds-retreat-100');
+        expect(jhana.kind, LibraryKind.course);
+        expect(jhana.title, 'Jhana Retreat');
+        expect(
+          jhana.group,
+          LibraryGroup.practice,
+          reason: '3 of 4 talks are guided meditation',
+        );
+        final talks = entries.firstWhere((e) => e.sourceId == 'ds-retreat-200');
+        expect(talks.group, LibraryGroup.talks);
+        expect(
+          entries.firstWhere((e) => e.sourceId == 'ds-teacher-2').kind,
+          LibraryKind.teacher,
+        );
 
-      // The old table is untouched, and a second run adds nothing.
-      expect(await ds.savedIds(DsSavedKind.retreat), hasLength(2));
-      await migrateDharmaSeedSaves(db, ds);
-      expect(await db.allEntries(), hasLength(3));
-    });
+        // The old table is untouched, and a second run adds nothing.
+        expect(await ds.savedIds(DsSavedKind.retreat), hasLength(2));
+        await migrateDharmaSeedSaves(db, ds);
+        expect(await db.allEntries(), hasLength(3));
+      },
+    );
 
-    test('a save the catalogue no longer holds is still carried over', () async {
-      await ds.setSaved(DsSavedKind.retreat, 9999, saved: true);
-      final migrating = LibraryStore(db, prepare: (d) => migrateDharmaSeedSaves(d, ds));
-      final entry = (await migrating.entries()).single;
-      expect(entry.sourceId, 'ds-retreat-9999');
-      expect(entry.title, isNotEmpty);
-    });
+    test(
+      'a save the catalogue no longer holds is still carried over',
+      () async {
+        await ds.setSaved(DsSavedKind.retreat, 9999, saved: true);
+        final migrating = LibraryStore(
+          db,
+          prepare: (d) => migrateDharmaSeedSaves(d, ds),
+        );
+        final entry = (await migrating.entries()).single;
+        expect(entry.sourceId, 'ds-retreat-9999');
+        expect(entry.title, isNotEmpty);
+      },
+    );
 
     test('a library with entries already keeps them', () async {
       await store.add(draft('ds-retreat-100', title: 'Already here'));

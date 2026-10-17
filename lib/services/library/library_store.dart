@@ -97,7 +97,9 @@ class LibraryStore {
     await db.updateEntry(
       sourceId,
       LibraryEntriesCompanion(
-        titleOverride: Value(trimmed == null || trimmed.isEmpty ? null : trimmed),
+        titleOverride: Value(
+          trimmed == null || trimmed.isEmpty ? null : trimmed,
+        ),
       ),
     );
     _changed();
@@ -133,7 +135,10 @@ class LibraryStore {
     var touched = false;
     for (final id in sourceIds.toSet()) {
       if (await db.entryById(id) == null) continue;
-      await db.updateEntry(id, LibraryEntriesCompanion(lastPlayedAt: Value(now)));
+      await db.updateEntry(
+        id,
+        LibraryEntriesCompanion(lastPlayedAt: Value(now)),
+      );
       touched = true;
     }
     if (touched) _changed();
@@ -147,7 +152,8 @@ class LibraryStore {
   LibraryEntry _entry(LibraryEntryRow row) => LibraryEntry(
     sourceId: row.sourceId,
     kind: LibraryKind.parse(row.kind),
-    detectedGroup: LibraryGroup.tryParse(row.detectedGroup) ?? LibraryGroup.practice,
+    detectedGroup:
+        LibraryGroup.tryParse(row.detectedGroup) ?? LibraryGroup.practice,
     groupOverride: LibraryGroup.tryParse(row.groupOverride),
     title: row.title,
     titleOverride: row.titleOverride,
@@ -174,11 +180,14 @@ class LibraryStore {
     return row == null ? null : _resume(row);
   }
 
-  Future<Map<String, ResumePoint>> resumePoints(Iterable<String> trackIds) async {
+  Future<Map<String, ResumePoint>> resumePoints(
+    Iterable<String> trackIds,
+  ) async {
     await _ready();
     if (trackIds.isEmpty) return const {};
     return {
-      for (final row in await db.positionsOf(trackIds)) row.trackId: _resume(row),
+      for (final row in await db.positionsOf(trackIds))
+        row.trackId: _resume(row),
     };
   }
 
@@ -197,7 +206,8 @@ class LibraryStore {
     bool notify = true,
   }) async {
     await _ready();
-    final nearEnd = durationMs > 0 &&
+    final nearEnd =
+        durationMs > 0 &&
         positionMs >= durationMs - finishedWithin.inMilliseconds;
     if (positionMs < minimumResume.inMilliseconds || nearEnd) {
       await db.clearPosition(trackId);

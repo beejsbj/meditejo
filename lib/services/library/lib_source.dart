@@ -24,7 +24,8 @@ import 'package:medito/utils/logger.dart';
 /// this holds the content behind the entries. Adding to the library is saving
 /// ([SavableContentSource]), and removing deletes the content and any file
 /// copied into app storage.
-class LibSource implements ContentSource, SavableContentSource {
+class LibSource
+    implements ContentSource, SavableContentSource, ParentedContentSource {
   LibSource({required this.db, required this.library});
 
   final LibraryDatabase db;
@@ -48,16 +49,18 @@ class LibSource implements ContentSource, SavableContentSource {
     if (course == null) throw CatalogueEntryUnavailable('pack', id);
     var tracks = await db.tracksOfCourse(id);
     if (course.episodeOrder == 'newest') tracks = tracks.reversed.toList();
-    return _packSummary(course).copyWith(
-      items: [for (final track in tracks) _item(track, course)],
-    );
+    return _packSummary(
+      course,
+    ).copyWith(items: [for (final track in tracks) _item(track, course)]);
   }
 
   @override
   Future<Track> track(String id) async {
     final row = await db.trackById(id);
     if (row == null) throw CatalogueEntryUnavailable('track', id);
-    final course = row.courseId == null ? null : await db.courseById(row.courseId!);
+    final course = row.courseId == null
+        ? null
+        : await db.courseById(row.courseId!);
     final group =
         await library.groupOf(row.id) ??
         (row.courseId == null ? null : await library.groupOf(row.courseId!));
@@ -115,8 +118,8 @@ class LibSource implements ContentSource, SavableContentSource {
   bool _matches(String needle, List<String> fields) =>
       fields.any((f) => f.toLowerCase().contains(needle));
 
-  /// The course a session belongs to, if any.
-  Future<String?> courseOf(String trackId) async =>
+  @override
+  Future<String?> parentOf(String trackId) async =>
       (await db.trackById(trackId))?.courseId;
 
   // ---------------------------------------------------------------- mapping
@@ -134,37 +137,53 @@ class LibSource implements ContentSource, SavableContentSource {
 
   String _courseSubtitle(LibCourseRow course) => course.author;
 
-  PackItemsModel _item(LibTrackRow track, LibCourseRow course) => PackItemsModel(
-    type: TypeConstants.track,
-    id: track.id,
-    title: track.title,
-    subtitle: track.author,
-    coverUrl: track.artworkUrl.isNotEmpty ? track.artworkUrl : course.artworkUrl,
-    path: '/tracks/${track.id}',
-    durationMs: track.durationMs > 0 ? track.durationMs : null,
-    date: track.publishedAt.length >= 10 ? track.publishedAt.substring(0, 10) : null,
-    teacher: track.author.isNotEmpty ? track.author : null,
-  );
+  PackItemsModel _item(LibTrackRow track, LibCourseRow course) =>
+      PackItemsModel(
+        type: TypeConstants.track,
+        id: track.id,
+        title: track.title,
+        subtitle: track.author,
+        coverUrl: track.artworkUrl.isNotEmpty
+            ? track.artworkUrl
+            : course.artworkUrl,
+        path: '/tracks/${track.id}',
+        durationMs: track.durationMs > 0 ? track.durationMs : null,
+        date: track.publishedAt.length >= 10
+            ? track.publishedAt.substring(0, 10)
+            : null,
+        teacher: track.author.isNotEmpty ? track.author : null,
+      );
 
   /// The credit owed for a course: who made it, where it lives, and the
   /// licence when the feed states one. Always present, so the page reads as a
   /// course.
   static SourceAttribution courseAttribution(LibCourseRow course) =>
       SourceAttribution(
-        source: course.origin == 'feed' ? _hostOf(course.siteUrl, course.feedUrl) : 'This device',
+        source: course.origin == 'feed'
+            ? _hostOf(course.siteUrl, course.feedUrl)
+            : 'This device',
         creator: course.author.isEmpty ? null : course.author,
         url: course.siteUrl.isNotEmpty ? course.siteUrl : course.feedUrl,
         licenseName: course.licenseName,
         licenseUrl: course.licenseUrl,
       );
 
-  static SourceAttribution trackAttribution(LibTrackRow track, LibCourseRow? course) {
+  static SourceAttribution trackAttribution(
+    LibTrackRow track,
+    LibCourseRow? course,
+  ) {
     if (course != null) return courseAttribution(course);
     final uri = Uri.tryParse(track.audioUrl);
     return SourceAttribution(
-      source: track.isLocalFile ? 'This device' : _hostOf(track.pageUrl, track.audioUrl),
+      source: track.isLocalFile
+          ? 'This device'
+          : _hostOf(track.pageUrl, track.audioUrl),
       creator: track.author.isEmpty ? null : track.author,
-      url: track.pageUrl.isNotEmpty ? track.pageUrl : (uri != null && uri.hasScheme && !track.isLocalFile ? track.audioUrl : ''),
+      url: track.pageUrl.isNotEmpty
+          ? track.pageUrl
+          : (uri != null && uri.hasScheme && !track.isLocalFile
+                ? track.audioUrl
+                : ''),
       licenseName: '',
       licenseUrl: '',
     );
@@ -180,9 +199,15 @@ class LibSource implements ContentSource, SavableContentSource {
 
   /// One voice, one file: the original audio, untouched. [practice] decides
   /// whether a background sound may sit under it.
-  static Track mapTrack(LibTrackRow row, LibCourseRow? course, {required bool practice}) {
+  static Track mapTrack(
+    LibTrackRow row,
+    LibCourseRow? course, {
+    required bool practice,
+  }) {
     final attribution = trackAttribution(row, course);
-    final cover = row.artworkUrl.isNotEmpty ? row.artworkUrl : (course?.artworkUrl ?? '');
+    final cover = row.artworkUrl.isNotEmpty
+        ? row.artworkUrl
+        : (course?.artworkUrl ?? '');
     return Track(
       id: row.id,
       title: row.title,
@@ -200,7 +225,11 @@ class LibSource implements ContentSource, SavableContentSource {
         TrackVoice(
           guideName: row.author.isEmpty ? null : row.author,
           audioFiles: [
-            TrackAudioFile(id: row.id, path: row.audioUrl, duration: row.durationMs),
+            TrackAudioFile(
+              id: row.id,
+              path: row.audioUrl,
+              duration: row.durationMs,
+            ),
           ],
         ),
       ],
@@ -327,7 +356,12 @@ class LibSource implements ContentSource, SavableContentSource {
     for (final episode in feed.episodes) {
       final id = libEpisodeId(feedUrl, episode.guid);
       if (!known.contains(id)) added++;
-      await storeEpisode(episode, feedUrl: feedUrl, courseId: courseId, now: stamp);
+      await storeEpisode(
+        episode,
+        feedUrl: feedUrl,
+        courseId: courseId,
+        now: stamp,
+      );
     }
     return added;
   }
@@ -353,7 +387,9 @@ class LibSource implements ContentSource, SavableContentSource {
         mimeType: Value(episode.mimeType),
         durationMs: Value(episode.durationMs ?? existing?.durationMs ?? 0),
         guid: Value(episode.guid),
-        publishedAt: Value(episode.publishedAt?.toUtc().toIso8601String() ?? ''),
+        publishedAt: Value(
+          episode.publishedAt?.toUtc().toIso8601String() ?? '',
+        ),
         ordinal: Value(episode.ordinal),
         pageUrl: Value(episode.pageUrl),
         createdAt: existing?.createdAt ?? now ?? DateTime.now(),

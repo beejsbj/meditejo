@@ -44,21 +44,30 @@ class FakeWeb {
     requests.add(request);
     if (offline) throw const SocketException('Failed host lookup');
     return routes[request.url.toString()] ??
-        http.Response('not found', 404, headers: {'content-type': 'text/plain'});
+        http.Response(
+          'not found',
+          404,
+          headers: {'content-type': 'text/plain'},
+        );
   });
 
   List<String> get urls => [for (final r in requests) r.url.toString()];
 }
 
-http.Response xmlResponse(String body, {Map<String, String> headers = const {}}) =>
-    http.Response(
-      body,
-      200,
-      headers: {'content-type': 'application/rss+xml; charset=utf-8', ...headers},
-    );
+http.Response xmlResponse(
+  String body, {
+  Map<String, String> headers = const {},
+}) => http.Response(
+  body,
+  200,
+  headers: {'content-type': 'application/rss+xml; charset=utf-8', ...headers},
+);
 
-http.Response htmlResponse(String body) =>
-    http.Response(body, 200, headers: {'content-type': 'text/html; charset=utf-8'});
+http.Response htmlResponse(String body) => http.Response(
+  body,
+  200,
+  headers: {'content-type': 'text/html; charset=utf-8'},
+);
 
 http.Response audioResponse() =>
     http.Response('', 200, headers: {'content-type': 'audio/mpeg'});
@@ -117,7 +126,8 @@ class LibraryHarness {
   }
 
   File writeAudio(String name, {String content = 'ID3 fake audio'}) {
-    final file = File('${storage.path}/inbox/$name')..createSync(recursive: true);
+    final file = File('${storage.path}/inbox/$name')
+      ..createSync(recursive: true);
     file.writeAsStringSync(content);
     return file;
   }

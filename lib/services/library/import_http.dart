@@ -45,8 +45,12 @@ class FetchResult {
   /// The body as text, honouring a declared Latin-1 charset.
   String get text {
     final data = bytes ?? Uint8List(0);
-    final charset = RegExp(r'charset=([\w-]+)').firstMatch(contentType)?.group(1);
-    if (charset == 'iso-8859-1' || charset == 'latin1' || charset == 'us-ascii') {
+    final charset = RegExp(
+      r'charset=([\w-]+)',
+    ).firstMatch(contentType)?.group(1);
+    if (charset == 'iso-8859-1' ||
+        charset == 'latin1' ||
+        charset == 'us-ascii') {
       return latin1.decode(data);
     }
     return utf8.decode(data, allowMalformed: true);
@@ -85,25 +89,33 @@ class ImportHttp {
           'application/rss+xml, application/atom+xml, application/xml;q=0.9, '
           'text/xml;q=0.9, audio/*;q=0.8, text/html;q=0.5, */*;q=0.1'
       ..headers['Accept-Encoding'] = 'gzip';
-    if (etag != null && etag.isNotEmpty) request.headers['If-None-Match'] = etag;
+    if (etag != null && etag.isNotEmpty) {
+      request.headers['If-None-Match'] = etag;
+    }
     if (lastModified != null && lastModified.isNotEmpty) {
       request.headers['If-Modified-Since'] = lastModified;
     }
     final response = await _client.send(request).timeout(timeout);
     final headers = {
-      for (final entry in response.headers.entries) entry.key.toLowerCase(): entry.value,
+      for (final entry in response.headers.entries)
+        entry.key.toLowerCase(): entry.value,
     };
     final finalUri = response is http.BaseResponseWithUrl
         ? (response as http.BaseResponseWithUrl).url
         : (response.request?.url ?? uri);
 
     final type = (headers['content-type'] ?? '').toLowerCase();
-    final audio = type.startsWith('audio/') || type.startsWith('application/ogg');
+    final audio =
+        type.startsWith('audio/') || type.startsWith('application/ogg');
     if (response.statusCode == 304 || headersOnly || audio) {
       // Not read: stop the transfer rather than download an audio file.
       final subscription = response.stream.listen((_) {});
       await subscription.cancel();
-      return FetchResult(status: response.statusCode, finalUri: finalUri, headers: headers);
+      return FetchResult(
+        status: response.statusCode,
+        finalUri: finalUri,
+        headers: headers,
+      );
     }
 
     final builder = BytesBuilder(copy: false);
@@ -127,10 +139,13 @@ class ImportHttp {
       },
       cancelOnError: true,
     );
-    await done.future.timeout(timeout, onTimeout: () {
-      subscription.cancel();
-      throw TimeoutException('Reading $uri took too long');
-    });
+    await done.future.timeout(
+      timeout,
+      onTimeout: () {
+        subscription.cancel();
+        throw TimeoutException('Reading $uri took too long');
+      },
+    );
     return FetchResult(
       status: response.statusCode,
       finalUri: finalUri,

@@ -7,7 +7,8 @@ import 'package:medito/models/explore/track_search_model.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/models/track/track.dart';
 import 'package:medito/services/content/content_source.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_client.dart' show DsKind;
+import 'package:medito/services/dharma_seed/dharma_seed_client.dart'
+    show DsKind;
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_models.dart';
@@ -26,7 +27,8 @@ import 'package:medito/utils/logger.dart';
 /// Reads come from the on-device database. Opening a retreat or talk that
 /// has not synced yet asks [sync] to fetch it first, bounded by
 /// [fetchTimeout]; offline, it shows what is stored.
-class DharmaSeedSource implements ContentSource, SavableContentSource {
+class DharmaSeedSource
+    implements ContentSource, SavableContentSource, ParentedContentSource {
   DharmaSeedSource({
     required this.db,
     this.sync,
@@ -71,13 +73,14 @@ class DharmaSeedSource implements ContentSource, SavableContentSource {
     final retreat = await db.retreatById(retreatId);
     if (retreat == null) throw CatalogueEntryUnavailable('pack', id);
     final talks = await db.talksOfRetreat(retreatId);
-    final teachers = await db.teachersById(talks.map((t) => t.teacherId).nonNulls);
-    final leads = await db.leadTeacherOfRetreats([retreatId]);
-    return mapRetreat(
-      retreat,
-      [for (final talk in talks) DsTalkWithTeacher(talk, teachers[talk.teacherId])],
-      teachers[leads[retreatId]],
+    final teachers = await db.teachersById(
+      talks.map((t) => t.teacherId).nonNulls,
     );
+    final leads = await db.leadTeacherOfRetreats([retreatId]);
+    return mapRetreat(retreat, [
+      for (final talk in talks)
+        DsTalkWithTeacher(talk, teachers[talk.teacherId]),
+    ], teachers[leads[retreatId]]);
   }
 
   @override
@@ -247,6 +250,14 @@ class DharmaSeedSource implements ContentSource, SavableContentSource {
   Future<void> ensureTeacher(int teacherId) =>
       _fetch(() => sync?.ensureTeacher(teacherId));
 
+  @override
+  Future<String?> parentOf(String trackId) async {
+    final talkId = parseDsTalkId(trackId);
+    if (talkId == null) return null;
+    final retreat = (await db.talkById(talkId))?.retreatId;
+    return retreat == null || retreat == 0 ? null : dsRetreatId(retreat);
+  }
+
   // ------------------------------------------------- Dharma Seed screens
   //
   // Teachers, content groups and the length filter are Dharma Seed features
@@ -276,14 +287,12 @@ class DharmaSeedSource implements ContentSource, SavableContentSource {
             retreatItem(r, leadTeachers[leads[r.id]]);
 
         final savedTeacherIds = await _savedIds(DsSavedKind.teacher);
-        final savedTeachers = (await db.teachersById(
-          savedTeacherIds,
-        )).values.toList()
-          ..sort(
-            (a, b) => savedTeacherIds
-                .indexOf(a.id)
-                .compareTo(savedTeacherIds.indexOf(b.id)),
-          );
+        final savedTeachers =
+            (await db.teachersById(savedTeacherIds)).values.toList()..sort(
+              (a, b) => savedTeacherIds
+                  .indexOf(a.id)
+                  .compareTo(savedTeacherIds.indexOf(b.id)),
+            );
         final top = await db.topTeachers(group: group, limit: 20);
         final savedSet = {for (final t in savedTeachers) t.id};
 
@@ -312,31 +321,29 @@ class DharmaSeedSource implements ContentSource, SavableContentSource {
   /// Search over the local index, grouped: teachers lead (a talk quoting a
   /// teacher outranks the teacher's own talks otherwise), then courses, then
   /// talks, which alone honour [length].
-  Future<DsSearchResults> search(String query, {SessionLength? length}) =>
-      _quietly('search', () async {
-        final teachers = await db.searchTeachers(query, limit: 8);
-        final retreats = await db.searchRetreats(query, limit: 12);
-        final talks = await db.searchTalks(
-          query,
-          filter: DsTalkFilter(
-            minDuration: length?.min,
-            maxDuration: length?.max,
-          ),
-        );
-        final counts = await db.talkCounts(teachers.map((t) => t.id));
-        final leads = await db.leadTeacherOfRetreats(retreats.map((r) => r.id));
-        final leadTeachers = await db.teachersById(leads.values);
-        return DsSearchResults(
-          teachers: [
-            for (final t in teachers)
-              teacherItem(t, talkCount: counts[t.id] ?? 0),
-          ],
-          courses: [
-            for (final r in retreats) retreatItem(r, leadTeachers[leads[r.id]]),
-          ],
-          talks: [for (final t in talks) talkItem(t)],
-        );
-      }, orElse: const DsSearchResults());
+  Future<DsSearchResults> search(
+    String query, {
+    SessionLength? length,
+  }) => _quietly('search', () async {
+    final teachers = await db.searchTeachers(query, limit: 8);
+    final retreats = await db.searchRetreats(query, limit: 12);
+    final talks = await db.searchTalks(
+      query,
+      filter: DsTalkFilter(minDuration: length?.min, maxDuration: length?.max),
+    );
+    final counts = await db.talkCounts(teachers.map((t) => t.id));
+    final leads = await db.leadTeacherOfRetreats(retreats.map((r) => r.id));
+    final leadTeachers = await db.teachersById(leads.values);
+    return DsSearchResults(
+      teachers: [
+        for (final t in teachers) teacherItem(t, talkCount: counts[t.id] ?? 0),
+      ],
+      courses: [
+        for (final r in retreats) retreatItem(r, leadTeachers[leads[r.id]]),
+      ],
+      talks: [for (final t in talks) talkItem(t)],
+    );
+  }, orElse: const DsSearchResults());
 
   /// A teacher's page, or [CatalogueEntryUnavailable] when they are not
   /// stored (yet).

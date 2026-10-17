@@ -784,12 +784,12 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
   }
 
   /// Saves from before the library existed, oldest first, with their time.
-  Future<List<DsSavedItem>> savedItems() => (select(dsSaved)
-        ..orderBy([
-          (s) => OrderingTerm.asc(s.savedAt),
-          (s) => OrderingTerm.asc(s.rowId),
-        ]))
-      .get();
+  Future<List<DsSavedItem>> savedItems() =>
+      (select(dsSaved)..orderBy([
+            (s) => OrderingTerm.asc(s.savedAt),
+            (s) => OrderingTerm.asc(s.rowId),
+          ]))
+          .get();
 
   /// Whether a stored retreat is mostly practice or mostly talks, by the
   /// same half-or-more rule the Explore chips use. Null when none of its

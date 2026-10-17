@@ -93,7 +93,9 @@ class ImportService {
     final id = dharmaSeedIdFor(link)!;
     try {
       final draft = await source.libraryDraft(id);
-      if (draft == null) throw const ImportFailure(ImportFailureReason.dharmaSeedMissing);
+      if (draft == null) {
+        throw const ImportFailure(ImportFailureReason.dharmaSeedMissing);
+      }
       final inLibrary = await library.contains(id);
       switch (link.kind) {
         case ImportLinkKind.dharmaSeedRetreat:
@@ -173,7 +175,10 @@ class ImportService {
         throw ImportFailure(ImportFailureReason.notFound, uri.toString());
       }
       if (!result.ok) {
-        throw ImportFailure(ImportFailureReason.unreachable, '${result.status} $uri');
+        throw ImportFailure(
+          ImportFailureReason.unreachable,
+          '${result.status} $uri',
+        );
       }
       return result;
     } on ImportFailure {
@@ -240,7 +245,10 @@ class ImportService {
     }
     final second = await _fetch(discovered);
     if (!looksLikeFeed(second.text)) {
-      throw ImportFailure(ImportFailureReason.noFeedOrAudio, discovered.toString());
+      throw ImportFailure(
+        ImportFailureReason.noFeedOrAudio,
+        discovered.toString(),
+      );
     }
     return _feedPreview(second.text, second);
   }
@@ -248,15 +256,22 @@ class ImportService {
   /// The first RSS or Atom feed a page advertises in its head.
   Uri? _discoverFeed(String html, Uri base) {
     final head = html.length > 200000 ? html.substring(0, 200000) : html;
-    for (final tag in RegExp(r'<link\b[^>]*>', caseSensitive: false).allMatches(head)) {
+    for (final tag in RegExp(
+      r'<link\b[^>]*>',
+      caseSensitive: false,
+    ).allMatches(head)) {
       final text = tag.group(0)!;
       final rel = _attribute(text, 'rel')?.toLowerCase() ?? '';
       final type = _attribute(text, 'type')?.toLowerCase() ?? '';
       final href = _attribute(text, 'href');
-      if (!rel.split(RegExp(r'\s+')).contains('alternate') || href == null) continue;
+      if (!rel.split(RegExp(r'\s+')).contains('alternate') || href == null) {
+        continue;
+      }
       if (type.contains('rss') || type.contains('atom')) {
         final resolved = base.resolve(href);
-        if (resolved.scheme == 'http' || resolved.scheme == 'https') return resolved;
+        if (resolved.scheme == 'http' || resolved.scheme == 'https') {
+          return resolved;
+        }
       }
     }
     return null;
@@ -271,7 +286,10 @@ class ImportService {
   }
 
   Future<ImportPreview> _resolveApplePodcast(ImportLink link) async {
-    final lookup = Uri.https('itunes.apple.com', '/lookup', {'id': '${link.id}', 'entity': 'podcast'});
+    final lookup = Uri.https('itunes.apple.com', '/lookup', {
+      'id': '${link.id}',
+      'entity': 'podcast',
+    });
     final response = await _fetch(lookup);
     String? feedUrl;
     try {
@@ -310,7 +328,9 @@ class ImportService {
     final courseId = libCourseIdFor(feedUrl);
     final host = response.finalUri.host.replaceFirst(RegExp(r'^www\.'), '');
     final siteHost = Uri.tryParse(feed.siteUrl)?.host ?? '';
-    final talks = isKnownTalkHost(host) || (siteHost.isNotEmpty && isKnownTalkHost(siteHost));
+    final talks =
+        isKnownTalkHost(host) ||
+        (siteHost.isNotEmpty && isKnownTalkHost(siteHost));
     return ImportPreview(
       origin: ImportOrigin.feed,
       entryId: courseId,
@@ -321,7 +341,9 @@ class ImportService {
       subtitle: feed.author,
       description: feed.description,
       artworkUrl: feed.imageUrl,
-      sourceLabel: siteHost.isNotEmpty ? siteHost.replaceFirst(RegExp(r'^www\.'), '') : host,
+      sourceLabel: siteHost.isNotEmpty
+          ? siteHost.replaceFirst(RegExp(r'^www\.'), '')
+          : host,
       itemCount: feed.episodes.length,
       durationMs: feed.totalDurationMs,
       durationComplete: feed.durationComplete,
@@ -330,7 +352,9 @@ class ImportService {
           PreviewItem(title: e.title, durationMs: e.durationMs),
       ],
       attribution: SourceAttribution(
-        source: siteHost.isNotEmpty ? siteHost.replaceFirst(RegExp(r'^www\.'), '') : host,
+        source: siteHost.isNotEmpty
+            ? siteHost.replaceFirst(RegExp(r'^www\.'), '')
+            : host,
         creator: feed.author.isEmpty ? null : feed.author,
         url: feed.siteUrl.isNotEmpty ? feed.siteUrl : feedUrl,
         licenseName: feed.licenseName,
@@ -348,7 +372,17 @@ class ImportService {
   // ------------------------------------------------------------ local files
 
   static const _audioExtensions = {
-    '.mp3', '.m4a', '.aac', '.ogg', '.oga', '.opus', '.wav', '.flac', '.m4b', '.wma', '.weba',
+    '.mp3',
+    '.m4a',
+    '.aac',
+    '.ogg',
+    '.oga',
+    '.opus',
+    '.wav',
+    '.flac',
+    '.m4b',
+    '.wma',
+    '.weba',
   };
 
   static bool isAudioPath(String path) =>
@@ -361,13 +395,24 @@ class ImportService {
       throw ImportFailure(ImportFailureReason.fileMissing, path);
     }
     final files = <PickedFile>[];
-    await for (final entity in directory.list(followLinks: false)) {
-      if (entity is File && isAudioPath(entity.path)) {
-        files.add(PickedFile(path: entity.path, sizeBytes: await entity.length()));
+    try {
+      await for (final entity in directory.list(followLinks: false)) {
+        if (entity is File && isAudioPath(entity.path)) {
+          files.add(
+            PickedFile(path: entity.path, sizeBytes: await entity.length()),
+          );
+        }
       }
+    } on FileSystemException {
+      // Android keeps most folders away from apps; say there was no audio.
+      throw ImportFailure(ImportFailureReason.noAudioFiles, path);
     }
-    if (files.isEmpty) throw ImportFailure(ImportFailureReason.noAudioFiles, path);
-    files.sort((a, b) => _naturalCompare(p.basename(a.path), p.basename(b.path)));
+    if (files.isEmpty) {
+      throw ImportFailure(ImportFailureReason.noAudioFiles, path);
+    }
+    files.sort(
+      (a, b) => _naturalCompare(p.basename(a.path), p.basename(b.path)),
+    );
     return resolveFiles(files, suggestedTitle: p.basename(path));
   }
 
@@ -376,7 +421,9 @@ class ImportService {
     List<PickedFile> files, {
     String? suggestedTitle,
   }) async {
-    if (files.isEmpty) throw const ImportFailure(ImportFailureReason.noAudioFiles);
+    if (files.isEmpty) {
+      throw const ImportFailure(ImportFailureReason.noAudioFiles);
+    }
     for (final file in files) {
       if (!await File(file.path).exists()) {
         throw ImportFailure(ImportFailureReason.fileMissing, file.path);
@@ -388,9 +435,13 @@ class ImportService {
             (file.mimeType ?? '').startsWith('audio/'))
           file,
     ];
-    if (audio.isEmpty) throw const ImportFailure(ImportFailureReason.noAudioFiles);
+    if (audio.isEmpty) {
+      throw const ImportFailure(ImportFailureReason.noAudioFiles);
+    }
 
-    final durations = await Future.wait([for (final f in audio) _probe(f.path)]);
+    final durations = await Future.wait([
+      for (final f in audio) _probe(f.path),
+    ]);
     final multiple = audio.length > 1;
     final known = durations.whereType<int>().fold(0, (a, b) => a + b);
     final titles = [for (final f in audio) titleFromFileName(f.name ?? f.path)];
@@ -433,7 +484,9 @@ class ImportService {
   /// Stores the preview as the user chose and puts it in the library. Adding
   /// something already there changes nothing and says so.
   Future<ImportResult> add(ImportPreview preview, ImportChoice choice) async {
-    final kind = preview.allowedKinds.contains(choice.kind) ? choice.kind : preview.kind;
+    final kind = preview.allowedKinds.contains(choice.kind)
+        ? choice.kind
+        : preview.kind;
     switch (preview.origin) {
       case ImportOrigin.dharmaSeed:
         return _addDharmaSeed(preview, choice);
@@ -472,27 +525,47 @@ class ImportService {
       ),
     );
     if (added) {
-      if (choice.group != preview.group) await library.setGroup(id, choice.group);
+      if (choice.group != preview.group) {
+        await library.setGroup(id, choice.group);
+      }
       await _applyTitle(id, choice, fresh?.title ?? preview.title);
     }
     return ImportResult(entryId: id, kind: kind, alreadyPresent: !added);
   }
 
-  Future<void> _applyTitle(String id, ImportChoice choice, String original) async {
+  Future<void> _applyTitle(
+    String id,
+    ImportChoice choice,
+    String original,
+  ) async {
     final wanted = choice.title?.trim();
     if (wanted != null && wanted.isNotEmpty && wanted != original) {
       await library.setTitle(id, wanted);
     }
   }
 
-  Future<ImportResult> _addDharmaSeed(ImportPreview preview, ImportChoice choice) async {
+  Future<ImportResult> _addDharmaSeed(
+    ImportPreview preview,
+    ImportChoice choice,
+  ) async {
     final source = dharmaSeed!;
     final draft = await source.libraryDraft(preview.entryId);
-    if (draft == null) throw const ImportFailure(ImportFailureReason.dharmaSeedMissing);
-    return _finish(preview.entryId, preview.kind, choice, preview, draft: draft);
+    if (draft == null) {
+      throw const ImportFailure(ImportFailureReason.dharmaSeedMissing);
+    }
+    return _finish(
+      preview.entryId,
+      preview.kind,
+      choice,
+      preview,
+      draft: draft,
+    );
   }
 
-  Future<ImportResult> _addFeedCourse(ImportPreview preview, ImportChoice choice) async {
+  Future<ImportResult> _addFeedCourse(
+    ImportPreview preview,
+    ImportChoice choice,
+  ) async {
     await lib.storeFeed(
       courseId: preview.entryId,
       feedUrl: preview.feedUrl!,
@@ -505,7 +578,10 @@ class ImportService {
     return _finish(preview.entryId, LibraryKind.course, choice, preview);
   }
 
-  Future<ImportResult> _addFeedLatest(ImportPreview preview, ImportChoice choice) async {
+  Future<ImportResult> _addFeedLatest(
+    ImportPreview preview,
+    ImportChoice choice,
+  ) async {
     final latest = preview.feed!.episodes.last;
     final id = await lib.storeEpisode(
       latest,
@@ -515,7 +591,10 @@ class ImportService {
     return _finish(id, LibraryKind.single, choice, preview);
   }
 
-  Future<ImportResult> _addAudioUrl(ImportPreview preview, ImportChoice choice) async {
+  Future<ImportResult> _addAudioUrl(
+    ImportPreview preview,
+    ImportChoice choice,
+  ) async {
     final id = preview.entryId;
     await lib.storeSingle(
       id: id,
@@ -538,14 +617,20 @@ class ImportService {
     for (var i = 0; i < preview.files.length; i++) {
       final file = preview.files[i];
       final id = newLibTrackId();
-      final path = await _copyIntoStorage(file.path, id);
+      final path = await _copyIntoStorage(
+        file.path,
+        id,
+        mimeType: file.mimeType,
+      );
       stored.add(
         StoredFile(
           id: id,
           title: titleFromFileName(file.name ?? file.path),
           path: path,
           mimeType: file.mimeType ?? '',
-          durationMs: i < preview.fileDurationsMs.length ? preview.fileDurationsMs[i] ?? 0 : 0,
+          durationMs: i < preview.fileDurationsMs.length
+              ? preview.fileDurationsMs[i] ?? 0
+              : 0,
         ),
       );
     }
@@ -555,8 +640,18 @@ class ImportService {
       final title = (choice.title?.trim().isNotEmpty ?? false)
           ? choice.title!.trim()
           : (preview.title.isNotEmpty ? preview.title : 'Imported audio');
-      await lib.storeFileCourse(courseId: courseId, title: title, files: stored, now: now);
-      return _finish(courseId, LibraryKind.course, ImportChoice(kind: choice.kind, group: choice.group), preview);
+      await lib.storeFileCourse(
+        courseId: courseId,
+        title: title,
+        files: stored,
+        now: now,
+      );
+      return _finish(
+        courseId,
+        LibraryKind.course,
+        ImportChoice(kind: choice.kind, group: choice.group),
+        preview,
+      );
     }
     String? first;
     for (final file in stored) {
@@ -571,26 +666,42 @@ class ImportService {
       );
       final single = await lib.draftFor(file.id, group: preview.group);
       await library.add(single!);
-      if (choice.group != preview.group) await library.setGroup(file.id, choice.group);
+      if (choice.group != preview.group) {
+        await library.setGroup(file.id, choice.group);
+      }
       first ??= file.id;
     }
     // A single file keeps a title the user typed.
-    if (stored.length == 1) await _applyTitle(first!, choice, stored.first.title);
-    return ImportResult(entryId: first!, kind: LibraryKind.single, addedCount: stored.length);
+    if (stored.length == 1) {
+      await _applyTitle(first!, choice, stored.first.title);
+    }
+    return ImportResult(
+      entryId: first!,
+      kind: LibraryKind.single,
+      addedCount: stored.length,
+    );
   }
 
   /// Moves a file into app storage, or copies it when it cannot be moved
   /// (another volume). The original of a picked file is a cache copy that
   /// nothing else wants; a file the user pointed at by path is left alone.
-  Future<String> _copyIntoStorage(String source, String id) async {
+  Future<String> _copyIntoStorage(
+    String source,
+    String id, {
+    String? mimeType,
+  }) async {
     final directory = await storageDirectory();
     final folder = Directory(p.join(directory.path, 'library'));
     await folder.create(recursive: true);
     var extension = p.extension(source).toLowerCase();
-    if (!_audioExtensions.contains(extension)) extension = '.audio';
+    if (!_audioExtensions.contains(extension)) {
+      extension = _extensionFor(mimeType) ?? '.audio';
+    }
     final target = p.join(folder.path, '$id$extension');
     final file = File(source);
-    final isCache = source.contains('${Platform.pathSeparator}cache${Platform.pathSeparator}');
+    final isCache = source.contains(
+      '${Platform.pathSeparator}cache${Platform.pathSeparator}',
+    );
     if (isCache) {
       try {
         await file.rename(target);
@@ -611,15 +722,35 @@ class ImportService {
   }
 }
 
+/// A file extension for an audio MIME type, so a shared file with no name
+/// still plays.
+String? _extensionFor(String? mimeType) => switch (mimeType?.toLowerCase()) {
+  'audio/mpeg' || 'audio/mp3' => '.mp3',
+  'audio/mp4' || 'audio/x-m4a' || 'audio/m4a' || 'audio/aac' => '.m4a',
+  'audio/ogg' || 'application/ogg' => '.ogg',
+  'audio/opus' => '.opus',
+  'audio/wav' || 'audio/x-wav' || 'audio/wave' => '.wav',
+  'audio/flac' || 'audio/x-flac' => '.flac',
+  _ => null,
+};
+
 /// Orders "Session 2" before "Session 10".
 int _naturalCompare(String a, String b) {
   final pattern = RegExp(r'(\d+|\D+)');
-  final left = pattern.allMatches(a.toLowerCase()).map((m) => m.group(0)!).toList();
-  final right = pattern.allMatches(b.toLowerCase()).map((m) => m.group(0)!).toList();
+  final left = pattern
+      .allMatches(a.toLowerCase())
+      .map((m) => m.group(0)!)
+      .toList();
+  final right = pattern
+      .allMatches(b.toLowerCase())
+      .map((m) => m.group(0)!)
+      .toList();
   for (var i = 0; i < left.length && i < right.length; i++) {
     final x = int.tryParse(left[i]);
     final y = int.tryParse(right[i]);
-    final c = (x != null && y != null) ? x.compareTo(y) : left[i].compareTo(right[i]);
+    final c = (x != null && y != null)
+        ? x.compareTo(y)
+        : left[i].compareTo(right[i]);
     if (c != 0) return c;
   }
   return left.length.compareTo(right.length);

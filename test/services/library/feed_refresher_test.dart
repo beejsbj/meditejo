@@ -31,11 +31,22 @@ void main() {
 
   setUp(() async {
     now = DateTime.utc(2026, 10, 17, 8);
-    h = LibraryHarness.create(routes: {
-      feedUrl: xmlResponse(libraryFixture('rss_podcast.xml'), headers: {'etag': '"v1"'}),
-    });
+    h = LibraryHarness.create(
+      routes: {
+        feedUrl: xmlResponse(
+          libraryFixture('rss_podcast.xml'),
+          headers: {'etag': '"v1"'},
+        ),
+      },
+    );
     final preview = await h.service.resolve(feedUrl);
-    await h.service.add(preview, const ImportChoice(kind: LibraryKind.course, group: LibraryGroup.practice));
+    await h.service.add(
+      preview,
+      const ImportChoice(
+        kind: LibraryKind.course,
+        group: LibraryGroup.practice,
+      ),
+    );
     // From here the feed answers from [respond], recording requests.
     respond = (_) => xmlResponse(libraryFixture('rss_podcast.xml'));
     web = FakeWeb({});
@@ -58,7 +69,9 @@ void main() {
     expect(report.newEpisodes, 0);
     expect(web.requests.single.headers['If-None-Match'], '"v1"');
     expect(await h.db.allTracks(), hasLength(3));
-    final course = (await h.db.courseById((await h.store.entries()).single.sourceId))!;
+    final course = (await h.db.courseById(
+      (await h.store.entries()).single.sourceId,
+    ))!;
     expect(course.lastCheckedAt!.toUtc(), DateTime.utc(2026, 10, 18, 9));
   });
 
@@ -71,7 +84,11 @@ void main() {
     final entry = (await h.store.entries()).single;
     expect(entry.itemCount, 4);
     final pack = await h.lib.pack(entry.sourceId);
-    expect(pack.items.map((i) => i.title).last, 'Fourth sit: walking', reason: 'oldest first, so newest last');
+    expect(
+      pack.items.map((i) => i.title).last,
+      'Fourth sit: walking',
+      reason: 'oldest first, so newest last',
+    );
     expect((await h.db.courseById(entry.sourceId))!.etag, '"v2"');
   });
 
@@ -82,18 +99,25 @@ void main() {
     expect((await refresher.refreshAll(force: true)).checked, 1);
   });
 
-  test('a failure is remembered so a dead feed is not asked every launch', () async {
-    respond = (_) => http.Response('oops', 500);
-    now = DateTime.utc(2026, 10, 18, 9);
-    final report = await refresher.refreshAll();
-    expect(report.failed, 1);
-    final id = (await h.store.entries()).single.sourceId;
-    final course = (await h.db.courseById(id))!;
-    expect(course.lastError, isNotNull);
-    expect(course.lastCheckedAt!.toUtc(), DateTime.utc(2026, 10, 18, 9));
-    expect(await h.db.allTracks(), hasLength(3), reason: 'what was there stays');
-    expect((await refresher.refreshAll()).checked, 0);
-  });
+  test(
+    'a failure is remembered so a dead feed is not asked every launch',
+    () async {
+      respond = (_) => http.Response('oops', 500);
+      now = DateTime.utc(2026, 10, 18, 9);
+      final report = await refresher.refreshAll();
+      expect(report.failed, 1);
+      final id = (await h.store.entries()).single.sourceId;
+      final course = (await h.db.courseById(id))!;
+      expect(course.lastError, isNotNull);
+      expect(course.lastCheckedAt!.toUtc(), DateTime.utc(2026, 10, 18, 9));
+      expect(
+        await h.db.allTracks(),
+        hasLength(3),
+        reason: 'what was there stays',
+      );
+      expect((await refresher.refreshAll()).checked, 0);
+    },
+  );
 
   test('feeds turned off, or no longer in the library, are skipped', () async {
     final id = (await h.store.entries()).single.sourceId;
@@ -104,5 +128,4 @@ void main() {
     await h.store.remove(id);
     expect((await refresher.refreshAll()).checked, 0);
   });
-
 }

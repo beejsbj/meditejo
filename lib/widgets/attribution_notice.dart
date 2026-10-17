@@ -58,25 +58,27 @@ class AttributionNotice extends StatelessWidget {
             ),
           )
         : Semantics(
-      link: true,
-      label: semanticLabel ?? text,
-      excludeSemantics: true,
-      onTap: () => launchURLInBrowser(url),
-      child: InkWell(
-        onTap: () => launchURLInBrowser(url),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 44),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            widthFactor: 1,
-            child: Text(
-              text,
-              style: style?.copyWith(decoration: TextDecoration.underline),
+            link: true,
+            label: semanticLabel ?? text,
+            excludeSemantics: true,
+            onTap: () => launchURLInBrowser(url),
+            child: InkWell(
+              onTap: () => launchURLInBrowser(url),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 44),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: 1,
+                  child: Text(
+                    text,
+                    style: style?.copyWith(
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-      ),
-    );
+          );
 
     final creditLink = link(
       credit,

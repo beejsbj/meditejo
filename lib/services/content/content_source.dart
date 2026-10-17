@@ -56,6 +56,13 @@ abstract interface class SavableContentSource {
   Future<void> setSaved(String id, {required bool saved});
 }
 
+/// A source that knows which course a session belongs to, so playing a
+/// session can bring its course to the front of the library.
+abstract interface class ParentedContentSource {
+  /// The ID of the course holding [trackId], or null.
+  Future<String?> parentOf(String trackId);
+}
+
 /// Dispatches by ID prefix to the owning [ContentSource], falling back to the
 /// bundled [LocalCatalogue] for IDs no source claims.
 class ContentRouter {
@@ -114,6 +121,12 @@ class ContentRouter {
     ))
       ...results,
   ];
+
+  /// The course that holds the session [id], if its source knows.
+  Future<String?> parentOf(String id) async => switch (sourceFor(id)) {
+    final ParentedContentSource source => await source.parentOf(id),
+    _ => null,
+  };
 
   /// Whether the owning source can save [id] at all; drives whether a Save
   /// button is shown.

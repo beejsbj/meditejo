@@ -23,7 +23,8 @@ class LibraryEntries extends Table {
   TextColumn get kind => text()();
 
   /// What the app detected: `practice` or `talks`.
-  TextColumn get detectedGroup => text().withDefault(const Constant('practice'))();
+  TextColumn get detectedGroup =>
+      text().withDefault(const Constant('practice'))();
 
   /// The user's own classification, when they changed it.
   TextColumn get groupOverride => text().nullable()();
@@ -141,28 +142,35 @@ class LibraryMeta extends Table {
 }
 
 @DriftDatabase(
-  tables: [LibraryEntries, PlaybackPositions, LibCourses, LibTracks, LibraryMeta],
+  tables: [
+    LibraryEntries,
+    PlaybackPositions,
+    LibCourses,
+    LibTracks,
+    LibraryMeta,
+  ],
 )
 class LibraryDatabase extends _$LibraryDatabase {
   LibraryDatabase(super.executor);
 
   /// The app's library file, opened on first query so constructing it touches
   /// no platform channel.
-  factory LibraryDatabase.open() =>
-      LibraryDatabase(LazyDatabase(() => driftDatabase(name: 'meditejo_library')));
+  factory LibraryDatabase.open() => LibraryDatabase(
+    LazyDatabase(() => driftDatabase(name: 'meditejo_library')),
+  );
 
   @override
   int get schemaVersion => 1;
 
   // ---------------------------------------------------------------- meta
 
-  Future<String?> metaValue(String key) async =>
-      (await (select(libraryMeta)..where((m) => m.key.equals(key))).getSingleOrNull())
-          ?.value;
+  Future<String?> metaValue(String key) async => (await (select(
+    libraryMeta,
+  )..where((m) => m.key.equals(key))).getSingleOrNull())?.value;
 
-  Future<void> setMeta(String key, String value) => into(libraryMeta).insertOnConflictUpdate(
-    LibraryMetaCompanion.insert(key: key, value: value),
-  );
+  Future<void> setMeta(String key, String value) => into(
+    libraryMeta,
+  ).insertOnConflictUpdate(LibraryMetaCompanion.insert(key: key, value: value));
 
   // ------------------------------------------------------------- entries
 
@@ -179,7 +187,9 @@ class LibraryDatabase extends _$LibraryDatabase {
       (delete(libraryEntries)..where((e) => e.sourceId.equals(sourceId))).go();
 
   Future<void> updateEntry(String sourceId, LibraryEntriesCompanion changes) =>
-      (update(libraryEntries)..where((e) => e.sourceId.equals(sourceId))).write(changes);
+      (update(
+        libraryEntries,
+      )..where((e) => e.sourceId.equals(sourceId))).write(changes);
 
   // ----------------------------------------------------------- positions
 
@@ -208,8 +218,9 @@ class LibraryDatabase extends _$LibraryDatabase {
   Future<LibCourseRow?> courseById(String id) =>
       (select(libCourses)..where((c) => c.id.equals(id))).getSingleOrNull();
 
-  Future<List<LibCourseRow>> allCourses() =>
-      (select(libCourses)..orderBy([(c) => OrderingTerm.desc(c.createdAt)])).get();
+  Future<List<LibCourseRow>> allCourses() => (select(
+    libCourses,
+  )..orderBy([(c) => OrderingTerm.desc(c.createdAt)])).get();
 
   Future<List<LibCourseRow>> feedsToRefresh() => (select(
     libCourses,
@@ -218,10 +229,14 @@ class LibraryDatabase extends _$LibraryDatabase {
   Future<LibTrackRow?> trackById(String id) =>
       (select(libTracks)..where((t) => t.id.equals(id))).getSingleOrNull();
 
-  Future<List<LibTrackRow>> tracksOfCourse(String courseId) => (select(libTracks)
-        ..where((t) => t.courseId.equals(courseId))
-        ..orderBy([(t) => OrderingTerm.asc(t.ordinal), (t) => OrderingTerm.asc(t.id)]))
-      .get();
+  Future<List<LibTrackRow>> tracksOfCourse(String courseId) =>
+      (select(libTracks)
+            ..where((t) => t.courseId.equals(courseId))
+            ..orderBy([
+              (t) => OrderingTerm.asc(t.ordinal),
+              (t) => OrderingTerm.asc(t.id),
+            ]))
+          .get();
 
   Future<List<LibTrackRow>> allTracks() => select(libTracks).get();
 
@@ -245,7 +260,9 @@ class LibraryDatabase extends _$LibraryDatabase {
   /// Returns the audio paths of local files, for the caller to delete.
   Future<List<String>> deleteCourse(String id) => transaction(() async {
     final tracks = await tracksOfCourse(id);
-    await (delete(playbackPositions)..where((p) => p.trackId.isIn(tracks.map((t) => t.id)))).go();
+    await (delete(
+      playbackPositions,
+    )..where((p) => p.trackId.isIn(tracks.map((t) => t.id)))).go();
     await (delete(libTracks)..where((t) => t.courseId.equals(id))).go();
     await (delete(libCourses)..where((c) => c.id.equals(id))).go();
     return [

@@ -36,7 +36,8 @@ class ParsedFeed {
 
   /// The sum of known durations; [durationComplete] says whether every
   /// episode had one.
-  int get totalDurationMs => episodes.fold(0, (sum, e) => sum + (e.durationMs ?? 0));
+  int get totalDurationMs =>
+      episodes.fold(0, (sum, e) => sum + (e.durationMs ?? 0));
   bool get durationComplete =>
       episodes.isNotEmpty && episodes.every((e) => e.durationMs != null);
 }
@@ -88,7 +89,10 @@ class FeedFormatException implements Exception {
 /// cheaply without parsing everything.
 bool looksLikeFeed(String body) {
   final head = body.length > 4096 ? body.substring(0, 4096) : body;
-  return RegExp(r'<(rss|feed|rdf:RDF)[\s>]', caseSensitive: false).hasMatch(head);
+  return RegExp(
+    r'<(rss|feed|rdf:RDF)[\s>]',
+    caseSensitive: false,
+  ).hasMatch(head);
 }
 
 /// Reads an RSS 2.0 or Atom feed. Relative addresses resolve against [base].
@@ -113,14 +117,17 @@ bool _isItunes(XmlName name) =>
     name.prefix == 'itunes' || (name.namespaceUri?.contains('itunes') ?? false);
 
 bool _isMedia(XmlName name) =>
-    name.prefix == 'media' || (name.namespaceUri?.contains('search.yahoo.com/mrss') ?? false);
+    name.prefix == 'media' ||
+    (name.namespaceUri?.contains('search.yahoo.com/mrss') ?? false);
 
 /// The first child called [local]. With [itunes] true only `itunes:` tags
 /// count; otherwise only unprefixed ones (so `itunes:title` is not `title`).
 XmlElement? _child(XmlElement parent, String local, {bool itunes = false}) {
   for (final child in parent.childElements) {
     if (child.name.local != local) continue;
-    if (itunes ? _isItunes(child.name) : (child.name.prefix == null || child.name.prefix!.isEmpty)) {
+    if (itunes
+        ? _isItunes(child.name)
+        : (child.name.prefix == null || child.name.prefix!.isEmpty)) {
       return child;
     }
   }
@@ -146,19 +153,35 @@ String plainText(String html) {
   if (!html.contains('<') && !html.contains('&')) return html.trim();
   var text = html
       .replaceAll(RegExp(r'<\s*br\s*/?\s*>', caseSensitive: false), '\n')
-      .replaceAll(RegExp(r'</\s*(p|div|li|h[1-6])\s*>', caseSensitive: false), '\n\n')
+      .replaceAll(
+        RegExp(r'</\s*(p|div|li|h[1-6])\s*>', caseSensitive: false),
+        '\n\n',
+      )
       .replaceAll(RegExp(r'<[^>]+>'), '');
   const entities = {
-    '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'",
-    '&apos;': "'", '&nbsp;': ' ', '&rsquo;': '’', '&lsquo;': '‘',
-    '&ldquo;': '“', '&rdquo;': '”', '&ndash;': '–', '&mdash;': '—',
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#39;': "'",
+    '&apos;': "'",
+    '&nbsp;': ' ',
+    '&rsquo;': '’',
+    '&lsquo;': '‘',
+    '&ldquo;': '“',
+    '&rdquo;': '”',
+    '&ndash;': '–',
+    '&mdash;': '—',
   };
   entities.forEach((entity, value) => text = text.replaceAll(entity, value));
   text = text.replaceAllMapped(
     RegExp(r'&#(\d+);'),
     (m) => String.fromCharCode(int.parse(m.group(1)!)),
   );
-  return text.replaceAll(RegExp(r'[ \t]+\n'), '\n').replaceAll(RegExp(r'\n{3,}'), '\n\n').trim();
+  return text
+      .replaceAll(RegExp(r'[ \t]+\n'), '\n')
+      .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+      .trim();
 }
 
 /// `itunes:duration`: seconds (`1830`), `mm:ss` or `hh:mm:ss`.
@@ -178,12 +201,32 @@ int? parseDurationMs(String? text) {
 }
 
 const _months = {
-  'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
-  'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+  'jan': 1,
+  'feb': 2,
+  'mar': 3,
+  'apr': 4,
+  'may': 5,
+  'jun': 6,
+  'jul': 7,
+  'aug': 8,
+  'sep': 9,
+  'oct': 10,
+  'nov': 11,
+  'dec': 12,
 };
 const _zones = {
-  'GMT': 0, 'UT': 0, 'UTC': 0, 'Z': 0, 'EST': -5, 'EDT': -4, 'CST': -6,
-  'CDT': -5, 'MST': -7, 'MDT': -6, 'PST': -8, 'PDT': -7,
+  'GMT': 0,
+  'UT': 0,
+  'UTC': 0,
+  'Z': 0,
+  'EST': -5,
+  'EDT': -4,
+  'CST': -6,
+  'CDT': -5,
+  'MST': -7,
+  'MDT': -6,
+  'PST': -8,
+  'PDT': -7,
 };
 
 /// RFC 822 dates (`Tue, 10 Jun 2025 04:00:00 +0000`) as RSS uses them, or
@@ -218,15 +261,36 @@ DateTime? parseFeedDate(String? text) {
       offset = Duration(hours: _zones[zone.toUpperCase()] ?? 0);
     }
   }
-  return DateTime.utc(year, month, int.parse(match.group(1)!), hour, minute, second).subtract(offset);
+  return DateTime.utc(
+    year,
+    month,
+    int.parse(match.group(1)!),
+    hour,
+    minute,
+    second,
+  ).subtract(offset);
 }
 
-const _audioExtensions = {'mp3', 'm4a', 'aac', 'ogg', 'oga', 'opus', 'wav', 'flac', 'm4b', 'wma', 'weba'};
+const _audioExtensions = {
+  'mp3',
+  'm4a',
+  'aac',
+  'ogg',
+  'oga',
+  'opus',
+  'wav',
+  'flac',
+  'm4b',
+  'wma',
+  'weba',
+};
 
 bool _isAudio(String mime, String url) {
   final type = mime.toLowerCase();
   if (type.startsWith('audio/')) return true;
-  if (type.startsWith('video/') || type.startsWith('image/') || type.startsWith('text/')) {
+  if (type.startsWith('video/') ||
+      type.startsWith('image/') ||
+      type.startsWith('text/')) {
     return false;
   }
   final path = Uri.tryParse(url)?.path.toLowerCase() ?? '';
@@ -297,7 +361,8 @@ List<ParsedEpisode> _order(List<_Draft> drafts, {required bool serial}) {
       final episode = a.episode!.compareTo(b.episode!);
       return episode != 0 ? episode : byFeedBackwards(a, b);
     });
-  } else if (ordered.isNotEmpty && ordered.every((d) => d.publishedAt != null)) {
+  } else if (ordered.isNotEmpty &&
+      ordered.every((d) => d.publishedAt != null)) {
     ordered.sort((a, b) {
       final date = a.publishedAt!.compareTo(b.publishedAt!);
       return date != 0 ? date : byFeedBackwards(a, b);
@@ -329,11 +394,17 @@ List<ParsedEpisode> _order(List<_Draft> drafts, {required bool serial}) {
 
 ParsedFeed _parseRss(XmlElement rss, Uri? base) {
   final channel = _child(rss, 'channel');
-  if (channel == null) throw const FeedFormatException('RSS feed has no channel');
+  if (channel == null) {
+    throw const FeedFormatException('RSS feed has no channel');
+  }
 
   final title = plainText(_text(_child(channel, 'title')));
   var image = _text(_child(_child(channel, 'image') ?? channel, 'url'));
-  final itunesImage = _child(channel, 'image', itunes: true)?.getAttribute('href');
+  final itunesImage = _child(
+    channel,
+    'image',
+    itunes: true,
+  )?.getAttribute('href');
   if (itunesImage != null && itunesImage.trim().isNotEmpty) image = itunesImage;
 
   final author = _text(_child(channel, 'author', itunes: true)).isNotEmpty
@@ -345,7 +416,8 @@ ParsedFeed _parseRss(XmlElement rss, Uri? base) {
     if (child.name.local == 'license') licenseUrl = _text(child);
   }
 
-  final serial = _text(_child(channel, 'type', itunes: true)).toLowerCase() == 'serial';
+  final serial =
+      _text(_child(channel, 'type', itunes: true)).toLowerCase() == 'serial';
 
   final drafts = <_Draft>[];
   var skipped = 0;
@@ -378,7 +450,12 @@ ParsedFeed _parseRss(XmlElement rss, Uri? base) {
   );
 }
 
-_Draft? _rssItem(XmlElement item, int index, Uri? base, {required String fallbackAuthor}) {
+_Draft? _rssItem(
+  XmlElement item,
+  int index,
+  Uri? base, {
+  required String fallbackAuthor,
+}) {
   String url = '';
   String mime = '';
   int? length;
@@ -442,7 +519,10 @@ _Draft? _rssItem(XmlElement item, int index, Uri? base, {required String fallbac
     lengthBytes: length,
     durationMs: parseDurationMs(_text(_child(item, 'duration', itunes: true))),
     publishedAt: parseFeedDate(_text(_child(item, 'pubDate'))),
-    imageUrl: _resolve(_child(item, 'image', itunes: true)?.getAttribute('href'), base),
+    imageUrl: _resolve(
+      _child(item, 'image', itunes: true)?.getAttribute('href'),
+      base,
+    ),
     pageUrl: _resolve(_text(_child(item, 'link')), base),
     author: itunesAuthor.isNotEmpty ? itunesAuthor : fallbackAuthor,
     episode: int.tryParse(_text(_child(item, 'episode', itunes: true))),
@@ -493,7 +573,12 @@ ParsedFeed _parseAtom(XmlElement feed, Uri? base) {
   );
 }
 
-_Draft? _atomEntry(XmlElement entry, int index, Uri? base, {required String fallbackAuthor}) {
+_Draft? _atomEntry(
+  XmlElement entry,
+  int index,
+  Uri? base, {
+  required String fallbackAuthor,
+}) {
   String url = '';
   String mime = '';
   int? length;

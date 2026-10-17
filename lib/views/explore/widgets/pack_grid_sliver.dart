@@ -5,6 +5,7 @@ import 'package:medito/constants/constants.dart';
 import 'package:medito/models/explore/explore_list_item.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/routes/routes.dart';
+import 'package:medito/widgets/add_to_library_icon.dart';
 import 'package:medito/widgets/widgets.dart';
 
 /// Two-column (three on tablets) masonry grid of pack cards, as a sliver.
@@ -35,20 +36,37 @@ class PackGridSliver extends ConsumerWidget {
           final item = packs[index];
           return RepaintBoundary(
             key: ValueKey('pack_${item.id}'),
-            child: PackCardWidget(
-              title: item.title,
-              subTitle: item.subtitle,
-              coverUrlPath: item.coverUrl,
-              isCompleted: completedPacks.contains(item.id),
-              onTap: () {
-                onBeforeNavigate?.call();
-                handleNavigation(
-                  TypeConstants.pack,
-                  [item.id, item.path],
-                  context,
-                  ref: ref,
-                );
-              },
+            child: Stack(
+              children: [
+                PackCardWidget(
+                  title: item.title,
+                  subTitle: item.subtitle,
+                  coverUrlPath: item.coverUrl,
+                  isCompleted: completedPacks.contains(item.id),
+                  onTap: () {
+                    onBeforeNavigate?.call();
+                    handleNavigation(
+                      TypeConstants.pack,
+                      [item.id, item.path],
+                      context,
+                      ref: ref,
+                    );
+                  },
+                ),
+                // On the artwork's corner, over a dark scrim so it reads on
+                // any picture.
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      shape: BoxShape.circle,
+                    ),
+                    child: AddToLibraryIcon(id: item.id, color: Colors.white),
+                  ),
+                ),
+              ],
             ),
           );
         },

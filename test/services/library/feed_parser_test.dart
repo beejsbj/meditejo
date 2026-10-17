@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/services/library/feed_parser.dart';
 
-String fixture(String name) => File('test/fixtures/library/$name').readAsStringSync();
+String fixture(String name) =>
+    File('test/fixtures/library/$name').readAsStringSync();
 
 void main() {
   group('RSS 2.0 with iTunes tags', () {
@@ -17,14 +18,20 @@ void main() {
       expect(feed.author, 'Example Sangha');
       expect(feed.siteUrl, 'https://example.org/evening');
       expect(feed.copyright, '© 2025 Example Sangha');
-      expect(feed.description, 'Guided sits for the end of the day.\n\nGentle & unhurried.');
+      expect(
+        feed.description,
+        'Guided sits for the end of the day.\n\nGentle & unhurried.',
+      );
       // A relative itunes:image resolves against the feed address.
       expect(feed.imageUrl, 'https://example.org/art/evening.jpg');
       expect(feed.isSerial, isFalse);
     });
 
     test('reads a Creative Commons licence', () {
-      expect(feed.licenseUrl, 'https://creativecommons.org/licenses/by-nc/4.0/');
+      expect(
+        feed.licenseUrl,
+        'https://creativecommons.org/licenses/by-nc/4.0/',
+      );
       expect(feed.licenseName, 'CC BY-NC 4.0');
     });
 
@@ -37,7 +44,10 @@ void main() {
 
     test('parses durations in every form, and leaves missing ones null', () {
       final byTitle = {for (final e in feed.episodes) e.title: e};
-      expect(byTitle['Third sit: open awareness']!.durationMs, (3600 + 120 + 3) * 1000);
+      expect(
+        byTitle['Third sit: open awareness']!.durationMs,
+        (3600 + 120 + 3) * 1000,
+      );
       expect(byTitle['Second sit: the breath']!.durationMs, 1830 * 1000);
       expect(byTitle['First sit: arriving']!.durationMs, isNull);
       expect(feed.durationComplete, isFalse);
@@ -71,20 +81,34 @@ void main() {
     test('a serial feed follows its episode numbers, not its dates', () {
       final feed = parseFeed(fixture('rss_serial.xml'));
       expect(feed.isSerial, isTrue);
-      expect(feed.episodes.map((e) => e.title), ['Session 1', 'Session 2', 'Session 3']);
+      expect(feed.episodes.map((e) => e.title), [
+        'Session 1',
+        'Session 2',
+        'Session 3',
+      ]);
       expect(feed.imageUrl, 'https://example.org/foundations.png');
     });
 
-    test('with no dates, the feed is read backwards (feeds list newest first)', () {
-      final feed = parseFeed(fixture('rss_undated.xml'));
-      expect(feed.episodes.map((e) => e.title), ['Oldest', 'Middle', 'Newest']);
-      expect(feed.episodes.every((e) => e.publishedAt == null), isTrue);
-      expect(feed.episodes.every((e) => e.durationMs == null), isTrue);
-    });
+    test(
+      'with no dates, the feed is read backwards (feeds list newest first)',
+      () {
+        final feed = parseFeed(fixture('rss_undated.xml'));
+        expect(feed.episodes.map((e) => e.title), [
+          'Oldest',
+          'Middle',
+          'Newest',
+        ]);
+        expect(feed.episodes.every((e) => e.publishedAt == null), isTrue);
+        expect(feed.episodes.every((e) => e.durationMs == null), isTrue);
+      },
+    );
   });
 
   group('Atom', () {
-    final feed = parseFeed(fixture('atom_feed.xml'), base: Uri.parse('https://example.net/feed.atom'));
+    final feed = parseFeed(
+      fixture('atom_feed.xml'),
+      base: Uri.parse('https://example.net/feed.atom'),
+    );
 
     test('reads the feed', () {
       expect(feed.title, 'Dhamma Notes');
@@ -115,19 +139,30 @@ void main() {
 
   group('failures', () {
     test('HTML is not a feed', () {
-      expect(() => parseFeed(fixture('page_plain.html')), throwsA(isA<FeedFormatException>()));
+      expect(
+        () => parseFeed(fixture('page_plain.html')),
+        throwsA(isA<FeedFormatException>()),
+      );
     });
 
     test('broken XML is not a feed', () {
-      expect(() => parseFeed('<rss><channel>'), throwsA(isA<FeedFormatException>()));
+      expect(
+        () => parseFeed('<rss><channel>'),
+        throwsA(isA<FeedFormatException>()),
+      );
     });
 
     test('an RSS file with no channel is rejected', () {
-      expect(() => parseFeed('<rss version="2.0"></rss>'), throwsA(isA<FeedFormatException>()));
+      expect(
+        () => parseFeed('<rss version="2.0"></rss>'),
+        throwsA(isA<FeedFormatException>()),
+      );
     });
 
     test('a feed with no audio parses to no episodes', () {
-      final feed = parseFeed('<rss><channel><title>T</title><item><title>x</title></item></channel></rss>');
+      final feed = parseFeed(
+        '<rss><channel><title>T</title><item><title>x</title></item></channel></rss>',
+      );
       expect(feed.episodes, isEmpty);
       expect(feed.skippedItems, 1);
       expect(feed.durationComplete, isFalse);
@@ -153,21 +188,41 @@ void main() {
     });
 
     test('parseFeedDate takes RFC 822 and ISO 8601', () {
-      expect(parseFeedDate('Wed, 02 Oct 2002 13:00:00 GMT'), DateTime.utc(2002, 10, 2, 13));
-      expect(parseFeedDate('02 Oct 02 13:00 EST'), DateTime.utc(2002, 10, 2, 18));
-      expect(parseFeedDate('2025-03-02T08:00:00Z'), DateTime.utc(2025, 3, 2, 8));
+      expect(
+        parseFeedDate('Wed, 02 Oct 2002 13:00:00 GMT'),
+        DateTime.utc(2002, 10, 2, 13),
+      );
+      expect(
+        parseFeedDate('02 Oct 02 13:00 EST'),
+        DateTime.utc(2002, 10, 2, 18),
+      );
+      expect(
+        parseFeedDate('2025-03-02T08:00:00Z'),
+        DateTime.utc(2025, 3, 2, 8),
+      );
       expect(parseFeedDate('not a date'), isNull);
       expect(parseFeedDate(null), isNull);
     });
 
     test('licenseNameFromUrl', () {
-      expect(licenseNameFromUrl('https://creativecommons.org/licenses/by/4.0/'), 'CC BY 4.0');
-      expect(licenseNameFromUrl('https://creativecommons.org/publicdomain/zero/1.0/'), 'CC0');
+      expect(
+        licenseNameFromUrl('https://creativecommons.org/licenses/by/4.0/'),
+        'CC BY 4.0',
+      );
+      expect(
+        licenseNameFromUrl(
+          'https://creativecommons.org/publicdomain/zero/1.0/',
+        ),
+        'CC0',
+      );
       expect(licenseNameFromUrl('https://example.org/terms'), '');
     });
 
     test('plainText strips markup and entities', () {
-      expect(plainText('<p>One &amp; two</p><p>Three<br/>four</p>'), 'One & two\n\nThree\nfour');
+      expect(
+        plainText('<p>One &amp; two</p><p>Three<br/>four</p>'),
+        'One & two\n\nThree\nfour',
+      );
       expect(plainText('already plain'), 'already plain');
     });
   });

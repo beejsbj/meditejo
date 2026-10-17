@@ -33,13 +33,19 @@ class ImportFailure implements Exception {
   final String? detail;
 
   @override
-  String toString() => 'ImportFailure($reason${detail == null ? '' : ': $detail'})';
+  String toString() =>
+      'ImportFailure($reason${detail == null ? '' : ': $detail'})';
 }
 
 /// A file the user chose or shared, before it is copied into the app.
 @immutable
 class PickedFile {
-  const PickedFile({required this.path, this.name, this.sizeBytes, this.mimeType});
+  const PickedFile({
+    required this.path,
+    this.name,
+    this.sizeBytes,
+    this.mimeType,
+  });
 
   final String path;
 

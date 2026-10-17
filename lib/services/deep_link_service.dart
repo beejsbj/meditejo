@@ -84,6 +84,10 @@ class DeepLinkService {
     AppLogger.d('DEEPLINK', 'Host: ${uri.host}');
     AppLogger.d('DEEPLINK', 'Path: ${uri.path}');
 
+    // An audio file opened with the app arrives as a content or file link; the
+    // share intake imports it, so it is not a deep link to complain about.
+    if (uri.scheme == 'content' || uri.scheme == 'file') return;
+
     final now = DateTime.now();
     if (_lastHandledUri == uri &&
         _lastHandledAt != null &&

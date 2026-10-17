@@ -8,7 +8,11 @@ import 'package:medito/utils/logger.dart';
 
 /// What a refresh pass found.
 class FeedRefreshReport {
-  const FeedRefreshReport({this.checked = 0, this.newEpisodes = 0, this.failed = 0});
+  const FeedRefreshReport({
+    this.checked = 0,
+    this.newEpisodes = 0,
+    this.failed = 0,
+  });
 
   /// Feeds actually asked about.
   final int checked;
@@ -62,7 +66,12 @@ class FeedRefresher {
         added += await refresh(course);
       } catch (e, st) {
         failed++;
-        AppLogger.e('LIBRARY', 'Feed refresh failed for ${course.feedUrl}', e, st);
+        AppLogger.e(
+          'LIBRARY',
+          'Feed refresh failed for ${course.feedUrl}',
+          e,
+          st,
+        );
         await db.updateCourse(
           course.id,
           LibCoursesCompanion(
@@ -72,7 +81,11 @@ class FeedRefresher {
         );
       }
     }
-    return FeedRefreshReport(checked: checked, newEpisodes: added, failed: failed);
+    return FeedRefreshReport(
+      checked: checked,
+      newEpisodes: added,
+      failed: failed,
+    );
   }
 
   /// Fetches one feed and stores what is new. Returns how many episodes were
@@ -87,13 +100,18 @@ class FeedRefresher {
     if (result.notModified) {
       await db.updateCourse(
         course.id,
-        LibCoursesCompanion(lastCheckedAt: Value(_clock()), lastError: const Value(null)),
+        LibCoursesCompanion(
+          lastCheckedAt: Value(_clock()),
+          lastError: const Value(null),
+        ),
       );
       return 0;
     }
     if (!result.ok) throw StateError('HTTP ${result.status}');
     final feed = parseFeed(result.text, base: result.finalUri);
-    if (feed.episodes.isEmpty) throw StateError('The feed has no audio episodes');
+    if (feed.episodes.isEmpty) {
+      throw StateError('The feed has no audio episodes');
+    }
     final added = await lib.storeFeed(
       courseId: course.id,
       feedUrl: course.feedUrl,

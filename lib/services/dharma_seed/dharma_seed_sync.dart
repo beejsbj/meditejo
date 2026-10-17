@@ -78,7 +78,11 @@ class DharmaSeedSync {
     Future<void> Function(Duration)? sleep,
   }) : batchSizes =
            batchSizes ??
-           const {DsKind.teachers: 250, DsKind.retreats: 250, DsKind.talks: 500},
+           const {
+             DsKind.teachers: 250,
+             DsKind.retreats: 250,
+             DsKind.talks: 500,
+           },
        _clock = clock ?? DateTime.now,
        _lane = _PoliteLane(pause, sleep ?? Future<void>.delayed);
 
@@ -189,12 +193,14 @@ class DharmaSeedSync {
     // List IDs unless a killed run left work behind: a nonempty queue, or a
     // pending edition whose queue already drained (then just record it).
     if (queued == 0 && state?.pendingEdition == null) {
-      _emit(status.value.copyWith(
-        phase: DharmaSeedSyncPhase.syncing,
-        kind: kind,
-        done: 0,
-        total: 0,
-      ));
+      _emit(
+        status.value.copyWith(
+          phase: DharmaSeedSyncPhase.syncing,
+          kind: kind,
+          done: 0,
+          total: 0,
+        ),
+      );
       final list = await _lane.run(
         () => client.fetchIds(kind, edition: state?.edition),
       );
@@ -216,12 +222,14 @@ class DharmaSeedSync {
 
     final total = queued;
     var done = 0;
-    _emit(status.value.copyWith(
-      phase: DharmaSeedSyncPhase.syncing,
-      kind: kind,
-      done: done,
-      total: total,
-    ));
+    _emit(
+      status.value.copyWith(
+        phase: DharmaSeedSyncPhase.syncing,
+        kind: kind,
+        done: done,
+        total: total,
+      ),
+    );
     final size = batchSizes[kind]!;
     while (!_disposed) {
       final ids = await db.nextQueued(kind, size);
@@ -251,7 +259,11 @@ class DharmaSeedSync {
 
   /// Stores fetched records and dequeues [requested]. A requested ID missing
   /// from the response is gone upstream; drop it rather than retry forever.
-  Future<void> _apply(DsKind kind, List<int> requested, DsDetails details) async {
+  Future<void> _apply(
+    DsKind kind,
+    List<int> requested,
+    DsDetails details,
+  ) async {
     final missing = requested.where((id) => !details.records.containsKey(id));
     await db.transaction(() async {
       switch (kind) {

@@ -50,10 +50,24 @@ class ImportLink {
 }
 
 const _audioExtensions = {
-  'mp3', 'm4a', 'aac', 'ogg', 'oga', 'opus', 'wav', 'flac', 'wma', 'mpga', 'weba', 'm4b',
+  'mp3',
+  'm4a',
+  'aac',
+  'ogg',
+  'oga',
+  'opus',
+  'wav',
+  'flac',
+  'wma',
+  'mpga',
+  'weba',
+  'm4b',
 };
 
-final _urlPattern = RegExp(r'''(?:https?|file|content)://[^\s<>"']+''', caseSensitive: false);
+final _urlPattern = RegExp(
+  r'''(?:https?|file|content)://[^\s<>"']+''',
+  caseSensitive: false,
+);
 
 /// The first link in [text], with trailing punctuation a chat or browser
 /// adds (a full stop, a closing bracket) removed. Null when there is none.
@@ -63,7 +77,10 @@ String? firstLinkIn(String text) {
   var link = match.group(0)!;
   while (link.isNotEmpty && '.,;:!?)]}'.contains(link[link.length - 1])) {
     // Keep a ")" that balances a "(" inside the address (Wikipedia style).
-    if (link.endsWith(')') && link.split('(').length >= link.split(')').length) break;
+    if (link.endsWith(')') &&
+        link.split('(').length >= link.split(')').length) {
+      break;
+    }
     link = link.substring(0, link.length - 1);
   }
   return link;
@@ -106,7 +123,9 @@ ImportLink classifyLink(String input) {
     default:
       return ImportLink(ImportLinkKind.unrecognised, raw: raw);
   }
-  if (uri.host.isEmpty) return ImportLink(ImportLinkKind.unrecognised, raw: raw);
+  if (uri.host.isEmpty) {
+    return ImportLink(ImportLinkKind.unrecognised, raw: raw);
+  }
 
   final host = uri.host.toLowerCase().replaceFirst(RegExp(r'^(www|m)\.'), '');
 
@@ -117,12 +136,27 @@ ImportLink classifyLink(String input) {
       if (number != null) {
         switch (segments[0]) {
           case 'retreats':
-            return ImportLink(ImportLinkKind.dharmaSeedRetreat, raw: raw, uri: uri, id: number);
+            return ImportLink(
+              ImportLinkKind.dharmaSeedRetreat,
+              raw: raw,
+              uri: uri,
+              id: number,
+            );
           case 'teacher':
           case 'teachers':
-            return ImportLink(ImportLinkKind.dharmaSeedTeacher, raw: raw, uri: uri, id: number);
+            return ImportLink(
+              ImportLinkKind.dharmaSeedTeacher,
+              raw: raw,
+              uri: uri,
+              id: number,
+            );
           case 'talks':
-            return ImportLink(ImportLinkKind.dharmaSeedTalk, raw: raw, uri: uri, id: number);
+            return ImportLink(
+              ImportLinkKind.dharmaSeedTalk,
+              raw: raw,
+              uri: uri,
+              id: number,
+            );
         }
       }
     }
@@ -140,14 +174,21 @@ ImportLink classifyLink(String input) {
     return ImportLink(ImportLinkKind.youtube, raw: raw, uri: uri);
   }
 
-  if (host == 'open.spotify.com' || host == 'spotify.link' || host == 'spotify.com') {
+  if (host == 'open.spotify.com' ||
+      host == 'spotify.link' ||
+      host == 'spotify.com') {
     return ImportLink(ImportLinkKind.unsupportedHost, raw: raw, uri: uri);
   }
 
   if (host == 'podcasts.apple.com') {
     final id = RegExp(r'/id(\d+)').firstMatch(uri.path)?.group(1);
     if (id != null) {
-      return ImportLink(ImportLinkKind.applePodcast, raw: raw, uri: uri, id: int.parse(id));
+      return ImportLink(
+        ImportLinkKind.applePodcast,
+        raw: raw,
+        uri: uri,
+        id: int.parse(id),
+      );
     }
     return ImportLink(ImportLinkKind.unsupportedHost, raw: raw, uri: uri);
   }
@@ -171,7 +212,10 @@ String titleFromFileName(String nameOrUrl) {
   var name = nameOrUrl;
   final uri = Uri.tryParse(nameOrUrl);
   if (uri != null && uri.hasScheme && uri.host.isNotEmpty) {
-    name = uri.pathSegments.lastWhere((s) => s.isNotEmpty, orElse: () => uri.host);
+    name = uri.pathSegments.lastWhere(
+      (s) => s.isNotEmpty,
+      orElse: () => uri.host,
+    );
   } else if (name.contains('/')) {
     name = name.substring(name.lastIndexOf('/') + 1);
   }
@@ -181,10 +225,14 @@ String titleFromFileName(String nameOrUrl) {
     // Keep the raw name when it holds a stray percent sign.
   }
   final dot = name.lastIndexOf('.');
-  if (dot > 0 && _audioExtensions.contains(name.substring(dot + 1).toLowerCase())) {
+  if (dot > 0 &&
+      _audioExtensions.contains(name.substring(dot + 1).toLowerCase())) {
     name = name.substring(0, dot);
   }
-  name = name.replaceAll(RegExp(r'[_\-]+'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+  name = name
+      .replaceAll(RegExp(r'[_\-]+'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
   return name.isEmpty ? 'Untitled' : name;
 }
 

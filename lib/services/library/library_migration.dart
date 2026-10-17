@@ -33,7 +33,11 @@ Future<void> migrateDharmaSeedSaves(
           sourceId: id,
           kind: (isTeacher ? LibraryKind.teacher : LibraryKind.course).name,
           detectedGroup: Value((draft?.group ?? LibraryGroup.practice).name),
-          title: draft?.title ?? (isTeacher ? 'Dharma Seed teacher ${saved.itemId}' : 'Dharma Seed course ${saved.itemId}'),
+          title:
+              draft?.title ??
+              (isTeacher
+                  ? 'Dharma Seed teacher ${saved.itemId}'
+                  : 'Dharma Seed course ${saved.itemId}'),
           subtitle: Value(draft?.subtitle ?? ''),
           coverUrl: Value(draft?.coverUrl ?? ''),
           itemCount: Value(draft?.itemCount ?? 1),
