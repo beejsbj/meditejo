@@ -20,6 +20,7 @@ import 'widgets/header/home_hero.dart';
 import 'widgets/quote/quote_widget.dart';
 import 'widgets/shortcuts/shortcuts_items_widget.dart';
 import 'widgets/up_next/up_next_widget.dart';
+import 'widgets/update_notice.dart';
 
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({super.key});
@@ -71,6 +72,7 @@ class _HomeViewState extends ConsumerState<HomeView>
                     ? null
                     : _buildSection(heroType, homeData, inHero: true),
               ),
+              const SliverToBoxAdapter(child: UpdateNotice()),
               SliverToBoxAdapter(child: _buildLocalActions(context)),
               SliverToBoxAdapter(
                 child: AdaptiveHomeSections(
