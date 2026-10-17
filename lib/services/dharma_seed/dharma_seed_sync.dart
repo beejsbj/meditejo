@@ -186,8 +186,8 @@ class DharmaSeedSync {
       return;
     }
 
-    // A pending edition with an empty queue means the last run fetched
-    // everything but was killed before recording it; just finish up.
+    // List IDs unless a killed run left work behind: a nonempty queue, or a
+    // pending edition whose queue already drained (then just record it).
     if (queued == 0 && state?.pendingEdition == null) {
       _emit(status.value.copyWith(
         phase: DharmaSeedSyncPhase.syncing,

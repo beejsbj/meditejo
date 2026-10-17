@@ -1,26 +1,83 @@
 # Local content and playback seams
 
 The app launches without accounts, credentials or a network connection. The
-catalogue intentionally starts empty; the timer uses bundled bells and a locally
-generated silent audio file. Track lookup tries the catalogue first. If an entry
-is unavailable, it falls back to on-device downloaded track metadata by matching
-ID. An ID missing from both raises `CatalogueEntryUnavailable`; there is no
-Medito backend fallback. Other catalogue errors propagate without this fallback.
+bundled catalogue is empty; content comes from sources such as Dharma Seed,
+whose metadata syncs in the background after launch and is read from an
+on-device database. The timer uses bundled bells and a locally generated silent
+audio file. Track lookup asks the owning source (or the bundled catalogue)
+first. If an entry is unavailable, it falls back to on-device downloaded track
+metadata by matching ID. An ID missing from both raises
+`CatalogueEntryUnavailable`; there is no Medito backend fallback. Other
+catalogue errors propagate without this fallback.
 
 ## Content sources
 
-`lib/services/local_catalogue.dart` defines the empty `LocalCatalogue` boundary.
-Repositories accept catalogue injection. Add adapters that map source metadata to
-existing UI models, dispatching by source ID prefix (`ds-`, `lib-`, `yt-`).
+`lib/services/local_catalogue.dart` defines the bundled `LocalCatalogue`
+boundary, which is still empty. Everything else arrives through a
+**source**: `ContentSource` in `lib/services/content/content_source.dart`.
+
+```dart
+abstract interface class ContentSource {
+  String get prefix;                       // 'ds-', later 'lib-', 'yt-'
+  Future<List<PackModel>> browsePacks();   // bounded, saved first
+  Future<PackModel> pack(String id);       // a course: tracks in play order
+  Future<Track> track(String id);          // one voice, one playable file
+  Future<Map<String, List<String>>> packTrackIds({Set<String> startedTrackIds});
+  Future<List<PackItemsModel>> searchPacks(String query);
+  Future<List<TrackSearchModel>> searchTracks(String query);
+}
+```
+
+`ContentRouter` sends each ID to the source whose prefix it carries and falls
+back to `LocalCatalogue` for the rest. The repositories below build a router
+from `contentSourcesProvider` (`lib/providers/dharma_seed/dharma_seed_providers.dart`),
+so views and providers are unchanged. The interface's doc comment holds the
+rules for a new source: stable IDs, `/tracks/<id>` item paths, URLs resolved
+in `track()`, `CatalogueEntryUnavailable` for unknown IDs, and degrading to
+stored data when offline. An RSS or YouTube adapter implements those seven
+methods and joins the provider list.
 
 | Repository | Contract / destination |
 | --- | --- |
-| `lib/repositories/pack/packs_repository.dart` | `PacksRepository`: all packs, pack by ID, pack-to-track-ID map |
-| `lib/repositories/track/track_repository.dart` | `TrackRepository`: catalogue track lookup; saved download and current-track metadata |
+| `lib/repositories/pack/packs_repository.dart` | `PacksRepository`: browsable packs, pack by ID, pack-to-track-ID map (limited for large sources) |
+| `lib/repositories/track/track_repository.dart` | `TrackRepository`: source track lookup, then saved download metadata; current-track preferences |
 | `lib/repositories/home/home_repository.dart` | `HomeRepository`: home sections; announcements are currently absent |
-| `lib/repositories/explore/` | Pack and track search results |
-| `lib/repositories/tags/tags_repository.dart` | Tag catalogue and tracks by tag |
+| `lib/repositories/explore/` | Pack and track search results across sources |
+| `lib/repositories/tags/tags_repository.dart` | Tag catalogue and tracks by tag (local catalogue only) |
 | `lib/repositories/background_sounds/` | Empty ambient catalogue; local volume/preferences retained |
+
+### Dharma Seed (`ds-`)
+
+`lib/services/dharma_seed/`:
+
+- `dharma_seed_client.dart`: the unofficial API (multipart POSTs to
+  `/api/1/{teachers,retreats,talks}/`), a Meditejo User-Agent, timeouts and
+  backoff on 429/5xx and network errors.
+- `dharma_seed_database.dart`: drift over a bundled SQLite. Tables hold
+  teachers (no contact fields), retreats (with their talk-ID list), talks,
+  talk–teacher pairs, per-kind sync state (edition, pending edition, last
+  synced), the fetch queue, and saved retreats and teachers. FTS5 tables
+  (`ds_talks_fts`, `ds_retreats_fts`, `ds_teachers_fts`) use
+  `unicode61 remove_diacritics 2`; user text becomes quoted prefix terms only.
+- `dharma_seed_sync.dart`: teachers, then retreats, then talks. Each kind
+  lists IDs (`detail=0`, with the stored edition after the first run), queues
+  them in the database, and drains the queue in batches (250/250/500),
+  one request at a time with a 750 ms gap. A killed app resumes from the
+  queue. Opening a course or talk that is not stored yet fetches it, and its
+  teachers, ahead of the background queue on the same lane. Automatic syncs
+  run 3 s after launch, at most every 12 h; the settings row
+  (`DharmaSeedSyncTile`) shows progress, last sync or failure, and refreshes
+  on tap.
+- `dharma_seed_source.dart`: the `ContentSource`. A retreat
+  (`ds-retreat-<id>`) is a pack whose items are its talks ordered by
+  `rec_date`, then ID. A talk (`ds-talk-<id>`) is a track with one voice and
+  one file: the original audio at `https://dharmaseed.org<audio_url>`,
+  its duration, the teacher as guide, and the artist link set to the talk's
+  dharmaseed.org page. `DharmaSeedKind` (in `dharma_seed_ids.dart`) reads
+  `recording_type`; practice kinds allow background sound. Browse lists
+  saved retreats, then the 40 most recent. `packTrackIds` covers only saved
+  retreats and retreats containing a completed talk, using the retreat's own
+  talk list.
 
 Guide and duration preferences live in `lib/providers/guide_name_preference_provider.dart`
 and `lib/providers/duration_preference_provider.dart`. Session bell preferences
