@@ -278,7 +278,7 @@ class DharmaSeedSync {
       retreat = await db.retreatById(retreatId);
       if (retreat == null) return;
     }
-    final talkIds = DharmaSeedDatabase.talkIdsOf(retreat);
+    final talkIds = await db.liveTalkIdsOf(retreat);
     final have = await db.existingTalkIds(talkIds);
     final missing = [
       for (final id in talkIds)

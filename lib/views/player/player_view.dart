@@ -34,7 +34,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../providers/background_sounds/background_sounds_notifier.dart';
 import '../../widgets/errors/medito_error_widget.dart';
-import '../../utils/health_kit_manager.dart';
 
 class PlayerView extends ConsumerStatefulWidget {
   const PlayerView({super.key});
@@ -185,13 +184,6 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
     } else {
       // Stop background sound if track doesn't allow it
       ref.read(backgroundSoundsNotifierProvider.notifier).stopBackgroundSound();
-    }
-
-    var healthKitManager = HealthKitManager();
-    if (await healthKitManager.isHealthSyncPermitted() != true) {
-      // Only auto-prompt once; after that the user can opt in via Settings.
-      // Avoids re-asking every session when they've declined.
-      await healthKitManager.maybeRequestAuthorization();
     }
 
     // Only enable DND if permission is already granted and toggle is on

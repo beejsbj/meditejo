@@ -28,6 +28,7 @@ const _settleTimeout = Duration(seconds: 3);
 /// Desktop widget runners take PlayerProvider's non-Android engine path.
 class _NativeAudio {
   final players = <String, _NativePlayer>{};
+  int healthPermissionRequests = 0;
   final _channels = <MethodChannel>[];
   final _messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
@@ -41,7 +42,10 @@ class _NativeAudio {
   void install(Directory directory) {
     _handle('plugins.flutter.io/path_provider', (_) async => directory.path);
     _handle('com.ryanheise.audio_session', (_) async => null);
-    _handle('flutter_health', (_) async => false);
+    _handle('flutter_health', (call) async {
+      if (call.method == 'requestAuthorization') healthPermissionRequests++;
+      return false;
+    });
     _handle('home_widget', (_) async => true);
     _handle('flutter.baseflow.com/permissions/methods', (_) async => 0);
     _handle('com.ryanheise.just_audio.methods', (call) async {
@@ -224,7 +228,7 @@ void main() {
 
   setUp(() async {
     // The same preferences are supplied to Riverpod and plugin consumers.
-    SharedPreferences.setMockInitialValues({'healthAuthRequested': true});
+    SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
     StatsManager().resetForTesting();
   });
@@ -283,6 +287,11 @@ void main() {
         );
 
         final request = container.read(playerProvider)!;
+        expect(
+          native.healthPermissionRequests,
+          0,
+          reason: 'Starting a timer must never ask for Health permission',
+        );
         expect(request.trackId, 'timer-180');
         expect(request.fileId, 'timer-countdown-180000');
         expect(request.duration, 180000);
