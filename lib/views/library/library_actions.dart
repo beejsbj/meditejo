@@ -114,14 +114,44 @@ Future<void> renameLibraryEntry(
   WidgetRef ref,
   LibraryEntry entry,
 ) async {
-  final l10n = AppLocalizations.of(context)!;
-  final controller = TextEditingController(text: entry.displayTitle);
   final name = await showDialog<String>(
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (context) => _RenameDialog(initial: entry.displayTitle),
+  );
+  if (name == null) return;
+  // Back to the source's own title when the new name is the same or blank.
+  await ref
+      .read(libraryStoreProvider)
+      .setTitle(entry.sourceId, name.trim() == entry.title ? null : name);
+}
+
+/// Owns its text controller, so it is disposed only once the dialog's exit
+/// animation is over.
+class _RenameDialog extends StatefulWidget {
+  const _RenameDialog({required this.initial});
+
+  final String initial;
+
+  @override
+  State<_RenameDialog> createState() => _RenameDialogState();
+}
+
+class _RenameDialogState extends State<_RenameDialog> {
+  late final _controller = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AlertDialog(
       title: Text(l10n.libraryRenameTitle),
       content: TextField(
-        controller: controller,
+        controller: _controller,
         autofocus: true,
         textCapitalization: TextCapitalization.sentences,
         decoration: InputDecoration(hintText: l10n.libraryRenameHint),
@@ -133,16 +163,10 @@ Future<void> renameLibraryEntry(
           child: Text(l10n.cancel),
         ),
         TextButton(
-          onPressed: () => Navigator.pop(context, controller.text),
+          onPressed: () => Navigator.pop(context, _controller.text),
           child: Text(l10n.libraryRenameSave),
         ),
       ],
-    ),
-  );
-  controller.dispose();
-  if (name == null) return;
-  // Back to the source's own title when the new name is the same or blank.
-  await ref
-      .read(libraryStoreProvider)
-      .setTitle(entry.sourceId, name.trim() == entry.title ? null : name);
+    );
+  }
 }

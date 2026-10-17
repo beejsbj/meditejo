@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -68,7 +67,7 @@ class PlatformShareIntake implements ShareIntake {
 
   @override
   Future<SharedPayload?> initial() async {
-    if (!Platform.isAndroid) return null;
+    // Only Android has the share target; elsewhere nothing answers.
     try {
       final map = await _channel.invokeMapMethod<Object?, Object?>(
         'getInitial',

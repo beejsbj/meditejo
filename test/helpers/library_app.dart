@@ -18,6 +18,7 @@ import 'package:medito/providers/meditation/downloaded_track_ids_provider.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/routes/routes.dart';
+import 'package:medito/scaffold_messenger_key.dart';
 import 'package:medito/services/library/import_models.dart';
 import 'package:medito/services/library/share_intake.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -140,6 +141,7 @@ class LibraryTestApp {
         child: Builder(
           builder: (context) => MaterialApp(
             navigatorKey: navigatorKey,
+            scaffoldMessengerKey: scaffoldMessengerKey,
             theme: appTheme(context, ThemeMode.light),
             darkTheme: appTheme(context, ThemeMode.dark),
             themeMode: ThemeMode.dark,
