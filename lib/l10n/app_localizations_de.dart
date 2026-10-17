@@ -1501,4 +1501,35 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get upstreamProject => 'Ursprüngliches Projekt';
+
+  @override
+  String get dharmaSeedLibrary => 'Dharma-Seed-Bibliothek';
+
+  @override
+  String dharmaSeedSyncProgress(String what, int done, int total) {
+    return '$what werden aktualisiert: $done von $total';
+  }
+
+  @override
+  String get dharmaSeedTeachers => 'Lehrende';
+
+  @override
+  String get dharmaSeedRetreats => 'Retreats';
+
+  @override
+  String get dharmaSeedTalks => 'Vorträge';
+
+  @override
+  String dharmaSeedUpToDate(String when) {
+    return 'Aktuell · $when';
+  }
+
+  @override
+  String get dharmaSeedNeverSynced =>
+      'Noch nicht synchronisiert. Zum Synchronisieren tippen.';
+
+  @override
+  String dharmaSeedSyncFailed(String error) {
+    return 'Synchronisierung pausiert ($error). Zum Wiederholen tippen.';
+  }
 }

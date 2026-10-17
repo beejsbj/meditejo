@@ -63,6 +63,9 @@ dependencies:
   url_launcher: ^6.3.2
   home_widget: ^0.9.1
   flutter_slidable: ^4.0.3
+  drift: ^2.31.0
+  drift_flutter: ^0.2.8
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:
@@ -79,6 +82,8 @@ dev_dependencies:
   riverpod_generator: ^4.0.3
   integration_test:
     sdk: flutter
+  drift_dev: ^2.31.0
+  sqlite3: ^2.9.4
 
 flutter:
   generate: true

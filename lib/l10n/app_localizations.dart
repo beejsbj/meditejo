@@ -2727,6 +2727,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Upstream project'**
   String get upstreamProject;
+
+  /// Settings row for the built-in Dharma Seed catalogue sync
+  ///
+  /// In en, this message translates to:
+  /// **'Dharma Seed library'**
+  String get dharmaSeedLibrary;
+
+  /// Sync progress, e.g. Updating talks: 500 of 48994
+  ///
+  /// In en, this message translates to:
+  /// **'Updating {what}: {done} of {total}'**
+  String dharmaSeedSyncProgress(String what, int done, int total);
+
+  /// Record kind inside dharmaSeedSyncProgress
+  ///
+  /// In en, this message translates to:
+  /// **'teachers'**
+  String get dharmaSeedTeachers;
+
+  /// Record kind inside dharmaSeedSyncProgress
+  ///
+  /// In en, this message translates to:
+  /// **'retreats'**
+  String get dharmaSeedRetreats;
+
+  /// Record kind inside dharmaSeedSyncProgress
+  ///
+  /// In en, this message translates to:
+  /// **'talks'**
+  String get dharmaSeedTalks;
+
+  /// Last successful sync; when is a formatted date and time
+  ///
+  /// In en, this message translates to:
+  /// **'Up to date · {when}'**
+  String dharmaSeedUpToDate(String when);
+
+  /// Shown before the first Dharma Seed sync
+  ///
+  /// In en, this message translates to:
+  /// **'Not synced yet. Tap to sync.'**
+  String get dharmaSeedNeverSynced;
+
+  /// Sync stopped on an error; error is a short reason
+  ///
+  /// In en, this message translates to:
+  /// **'Sync paused ({error}). Tap to retry.'**
+  String dharmaSeedSyncFailed(String error);
 }
 
 class _AppLocalizationsDelegate

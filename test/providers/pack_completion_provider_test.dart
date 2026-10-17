@@ -29,9 +29,13 @@ class _FakeRepo implements PackRepositoryImpl {
   final Map<String, List<String>> packTracks;
   final PackModel? pack;
   final Object? error;
+  final startedSeen = <Set<String>>[];
 
   @override
-  Future<Map<String, List<String>>> fetchPackTrackIds() async {
+  Future<Map<String, List<String>>> fetchPackTrackIds({
+    Set<String> startedTrackIds = const {},
+  }) async {
+    startedSeen.add(startedTrackIds);
     if (error != null) throw error!;
     return packTracks;
   }
@@ -95,6 +99,18 @@ void main() {
       final container = _container(_FakeRepo(packTracks: {'empty': []}), ['a']);
 
       expect(await _completed(container), isEmpty);
+    });
+
+    test('asks sources about packs containing completed tracks', () async {
+      final repo = _FakeRepo(
+        packTracks: {
+          'ds-retreat-1': ['ds-talk-1', 'ds-talk-2'],
+        },
+      );
+      final container = _container(repo, ['ds-talk-1', 'ds-talk-2']);
+
+      expect(await _completed(container), {'ds-retreat-1'});
+      expect(repo.startedSeen.last, {'ds-talk-1', 'ds-talk-2'});
     });
 
     test('shows no ticks when the catalogue fails', () async {

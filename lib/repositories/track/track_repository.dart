@@ -2,7 +2,9 @@ import 'dart:convert';
 
 import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/models/track/track.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
+import 'package:medito/services/content/content_source.dart';
 import 'package:medito/services/local_catalogue.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -24,17 +26,18 @@ abstract class TrackRepository {
 
 class TrackRepositoryImpl extends TrackRepository {
   final Ref ref;
-  final LocalCatalogue catalogue;
+  final ContentRouter router;
 
   TrackRepositoryImpl({
     required this.ref,
-    this.catalogue = const LocalCatalogue(),
-  });
+    LocalCatalogue catalogue = const LocalCatalogue(),
+    List<ContentSource> sources = const [],
+  }) : router = ContentRouter(catalogue: catalogue, sources: sources);
 
   @override
   Future<Track> fetchTrack(String trackId) async {
     try {
-      return catalogue.track(trackId);
+      return await router.track(trackId);
     } on CatalogueEntryUnavailable {
       // Saved favourites resolve by ID too. Keep downloaded metadata usable
       // when its source catalogue is empty or no longer carries the track.
@@ -102,5 +105,8 @@ class TrackRepositoryImpl extends TrackRepository {
 
 @riverpod
 TrackRepository trackRepository(Ref ref) {
-  return TrackRepositoryImpl(ref: ref);
+  return TrackRepositoryImpl(
+    ref: ref,
+    sources: ref.watch(contentSourcesProvider),
+  );
 }
