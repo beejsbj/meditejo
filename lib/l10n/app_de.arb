@@ -1132,5 +1132,6 @@
   "importFailAdd": "Das konnte nicht hinzugefügt werden. Bitte versuche es erneut.",
   "shareArrived": "Mit Meditejo geteilt",
   "exploreLibraryHeading": "In deiner Bibliothek",
-  "libraryFromStart": "Von Anfang an"
+  "libraryFromStart": "Von Anfang an",
+  "libraryCheckNew": "Nach neuen Folgen suchen"
 }

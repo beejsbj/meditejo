@@ -37,10 +37,13 @@ in `track()`, `CatalogueEntryUnavailable` for unknown IDs, and degrading to
 stored data when offline. An RSS or YouTube adapter implements those seven
 methods and joins the provider list.
 
-A source whose courses or teachers can be saved also implements
+A source whose courses, talks or teachers can be kept also implements
 `SavableContentSource` (`canSave`, `isSaved`, `setSaved`); `ContentRouter`
-asks only the owning source, and the Save button (`lib/widgets/save_button.dart`)
-shows only when `canSave` is true. What a source knows beyond the seven methods
+asks only the owning source, and the Add to library button
+(`lib/widgets/save_button.dart`) shows only when `canSave` is true. "Saving"
+means adding to the **library** (below). A source that knows which course a
+session belongs to also implements `ParentedContentSource`, so playing a talk
+brings its course to the front of the library. What a source knows beyond the seven methods
 reaches the screens through optional fields on the shared models, never through
 the interface: `PackModel.teacher` and `.attribution`, `PackItemsModel.kind`,
 `.teacher`, `.durationMs` and `.date`, and `Track.attribution` (carried into
@@ -100,12 +103,100 @@ filters on) and `SessionLength` (`lib/models/explore/session_length.dart`, the
 dharma_seed_ui_providers.dart` holds the Explore chip, the saved toggle and the
 Explore, search and teacher providers.
 
+### The library and imports (`lib-`)
+
+`lib/services/library/`. The user's library is **their own database**
+(`meditejo_library.sqlite`, `LibraryDatabase`), apart from the Dharma Seed
+catalogue database: that one is a replaceable copy of someone else's catalogue
+(it will be swapped for a bundled snapshot), this one is the user's data.
+
+- `library_database.dart`: `LibraryEntries` (one row per kept thing: source ID,
+  kind `course | single | teacher`, detected and overridden Practice/Talks group,
+  title and a title override, subtitle, artwork, item count, length, added and
+  last-played time), `PlaybackPositions` (Resume), `LibCourses` and `LibTracks`
+  (imported content), `LibraryMeta` (flags).
+- `library_store.dart`: `LibraryStore` over it. Entries are listed most recently
+  added or played first; `revision` and `positionsRevision` notifiers drive the
+  providers. Its `prepare` hook runs once before first use: the app passes
+  `migrateDharmaSeedSaves`, which copies `ds_saved` (old "Save course" / "Save
+  teacher") into the library, keeping the saved time, and marks it done. The old
+  table is left in place.
+- `lib_source.dart`: `LibSource`, the `ContentSource` for `lib-`. A feed or a set
+  of files is a pack (`lib-course-<hash>`); a URL, an episode or a file is a track
+  (`lib-track-<hash>`). `pack()` lists sessions oldest first (or newest first, a
+  per-course setting); `track()` returns one voice with the original audio
+  address or the path of the copy in app storage. Every course carries an
+  attribution (feed site, author, licence when the feed states one), so the page
+  reads as a course. Removing an entry deletes the imported content and any
+  copied file.
+- IDs (`lib_ids.dart`) are stable: a feed or URL hashes its address (adding it
+  twice finds the first), an episode hashes feed address plus the feed's own
+  episode ID (the same episode has one ID alone or in its course), a local file
+  gets a random ID when it is copied.
+- `link_classifier.dart` (text only, no network): Dharma Seed retreat, teacher or
+  talk page; audio by extension; YouTube; Apple Podcasts; a service with no
+  readable feed (Spotify); any other web address; a local path. `firstLinkIn`
+  finds the link in shared text.
+- `feed_parser.dart`: RSS 2.0 and Atom, iTunes tags, enclosures (audio only),
+  `media:content`, durations as seconds / `mm:ss` / `hh:mm:ss` (or missing),
+  RFC 822 and ISO dates, Creative Commons licence links, relative URLs. Episodes
+  come out oldest first: a serial feed follows its episode numbers, otherwise
+  dates, otherwise the feed is read backwards.
+- `import_service.dart`: `resolve(text)` and `resolveFiles` return an
+  `ImportPreview` (title, source, artwork, count, total length and whether it is
+  complete, first items, attribution, whether it is already kept, the allowed
+  kinds); `add(preview, choice)` stores it and adds the library entry. Looking
+  stores nothing. A link costs one request, two when a web page must be searched
+  for its feed or an Apple Podcasts link looked up; Dharma Seed links cost what
+  opening them already does. Failures are `ImportFailure(reason)`, which the
+  screen turns into a plain sentence. Files are moved (a picker or share cache
+  copy) or copied into `<support>/library/<id>.<ext>`; audio is never changed.
+- `import_http.dart`: the one HTTP client for imports: a Meditejo User-Agent, a
+  timeout, an 8 MiB body cap, redirects followed, no body read for audio or a 304.
+- `feed_refresher.dart`: looks for new episodes in kept feeds 10 s after launch,
+  a feed at most every 12 h, one at a time, with `If-None-Match` /
+  `If-Modified-Since`; a failure is remembered with its time.
+- `playback_position_tracker.dart`: fed by the player's state from the main
+  screen. While playing it saves at most every 5 s without notifying; a pause
+  saves and notifies; a finished session forgets its place; the first play
+  touches the session and its course. A place under 10 s or within 20 s of the
+  end is not kept. `PlaybackRequest.startPositionMs` carries it to the player,
+  which seeks once the file is loading.
+- `share_intake.dart` and `MainActivity.kt`: the Android share target (see below).
+
+Providers are in `lib/providers/library/`. `ImportService` takes the pickers,
+clipboard reader and share intake as providers, so tests need no platform.
+
+### Library screens
+
+- **Home** starts with `HomeLibrarySection`: "Your library", See all and Add, and
+  a rail of the library, practice first, then talks. Empty, it says how to start.
+- **Library screen** (`lib/views/library/library_view.dart`): Practice, Talks,
+  Teachers; a row menu to move between Practice and Talks, rename (library only)
+  or remove (an import asks first, since its audio is deleted). It is a pushed
+  screen reached from Home, not a fifth tab; the tab bar and its saved-index
+  logic are untouched.
+- **Add** (`import_view.dart`): a link field with Paste and Preview, a clipboard
+  suggestion, Choose files / Choose a folder, then the preview and one primary
+  action, Add to library. Course/Single appears where both make sense (a feed:
+  the whole feed or just its latest episode; several files: a course or separate
+  singles); Practice/Talk defaults to the detected group, Practice when unknown.
+- **Share target**: `AndroidManifest.xml` registers `text/plain`, `audio/*`
+  (send and send-multiple) and an audio view filter on `MainActivity`. The
+  activity copies shared audio into `cache/shared_audio` off the main thread
+  (the sender's read permission ends with the share), then hands the link or
+  files to Dart over the `meditejo/share` channel: once for the share that
+  started the app (`getInitial`), then `onShare` for later ones.
+  `ShareIntakeHost` wraps the main screen and opens Add, previewed.
+
 ### Screens
 
 - **Explore** (`lib/views/explore/`): Practice and Talks chips
-  (`ExploreKindChips`), then saved courses, courses (`PackGridSliver`),
-  saved teachers and teachers (`TeacherStrip`), and, with a chip chosen, the
-  latest sessions (`SessionRowsSliver`). `LibraryStateCard` explains the first
+  (`ExploreKindChips`), then the library's courses ("In your library", under
+  any chip: a filter never hides what the user kept), courses
+  (`PackGridSliver`), saved teachers and teachers (`TeacherStrip`), and, with a
+  chip chosen, the latest sessions (`SessionRowsSliver`). Courses and talks in
+  lists carry an `AddToLibraryIcon`. `LibraryStateCard` explains the first
   sync. Pull to refresh runs an incremental sync.
 - **Search** (`lib/views/search/`): Teachers, Courses, Talks, with the length
   pills over the talks. Query debounce is 400 ms and the query is not
@@ -143,7 +234,11 @@ expiring URLs should resolve them when creating the request. Timer requests use
 the same player, generated by `lib/models/timer/timer_session.dart`.
 
 Keep source IDs stable through requests, downloads, favourites and completion.
-The player and native completion queue must see the same track ID. The player
+The player and native completion queue must see the same track ID. A session
+left partway is resumed: `startSession`, the track page and Downloads read the
+saved place (`withResumePosition`) into `PlaybackRequest.startPositionMs`.
+A track with one voice and one file plays at once from a course's main action;
+only a track with real choices and no remembered preference opens its page. The player
 shows `PlaybackRequest.attribution` (a compact credit under the title) and, for
 a track with no cover, its generated art blurred behind the controls.
 
@@ -189,7 +284,8 @@ state.
 
 ## Home composition
 
-`HomeWidgetType` and `lib/providers/home/widget_order_provider.dart` define the
+`HomeLibrarySection` sits at the very top, under the hero image and above the
+reorderable sections. `HomeWidgetType` and `lib/providers/home/widget_order_provider.dart` define the
 saved section order. Defaults: **upNext → shortcuts → carousel → quote**. Stats
 and the header sit outside that reorderable list. Removed/unknown saved section
 names are ignored. The timer shortcut works with an empty catalogue. A future

@@ -192,6 +192,36 @@ void main() {
       expect(find.text('3 of 3 left'), findsOneWidget);
     });
 
+    testWidgets('a feed course can flip its order and stop checking for episodes', (tester) async {
+      final app = await LibraryTestApp.create(
+        tester,
+        routes: {'https://example.org/evening.rss': xmlResponse(libraryFixture('rss_podcast.xml'))},
+      );
+      late String id;
+      await tester.runAsync(() async {
+        final preview = await app.harness.service.resolve('https://example.org/evening.rss');
+        id = (await app.harness.service.add(
+          preview,
+          const ImportChoice(kind: LibraryKind.course, group: LibraryGroup.practice),
+        )).entryId;
+      });
+      await app.pump(tester, PackView(id: id));
+
+      double top(String title) => tester.getTopLeft(find.text(title)).dy;
+      expect(top('First sit: arriving'), lessThan(top('Third sit: open awareness')));
+
+      await tester.ensureVisible(find.byKey(const ValueKey('course_order_newest')));
+      await tester.tap(find.byKey(const ValueKey('course_order_newest')));
+      await settle(tester);
+      expect(top('Third sit: open awareness'), lessThan(top('First sit: arriving')));
+      expect((await tester.runAsync(() => app.harness.db.courseById(id)))!.episodeOrder, 'newest');
+
+      await tester.ensureVisible(find.byKey(const ValueKey('course_auto_refresh')));
+      await tester.tap(find.byKey(const ValueKey('course_auto_refresh')));
+      await settle(tester);
+      expect((await tester.runAsync(() => app.harness.db.courseById(id)))!.autoRefresh, isFalse);
+    });
+
     testWidgets('an imported single opens its track page', (tester) async {
       final app = await LibraryTestApp.create(tester);
       await tester.runAsync(() async {

@@ -892,5 +892,6 @@
   "importFailAdd": "No se pudo añadir. Inténtalo de nuevo.",
   "shareArrived": "Compartido con Meditejo",
   "exploreLibraryHeading": "En tu biblioteca",
-  "libraryFromStart": "Desde el principio"
+  "libraryFromStart": "Desde el principio",
+  "libraryCheckNew": "Buscar episodios nuevos"
 }

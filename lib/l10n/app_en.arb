@@ -2070,5 +2070,9 @@
   "libraryFromStart": "From the beginning",
   "@libraryFromStart": {
     "description": "Button that plays a session from the start instead of resuming"
+  },
+  "libraryCheckNew": "Check for new episodes",
+  "@libraryCheckNew": {
+    "description": "Switch on an imported feed course: look for new episodes now and then"
   }
 }

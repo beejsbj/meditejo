@@ -176,6 +176,21 @@ final resumePointsProvider = FutureProvider.autoDispose
       return ref.watch(libraryStoreProvider).resumePoints(trackIds);
     });
 
+/// Looks for new episodes in the imported feeds shortly after launch, off the
+/// startup path. A feed is asked about at most twice a day; offline, it fails
+/// quietly and the episodes already on the device are what the app uses.
+Future<void> startFeedRefresh(
+  WidgetRef ref, {
+  Duration delay = const Duration(seconds: 10),
+}) async {
+  try {
+    await Future<void>.delayed(delay);
+    await ref.read(feedRefresherProvider).refreshAll();
+  } catch (e, st) {
+    AppLogger.e('LIBRARY', 'Feed refresh did not run', e, st);
+  }
+}
+
 /// Keeps the saved place in each session, and the library's order, in step
 /// with what the player is doing. Listened to once, from the main screen.
 final playbackPositionTrackerProvider = Provider<PlaybackPositionTracker>((

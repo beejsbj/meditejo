@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
 import 'package:medito/views/explore/widgets/explore_view.dart';
 import 'package:medito/views/search/search_view.dart';
 

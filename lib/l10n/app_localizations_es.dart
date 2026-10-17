@@ -1972,4 +1972,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get libraryFromStart => 'Desde el principio';
+
+  @override
+  String get libraryCheckNew => 'Buscar episodios nuevos';
 }

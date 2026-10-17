@@ -1935,4 +1935,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get libraryFromStart => 'From the beginning';
+
+  @override
+  String get libraryCheckNew => 'Check for new episodes';
 }

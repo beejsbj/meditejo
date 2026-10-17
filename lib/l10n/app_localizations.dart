@@ -3495,6 +3495,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'From the beginning'**
   String get libraryFromStart;
+
+  /// Switch on an imported feed course: look for new episodes now and then
+  ///
+  /// In en, this message translates to:
+  /// **'Check for new episodes'**
+  String get libraryCheckNew;
 }
 
 class _AppLocalizationsDelegate

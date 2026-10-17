@@ -11,6 +11,7 @@ import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/views/dharma_seed/widgets/teacher_avatar.dart';
+import 'package:medito/views/library/lib_course_settings.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/pack/widgets/pack_item_widget.dart';
 import 'package:medito/views/pack/widgets/pack_path_button.dart';
@@ -275,6 +276,7 @@ class _PackViewState extends ConsumerState<PackView>
             label: l10n.courseSave,
             savedLabel: l10n.courseSaved,
           ),
+          LibCourseSettings(courseId: pack.id),
           _packTags(pack),
         ],
       ),

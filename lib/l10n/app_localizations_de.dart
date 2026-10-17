@@ -1967,4 +1967,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get libraryFromStart => 'Von Anfang an';
+
+  @override
+  String get libraryCheckNew => 'Nach neuen Folgen suchen';
 }
