@@ -33,6 +33,13 @@ class FakeWeb {
   final Map<String, http.Response> routes;
   final List<http.BaseRequest> requests = [];
 
+  /// A client that answers from [handler], still recording requests.
+  MockClient clientWith(http.Response Function(http.BaseRequest) handler) =>
+      MockClient((request) async {
+        requests.add(request);
+        return handler(request);
+      });
+
   MockClient get client => MockClient((request) async {
     requests.add(request);
     if (offline) throw const SocketException('Failed host lookup');
