@@ -73,6 +73,20 @@ void main() {
     verifyNever(() => bridge.requestMindfulnessPermissions());
   });
 
+  test('failed availability probe keeps migration pending', () async {
+    when(() => bridge.getStatus()).thenThrow(Exception('status failed'));
+    expect(await manager.isSyncEnabled(), isFalse);
+    expect(await manager.writeMindfulnessData(start, end), isFalse);
+    when(
+      () => bridge.getStatus(),
+    ).thenAnswer((_) async => HealthConnectStatus.available);
+    when(
+      () => bridge.hasMindfulnessPermissions(),
+    ).thenAnswer((_) async => true);
+    expect(await manager.isSyncEnabled(), isTrue);
+    verifyNever(() => bridge.requestMindfulnessPermissions());
+  });
+
   test('explicit off persists even with an OS grant', () async {
     when(
       () => bridge.hasMindfulnessPermissions(),

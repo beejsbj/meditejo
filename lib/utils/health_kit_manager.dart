@@ -60,7 +60,10 @@ class HealthKitManager {
     try {
       await _ensureConfigured();
       if (_isAndroid) {
-        if (!await isHealthConnectAvailable()) return false;
+        // Probe directly: a thrown status check is indeterminate (caught
+        // below as null), unlike a confirmed unavailable provider.
+        final status = await _androidBridge.getStatus();
+        if (status != HealthConnectStatus.available) return false;
         return await _androidBridge.hasMindfulnessPermissions();
       }
       return await health.hasPermissions(
