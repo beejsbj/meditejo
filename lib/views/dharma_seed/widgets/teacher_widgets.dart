@@ -21,8 +21,11 @@ class TeacherStrip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    // Photo, gap and two lines of name: the name's height follows the text
+    // size, so the strip does too.
+    final nameLines = 2 * MediaQuery.textScalerOf(context).scale(13 * 1.25);
     return SizedBox(
-      height: 144,
+      height: padding16 + padding8 + _photo + 8 + nameLines + 8,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(

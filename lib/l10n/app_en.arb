@@ -1638,15 +1638,6 @@
       }
     }
   },
-  "courseUpNext": "Up next: {title}",
-  "@courseUpNext": {
-    "description": "Names the session the primary button plays",
-    "placeholders": {
-      "title": {
-        "type": "String"
-      }
-    }
-  },
   "courseSave": "Save course",
   "@courseSave": {
     "description": "Button to save a course"
@@ -1680,10 +1671,6 @@
       }
     }
   },
-  "courseSessionPlayed": "Played",
-  "@courseSessionPlayed": {
-    "description": "Row state for a finished session"
-  },
   "courseSessionDownloaded": "Downloaded",
   "@courseSessionDownloaded": {
     "description": "Row state for a session saved for offline listening"
@@ -1712,18 +1699,6 @@
   "teacherShowMore": "Show more talks",
   "@teacherShowMore": {
     "description": "Teacher page button to load another page of talks"
-  },
-  "teacherCounts": "{talks} talks · {courses} courses",
-  "@teacherCounts": {
-    "description": "Teacher page summary line",
-    "placeholders": {
-      "talks": {
-        "type": "int"
-      },
-      "courses": {
-        "type": "int"
-      }
-    }
   },
   "teacherNotFound": "This teacher is not in the library yet.",
   "@teacherNotFound": {
@@ -1762,6 +1737,15 @@
   "teacherTalkCount": "{count, plural, =1{1 talk} other{{count} talks}}",
   "@teacherTalkCount": {
     "description": "Number of talks a teacher gave",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "teacherCourseCount": "{count, plural, =1{1 course} other{{count} courses}}",
+  "@teacherCourseCount": {
+    "description": "Number of courses (retreats) a teacher gave",
     "placeholders": {
       "count": {
         "type": "int"

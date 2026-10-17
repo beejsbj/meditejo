@@ -1621,11 +1621,6 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String courseUpNext(String title) {
-    return 'Als Nächstes: $title';
-  }
-
-  @override
   String get courseSave => 'Kurs speichern';
 
   @override
@@ -1649,9 +1644,6 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get courseSessionPlayed => 'Gehört';
-
-  @override
   String get courseSessionDownloaded => 'Heruntergeladen';
 
   @override
@@ -1670,11 +1662,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get teacherShowMore => 'Mehr Vorträge zeigen';
-
-  @override
-  String teacherCounts(int talks, int courses) {
-    return '$talks Vorträge · $courses Kurse';
-  }
 
   @override
   String get teacherNotFound =>
@@ -1706,6 +1693,17 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other: '$count Vorträge',
       one: '1 Vortrag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String teacherCourseCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Kurse',
+      one: '1 Kurs',
     );
     return '$_temp0';
   }

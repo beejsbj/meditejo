@@ -1592,11 +1592,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String courseUpNext(String title) {
-    return 'Up next: $title';
-  }
-
-  @override
   String get courseSave => 'Save course';
 
   @override
@@ -1620,9 +1615,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get courseSessionPlayed => 'Played';
-
-  @override
   String get courseSessionDownloaded => 'Downloaded';
 
   @override
@@ -1641,11 +1633,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get teacherShowMore => 'Show more talks';
-
-  @override
-  String teacherCounts(int talks, int courses) {
-    return '$talks talks · $courses courses';
-  }
 
   @override
   String get teacherNotFound => 'This teacher is not in the library yet.';
@@ -1676,6 +1663,17 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: '$count talks',
       one: '1 talk',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String teacherCourseCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count courses',
+      one: '1 course',
     );
     return '$_temp0';
   }

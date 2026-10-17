@@ -36,10 +36,8 @@ final contentRouterProvider = Provider<ContentRouter>(
 );
 
 /// Whether a course or teacher is saved, with an optimistic toggle.
-final savedProvider =
-    AsyncNotifierProvider.autoDispose.family<SavedNotifier, bool, String>(
-      SavedNotifier.new,
-    );
+final savedProvider = AsyncNotifierProvider.autoDispose
+    .family<SavedNotifier, bool, String>(SavedNotifier.new);
 
 class SavedNotifier extends AsyncNotifier<bool> {
   SavedNotifier(this.id);
@@ -75,11 +73,14 @@ typedef DsSearchKey = ({String query, SessionLength? length});
 
 /// Grouped local search. The query is already debounced by the search field.
 final dharmaSeedSearchProvider = FutureProvider.autoDispose
-    .family<DsSearchResults, DsSearchKey>(
-      (ref, key) => ref
+    .family<DsSearchResults, DsSearchKey>((ref, key) {
+      // Re-run when a sync pass lands records, so a search made during the
+      // first sync does not stay stale.
+      ref.watch(dharmaSeedRevisionProvider);
+      return ref
           .watch(dharmaSeedSourceProvider)
-          .search(key.query, length: key.length),
-    );
+          .search(key.query, length: key.length);
+    });
 
 final dharmaSeedTeacherProvider = FutureProvider.autoDispose
     .family<DsTeacherPage, String>((ref, id) {

@@ -152,7 +152,9 @@ class ExploreViewState extends ConsumerState<ExploreView> {
     final l10n = AppLocalizations.of(context)!;
     return [
       if (explore.saved.isNotEmpty) ...[
-        SliverToBoxAdapter(child: SectionHeader(title: l10n.exploreSavedCourses)),
+        SliverToBoxAdapter(
+          child: SectionHeader(title: l10n.exploreSavedCourses),
+        ),
         PackGridSliver(packs: _packs(explore.saved)),
       ],
       if (explore.courses.isNotEmpty) ...[
@@ -160,8 +162,12 @@ class ExploreViewState extends ConsumerState<ExploreView> {
         PackGridSliver(packs: _packs(explore.courses)),
       ],
       if (explore.savedTeachers.isNotEmpty) ...[
-        SliverToBoxAdapter(child: SectionHeader(title: l10n.exploreSavedTeachers)),
-        SliverToBoxAdapter(child: TeacherStrip(teachers: explore.savedTeachers)),
+        SliverToBoxAdapter(
+          child: SectionHeader(title: l10n.exploreSavedTeachers),
+        ),
+        SliverToBoxAdapter(
+          child: TeacherStrip(teachers: explore.savedTeachers),
+        ),
       ],
       if (explore.teachers.isNotEmpty) ...[
         SliverToBoxAdapter(child: SectionHeader(title: l10n.exploreTeachers)),

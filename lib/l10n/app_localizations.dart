@@ -2932,12 +2932,6 @@ abstract class AppLocalizations {
   /// **'All {total} played'**
   String courseAllPlayed(int total);
 
-  /// Names the session the primary button plays
-  ///
-  /// In en, this message translates to:
-  /// **'Up next: {title}'**
-  String courseUpNext(String title);
-
   /// Button to save a course
   ///
   /// In en, this message translates to:
@@ -2980,12 +2974,6 @@ abstract class AppLocalizations {
   /// **'Day {number}'**
   String courseDay(int number);
 
-  /// Row state for a finished session
-  ///
-  /// In en, this message translates to:
-  /// **'Played'**
-  String get courseSessionPlayed;
-
   /// Row state for a session saved for offline listening
   ///
   /// In en, this message translates to:
@@ -3021,12 +3009,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show more talks'**
   String get teacherShowMore;
-
-  /// Teacher page summary line
-  ///
-  /// In en, this message translates to:
-  /// **'{talks} talks · {courses} courses'**
-  String teacherCounts(int talks, int courses);
 
   /// Teacher page error
   ///
@@ -3069,6 +3051,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 talk} other{{count} talks}}'**
   String teacherTalkCount(int count);
+
+  /// Number of courses (retreats) a teacher gave
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 course} other{{count} courses}}'**
+  String teacherCourseCount(int count);
 }
 
 class _AppLocalizationsDelegate

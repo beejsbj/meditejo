@@ -150,6 +150,10 @@ class DsTalkFilter {
   ({List<String> where, List<Variable> variables})? toSql(String alias) {
     final where = <String>[];
     final variables = <Variable>[];
+    // A talk with no recorded length (stored as 0) belongs to no bucket.
+    if (minDuration != null || maxDuration != null) {
+      where.add('$alias.duration_ms > 0');
+    }
     if (minDuration case final min?) {
       where.add('$alias.duration_ms >= ?');
       variables.add(Variable.withInt(min.inMilliseconds));
@@ -711,7 +715,10 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
   }
 
   /// Retreats in which [teacherId] gave at least one stored talk, newest first.
-  Future<List<DsRetreat>> retreatsOfTeacher(int teacherId, {int limit = 60}) async {
+  Future<List<DsRetreat>> retreatsOfTeacher(
+    int teacherId, {
+    int limit = 500,
+  }) async {
     final rows = await customSelect(
       'SELECT r.* FROM ds_retreats r WHERE r.id IN ('
       'SELECT t.retreat_id FROM ds_talks t '
@@ -809,7 +816,7 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
     if (match == null) return const [];
     final rows = await customSelect(
       'SELECT t.* FROM ds_teachers_fts f JOIN ds_teachers t ON t.id = f.rowid '
-      'WHERE ds_teachers_fts MATCH ? '
+      'WHERE ds_teachers_fts MATCH ? AND t.is_public = 1 '
       'ORDER BY bm25(ds_teachers_fts, 10.0, 1.0) LIMIT ?',
       variables: [Variable.withString(match), Variable.withInt(limit)],
       readsFrom: {dsTeachers},

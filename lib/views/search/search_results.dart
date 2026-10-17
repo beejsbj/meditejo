@@ -129,8 +129,10 @@ class _SearchResultsState extends ConsumerState<SearchResults> {
     final async = ref.watch(
       dharmaSeedSearchProvider((query: query, length: _length)),
     );
+    // Keep the last results up while the next ones load, but never show them
+    // for a query that failed.
     if (async.hasValue) _shown = async.value;
-    final results = _shown;
+    final results = async.hasValue || async.isLoading ? _shown : null;
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
@@ -228,32 +230,38 @@ class _SearchResultsState extends ConsumerState<SearchResults> {
   /// Any, under 10, 10–20, 20–30, 30–45 and over 45 minutes. It narrows the
   /// talks only; teachers and courses have no length.
   Widget _lengthFilter(AppLocalizations l10n) {
-    return SizedBox(
-      height: 56,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(
-          horizontal: padding16,
-          vertical: padding8,
-        ),
-        children: [
-          FilterPill(
-            key: const ValueKey('length_any'),
-            label: l10n.searchLengthAny,
-            selected: _length == null,
-            onTap: () => setState(() => _length = null),
+    return Semantics(
+      label: l10n.searchTalkLength,
+      container: true,
+      child: SizedBox(
+        // Pill height (44 at normal size) follows the text scale.
+        height: MediaQuery.textScalerOf(context).scale(44) + 2 * padding8,
+        child: ListView(
+          key: const ValueKey('length_filter'),
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(
+            horizontal: padding16,
+            vertical: padding8,
           ),
-          for (final length in SessionLength.values) ...[
-            const SizedBox(width: padding8),
+          children: [
             FilterPill(
-              key: ValueKey('length_${length.name}'),
-              label: length.label(l10n),
-              selected: _length == length,
-              onTap: () =>
-                  setState(() => _length = _length == length ? null : length),
+              key: const ValueKey('length_any'),
+              label: l10n.searchLengthAny,
+              selected: _length == null,
+              onTap: () => setState(() => _length = null),
             ),
+            for (final length in SessionLength.values) ...[
+              const SizedBox(width: padding8),
+              FilterPill(
+                key: ValueKey('length_${length.name}'),
+                label: length.label(l10n),
+                selected: _length == length,
+                onTap: () =>
+                    setState(() => _length = _length == length ? null : length),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

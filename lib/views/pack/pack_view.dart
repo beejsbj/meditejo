@@ -402,8 +402,8 @@ class _PackViewState extends ConsumerState<PackView>
     if (groups == null) {
       rows.addAll(_listItems(pack, ref));
     } else {
-      final first = DateTime.tryParse(groups.first.date);
-      final last = DateTime.tryParse(groups.last.date);
+      final first = _day(groups.first.date);
+      final last = _day(groups.last.date);
       // A retreat reads as "Day 3"; a years-long series only by its dates.
       final numbered =
           first != null && last != null && last.difference(first).inDays <= 21;
@@ -436,11 +436,20 @@ class _PackViewState extends ConsumerState<PackView>
     return groups.length < 2 ? null : groups;
   }
 
+  /// A `yyyy-MM-dd` date as a UTC day, so counting days between two of them
+  /// is exact across a daylight-saving change.
+  DateTime? _day(String date) {
+    final parsed = DateTime.tryParse(date);
+    return parsed == null
+        ? null
+        : DateTime.utc(parsed.year, parsed.month, parsed.day);
+  }
+
   Widget _dayHeader(_DayGroup group, {DateTime? first}) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final locale = Localizations.localeOf(context).toLanguageTag();
-    final date = DateTime.tryParse(group.date);
+    final date = _day(group.date);
     final formatted = date == null
         ? group.date
         : (first == null ? DateFormat.yMMMd(locale) : DateFormat.MMMEd(locale))

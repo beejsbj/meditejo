@@ -92,6 +92,9 @@ Future<void> addDownloadedTrack(
     isPublished: true,
     hasBackgroundSound: request.hasBackgroundSound,
     artist: request.artist,
+    // The licence credit travels with the download, so it is shown wherever
+    // the saved copy is played.
+    attribution: request.attribution,
     voices: [
       TrackVoice(
         guideName: request.guideName,

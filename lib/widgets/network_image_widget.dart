@@ -74,10 +74,10 @@ class NetworkImageWidget extends StatelessWidget {
       imageBuilder: (context, imageProvider) => Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-          image: imageProvider,
-          fit: BoxFit.cover,
-          alignment: alignment,
-        ),
+            image: imageProvider,
+            fit: BoxFit.cover,
+            alignment: alignment,
+          ),
         ),
         foregroundDecoration: BoxDecoration(gradient: gradient),
       ),

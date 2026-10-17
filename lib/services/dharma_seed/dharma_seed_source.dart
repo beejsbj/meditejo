@@ -221,7 +221,12 @@ class DharmaSeedSource implements ContentSource, SavableContentSource {
                 teacherItem(summary.teacher, talkCount: summary.talkCount),
           ],
           talks: [for (final t in talks) talkItem(t)],
-          hasCatalogue: await db.countOf(DsKind.retreats) > 0,
+          // A chip classifies courses by their stored talks, so before any
+          // talk has synced it has nothing to show yet: that is "still
+          // syncing", not "nothing here".
+          hasCatalogue:
+              await db.countOf(DsKind.retreats) > 0 &&
+              (group == null || await db.countOf(DsKind.talks) > 0),
         );
       }, orElse: const DsExplore());
 

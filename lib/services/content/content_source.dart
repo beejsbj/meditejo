@@ -96,10 +96,7 @@ class ContentRouter {
     final maps = await Future.wait(
       sources.map((s) => s.packTrackIds(startedTrackIds: startedTrackIds)),
     );
-    return {
-      ...catalogue.packTrackIds,
-      for (final map in maps) ...map,
-    };
+    return {...catalogue.packTrackIds, for (final map in maps) ...map};
   }
 
   Future<List<PackItemsModel>> searchPacks(String query) async => [
@@ -120,18 +117,16 @@ class ContentRouter {
 
   /// Whether the owning source can save [id] at all; drives whether a Save
   /// button is shown.
-  bool canSave(String id) =>
-      switch (sourceFor(id)) {
-        final SavableContentSource source => source.canSave(id),
-        _ => false,
-      };
+  bool canSave(String id) => switch (sourceFor(id)) {
+    final SavableContentSource source => source.canSave(id),
+    _ => false,
+  };
 
-  Future<bool> isSaved(String id) async =>
-      switch (sourceFor(id)) {
-        final SavableContentSource source when source.canSave(id) =>
-          await source.isSaved(id),
-        _ => false,
-      };
+  Future<bool> isSaved(String id) async => switch (sourceFor(id)) {
+    final SavableContentSource source when source.canSave(id) =>
+      await source.isSaved(id),
+    _ => false,
+  };
 
   Future<void> setSaved(String id, {required bool saved}) async {
     if (sourceFor(id) case final SavableContentSource source

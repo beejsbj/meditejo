@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
+import 'package:medito/widgets/generated_artwork.dart';
 import 'package:medito/widgets/pack_card_widget.dart';
 
 void main() {
@@ -40,5 +41,12 @@ void main() {
 
     await tester.tap(find.byType(PackCompleteBadge));
     expect(taps, 1);
+  });
+
+  testWidgets('a pack without a picture gets generated art, not a blank', (
+    tester,
+  ) async {
+    await pump(tester, completed: false);
+    expect(find.byType(GeneratedArtwork), findsOneWidget);
   });
 }

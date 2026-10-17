@@ -31,8 +31,7 @@ class AttributionNotice extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final base =
-        color ?? theme.colorScheme.onSurface.withOpacityValue(0.7);
+    final base = color ?? theme.colorScheme.onSurface.withOpacityValue(0.7);
     final style = theme.textTheme.bodySmall?.copyWith(
       color: base,
       fontSize: compact ? 12 : 13,
@@ -54,11 +53,15 @@ class AttributionNotice extends StatelessWidget {
       onTap: () => launchURLInBrowser(url),
       child: InkWell(
         onTap: () => launchURLInBrowser(url),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Text(
-            text,
-            style: style?.copyWith(decoration: TextDecoration.underline),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            widthFactor: 1,
+            child: Text(
+              text,
+              style: style?.copyWith(decoration: TextDecoration.underline),
+            ),
           ),
         ),
       ),
@@ -67,8 +70,7 @@ class AttributionNotice extends StatelessWidget {
     final creditLink = link(
       credit,
       attribution.url,
-      semanticLabel:
-          '$credit. ${l10n.attributionViewOn(attribution.source)}',
+      semanticLabel: '$credit. ${l10n.attributionViewOn(attribution.source)}',
     );
     final licenceLink = link(licence, attribution.licenseUrl);
 
@@ -81,7 +83,11 @@ class AttributionNotice extends StatelessWidget {
                   : WrapAlignment.start,
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: 8,
-              children: [creditLink, Text('·', style: style), licenceLink],
+              children: [
+                creditLink,
+                Text('·', style: style),
+                licenceLink,
+              ],
             )
           : Column(
               crossAxisAlignment: alignment,

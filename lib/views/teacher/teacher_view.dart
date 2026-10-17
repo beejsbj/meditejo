@@ -8,6 +8,7 @@ import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
+import 'package:medito/services/local_catalogue.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_models.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/dharma_seed/widgets/course_rows_sliver.dart';
@@ -34,8 +35,12 @@ class TeacherView extends ConsumerStatefulWidget {
 class _TeacherViewState extends ConsumerState<TeacherView> {
   final _scrollController = ScrollController();
 
-  /// Talks loaded beyond the first page.
+  static const _pageSize = 30;
+
+  /// Talks loaded beyond the first page, and the first page they follow:
+  /// a fresh first page (after a sync) makes them stale.
   final List<PackItemsModel> _more = [];
+  DsTeacherPage? _basePage;
   bool _hasMore = true;
   bool _loadingMore = false;
 
@@ -54,7 +59,7 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
     if (!mounted) return;
     setState(() {
       _more.addAll(next);
-      _hasMore = next.length >= 30;
+      _hasMore = next.length >= _pageSize;
       _loadingMore = false;
     });
   }
@@ -73,6 +78,17 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
         maxWidth: 960,
         child: page != null
             ? _content(page)
+            : async.error is CatalogueEntryUnavailable
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(padding24),
+                  child: Text(
+                    AppLocalizations.of(context)!.teacherNotFound,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ),
+              )
             : async.hasError
             ? MeditoErrorWidget(
                 error: async.error is AppError
@@ -91,6 +107,11 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final teacher = page.teacher;
+    if (!identical(page, _basePage)) {
+      _basePage = page;
+      _more.clear();
+      _hasMore = true;
+    }
     final talks = [...page.talks, ..._more];
     final hasMore = _more.isEmpty ? page.hasMoreTalks : _hasMore;
     final bio = teacher.bio.trim();
@@ -111,7 +132,8 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                 child: Text(
-                  l10n.teacherCounts(teacher.talkCount, teacher.retreatCount),
+                  '${l10n.teacherTalkCount(teacher.talkCount)} · '
+                  '${l10n.teacherCourseCount(teacher.retreatCount)}',
                   key: const ValueKey('teacher_counts'),
                   style: theme.textTheme.titleMedium,
                 ),
