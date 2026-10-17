@@ -90,7 +90,9 @@ class _MeditoAppBarLargeState extends State<MeditoAppBarLarge> {
           ),
           url: coverUrl,
           shouldCache: true,
-          errorWidget: const SizedBox(),
+          // No picture: calm generated art seeded by the title.
+          seed: widget.title,
+          alignment: Alignment.topCenter,
         ),
       );
     }

@@ -44,6 +44,18 @@ abstract interface class ContentSource {
   Future<List<TrackSearchModel>> searchTracks(String query);
 }
 
+/// A source whose courses, teachers or other items the user can save.
+/// Optional: the router asks only the source that owns the ID, and only if it
+/// implements this.
+abstract interface class SavableContentSource {
+  /// Whether this source can save the item with [id] (a course or a teacher).
+  bool canSave(String id);
+
+  Future<bool> isSaved(String id);
+
+  Future<void> setSaved(String id, {required bool saved});
+}
+
 /// Dispatches by ID prefix to the owning [ContentSource], falling back to the
 /// bundled [LocalCatalogue] for IDs no source claims.
 class ContentRouter {
@@ -84,10 +96,7 @@ class ContentRouter {
     final maps = await Future.wait(
       sources.map((s) => s.packTrackIds(startedTrackIds: startedTrackIds)),
     );
-    return {
-      ...catalogue.packTrackIds,
-      for (final map in maps) ...map,
-    };
+    return {...catalogue.packTrackIds, for (final map in maps) ...map};
   }
 
   Future<List<PackItemsModel>> searchPacks(String query) async => [
@@ -105,4 +114,24 @@ class ContentRouter {
     ))
       ...results,
   ];
+
+  /// Whether the owning source can save [id] at all; drives whether a Save
+  /// button is shown.
+  bool canSave(String id) => switch (sourceFor(id)) {
+    final SavableContentSource source => source.canSave(id),
+    _ => false,
+  };
+
+  Future<bool> isSaved(String id) async => switch (sourceFor(id)) {
+    final SavableContentSource source when source.canSave(id) =>
+      await source.isSaved(id),
+    _ => false,
+  };
+
+  Future<void> setSaved(String id, {required bool saved}) async {
+    if (sourceFor(id) case final SavableContentSource source
+        when source.canSave(id)) {
+      await source.setSaved(id, saved: saved);
+    }
+  }
 }

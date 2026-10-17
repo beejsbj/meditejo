@@ -2455,7 +2455,7 @@ abstract class AppLocalizations {
   /// Pack screen play button once some sessions are done; also puts the pack on Home
   ///
   /// In en, this message translates to:
-  /// **'Continue'**
+  /// **'Resume'**
   String get packContinue;
 
   /// Snackbar after the pack screen Start/Continue button puts a new pack on Home; offers Undo
@@ -2775,6 +2775,294 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sync paused ({error}). Tap to retry.'**
   String dharmaSeedSyncFailed(String error);
+
+  /// Explore chip: guided meditations and chanting
+  ///
+  /// In en, this message translates to:
+  /// **'Practice'**
+  String get exploreKindPractice;
+
+  /// Explore chip: dharma talks, Q&A and other recordings
+  ///
+  /// In en, this message translates to:
+  /// **'Talks'**
+  String get exploreKindTalks;
+
+  /// Explore section title
+  ///
+  /// In en, this message translates to:
+  /// **'Saved courses'**
+  String get exploreSavedCourses;
+
+  /// Explore section title
+  ///
+  /// In en, this message translates to:
+  /// **'Saved teachers'**
+  String get exploreSavedTeachers;
+
+  /// Section title for retreats shown as courses
+  ///
+  /// In en, this message translates to:
+  /// **'Courses'**
+  String get exploreCourses;
+
+  /// Section title for teachers
+  ///
+  /// In en, this message translates to:
+  /// **'Teachers'**
+  String get exploreTeachers;
+
+  /// Explore section title under the Practice chip
+  ///
+  /// In en, this message translates to:
+  /// **'Latest guided practice'**
+  String get exploreLatestPractice;
+
+  /// Explore section title under the Talks chip
+  ///
+  /// In en, this message translates to:
+  /// **'Latest talks'**
+  String get exploreLatestTalks;
+
+  /// Explore empty state while the first sync runs
+  ///
+  /// In en, this message translates to:
+  /// **'Setting up your Dharma Seed library'**
+  String get exploreSyncingTitle;
+
+  /// Explore empty state body
+  ///
+  /// In en, this message translates to:
+  /// **'Courses and teachers appear here as they arrive. The first time takes a minute or two.'**
+  String get exploreSyncingBody;
+
+  /// Explore empty state after a failed or missing first sync
+  ///
+  /// In en, this message translates to:
+  /// **'The library is not synced yet'**
+  String get exploreNoLibraryTitle;
+
+  /// Explore empty state body
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to the internet and pull down to try again.'**
+  String get exploreNoLibraryBody;
+
+  /// Explore empty state for a chip with no results
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here yet. More arrives as the library syncs.'**
+  String get exploreNothingInGroup;
+
+  /// Search field hint
+  ///
+  /// In en, this message translates to:
+  /// **'Search teachers, courses and talks'**
+  String get searchDharmaHint;
+
+  /// Search landing text above the suggestions
+  ///
+  /// In en, this message translates to:
+  /// **'Try a teacher, a theme or a retreat'**
+  String get searchTryHint;
+
+  /// Search result group
+  ///
+  /// In en, this message translates to:
+  /// **'Teachers'**
+  String get searchTeachers;
+
+  /// Search result group
+  ///
+  /// In en, this message translates to:
+  /// **'Courses'**
+  String get searchCourses;
+
+  /// Search result group
+  ///
+  /// In en, this message translates to:
+  /// **'Talks'**
+  String get searchTalks;
+
+  /// Label for the session-length filter
+  ///
+  /// In en, this message translates to:
+  /// **'Talk length'**
+  String get searchTalkLength;
+
+  /// Session-length filter: no limit
+  ///
+  /// In en, this message translates to:
+  /// **'Any'**
+  String get searchLengthAny;
+
+  /// Session-length filter
+  ///
+  /// In en, this message translates to:
+  /// **'Under 10 min'**
+  String get searchLengthUnder10;
+
+  /// Session-length filter
+  ///
+  /// In en, this message translates to:
+  /// **'10–20 min'**
+  String get searchLength10to20;
+
+  /// Session-length filter
+  ///
+  /// In en, this message translates to:
+  /// **'20–30 min'**
+  String get searchLength20to30;
+
+  /// Session-length filter
+  ///
+  /// In en, this message translates to:
+  /// **'30–45 min'**
+  String get searchLength30to45;
+
+  /// Session-length filter
+  ///
+  /// In en, this message translates to:
+  /// **'Over 45 min'**
+  String get searchLengthOver45;
+
+  /// Course progress line
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {total} left'**
+  String courseLeft(int count, int total);
+
+  /// Course progress line when every session is done
+  ///
+  /// In en, this message translates to:
+  /// **'All {total} played'**
+  String courseAllPlayed(int total);
+
+  /// Button to save a course
+  ///
+  /// In en, this message translates to:
+  /// **'Save course'**
+  String get courseSave;
+
+  /// Button state for a saved course or teacher
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get courseSaved;
+
+  /// Course page tab
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions'**
+  String get courseSessionsTab;
+
+  /// Course page tab
+  ///
+  /// In en, this message translates to:
+  /// **'Summary'**
+  String get courseSummaryTab;
+
+  /// Course page tab
+  ///
+  /// In en, this message translates to:
+  /// **'Teacher'**
+  String get courseTeacherTab;
+
+  /// Summary tab when the description is empty
+  ///
+  /// In en, this message translates to:
+  /// **'This course has no written summary.'**
+  String get courseNoSummary;
+
+  /// Group heading in a long course
+  ///
+  /// In en, this message translates to:
+  /// **'Day {number}'**
+  String courseDay(int number);
+
+  /// Row state for a session saved for offline listening
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded'**
+  String get courseSessionDownloaded;
+
+  /// Session length in minutes
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String courseSessionLength(int minutes);
+
+  /// Button to save a teacher
+  ///
+  /// In en, this message translates to:
+  /// **'Save teacher'**
+  String get teacherSave;
+
+  /// Teacher page section
+  ///
+  /// In en, this message translates to:
+  /// **'Courses'**
+  String get teacherCourses;
+
+  /// Teacher page section
+  ///
+  /// In en, this message translates to:
+  /// **'Talks'**
+  String get teacherTalks;
+
+  /// Teacher page button to load another page of talks
+  ///
+  /// In en, this message translates to:
+  /// **'Show more talks'**
+  String get teacherShowMore;
+
+  /// Teacher page error
+  ///
+  /// In en, this message translates to:
+  /// **'This teacher is not in the library yet.'**
+  String get teacherNotFound;
+
+  /// Teacher page when the bio is empty
+  ///
+  /// In en, this message translates to:
+  /// **'No biography on Dharma Seed.'**
+  String get teacherNoBio;
+
+  /// Teacher page link
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get teacherWebsite;
+
+  /// Link to the item on its source site
+  ///
+  /// In en, this message translates to:
+  /// **'View on {source}'**
+  String attributionViewOn(String source);
+
+  /// Licence note under the credit
+  ///
+  /// In en, this message translates to:
+  /// **'Streamed as recorded, unmodified.'**
+  String get attributionUnmodified;
+
+  /// Credit line naming the licence
+  ///
+  /// In en, this message translates to:
+  /// **'Licence: {license}'**
+  String attributionLicence(String license);
+
+  /// Number of talks a teacher gave
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 talk} other{{count} talks}}'**
+  String teacherTalkCount(int count);
+
+  /// Number of courses (retreats) a teacher gave
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 course} other{{count} courses}}'**
+  String teacherCourseCount(int count);
 }
 
 class _AppLocalizationsDelegate

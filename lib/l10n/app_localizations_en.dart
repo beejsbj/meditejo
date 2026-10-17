@@ -1301,7 +1301,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get packStart => 'Start';
 
   @override
-  String get packContinue => 'Continue';
+  String get packContinue => 'Resume';
 
   @override
   String get packAddedToHome =>
@@ -1505,5 +1505,180 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String dharmaSeedSyncFailed(String error) {
     return 'Sync paused ($error). Tap to retry.';
+  }
+
+  @override
+  String get exploreKindPractice => 'Practice';
+
+  @override
+  String get exploreKindTalks => 'Talks';
+
+  @override
+  String get exploreSavedCourses => 'Saved courses';
+
+  @override
+  String get exploreSavedTeachers => 'Saved teachers';
+
+  @override
+  String get exploreCourses => 'Courses';
+
+  @override
+  String get exploreTeachers => 'Teachers';
+
+  @override
+  String get exploreLatestPractice => 'Latest guided practice';
+
+  @override
+  String get exploreLatestTalks => 'Latest talks';
+
+  @override
+  String get exploreSyncingTitle => 'Setting up your Dharma Seed library';
+
+  @override
+  String get exploreSyncingBody =>
+      'Courses and teachers appear here as they arrive. The first time takes a minute or two.';
+
+  @override
+  String get exploreNoLibraryTitle => 'The library is not synced yet';
+
+  @override
+  String get exploreNoLibraryBody =>
+      'Connect to the internet and pull down to try again.';
+
+  @override
+  String get exploreNothingInGroup =>
+      'Nothing here yet. More arrives as the library syncs.';
+
+  @override
+  String get searchDharmaHint => 'Search teachers, courses and talks';
+
+  @override
+  String get searchTryHint => 'Try a teacher, a theme or a retreat';
+
+  @override
+  String get searchTeachers => 'Teachers';
+
+  @override
+  String get searchCourses => 'Courses';
+
+  @override
+  String get searchTalks => 'Talks';
+
+  @override
+  String get searchTalkLength => 'Talk length';
+
+  @override
+  String get searchLengthAny => 'Any';
+
+  @override
+  String get searchLengthUnder10 => 'Under 10 min';
+
+  @override
+  String get searchLength10to20 => '10–20 min';
+
+  @override
+  String get searchLength20to30 => '20–30 min';
+
+  @override
+  String get searchLength30to45 => '30–45 min';
+
+  @override
+  String get searchLengthOver45 => 'Over 45 min';
+
+  @override
+  String courseLeft(int count, int total) {
+    return '$count of $total left';
+  }
+
+  @override
+  String courseAllPlayed(int total) {
+    return 'All $total played';
+  }
+
+  @override
+  String get courseSave => 'Save course';
+
+  @override
+  String get courseSaved => 'Saved';
+
+  @override
+  String get courseSessionsTab => 'Sessions';
+
+  @override
+  String get courseSummaryTab => 'Summary';
+
+  @override
+  String get courseTeacherTab => 'Teacher';
+
+  @override
+  String get courseNoSummary => 'This course has no written summary.';
+
+  @override
+  String courseDay(int number) {
+    return 'Day $number';
+  }
+
+  @override
+  String get courseSessionDownloaded => 'Downloaded';
+
+  @override
+  String courseSessionLength(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get teacherSave => 'Save teacher';
+
+  @override
+  String get teacherCourses => 'Courses';
+
+  @override
+  String get teacherTalks => 'Talks';
+
+  @override
+  String get teacherShowMore => 'Show more talks';
+
+  @override
+  String get teacherNotFound => 'This teacher is not in the library yet.';
+
+  @override
+  String get teacherNoBio => 'No biography on Dharma Seed.';
+
+  @override
+  String get teacherWebsite => 'Website';
+
+  @override
+  String attributionViewOn(String source) {
+    return 'View on $source';
+  }
+
+  @override
+  String get attributionUnmodified => 'Streamed as recorded, unmodified.';
+
+  @override
+  String attributionLicence(String license) {
+    return 'Licence: $license';
+  }
+
+  @override
+  String teacherTalkCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count talks',
+      one: '1 talk',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String teacherCourseCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count courses',
+      one: '1 course',
+    );
+    return '$_temp0';
   }
 }

@@ -1541,4 +1541,180 @@ class AppLocalizationsEs extends AppLocalizations {
   String dharmaSeedSyncFailed(String error) {
     return 'Sincronización en pausa ($error). Toca para reintentar.';
   }
+
+  @override
+  String get exploreKindPractice => 'Práctica';
+
+  @override
+  String get exploreKindTalks => 'Charlas';
+
+  @override
+  String get exploreSavedCourses => 'Cursos guardados';
+
+  @override
+  String get exploreSavedTeachers => 'Docentes guardados';
+
+  @override
+  String get exploreCourses => 'Cursos';
+
+  @override
+  String get exploreTeachers => 'Docentes';
+
+  @override
+  String get exploreLatestPractice => 'Última práctica guiada';
+
+  @override
+  String get exploreLatestTalks => 'Últimas charlas';
+
+  @override
+  String get exploreSyncingTitle => 'Preparando tu biblioteca de Dharma Seed';
+
+  @override
+  String get exploreSyncingBody =>
+      'Los cursos y docentes aparecerán aquí a medida que lleguen. La primera vez tarda uno o dos minutos.';
+
+  @override
+  String get exploreNoLibraryTitle => 'La biblioteca aún no está sincronizada';
+
+  @override
+  String get exploreNoLibraryBody =>
+      'Conéctate a internet y desliza hacia abajo para intentarlo de nuevo.';
+
+  @override
+  String get exploreNothingInGroup =>
+      'Todavía no hay nada. Llegará más cuando la biblioteca se sincronice.';
+
+  @override
+  String get searchDharmaHint => 'Buscar docentes, cursos y charlas';
+
+  @override
+  String get searchTryHint => 'Prueba con un docente, un tema o un retiro';
+
+  @override
+  String get searchTeachers => 'Docentes';
+
+  @override
+  String get searchCourses => 'Cursos';
+
+  @override
+  String get searchTalks => 'Charlas';
+
+  @override
+  String get searchTalkLength => 'Duración';
+
+  @override
+  String get searchLengthAny => 'Cualquiera';
+
+  @override
+  String get searchLengthUnder10 => 'Menos de 10 min';
+
+  @override
+  String get searchLength10to20 => '10–20 min';
+
+  @override
+  String get searchLength20to30 => '20–30 min';
+
+  @override
+  String get searchLength30to45 => '30–45 min';
+
+  @override
+  String get searchLengthOver45 => 'Más de 45 min';
+
+  @override
+  String courseLeft(int count, int total) {
+    return 'Quedan $count de $total';
+  }
+
+  @override
+  String courseAllPlayed(int total) {
+    return 'Las $total escuchadas';
+  }
+
+  @override
+  String get courseSave => 'Guardar curso';
+
+  @override
+  String get courseSaved => 'Guardado';
+
+  @override
+  String get courseSessionsTab => 'Sesiones';
+
+  @override
+  String get courseSummaryTab => 'Resumen';
+
+  @override
+  String get courseTeacherTab => 'Docente';
+
+  @override
+  String get courseNoSummary => 'Este curso no tiene resumen.';
+
+  @override
+  String courseDay(int number) {
+    return 'Día $number';
+  }
+
+  @override
+  String get courseSessionDownloaded => 'Descargada';
+
+  @override
+  String courseSessionLength(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get teacherSave => 'Guardar docente';
+
+  @override
+  String get teacherCourses => 'Cursos';
+
+  @override
+  String get teacherTalks => 'Charlas';
+
+  @override
+  String get teacherShowMore => 'Mostrar más charlas';
+
+  @override
+  String get teacherNotFound => 'Este docente aún no está en la biblioteca.';
+
+  @override
+  String get teacherNoBio => 'Sin biografía en Dharma Seed.';
+
+  @override
+  String get teacherWebsite => 'Sitio web';
+
+  @override
+  String attributionViewOn(String source) {
+    return 'Ver en $source';
+  }
+
+  @override
+  String get attributionUnmodified =>
+      'Reproducido tal como se grabó, sin modificar.';
+
+  @override
+  String attributionLicence(String license) {
+    return 'Licencia: $license';
+  }
+
+  @override
+  String teacherTalkCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count charlas',
+      one: '1 charla',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String teacherCourseCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cursos',
+      one: '1 curso',
+    );
+    return '$_temp0';
+  }
 }

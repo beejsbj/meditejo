@@ -16,6 +16,7 @@ import 'package:medito/views/player/widgets/bottom_actions/single_back_action_ba
 import 'package:medito/views/home/widgets/home_gradient_border.dart';
 import 'package:medito/views/player/widgets/bottom_actions/track_view_bottom_bar.dart';
 import 'package:medito/views/tags/widgets/tag_chips.dart';
+import 'package:medito/widgets/attribution_notice.dart';
 import 'package:medito/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -125,15 +126,21 @@ class _TrackViewState extends ConsumerState<TrackView>
   }
 
   Widget _buildCoverImage(Track track) {
-    return _buildImageWithData(track.coverUrl);
+    return _buildImageWithData(track.coverUrl, seed: track.title);
   }
 
-  Widget _buildImageWithData(String url) {
+  Widget _buildImageWithData(String url, {required String seed}) {
     return HomeGradientBorder(
       backgroundColor: Theme.of(context).cardColor,
       borderRadius: 20,
       borderWidth: 0.5,
-      child: NetworkImageWidget(url: url, shouldCache: true),
+      child: NetworkImageWidget(
+        url: url,
+        shouldCache: true,
+        // No picture: calm generated art, the same tile for the same title.
+        seed: seed,
+        alignment: Alignment.topCenter,
+      ),
     );
   }
 
@@ -151,8 +158,22 @@ class _TrackViewState extends ConsumerState<TrackView>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _title(context, track.title),
+        // "Guided meditation · Rob Burbea · 42 min"
+        if ((track.subtitle ?? '').isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              track.subtitle!,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
         const SizedBox(height: 8),
         _getSubTitle(context, track.description),
+        if (track.attribution case final attribution?)
+          AttributionNotice(
+            attribution: attribution,
+            padding: const EdgeInsets.only(top: 16),
+          ),
         _tags(track),
         const SizedBox(height: 24),
         if (useCompactLayout && showGuideNameDropdown)

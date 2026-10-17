@@ -2,6 +2,7 @@ class TypeConstants {
   static const String link = 'link';
   static const String pack = 'pack';
   static const String track = 'track';
+  static const String teacher = 'teacher';
   static const String email = 'email';
   static const String url = 'url';
   static const String flow = 'flow';

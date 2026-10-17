@@ -86,8 +86,13 @@ class PackPathButton extends StatelessWidget {
         Positioned(
           right: rightInset,
           bottom: 0,
-          child: Visibility.maintain(
+          // Holds its place while the docked copy is shown, but is not a second
+          // button to a screen reader (maintainSemantics stays off).
+          child: Visibility(
             visible: !hideButton,
+            maintainSize: true,
+            maintainAnimation: true,
+            maintainState: true,
             child: PackPlayButton(
               key: buttonKey,
               pack: pack,

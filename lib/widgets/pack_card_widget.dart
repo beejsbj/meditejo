@@ -46,8 +46,7 @@ class _PackCardWidgetState extends State<PackCardWidget> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (widget.coverUrlPath != null && widget.coverUrlPath!.isNotEmpty)
-              _getCoverUrl(),
+            _getCoverUrl(),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -129,6 +128,9 @@ class _PackCardWidgetState extends State<PackCardWidget> {
         child: NetworkImageWidget(
           url: widget.coverUrlPath ?? '',
           shouldCache: true,
+          // No picture: calm generated art, the same tile for the same title.
+          seed: widget.title,
+          alignment: Alignment.topCenter,
         ),
       ),
     );

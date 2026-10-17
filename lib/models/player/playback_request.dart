@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/models/track/track.dart';
 
 part 'playback_request.freezed.dart';
@@ -21,6 +22,7 @@ abstract class PlaybackRequest with _$PlaybackRequest {
     required bool hasBackgroundSound,
     String? guideName,
     TrackArtist? artist,
+    SourceAttribution? attribution,
   }) = _PlaybackRequest;
 
   factory PlaybackRequest.fromJson(Map<String, Object?> json) =>
@@ -41,5 +43,6 @@ abstract class PlaybackRequest with _$PlaybackRequest {
     hasBackgroundSound: track.hasBackgroundSound,
     guideName: voice.guideName,
     artist: track.artist,
+    attribution: track.attribution,
   );
 }

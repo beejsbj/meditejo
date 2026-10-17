@@ -18,7 +18,10 @@ import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/views/end_screen/end_screen_view.dart';
 import 'package:medito/views/player/session_completion_gate.dart';
+import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/views/player/widgets/artist_title_widget.dart';
+import 'package:medito/widgets/attribution_notice.dart';
+import 'package:medito/widgets/generated_artwork.dart';
 import 'package:medito/views/player/widgets/bottom_actions/player_action_bar.dart';
 import 'package:medito/views/player/widgets/duration_indicator_widget.dart';
 import 'package:medito/views/player/widgets/stopwatch_elapsed_widget.dart';
@@ -463,6 +466,7 @@ class PlayerScreenLayout extends StatelessWidget {
     final artistName = currentlyPlayingTrack.guideName;
     final artistUrl = currentlyPlayingTrack.artist?.path;
     final imageUrl = currentlyPlayingTrack.coverUrl;
+    final attribution = currentlyPlayingTrack.attribution;
     final isTimer = currentlyPlayingTrack.isTimer;
     final isStopwatch =
         isTimer && currentlyPlayingTrack.timerMode == TimerMode.stopwatch;
@@ -482,9 +486,16 @@ class PlayerScreenLayout extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
+                    // A session with no picture: its calm generated art,
+                    // blurred like a cover.
+                    if (imageUrl.isEmpty && !isTimer)
+                      ImageFiltered(
+                        imageFilter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: GeneratedArtwork(seed: title),
+                      ),
                     // No cover (a timer): a dark backdrop so the white
                     // controls read the same as over a blurred cover.
-                    if (imageUrl.isEmpty)
+                    if (imageUrl.isEmpty && isTimer)
                       const DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -529,6 +540,7 @@ class PlayerScreenLayout extends StatelessWidget {
                                     title: title,
                                     artistName: artistName,
                                     artistUrl: artistUrl,
+                                    attribution: attribution,
                                     totalDurationMs:
                                         currentlyPlayingTrack.duration,
                                     isPlaying: isPlaying,
@@ -545,6 +557,7 @@ class PlayerScreenLayout extends StatelessWidget {
                                       title: title,
                                       artistName: artistName,
                                       artistUrl: artistUrl,
+                                      attribution: attribution,
                                       totalDurationMs:
                                           currentlyPlayingTrack.duration,
                                       isPlaying: isPlaying,
@@ -582,6 +595,7 @@ class _PortraitPlayerLayout extends ConsumerWidget {
     required this.title,
     required this.artistName,
     required this.artistUrl,
+    this.attribution,
     required this.totalDurationMs,
     required this.isPlaying,
     required this.isLoading,
@@ -594,6 +608,7 @@ class _PortraitPlayerLayout extends ConsumerWidget {
   final String title;
   final String? artistName;
   final String? artistUrl;
+  final SourceAttribution? attribution;
   final int totalDurationMs;
   final bool isPlaying;
   final bool isLoading;
@@ -605,11 +620,17 @@ class _PortraitPlayerLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return AdaptivePlayerLayout(
       expanded: expanded,
-      heading: ArtistTitleWidget(
-        trackTitle: title,
-        artistName: artistName ?? '',
-        artistUrlPath: artistUrl,
-        isPlayerScreen: true,
+      heading: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ArtistTitleWidget(
+            trackTitle: title,
+            artistName: artistName ?? '',
+            artistUrlPath: artistUrl,
+            isPlayerScreen: true,
+          ),
+          if (attribution != null) _PlayerAttribution(attribution!),
+        ],
       ),
       controls: Column(
         mainAxisSize: MainAxisSize.min,
@@ -647,6 +668,7 @@ class _LandscapePlayerLayout extends ConsumerWidget {
     required this.title,
     required this.artistName,
     required this.artistUrl,
+    this.attribution,
     required this.totalDurationMs,
     required this.isPlaying,
     required this.isLoading,
@@ -658,6 +680,7 @@ class _LandscapePlayerLayout extends ConsumerWidget {
   final String title;
   final String? artistName;
   final String? artistUrl;
+  final SourceAttribution? attribution;
   final int totalDurationMs;
   final bool isPlaying;
   final bool isLoading;
@@ -677,6 +700,7 @@ class _LandscapePlayerLayout extends ConsumerWidget {
           artistUrlPath: artistUrl,
           isPlayerScreen: true,
         ),
+        if (attribution != null) _PlayerAttribution(attribution!),
         if (isStopwatch)
           const StopwatchElapsedWidget()
         else
@@ -699,6 +723,25 @@ class _LandscapePlayerLayout extends ConsumerWidget {
           onStop: onStop,
         ),
       ],
+    );
+  }
+}
+
+/// The credit and licence a track's source asks for, under the title: one
+/// quiet, centred line whose parts open the talk's page and the licence.
+class _PlayerAttribution extends StatelessWidget {
+  const _PlayerAttribution(this.attribution);
+
+  final SourceAttribution attribution;
+
+  @override
+  Widget build(BuildContext context) {
+    return AttributionNotice(
+      attribution: attribution,
+      compact: true,
+      alignment: CrossAxisAlignment.center,
+      color: ColorConstants.white.withOpacityValue(0.8),
+      padding: const EdgeInsets.only(bottom: 8),
     );
   }
 }

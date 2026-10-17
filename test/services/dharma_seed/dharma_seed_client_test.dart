@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -53,6 +54,30 @@ void main() {
       expect(talk.str('title'), 'talk: Renewing motivation');
       expect(talk.integer('teacher_id'), 637);
       expect(talk.str('audio_url'), startsWith('/talks/95073/'));
+    });
+
+    test('decodes a large batch off the main isolate, unchanged', () async {
+      // Well over the 32 KiB threshold, with non-ASCII text to prove the
+      // UTF-8 round trip.
+      final items = {
+        for (var id = 1; id <= 400; id++)
+          '$id': {
+            'id': id,
+            'title': 'Ñāṇa $id ${'x' * 120}',
+            'duration_in_minutes': 12.5,
+          },
+      };
+      final client = DharmaSeedClient(
+        httpClient: MockClient(
+          (_) async => http.Response.bytes(
+            utf8.encode(jsonEncode({'edition': 'e', 'items': items})),
+            200,
+          ),
+        ),
+      );
+      final details = await client.fetchDetails(DsKind.talks, [1, 400]);
+      expect(details.records.length, 400);
+      expect(details.records[7]!.str('title'), startsWith('Ñāṇa 7 '));
     });
 
     test('makes no request for an empty detail list', () async {

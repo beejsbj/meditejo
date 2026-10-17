@@ -1240,7 +1240,7 @@
   "@packStart": {
     "description": "Pack screen play button when nothing in the pack has been played; also puts the pack on Home"
   },
-  "packContinue": "Continue",
+  "packContinue": "Resume",
   "@packContinue": {
     "description": "Pack screen play button once some sessions are done; also puts the pack on Home"
   },
@@ -1515,6 +1515,241 @@
     "placeholders": {
       "error": {
         "type": "String"
+      }
+    }
+  },
+  "exploreKindPractice": "Practice",
+  "@exploreKindPractice": {
+    "description": "Explore chip: guided meditations and chanting"
+  },
+  "exploreKindTalks": "Talks",
+  "@exploreKindTalks": {
+    "description": "Explore chip: dharma talks, Q&A and other recordings"
+  },
+  "exploreSavedCourses": "Saved courses",
+  "@exploreSavedCourses": {
+    "description": "Explore section title"
+  },
+  "exploreSavedTeachers": "Saved teachers",
+  "@exploreSavedTeachers": {
+    "description": "Explore section title"
+  },
+  "exploreCourses": "Courses",
+  "@exploreCourses": {
+    "description": "Section title for retreats shown as courses"
+  },
+  "exploreTeachers": "Teachers",
+  "@exploreTeachers": {
+    "description": "Section title for teachers"
+  },
+  "exploreLatestPractice": "Latest guided practice",
+  "@exploreLatestPractice": {
+    "description": "Explore section title under the Practice chip"
+  },
+  "exploreLatestTalks": "Latest talks",
+  "@exploreLatestTalks": {
+    "description": "Explore section title under the Talks chip"
+  },
+  "exploreSyncingTitle": "Setting up your Dharma Seed library",
+  "@exploreSyncingTitle": {
+    "description": "Explore empty state while the first sync runs"
+  },
+  "exploreSyncingBody": "Courses and teachers appear here as they arrive. The first time takes a minute or two.",
+  "@exploreSyncingBody": {
+    "description": "Explore empty state body"
+  },
+  "exploreNoLibraryTitle": "The library is not synced yet",
+  "@exploreNoLibraryTitle": {
+    "description": "Explore empty state after a failed or missing first sync"
+  },
+  "exploreNoLibraryBody": "Connect to the internet and pull down to try again.",
+  "@exploreNoLibraryBody": {
+    "description": "Explore empty state body"
+  },
+  "exploreNothingInGroup": "Nothing here yet. More arrives as the library syncs.",
+  "@exploreNothingInGroup": {
+    "description": "Explore empty state for a chip with no results"
+  },
+  "searchDharmaHint": "Search teachers, courses and talks",
+  "@searchDharmaHint": {
+    "description": "Search field hint"
+  },
+  "searchTryHint": "Try a teacher, a theme or a retreat",
+  "@searchTryHint": {
+    "description": "Search landing text above the suggestions"
+  },
+  "searchTeachers": "Teachers",
+  "@searchTeachers": {
+    "description": "Search result group"
+  },
+  "searchCourses": "Courses",
+  "@searchCourses": {
+    "description": "Search result group"
+  },
+  "searchTalks": "Talks",
+  "@searchTalks": {
+    "description": "Search result group"
+  },
+  "searchTalkLength": "Talk length",
+  "@searchTalkLength": {
+    "description": "Label for the session-length filter"
+  },
+  "searchLengthAny": "Any",
+  "@searchLengthAny": {
+    "description": "Session-length filter: no limit"
+  },
+  "searchLengthUnder10": "Under 10 min",
+  "@searchLengthUnder10": {
+    "description": "Session-length filter"
+  },
+  "searchLength10to20": "10–20 min",
+  "@searchLength10to20": {
+    "description": "Session-length filter"
+  },
+  "searchLength20to30": "20–30 min",
+  "@searchLength20to30": {
+    "description": "Session-length filter"
+  },
+  "searchLength30to45": "30–45 min",
+  "@searchLength30to45": {
+    "description": "Session-length filter"
+  },
+  "searchLengthOver45": "Over 45 min",
+  "@searchLengthOver45": {
+    "description": "Session-length filter"
+  },
+  "courseLeft": "{count} of {total} left",
+  "@courseLeft": {
+    "description": "Course progress line",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "courseAllPlayed": "All {total} played",
+  "@courseAllPlayed": {
+    "description": "Course progress line when every session is done",
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "courseSave": "Save course",
+  "@courseSave": {
+    "description": "Button to save a course"
+  },
+  "courseSaved": "Saved",
+  "@courseSaved": {
+    "description": "Button state for a saved course or teacher"
+  },
+  "courseSessionsTab": "Sessions",
+  "@courseSessionsTab": {
+    "description": "Course page tab"
+  },
+  "courseSummaryTab": "Summary",
+  "@courseSummaryTab": {
+    "description": "Course page tab"
+  },
+  "courseTeacherTab": "Teacher",
+  "@courseTeacherTab": {
+    "description": "Course page tab"
+  },
+  "courseNoSummary": "This course has no written summary.",
+  "@courseNoSummary": {
+    "description": "Summary tab when the description is empty"
+  },
+  "courseDay": "Day {number}",
+  "@courseDay": {
+    "description": "Group heading in a long course",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "courseSessionDownloaded": "Downloaded",
+  "@courseSessionDownloaded": {
+    "description": "Row state for a session saved for offline listening"
+  },
+  "courseSessionLength": "{minutes} min",
+  "@courseSessionLength": {
+    "description": "Session length in minutes",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "teacherSave": "Save teacher",
+  "@teacherSave": {
+    "description": "Button to save a teacher"
+  },
+  "teacherCourses": "Courses",
+  "@teacherCourses": {
+    "description": "Teacher page section"
+  },
+  "teacherTalks": "Talks",
+  "@teacherTalks": {
+    "description": "Teacher page section"
+  },
+  "teacherShowMore": "Show more talks",
+  "@teacherShowMore": {
+    "description": "Teacher page button to load another page of talks"
+  },
+  "teacherNotFound": "This teacher is not in the library yet.",
+  "@teacherNotFound": {
+    "description": "Teacher page error"
+  },
+  "teacherNoBio": "No biography on Dharma Seed.",
+  "@teacherNoBio": {
+    "description": "Teacher page when the bio is empty"
+  },
+  "teacherWebsite": "Website",
+  "@teacherWebsite": {
+    "description": "Teacher page link"
+  },
+  "attributionViewOn": "View on {source}",
+  "@attributionViewOn": {
+    "description": "Link to the item on its source site",
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "attributionUnmodified": "Streamed as recorded, unmodified.",
+  "@attributionUnmodified": {
+    "description": "Licence note under the credit"
+  },
+  "attributionLicence": "Licence: {license}",
+  "@attributionLicence": {
+    "description": "Credit line naming the licence",
+    "placeholders": {
+      "license": {
+        "type": "String"
+      }
+    }
+  },
+  "teacherTalkCount": "{count, plural, =1{1 talk} other{{count} talks}}",
+  "@teacherTalkCount": {
+    "description": "Number of talks a teacher gave",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "teacherCourseCount": "{count, plural, =1{1 course} other{{count} courses}}",
+  "@teacherCourseCount": {
+    "description": "Number of courses (retreats) a teacher gave",
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   }
