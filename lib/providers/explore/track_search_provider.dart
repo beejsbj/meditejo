@@ -1,16 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/models/explore/explore_list_item.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/repositories/explore/track_search_repository.dart';
 import 'package:medito/repositories/pack/packs_repository.dart';
 
 final trackSearchRepositoryProvider = Provider<TrackSearchRepository>((ref) {
-  return TrackSearchRepository();
+  return TrackSearchRepository(sources: ref.watch(contentSourcesProvider));
 });
 
 final explorePacksProvider = FutureProvider.autoDispose<List<PackItem>>((
   ref,
 ) async {
   final packRepo = ref.watch(packRepositoryProvider);
+  // Re-list when a background sync lands new courses.
+  ref.watch(dharmaSeedRevisionProvider);
   final packs = await packRepo.fetchAllPacks();
 
   return packs

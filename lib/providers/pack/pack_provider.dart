@@ -14,12 +14,17 @@ Future<List<PackItemsModel>> fetchAllPacks(Ref ref) {
   );
 }
 
-/// Every local catalogue pack's track IDs, including sub-packs.
+/// Track IDs of the packs that can show a completion tick, including
+/// sub-packs: the whole local catalogue, plus each source's saved packs and
+/// packs containing a completed track. Never a large source's every pack.
 /// Empty on failure: a pack then simply shows no tick, never a wrong one.
 @Riverpod(keepAlive: true)
 Future<Map<String, List<String>>> packTrackIds(Ref ref) async {
+  final checked = ref.watch(statsProvider).value?.tracksChecked;
   try {
-    return await ref.read(packRepositoryProvider).fetchPackTrackIds();
+    return await ref
+        .read(packRepositoryProvider)
+        .fetchPackTrackIds(startedTrackIds: {...?checked});
   } catch (_) {
     return const {};
   }

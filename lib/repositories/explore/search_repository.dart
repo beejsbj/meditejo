@@ -1,11 +1,15 @@
 import 'package:medito/models/pack/pack_model.dart';
+import 'package:medito/services/content/content_source.dart';
 import 'package:medito/services/local_catalogue.dart';
 
 class SearchRepository {
-  SearchRepository({this.catalogue = const LocalCatalogue()});
+  SearchRepository({
+    LocalCatalogue catalogue = const LocalCatalogue(),
+    List<ContentSource> sources = const [],
+  }) : router = ContentRouter(catalogue: catalogue, sources: sources);
 
-  final LocalCatalogue catalogue;
+  final ContentRouter router;
 
   Future<List<PackItemsModel>> searchPacks(String query) async =>
-      catalogue.searchPacks(query);
+      router.searchPacks(query);
 }
