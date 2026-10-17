@@ -63,6 +63,8 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
     - Dharma Seed is a convenient way to find things to add. Explore reads as "find something to add", and Home and the library show what the user has added.
     - **Catalogue delivery:** ship the Dharma Seed catalogue inside the app as a compressed database, refreshed each release. Fetch only the additions since that snapshot, and do it when the user opens search or browse, not at startup.
     - **Design pass:** palette, type, motion, and the player, course list and home surfaces come **after the import slice lands**, with Burooj in the loop from the moodboard on.
+11. **Practice comes before talks** (Burooj, 2026-10-17: "practice >>>> talks"). Guided practice leads everywhere a choice exists: Home, Explore, search ordering, the starter set and import defaults. Talks, Q&A and the rest are secondary.
+12. **In-app updates** (requested 2026-10-17, modelled on the Nuvio Android app). The app checks for a newer signed build, downloads it and hands it to Android's installer, so Burooj doesn't fetch APKs from GitHub by hand. This needs a published, durably signed APK somewhere the app can reach, for example GitHub Releases on `beejsbj/meditejo`. Publishing releases is outward-facing, so the hosting choice is Burooj's.
 
 ## Build and run
 
