@@ -80,6 +80,14 @@ if [[ $branch != develop ]] && ((! allow_branch)); then
   problem "on branch '$branch', not develop (use --allow-branch to release from it)"
 fi
 [[ -z $(git status --porcelain) ]] || problem 'the working tree is not clean'
+# The build takes minutes and ends in a push: refuse early unless this commit
+# is exactly what origin has, so nothing unreviewed ships and the push cannot fail late.
+if git fetch --quiet origin "$branch" 2>/dev/null; then
+  [[ $(git rev-parse HEAD) == "$(git rev-parse FETCH_HEAD)" ]] ||
+    problem "local $branch differs from origin/$branch (pull or push first)"
+else
+  problem "could not fetch origin/$branch"
+fi
 [[ -z $notes_file || -s $notes_file ]] || problem "notes file '$notes_file' is missing or empty"
 echo "branch: ${branch:-?}   commit: $(git rev-parse --short HEAD)   tag: $tag"
 
@@ -187,8 +195,10 @@ if ((dry)); then
   echo "+ $build_tools/apksigner verify --print-certs <apk>   # digest must equal the pin ($pinned)"
   echo "+ $build_tools/aapt2 dump badging <apk>   # versionName='$version' versionCode='$code'"
 else
-  digest=$("$build_tools/apksigner" verify --print-certs "$apk" |
-    sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d ':' | tr 'A-F' 'a-f')
+  certs=$("$build_tools/apksigner" verify --print-certs "$apk")
+  grep -q '^Number of signers: 1$' <<<"$certs" ||
+    { echo 'The APK must have exactly one signer.' >&2; exit 1; }
+  digest=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' <<<"$certs" | tr -d ':' | tr 'A-F' 'a-f')
   [[ $digest == "$pinned" ]] || { echo "Signing certificate $digest is not the pinned one." >&2; exit 1; }
   badging=$("$build_tools/aapt2" dump badging "$apk" | sed -n 's/^package: //p')
   [[ $badging == *"versionCode='$code'"* && $badging == *"versionName='$version'"* ]] || {
