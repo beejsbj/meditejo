@@ -122,6 +122,17 @@ void main() {
     'a new player ignores the previous session\'s completed state and opens '
     'the end screen only for its own',
     (tester) async {
+      var healthPermissionRequests = 0;
+      const healthChannel = MethodChannel('flutter_health');
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(healthChannel, (call) async {
+        if (call.method == 'requestAuthorization') healthPermissionRequests++;
+        return false;
+      });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(healthChannel, null),
+      );
       final player = _FakePlayer();
       await tester.pumpWidget(
         PreviewShell(
@@ -170,6 +181,13 @@ void main() {
       await tester.pump();
       expect(find.byType(EndScreenView), findsNothing);
       expect(find.byType(PlayerScreenLayout), findsOneWidget);
+
+      expect(
+        healthPermissionRequests,
+        0,
+        reason:
+            'Opening and starting a session must never request Health permission',
+      );
 
       // It finishes: now the end screen opens.
       audio.updatePlaybackState(_state(completed: true, positionMs: 48024));

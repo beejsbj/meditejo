@@ -60,6 +60,7 @@
   "stats": "Stats",
   "history": "History",
   "cancel": "Cancel",
+  "healthSyncPermissionDenied": "Health sync is off. You can allow access in Settings whenever you’re ready.",
   "syncWithHealth": "Sync with Apple Health",
   "syncWithHealthConnect": "Sync with Health Connect",
   "permissionExplanation": "Permissions set. To change them, go to Settings > Privacy and Security > Health > Meditejo",

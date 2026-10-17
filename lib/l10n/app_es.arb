@@ -43,6 +43,7 @@
   "stats": "Estadísticas",
   "history": "Historial",
   "cancel": "Cancelar",
+  "healthSyncPermissionDenied": "La sincronización de salud está desactivada. Puedes permitir el acceso en Ajustes cuando quieras.",
   "syncWithHealth": "Sincronizar con Apple Health",
   "syncWithHealthConnect": "Sincronizar con Health Connect",
   "permissionExplanation": "Permisos configurados. Para cambiarlos, ve a Configuración > Privacidad y Seguridad > Salud > Meditejo",

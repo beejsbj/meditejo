@@ -352,6 +352,12 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get cancel;
 
+  /// No description provided for @healthSyncPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Health sync is off. You can allow access in Settings whenever you’re ready.'**
+  String get healthSyncPermissionDenied;
+
   /// No description provided for @syncWithHealth.
   ///
   /// In en, this message translates to:

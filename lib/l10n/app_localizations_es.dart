@@ -143,6 +143,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get cancel => 'Cancelar';
 
   @override
+  String get healthSyncPermissionDenied =>
+      'La sincronización de salud está desactivada. Puedes permitir el acceso en Ajustes cuando quieras.';
+
+  @override
   String get syncWithHealth => 'Sincronizar con Apple Health';
 
   @override

@@ -38,6 +38,11 @@ Decisions made while building Meditejo, newest last. Product decisions live in `
 - **Let the APK command regenerate release plugin registration:** the first GitHub compile reached Java and failed because `--no-pub` preserves the initial debug registrant (including integration_test), whereas Gradle excludes dev-only plugins in release. Remove that optimization and use the normal `flutter build apk` command. Flutter 3.47.2 source confirms that `--no-pub` skips platform tooling regeneration; no app/dependency change is needed.
 - **Use the existing PKCS12 password once with apksigner:** `--ks-pass file:...` is sufficient because the private key uses the same password. Passing the same single-line file again as `--key-pass` consumes a nonexistent second line. The successful local signing command omits that argument and closes stdin; the durable key/password are unchanged.
 
+## 2026-10-16
+
+- **Health sync is opt-in from Settings.** The Health Connect / Apple Health row is now a saved switch. Only switching it on requests permission; denial leaves it off with a short explanation. Player initialization and completion never request permission. Granted, enabled sessions retain the existing write and deduplication flow; unavailable permissions and failed writes are logged without UI or retries that request access.
+- **Migrate from the current OS grant once.** Missing `healthSyncEnabled` is initialized by a silent permission check: a current grant keeps sync on, otherwise it starts off. The old `healthAuthRequested` flag only records a prompt, so it is not consent. An explicit off persists even if OS permission remains granted. Both Android and iOS use this policy. HealthKit checks WRITE permission silently because its READ_WRITE check always returns an undetermined result; the Settings request retains the existing READ_WRITE scope and checks the write grant afterward. No iOS runtime verification was performed.
+
 ## 2026-10-17
 
 Dharma Seed data layer and the source seam (PR A of slice 2).

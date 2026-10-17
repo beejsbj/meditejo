@@ -218,9 +218,7 @@ Future<bool> _handleStats(
       durationMs: payload[TypeConstants.durationIdKey] as int,
     );
 
-    // Last: the first sync can show the Health permission sheet, and nothing
-    // above (recording the session locally) should wait for the user to
-    // answer it.
+    // Optional Health writes follow local recording and never request permission.
     await _syncHealthKit(payload).catchError((e) {
       AppLogger.e('STATS', 'HealthKit sync error', e);
     });
