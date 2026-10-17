@@ -173,7 +173,7 @@ run env MEDITEJO_APK_DIR="$stage/build" \
 
 if ((dry)); then
   apk="$stage/build/meditejo-$version-<sha8>.apk"
-  sha=$(git rev-parse HEAD)
+  sha='<release commit>'
 else
   apk=$(ls "$stage"/build/meditejo-"$version"-*.apk | head -1)
   [[ -f $apk ]] || { echo 'build_apk.sh produced no APK' >&2; exit 1; }
