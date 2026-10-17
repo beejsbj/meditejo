@@ -78,9 +78,8 @@ class FakeDownloader implements UpdateDownloader {
     onProgress?.call(0.5);
     await gate?.future;
     onProgress?.call(1);
-    final file = File('${dir.path}/meditejo-${release.versionCode}.apk');
-    await file.writeAsBytes(const [1, 2, 3]);
-    return file;
+    // No disk I/O: widget tests run in fake async, where real I/O never ends.
+    return File('${dir.path}/meditejo-${release.versionCode}.apk');
   }
 
   @override
