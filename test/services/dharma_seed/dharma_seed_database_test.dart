@@ -94,10 +94,7 @@ void main() {
     });
 
     test('deletes thousands of IDs in one call', () async {
-      await db.deleteRecords(
-        DsKind.talks,
-        List.generate(41542, (i) => i + 1),
-      );
+      await db.deleteRecords(DsKind.talks, List.generate(41542, (i) => i + 1));
       expect(await db.countOf(DsKind.talks), 9);
     });
   });
@@ -109,10 +106,7 @@ void main() {
       expect(hits.single.teacher?.name, 'Jill Shepherd');
 
       final prefix = await db.searchTalks('wise vie');
-      expect(
-        prefix.map((h) => h.talk.id),
-        containsAll([95421, 95545, 95800]),
-      );
+      expect(prefix.map((h) => h.talk.id), containsAll([95421, 95545, 95800]));
     });
 
     test('finds talks by teacher name', () async {
@@ -169,8 +163,20 @@ void main() {
 
       final teachers = await db.searchTeachers('rob');
       expect(teachers.first.id, 210);
-      final byBio = await db.searchTeachers('emptiness');
-      expect(byBio.map((t) => t.id), [210]);
+      // Bios are not searched: only a name makes a teacher a result.
+      expect(await db.searchTeachers('emptiness'), isEmpty);
+      await db.upsertTeacherRecords({
+        9002: {
+          'id': 9002,
+          'name': 'Unrelated Teacher',
+          'bio': 'Studied with Rob Burbea for many years.',
+          'photo': '',
+          'monastic': false,
+          'non_public': false,
+        },
+      });
+      final full = await db.searchTeachers('rob burbea');
+      expect(full.map((t) => t.id), [210]);
     });
 
     test('talk search follows a teacher rename', () async {
@@ -196,13 +202,16 @@ void main() {
       expect(await db.savedIds(DsSavedKind.retreat), [6689]);
     });
 
-    test('the queue hands out IDs newest first and survives dequeues', () async {
-      await db.enqueue(DsKind.talks, [3, 1, 2, 2]);
-      expect(await db.queuedCount(DsKind.talks), 3);
-      expect(await db.nextQueued(DsKind.talks, 2), [3, 2]);
-      await db.dequeue(DsKind.talks, [3, 2]);
-      expect(await db.nextQueued(DsKind.talks, 2), [1]);
-      expect(await db.queuedCount(DsKind.teachers), 0);
-    });
+    test(
+      'the queue hands out IDs newest first and survives dequeues',
+      () async {
+        await db.enqueue(DsKind.talks, [3, 1, 2, 2]);
+        expect(await db.queuedCount(DsKind.talks), 3);
+        expect(await db.nextQueued(DsKind.talks, 2), [3, 2]);
+        await db.dequeue(DsKind.talks, [3, 2]);
+        expect(await db.nextQueued(DsKind.talks, 2), [1]);
+        expect(await db.queuedCount(DsKind.teachers), 0);
+      },
+    );
   });
 }

@@ -486,9 +486,9 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
           ),
           mode: InsertMode.insertOrIgnore,
         )
-      : (delete(dsSaved)
-              ..where((s) => s.kind.equals(kind.name) & s.itemId.equals(id)))
-            .go();
+      : (delete(
+          dsSaved,
+        )..where((s) => s.kind.equals(kind.name) & s.itemId.equals(id))).go();
 
   /// Saved IDs of [kind], most recently saved first.
   Future<List<int>> savedIds(DsSavedKind kind) async {
@@ -512,7 +512,9 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
       DsKind.retreats => 'ds_retreats',
       DsKind.talks => 'ds_talks',
     };
-    final row = await customSelect('SELECT COUNT(*) AS c FROM $table').getSingle();
+    final row = await customSelect(
+      'SELECT COUNT(*) AS c FROM $table',
+    ).getSingle();
     return row.read<int>('c');
   }
 
@@ -591,7 +593,9 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
       final query = selectOnly(dsTalks)
         ..addColumns([dsTalks.id])
         ..where(dsTalks.id.isIn(chunk));
-      found.addAll([for (final row in await query.get()) row.read(dsTalks.id)!]);
+      found.addAll([
+        for (final row in await query.get()) row.read(dsTalks.id)!,
+      ]);
     }
     return found;
   }
@@ -638,7 +642,6 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
     }
     return found;
   }
-
 
   /// SQL for "this talk is in [group]" on a `ds_talks` row aliased [alias].
   /// Untyped and unknown recordings are Talks.
@@ -693,7 +696,8 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
   Future<List<DsTalkWithTeacher>> _withTeachers(List<DsTalk> talks) async {
     final teachers = await teachersById(talks.map((t) => t.teacherId).nonNulls);
     return [
-      for (final talk in talks) DsTalkWithTeacher(talk, teachers[talk.teacherId]),
+      for (final talk in talks)
+        DsTalkWithTeacher(talk, teachers[talk.teacherId]),
     ];
   }
 
@@ -781,8 +785,8 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
 
   Future<bool> isSaved(DsSavedKind kind, int id) async =>
       (await (select(dsSaved)
-                ..where((s) => s.kind.equals(kind.name) & s.itemId.equals(id)))
-              .getSingleOrNull()) !=
+            ..where((s) => s.kind.equals(kind.name) & s.itemId.equals(id)))
+          .getSingleOrNull()) !=
       null;
 
   // ---------------------------------------------------------------- search
@@ -834,9 +838,12 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
     return [for (final row in rows) dsRetreats.map(row.data)];
   }
 
+  /// Teachers whose *name* matches every word of [query]. Bios are not
+  /// searched: a teacher mentioned in another's bio is not a teacher result.
   Future<List<DsTeacher>> searchTeachers(String query, {int limit = 20}) async {
-    final match = matchExpression(query);
-    if (match == null) return const [];
+    final words = matchExpression(query);
+    if (words == null) return const [];
+    final match = 'name : ($words)';
     final rows = await customSelect(
       'SELECT t.* FROM ds_teachers_fts f JOIN ds_teachers t ON t.id = f.rowid '
       'WHERE ds_teachers_fts MATCH ? AND t.is_public = 1 '

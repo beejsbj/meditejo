@@ -65,6 +65,9 @@ class _SearchResultsState extends ConsumerState<SearchResults> {
   void didUpdateWidget(covariant SearchResults oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.query.trim().isEmpty) _shown = null;
+    // A new query starts unfiltered: a length left over from the last search
+    // can empty the next one with nothing on screen to explain it.
+    if (widget.query.trim() != oldWidget.query.trim()) _length = null;
   }
 
   @override

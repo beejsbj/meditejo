@@ -199,6 +199,24 @@ void main() {
       expect(find.text('Untyped talk about jhana'), findsOneWidget);
     });
 
+    testWidgets('a new query resets the length filter to Any', (tester) async {
+      final app = await DharmaSeedTestApp.create(tester);
+      await app.pump(tester, const Scaffold(body: SearchView()));
+      await tester.enterText(find.byType(TextField), 'jhana');
+      await tester.pump(const Duration(milliseconds: 450));
+      await DharmaSeedTestApp.settle(tester);
+
+      await tester.tap(find.byKey(const ValueKey('length_under10')));
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.text('Jhana basics'), findsNothing);
+
+      await tester.enterText(find.byType(TextField), 'untyped');
+      await tester.pump(const Duration(milliseconds: 450));
+      await DharmaSeedTestApp.settle(tester);
+      // The 15-minute talk shows: under-10 no longer applies.
+      expect(find.text('Untyped talk about jhana'), findsOneWidget);
+    });
+
     testWidgets('diacritics are searched, not stripped from the query', (
       tester,
     ) async {
