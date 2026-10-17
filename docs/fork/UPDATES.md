@@ -28,7 +28,7 @@ it to Android's installer.
   `0.1.0+26101701`, so the test APK built from this branch is the *installed* build and the
   first published release (`0.1.0`, code `26101702` or later) is something to update *to*.
   (The dev flavor shows it as `0.1.0-dev`.)
-- **Releases use the `prod` flavor.** Both flavors install as `io.github.beejsbj/meditejo`,
+- **Releases use the `prod` flavor.** Both flavors install as `io.github.beejsbj.meditejo`,
   so either would update the other. `dev` adds a `-dev` name suffix and a different launcher
   icon; `prod` is the plain, durable app. Installing the first `prod` release over the dev
   build therefore changes the icon, which is the intent. `dev` stays for test builds
@@ -69,13 +69,17 @@ tools/meditejo/release.sh 0.1.0 --notes notes.md --dry-run   # print the plan
 tools/meditejo/release.sh 0.1.0 --notes notes.md --yes       # publish
 ```
 
-Steps: preflight (clean tree, `gh` auth, tag unused) → pick the next `versionCode` → bump
+Steps: preflight (clean tree matching origin, `gh` auth, tag unused) → pick the next `versionCode` → bump
 `pubspec.yaml` and commit → push the commit → `build_apk.sh HEAD --flavor prod` (GitHub
 Actions builds unsigned, bjslab aligns and signs with the durable key and checks the pinned
 digest) → independently re-verify the pinned digest on the staged APK → write the `.sha256`
 and `meditejo-release.json` → `gh release create v<version> --repo beejsbj/meditejo`.
 
-`--dry-run` prints every command, changes nothing and contacts nothing except read-only
+If a run fails part-way: after a failed build a local version-bump commit is left, so
+`git reset --hard origin/develop` before trying again; if it fails after the draft release
+exists, `gh release delete v<version> --repo beejsbj/meditejo --yes` first.
+
+`--dry-run` prints every command, changes nothing and contacts nothing except a `git fetch` and read-only
 `gh` lookups for the latest published code (skipped when offline).
 
 Medito's `prepare_release.sh` and its `release` skill drove the App Store / Play pipeline
@@ -91,7 +95,8 @@ Android in `ApkUpdaterBridge.kt`.
 
 1. **Check** (at most daily, 10 s after launch; or "Check for updates"): `GET
    /repos/beejsbj/meditejo/releases/latest` with `If-None-Match`. A `304` reuses the cached
-   release and does not count against the unauthenticated rate limit. A new release also
+   release and saves bandwidth (it still counts against the unauthenticated limit, which one
+   request a day cannot reach). A new release also
    fetches `meditejo-release.json`.
 2. **Compare** its `versionCode` with the installed one.
 3. **Download** to app storage (`files/updates/`) with progress, hashing as it streams; refuse
@@ -117,6 +122,7 @@ Sessions report the outcome (success, user cancelled, blocked, conflict) back to
 without exposing a file URI, and are the supported path on Android 14 and 15, where
 `ACTION_VIEW`/`ACTION_INSTALL_PACKAGE` on a `content://` URI is deprecated and gives no result.
 The APK is streamed into the session from the app's private directory, so no FileProvider
-paths are added. From Android 12 the session asks for `USER_ACTION_NOT_REQUIRED`; Android
-honours that only for updates by the installer of record, so the first update (installed by My
-Files) still shows the system prompt and later ones may not.
+paths are added. Every update shows Android's own confirmation prompt: skipping it
+(`USER_ACTION_NOT_REQUIRED`) needs the `UPDATE_PACKAGES_WITHOUT_USER_ACTION` permission, which
+the app does not declare. If the receiver cannot open that prompt (for example the app was sent
+to the background), the "Installing" state gives up after three minutes and offers Update again.
