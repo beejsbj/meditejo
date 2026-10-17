@@ -69,6 +69,7 @@ dependencies:
   xml: ^6.6.1
   crypto: ^3.0.7
   file_picker: ^11.0.3
+  path: ^1.9.1
 
 dev_dependencies:
   flutter_test:

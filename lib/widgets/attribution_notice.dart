@@ -42,11 +42,22 @@ class AttributionNotice extends StatelessWidget {
         creator,
       attribution.source,
     ].join(' · ');
+    // Imported material often has no licence on record; credit it anyway.
+    final hasLicence = attribution.licenseName.isNotEmpty;
     final licence = compact
         ? attribution.licenseName
         : l10n.attributionLicence(attribution.licenseName);
 
-    Widget link(String text, String url, {String? semanticLabel}) => Semantics(
+    Widget link(String text, String url, {String? semanticLabel}) => url.isEmpty
+        ? ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              widthFactor: 1,
+              child: Text(text, style: style),
+            ),
+          )
+        : Semantics(
       link: true,
       label: semanticLabel ?? text,
       excludeSemantics: true,
@@ -72,7 +83,9 @@ class AttributionNotice extends StatelessWidget {
       attribution.url,
       semanticLabel: '$credit. ${l10n.attributionViewOn(attribution.source)}',
     );
-    final licenceLink = link(licence, attribution.licenseUrl);
+    final licenceLink = hasLicence
+        ? link(licence, attribution.licenseUrl)
+        : null;
 
     return Padding(
       padding: padding,
@@ -85,15 +98,17 @@ class AttributionNotice extends StatelessWidget {
               spacing: 8,
               children: [
                 creditLink,
-                Text('·', style: style),
-                licenceLink,
+                if (licenceLink != null) ...[
+                  Text('·', style: style),
+                  licenceLink,
+                ],
               ],
             )
           : Column(
               crossAxisAlignment: alignment,
               children: [
                 creditLink,
-                licenceLink,
+                ?licenceLink,
                 Padding(
                   padding: const EdgeInsets.only(top: 2),
                   child: Text(l10n.attributionUnmodified, style: style),

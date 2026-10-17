@@ -295,6 +295,14 @@ class DharmaSeedSync {
     await _ensureTeachersOf(missing);
   }
 
+  /// Makes sure one teacher is on the device. Returns false when Dharma Seed
+  /// no longer has them.
+  Future<bool> ensureTeacher(int teacherId) async {
+    if (await db.teacherById(teacherId) != null) return true;
+    final gone = await _fetchNow(DsKind.teachers, [teacherId]);
+    return !gone.contains(teacherId);
+  }
+
   /// Makes sure one talk is on the device. Returns false when Dharma Seed no
   /// longer has it.
   Future<bool> ensureTalk(int talkId) async {
