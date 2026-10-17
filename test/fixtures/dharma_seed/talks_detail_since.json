@@ -1,0 +1,31 @@
+{
+ "edition": "2026-10-18 09:00:00",
+ "items": {
+  "99974": {
+   "id": 99974,
+   "update_date": "2026-10-18 08:00:00",
+   "title": "Ces teintes plaisantes (révisé)",
+   "teacher_id": 198,
+   "description": "",
+   "venue_id": 327,
+   "retreat_id": 6998,
+   "language_id": 6,
+   "destination": "web",
+   "rec_date": "2026-10-16 12:11:34",
+   "duration_in_minutes": 61.10454421768707,
+   "publishability": "general",
+   "video_url": "",
+   "recording_type": "Talk",
+   "is_featured": false,
+   "recording_date_in_seconds": 1792152694.0,
+   "audio_url": "/talks/99974/20261016-Pascal_Auclair-MOULIN-ces_teintes_plaisantes_ou_d_plaisantes_qui_colorent_notre_v_cu-99974.mp3",
+   "tracks": [],
+   "isAlbum": false,
+   "isNotSellable": false,
+   "teachers": [
+    198
+   ]
+  }
+ },
+ "x_items": []
+}
