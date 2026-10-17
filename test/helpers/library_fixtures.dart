@@ -17,8 +17,7 @@ String libraryFixture(String name) =>
     File('test/fixtures/library/$name').readAsStringSync();
 
 LibraryDatabase memoryLibraryDb() {
-  // Registers the system SQLite for host tests, as the Dharma Seed helper does.
-  memoryDharmaSeedDb().close();
+  useSystemSqlite();
   return LibraryDatabase(NativeDatabase.memory());
 }
 
@@ -92,8 +91,8 @@ class LibraryHarness {
   final FakeWeb web;
   final ImportService service;
   final Directory storage;
-  final DharmaSeedSource? dharmaSeed;
-  final DharmaSeedDatabase? dsDb;
+  final DharmaSeedSource dharmaSeed;
+  final DharmaSeedDatabase dsDb;
 
   static LibraryHarness create({
     Map<String, http.Response> routes = const {},
@@ -107,7 +106,10 @@ class LibraryHarness {
     final lib = LibSource(db: db, library: store);
     final web = FakeWeb(routes, offline: offline);
     final storage = Directory.systemTemp.createTempSync('library_test');
-    final ds = dharmaSeed?.call(store);
+    final dsDatabase = dsDb ?? memoryDharmaSeedDb();
+    final ds =
+        dharmaSeed?.call(store) ??
+        DharmaSeedSource(db: dsDatabase, library: store);
     final service = ImportService(
       http: ImportHttp(client: web.client),
       lib: lib,
@@ -117,11 +119,21 @@ class LibraryHarness {
       durationProbe: probe,
       clock: () => DateTime.utc(2026, 10, 17, 12),
     );
-    return LibraryHarness._(db, store, lib, web, service, storage, ds, dsDb);
+    return LibraryHarness._(
+      db,
+      store,
+      lib,
+      web,
+      service,
+      storage,
+      ds,
+      dsDatabase,
+    );
   }
 
   Future<void> dispose() async {
     await db.close();
+    await dsDb.close();
     if (storage.existsSync()) storage.deleteSync(recursive: true);
   }
 

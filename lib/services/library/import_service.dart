@@ -459,9 +459,11 @@ class ImportService {
       itemCount: audio.length,
       durationMs: known,
       durationComplete: durations.every((d) => d != null),
+      // One file is its own title; a list is only useful for several.
       firstItems: [
-        for (var i = 0; i < audio.length && i < _previewItems; i++)
-          PreviewItem(title: titles[i], durationMs: durations[i]),
+        if (multiple)
+          for (var i = 0; i < audio.length && i < _previewItems; i++)
+            PreviewItem(title: titles[i], durationMs: durations[i]),
       ],
       files: audio,
       fileDurationsMs: durations,

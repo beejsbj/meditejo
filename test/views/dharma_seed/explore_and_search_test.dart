@@ -62,21 +62,36 @@ void main() {
       expect(find.text('Settling'), findsNothing);
     });
 
-    testWidgets('saved courses and teachers lead', (tester) async {
+    testWidgets('library courses and saved teachers lead', (tester) async {
       final app = await DharmaSeedTestApp.create(tester);
       await tester.runAsync(() async {
-        await app.db.setSaved(DsSavedKind.retreat, 200, saved: true);
-        await app.db.setSaved(DsSavedKind.teacher, 2, saved: true);
+        await app.source.setSaved('ds-retreat-200', saved: true);
+        await app.source.setSaved('ds-teacher-2', saved: true);
       });
       await app.pump(tester, const ExploreView());
 
-      expect(find.text('Saved courses'), findsOneWidget);
+      expect(find.text('In your library'), findsOneWidget);
       expect(find.text('Saved teachers'), findsOneWidget);
-      final saved = tester.getTopLeft(find.text('Saved courses')).dy;
+      final library = tester.getTopLeft(find.text('In your library')).dy;
       final courses = tester.getTopLeft(find.text('Courses')).dy;
-      expect(saved, lessThan(courses));
-      // The saved course appears once, under Saved courses.
+      expect(library, lessThan(courses));
+      // The library course appears once, under In your library.
       expect(find.text('Dharma Talks Winter'), findsOneWidget);
+    });
+
+    testWidgets('library courses stay visible under a chip', (tester) async {
+      final app = await DharmaSeedTestApp.create(tester);
+      await tester.runAsync(
+        () => app.source.setSaved('ds-retreat-200', saved: true),
+      );
+      await app.pump(tester, const ExploreView());
+
+      // Practice chip: the library's Talks course is not hidden by it.
+      await tester.tap(find.text('Practice'));
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.text('In your library'), findsOneWidget);
+      expect(find.text('Dharma Talks Winter'), findsOneWidget);
+      expect(find.text('Latest guided practice'), findsOneWidget);
     });
 
     testWidgets('before the first sync, a calm card explains', (tester) async {
