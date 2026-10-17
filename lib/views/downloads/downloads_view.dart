@@ -9,6 +9,7 @@ import 'package:medito/models/models.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/repositories/repositories.dart';
 import 'package:medito/utils/duration_extensions.dart';
+import 'package:medito/utils/resume_request.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/scaffold_messenger_key.dart';
 import 'package:medito/views/downloads/widgets/download_list_item.dart';
@@ -256,10 +257,14 @@ class _DownloadsViewState extends ConsumerState<DownloadsView>
 
   String _getDuration(String? length) => formatTrackLength(length);
 
-  void _openPlayer(WidgetRef ref, Track track) {
+  Future<void> _openPlayer(WidgetRef ref, Track track) async {
     final voice = track.voices.first;
     final file = voice.audioFiles.first;
-    final request = PlaybackRequest.fromTrack(track, voice, file);
+    final request = await withResumePosition(
+      ref,
+      PlaybackRequest.fromTrack(track, voice, file),
+    );
+    if (!mounted) return;
     // Prepare + open the player immediately; PlayerView starts playback and
     // shows its own loading state (no wait on this screen).
     ref.read(playerProvider.notifier).prepare(request);

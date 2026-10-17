@@ -4,6 +4,7 @@ import 'package:medito/constants/constants.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/views/pack/widgets/pack_item_widget.dart';
+import 'package:medito/widgets/add_to_library_icon.dart';
 
 /// Single sessions as the same rows a course page uses: kind, title, teacher
 /// and length, with their played and downloaded state. Tapping opens the
@@ -29,20 +30,29 @@ class SessionRowsSliver extends ConsumerWidget {
         return Column(
           key: ValueKey('session_${item.id}'),
           children: [
-            Semantics(
-              button: true,
-              child: InkWell(
-                onTap: () {
-                  onBeforeNavigate?.call();
-                  handleNavigation(
-                    TypeConstants.track,
-                    [item.id, item.path],
-                    context,
-                    ref: ref,
-                  );
-                },
-                child: PackItemWidget(item: item),
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Semantics(
+                    button: true,
+                    child: InkWell(
+                      onTap: () {
+                        onBeforeNavigate?.call();
+                        handleNavigation(
+                          TypeConstants.track,
+                          [item.id, item.path],
+                          context,
+                          ref: ref,
+                        );
+                      },
+                      child: PackItemWidget(item: item),
+                    ),
+                  ),
+                ),
+                AddToLibraryIcon(id: item.id),
+                const SizedBox(width: 4),
+              ],
             ),
             if (index < items.length - 1)
               const Divider(

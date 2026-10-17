@@ -7,9 +7,11 @@ import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/models/models.dart';
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/views/dharma_seed/widgets/teacher_avatar.dart';
+import 'package:medito/views/library/lib_course_settings.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/pack/widgets/pack_item_widget.dart';
 import 'package:medito/views/pack/widgets/pack_path_button.dart';
@@ -260,7 +262,7 @@ class _PackViewState extends ConsumerState<PackView>
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                  '${done == 0 ? l10n.packStart : l10n.packContinue}: '
+                  '${done == 0 && ref.watch(resumePointProvider(next.id)).value == null ? l10n.packStart : l10n.packContinue}: '
                   '${next.title}',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -274,6 +276,7 @@ class _PackViewState extends ConsumerState<PackView>
             label: l10n.courseSave,
             savedLabel: l10n.courseSaved,
           ),
+          LibCourseSettings(courseId: pack.id),
           _packTags(pack),
         ],
       ),

@@ -58,7 +58,11 @@ class PlayerActionBar extends StatelessWidget {
         semanticLabel: l10n.close,
       ),
       leftCenterItem: BottomActionBarItem.custom(
-        child: AudioDownloadWidget(request: request),
+        // A file imported into the app is already on the device; there is
+        // nothing to download.
+        child: request.remoteUrl.startsWith('http')
+            ? AudioDownloadWidget(request: request)
+            : const SizedBox(width: 48, height: 48),
       ),
       rightCenterItem: BottomActionBarItem(
         child: _buildBackgroundSoundWidget(),

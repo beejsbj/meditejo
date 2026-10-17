@@ -23,6 +23,10 @@ abstract class PlaybackRequest with _$PlaybackRequest {
     String? guideName,
     TrackArtist? artist,
     SourceAttribution? attribution,
+
+    /// Where to start, when the user is resuming a session they left. Zero
+    /// starts from the beginning.
+    @Default(0) int startPositionMs,
   }) = _PlaybackRequest;
 
   factory PlaybackRequest.fromJson(Map<String, Object?> json) =>

@@ -19,10 +19,10 @@ Map<String, Object?> dsFixture(String name) =>
 const dsFirstEdition = '2026-10-17 07:49:28';
 const dsSecondEdition = '2026-10-18 09:00:00';
 
-DharmaSeedDatabase memoryDharmaSeedDb() {
+/// Points host tests at the system SQLite (the app bundles its own). Linux
+/// runtimes often ship only the versioned library, not the dev symlink.
+void useSystemSqlite() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-  // Host tests use the system SQLite (the app bundles its own). Linux
-  // runtimes often ship only the versioned library, not the dev symlink.
   open.overrideFor(OperatingSystem.linux, () {
     try {
       return DynamicLibrary.open('libsqlite3.so');
@@ -30,6 +30,10 @@ DharmaSeedDatabase memoryDharmaSeedDb() {
       return DynamicLibrary.open('libsqlite3.so.0');
     }
   });
+}
+
+DharmaSeedDatabase memoryDharmaSeedDb() {
+  useSystemSqlite();
   return DharmaSeedDatabase(NativeDatabase.memory());
 }
 

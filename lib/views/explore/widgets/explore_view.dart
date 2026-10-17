@@ -10,6 +10,8 @@ import 'package:medito/models/explore/explore_list_item.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
+import 'package:medito/providers/library/library_providers.dart';
+import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
@@ -129,8 +131,40 @@ class ExploreViewState extends ConsumerState<ExploreView> {
       ];
     }
 
+    // Courses in the library lead, under any chip: they are the user's own,
+    // so a filter must never hide them.
+    final library =
+        ref
+            .watch(librarySectionsProvider)
+            .value
+            ?.contentFirstPractice
+            .where((e) => e.kind == LibraryKind.course)
+            .toList() ??
+        const <LibraryEntry>[];
+    final l10n = AppLocalizations.of(context)!;
+    final libraryHeading = library.isEmpty
+        ? const <Widget>[]
+        : [
+            SliverToBoxAdapter(
+              child: SectionHeader(title: l10n.exploreLibraryHeading),
+            ),
+            PackGridSliver(
+              packs: [
+                for (final entry in library)
+                  PackItem(
+                    id: entry.sourceId,
+                    title: entry.displayTitle,
+                    subtitle: entry.subtitle,
+                    coverUrl: entry.coverUrl,
+                    path: '/packs/${entry.sourceId}',
+                  ),
+              ],
+            ),
+          ];
+
     if (explore.isEmpty) {
       return [
+        ...libraryHeading,
         SliverFillRemaining(
           hasScrollBody: false,
           child: Center(
@@ -149,14 +183,8 @@ class ExploreViewState extends ConsumerState<ExploreView> {
       ];
     }
 
-    final l10n = AppLocalizations.of(context)!;
     return [
-      if (explore.saved.isNotEmpty) ...[
-        SliverToBoxAdapter(
-          child: SectionHeader(title: l10n.exploreSavedCourses),
-        ),
-        PackGridSliver(packs: _packs(explore.saved)),
-      ],
+      ...libraryHeading,
       if (explore.courses.isNotEmpty) ...[
         SliverToBoxAdapter(child: SectionHeader(title: l10n.exploreCourses)),
         PackGridSliver(packs: _packs(explore.courses)),

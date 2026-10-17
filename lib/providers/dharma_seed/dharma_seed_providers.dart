@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/services/content/content_source.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_client.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
@@ -32,33 +33,38 @@ final dharmaSeedSourceProvider = Provider<DharmaSeedSource>(
   (ref) => DharmaSeedSource(
     db: ref.watch(dharmaSeedDatabaseProvider),
     sync: ref.watch(dharmaSeedSyncProvider),
+    library: ref.watch(libraryStoreProvider),
   ),
 );
 
 /// Every built-in or imported source, consulted by ID prefix. Later sources
-/// (`lib-`, `yt-`) join this list.
+/// (`yt-`) join this list.
 final contentSourcesProvider = Provider<List<ContentSource>>(
-  (ref) => [ref.watch(dharmaSeedSourceProvider)],
+  (ref) => [ref.watch(dharmaSeedSourceProvider), ref.watch(libSourceProvider)],
 );
 
 /// Live sync state for the settings row (in progress, last synced, failed).
 final dharmaSeedSyncStatusProvider =
-    NotifierProvider<_ValueListenableNotifier<DharmaSeedSyncStatus>, DharmaSeedSyncStatus>(
-      () => _ValueListenableNotifier(
+    NotifierProvider<
+      ValueListenableNotifier<DharmaSeedSyncStatus>,
+      DharmaSeedSyncStatus
+    >(
+      () => ValueListenableNotifier(
         (ref) => ref.watch(dharmaSeedSyncProvider).status,
       ),
     );
 
 /// Changes after a sync pass alters stored records; watch it to re-query.
 final dharmaSeedRevisionProvider =
-    NotifierProvider<_ValueListenableNotifier<int>, int>(
-      () => _ValueListenableNotifier(
+    NotifierProvider<ValueListenableNotifier<int>, int>(
+      () => ValueListenableNotifier(
         (ref) => ref.watch(dharmaSeedSyncProvider).revision,
       ),
     );
 
-class _ValueListenableNotifier<T> extends Notifier<T> {
-  _ValueListenableNotifier(this._select);
+/// Exposes a [ValueListenable] owned by a service as provider state.
+class ValueListenableNotifier<T> extends Notifier<T> {
+  ValueListenableNotifier(this._select);
 
   final ValueListenable<T> Function(Ref ref) _select;
 

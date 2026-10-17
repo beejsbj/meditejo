@@ -11,9 +11,13 @@ import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_sync.dart';
+import 'package:medito/services/library/library_database.dart';
+import 'package:medito/services/library/library_models.dart';
+import 'package:medito/services/library/library_store.dart';
 import 'package:medito/services/local_catalogue.dart';
 
 import '../../helpers/dharma_seed_fake_api.dart';
+import '../../helpers/library_fixtures.dart';
 
 const _localTrack = Track(
   id: 'lib-session',
@@ -29,7 +33,8 @@ class _LocalCatalogue extends LocalCatalogue {
   List<PackModel> get packs => const [PackModel(id: 'lib-course', title: 'L')];
 
   @override
-  Track track(String id) => id == _localTrack.id ? _localTrack : super.track(id);
+  Track track(String id) =>
+      id == _localTrack.id ? _localTrack : super.track(id);
 }
 
 void main() {
@@ -37,14 +42,25 @@ void main() {
   late FakeDharmaSeedApi api;
   late DharmaSeedSync sync;
   late DharmaSeedSource source;
+  late LibraryDatabase libraryDb;
+  late LibraryStore library;
 
   setUp(() {
     db = memoryDharmaSeedDb();
+    libraryDb = memoryLibraryDb();
+    library = LibraryStore(libraryDb);
     api = FakeDharmaSeedApi();
     sync = DharmaSeedSync(db: db, client: api.client(), sleep: (_) async {});
-    source = DharmaSeedSource(db: db, sync: sync);
+    source = DharmaSeedSource(db: db, sync: sync, library: library);
   });
-  tearDown(() => db.close());
+  tearDown(() async {
+    await db.close();
+    await libraryDb.close();
+  });
+
+  Future<void> addToLibrary(String id) => library.add(
+    LibraryDraft(sourceId: id, kind: LibraryKind.course, title: id),
+  );
 
   group('retreat → course', () {
     test('sessions are talks in recording order, fetched on open', () async {
@@ -117,10 +133,7 @@ void main() {
       expect(track.artist?.path, 'https://dharmaseed.org/talks/95073/');
       final file = track.voices.single.audioFiles.single;
       expect(file.id, 'ds-talk-95073');
-      expect(
-        file.path,
-        startsWith('https://dharmaseed.org/talks/95073/'),
-      );
+      expect(file.path, startsWith('https://dharmaseed.org/talks/95073/'));
       expect(file.path, endsWith('.mp3'));
       expect(file.duration, closeTo(25.1 * 60000, 6000));
     });
@@ -180,7 +193,7 @@ void main() {
       expect(started['ds-retreat-6689'], pack.items.map((i) => i.id).toList());
       expect(started['ds-retreat-6689'], hasLength(7));
 
-      await db.setSaved(DsSavedKind.retreat, 6689, saved: true);
+      await addToLibrary('ds-retreat-6689');
       expect((await source.packTrackIds()).keys, ['ds-retreat-6689']);
     });
 
@@ -188,11 +201,17 @@ void main() {
       final fresh = memoryDharmaSeedDb();
       addTearDown(fresh.close);
       await fresh.upsertRetreatRecords({
-        1: {'name': 'Course', 'talks': [10, 11, 12]},
+        1: {
+          'name': 'Course',
+          'talks': [10, 11, 12],
+        },
       });
-      await fresh.setSaved(DsSavedKind.retreat, 1, saved: true);
+      await addToLibrary('ds-retreat-1');
 
-      final ids = await DharmaSeedSource(db: fresh).packTrackIds();
+      final ids = await DharmaSeedSource(
+        db: fresh,
+        library: library,
+      ).packTrackIds();
 
       expect(ids['ds-retreat-1'], ['ds-talk-10', 'ds-talk-11', 'ds-talk-12']);
     });
@@ -215,24 +234,30 @@ void main() {
   });
 
   group('router', () {
-    test('dispatches by prefix and falls back to the local catalogue', () async {
-      await sync.sync();
-      final router = ContentRouter(
-        catalogue: _LocalCatalogue(),
-        sources: [source],
-      );
+    test(
+      'dispatches by prefix and falls back to the local catalogue',
+      () async {
+        await sync.sync();
+        final router = ContentRouter(
+          catalogue: _LocalCatalogue(),
+          sources: [source],
+        );
 
-      expect((await router.track('ds-talk-95073')).title, contains('Renewing'));
-      expect((await router.track('lib-session')).title, 'Local session');
-      await expectLater(
-        router.track('yt-abc'),
-        throwsA(isA<CatalogueEntryUnavailable>()),
-      );
-      expect((await router.browsePacks()).map((p) => p.id), [
-        'lib-course',
-        'ds-retreat-6689',
-      ]);
-    });
+        expect(
+          (await router.track('ds-talk-95073')).title,
+          contains('Renewing'),
+        );
+        expect((await router.track('lib-session')).title, 'Local session');
+        await expectLater(
+          router.track('yt-abc'),
+          throwsA(isA<CatalogueEntryUnavailable>()),
+        );
+        expect((await router.browsePacks()).map((p) => p.id), [
+          'lib-course',
+          'ds-retreat-6689',
+        ]);
+      },
+    );
 
     test('repositories reach the source through the router', () async {
       await sync.sync();

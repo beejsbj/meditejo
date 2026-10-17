@@ -2941,13 +2941,13 @@ abstract class AppLocalizations {
   /// Button to save a course
   ///
   /// In en, this message translates to:
-  /// **'Save course'**
+  /// **'Add to library'**
   String get courseSave;
 
   /// Button state for a saved course or teacher
   ///
   /// In en, this message translates to:
-  /// **'Saved'**
+  /// **'In library'**
   String get courseSaved;
 
   /// Course page tab
@@ -2995,7 +2995,7 @@ abstract class AppLocalizations {
   /// Button to save a teacher
   ///
   /// In en, this message translates to:
-  /// **'Save teacher'**
+  /// **'Add to library'**
   String get teacherSave;
 
   /// Teacher page section
@@ -3063,6 +3063,444 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 course} other{{count} courses}}'**
   String teacherCourseCount(int count);
+
+  /// Heading of the screen and Home section listing what the user added
+  ///
+  /// In en, this message translates to:
+  /// **'Your library'**
+  String get libraryTitle;
+
+  /// Button that opens the import screen
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get libraryAdd;
+
+  /// Library section for guided practice
+  ///
+  /// In en, this message translates to:
+  /// **'Practice'**
+  String get libraryPractice;
+
+  /// Library section for talks and Q&A
+  ///
+  /// In en, this message translates to:
+  /// **'Talks'**
+  String get libraryTalks;
+
+  /// Library section for followed teachers
+  ///
+  /// In en, this message translates to:
+  /// **'Teachers'**
+  String get libraryTeachers;
+
+  /// Link from the Home library section to the library screen
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get librarySeeAll;
+
+  /// Empty library heading
+  ///
+  /// In en, this message translates to:
+  /// **'Your library is empty'**
+  String get libraryEmptyTitle;
+
+  /// Empty library explanation
+  ///
+  /// In en, this message translates to:
+  /// **'Add a course, a talk or a recording from a link or a file.'**
+  String get libraryEmptyBody;
+
+  /// Home library section when nothing is added
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a link, share one from another app, or pick a file.'**
+  String get libraryEmptyHome;
+
+  /// Menu item that reclassifies a library entry as practice
+  ///
+  /// In en, this message translates to:
+  /// **'Move to Practice'**
+  String get libraryMoveToPractice;
+
+  /// Menu item that reclassifies a library entry as a talk
+  ///
+  /// In en, this message translates to:
+  /// **'Move to Talks'**
+  String get libraryMoveToTalks;
+
+  /// Menu item that renames a library entry
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get libraryRename;
+
+  /// Menu item that removes a library entry
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from library'**
+  String get libraryRemove;
+
+  /// Confirmation title for removing a library entry
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from your library?'**
+  String get libraryRemoveTitle;
+
+  /// Confirmation text when the entry was imported by the user
+  ///
+  /// In en, this message translates to:
+  /// **'The audio copied to this device for it will be deleted.'**
+  String get libraryRemoveImported;
+
+  /// Confirmation text when the entry comes from a catalogue
+  ///
+  /// In en, this message translates to:
+  /// **'It stays in Explore, and you can add it again.'**
+  String get libraryRemoveCatalogue;
+
+  /// Title of the rename dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get libraryRenameTitle;
+
+  /// Hint in the rename field
+  ///
+  /// In en, this message translates to:
+  /// **'Name in your library'**
+  String get libraryRenameHint;
+
+  /// Save button of the rename dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get libraryRenameSave;
+
+  /// Number of sessions in a course
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 session} other{{count} sessions}}'**
+  String librarySessions(int count);
+
+  /// Shown after something is added to the library
+  ///
+  /// In en, this message translates to:
+  /// **'Added to your library'**
+  String get libraryAddedSnack;
+
+  /// Shown when the thing was already in the library
+  ///
+  /// In en, this message translates to:
+  /// **'Already in your library'**
+  String get libraryAlreadyIn;
+
+  /// Action that opens a library entry
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get libraryOpen;
+
+  /// Shown after removing from the library
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from your library'**
+  String get libraryRemovedSnack;
+
+  /// Button that adds a course, talk or teacher to the library
+  ///
+  /// In en, this message translates to:
+  /// **'Add to library'**
+  String get libraryAddToLibrary;
+
+  /// Button state when the item is already in the library
+  ///
+  /// In en, this message translates to:
+  /// **'In library'**
+  String get libraryInLibrary;
+
+  /// Row label for a session left partway, with the position
+  ///
+  /// In en, this message translates to:
+  /// **'Resume at {position}'**
+  String libraryResumeAt(String position);
+
+  /// Title of the import screen
+  ///
+  /// In en, this message translates to:
+  /// **'Add to your library'**
+  String get importTitle;
+
+  /// Hint in the link field
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a link'**
+  String get importFieldHint;
+
+  /// Help under the link field
+  ///
+  /// In en, this message translates to:
+  /// **'Dharma Seed pages, podcast feeds, audio links, or files on your phone.'**
+  String get importHelp;
+
+  /// Button that pastes from the clipboard
+  ///
+  /// In en, this message translates to:
+  /// **'Paste'**
+  String get importPaste;
+
+  /// Button that looks at the typed link
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get importPreviewAction;
+
+  /// Suggestion when the clipboard holds a link
+  ///
+  /// In en, this message translates to:
+  /// **'Link on your clipboard: {host}'**
+  String importClipboard(String host);
+
+  /// Button that uses the clipboard link
+  ///
+  /// In en, this message translates to:
+  /// **'Use'**
+  String get importUseClipboard;
+
+  /// Button that picks audio files
+  ///
+  /// In en, this message translates to:
+  /// **'Choose files'**
+  String get importChooseFiles;
+
+  /// Button that picks a folder of audio files
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a folder'**
+  String get importChooseFolder;
+
+  /// Shown while a link is being read
+  ///
+  /// In en, this message translates to:
+  /// **'Looking at the link…'**
+  String get importLooking;
+
+  /// The one primary action of the import preview
+  ///
+  /// In en, this message translates to:
+  /// **'Add to library'**
+  String get importPrimary;
+
+  /// Shown while the import is stored
+  ///
+  /// In en, this message translates to:
+  /// **'Adding…'**
+  String get importAdding;
+
+  /// Import choice: a course
+  ///
+  /// In en, this message translates to:
+  /// **'Course'**
+  String get importKindCourse;
+
+  /// Import choice: a single recording
+  ///
+  /// In en, this message translates to:
+  /// **'Single'**
+  String get importKindSingle;
+
+  /// Caption under the Course choice for a feed
+  ///
+  /// In en, this message translates to:
+  /// **'All {count} episodes, in order'**
+  String importCaptionCourseAll(int count);
+
+  /// Caption under the Single choice for a feed
+  ///
+  /// In en, this message translates to:
+  /// **'Just the latest episode'**
+  String get importCaptionLatest;
+
+  /// Caption under the Course choice for several files
+  ///
+  /// In en, this message translates to:
+  /// **'One course, in the order shown'**
+  String get importCaptionFilesCourse;
+
+  /// Caption under the Single choice for several files
+  ///
+  /// In en, this message translates to:
+  /// **'Each file on its own'**
+  String get importCaptionFilesSingles;
+
+  /// Label above the Practice/Talk choice
+  ///
+  /// In en, this message translates to:
+  /// **'Counts as'**
+  String get importCountsAs;
+
+  /// Import choice: practice
+  ///
+  /// In en, this message translates to:
+  /// **'Practice'**
+  String get importGroupPractice;
+
+  /// Import choice: talk
+  ///
+  /// In en, this message translates to:
+  /// **'Talk'**
+  String get importGroupTalk;
+
+  /// Episode order: oldest first
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest first'**
+  String get importOrderOldest;
+
+  /// Episode order: newest first
+  ///
+  /// In en, this message translates to:
+  /// **'Newest first'**
+  String get importOrderNewest;
+
+  /// A total length that is a lower bound because some sessions have no length
+  ///
+  /// In en, this message translates to:
+  /// **'at least {duration}'**
+  String importAtLeast(String duration);
+
+  /// Note that some feed items had no audio
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 item without audio was left out} other{{count} items without audio were left out}}'**
+  String importSkipped(int count);
+
+  /// Shown in the preview when it is already added
+  ///
+  /// In en, this message translates to:
+  /// **'This is already in your library.'**
+  String get importInLibraryNote;
+
+  /// Default name for several imported files
+  ///
+  /// In en, this message translates to:
+  /// **'Imported audio'**
+  String get importDefaultTitle;
+
+  /// Label of the title field in the preview
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get importTitleLabel;
+
+  /// Calm failure: nothing entered
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a link or choose a file to begin.'**
+  String get importFailEmpty;
+
+  /// Calm failure: not a usable link
+  ///
+  /// In en, this message translates to:
+  /// **'That doesn\'t look like a link or file I can use. Try an address that starts with https://.'**
+  String get importFailUnrecognised;
+
+  /// Calm failure: YouTube
+  ///
+  /// In en, this message translates to:
+  /// **'YouTube support is coming. For now, paste a podcast feed, an audio link or a Dharma Seed page.'**
+  String get importFailYoutube;
+
+  /// Calm failure: a service with no readable feed
+  ///
+  /// In en, this message translates to:
+  /// **'Links from that service can\'t be imported. For a podcast, look for its feed address, or its page on Apple Podcasts.'**
+  String get importFailUnsupportedHost;
+
+  /// Calm failure: no connection
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach that address. Check your connection and try again.'**
+  String get importFailOffline;
+
+  /// Calm failure: 404
+  ///
+  /// In en, this message translates to:
+  /// **'That page wasn\'t found. Check the link and try again.'**
+  String get importFailNotFound;
+
+  /// Calm failure: server error
+  ///
+  /// In en, this message translates to:
+  /// **'That site couldn\'t give us what we asked for. Try again later.'**
+  String get importFailUnreachable;
+
+  /// Calm failure: page with no feed or audio
+  ///
+  /// In en, this message translates to:
+  /// **'That page has no podcast feed or audio file I can find. If you have the feed address (often ending in .xml or /feed), paste that instead.'**
+  String get importFailNoFeed;
+
+  /// Calm failure: feed without audio
+  ///
+  /// In en, this message translates to:
+  /// **'This feed has no audio episodes.'**
+  String get importFailNoEpisodes;
+
+  /// Calm failure: unreadable feed
+  ///
+  /// In en, this message translates to:
+  /// **'This feed couldn\'t be read. It may be damaged or not a podcast feed.'**
+  String get importFailBrokenFeed;
+
+  /// Calm failure: Dharma Seed item missing
+  ///
+  /// In en, this message translates to:
+  /// **'Dharma Seed doesn\'t have that, or couldn\'t be reached just now.'**
+  String get importFailDharmaSeed;
+
+  /// Calm failure: file missing
+  ///
+  /// In en, this message translates to:
+  /// **'That file couldn\'t be found.'**
+  String get importFailFile;
+
+  /// Calm failure: no audio files
+  ///
+  /// In en, this message translates to:
+  /// **'No audio files found there.'**
+  String get importFailNoAudio;
+
+  /// Calm failure: storing failed
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t add that. Please try again.'**
+  String get importFailAdd;
+
+  /// Shown when a link or file was shared into the app
+  ///
+  /// In en, this message translates to:
+  /// **'Shared with Meditejo'**
+  String get shareArrived;
+
+  /// Heading above the library courses on Explore
+  ///
+  /// In en, this message translates to:
+  /// **'In your library'**
+  String get exploreLibraryHeading;
+
+  /// Button that plays a session from the start instead of resuming
+  ///
+  /// In en, this message translates to:
+  /// **'From the beginning'**
+  String get libraryFromStart;
+
+  /// Switch on an imported feed course: look for new episodes now and then
+  ///
+  /// In en, this message translates to:
+  /// **'Check for new episodes'**
+  String get libraryCheckNew;
 }
 
 class _AppLocalizationsDelegate

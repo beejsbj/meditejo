@@ -4,21 +4,32 @@ import 'package:medito/services/content/content_source.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
+import 'package:medito/services/library/library_database.dart';
+import 'package:medito/services/library/library_models.dart';
+import 'package:medito/services/library/library_store.dart';
 import 'package:medito/services/local_catalogue.dart';
 
 import '../../helpers/dharma_seed_catalogue.dart';
 import '../../helpers/dharma_seed_fake_api.dart';
+import '../../helpers/library_fixtures.dart';
 
 void main() {
   late DharmaSeedDatabase db;
   late DharmaSeedSource source;
+  late LibraryDatabase libraryDb;
+  late LibraryStore library;
 
   setUp(() async {
     db = memoryDharmaSeedDb();
-    source = DharmaSeedSource(db: db, browseLimit: 10);
+    libraryDb = memoryLibraryDb();
+    library = LibraryStore(libraryDb);
+    source = DharmaSeedSource(db: db, library: library, browseLimit: 10);
     await seedDharmaSeedCatalogue(db);
   });
-  tearDown(() => db.close());
+  tearDown(() async {
+    await db.close();
+    await libraryDb.close();
+  });
 
   group('explore', () {
     test(
@@ -26,7 +37,6 @@ void main() {
       () async {
         final explore = await source.explore();
         expect(explore.hasCatalogue, isTrue);
-        expect(explore.saved, isEmpty);
         expect(explore.courses.map((c) => c.id), [
           'ds-retreat-300',
           'ds-retreat-200',
@@ -83,23 +93,27 @@ void main() {
       expect(explore.talks.first.kind, 'Recording');
     });
 
-    test('saved courses and teachers lead the unfiltered view only', () async {
-      await db.setSaved(DsSavedKind.retreat, 100, saved: true);
-      await db.setSaved(DsSavedKind.teacher, 2, saved: true);
+    test(
+      'what is in the library leaves the browse lists, under any chip',
+      () async {
+        await source.setSaved('ds-retreat-100', saved: true);
+        await source.setSaved('ds-teacher-2', saved: true);
 
-      final all = await source.explore();
-      expect(all.saved.map((c) => c.id), ['ds-retreat-100']);
-      expect(all.courses.map((c) => c.id), [
-        'ds-retreat-300',
-        'ds-retreat-200',
-      ]);
-      expect(all.savedTeachers.map((t) => t.name), ['Leigh Brasington']);
-      expect(all.teachers.map((t) => t.name), ['Rob Burbea']);
+        final all = await source.explore();
+        // The library lists its own courses; browse does not repeat them.
+        expect(all.courses.map((c) => c.id), [
+          'ds-retreat-300',
+          'ds-retreat-200',
+        ]);
+        expect(all.savedTeachers.map((t) => t.name), ['Leigh Brasington']);
+        expect(all.teachers.map((t) => t.name), ['Rob Burbea']);
 
-      final practice = await source.explore(group: DsContentGroup.practice);
-      expect(practice.saved, isEmpty);
-      expect(practice.savedTeachers, isEmpty);
-    });
+        // A chip never hides what the user kept.
+        final practice = await source.explore(group: DsContentGroup.practice);
+        expect(practice.courses.map((c) => c.id), ['ds-retreat-300']);
+        expect(practice.savedTeachers.map((t) => t.name), ['Leigh Brasington']);
+      },
+    );
 
     test('retreats whose talks have not synced yet wait for a chip', () async {
       await db.upsertRetreatRecords({
@@ -277,28 +291,48 @@ void main() {
   });
 
   group('saving', () {
-    test('courses and teachers can be saved through the router', () async {
-      final router = ContentRouter(
-        catalogue: const LocalCatalogue(),
-        sources: [source],
-      );
-      expect(router.canSave('ds-retreat-100'), isTrue);
-      expect(router.canSave('ds-teacher-1'), isTrue);
-      expect(router.canSave('ds-talk-1'), isFalse);
-      expect(router.canSave('lib-other'), isFalse);
+    test(
+      'courses, talks and teachers go to the library through the router',
+      () async {
+        final router = ContentRouter(
+          catalogue: const LocalCatalogue(),
+          sources: [source],
+        );
+        expect(router.canSave('ds-retreat-100'), isTrue);
+        expect(router.canSave('ds-teacher-1'), isTrue);
+        expect(router.canSave('ds-talk-1'), isTrue);
+        expect(router.canSave('ds-nonsense'), isFalse);
+        expect(router.canSave('lib-other'), isFalse);
 
-      expect(await router.isSaved('ds-retreat-100'), isFalse);
-      await router.setSaved('ds-retreat-100', saved: true);
-      await router.setSaved('ds-teacher-1', saved: true);
-      expect(await router.isSaved('ds-retreat-100'), isTrue);
-      expect(await router.isSaved('ds-teacher-1'), isTrue);
-      expect(await db.savedIds(DsSavedKind.retreat), [100]);
+        expect(await router.isSaved('ds-retreat-100'), isFalse);
+        await router.setSaved('ds-retreat-100', saved: true);
+        await router.setSaved('ds-teacher-1', saved: true);
+        await router.setSaved('ds-talk-1', saved: true);
+        expect(await router.isSaved('ds-retreat-100'), isTrue);
+        expect(await router.isSaved('ds-teacher-1'), isTrue);
 
-      await router.setSaved('ds-retreat-100', saved: false);
-      expect(await router.isSaved('ds-retreat-100'), isFalse);
-      // Saving something unsaveable is a quiet no-op.
-      await router.setSaved('ds-talk-1', saved: true);
-    });
+        final entries = {
+          for (final e in await library.entries()) e.sourceId: e,
+        };
+        expect(
+          entries.keys,
+          unorderedEquals(['ds-retreat-100', 'ds-teacher-1', 'ds-talk-1']),
+        );
+        expect(entries['ds-retreat-100']!.kind, LibraryKind.course);
+        expect(entries['ds-retreat-100']!.title, 'Jhana Retreat');
+        expect(entries['ds-retreat-100']!.group, LibraryGroup.practice);
+        expect(entries['ds-teacher-1']!.kind, LibraryKind.teacher);
+        expect(entries['ds-talk-1']!.kind, LibraryKind.single);
+        // The old saved table is no longer written.
+        expect(await db.savedIds(DsSavedKind.retreat), isEmpty);
+
+        await router.setSaved('ds-retreat-100', saved: false);
+        expect(await router.isSaved('ds-retreat-100'), isFalse);
+        // Adding something that does not exist is a quiet no-op.
+        await router.setSaved('ds-talk-99999', saved: true);
+        expect(await library.contains('ds-talk-99999'), isFalse);
+      },
+    );
   });
 
   group('mapping', () {

@@ -44,6 +44,11 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     // completed, full-position) values so nothing reads them as this one's.
     ref.read(audioStateProvider.notifier).resetState();
     await _playTrack(request);
+    // Resuming: the player is already preparing the file, and a seek issued
+    // now is applied as soon as it is ready.
+    if (request.startPositionMs > 0) {
+      await seekToPosition(request.startPositionMs);
+    }
     state = request;
   }
 

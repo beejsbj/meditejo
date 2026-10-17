@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+     xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:atom="http://www.w3.org/2005/Atom"
+     xmlns:cc="http://web.resource.org/cc/">
+  <channel>
+    <title>Evening Sits</title>
+    <link>https://example.org/evening</link>
+    <description><![CDATA[<p>Guided sits for the end of the day.</p><p>Gentle &amp; unhurried.</p>]]></description>
+    <language>en</language>
+    <copyright>© 2025 Example Sangha</copyright>
+    <itunes:author>Example Sangha</itunes:author>
+    <itunes:image href="/art/evening.jpg"/>
+    <itunes:type>episodic</itunes:type>
+    <cc:license rdf:resource="https://creativecommons.org/licenses/by-nc/4.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">https://creativecommons.org/licenses/by-nc/4.0/</cc:license>
+    <atom:link href="https://example.org/evening.rss" rel="self" type="application/rss+xml"/>
+    <item>
+      <title>Third sit: open awareness</title>
+      <description>Plain description.</description>
+      <content:encoded><![CDATA[<p>Rest in <b>open</b> awareness.</p>]]></content:encoded>
+      <guid isPermaLink="false">ep-3</guid>
+      <pubDate>Tue, 10 Jun 2025 04:00:00 +0000</pubDate>
+      <enclosure url="https://cdn.example.org/ep3.mp3" length="9000000" type="audio/mpeg"/>
+      <itunes:duration>1:02:03</itunes:duration>
+      <itunes:image href="https://example.org/art/ep3.jpg"/>
+      <link>https://example.org/evening/3</link>
+    </item>
+    <item>
+      <title>Second sit: the breath</title>
+      <guid isPermaLink="false">ep-2</guid>
+      <pubDate>Tue, 03 Jun 2025 04:00:00 GMT</pubDate>
+      <enclosure url="https://cdn.example.org/ep2.m4a" length="4000000" type="audio/x-m4a"/>
+      <itunes:duration>1830</itunes:duration>
+    </item>
+    <item>
+      <title>A written note, no audio</title>
+      <guid isPermaLink="false">note-1</guid>
+      <pubDate>Fri, 30 May 2025 04:00:00 +0000</pubDate>
+      <description>Just text.</description>
+    </item>
+    <item>
+      <title>First sit: arriving</title>
+      <guid isPermaLink="false">ep-1</guid>
+      <pubDate>Tue, 27 May 2025 04:00:00 -0500</pubDate>
+      <enclosure url="/audio/ep1.mp3" length="100" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>A video episode</title>
+      <guid>vid-1</guid>
+      <pubDate>Tue, 20 May 2025 04:00:00 +0000</pubDate>
+      <enclosure url="https://cdn.example.org/ep0.mp4" length="100" type="video/mp4"/>
+    </item>
+  </channel>
+</rss>

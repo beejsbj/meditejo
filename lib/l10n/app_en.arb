@@ -1639,11 +1639,11 @@
       }
     }
   },
-  "courseSave": "Save course",
+  "courseSave": "Add to library",
   "@courseSave": {
     "description": "Button to save a course"
   },
-  "courseSaved": "Saved",
+  "courseSaved": "In library",
   "@courseSaved": {
     "description": "Button state for a saved course or teacher"
   },
@@ -1685,7 +1685,7 @@
       }
     }
   },
-  "teacherSave": "Save teacher",
+  "teacherSave": "Add to library",
   "@teacherSave": {
     "description": "Button to save a teacher"
   },
@@ -1752,5 +1752,327 @@
         "type": "int"
       }
     }
+  },
+  "libraryTitle": "Your library",
+  "@libraryTitle": {
+    "description": "Heading of the screen and Home section listing what the user added"
+  },
+  "libraryAdd": "Add",
+  "@libraryAdd": {
+    "description": "Button that opens the import screen"
+  },
+  "libraryPractice": "Practice",
+  "@libraryPractice": {
+    "description": "Library section for guided practice"
+  },
+  "libraryTalks": "Talks",
+  "@libraryTalks": {
+    "description": "Library section for talks and Q&A"
+  },
+  "libraryTeachers": "Teachers",
+  "@libraryTeachers": {
+    "description": "Library section for followed teachers"
+  },
+  "librarySeeAll": "See all",
+  "@librarySeeAll": {
+    "description": "Link from the Home library section to the library screen"
+  },
+  "libraryEmptyTitle": "Your library is empty",
+  "@libraryEmptyTitle": {
+    "description": "Empty library heading"
+  },
+  "libraryEmptyBody": "Add a course, a talk or a recording from a link or a file.",
+  "@libraryEmptyBody": {
+    "description": "Empty library explanation"
+  },
+  "libraryEmptyHome": "Paste a link, share one from another app, or pick a file.",
+  "@libraryEmptyHome": {
+    "description": "Home library section when nothing is added"
+  },
+  "libraryMoveToPractice": "Move to Practice",
+  "@libraryMoveToPractice": {
+    "description": "Menu item that reclassifies a library entry as practice"
+  },
+  "libraryMoveToTalks": "Move to Talks",
+  "@libraryMoveToTalks": {
+    "description": "Menu item that reclassifies a library entry as a talk"
+  },
+  "libraryRename": "Rename",
+  "@libraryRename": {
+    "description": "Menu item that renames a library entry"
+  },
+  "libraryRemove": "Remove from library",
+  "@libraryRemove": {
+    "description": "Menu item that removes a library entry"
+  },
+  "libraryRemoveTitle": "Remove from your library?",
+  "@libraryRemoveTitle": {
+    "description": "Confirmation title for removing a library entry"
+  },
+  "libraryRemoveImported": "The audio copied to this device for it will be deleted.",
+  "@libraryRemoveImported": {
+    "description": "Confirmation text when the entry was imported by the user"
+  },
+  "libraryRemoveCatalogue": "It stays in Explore, and you can add it again.",
+  "@libraryRemoveCatalogue": {
+    "description": "Confirmation text when the entry comes from a catalogue"
+  },
+  "libraryRenameTitle": "Rename",
+  "@libraryRenameTitle": {
+    "description": "Title of the rename dialog"
+  },
+  "libraryRenameHint": "Name in your library",
+  "@libraryRenameHint": {
+    "description": "Hint in the rename field"
+  },
+  "libraryRenameSave": "Save",
+  "@libraryRenameSave": {
+    "description": "Save button of the rename dialog"
+  },
+  "librarySessions": "{count, plural, =1{1 session} other{{count} sessions}}",
+  "@librarySessions": {
+    "description": "Number of sessions in a course",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryAddedSnack": "Added to your library",
+  "@libraryAddedSnack": {
+    "description": "Shown after something is added to the library"
+  },
+  "libraryAlreadyIn": "Already in your library",
+  "@libraryAlreadyIn": {
+    "description": "Shown when the thing was already in the library"
+  },
+  "libraryOpen": "Open",
+  "@libraryOpen": {
+    "description": "Action that opens a library entry"
+  },
+  "libraryRemovedSnack": "Removed from your library",
+  "@libraryRemovedSnack": {
+    "description": "Shown after removing from the library"
+  },
+  "libraryAddToLibrary": "Add to library",
+  "@libraryAddToLibrary": {
+    "description": "Button that adds a course, talk or teacher to the library"
+  },
+  "libraryInLibrary": "In library",
+  "@libraryInLibrary": {
+    "description": "Button state when the item is already in the library"
+  },
+  "libraryResumeAt": "Resume at {position}",
+  "@libraryResumeAt": {
+    "description": "Row label for a session left partway, with the position",
+    "placeholders": {
+      "position": {
+        "type": "String"
+      }
+    }
+  },
+  "importTitle": "Add to your library",
+  "@importTitle": {
+    "description": "Title of the import screen"
+  },
+  "importFieldHint": "Paste a link",
+  "@importFieldHint": {
+    "description": "Hint in the link field"
+  },
+  "importHelp": "Dharma Seed pages, podcast feeds, audio links, or files on your phone.",
+  "@importHelp": {
+    "description": "Help under the link field"
+  },
+  "importPaste": "Paste",
+  "@importPaste": {
+    "description": "Button that pastes from the clipboard"
+  },
+  "importPreviewAction": "Preview",
+  "@importPreviewAction": {
+    "description": "Button that looks at the typed link"
+  },
+  "importClipboard": "Link on your clipboard: {host}",
+  "@importClipboard": {
+    "description": "Suggestion when the clipboard holds a link",
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "importUseClipboard": "Use",
+  "@importUseClipboard": {
+    "description": "Button that uses the clipboard link"
+  },
+  "importChooseFiles": "Choose files",
+  "@importChooseFiles": {
+    "description": "Button that picks audio files"
+  },
+  "importChooseFolder": "Choose a folder",
+  "@importChooseFolder": {
+    "description": "Button that picks a folder of audio files"
+  },
+  "importLooking": "Looking at the link…",
+  "@importLooking": {
+    "description": "Shown while a link is being read"
+  },
+  "importPrimary": "Add to library",
+  "@importPrimary": {
+    "description": "The one primary action of the import preview"
+  },
+  "importAdding": "Adding…",
+  "@importAdding": {
+    "description": "Shown while the import is stored"
+  },
+  "importKindCourse": "Course",
+  "@importKindCourse": {
+    "description": "Import choice: a course"
+  },
+  "importKindSingle": "Single",
+  "@importKindSingle": {
+    "description": "Import choice: a single recording"
+  },
+  "importCaptionCourseAll": "All {count} episodes, in order",
+  "@importCaptionCourseAll": {
+    "description": "Caption under the Course choice for a feed",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importCaptionLatest": "Just the latest episode",
+  "@importCaptionLatest": {
+    "description": "Caption under the Single choice for a feed"
+  },
+  "importCaptionFilesCourse": "One course, in the order shown",
+  "@importCaptionFilesCourse": {
+    "description": "Caption under the Course choice for several files"
+  },
+  "importCaptionFilesSingles": "Each file on its own",
+  "@importCaptionFilesSingles": {
+    "description": "Caption under the Single choice for several files"
+  },
+  "importCountsAs": "Counts as",
+  "@importCountsAs": {
+    "description": "Label above the Practice/Talk choice"
+  },
+  "importGroupPractice": "Practice",
+  "@importGroupPractice": {
+    "description": "Import choice: practice"
+  },
+  "importGroupTalk": "Talk",
+  "@importGroupTalk": {
+    "description": "Import choice: talk"
+  },
+  "importOrderOldest": "Oldest first",
+  "@importOrderOldest": {
+    "description": "Episode order: oldest first"
+  },
+  "importOrderNewest": "Newest first",
+  "@importOrderNewest": {
+    "description": "Episode order: newest first"
+  },
+  "importAtLeast": "at least {duration}",
+  "@importAtLeast": {
+    "description": "A total length that is a lower bound because some sessions have no length",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "importSkipped": "{count, plural, =1{1 item without audio was left out} other{{count} items without audio were left out}}",
+  "@importSkipped": {
+    "description": "Note that some feed items had no audio",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importInLibraryNote": "This is already in your library.",
+  "@importInLibraryNote": {
+    "description": "Shown in the preview when it is already added"
+  },
+  "importDefaultTitle": "Imported audio",
+  "@importDefaultTitle": {
+    "description": "Default name for several imported files"
+  },
+  "importTitleLabel": "Name",
+  "@importTitleLabel": {
+    "description": "Label of the title field in the preview"
+  },
+  "importFailEmpty": "Paste a link or choose a file to begin.",
+  "@importFailEmpty": {
+    "description": "Calm failure: nothing entered"
+  },
+  "importFailUnrecognised": "That doesn't look like a link or file I can use. Try an address that starts with https://.",
+  "@importFailUnrecognised": {
+    "description": "Calm failure: not a usable link"
+  },
+  "importFailYoutube": "YouTube support is coming. For now, paste a podcast feed, an audio link or a Dharma Seed page.",
+  "@importFailYoutube": {
+    "description": "Calm failure: YouTube"
+  },
+  "importFailUnsupportedHost": "Links from that service can't be imported. For a podcast, look for its feed address, or its page on Apple Podcasts.",
+  "@importFailUnsupportedHost": {
+    "description": "Calm failure: a service with no readable feed"
+  },
+  "importFailOffline": "Couldn't reach that address. Check your connection and try again.",
+  "@importFailOffline": {
+    "description": "Calm failure: no connection"
+  },
+  "importFailNotFound": "That page wasn't found. Check the link and try again.",
+  "@importFailNotFound": {
+    "description": "Calm failure: 404"
+  },
+  "importFailUnreachable": "That site couldn't give us what we asked for. Try again later.",
+  "@importFailUnreachable": {
+    "description": "Calm failure: server error"
+  },
+  "importFailNoFeed": "That page has no podcast feed or audio file I can find. If you have the feed address (often ending in .xml or /feed), paste that instead.",
+  "@importFailNoFeed": {
+    "description": "Calm failure: page with no feed or audio"
+  },
+  "importFailNoEpisodes": "This feed has no audio episodes.",
+  "@importFailNoEpisodes": {
+    "description": "Calm failure: feed without audio"
+  },
+  "importFailBrokenFeed": "This feed couldn't be read. It may be damaged or not a podcast feed.",
+  "@importFailBrokenFeed": {
+    "description": "Calm failure: unreadable feed"
+  },
+  "importFailDharmaSeed": "Dharma Seed doesn't have that, or couldn't be reached just now.",
+  "@importFailDharmaSeed": {
+    "description": "Calm failure: Dharma Seed item missing"
+  },
+  "importFailFile": "That file couldn't be found.",
+  "@importFailFile": {
+    "description": "Calm failure: file missing"
+  },
+  "importFailNoAudio": "No audio files found there.",
+  "@importFailNoAudio": {
+    "description": "Calm failure: no audio files"
+  },
+  "importFailAdd": "Couldn't add that. Please try again.",
+  "@importFailAdd": {
+    "description": "Calm failure: storing failed"
+  },
+  "shareArrived": "Shared with Meditejo",
+  "@shareArrived": {
+    "description": "Shown when a link or file was shared into the app"
+  },
+  "exploreLibraryHeading": "In your library",
+  "@exploreLibraryHeading": {
+    "description": "Heading above the library courses on Explore"
+  },
+  "libraryFromStart": "From the beginning",
+  "@libraryFromStart": {
+    "description": "Button that plays a session from the start instead of resuming"
+  },
+  "libraryCheckNew": "Check for new episodes",
+  "@libraryCheckNew": {
+    "description": "Switch on an imported feed course: look for new episodes now and then"
   }
 }
