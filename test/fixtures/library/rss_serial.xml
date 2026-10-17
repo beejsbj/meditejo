@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>Foundations Course</title>
+    <itunes:type>serial</itunes:type>
+    <itunes:author>A Teacher</itunes:author>
+    <image><url>https://example.org/foundations.png</url><title>x</title></image>
+    <item>
+      <title>Session 3</title><guid>s3</guid><itunes:episode>3</itunes:episode>
+      <pubDate>Mon, 01 Jan 2024 00:00:00 +0000</pubDate>
+      <enclosure url="https://cdn.example.org/s3.mp3" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>Session 1</title><guid>s1</guid><itunes:episode>1</itunes:episode>
+      <pubDate>Mon, 01 Jan 2024 00:00:00 +0000</pubDate>
+      <enclosure url="https://cdn.example.org/s1.mp3" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>Session 2</title><guid>s2</guid><itunes:episode>2</itunes:episode>
+      <pubDate>Mon, 01 Jan 2024 00:00:00 +0000</pubDate>
+      <enclosure url="https://cdn.example.org/s2.mp3" type="audio/mpeg"/>
+    </item>
+  </channel>
+</rss>
