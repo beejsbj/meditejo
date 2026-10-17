@@ -42,7 +42,9 @@ void main() {
       await _pump(tester, h);
 
       expect(find.text('Version 0.1.0-dev (26101701)'), findsOneWidget);
-      expect(find.text('Check for updates'), findsWidgets);
+      expect(find.widgetWithText(OutlinedButton, 'Check for updates'), findsOneWidget);
+      expect(find.text('Check for updates'), findsOneWidget);
+      expect(find.text('Up to date'), findsNothing);
       expect(find.text('Update'), findsNothing);
     });
 

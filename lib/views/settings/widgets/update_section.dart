@@ -52,13 +52,9 @@ class _UpdateSectionState extends ConsumerState<UpdateSection>
     switch (state.phase) {
       case UpdatePhase.idle:
       case UpdatePhase.upToDate:
-        children.add(
-          _Headline(
-            state.phase == UpdatePhase.upToDate
-                ? l10n.updateUpToDate
-                : l10n.updateCheck,
-          ),
-        );
+        if (state.phase == UpdatePhase.upToDate) {
+          children.add(_Headline(l10n.updateUpToDate));
+        }
         final last = state.lastCheckedAt;
         if (last != null) {
           final when = DateFormat.yMMMd(
@@ -76,8 +72,6 @@ class _UpdateSectionState extends ConsumerState<UpdateSection>
       case UpdatePhase.failed:
         if (release != null) {
           children.add(_Headline(l10n.updateAvailable(release.versionName)));
-        } else {
-          children.add(_Headline(l10n.updateCheck));
         }
         if (state.phase == UpdatePhase.needsPermission) {
           children
