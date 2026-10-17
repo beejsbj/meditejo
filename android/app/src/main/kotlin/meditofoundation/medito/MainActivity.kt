@@ -78,6 +78,8 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
         MeditoWidgetManager.setUp(flutterEngine.dartExecutor.binaryMessenger, this)
         MeditoAppIconManager.setUp(flutterEngine.dartExecutor.binaryMessenger, AppIconManagerImpl(this))
 
+        ApkUpdaterBridge(this, activityScope).attach(flutterEngine.dartExecutor.binaryMessenger)
+
         healthConnectBridge.attachLauncher(healthConnectPermissionLauncher)
         MeditoHealthConnectManager.setUp(flutterEngine.dartExecutor.binaryMessenger, healthConnectBridge)
 

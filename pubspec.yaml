@@ -15,7 +15,7 @@ publish_to: none
 # Just build Android APK (used by the script above):
 # ./build_apk.sh
 
-version: 2610.6.3+302473
+version: 0.1.0+26101701
 
 environment:
   sdk: "^3.8.0"
@@ -31,6 +31,7 @@ dependencies:
   audio_service: ^0.18.18
   audio_session: ^0.2.3
   cached_network_image: ^3.4.1
+  crypto: ^3.0.7
   device_info_plus: ^12.3.0
   disable_battery_optimization: ^1.1.2
   do_not_disturb: ^1.0.3

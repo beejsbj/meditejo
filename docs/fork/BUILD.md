@@ -47,6 +47,10 @@ Outputs go to `~/.local/share/meditejo/apk/<prefix>-<shortsha>.apk`, with
 The command prints the path, bytes and certificate digest. Generic default
 prefix: `meditejo-<flavor>-<mode>`.
 
+## Publishing a release
+
+`tools/meditejo/release.sh <version>` wraps this route (`build_apk.sh --flavor prod`) and publishes the signed APK as a GitHub release for the in-app updater; see [UPDATES.md](UPDATES.md).
+
 ## GitHub build and signing boundary
 
 `.github/workflows/meditejo-apk.yml` uses ubuntu-latest, Java 17 and
