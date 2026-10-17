@@ -498,6 +498,29 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
     return decoded is List ? decoded.whereType<int>().toList() : const [];
   }
 
+  /// Whether the talks listing has been fully applied: an edition recorded
+  /// and nothing pending or queued.
+  Future<bool> talksSynced() async {
+    final state = await syncState(DsKind.talks);
+    return state?.edition != null &&
+        state?.pendingEdition == null &&
+        await queuedCount(DsKind.talks) == 0;
+  }
+
+  /// A retreat's talk IDs that can still be played. Once every talk has
+  /// synced, a listed ID with no stored talk is one Dharma Seed no longer
+  /// serves (the background sync never requests it), so it is left out.
+  /// Until then the retreat's own list is returned as it stands.
+  Future<List<int>> liveTalkIdsOf(DsRetreat retreat) async {
+    final ids = talkIdsOf(retreat);
+    if (ids.isEmpty || !await talksSynced()) return ids;
+    final have = await existingTalkIds(ids);
+    return [
+      for (final id in ids)
+        if (have.contains(id)) id,
+    ];
+  }
+
   /// Retreats with talks, newest first.
   Future<List<DsRetreat>> recentRetreats({int limit = 40}) =>
       (select(dsRetreats)

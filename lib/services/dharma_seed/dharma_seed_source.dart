@@ -98,7 +98,7 @@ class DharmaSeedSource implements ContentSource {
     return {
       for (final retreat in await db.retreatsById(ids))
         dsRetreatId(retreat.id): [
-          for (final talkId in DharmaSeedDatabase.talkIdsOf(retreat))
+          for (final talkId in await db.liveTalkIdsOf(retreat))
             dsTalkId(talkId),
         ],
     };

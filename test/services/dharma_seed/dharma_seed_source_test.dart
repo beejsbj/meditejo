@@ -174,11 +174,27 @@ void main() {
         startedTrackIds: {'ds-talk-95232', 'lib-other'},
       );
       expect(started.keys, ['ds-retreat-6689']);
-      // From the retreat's own list, so it is complete before talks sync.
-      expect(started['ds-retreat-6689'], hasLength(8));
+      // Dharma Seed lists 8 talks for the retreat but serves only 7 of them:
+      // once every talk has synced, ticks follow what the course shows.
+      final pack = await source.pack('ds-retreat-6689');
+      expect(started['ds-retreat-6689'], pack.items.map((i) => i.id).toList());
+      expect(started['ds-retreat-6689'], hasLength(7));
 
       await db.setSaved(DsSavedKind.retreat, 6689, saved: true);
       expect((await source.packTrackIds()).keys, ['ds-retreat-6689']);
+    });
+
+    test('before talks sync, ticks use the retreat\'s own list', () async {
+      final fresh = memoryDharmaSeedDb();
+      addTearDown(fresh.close);
+      await fresh.upsertRetreatRecords({
+        1: {'name': 'Course', 'talks': [10, 11, 12]},
+      });
+      await fresh.setSaved(DsSavedKind.retreat, 1, saved: true);
+
+      final ids = await DharmaSeedSource(db: fresh).packTrackIds();
+
+      expect(ids['ds-retreat-1'], ['ds-talk-10', 'ds-talk-11', 'ds-talk-12']);
     });
 
     test('browse lists saved courses first, then recent ones', () async {

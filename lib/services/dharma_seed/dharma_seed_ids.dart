@@ -17,8 +17,15 @@ int? parseDsTalkId(String id) => _parse(id, _talkPrefix);
 int? parseDsRetreatId(String id) => _parse(id, _retreatPrefix);
 int? parseDsTeacherId(String id) => _parse(id, _teacherPrefix);
 
-int? _parse(String id, String prefix) =>
-    id.startsWith(prefix) ? int.tryParse(id.substring(prefix.length)) : null;
+final _digits = RegExp(r'^\d+$');
+
+/// Only canonical digits: `int.tryParse` alone also takes `+3`, ` 3` and
+/// `0x10`, which would alias another ID.
+int? _parse(String id, String prefix) {
+  if (!id.startsWith(prefix)) return null;
+  final number = id.substring(prefix.length);
+  return _digits.hasMatch(number) ? int.tryParse(number) : null;
+}
 
 const dharmaSeedSite = 'https://dharmaseed.org';
 const dharmaSeedLicenceName = 'CC BY-NC-ND 4.0';

@@ -42,6 +42,34 @@ void main() {
       expect(teacher.toJson().keys, isNot(contains('address1')));
     });
 
+    test('contact fields in a teacher record are never written', () async {
+      const secret = 'private-person@example.invalid';
+      await db.upsertTeacherRecords({
+        9001: {
+          'id': 9001,
+          'name': 'Contact Test',
+          'bio': 'A bio',
+          'address1': secret,
+          'address2': '1 Private Lane',
+          'city': 'Hidden City',
+          'postal_code': '99999',
+          'website': 'https://example.invalid/',
+          'photo': '',
+          'monastic': false,
+          'non_public': false,
+        },
+      });
+
+      for (final table in ['ds_teachers', 'ds_teachers_fts']) {
+        final rows = await db.customSelect('SELECT * FROM $table').get();
+        final dump = [for (final r in rows) r.data.values.join('|')].join('\n');
+        expect(dump, isNot(contains(secret)), reason: table);
+        expect(dump, isNot(contains('Private Lane')), reason: table);
+        expect(dump, isNot(contains('Hidden City')), reason: table);
+      }
+      expect((await db.teacherById(9001))!.name, 'Contact Test');
+    });
+
     test('a retreat lists talks by recording date, then ID', () async {
       final talks = await db.talksOfRetreat(6689);
       expect(talks.map((t) => t.id), [
