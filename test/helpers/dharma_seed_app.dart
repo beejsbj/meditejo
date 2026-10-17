@@ -92,6 +92,9 @@ class DharmaSeedTestApp {
     /// Use the app's real stats store (over the mock preferences) instead of
     /// a fixed list of played talks.
     bool realStats = false,
+
+    /// A stand-in for the app's source (e.g. a slow one); defaults to [source].
+    DharmaSeedSource? withSource,
     List<Override> overrides = const [],
   }) async {
     tester.view.physicalSize = const Size(430, 1200);
@@ -102,7 +105,7 @@ class DharmaSeedTestApp {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          dharmaSeedSourceProvider.overrideWithValue(source),
+          dharmaSeedSourceProvider.overrideWithValue(withSource ?? source),
           // Never contacted: only here so nothing builds a real client.
           dharmaSeedSyncProvider.overrideWithValue(
             DharmaSeedSync(

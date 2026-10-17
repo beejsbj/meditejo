@@ -53,10 +53,17 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
   Future<void> _showMore(int shown) async {
     if (_loadingMore) return;
     setState(() => _loadingMore = true);
+    // The page this offset belongs to: if a sync replaces it while the next
+    // page loads, that page would land on the wrong base.
+    final base = _basePage;
     final next = await ref
         .read(dharmaSeedSourceProvider)
         .teacherTalks(widget.teacherId, offset: shown);
     if (!mounted) return;
+    if (!identical(base, _basePage)) {
+      setState(() => _loadingMore = false);
+      return;
+    }
     setState(() {
       _more.addAll(next);
       _hasMore = next.length >= _pageSize;

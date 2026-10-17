@@ -1,9 +1,14 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/models/pack/pack_model.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
+import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
 import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/teacher/teacher_view.dart';
@@ -376,6 +381,57 @@ void main() {
       expect(find.byKey(const ValueKey('teacher_show_more')), findsNothing);
     });
 
+    testWidgets('a page that loads after a refresh is dropped, not appended', (
+      tester,
+    ) async {
+      final app = await DharmaSeedTestApp.create(tester);
+      await tester.runAsync(() async {
+        await app.db.upsertTeacherRecords({
+          3: {'name': 'Prolific Teacher', 'bio': '', 'photo': ''},
+        });
+        await app.db.upsertTalkRecords({
+          for (var i = 1; i <= 35; i++)
+            1000 + i: dsTalkRecord(
+              'Prolific talk ${i.toString().padLeft(2, '0')}',
+              teacher: 3,
+              date: '2019-01-${i.toString().padLeft(2, '0')} 10:00:00',
+            ),
+        });
+      });
+      final gate = Completer<void>();
+      final slow = _SlowTeacherTalks(app.db, gate.future);
+      await app.pump(
+        tester,
+        const TeacherView(teacherId: 'ds-teacher-3'),
+        withSource: slow,
+      );
+      final scrollable = find.byType(Scrollable).first;
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('teacher_show_more')),
+        300,
+        scrollable: scrollable,
+      );
+      await tester.tap(find.byKey(const ValueKey('teacher_show_more')));
+      await tester.pump();
+
+      // A sync lands while the second page is still loading.
+      ProviderScope.containerOf(
+        tester.element(find.byType(TeacherView)),
+      ).invalidate(dharmaSeedTeacherProvider('ds-teacher-3'));
+      await DharmaSeedTestApp.settle(tester);
+      gate.complete();
+      await DharmaSeedTestApp.settle(tester);
+
+      // The stale page was dropped: the fresh first page still offers more.
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('teacher_show_more')),
+        300,
+        scrollable: scrollable,
+      );
+      expect(find.byKey(const ValueKey('teacher_show_more')), findsOneWidget);
+      expect(find.text('Prolific talk 01'), findsNothing);
+    });
+
     testWidgets('an unknown teacher says so', (tester) async {
       final app = await DharmaSeedTestApp.create(tester);
       await app.pump(tester, const TeacherView(teacherId: 'ds-teacher-404'));
@@ -385,4 +441,22 @@ void main() {
       );
     });
   });
+}
+
+/// A source whose further teacher talks arrive only once [gate] opens.
+class _SlowTeacherTalks extends DharmaSeedSource {
+  _SlowTeacherTalks(DharmaSeedDatabase db, this.gate)
+    : super(db: db, browseLimit: 10);
+
+  final Future<void> gate;
+
+  @override
+  Future<List<PackItemsModel>> teacherTalks(
+    String id, {
+    required int offset,
+    int limit = 30,
+  }) async {
+    await gate;
+    return super.teacherTalks(id, offset: offset, limit: limit);
+  }
 }
