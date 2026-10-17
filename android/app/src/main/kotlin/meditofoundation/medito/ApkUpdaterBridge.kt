@@ -130,10 +130,8 @@ class ApkUpdaterBridge(
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
         params.setAppPackageName(activity.packageName)
         params.setSize(apk.length())
-        if (Build.VERSION.SDK_INT >= 31) {
-            // Honoured only for an update by the installer of record; otherwise Android asks.
-            params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
-        }
+        // Android always asks the person to confirm: skipping that needs
+        // UPDATE_PACKAGES_WITHOUT_USER_ACTION, which is deliberately not declared.
 
         val sessionId = installer.createSession(params)
         installer.openSession(sessionId).use { session ->

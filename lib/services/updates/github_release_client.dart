@@ -30,8 +30,8 @@ class LatestFound extends LatestRelease {
 /// Reads the newest published release, unauthenticated.
 ///
 /// `GET /repos/beejsbj/meditejo/releases/latest` with `If-None-Match`: a `304`
-/// does not count against GitHub's 60-requests-an-hour limit. Only when the
-/// release changed is the manifest fetched too.
+/// saves bandwidth (it still counts against the unauthenticated 60-an-hour
+/// limit). Only when the release changed is the manifest fetched too.
 class GithubReleaseClient {
   GithubReleaseClient({
     http.Client? httpClient,

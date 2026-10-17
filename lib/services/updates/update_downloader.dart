@@ -86,6 +86,12 @@ class UpdateDownloader {
       await for (final chunk in response.stream.timeout(idleTimeout)) {
         sink.add(chunk);
         received += chunk.length;
+        if (received > release.size) {
+          throw UpdateException(
+            UpdateFailure.downloadFailed,
+            'More than the expected ${release.size} bytes',
+          );
+        }
         if (total > 0) onProgress?.call((received / total).clamp(0.0, 1.0));
       }
       await sink.flush();

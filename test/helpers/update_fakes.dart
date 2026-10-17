@@ -106,6 +106,9 @@ class FakeInstaller implements ApkInstaller {
   int settingsOpened = 0;
   int installs = 0;
 
+  /// The install never reports back (the prompt could not open).
+  bool hangInstall = false;
+
   @override
   Future<bool> canInstallPackages() async => canInstall;
 
@@ -122,6 +125,7 @@ class FakeInstaller implements ApkInstaller {
   @override
   Future<InstallOutcome> install(String path) async {
     installs++;
+    if (hangInstall) return Completer<InstallOutcome>().future;
     return outcome;
   }
 }
@@ -150,6 +154,7 @@ class UpdateHarness {
     bool supported = true,
     Object Function()? latest,
     DateTime Function()? clock,
+    Duration installTimeout = const Duration(minutes: 3),
   }) async {
     SharedPreferences.setMockInitialValues(prefs);
     final preferences = await SharedPreferences.getInstance();
@@ -171,6 +176,7 @@ class UpdateHarness {
         githubReleaseClientProvider.overrideWithValue(client),
         updateDownloaderProvider.overrideWithValue(downloader),
         apkInstallerProvider.overrideWithValue(installer),
+        updateInstallTimeoutProvider.overrideWithValue(installTimeout),
         installedBuildProvider.overrideWith(
           (ref) async => InstalledBuild(
             versionName: installedName,

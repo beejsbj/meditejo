@@ -22,6 +22,13 @@ final updatesSupportedProvider = Provider<bool>((_) => Platform.isAndroid);
 
 final updateClockProvider = Provider<DateTime Function()>((_) => DateTime.now);
 
+/// How long to wait for Android to report an install before offering the
+/// update again; the confirmation prompt may never open (app in the
+/// background) or may sit unanswered.
+final updateInstallTimeoutProvider = Provider<Duration>(
+  (_) => const Duration(minutes: 3),
+);
+
 final githubReleaseClientProvider = Provider<GithubReleaseClient>((ref) {
   final client = GithubReleaseClient();
   ref.onDispose(client.close);
@@ -97,9 +104,13 @@ class UpdateController extends Notifier<UpdateState> {
     if (!ref.read(updatesSupportedProvider)) return;
     try {
       final installed = await ref.read(installedBuildProvider.future);
-      await ref
-          .read(updateDownloaderProvider)
-          .deleteStale(installedVersionCode: installed.versionCode);
+      // Not while an update the person started is downloading or installing:
+      // the cleanup would delete its partial file.
+      if (!state.isBusy) {
+        await ref
+            .read(updateDownloaderProvider)
+            .deleteStale(installedVersionCode: installed.versionCode);
+      }
       await _restore();
       if (isAutoCheckDue(lastCheckedAt: _store.lastCheckedAt, now: _now())) {
         await check(manual: false);
@@ -212,7 +223,12 @@ class UpdateController extends Notifier<UpdateState> {
       }
 
       state = state.copyWith(phase: UpdatePhase.installing);
-      final outcome = await installer.install(file.path);
+      final outcome = await installer
+          .install(file.path)
+          .timeout(
+            ref.read(updateInstallTimeoutProvider),
+            onTimeout: () => const InstallCancelled(),
+          );
       if (!ref.mounted) return;
       switch (outcome) {
         case InstallSucceeded():

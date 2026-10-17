@@ -276,6 +276,25 @@ void main() {
       expect(h.downloader.deleted, isEmpty);
     });
 
+    test('an install that never reports back returns to "available"', () async {
+      final h = await UpdateHarness.create(
+        latest: () => LatestFound(testRelease(), null),
+        installTimeout: const Duration(milliseconds: 50),
+      );
+      h.installer.hangInstall = true;
+      final c = h.container();
+      addTearDown(c.dispose);
+      final controller = c.read(updateControllerProvider.notifier);
+      await controller.check();
+
+      await controller.startUpdate();
+
+      final state = c.read(updateControllerProvider);
+      expect(state.phase, UpdatePhase.available);
+      expect(state.isBusy, isFalse);
+      expect(state.failure, isNull);
+    });
+
     test('an install Android rejects is reported', () async {
       final h = await available();
       h.installer.outcome = const InstallRejected('INSTALL_FAILED_UPDATE_INCOMPATIBLE');

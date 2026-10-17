@@ -84,6 +84,20 @@ void main() {
     expect(dir.listSync(), isEmpty);
   });
 
+  test('a download longer than announced stops and leaves nothing behind', () async {
+    await expectLater(
+      downloaderFor(serving(_bytes)).download(_release(size: 50)),
+      throwsA(
+        isA<UpdateException>().having(
+          (e) => e.failure,
+          'failure',
+          UpdateFailure.downloadFailed,
+        ),
+      ),
+    );
+    expect(dir.listSync(), isEmpty);
+  });
+
   test('a short download is a failed download, not a hash mismatch', () async {
     await expectLater(
       downloaderFor(serving(_bytes.sublist(0, 50))).download(_release()),
