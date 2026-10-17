@@ -58,6 +58,11 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
    - **Completion:** mark completion on real listening, not when a session is opened. A session counts as completed once **90%** of it has been heard (decided 2026-10-17), so a long talk stopped near the end still counts.
 8. **Background sounds may play over Dharma Seed audio** (decided 2026-10-17). Mixing at playback leaves the original file untouched and distributes nothing, so it is allowed. Default it on for Practice and off for Talks. Never export or share mixed audio.
 9. **Dharma Seed sync is catalogue text only, never audio** (2026-10-17). The app keeps the title, teacher, length and retreat of every talk on the phone, about 38 MB once, because Dharma Seed has no search API. After that it fetches only small updates, on any network. Audio always streams, and downloads only when the user chooses to download a talk.
+10. **Meditejo is the user's library, not a Dharma Seed frontend** (2026-10-17).
+    - Easy import from any link is the core of the app: Dharma Seed, YouTube, RSS, audio URLs and files.
+    - Dharma Seed is a convenient way to find things to add. Explore reads as "find something to add", and Home and the library show what the user has added.
+    - **Catalogue delivery:** ship the Dharma Seed catalogue inside the app as a compressed database, refreshed each release. Fetch only the additions since that snapshot, and do it when the user opens search or browse, not at startup.
+    - **Design pass:** palette, type, motion, and the player, course list and home surfaces come **after the import slice lands**, with Burooj in the loop from the moodboard on.
 
 ## Build and run
 
