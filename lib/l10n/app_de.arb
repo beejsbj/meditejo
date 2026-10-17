@@ -1060,5 +1060,6 @@
   "teacherWebsite": "Webseite",
   "attributionViewOn": "Auf {source} ansehen",
   "attributionUnmodified": "Unverändert wie aufgenommen gestreamt.",
-  "attributionLicence": "Lizenz: {license}"
+  "attributionLicence": "Lizenz: {license}",
+  "teacherTalkCount": "{count, plural, =1{1 Vortrag} other{{count} Vorträge}}"
 }

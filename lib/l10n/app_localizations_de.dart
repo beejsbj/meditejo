@@ -1698,4 +1698,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String attributionLicence(String license) {
     return 'Lizenz: $license';
   }
+
+  @override
+  String teacherTalkCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Vorträge',
+      one: '1 Vortrag',
+    );
+    return '$_temp0';
+  }
 }

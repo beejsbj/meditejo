@@ -820,5 +820,6 @@
   "teacherWebsite": "Sitio web",
   "attributionViewOn": "Ver en {source}",
   "attributionUnmodified": "Reproducido tal como se grabó, sin modificar.",
-  "attributionLicence": "Licencia: {license}"
+  "attributionLicence": "Licencia: {license}",
+  "teacherTalkCount": "{count, plural, =1{1 charla} other{{count} charlas}}"
 }

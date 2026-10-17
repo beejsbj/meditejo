@@ -3063,6 +3063,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Licence: {license}'**
   String attributionLicence(String license);
+
+  /// Number of talks a teacher gave
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 talk} other{{count} talks}}'**
+  String teacherTalkCount(int count);
 }
 
 class _AppLocalizationsDelegate

@@ -10,6 +10,7 @@ import 'package:medito/views/home/customise_home_layout_screen.dart';
 import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/settings/settings_screen.dart';
 import 'package:medito/views/stats/stats_screen.dart';
+import 'package:medito/views/teacher/teacher_view.dart';
 import 'package:medito/views/timer/timer_view.dart';
 import 'package:medito/views/track/track_view.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -37,6 +38,8 @@ Future<void> handleNavigation(
     page = values.first == kLegacyTimerTrackId
         ? const TimerView()
         : TrackView(trackId: values.first);
+  } else if (type == TypeConstants.teacher && values.isNotEmpty) {
+    page = TeacherView(teacherId: values.first);
   } else if (type.contains('pack') && values.isNotEmpty) {
     final index = type.contains('pack3')
         ? 2

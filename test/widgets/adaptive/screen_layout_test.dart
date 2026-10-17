@@ -5,6 +5,14 @@ import 'package:medito/models/home/home_model.dart';
 
 import 'package:medito/views/explore/widgets/explore_view.dart';
 import 'package:medito/views/search/search_view.dart';
+import 'package:medito/views/teacher/teacher_view.dart';
+import 'package:medito/models/attribution/source_attribution.dart';
+import 'package:medito/models/explore/session_length.dart';
+import 'package:medito/models/pack/pack_model.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
+import 'package:medito/services/content/content_source.dart';
+import 'package:medito/services/dharma_seed/dharma_seed_models.dart';
+import '../../helpers/fake_savable_source.dart';
 import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/track/track_view.dart';
 import 'package:medito/views/end_screen/end_screen_view.dart';
@@ -55,6 +63,45 @@ import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/providers/stats_provider.dart';
 
 import 'adaptive_layout_test.dart' show destinations;
+
+/// A Dharma Seed style course: ten sessions over four days, with a teacher
+/// and the credit the licence asks for.
+final coursePack = PackModel(
+  id: 'ds-retreat-1',
+  title: 'Jhana Retreat',
+  subtitle: 'Rob Burbea · 2014 · 10 talks',
+  coverUrl: '',
+  path: '/packs/ds-retreat-1',
+  description: 'Seven days of jhana practice.',
+  isPublished: true,
+  teacher: const PackTeacher(
+    id: 'ds-teacher-1',
+    name: 'Rob Burbea',
+    bio: 'Taught at Gaia House.',
+    pageUrl: 'https://dharmaseed.org/teacher/1/',
+  ),
+  attribution: const SourceAttribution(
+    source: 'Dharma Seed',
+    creator: 'Rob Burbea',
+    url: 'https://dharmaseed.org/retreats/1/',
+    licenseName: 'CC BY-NC-ND 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-nc-nd/4.0/',
+  ),
+  items: [
+    for (var i = 0; i < 10; i++)
+      PackItemsModel(
+        type: 'track',
+        id: 'ds-talk-$i',
+        title: 'Talk $i',
+        subtitle: 'Talk · Rob Burbea · ${20 + i} min',
+        path: '/tracks/ds-talk-$i',
+        kind: i % 3 == 0 ? 'Guided meditation' : 'Talk',
+        teacher: 'Rob Burbea',
+        durationMs: (20 + i) * 60000,
+        date: '2014-03-0${1 + i ~/ 3}',
+      ),
+  ],
+);
 
 const request = PlaybackRequest(
   trackId: 'preview',
@@ -726,6 +773,8 @@ void main() {
           'explore',
           'search',
           'pack',
+          'course',
+          'teacher',
           'track',
           'completion',
         ]) {
@@ -733,6 +782,8 @@ void main() {
             'explore' => const ExploreView(),
             'search' => const SearchView(),
             'pack' => PackView(id: previewPack.id),
+            'course' => PackView(id: coursePack.id),
+            'teacher' => const TeacherView(teacherId: 'ds-teacher-1'),
             'track' => const TrackView(trackId: 'preview'),
             _ => const EndScreenView(request: request),
           };
@@ -756,18 +807,101 @@ void main() {
             PreviewShell(
               prefs: prefsDark,
               overrides: [
-                explorePacksProvider.overrideWith((ref) async => packs),
-                searchTracksProvider('mind').overrideWith(
-                  (ref) async => [
-                    TrackItem(
-                      id: 'preview',
-                      title: 'Mindful Breathing',
-                      subtitle: '10 min · Will',
-                      coverUrl: request.coverUrl,
-                      path: 'tracks/preview',
-                    ),
-                  ],
+                contentRouterProvider.overrideWithValue(
+                  ContentRouter(sources: [FakeSavableSource()]),
                 ),
+                dharmaSeedExploreProvider(null).overrideWith(
+                  (ref) async => DsExplore(
+                    hasCatalogue: true,
+                    courses: [
+                      for (final pack in packs)
+                        PackItemsModel(
+                          type: 'pack',
+                          id: pack.id,
+                          title: pack.title,
+                          subtitle: pack.subtitle,
+                          coverUrl: pack.coverUrl,
+                          path: pack.path,
+                        ),
+                    ],
+                    teachers: [
+                      DsTeacherItem(
+                        id: 'ds-teacher-1',
+                        name: 'Rob Burbea',
+                        photoUrl: request.coverUrl,
+                      ),
+                      const DsTeacherItem(id: 'ds-teacher-2', name: 'No Photo'),
+                    ],
+                  ),
+                ),
+                for (final length in [null, SessionLength.under10])
+                  dharmaSeedSearchProvider((
+                    query: 'mind',
+                    length: length,
+                  )).overrideWith(
+                    (ref) async => DsSearchResults(
+                      teachers: const [
+                        DsTeacherItem(
+                          id: 'ds-teacher-1',
+                          name: 'Mind Teacher',
+                          talkCount: 12,
+                        ),
+                      ],
+                      courses: [
+                        PackItemsModel(
+                          type: 'pack',
+                          id: 'ds-retreat-1',
+                          title: 'Mind Retreat',
+                          subtitle: 'Rob Burbea · 2014 · 9 talks',
+                          coverUrl: request.coverUrl,
+                          path: '/packs/ds-retreat-1',
+                        ),
+                      ],
+                      talks: length == null
+                          ? [
+                              PackItemsModel(
+                                type: 'track',
+                                id: 'preview',
+                                title: 'Mindful Breathing',
+                                subtitle: 'Guided meditation · Will · 10 min',
+                                coverUrl: request.coverUrl,
+                                path: 'tracks/preview',
+                                kind: 'Guided meditation',
+                                teacher: 'Will',
+                                durationMs: 600000,
+                              ),
+                            ]
+                          : const [],
+                    ),
+                  ),
+                dharmaSeedTeacherProvider('ds-teacher-1').overrideWith(
+                  (ref) async => DsTeacherPage(
+                    teacher: DsTeacherItem(
+                      id: 'ds-teacher-1',
+                      name: 'Rob Burbea',
+                      photoUrl: request.coverUrl,
+                      bio: 'Taught at Gaia House.\n\nWrote Seeing That Frees.',
+                      website: 'https://hermesamara.org/',
+                      pageUrl: 'https://dharmaseed.org/teacher/1/',
+                      talkCount: 439,
+                      retreatCount: 31,
+                    ),
+                    courses: const [
+                      PackItemsModel(
+                        type: 'pack',
+                        id: 'ds-retreat-1',
+                        title: 'Jhana Retreat',
+                        subtitle: 'Rob Burbea · 2014 · 38 talks',
+                        path: '/packs/ds-retreat-1',
+                      ),
+                    ],
+                    talks: [coursePack.items.first, coursePack.items[1]],
+                    hasMoreTalks: true,
+                  ),
+                ),
+                packDataProvider(
+                  packId: coursePack.id,
+                ).overrideWith((ref) async => coursePack),
                 packDataProvider(
                   packId: previewPack.id,
                 ).overrideWith((ref) async => previewPack),
@@ -833,9 +967,28 @@ void main() {
           }
 
           if (name == 'search') {
-            await tester.tap(find.text('Tracks'));
+            expect(find.text('Mind Teacher'), findsOneWidget);
+            expect(find.text('Mind Retreat'), findsOneWidget);
+            expect(find.text('Mindful Breathing'), findsOneWidget);
+            await tester.tap(find.byKey(const ValueKey('length_under10')));
             await tester.pump(const Duration(seconds: 1));
             expect(tester.takeException(), isNull);
+          }
+          if (name == 'course') {
+            expect(find.text('10 of 10 left'), findsOneWidget);
+            // On a short viewport the tabs start below the fold.
+            await tester.scrollUntilVisible(
+              find.text('Teacher'),
+              200,
+              scrollable: find.byType(Scrollable).first,
+            );
+            await tester.tap(find.text('Teacher'));
+            await tester.pump(const Duration(seconds: 1));
+            expect(find.textContaining('Taught at Gaia House'), findsWidgets);
+            expect(tester.takeException(), isNull);
+          }
+          if (name == 'teacher') {
+            expect(find.byKey(const ValueKey('teacher_counts')), findsOneWidget);
           }
           if (name == 'search') {
             tester.view.viewInsets = const FakeViewPadding(bottom: 300);

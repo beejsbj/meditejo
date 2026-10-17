@@ -1,24 +1,29 @@
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
+import 'package:medito/providers/meditation/downloaded_track_ids_provider.dart';
 import 'package:medito/utils/utils.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 
-class PackItemWidget extends StatelessWidget {
+class PackItemWidget extends ConsumerWidget {
   const PackItemWidget({super.key, required this.item, this.onSetComplete});
 
   final PackItemsModel item;
 
   /// Persists a track row's completion to an absolute value, returning whether
   /// the write succeeded (so the control can revert an optimistic flip).
-  /// When null (e.g. pack rows) no completion control is shown.
+  /// When null (e.g. pack rows, or a list outside a course) no completion
+  /// control is shown; a finished session still shows its tick.
   final Future<bool> Function(bool complete)? onSetComplete;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     var hasSubtitle = item.subtitle.isNotNullAndNotEmpty();
+    final detailed = item.kind != null && item.type == TypeConstants.track;
+    final textTheme = Theme.of(context).textTheme;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -26,7 +31,10 @@ class PackItemWidget extends StatelessWidget {
         children: [
           Container(
             width: MediaQuery.of(context).size.width,
-            padding: EdgeInsets.only(top: hasSubtitle ? 24 : 20, bottom: 20),
+            padding: EdgeInsets.only(
+              top: hasSubtitle || detailed ? 24 : 20,
+              bottom: 20,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -36,25 +44,27 @@ class PackItemWidget extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      if (detailed) _kindLabel(context),
                       if (item.title.isNotNullAndNotEmpty())
-                        Text(
-                          item.title,
-                          style: Theme.of(context).textTheme.headlineMedium,
-                        ),
-                      if (hasSubtitle)
+                        Text(item.title, style: textTheme.headlineMedium),
+                      if (detailed)
+                        _details(context)
+                      else if (hasSubtitle)
                         Flexible(
                           child: Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
                               item.subtitle ?? '',
-                              style: Theme.of(context).textTheme.titleMedium,
+                              style: textTheme.titleMedium,
                             ),
                           ),
                         ),
                     ],
                   ),
                 ),
-                _getTrailing(context),
+                if (detailed && ref.watch(_isDownloaded(item.id)))
+                  _downloadedMark(context),
+                _getTrailing(context, ref),
               ],
             ),
           ),
@@ -63,7 +73,52 @@ class PackItemWidget extends StatelessWidget {
     );
   }
 
-  Widget _getTrailing(BuildContext context) {
+  /// "GUIDED MEDITATION": what the session is, before its title.
+  Widget _kindLabel(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Text(
+        item.kind!.toUpperCase(),
+        style: theme.textTheme.labelSmall?.copyWith(
+          letterSpacing: 0.8,
+          fontWeight: FontWeight.w600,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+        ),
+      ),
+    );
+  }
+
+  /// "Rob Burbea · 42 min"
+  Widget _details(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final minutes = ((item.durationMs ?? 0) / Duration.millisecondsPerMinute)
+        .round();
+    final text = [
+      if (item.teacher.isNotNullAndNotEmpty()) item.teacher!,
+      if (minutes > 0) l10n.courseSessionLength(minutes),
+    ].join(' · ');
+    if (text.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(text, style: Theme.of(context).textTheme.titleMedium),
+    );
+  }
+
+  Widget _downloadedMark(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.only(left: 8),
+      child: Icon(
+        Icons.download_done_rounded,
+        size: 20,
+        semanticLabel: l10n.courseSessionDownloaded,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+      ),
+    );
+  }
+
+  Widget _getTrailing(BuildContext context, WidgetRef ref) {
     if (item.type == TypeConstants.link) {
       // Tells link rows apart from sessions, which otherwise sound the same.
       return SvgPicture.asset(
@@ -79,16 +134,21 @@ class PackItemWidget extends StatelessWidget {
       );
     }
 
-    if (item.type == TypeConstants.pack && item.isCompleted == true) {
+    final played =
+        item.isCompleted ??
+        (item.type == TypeConstants.track &&
+            ref.watch(playedTrackIdsProvider).contains(item.id));
+    if ((item.type == TypeConstants.pack || item.type == TypeConstants.track) &&
+        played) {
       // Same 48px slot and left gap as the track toggle, so ticks line up.
-      return const Padding(
-        padding: EdgeInsets.only(left: 8),
+      return Padding(
+        padding: const EdgeInsets.only(left: 8),
         child: SizedBox(
           width: 48,
           height: 48,
           child: Align(
             alignment: Alignment.centerRight,
-            child: PackCompleteBadge(),
+            child: const PackCompleteBadge(),
           ),
         ),
       );
@@ -97,6 +157,10 @@ class PackItemWidget extends StatelessWidget {
     return const SizedBox();
   }
 }
+
+final _isDownloaded = Provider.autoDispose.family<bool, String>(
+  (ref, id) => ref.watch(downloadedTrackIdsProvider).contains(id),
+);
 
 /// Tappable completion indicator that replaces the old swipe-to-complete
 /// gesture (which fought the Android system back gesture on the right edge).

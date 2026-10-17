@@ -15,6 +15,10 @@ class NetworkImageWidget extends StatelessWidget {
   /// When set, a missing or failed image shows [GeneratedArtwork] for this
   /// seed instead of the bundled placeholder (unless [errorWidget] is given).
   final String? seed;
+
+  /// Which part of a cropped image stays in view. Portraits keep the face
+  /// with [Alignment.topCenter].
+  final Alignment alignment;
   const NetworkImageWidget({
     super.key,
     required this.url,
@@ -24,6 +28,7 @@ class NetworkImageWidget extends StatelessWidget {
     this.gradient,
     this.errorWidget,
     this.seed,
+    this.alignment = Alignment.center,
   });
 
   Widget get _fallback =>
@@ -68,7 +73,11 @@ class NetworkImageWidget extends StatelessWidget {
       imageUrl: url,
       imageBuilder: (context, imageProvider) => Container(
         decoration: BoxDecoration(
-          image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
+          image: DecorationImage(
+          image: imageProvider,
+          fit: BoxFit.cover,
+          alignment: alignment,
+        ),
         ),
         foregroundDecoration: BoxDecoration(gradient: gradient),
       ),
@@ -81,6 +90,7 @@ class NetworkImageWidget extends StatelessWidget {
     return Image.network(
       url,
       fit: BoxFit.cover,
+      alignment: alignment,
       height: height,
       width: width,
       cacheHeight: height?.round(),

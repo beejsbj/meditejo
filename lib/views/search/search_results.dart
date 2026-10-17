@@ -4,99 +4,82 @@ import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/models/explore/explore_list_item.dart';
-import 'package:medito/providers/providers.dart';
+import 'package:medito/models/explore/session_length.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
+import 'package:medito/services/dharma_seed/dharma_seed_models.dart';
 import 'package:medito/utils/utils.dart';
-import 'package:medito/views/explore/widgets/pack_grid_sliver.dart';
-import 'package:medito/views/explore/widgets/track_list_sliver.dart';
+import 'package:medito/views/dharma_seed/widgets/course_rows_sliver.dart';
+import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
+import 'package:medito/views/dharma_seed/widgets/teacher_widgets.dart';
+import 'package:medito/widgets/filter_pill.dart';
 import 'package:medito/widgets/medito_icon.dart';
+import 'package:medito/widgets/section_header.dart';
 import 'package:medito/widgets/widgets.dart';
 
-/// Packs whose title or subtitle contains [query], then source search
-/// matches (e.g. Dharma Seed retreats not on the Explore list); all packs
-/// for an empty query.
-final searchFilteredPacksProvider = Provider.autoDispose
-    .family<List<PackItem>, String>((ref, query) {
-      final packs = ref.watch(
-        explorePacksProvider.select((asyncValue) => asyncValue.value ?? []),
-      );
-      if (query.isEmpty) return packs;
-      final lowerQuery = query.toLowerCase();
-      final listed = packs
-          .where(
-            (p) =>
-                p.title.toLowerCase().contains(lowerQuery) ||
-                p.subtitle.toLowerCase().contains(lowerQuery),
-          )
-          .toList();
-      final seen = {for (final p in listed) p.id};
-      final searched = ref.watch(searchPacksProvider(query)).value ?? const [];
-      return [
-        ...listed,
-        for (final item in searched)
-          if (seen.add(item.id))
-            PackItem(
-              id: item.id,
-              title: item.title,
-              subtitle: item.subtitle ?? '',
-              coverUrl: item.coverUrl ?? '',
-              path: item.path,
-            ),
-      ];
-    });
+/// A few starting points shown before anything is typed. They are Burooj's
+/// own material (see docs/fork/BRIEF.md), not a ranking of Dharma Seed.
+const searchSuggestions = ['Rob Burbea', 'metta', 'jhana', 'emptiness'];
 
-enum SearchFilter {
-  packs,
-  tracks;
-
-  String label(BuildContext context) => switch (this) {
-    SearchFilter.packs => AppLocalizations.of(context)!.packs,
-    SearchFilter.tracks => AppLocalizations.of(context)!.tracks,
+extension SessionLengthLabel on SessionLength {
+  String label(AppLocalizations l10n) => switch (this) {
+    SessionLength.under10 => l10n.searchLengthUnder10,
+    SessionLength.from10to20 => l10n.searchLength10to20,
+    SessionLength.from20to30 => l10n.searchLength20to30,
+    SessionLength.from30to45 => l10n.searchLength30to45,
+    SessionLength.over45 => l10n.searchLengthOver45,
   };
 }
 
-/// Search results for [query]: a hint while empty, otherwise Packs and Tracks
-/// tabs with counts that auto-switch to whichever has matches. Rendered as an
-/// overlay above the tabs while the nav capsule holds the search field, so
-/// the bottom padding follows the bar height from the enclosing Scaffold.
+/// Search results for [query]: suggestions while empty, otherwise results
+/// grouped as Teachers, Courses and Talks (teachers lead, because a talk that
+/// quotes a teacher can outrank the teacher's own), with a session-length
+/// filter that narrows the talks.
 class SearchResults extends ConsumerStatefulWidget {
-  const SearchResults({super.key, required this.query, this.onBeforeNavigate});
+  const SearchResults({
+    super.key,
+    required this.query,
+    this.onBeforeNavigate,
+    this.onSuggestion,
+  });
 
   final String query;
 
   /// Runs before a result navigates, e.g. to dismiss the keyboard.
   final VoidCallback? onBeforeNavigate;
 
+  /// Called with a suggestion the user tapped on the empty page.
+  final ValueChanged<String>? onSuggestion;
+
   @override
   ConsumerState<SearchResults> createState() => _SearchResultsState();
 }
 
 class _SearchResultsState extends ConsumerState<SearchResults> {
-  SearchFilter _filter = SearchFilter.packs;
-  int? _previousPacksCount;
-  int? _previousTracksCount;
-  bool _filterSwitchScheduled = false;
+  SessionLength? _length;
+
+  /// The last results shown, kept on screen while the next query or filter
+  /// loads so the page does not blink.
+  DsSearchResults? _shown;
 
   @override
   void didUpdateWidget(covariant SearchResults oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.query.isEmpty && oldWidget.query.isNotEmpty) {
-      _filter = SearchFilter.packs;
-    }
+    if (widget.query.trim().isEmpty) _shown = null;
   }
 
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      slivers: widget.query.isEmpty
+      slivers: widget.query.trim().isEmpty
           ? [_buildEmptyState()]
-          : [_buildFilterTabs(), ..._buildResults()],
+          : _buildResults(),
     );
   }
 
   Widget _buildEmptyState() {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return SliverFillRemaining(
       hasScrollBody: false,
       child: Center(
@@ -112,218 +95,165 @@ class _SearchResultsState extends ConsumerState<SearchResults> {
               ),
               const SizedBox(height: padding12),
               Text(
-                AppLocalizations.of(context)!.searchEmptyHint,
+                l10n.searchTryHint,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface.withOpacityValue(0.6),
                   height: 1.4,
                 ),
               ),
+              const SizedBox(height: padding16),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: padding8,
+                runSpacing: padding8,
+                children: [
+                  for (final suggestion in searchSuggestions)
+                    FilterPill(
+                      key: ValueKey('suggestion_$suggestion'),
+                      label: suggestion,
+                      selected: false,
+                      onTap: () => widget.onSuggestion?.call(suggestion),
+                    ),
+                ],
+              ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterTabs() {
-    final query = widget.query;
-    final packsCount = ref.watch(searchFilteredPacksProvider(query)).length;
-    final tracksCount =
-        ref.watch(searchTracksProvider(query)).value?.length ?? 0;
-
-    if ((_previousPacksCount != packsCount ||
-            _previousTracksCount != tracksCount) &&
-        !_filterSwitchScheduled) {
-      _previousPacksCount = packsCount;
-      _previousTracksCount = tracksCount;
-      _filterSwitchScheduled = true;
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _filterSwitchScheduled = false;
-        if (!mounted) return;
-        if (_filter == SearchFilter.packs &&
-            packsCount == 0 &&
-            tracksCount > 0) {
-          setState(() => _filter = SearchFilter.tracks);
-        } else if (_filter == SearchFilter.tracks &&
-            tracksCount == 0 &&
-            packsCount > 0) {
-          setState(() => _filter = SearchFilter.packs);
-        }
-      });
-    }
-
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(padding16, 4, padding16, 0),
-        child: Row(
-          children: [
-            for (final filter in SearchFilter.values)
-              Expanded(
-                child: _FilterTab(
-                  label: filter.label(context),
-                  count: filter == SearchFilter.packs
-                      ? packsCount
-                      : tracksCount,
-                  selected: _filter == filter,
-                  onTap: () => setState(() => _filter = filter),
-                ),
-              ),
-          ],
         ),
       ),
     );
   }
 
   List<Widget> _buildResults() {
-    final query = widget.query;
-    final tracksAsync = ref.watch(searchTracksProvider(query));
-    final packs = ref.watch(searchFilteredPacksProvider(query));
+    final query = widget.query.trim();
+    final async = ref.watch(
+      dharmaSeedSearchProvider((query: query, length: _length)),
+    );
+    if (async.hasValue) _shown = async.value;
+    final results = _shown;
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    return tracksAsync.when(
-      data: (tracks) {
-        final shownPacks = _filter == SearchFilter.tracks
-            ? <PackItem>[]
-            : packs;
-        final shownTracks = _filter == SearchFilter.packs
-            ? <TrackItem>[]
-            : tracks;
-
-        if (shownPacks.isEmpty && shownTracks.isEmpty) {
-          return [
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(padding16),
-                  child: Text(
-                    l10n.noResultsFound,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacityValue(0.7),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ];
-        }
-
-        return [
-          if (shownPacks.isNotEmpty)
-            PackGridSliver(
-              packs: shownPacks,
-              onBeforeNavigate: widget.onBeforeNavigate,
-            ),
-          if (shownTracks.isNotEmpty)
-            TrackListSliver(
-              tracks: shownTracks,
-              onBeforeNavigate: widget.onBeforeNavigate,
-            ),
-          SliverPadding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.paddingOf(context).bottom + padding16,
-            ),
-          ),
-        ];
-      },
-      error: (err, _) {
-        final error = err is AppError ? err : const UnknownError();
+    if (results == null) {
+      if (async.hasError) {
+        final err = async.error;
         return [
           SliverFillRemaining(
             child: MeditoErrorWidget(
-              error: error,
+              error: err is AppError ? err : const UnknownError(),
               isScaffold: false,
-              onTap: () => ref.invalidate(searchTracksProvider(query)),
+              onTap: () => ref.invalidate(dharmaSeedSearchProvider),
             ),
           ),
         ];
-      },
-      loading: () => const [
+      }
+      return const [
         SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
-      ],
-    );
-  }
-}
+      ];
+    }
 
-class _FilterTab extends StatelessWidget {
-  const _FilterTab({
-    required this.label,
-    required this.count,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final int count;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final onSurface = theme.colorScheme.onSurface;
-    final primary = theme.colorScheme.primary;
-    final textColor = selected ? onSurface : onSurface.withOpacityValue(0.5);
-
-    // Was plain text read as "Packs", then a bare "12": no role, no
-    // selection, no hint what the number counts.
-    return Semantics(
-      button: true,
-      selected: selected,
-      label:
-          '$label, ${AppLocalizations.of(context)!.searchResultsCount(count)}',
-      excludeSemantics: true,
-      onTap: onTap,
-      child: InkWell(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: selected
-                    ? primary
-                    : theme.colorScheme.outline.withOpacityValue(0.2),
-                width: selected ? 2 : 1,
+    final nothing =
+        results.teachers.isEmpty &&
+        results.courses.isEmpty &&
+        results.talks.isEmpty &&
+        _length == null;
+    if (nothing) {
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(padding16),
+              child: Text(
+                l10n.noResultsFound,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacityValue(0.7),
+                ),
               ),
             ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                label,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: textColor,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? primary.withOpacityValue(0.15)
-                      : onSurface.withOpacityValue(0.08),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '$count',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: selected ? primary : textColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+        ),
+      ];
+    }
+
+    return [
+      if (results.teachers.isNotEmpty) ...[
+        SliverToBoxAdapter(child: SectionHeader(title: l10n.searchTeachers)),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.only(top: padding8),
+            child: TeacherRows(
+              teachers: results.teachers,
+              onBeforeNavigate: widget.onBeforeNavigate,
+            ),
           ),
         ),
+      ],
+      if (results.courses.isNotEmpty) ...[
+        SliverToBoxAdapter(child: SectionHeader(title: l10n.searchCourses)),
+        const SliverPadding(padding: EdgeInsets.only(top: padding8)),
+        CourseRowsSliver(
+          courses: results.courses,
+          onBeforeNavigate: widget.onBeforeNavigate,
+        ),
+      ],
+      SliverToBoxAdapter(child: SectionHeader(title: l10n.searchTalks)),
+      SliverToBoxAdapter(child: _lengthFilter(l10n)),
+      if (results.talks.isEmpty)
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(padding16),
+            child: Text(
+              l10n.noResultsFound,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacityValue(0.7),
+              ),
+            ),
+          ),
+        )
+      else
+        SessionRowsSliver(
+          items: results.talks,
+          onBeforeNavigate: widget.onBeforeNavigate,
+        ),
+      SliverPadding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.paddingOf(context).bottom + 96,
+        ),
+      ),
+    ];
+  }
+
+  /// Any, under 10, 10–20, 20–30, 30–45 and over 45 minutes. It narrows the
+  /// talks only; teachers and courses have no length.
+  Widget _lengthFilter(AppLocalizations l10n) {
+    return SizedBox(
+      height: 56,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(
+          horizontal: padding16,
+          vertical: padding8,
+        ),
+        children: [
+          FilterPill(
+            key: const ValueKey('length_any'),
+            label: l10n.searchLengthAny,
+            selected: _length == null,
+            onTap: () => setState(() => _length = null),
+          ),
+          for (final length in SessionLength.values) ...[
+            const SizedBox(width: padding8),
+            FilterPill(
+              key: ValueKey('length_${length.name}'),
+              label: length.label(l10n),
+              selected: _length == length,
+              onTap: () =>
+                  setState(() => _length = _length == length ? null : length),
+            ),
+          ],
+        ],
       ),
     );
   }

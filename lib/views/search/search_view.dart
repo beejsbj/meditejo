@@ -23,7 +23,9 @@ class SearchView extends ConsumerStatefulWidget {
 }
 
 class SearchViewState extends ConsumerState<SearchView> {
-  static const _searchDebounce = Duration(milliseconds: 500);
+  // A broad query over the full catalogue takes about 350 ms, so wait for a
+  // pause in typing rather than search on every keystroke.
+  static const _searchDebounce = Duration(milliseconds: 400);
 
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
@@ -56,10 +58,17 @@ class SearchViewState extends ConsumerState<SearchView> {
     _debounce?.cancel();
     _debounce = Timer(_searchDebounce, () {
       if (!mounted) return;
-      // The search backend is ASCII-only.
-      final asciiQuery = value.replaceAll(RegExp(r'[^\x00-\x7F]'), '');
-      setState(() => _query = asciiQuery);
+      // The local full-text index folds diacritics itself, so the query is
+      // passed through as typed ("Ñāṇavīra" works).
+      setState(() => _query = value);
     });
+  }
+
+  void _useSuggestion(String text) {
+    _debounce?.cancel();
+    _controller.text = text;
+    _controller.selection = TextSelection.collapsed(offset: text.length);
+    setState(() => _query = text);
   }
 
   void _clear() {
@@ -93,7 +102,7 @@ class SearchViewState extends ConsumerState<SearchView> {
                   return MeditoTextField(
                     controller: _controller,
                     focusNode: _focusNode,
-                    hintText: l10n.searchMeditations,
+                    hintText: l10n.searchDharmaHint,
                     textInputAction: TextInputAction.search,
                     prefixIcon: Padding(
                       padding: const EdgeInsets.only(left: 14, right: 10),
@@ -122,6 +131,7 @@ class SearchViewState extends ConsumerState<SearchView> {
             Expanded(
               child: SearchResults(
                 query: _query,
+                onSuggestion: _useSuggestion,
                 onBeforeNavigate: () {
                   _focusNode.unfocus();
                 },

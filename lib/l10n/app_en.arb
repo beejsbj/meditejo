@@ -1758,5 +1758,14 @@
         "type": "String"
       }
     }
+  },
+  "teacherTalkCount": "{count, plural, =1{1 talk} other{{count} talks}}",
+  "@teacherTalkCount": {
+    "description": "Number of talks a teacher gave",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

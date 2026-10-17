@@ -63,7 +63,7 @@ void main() {
         for (var id = 1; id <= 400; id++)
           '$id': {
             'id': id,
-            'title': 'Ñāṇa $id ' + 'x' * 120,
+            'title': 'Ñāṇa $id ${'x' * 120}',
             'duration_in_minutes': 12.5,
           },
       };
