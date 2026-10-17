@@ -46,6 +46,15 @@ String dsTeacherPhotoUrl(int teacherId, String photo, {int maxWidth = 400}) {
       '${Uri.encodeComponent(photo)}/?maxW=$maxWidth';
 }
 
+/// The two content groups of the Explore chips. Practice is what you do along
+/// with the audio; Talks is everything you listen to, including `Other` and
+/// recordings with no type.
+enum DsContentGroup { practice, talks }
+
+/// `recording_type` values (lower-cased) that count as practice. Keep in step
+/// with [DharmaSeedKind.isPractice]; the database filters on this list.
+const dsPracticeRecordingTypes = ['meditation', 'guided meditation', 'chanting'];
+
 /// What a recording is, from Dharma Seed's `recording_type`.
 ///
 /// Observed values (2026-10-17): `Talk`, `Meditation`, `Q & A`, `Chanting`,
@@ -69,6 +78,9 @@ enum DharmaSeedKind {
         'q & a' || 'q&a' => questions,
         _ => other,
       };
+
+  DsContentGroup get group =>
+      isPractice ? DsContentGroup.practice : DsContentGroup.talks;
 
   /// Practice is something you do along with the audio (the Explore
   /// "Practice" chip); everything else is listened to ("Talks").

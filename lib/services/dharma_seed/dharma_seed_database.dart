@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_client.dart';
+import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 
 part 'dharma_seed_database.g.dart';
 
@@ -125,13 +126,58 @@ class DsTalkWithTeacher {
 }
 
 class DsTalkFilter {
-  const DsTalkFilter({this.minDuration, this.maxDuration, this.recordingTypes});
+  const DsTalkFilter({
+    this.minDuration,
+    this.maxDuration,
+    this.recordingTypes,
+    this.group,
+  });
 
+  /// Inclusive lower bound on length.
   final Duration? minDuration;
+
+  /// Exclusive upper bound on length.
   final Duration? maxDuration;
 
   /// Raw `recording_type` values to include; null for all.
   final Set<String>? recordingTypes;
+
+  /// Practice or Talks, as the Explore chips choose; null for both.
+  final DsContentGroup? group;
+
+  /// SQL conditions on a `ds_talks` row aliased [alias], with their values.
+  /// Null when the filter can match nothing.
+  ({List<String> where, List<Variable> variables})? toSql(String alias) {
+    final where = <String>[];
+    final variables = <Variable>[];
+    if (minDuration case final min?) {
+      where.add('$alias.duration_ms >= ?');
+      variables.add(Variable.withInt(min.inMilliseconds));
+    }
+    if (maxDuration case final max?) {
+      where.add('$alias.duration_ms < ?');
+      variables.add(Variable.withInt(max.inMilliseconds));
+    }
+    if (recordingTypes case final types?) {
+      if (types.isEmpty) return null;
+      where.add(
+        '$alias.recording_type IN (${List.filled(types.length, '?').join(',')})',
+      );
+      variables.addAll(types.map(Variable.withString));
+    }
+    if (group case final group?) {
+      where.add(DharmaSeedDatabase.groupCondition(group, alias));
+    }
+    return (where: where, variables: variables);
+  }
+}
+
+/// A teacher with how much of their material is stored, for browsing.
+class DsTeacherSummary {
+  const DsTeacherSummary(this.teacher, this.talkCount);
+
+  final DsTeacher teacher;
+  final int talkCount;
 }
 
 @DriftDatabase(
@@ -566,6 +612,149 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
     return found;
   }
 
+
+  /// SQL for "this talk is in [group]" on a `ds_talks` row aliased [alias].
+  /// Untyped and unknown recordings are Talks.
+  static String groupCondition(DsContentGroup group, String alias) {
+    final types = dsPracticeRecordingTypes.map((t) => "'$t'").join(',');
+    final practice = "lower(trim($alias.recording_type)) IN ($types)";
+    return group == DsContentGroup.practice ? practice : 'NOT ($practice)';
+  }
+
+  /// Retreats with talks, newest first, optionally only those that are mostly
+  /// [group] (at least half of their stored talks). Retreats whose talks have
+  /// not synced yet cannot be classified and only appear without a group.
+  Future<List<DsRetreat>> recentRetreatsOf(
+    DsContentGroup? group, {
+    int limit = 40,
+  }) async {
+    if (group == null) return recentRetreats(limit: limit);
+    final practiceShare = dsPracticeRecordingTypes.map((t) => "'$t'").join(',');
+    final comparison = group == DsContentGroup.practice ? '>=' : '<';
+    final rows = await customSelect(
+      'SELECT r.* FROM ds_retreats r JOIN ('
+      'SELECT retreat_id, COUNT(*) AS n, SUM('
+      "CASE WHEN lower(trim(recording_type)) IN ($practiceShare) "
+      'THEN 1 ELSE 0 END) AS p FROM ds_talks '
+      'WHERE retreat_id IS NOT NULL GROUP BY retreat_id) k '
+      'ON k.retreat_id = r.id '
+      'WHERE r.talk_ids != \'[]\' AND k.p * 2 $comparison k.n '
+      'ORDER BY r.start_date DESC, r.id DESC LIMIT ?',
+      variables: [Variable.withInt(limit)],
+      readsFrom: {dsRetreats, dsTalks},
+    ).get();
+    return [for (final row in rows) dsRetreats.map(row.data)];
+  }
+
+  /// Newest talks first, for the Explore "latest" list.
+  Future<List<DsTalkWithTeacher>> recentTalks({
+    DsTalkFilter filter = const DsTalkFilter(),
+    int limit = 20,
+  }) async {
+    final sql = filter.toSql('t');
+    if (sql == null) return const [];
+    final rows = await customSelect(
+      'SELECT t.* FROM ds_talks t '
+      '${sql.where.isEmpty ? '' : 'WHERE ${sql.where.join(' AND ')} '}'
+      'ORDER BY t.rec_date DESC, t.id DESC LIMIT ?',
+      variables: [...sql.variables, Variable.withInt(limit)],
+      readsFrom: {dsTalks},
+    ).get();
+    return _withTeachers([for (final row in rows) dsTalks.map(row.data)]);
+  }
+
+  Future<List<DsTalkWithTeacher>> _withTeachers(List<DsTalk> talks) async {
+    final teachers = await teachersById(talks.map((t) => t.teacherId).nonNulls);
+    return [
+      for (final talk in talks) DsTalkWithTeacher(talk, teachers[talk.teacherId]),
+    ];
+  }
+
+  /// Teachers with the most stored talks (of [group], when given), most first.
+  /// Co-teaching counts for every teacher of a talk, as on a teacher's page;
+  /// teachers marked non-public are left out.
+  Future<List<DsTeacherSummary>> topTeachers({
+    DsContentGroup? group,
+    int limit = 20,
+  }) async {
+    final rows = await customSelect(
+      'SELECT tt.teacher_id AS id, COUNT(*) AS n FROM ds_talk_teachers tt '
+      'JOIN ds_talks t ON t.id = tt.talk_id '
+      'JOIN ds_teachers k ON k.id = tt.teacher_id AND k.is_public = 1 '
+      '${group == null ? '' : 'WHERE ${groupCondition(group, 't')} '}'
+      'GROUP BY tt.teacher_id ORDER BY n DESC, tt.teacher_id LIMIT ?',
+      variables: [Variable.withInt(limit)],
+      readsFrom: {dsTalks, dsTalkTeachers, dsTeachers},
+    ).get();
+    final teachers = await teachersById([
+      for (final row in rows) row.read<int>('id'),
+    ]);
+    return [
+      for (final row in rows)
+        if (teachers[row.read<int>('id')] case final teacher?)
+          DsTeacherSummary(teacher, row.read<int>('n')),
+    ];
+  }
+
+  /// How many stored talks each of [teacherIds] gave (co-teaching counts).
+  Future<Map<int, int>> talkCounts(Iterable<int> teacherIds) async {
+    final list = teacherIds.toList();
+    if (list.isEmpty) return const {};
+    final rows = await customSelect(
+      'SELECT teacher_id AS id, COUNT(*) AS n FROM ds_talk_teachers '
+      'WHERE teacher_id IN (${List.filled(list.length, '?').join(',')}) '
+      'GROUP BY teacher_id',
+      variables: [for (final id in list) Variable.withInt(id)],
+      readsFrom: {dsTalkTeachers},
+    ).get();
+    return {for (final row in rows) row.read<int>('id'): row.read<int>('n')};
+  }
+
+  /// Retreats in which [teacherId] gave at least one stored talk, newest first.
+  Future<List<DsRetreat>> retreatsOfTeacher(int teacherId, {int limit = 60}) async {
+    final rows = await customSelect(
+      'SELECT r.* FROM ds_retreats r WHERE r.id IN ('
+      'SELECT t.retreat_id FROM ds_talks t '
+      'JOIN ds_talk_teachers tt ON tt.talk_id = t.id AND tt.teacher_id = ? '
+      'WHERE t.retreat_id IS NOT NULL) '
+      'ORDER BY r.start_date DESC, r.id DESC LIMIT ?',
+      variables: [Variable.withInt(teacherId), Variable.withInt(limit)],
+      readsFrom: {dsRetreats, dsTalks, dsTalkTeachers},
+    ).get();
+    return [for (final row in rows) dsRetreats.map(row.data)];
+  }
+
+  /// A teacher's talks, newest first, a page at a time.
+  Future<List<DsTalkWithTeacher>> talksOfTeacher(
+    int teacherId, {
+    DsTalkFilter filter = const DsTalkFilter(),
+    int limit = 30,
+    int offset = 0,
+  }) async {
+    final sql = filter.toSql('t');
+    if (sql == null) return const [];
+    final rows = await customSelect(
+      'SELECT t.* FROM ds_talks t '
+      'JOIN ds_talk_teachers tt ON tt.talk_id = t.id AND tt.teacher_id = ? '
+      '${sql.where.isEmpty ? '' : 'WHERE ${sql.where.join(' AND ')} '}'
+      'ORDER BY t.rec_date DESC, t.id DESC LIMIT ? OFFSET ?',
+      variables: [
+        Variable.withInt(teacherId),
+        ...sql.variables,
+        Variable.withInt(limit),
+        Variable.withInt(offset),
+      ],
+      readsFrom: {dsTalks, dsTalkTeachers},
+    ).get();
+    return _withTeachers([for (final row in rows) dsTalks.map(row.data)]);
+  }
+
+  Future<bool> isSaved(DsSavedKind kind, int id) async =>
+      (await (select(dsSaved)
+                ..where((s) => s.kind.equals(kind.name) & s.itemId.equals(id)))
+              .getSingleOrNull()) !=
+      null;
+
   // ---------------------------------------------------------------- search
 
   /// An FTS5 query matching every word of [input] as a prefix, or null when
@@ -586,23 +775,10 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
   }) async {
     final match = matchExpression(query);
     if (match == null) return const [];
-    final where = <String>['ds_talks_fts MATCH ?'];
-    final variables = <Variable>[Variable.withString(match)];
-    if (filter.minDuration case final min?) {
-      where.add('t.duration_ms >= ?');
-      variables.add(Variable.withInt(min.inMilliseconds));
-    }
-    if (filter.maxDuration case final max?) {
-      where.add('t.duration_ms < ?');
-      variables.add(Variable.withInt(max.inMilliseconds));
-    }
-    if (filter.recordingTypes case final types?) {
-      if (types.isEmpty) return const [];
-      where.add(
-        't.recording_type IN (${List.filled(types.length, '?').join(',')})',
-      );
-      variables.addAll(types.map(Variable.withString));
-    }
+    final sql = filter.toSql('t');
+    if (sql == null) return const [];
+    final where = ['ds_talks_fts MATCH ?', ...sql.where];
+    final variables = <Variable>[Variable.withString(match), ...sql.variables];
     variables.add(Variable.withInt(limit));
     final rows = await customSelect(
       'SELECT t.* FROM ds_talks_fts f JOIN ds_talks t ON t.id = f.rowid '
@@ -612,11 +788,7 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
       variables: variables,
       readsFrom: {dsTalks},
     ).get();
-    final talks = [for (final row in rows) dsTalks.map(row.data)];
-    final teachers = await teachersById(talks.map((t) => t.teacherId).nonNulls);
-    return [
-      for (final talk in talks) DsTalkWithTeacher(talk, teachers[talk.teacherId]),
-    ];
+    return _withTeachers([for (final row in rows) dsTalks.map(row.data)]);
   }
 
   Future<List<DsRetreat>> searchRetreats(String query, {int limit = 30}) async {

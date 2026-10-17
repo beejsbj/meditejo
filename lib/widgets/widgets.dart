@@ -7,6 +7,7 @@ export 'headers/medito_app_bar_large.dart';
 export 'inputs/medito_text_field.dart';
 export 'long_press_detector_widget.dart';
 export 'markdown_widget.dart';
+export 'generated_artwork.dart';
 export 'network_image_widget.dart';
 export 'pack_card_widget.dart';
 export 'shimmers/background_sounds_shimmer_widget.dart';

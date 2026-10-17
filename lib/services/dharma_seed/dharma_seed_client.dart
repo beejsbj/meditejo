@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -91,7 +93,7 @@ class DharmaSeedClient {
         ).timeout(timeout);
         final status = response.statusCode;
         if (status == 200) {
-          final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+          final decoded = await _decode(response.bodyBytes);
           if (decoded is Map<String, Object?>) return decoded;
           throw const DharmaSeedApiException('Unexpected response shape');
         }
@@ -117,6 +119,17 @@ class DharmaSeedClient {
       await _sleep(_backoff(attempt));
     }
   }
+
+  /// Detail batches are hundreds of KB: decode those off the main isolate so
+  /// the first sync does not drop frames. Small bodies are not worth the
+  /// isolate.
+  static Future<Object?> _decode(Uint8List bytes) => bytes.length < _isolateAbove
+      ? Future.value(_decodeJson(bytes))
+      : Isolate.run(() => _decodeJson(bytes));
+
+  static const _isolateAbove = 32 * 1024;
+
+  static Object? _decodeJson(Uint8List bytes) => jsonDecode(utf8.decode(bytes));
 
   static List<int> _ids(Object? value) => value is List
       ? [for (final id in value) ?_asInt(id)]

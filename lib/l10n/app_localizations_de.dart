@@ -1528,4 +1528,174 @@ class AppLocalizationsDe extends AppLocalizations {
   String dharmaSeedSyncFailed(String error) {
     return 'Synchronisierung pausiert ($error). Zum Wiederholen tippen.';
   }
+
+  @override
+  String get exploreKindPractice => 'Praxis';
+
+  @override
+  String get exploreKindTalks => 'Vorträge';
+
+  @override
+  String get exploreSavedCourses => 'Gespeicherte Kurse';
+
+  @override
+  String get exploreSavedTeachers => 'Gespeicherte Lehrende';
+
+  @override
+  String get exploreCourses => 'Kurse';
+
+  @override
+  String get exploreTeachers => 'Lehrende';
+
+  @override
+  String get exploreLatestPractice => 'Neueste geführte Praxis';
+
+  @override
+  String get exploreLatestTalks => 'Neueste Vorträge';
+
+  @override
+  String get exploreSyncingTitle =>
+      'Deine Dharma-Seed-Bibliothek wird eingerichtet';
+
+  @override
+  String get exploreSyncingBody =>
+      'Kurse und Lehrende erscheinen hier, sobald sie eintreffen. Beim ersten Mal dauert das ein bis zwei Minuten.';
+
+  @override
+  String get exploreNoLibraryTitle =>
+      'Die Bibliothek ist noch nicht synchronisiert';
+
+  @override
+  String get exploreNoLibraryBody =>
+      'Stelle eine Internetverbindung her und ziehe nach unten, um es erneut zu versuchen.';
+
+  @override
+  String get exploreNothingInGroup =>
+      'Noch nichts hier. Mehr kommt, während die Bibliothek synchronisiert.';
+
+  @override
+  String get searchDharmaHint => 'Lehrende, Kurse und Vorträge suchen';
+
+  @override
+  String get searchTryHint =>
+      'Probiere eine lehrende Person, ein Thema oder ein Retreat';
+
+  @override
+  String get searchTeachers => 'Lehrende';
+
+  @override
+  String get searchCourses => 'Kurse';
+
+  @override
+  String get searchTalks => 'Vorträge';
+
+  @override
+  String get searchTalkLength => 'Länge';
+
+  @override
+  String get searchLengthAny => 'Beliebig';
+
+  @override
+  String get searchLengthUnder10 => 'Unter 10 Min.';
+
+  @override
+  String get searchLength10to20 => '10–20 Min.';
+
+  @override
+  String get searchLength20to30 => '20–30 Min.';
+
+  @override
+  String get searchLength30to45 => '30–45 Min.';
+
+  @override
+  String get searchLengthOver45 => 'Über 45 Min.';
+
+  @override
+  String courseLeft(int count, int total) {
+    return '$count von $total übrig';
+  }
+
+  @override
+  String courseAllPlayed(int total) {
+    return 'Alle $total gehört';
+  }
+
+  @override
+  String courseUpNext(String title) {
+    return 'Als Nächstes: $title';
+  }
+
+  @override
+  String get courseSave => 'Kurs speichern';
+
+  @override
+  String get courseSaved => 'Gespeichert';
+
+  @override
+  String get courseSessionsTab => 'Sitzungen';
+
+  @override
+  String get courseSummaryTab => 'Überblick';
+
+  @override
+  String get courseTeacherTab => 'Lehrende';
+
+  @override
+  String get courseNoSummary => 'Dieser Kurs hat keine Beschreibung.';
+
+  @override
+  String courseDay(int number) {
+    return 'Tag $number';
+  }
+
+  @override
+  String get courseSessionPlayed => 'Gehört';
+
+  @override
+  String get courseSessionDownloaded => 'Heruntergeladen';
+
+  @override
+  String courseSessionLength(int minutes) {
+    return '$minutes Min.';
+  }
+
+  @override
+  String get teacherSave => 'Lehrende speichern';
+
+  @override
+  String get teacherCourses => 'Kurse';
+
+  @override
+  String get teacherTalks => 'Vorträge';
+
+  @override
+  String get teacherShowMore => 'Mehr Vorträge zeigen';
+
+  @override
+  String teacherCounts(int talks, int courses) {
+    return '$talks Vorträge · $courses Kurse';
+  }
+
+  @override
+  String get teacherNotFound =>
+      'Diese lehrende Person ist noch nicht in der Bibliothek.';
+
+  @override
+  String get teacherNoBio => 'Keine Biografie bei Dharma Seed.';
+
+  @override
+  String get teacherWebsite => 'Webseite';
+
+  @override
+  String attributionViewOn(String source) {
+    return 'Auf $source ansehen';
+  }
+
+  @override
+  String get attributionUnmodified => 'Unverändert wie aufgenommen gestreamt.';
+
+  @override
+  String attributionLicence(String license) {
+    return 'Lizenz: $license';
+  }
 }

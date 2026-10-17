@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:medito/models/attribution/source_attribution.dart';
 
 part 'track.freezed.dart';
 part 'track.g.dart';
@@ -15,6 +16,9 @@ abstract class Track with _$Track {
     @Default(false) bool isLiked,
     required bool hasBackgroundSound,
     @Default(null) TrackArtist? artist,
+
+    /// Credit and licence shown with the track; null when none is owed.
+    SourceAttribution? attribution,
     @Default(<TrackVoice>[]) @JsonKey(name: 'audio') List<TrackVoice> voices,
   }) = _Track;
 

@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:medito/constants/constants.dart';
+import 'package:medito/widgets/generated_artwork.dart';
 import 'package:shimmer/shimmer.dart';
 
 class NetworkImageWidget extends StatelessWidget {
@@ -10,6 +11,10 @@ class NetworkImageWidget extends StatelessWidget {
   final bool shouldCache;
   final Gradient? gradient;
   final Widget? errorWidget;
+
+  /// When set, a missing or failed image shows [GeneratedArtwork] for this
+  /// seed instead of the bundled placeholder (unless [errorWidget] is given).
+  final String? seed;
   const NetworkImageWidget({
     super.key,
     required this.url,
@@ -18,7 +23,14 @@ class NetworkImageWidget extends StatelessWidget {
     this.shouldCache = false,
     this.gradient,
     this.errorWidget,
+    this.seed,
   });
+
+  Widget get _fallback =>
+      errorWidget ??
+      (seed == null
+          ? Image.asset(AssetConstants.placeholder, fit: BoxFit.cover)
+          : GeneratedArtwork(seed: seed!));
 
   // Artwork only, never labelled: excluded so each card doesn't pick up an
   // "image" trait (or a stray unlabelled image stop) from it.
@@ -31,8 +43,7 @@ class NetworkImageWidget extends StatelessWidget {
     if (uri == null ||
         (uri.scheme != 'http' && uri.scheme != 'https') ||
         uri.host.isEmpty) {
-      return errorWidget ??
-          Image.asset(AssetConstants.placeholder, fit: BoxFit.cover);
+      return _fallback;
     }
 
     return uri.path.endsWith('.svg')
@@ -62,9 +73,7 @@ class NetworkImageWidget extends StatelessWidget {
         foregroundDecoration: BoxDecoration(gradient: gradient),
       ),
       placeholder: (_, _) => _shimmerLoading(),
-      errorWidget: (context, url, error) =>
-          errorWidget ??
-          Image.asset(AssetConstants.placeholder, fit: BoxFit.cover),
+      errorWidget: (context, url, error) => _fallback,
     );
   }
 
@@ -78,9 +87,7 @@ class NetworkImageWidget extends StatelessWidget {
       cacheWidth: width?.round(),
       loadingBuilder: (_, child, loadingProgress) =>
           loadingProgress == null ? child : _shimmerLoading(),
-      errorBuilder: (context, error, stackTrace) =>
-          errorWidget ??
-          Image.asset(AssetConstants.placeholder, fit: BoxFit.cover),
+      errorBuilder: (context, error, stackTrace) => _fallback,
     );
   }
 
