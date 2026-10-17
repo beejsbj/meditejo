@@ -12,8 +12,9 @@ import 'package:medito/views/explore/widgets/track_list_sliver.dart';
 import 'package:medito/widgets/medito_icon.dart';
 import 'package:medito/widgets/widgets.dart';
 
-/// Packs whose title or subtitle contains [query]; all packs for an empty
-/// query.
+/// Packs whose title or subtitle contains [query], then source search
+/// matches (e.g. Dharma Seed retreats not on the Explore list); all packs
+/// for an empty query.
 final searchFilteredPacksProvider = Provider.autoDispose
     .family<List<PackItem>, String>((ref, query) {
       final packs = ref.watch(
@@ -21,13 +22,27 @@ final searchFilteredPacksProvider = Provider.autoDispose
       );
       if (query.isEmpty) return packs;
       final lowerQuery = query.toLowerCase();
-      return packs
+      final listed = packs
           .where(
             (p) =>
                 p.title.toLowerCase().contains(lowerQuery) ||
                 p.subtitle.toLowerCase().contains(lowerQuery),
           )
           .toList();
+      final seen = {for (final p in listed) p.id};
+      final searched = ref.watch(searchPacksProvider(query)).value ?? const [];
+      return [
+        ...listed,
+        for (final item in searched)
+          if (seen.add(item.id))
+            PackItem(
+              id: item.id,
+              title: item.title,
+              subtitle: item.subtitle ?? '',
+              coverUrl: item.coverUrl ?? '',
+              path: item.path,
+            ),
+      ];
     });
 
 enum SearchFilter {

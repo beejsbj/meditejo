@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 // ignore: depend_on_referenced_packages
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/providers/notification/reminder_provider.dart';
@@ -158,6 +159,7 @@ class _ParentWidgetState extends ConsumerState<ParentWidget>
     _setUpSystemUi();
     WidgetsBinding.instance.addObserver(this);
     unawaited(_recoverPreviousSession());
+    unawaited(startDharmaSeedSync(ref));
   }
 
   Future<void> _recoverPreviousSession() async {

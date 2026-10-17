@@ -12,6 +12,7 @@ import 'package:medito/routes/routes.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/debug/debug_info_screen.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
+import 'package:medito/views/settings/widgets/dharma_seed_sync_tile.dart';
 import 'package:medito/views/settings/advanced_settings_screen.dart';
 import 'package:medito/views/settings/health_sync_tile.dart';
 import 'package:medito/views/settings/widgets/dnd_setting_tile.dart';
@@ -343,6 +344,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     // Other customization card children
     final otherCustomizationChildren = <Widget>[
+      const DharmaSeedSyncTile(),
       if (widgetItem != null)
         _buildMenuItemTile(
           context,

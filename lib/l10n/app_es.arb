@@ -760,9 +760,16 @@
   "localIntroReturnBody": "Empieza con unos minutos de calma. El temporizador está listo cuando tú lo estés.",
   "localIntroPracticeBody": "Usa el temporizador para meditar sin guía, con las campanas y la duración que prefieras.",
   "localIntroDeviceOnlyNote": "Tu historial de práctica, tus favoritos y tus ajustes se guardan en este dispositivo.",
-
   "aboutMeditejo": "Acerca de Meditejo",
   "forkCredit": "Meditejo está basado en Medito de Medito Foundation (meditofoundation.org), bajo la licencia AGPL-3.0.",
   "sourceCode": "Código fuente",
-  "upstreamProject": "Proyecto original"
+  "upstreamProject": "Proyecto original",
+  "dharmaSeedLibrary": "Biblioteca de Dharma Seed",
+  "dharmaSeedSyncProgress": "Actualizando {what}: {done} de {total}",
+  "dharmaSeedTeachers": "maestros",
+  "dharmaSeedRetreats": "retiros",
+  "dharmaSeedTalks": "charlas",
+  "dharmaSeedUpToDate": "Al día · {when}",
+  "dharmaSeedNeverSynced": "Aún sin sincronizar. Toca para sincronizar.",
+  "dharmaSeedSyncFailed": "Sincronización en pausa ({error}). Toca para reintentar."
 }

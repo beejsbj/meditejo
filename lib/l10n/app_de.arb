@@ -1000,9 +1000,16 @@
   "localIntroReturnBody": "Beginne mit ein paar ruhigen Minuten. Der Timer ist bereit, sobald du es bist.",
   "localIntroPracticeBody": "Nutze den Timer für eine Meditation ohne Anleitung, mit den Glocken und der Dauer deiner Wahl.",
   "localIntroDeviceOnlyNote": "Dein Praxisverlauf, deine Favoriten und deine Einstellungen bleiben auf diesem Gerät.",
-
   "aboutMeditejo": "Über Meditejo",
   "forkCredit": "Meditejo basiert auf Medito von der Medito Foundation (meditofoundation.org), lizenziert unter AGPL-3.0.",
   "sourceCode": "Quellcode",
-  "upstreamProject": "Ursprüngliches Projekt"
+  "upstreamProject": "Ursprüngliches Projekt",
+  "dharmaSeedLibrary": "Dharma-Seed-Bibliothek",
+  "dharmaSeedSyncProgress": "{what} werden aktualisiert: {done} von {total}",
+  "dharmaSeedTeachers": "Lehrende",
+  "dharmaSeedRetreats": "Retreats",
+  "dharmaSeedTalks": "Vorträge",
+  "dharmaSeedUpToDate": "Aktuell · {when}",
+  "dharmaSeedNeverSynced": "Noch nicht synchronisiert. Zum Synchronisieren tippen.",
+  "dharmaSeedSyncFailed": "Synchronisierung pausiert ({error}). Zum Wiederholen tippen."
 }

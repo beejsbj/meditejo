@@ -1460,9 +1460,61 @@
   "@localIntroDeviceOnlyNote": {
     "description": "Explains that practice history, favourites and preferences are stored on the device."
   },
-
   "aboutMeditejo": "About Meditejo",
   "forkCredit": "Meditejo is based on Medito by the Medito Foundation (meditofoundation.org), licensed under AGPL-3.0.",
   "sourceCode": "Source code",
-  "upstreamProject": "Upstream project"
+  "upstreamProject": "Upstream project",
+  "dharmaSeedLibrary": "Dharma Seed library",
+  "@dharmaSeedLibrary": {
+    "description": "Settings row for the built-in Dharma Seed catalogue sync"
+  },
+  "dharmaSeedSyncProgress": "Updating {what}: {done} of {total}",
+  "@dharmaSeedSyncProgress": {
+    "description": "Sync progress, e.g. Updating talks: 500 of 48994",
+    "placeholders": {
+      "what": {
+        "type": "String"
+      },
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "dharmaSeedTeachers": "teachers",
+  "@dharmaSeedTeachers": {
+    "description": "Record kind inside dharmaSeedSyncProgress"
+  },
+  "dharmaSeedRetreats": "retreats",
+  "@dharmaSeedRetreats": {
+    "description": "Record kind inside dharmaSeedSyncProgress"
+  },
+  "dharmaSeedTalks": "talks",
+  "@dharmaSeedTalks": {
+    "description": "Record kind inside dharmaSeedSyncProgress"
+  },
+  "dharmaSeedUpToDate": "Up to date · {when}",
+  "@dharmaSeedUpToDate": {
+    "description": "Last successful sync; when is a formatted date and time",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "dharmaSeedNeverSynced": "Not synced yet. Tap to sync.",
+  "@dharmaSeedNeverSynced": {
+    "description": "Shown before the first Dharma Seed sync"
+  },
+  "dharmaSeedSyncFailed": "Sync paused ({error}). Tap to retry.",
+  "@dharmaSeedSyncFailed": {
+    "description": "Sync stopped on an error; error is a short reason",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 }
