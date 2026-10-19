@@ -79,6 +79,12 @@ class CueMathTest {
         assertNotEquals(CueMath.gapMs(10, 4, 1, 1), CueMath.gapMs(10, 4, 2, 1))
     }
 
+    @Test fun gapsMatchTheSwiftImplementation() {
+        // Pinned values, also asserted in CueSchedulerTests.swift: the generators must agree.
+        assertEquals(listOf(448_678L, 652_441L, 726_809L), (1L..3L).map { CueMath.gapMs(10, 4, 42, it) })
+        assertEquals(409_580L, CueMath.gapMs(10, 4, -9, 1))
+    }
+
     @Test fun randomGapsAreSpreadAcrossTheWindow() {
         val gaps = (1L..400L).map { CueMath.gapMs(10, 5, 99, it) }
         assertTrue(gaps.min() < 6 * 60_000L)
@@ -223,4 +229,21 @@ class CueMathTest {
         play(t, 0, 540_000, step = 2000) // 2x, sampled each second
         assertTrue(t.completed(600_000))
     }
+    @Test fun coverageRestoresAcrossResumedSessionsAndMergesRanges() {
+        val tracker = ListeningTracker()
+        tracker.restore(listOf(listOf(0L, 40_000L), listOf(30_000L, 80_000L)))
+        assertEquals(80_000L, tracker.heardMs())
+        val resumed = ListeningTracker()
+        resumed.restore(tracker.snapshot())
+        resumed.rebase(80_000L)
+        for (position in 81_000L..90_000L step 1000L) resumed.sample(position, true)
+        assertTrue(resumed.completed(100_000L))
+    }
+    @Test fun malformedPersistedRangesCannotInventListening() {
+        val tracker = ListeningTracker()
+        tracker.restore(listOf(emptyList(), listOf(-1L, 100_000L), listOf(10L, 5L)))
+        assertEquals(0L, tracker.heardMs())
+        assertFalse(tracker.completed(100_000L))
+    }
+
 }

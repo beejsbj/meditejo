@@ -79,6 +79,11 @@ internal class CueEngine(
     fun configure(cfg: CueConfig) {
         val live = phase == Phase.PLAYING || phase == Phase.EXTENSION || phase == Phase.COUNTDOWN
         if (!live) stopTimers()
+        if (phase == Phase.EXTENSION) {
+            val elapsed = (config?.extensionMs ?: 0L) - heldRemaining()
+            holdRemainingMs = (cfg.extensionMs - elapsed).coerceAtLeast(0L)
+            if (holdAnchor != 0L) holdAnchor = SystemClock.elapsedRealtime()
+        }
         config = cfg
         val sounds = bank ?: CueSoundBank(context).also { bank = it }
         listOf(cfg.startSound, cfg.endSound, cfg.intervalSound, cfg.pulseSound).forEach { sounds.preload(it) }
@@ -292,7 +297,7 @@ internal class CueEngine(
     private fun armPulse(atMs: Double, fresh: Boolean) {
         val cfg = config ?: return
         if (cfg.hasPulse) {
-            beatNumber = if (fresh) 0 else CueMath.firstBeatAfter(atMs, cfg.pulseBpm, cfg.pulseEndBpm, cfg.pulseRampMinutes)
+            beatNumber = if (fresh) 1 else CueMath.firstBeatAfter(atMs, cfg.pulseBpm, cfg.pulseEndBpm, cfg.pulseRampMinutes)
             beatAtMs = CueMath.beatTime(beatNumber, cfg.pulseBpm, cfg.pulseEndBpm, cfg.pulseRampMinutes)
         } else {
             beatNumber = Long.MAX_VALUE

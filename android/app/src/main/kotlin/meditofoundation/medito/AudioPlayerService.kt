@@ -9,6 +9,8 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import org.json.JSONArray
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.AudioAttributes
@@ -69,6 +71,9 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     // Real listening of the current track, and whether its completion has been
     // recorded. The playthrough index is how many passes had finished when it was.
     private val listening = ListeningTracker()
+    private val listeningPrefs by lazy { getSharedPreferences("meditejo_cue_listening", MODE_PRIVATE) }
+    private var listeningKey: String? = null
+    private var lastListeningSaveMs = 0L
     private var completionSent = false
     private val pendingFinish = Runnable { finishPlayback() }
     private var completionPlaythroughIndex = 0
@@ -261,6 +266,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         if (completionSent || !::cues.isInitialized || cues.isTimer || !::primaryPlayer.isInitialized) return
         if (!listening.completed(currentDurationMs())) return
         completionSent = true
+        persistListening(force = true)
         completionPlaythroughIndex = completedPlaythroughs
         saveAndSendCompletionData(createCompletionDataFromPlayer(), finish = false)
     }
@@ -268,6 +274,30 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     private fun sampleListeningFromPlayer() {
         if (!::primaryPlayer.isInitialized) return
         listening.sample(primaryPlayer.currentPosition, primaryPlayer.isPlaying)
+        persistListening()
+    }
+
+    private fun persistListening(force: Boolean = false) {
+        val key = listeningKey ?: return
+        val now = SystemClock.elapsedRealtime()
+        if (!force && !completionSent && now - lastListeningSaveMs < 5000L) return
+        lastListeningSaveMs = now
+        if (completionSent) listeningPrefs.edit().remove(key).apply()
+        else listeningPrefs.edit().putString(key, JSONArray(listening.snapshot()).toString()).apply()
+    }
+
+    private fun restoreListening(trackId: String, fileId: String) {
+        listeningKey = JSONArray(listOf(trackId, fileId)).toString()
+        listening.reset()
+        try {
+            val array = JSONArray(listeningPrefs.getString(listeningKey, "[]"))
+            val saved = (0 until array.length()).mapNotNull { i ->
+                val range = array.optJSONArray(i)
+                if (range != null && range.length() == 2) listOf(range.getLong(0), range.getLong(1)) else null
+            }
+            listening.restore(saved)
+        } catch (_: Exception) { /* A corrupt resume receipt is ignored. */ }
+        lastListeningSaveMs = SystemClock.elapsedRealtime()
     }
 
     // The session reached its true end: the voice, plus the extension if there
@@ -276,6 +306,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         stopPositionUpdates()
         listening.sample(currentDurationMs(), true)
         recordPlaythroughFromPlayer(extensionFinished)
+        persistListening(force = true)
         pushCompletedStateToDart(completed = completionSent)
         if (::backgroundMusicPlayer.isInitialized) backgroundMusicPlayer.stop()
         if (tailMs > 0) handler.postDelayed(pendingFinish, tailMs) else finishPlayback()
@@ -679,12 +710,14 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         else {
             listening.sample(primaryPlayer.currentPosition, true)
             listening.markNotPlaying()
+            persistListening(force = true)
         }
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         // Only stop service if not playing
-        if (!primaryPlayer.isPlaying) {
+        if (!primaryPlayer.isPlaying && !(::cues.isInitialized && cues.isHoldRunning())) {
+            persistListening(force = true)
             serviceScope.launch {
                 // Send Dart the final playback state before tearing down a
                 // paused session. Completed sessions use their completion callback.
@@ -891,11 +924,13 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             return false
         }
 
+        persistListening(force = true)
         isCompletionHandled = false
         completedPlaythroughs = 0
         completionSent = false
         completionPlaythroughIndex = 0
-        listening.reset()
+        restoreListening(audioData.track.id, audioData.track.fileId)
+        sessionBells.disable()
         sessionBells.reset()
         handler.removeCallbacks(pendingFinish)
         cues.prepareSession()
@@ -1276,6 +1311,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     }
 
     override fun stopAudio() {
+        sampleListeningFromPlayer()
+        persistListening(force = true)
         sessionBells.disable()
         cues.stop()
         isCompletionHandled = false
@@ -1518,6 +1555,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
 
     fun configureCues(args: Map<*, *>) {
         if (!::cues.isInitialized) throw IllegalStateException("Service not fully initialized")
+        sessionBells.disable()
         cues.configure(CueConfig.fromMap(args))
     }
 

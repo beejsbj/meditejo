@@ -315,8 +315,9 @@ class IosAudioHandler extends BaseAudioHandler {
   Future<void> _recordPlaythrough() {
     _completedPlaythroughs++;
     if (_completedPlaythroughs == 1) {
-      if (_nativeCues && (!_nativeCompletionEarned || _thresholdRecorded))
+      if (_nativeCues && (!_nativeCompletionEarned || _thresholdRecorded)) {
         return Future<void>.value();
+      }
       return _storeTrackCompletion();
     }
     return _storeRepeatPlaythrough();
@@ -582,6 +583,7 @@ class IosAudioHandler extends BaseAudioHandler {
         'seek': seek,
       };
       await NativeCueController.channel.invokeMethod<void>('transport', args);
+      if (generation != _cueGeneration || !_nativeCues) return;
       final earned =
           await NativeCueController.channel.invokeMethod<bool>(
             'sampleListening',

@@ -220,6 +220,13 @@ internal class ListeningTracker(private val maxStepMs: Long = CueMath.LISTENING_
 
     fun reset() { ranges.clear(); last = -1L }
 
+    fun snapshot(): List<List<Long>> = ranges.map { listOf(it[0], it[1]) }
+
+    fun restore(saved: List<List<Long>>) {
+        reset()
+        saved.forEach { if (it.size == 2 && it[0] >= 0 && it[1] > it[0]) add(it[0], it[1]) }
+    }
+
     /** Rebase after a seek or a pause: the next step starts here. */
     fun rebase(positionMs: Long) { last = positionMs }
 

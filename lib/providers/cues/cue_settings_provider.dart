@@ -28,8 +28,9 @@ class CueSettingsStore {
     // Preserve the user's old timer length on the first Customize visit.
     if (saved == null && scope.kind == CueKind.practice) {
       final minutes = prefs.getInt(SharedPreferenceConstants.timerMinutes);
-      if (minutes != null)
+      if (minutes != null) {
         settings = settings.copyWith(durationMinutes: minutes);
+      }
     }
     return settings;
   }
