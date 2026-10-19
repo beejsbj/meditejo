@@ -1,14 +1,25 @@
 name: YouTube dependency
 on:
   push:
-    branches: [fork/youtube]
+    branches: [fork/youtube, fork/yt-followups]
     paths:
       - .github/workflows/youtube-dependency.yml
       - android/app/build.gradle
+      - android/build.gradle
+      - android/settings.gradle
+      - assets/licenses/**
+      - tools/meditejo/check_newpipe_dependencies.py
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
+  licences:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Licences manifest matches the pinned extractor's runtime closure
+        run: python3 -I tools/meditejo/check_newpipe_dependencies.py
   jitpack:
     runs-on: ubuntu-latest
     timeout-minutes: 12

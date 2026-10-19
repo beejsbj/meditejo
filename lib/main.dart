@@ -30,6 +30,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:medito/src/audio_pigeon.g.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:medito/providers/player/ios_audio_handler.dart';
+import 'package:medito/utils/bundled_licenses.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/utils/stats_updater.dart';
 import 'package:medito/views/splash_view.dart';
@@ -70,17 +71,10 @@ void main() async {
     yield LicenseEntryWithLineBreaks(const ['Google Sans'], ofl);
   });
 
-  LicenseRegistry.addLicense(() async* {
-    final gpl = await rootBundle.loadString(
-      'assets/licenses/NewPipeExtractor-GPL-3.0.txt',
-    );
-    yield LicenseEntryWithLineBreaks(
-      const ['NewPipeExtractor'],
-      'NewPipeExtractor v0.26.5 — Team NewPipe\n'
-      'Source: https://github.com/TeamNewPipe/NewPipeExtractor/tree/v0.26.5\n'
-      'GPL-3.0. Combined into Meditejo under AGPL-3.0 (GPLv3 section 13).\n\n$gpl',
-    );
-  });
+  // NewPipeExtractor and each of its bundled runtime dependencies (nanojson,
+  // jsoup, jsr305, protobuf-javalite, Rhino) carry their own notice and source
+  // link; see assets/licenses/newpipe-runtime-dependencies.json.
+  registerBundledLicenses();
 
   var prefs = await initializeSharedPreferences();
 
