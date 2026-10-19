@@ -807,7 +807,7 @@ class _PreviewCard extends StatelessWidget {
                 ],
               ),
             ],
-            if (kind != LibraryKind.teacher) ...[
+            if (kind != LibraryKind.teacher && !alreadyInLibrary) ...[
               const SizedBox(height: 16),
               Text(l10n.importCountsAs, style: theme.textTheme.bodySmall),
               const SizedBox(height: 6),
