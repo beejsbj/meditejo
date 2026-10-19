@@ -22,6 +22,8 @@ class CustomiseHomeLayoutScreenState
   Widget build(BuildContext context) {
     var order = ref.watch(homeWidgetOrderProvider);
     var notifier = ref.read(homeWidgetOrderProvider.notifier);
+    final hidden = ref.watch(homeHiddenWidgetsProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return PopScope(
       canPop: true,
@@ -47,7 +49,7 @@ class CustomiseHomeLayoutScreenState
                   vertical: 8,
                 ),
                 child: Text(
-                  'Tap and hold to drag items into your preferred order',
+                  l10n.homeCustomizeHint,
                   style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
@@ -67,6 +69,13 @@ class CustomiseHomeLayoutScreenState
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
                         title: Text(_getTitleForType(widgetType)),
+                        trailing: Switch(
+                          key: ValueKey('home_section_${widgetType.name}'),
+                          value: !hidden.contains(widgetType),
+                          onChanged: (visible) => ref
+                              .read(homeHiddenWidgetsProvider.notifier)
+                              .setVisible(widgetType, visible),
+                        ),
                       );
                     },
                     onReorderItem: (oldIndex, newIndex) {
@@ -90,15 +99,14 @@ class CustomiseHomeLayoutScreenState
   }
 
   String _getTitleForType(HomeWidgetType type) {
+    final l10n = AppLocalizations.of(context)!;
     switch (type) {
-      case HomeWidgetType.shortcuts:
-        return AppLocalizations.of(context)!.shortcutsTitle;
-      case HomeWidgetType.carousel:
-        return AppLocalizations.of(context)!.carouselTitle;
-      case HomeWidgetType.quote:
-        return AppLocalizations.of(context)!.quoteTitle;
       case HomeWidgetType.upNext:
-        return AppLocalizations.of(context)!.upNextTitle;
+        return l10n.upNextTitle;
+      case HomeWidgetType.quickLinks:
+        return l10n.homeQuickLinksTitle;
+      case HomeWidgetType.pinned:
+        return l10n.homePinnedTitle;
     }
   }
 }

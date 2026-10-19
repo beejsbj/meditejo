@@ -37,7 +37,7 @@ import 'package:medito/providers/providers.dart';
 import 'package:medito/src/audio_pigeon.g.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/timer/timer_view.dart';
-import 'package:medito/views/home/previews/home_previews.dart';
+import 'package:medito/views/home/previews/stats_fixtures.dart';
 import 'package:medito/views/home/widgets/shortcuts/shortcuts_items_widget.dart';
 import 'package:medito/views/home/widgets/up_next/up_next_widget.dart';
 import 'package:medito/views/player/player_view.dart';

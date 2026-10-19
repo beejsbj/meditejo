@@ -256,6 +256,13 @@ class LibraryDatabase extends _$LibraryDatabase {
     playbackPositions,
   )..where((p) => p.trackId.equals(trackId))).getSingleOrNull();
 
+  /// Every saved place, most recently moved first.
+  Future<List<PlaybackPositionRow>> recentPositions({int limit = 12}) =>
+      (select(playbackPositions)
+            ..orderBy([(p) => OrderingTerm.desc(p.updatedAt)])
+            ..limit(limit))
+          .get();
+
   Future<List<PlaybackPositionRow>> positionsOf(Iterable<String> trackIds) =>
       (select(playbackPositions)..where((p) => p.trackId.isIn(trackIds))).get();
 

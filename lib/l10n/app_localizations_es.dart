@@ -2112,4 +2112,63 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get youtubePlaylistEmpty =>
       'Las sesiones aún no están guardadas en este dispositivo. Volveremos a intentarlo en breve';
+
+  @override
+  String get navLibrary => 'Biblioteca';
+
+  @override
+  String get exploreSearchHint => 'Buscar en tu biblioteca y en Dharma Seed';
+
+  @override
+  String get homeQuickLinksTitle => 'Accesos rápidos';
+
+  @override
+  String get homePinnedTitle => 'Cursos fijados';
+
+  @override
+  String get homeCustomize => 'Personalizar';
+
+  @override
+  String get homeCustomizeHint =>
+      'Activa o desactiva secciones y arrástralas para ordenarlas.';
+
+  @override
+  String get homeContinueEmpty =>
+      'Nada en curso. Añade algo a tu biblioteca o abre Explorar.';
+
+  @override
+  String get homeContinueResume => 'Reanudar';
+
+  @override
+  String get homeContinueStart => 'Empezar';
+
+  @override
+  String homeContinueSessionOf(int number, int total) {
+    return 'Sesión $number de $total';
+  }
+
+  @override
+  String homeContinueTimeLeft(String time) {
+    return 'quedan $time';
+  }
+
+  @override
+  String get homeQuickAdd => 'Añadir';
+
+  @override
+  String get pinCourse => 'Fijar en Inicio';
+
+  @override
+  String get unpinCourse => 'Quitar de Inicio';
+
+  @override
+  String get pinnedLimitReached =>
+      'Inicio admite hasta tres cursos fijados. Quita uno primero.';
+
+  @override
+  String get pinnedCourseAdded => 'Fijado en Inicio';
+
+  @override
+  String get statsFeedbackNote =>
+      'Estas cifras son una guía, no una puntuación.';
 }
