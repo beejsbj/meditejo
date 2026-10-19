@@ -22,7 +22,7 @@ import 'package:medito/src/youtube_api.g.dart';
 /// no description guessing. Every other title starts in Practice.
 LibraryGroup youtubeGroup(String title) =>
     RegExp(
-      r'\b(talk|talks|lecture|lectures|interview|interviews|podcast|discussion)\b|\bq\s*&\s*a\b',
+      r'\b(talk|talks|lecture|lectures|interview|interviews|podcast|discussion)\b|\bq\s*&\s*a\b|\bquestions?\s*(?:&|and)\s*answers?\b',
       caseSensitive: false,
     ).hasMatch(title)
     ? LibraryGroup.talks
@@ -263,8 +263,12 @@ class YoutubeSource
     for (final id in _ids(row)) ?await db.youtubeVideo(id),
   ];
 
-  Future<bool> refresh(String id, {bool force = false}) => _refreshing[id] ??=
-      _refresh(id, force: force).whenComplete(() => _refreshing.remove(id));
+  Future<bool> refresh(String id, {bool force = false}) =>
+      _refreshing[id] ??= _refresh(id, force: force).whenComplete(() {
+        // Removing the entry returns its Future. Returning that value from
+        // whenComplete would make completion wait on itself indefinitely.
+        _refreshing.remove(id);
+      });
 
   Future<bool> _refresh(String id, {required bool force}) async {
     if (!id.startsWith('yt-playlist-')) return false;

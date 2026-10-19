@@ -68,10 +68,8 @@ Future<void> pumpImport(
     tester,
     const ImportView(),
     asRoute: true,
-    overrides: [
-      youtubeSourceProvider.overrideWithValue(source),
-      importServiceProvider.overrideWithValue(service),
-    ],
+    importService: service,
+    overrides: [youtubeSourceProvider.overrideWithValue(source)],
   );
 }
 

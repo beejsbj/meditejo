@@ -439,7 +439,9 @@ void main() {
       'a pack lists its items in playlist order, repeats included',
       () async {
         await addCourse(listOne);
-        final pack = await source.pack(ytPlaylistId(playlistOne));
+        final pack = await source
+            .pack(ytPlaylistId(playlistOne))
+            .timeout(const Duration(seconds: 3));
 
         expect(pack.title, 'Evening Sits');
         expect(
@@ -884,5 +886,5 @@ void main() {
       expect((await store.entry(id))!.itemCount, 3);
       expect((await store.entry(ytPlaylistId(playlistTwo)))!.itemCount, 1);
     });
-  });
+  }, timeout: const Timeout(Duration(seconds: 3)));
 }

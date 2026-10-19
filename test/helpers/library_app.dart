@@ -20,6 +20,7 @@ import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/scaffold_messenger_key.dart';
 import 'package:medito/services/library/import_models.dart';
+import 'package:medito/services/library/import_service.dart';
 import 'package:medito/services/library/share_intake.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -117,6 +118,7 @@ class LibraryTestApp {
     bool asRoute = false,
     List<String> played = const [],
     List<Override> overrides = const [],
+    ImportService? importService,
   }) async {
     tester.view.physicalSize = const Size(430, 1200);
     tester.view.devicePixelRatio = 1;
@@ -128,7 +130,9 @@ class LibraryTestApp {
           sharedPreferencesProvider.overrideWithValue(prefs),
           libraryDatabaseProvider.overrideWithValue(harness.db),
           libraryStoreProvider.overrideWithValue(harness.store),
-          importServiceProvider.overrideWithValue(harness.service),
+          importServiceProvider.overrideWithValue(
+            importService ?? harness.service,
+          ),
           importPickersProvider.overrideWithValue(pickers),
           shareIntakeProvider.overrideWithValue(share),
           clipboardLinkReaderProvider.overrideWithValue(() async => clipboard),
