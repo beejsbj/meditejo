@@ -269,3 +269,21 @@ Measured on bjslab the same day: a full first sync of Dharma Seed is 125 request
 1. Listen on the phone: loop seams, the noise floor of *Quiet house*, café murmur, and the fire level. Then check screen-off playback over 10 minutes with the Sounds sheet closed, and Sounds under a Dharma Seed practice.
 2. Freesound picks that need your account (all CC0 unless noted) are listed in `soundscape-sources.md`. Their originals would replace or extend the BigSoundBank set; add them to `sources.json` and rerun the script.
 3. Should Practice be on by default with *Rain on the forest*, or on with nothing chosen until you pick? Decision 8 says on; the choice of sound is mine.
+
+## 2026-10-19 (slice 7, S2: synthesis)
+
+- **Noise is generated as a periodic spectrum, not a filter.**
+  - **Method:** random phases and colour-and-band magnitudes, then an inverse FFT, give a 21.8 s loop that is seamless by construction. A random-walk brown noise would have clicked at its seam.
+  - **Loudness:** set from the spectrum through the BS.1770 K-weighting response. The tests check it against a time-domain K-weighting, and ffmpeg's loudnorm reads −27.0 LUFS for all three colours.
+  - **Band changes:** a change regenerates the loop with the same phases and crossfades it in at the same position.
+  - **Why not SoLoud's parametric EQ:** it is STFT-based, and its artefacts on noise can't be judged without listening.
+  - **Cost:** about 1 s of generation after releasing a band slider (1.2 s on bjslab, JIT, in a background isolate). Revisit if it feels slow on the phone.
+- **Drone and binaural run on SoLoud oscillators.**
+  - **Why:** no loop and no memory cost, and the frequency retunes in place.
+  - **Drone:** movement is per-voice volume swells on incommensurate periods, so the chord never repeats.
+  - **Binaural:** the tones use absolute pans (1, 0) and (0, 1), so nothing crosses between ears. The headphones note appears on the layer and in its editor.
+- **Same −27 LUFS as the recordings:** sine gains are computed for the target, since a sine's mean square is a²/2.
+- **Layers and presets:** one layer per generator per mix. The settings ride in `SoundLayer.params`, so presets keep them. One starter was added: *Stillness* (brown noise with the top rolled off, and a pure A2 drone).
+- **Range limits:** carrier 80–500 Hz, beat 0.5–30 Hz, drone roots A1–A3. Wider ranges are easy to add, but these are where the effect and the comfort are.
+- **Not built:** heart-rate sync (decided against on 2026-10-15), isochronic tones, and per-band animation of the noise.
+- **Phone checks still open:** listen to the noise bands and the generation delay, the drone timbres, and binaural beats on headphones.
