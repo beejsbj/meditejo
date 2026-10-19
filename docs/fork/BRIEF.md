@@ -80,7 +80,10 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
 14. **Four tabs: Home · Explore · Library · Settings** (Burooj, 2026-10-19).
     - **Explore and Search are merged.** Explore has a search bar at the top. With nothing typed it shows browse (Practice/Talks chips, saved courses, Dharma Seed courses and teachers). Typing shows grouped results with "Add to library".
     - **Library gets its own tab,** because the user's library is the core of the app.
-    - **Home** stays for "Continue your practice" and today's practice.
+    - **Home is quick links,** a launchpad rather than a catalogue (Burooj, 2026-10-19):
+      - one-tap starts for **Timer** and **Sounds**, plus other supports from the Customize set;
+      - **Continue** items for whatever is in progress. There can be several ("continue this or that"), practice first, each resuming in one tap.
+      - This refines decision 7's single hero into a short list of continues plus quick links. Browsing belongs in Explore, and everything added lives in Library.
 
 ## Build and run
 
