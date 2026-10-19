@@ -232,16 +232,14 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
 
     if (currentlyPlayingTrack == null) {
       return MeditoErrorWidget(
-        error: currentlyPlayingTrack?.trackId.startsWith('yt-video-') == true
-            ? const YoutubeUnavailableError()
-            : const UnknownError(),
+        error: const UnknownError(),
         onTap: () => Navigator.pop(context),
       );
     }
 
     if (_startFailed) {
       return MeditoErrorWidget(
-        error: currentlyPlayingTrack?.trackId.startsWith('yt-video-') == true
+        error: currentlyPlayingTrack.trackId.startsWith('yt-video-')
             ? const YoutubeUnavailableError()
             : const UnknownError(),
         onTap: _retryPlayback,

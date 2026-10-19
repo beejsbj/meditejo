@@ -63,8 +63,9 @@ class YoutubeSource
 
   Future<ImportPreview> preview(Uri uri) async {
     final link = parseYoutubeLink(uri);
-    if (link == null)
+    if (link == null) {
       throw const ImportFailure(ImportFailureReason.unrecognised);
+    }
     try {
       final video = link.videoId == null
           ? null
@@ -97,7 +98,10 @@ class YoutubeSource
         description: playlist == null ? video!.description : '',
         artworkUrl: playlist?.thumbnail ?? video!.thumbnail,
         itemCount: durations.length,
-        durationMs: durations.fold(0, (a, b) => a + (b > 0 ? b * 1000 : 0)),
+        durationMs: durations.fold<int>(
+          0,
+          (a, b) => a + (b > 0 ? b * 1000 : 0),
+        ),
         durationComplete: durations.every((d) => d > 0),
         firstItems: [
           if (playlist != null)
@@ -139,7 +143,7 @@ class YoutubeSource
         ? (playlist == null
               ? ytSingleCourseId(video!.videoId)
               : ytPlaylistId(preview.youtubePlaylistId!))
-        : ytVideoId(video!.videoId);
+        : ytVideoId(video.videoId);
     if (await library.contains(id)) {
       return ImportResult(
         entryId: id,
@@ -147,12 +151,12 @@ class YoutubeSource
         alreadyPresent: true,
       );
     }
-    final title = asCourse ? preview.title : video!.title;
-    final uploader = asCourse ? preview.subtitle : video!.uploader;
-    final artwork = asCourse ? preview.artworkUrl : video!.thumbnail;
+    final title = asCourse ? preview.title : video.title;
+    final uploader = asCourse ? preview.subtitle : video.uploader;
+    final artwork = asCourse ? preview.artworkUrl : video.thumbnail;
     final duration = asCourse
         ? preview.durationMs
-        : video!.durationSeconds * 1000;
+        : video.durationSeconds * 1000;
     final detected = youtubeGroup(title);
     await db.transaction(() async {
       if (video != null) await storeVideo(video);
@@ -256,8 +260,7 @@ class YoutubeSource
       (jsonDecode(row.videoIds) as List).cast<String>();
 
   Future<List<YoutubeVideoRow>> _items(YoutubePlaylistRow row) async => [
-    for (final id in _ids(row))
-      if (await db.youtubeVideo(id) case final item?) item,
+    for (final id in _ids(row)) ?await db.youtubeVideo(id),
   ];
 
   Future<bool> refresh(String id, {bool force = false}) => _refreshing[id] ??=
@@ -269,8 +272,9 @@ class YoutubeSource
     final row = await db.youtubePlaylist(key);
     if (row == null ||
         key.startsWith('single-') ||
-        (!force && _clock().difference(row.lastCheckedAt) < refreshInterval))
+        (!force && _clock().difference(row.lastCheckedAt) < refreshInterval)) {
       return false;
+    }
     // Remember attempts as well as successes, including across app restarts.
     await (db.update(db.youtubePlaylists)
           ..where((p) => p.playlistId.equals(key)))
@@ -288,7 +292,7 @@ class YoutubeSource
         subtitle: updated.uploader,
         coverUrl: updated.thumbnail,
         itemCount: items.length,
-        durationMs: items.fold(
+        durationMs: items.fold<int>(
           0,
           (a, b) => a + (b.durationSeconds > 0 ? b.durationSeconds * 1000 : 0),
         ),
@@ -333,8 +337,9 @@ class YoutubeSource
 
   @override
   Future<PackModel> pack(String id) async {
-    if (!id.startsWith('yt-playlist-'))
+    if (!id.startsWith('yt-playlist-')) {
       throw CatalogueEntryUnavailable('pack', id);
+    }
     await refresh(id);
     final row = await db.youtubePlaylist(id.substring('yt-playlist-'.length));
     if (row == null) throw CatalogueEntryUnavailable('pack', id);
@@ -368,8 +373,9 @@ class YoutubeSource
         if (uri == null ||
             uri.scheme != 'https' ||
             uri.host.isEmpty ||
-            !stream.mimeType.startsWith('audio/'))
+            !stream.mimeType.startsWith('audio/')) {
           throw const YoutubeUnavailableError();
+        }
         final expiry = stream.expiresAt == null
             // Unknown expiry gets a short cache, never an assumed six hours.
             ? _clock().add(const Duration(minutes: 10))
@@ -387,8 +393,9 @@ class YoutubeSource
 
   @override
   Future<Track> track(String id) async {
-    if (!id.startsWith('yt-video-'))
+    if (!id.startsWith('yt-video-')) {
       throw CatalogueEntryUnavailable('track', id);
+    }
     final videoId = id.substring('yt-video-'.length);
     final video = await db.youtubeVideo(videoId);
     if (video == null) throw CatalogueEntryUnavailable('track', id);
@@ -477,8 +484,9 @@ class YoutubeSource
       final row = await db.youtubePlaylist(
         entry.sourceId.substring('yt-playlist-'.length),
       );
-      if (row != null && _ids(row).map(ytVideoId).contains(trackId))
+      if (row != null && _ids(row).map(ytVideoId).contains(trackId)) {
         return entry.sourceId;
+      }
     }
     return null;
   }
@@ -507,7 +515,7 @@ class YoutubeSource
           coverUrl: row.thumbnail,
           group: youtubeGroup(row.title),
           itemCount: items.length,
-          durationMs: items.fold(
+          durationMs: items.fold<int>(
             0,
             (a, b) =>
                 a + (b.durationSeconds > 0 ? b.durationSeconds * 1000 : 0),

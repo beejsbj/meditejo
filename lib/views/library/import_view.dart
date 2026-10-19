@@ -413,10 +413,12 @@ class _ImportViewState extends ConsumerState<ImportView> {
                     final nextTitle = value == LibraryKind.single
                         ? video.title
                         : preview.title;
-                    if (_titleField.text == previousTitle)
+                    if (_titleField.text == previousTitle) {
                       _titleField.text = nextTitle;
-                    if (_group == youtubeGroup(previousTitle))
+                    }
+                    if (_group == youtubeGroup(previousTitle)) {
                       _group = youtubeGroup(nextTitle);
+                    }
                   }
                   _kind = value;
                   _alreadyInLibrary = false;

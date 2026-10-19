@@ -40,8 +40,9 @@ class TrackRepositoryImpl extends TrackRepository {
     try {
       return await router.track(trackId);
     } catch (e) {
-      if (e is! CatalogueEntryUnavailable && e is! YoutubeUnavailableError)
+      if (e is! CatalogueEntryUnavailable && e is! YoutubeUnavailableError) {
         rethrow;
+      }
       // Saved favourites resolve by ID too. Keep downloaded metadata usable
       // when its source catalogue is empty or no longer carries the track.
       final downloads = await fetchTrackFromPreference();

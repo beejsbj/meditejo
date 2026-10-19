@@ -176,10 +176,11 @@ class _PackViewState extends ConsumerState<PackView>
                 .refresh(widget.id, force: true);
             ref.invalidate(packTrackIdsProvider);
           } on YoutubeUnavailableError catch (e) {
-            if (mounted)
+            if (mounted) {
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(SnackBar(content: Text(e.message)));
+            }
           }
         }
         return ref.refresh(packDataProvider(packId: widget.id));

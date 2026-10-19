@@ -24,8 +24,9 @@ YoutubeLink? parseYoutubeLink(Uri uri) {
     'youtu.be',
     'music.youtube.com',
     'youtube-nocookie.com',
-  }.contains(host))
+  }.contains(host)) {
     return null;
+  }
   final parts = uri.pathSegments.where((p) => p.isNotEmpty).toList();
   String? video;
   if (host == 'youtu.be' && parts.length == 1) {

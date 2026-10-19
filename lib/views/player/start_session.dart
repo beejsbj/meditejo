@@ -32,8 +32,9 @@ Future<void> startSession(
   final preferredDuration = ref.read(durationPreferenceProvider);
 
   try {
-    if (trackId.startsWith('yt-video-'))
+    if (trackId.startsWith('yt-video-')) {
       ref.invalidate(tracksProvider(trackId: trackId));
+    }
     final track = await ref.read(tracksProvider(trackId: trackId).future);
     // A recording with one voice and one file has nothing to choose, so it
     // plays at once; only a track with real choices and no remembered

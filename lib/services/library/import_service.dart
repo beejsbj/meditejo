@@ -87,8 +87,9 @@ class ImportService {
         return resolveFiles([PickedFile(path: path)]);
       case ImportLinkKind.youtube:
         final source = youtube;
-        if (source == null)
+        if (source == null) {
           throw const ImportFailure(ImportFailureReason.youtubeUnavailable);
+        }
         return source.preview(link.uri!);
       case ImportLinkKind.unsupportedHost:
         throw ImportFailure(ImportFailureReason.unsupportedHost, link.raw);
