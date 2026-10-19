@@ -69,13 +69,15 @@ tools/meditejo/release.sh 0.1.0 --notes notes.md --dry-run   # print the plan
 tools/meditejo/release.sh 0.1.0 --notes notes.md --yes       # publish
 ```
 
-Steps: preflight (clean tree matching origin, `gh` auth, tag unused) → pick the next `versionCode` → bump
+Steps: preflight (clean tree matching origin, `gh` auth, tag unused) → pick the next `versionCode` →
+**refresh the bundled Dharma Seed catalogue** (`tools/meditejo/dharma_seed_snapshot.dart`, a delta from
+the committed snapshot; a commit only if it changed; `--skip-snapshot` bypasses it; see ARCHITECTURE.md) → bump
 `pubspec.yaml` and commit → push the commit → `build_apk.sh HEAD --flavor prod` (GitHub
 Actions builds unsigned, bjslab aligns and signs with the durable key and checks the pinned
 digest) → independently re-verify the pinned digest on the staged APK → write the `.sha256`
 and `meditejo-release.json` → `gh release create v<version> --repo beejsbj/meditejo`.
 
-If a run fails part-way: after a failed build a local version-bump commit is left, so
+If a run fails part-way: after a failed build a local snapshot commit and version-bump commit are left, so
 `git reset --hard origin/develop` before trying again; if it fails after the draft release
 exists, `gh release delete v<version> --repo beejsbj/meditejo --yes` first.
 
@@ -93,7 +95,8 @@ Dart in `lib/services/updates/`, state in `lib/providers/updates/`, UI in
 `lib/views/settings/about_screen.dart` and `lib/views/home/widgets/update_notice.dart`,
 Android in `ApkUpdaterBridge.kt`.
 
-1. **Check** (at most daily, 10 s after launch; or "Check for updates"): `GET
+1. **Check** (at most daily, 10 s after launch, and at once on the first launch of a new build, so
+   About's "Last checked" is never older than the update; or "Check for updates"): `GET
    /repos/beejsbj/meditejo/releases/latest` with `If-None-Match`. A `304` reuses the cached
    release and saves bandwidth (it still counts against the unauthenticated limit, which one
    request a day cannot reach). A new release also
