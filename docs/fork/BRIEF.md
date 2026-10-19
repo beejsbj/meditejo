@@ -68,6 +68,12 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
     - Each release carries an APK signed on bjslab with the durable key.
     - The app checks the latest release, downloads the APK and **verifies that its signing certificate matches the pinned digest** before handing it to Android's installer. Meditejo holds the "install unknown apps" permission itself.
     - Publishing a release is approved as a routine step of this channel. Each release is reported to Burooj, with its notes.
+13. **Built-in starter set** (Burooj, 2026-10-19). These ship with the app, already in the library on first launch, with no sync or import needed. Audio streams as usual.
+    - Dharma Seed retreat 4496, *Practising the Jhānas* (2019, 32 talks). https://dharmaseed.org/retreats/4496/
+    - Retreat 1084, *The Loving Kindness (Metta) Retreat* (2010, 10 talks). https://dharmaseed.org/retreats/1084/
+    - Retreat 1183, *The Art Of Concentration (Samatha Meditation)* (2008, 9 talks). https://dharmaseed.org/retreats/1183/
+    - Retreat 1308, *Samatha Meditation* (2007, 7 talks). https://dharmaseed.org/retreats/1308/
+    - Talk 60864, *Developing Piti, Developing Focus, Developing Wellbeing* (Rob Burbea, 89 min, from retreat 4496). https://dharmaseed.org/talks/60864/
 
 ## Build and run
 
