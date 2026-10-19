@@ -87,4 +87,11 @@ class CueSchedulerTests: XCTestCase {
         XCTAssertTrue(resumed.completed(durationMs: 100_000))
     }
 
+    func testShortSeekDoesNotCountAsRenderedAudio() {
+        let tracker = ListeningTracker()
+        tracker.rebase(0)
+        tracker.sample(3000, playing: true, realElapsedMs: 10, speed: 1)
+        XCTAssertEqual(tracker.heardMs, 0)
+    }
+
 }

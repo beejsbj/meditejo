@@ -75,6 +75,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
   ProviderSubscription<CueSettings>? _cueSubscription;
   bool _customized = false;
   bool _autoplayPending = false;
+  bool _finishing = false;
   bool _cancelAutoplay = false;
 
   /// Keeps a previous session's completed state from opening the end screen.
@@ -285,7 +286,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
     // Rebuild on completion; the gate decides whether it is this session's.
     ref.watch(audioStateProvider.select((s) => s.isCompleted));
     if (_completionGate.isSessionComplete(ref.read(audioStateProvider))) {
-      if (!_autoplayPending) unawaited(_finishOrAutoplay());
+      if (!_finishing) unawaited(_finishOrAutoplay());
     }
 
     final currentlyPlayingTrack = ref.watch(playerProvider);
@@ -399,7 +400,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
   }
 
   Future<void> _finishOrAutoplay() async {
-    _autoplayPending = true;
+    _finishing = true;
     final request = ref.read(playerProvider);
     final scope = _cueScope;
     final settings = scope == null
@@ -412,6 +413,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
       _openEndScreen();
       return;
     }
+    _autoplayPending = true;
     if (mounted) setState(() {});
     try {
       final router = ContentRouter(sources: ref.read(contentSourcesProvider));

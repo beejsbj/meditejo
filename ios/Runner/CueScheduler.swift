@@ -197,13 +197,14 @@ final class ListeningTracker {
     func rebase(_ positionMs: Int64) { last = positionMs }
     func markNotPlaying() { last = -1 }
 
-    func sample(_ positionMs: Int64, playing: Bool) {
+    func sample(_ positionMs: Int64, playing: Bool, realElapsedMs: Double? = nil, speed: Double = 1) {
         if !playing || positionMs < 0 { last = -1; return }
         let from = last
         last = positionMs
         if from < 0 { return }
         let step = positionMs - from
         if step <= 0 || step > maxStepMs { return }
+        if let elapsed = realElapsedMs, Double(step) > max(elapsed, 0) * max(speed, 0.05) + 100 { return }
         add(from, positionMs)
     }
 
@@ -442,7 +443,7 @@ final class CueScheduler {
     /// The voice's state, reported whenever it changes (play, pause, buffering,
     /// seek, speed). `playing` means audibly advancing, not merely requested.
     func transport(positionMs: Double, durationMs: Double, playing nowPlaying: Bool, speed newSpeed: Double,
-                   endless: Bool, itemsAfterCurrent: Int) {
+                   endless: Bool, itemsAfterCurrent: Int, seeking: Bool = false) {
         guard let cfg = config, phase == .playing else { return }
         let now = CueScheduler.uptimeMs()
         self.durationMs = durationMs > 0 ? durationMs : Double(cfg.durationMs)
@@ -471,7 +472,7 @@ final class CueScheduler {
         let jump = positionMs - predicted
         var tNew = t
         var rearmCues = false
-        if abs(jump) > 750 {
+        if seeking || abs(jump) > 750 {
             tNew = t + jump / speedNow
             rearmCues = true
         }
@@ -672,6 +673,7 @@ final class CueChannel {
     private var listeningCompleted = false
     private var listeningKey: String?
     private var lastListeningSaveMs = 0.0
+    private var lastListeningReportMs: Double?
 
     private func persistListening(force: Bool = false) {
         guard let key = listeningKey else { return }
@@ -688,6 +690,7 @@ final class CueChannel {
         let data = try? JSONSerialization.data(withJSONObject: parts)
         listeningKey = "meditejo.cue.listening." + (data.flatMap { String(data: $0, encoding: .utf8) } ?? "")
         listeningCompleted = false
+        lastListeningReportMs = nil
         let saved = UserDefaults.standard.array(forKey: listeningKey!) as? [[NSNumber]] ?? []
         listening.restore(saved.map { $0.map { $0.int64Value } })
         lastListeningSaveMs = ProcessInfo.processInfo.systemUptime * 1000
@@ -740,7 +743,8 @@ final class CueChannel {
                 playing: (args["playing"] as? Bool) ?? false,
                 speed: (args["speed"] as? NSNumber)?.doubleValue ?? 1,
                 endless: (args["endless"] as? Bool) ?? false,
-                itemsAfterCurrent: (args["itemsAfterCurrent"] as? NSNumber)?.intValue ?? 0)
+                itemsAfterCurrent: (args["itemsAfterCurrent"] as? NSNumber)?.intValue ?? 0,
+                seeking: (args["seek"] as? Bool) ?? false)
             result(nil)
         case "voiceEnded":
             scheduler.voiceEnded()
@@ -749,11 +753,15 @@ final class CueChannel {
             // positionMs, durationMs, playing; Dart reports each change and about once a second.
             let position = Int64(num(args, "positionMs"))
             let duration = Int64(num(args, "durationMs"))
+            let now = ProcessInfo.processInfo.systemUptime * 1000
+            let elapsed = lastListeningReportMs.map { now - $0 }
+            lastListeningReportMs = now
             if (args["seek"] as? Bool) == true {
                 listening.rebase(position)
             } else {
                 // Include the final rendered stretch when a pause/EOF report arrives.
-                listening.sample(position, playing: true)
+                listening.sample(position, playing: true, realElapsedMs: elapsed,
+                                 speed: (args["speed"] as? NSNumber)?.doubleValue ?? 1)
             }
             let playing = (args["playing"] as? Bool) ?? false
             if !playing { listening.markNotPlaying() }

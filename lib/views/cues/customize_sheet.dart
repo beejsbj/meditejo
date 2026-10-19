@@ -86,8 +86,8 @@ Future<bool> showCustomizeSheet(
         if (!beforeStart) {
           // Coarse so the line is not rebuilt on every position tick.
           positionMs =
-              ref.watch(audioStateProvider.select((s) => s.position ~/ 15000)) *
-              15000;
+              ref.watch(audioStateProvider.select((s) => s.position ~/ 1000)) *
+              1000;
           speed = ref.watch(audioStateProvider.select((s) => s.speed.speed));
         }
         final runtime = ref.watch(
