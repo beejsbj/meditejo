@@ -1,15 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/scaffold_messenger_key.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_download_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_speed_widget.dart';
-import 'package:medito/views/player/widgets/bottom_actions/widgets/bg_sound_widget.dart';
+import 'package:medito/views/cues/customize_sheet.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/speed_sheet.dart';
-
-import 'package:medito/views/background_sound/background_sound_view.dart';
 
 import 'bottom_action_bar.dart';
 
@@ -41,11 +40,9 @@ class PlayerActionBar extends StatelessWidget {
           semanticLabel: l10n.close,
         ),
         rightItem: BottomActionBarItem(
-          child: _buildBackgroundSoundWidget(),
-          onTap: () {
-            showBackgroundSoundSheet(context);
-          },
-          semanticLabel: l10n.backgroundSounds,
+          child: _customizeIcon,
+          onTap: () => _customize(context),
+          semanticLabel: _customizeLabel,
         ),
       );
     }
@@ -65,13 +62,9 @@ class PlayerActionBar extends StatelessWidget {
             : const SizedBox(width: 48, height: 48),
       ),
       rightCenterItem: BottomActionBarItem(
-        child: _buildBackgroundSoundWidget(),
-        onTap: request.hasBackgroundSound
-            ? () {
-                showBackgroundSoundSheet(context);
-              }
-            : () => _showBackgroundSoundDisabledMessage(context),
-        semanticLabel: l10n.backgroundSounds,
+        child: _customizeIcon,
+        onTap: () => _customize(context),
+        semanticLabel: _customizeLabel,
       ),
       rightItem: BottomActionBarItem(
         child: const AudioSpeedWidget(),
@@ -86,17 +79,13 @@ class PlayerActionBar extends StatelessWidget {
     );
   }
 
-  Widget _buildBackgroundSoundWidget() {
-    return request.hasBackgroundSound
-        ? BgSoundWidget(isBackgroundSoundSelected: isBackgroundSoundSelected)
-        : const Icon(Icons.music_off, color: ColorConstants.white);
-  }
+  static const _customizeLabel = 'Customize';
+  static const _customizeIcon = Icon(
+    Icons.tune_rounded,
+    color: ColorConstants.white,
+  );
 
-  void _showBackgroundSoundDisabledMessage(BuildContext context) {
-    scaffoldMessengerKey.currentState?.showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context)!.backgroundSoundsDisabled),
-      ),
-    );
+  void _customize(BuildContext context) {
+    unawaited(showCustomizeSheet(context, request: request));
   }
 }

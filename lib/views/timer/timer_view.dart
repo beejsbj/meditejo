@@ -5,7 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/timer/timer_session.dart';
+import 'package:medito/providers/cues/cue_settings_provider.dart';
+import 'package:medito/views/cues/customize_sheet.dart';
 import 'package:medito/providers/player/player_provider.dart';
 import 'package:medito/providers/timer/timer_settings_provider.dart';
 import 'package:medito/services/audio/timer_audio_file.dart';
@@ -31,6 +34,7 @@ class TimerView extends ConsumerStatefulWidget {
 class _TimerViewState extends ConsumerState<TimerView> {
   final _wheels = GlobalKey<TimerDurationWheelsState>();
   bool _starting = false;
+  static const _cueScope = CueScope(CueKind.practice);
 
   Future<void> _start() async {
     final settings = ref.read(timerSettingsProvider);
@@ -41,6 +45,13 @@ class _TimerViewState extends ConsumerState<TimerView> {
 
     try {
       final duration = settings.sessionDuration;
+      if (settings.mode == TimerMode.countdown) {
+        // Remember the length for cue timing (interval bells, pulse ramp).
+        final cues = ref.read(cueSettingsProvider(_cueScope));
+        await ref
+            .read(cueSettingsProvider(_cueScope).notifier)
+            .update(cues.copyWith(durationMinutes: settings.minutes.clamp(1, 299)));
+      }
       final path = await TimerAudioFile.prepare(duration);
       final request = timerPlaybackRequest(
         mode: settings.mode,
@@ -146,6 +157,14 @@ class _TimerViewState extends ConsumerState<TimerView> {
                             ),
                           ],
                         ),
+                      ),
+                      const SizedBox(height: 8),
+                      CustomizeSheet(
+                        scope: _cueScope,
+                        isTimer: true,
+                        embedded: true,
+                        showFinishes: !isStopwatch,
+                        timerMinutes: settings.minutes,
                       ),
                     ],
                   ),
