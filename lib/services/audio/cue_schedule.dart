@@ -78,7 +78,7 @@ class CueSchedule {
 
   List<ScheduledCue> events() {
     final result = <ScheduledCue>[];
-    if (settings.startSound.isNotEmpty)
+    if (settings.startSound.isNotEmpty) {
       result.add(
         ScheduledCue(
           countdown,
@@ -87,6 +87,7 @@ class CueSchedule {
           settings.bellVolume,
         ),
       );
+    }
     for (final at in intervals()) {
       result.add(
         ScheduledCue(
@@ -111,10 +112,11 @@ class CueSchedule {
         );
       }
     }
-    if (settings.endSound.isNotEmpty)
+    if (settings.endSound.isNotEmpty) {
       result.add(
         ScheduledCue(end, CueType.end, settings.endSound, settings.bellVolume),
       );
+    }
     result.sort((a, b) {
       final order = a.at.compareTo(b.at);
       return order == 0 ? a.type.index.compareTo(b.type.index) : order;
@@ -158,8 +160,9 @@ class ListeningCoverage {
     if (previous != null && clock != null && _wasPlaying) {
       final delta = positionMs - previous;
       final elapsed = clockMs - clock;
-      if (delta > 0 && elapsed >= 0 && delta <= elapsed * speed + 100)
+      if (delta > 0 && elapsed >= 0 && delta <= elapsed * speed + 100) {
         _add(previous, positionMs);
+      }
     }
     _lastPosition = positionMs;
     _lastClock = clockMs;

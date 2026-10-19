@@ -54,7 +54,7 @@ class CueSettingsNotifier extends Notifier<CueSettings> {
     state = value;
     final target = courseOverride ? scope : CueScope(scope.kind);
     await ref.read(cueSettingsStoreProvider).save(target, value);
-    ref.invalidate(cueSettingsProvider(CueScope(scope.kind)));
+    ref.invalidate(cueSettingsProvider);
   }
 
   Future<void> clearOverride() async {
