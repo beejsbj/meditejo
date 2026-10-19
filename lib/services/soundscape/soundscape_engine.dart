@@ -113,7 +113,17 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
   }();
 
   Future<void> _ensureReady() => _ready ??= () async {
-    if (!_soloud.isInitialized) await _soloud.init();
+    if (!_soloud.isInitialized) {
+      // 48 kHz: the rate of every bundled loop and of the phone's output,
+      // so nothing is resampled. Ambience needs no low latency: the
+      // power-saving AAudio mode and a larger buffer suit long screen-off
+      // playback better.
+      await _soloud.init(
+        sampleRate: 48000,
+        bufferSize: 4096,
+        lowLatency: false,
+      );
+    }
     _soloud.setGlobalVolume(_master);
   }();
 
