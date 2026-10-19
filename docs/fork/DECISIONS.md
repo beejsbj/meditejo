@@ -227,3 +227,45 @@ Measured on bjslab the same day: a full first sync of Dharma Seed is 125 request
 - **Verify the notices against the built graph and APK.** The APK workflow checks the actual `devReleaseRuntimeClasspath` versions against the notice manifest, validates effective JitPack repositories after plugins are evaluated, and compares every bundled notice asset byte-for-byte with the APK. Course data listens only to successful YouTube content revisions, so unrelated library changes and refresh failures do not restart a course read. Native timeouts join busy/bot-check in the localised try-later category rather than reporting a video unavailable or the device offline.
 - **Restore AGP's built-in legal-file exclusions too.** The pinned AGP 8.11.1 source JAR (`https://dl.google.com/dl/android/maven2/com/android/tools/build/gradle/8.11.1/gradle-8.11.1-sources.jar`, `PackagingOptionsUtils.kt`) defaults to excluding root and `META-INF` LICENSE/NOTICE paths. The resources block explicitly subtracts those defaults before merging duplicate notices. The pinned runtime JARs were also inspected: jsoup carries `META-INF/jsoup/LICENSE` (byte-identical to the bundled MIT text); the others contain no licence/notice resource and therefore rely on the explicit in-app assets. The APK check requires jsoup's original notice unchanged in addition to every bundled notice asset.
 - **Scrub injected JitPack repositories after each project evaluation.** The resolved-runtime gate confirmed all seven notice coordinates match the actual release graph, then caught the battery-optimisation plugin adding a root `maven2` JitPack repository during late configuration-on-demand evaluation. A single `projectsEvaluated` callback is too early for that case. `gradle.afterProject` removes unscoped injected repositories after every project evaluation, including those triggered while resolving the graph. The explicitly named TeamNewPipe repositories retain their exact group content filters.
+
+## 2026-10-19 (slice 7, S1: sound library and mixer)
+
+**Engine**
+
+- **flutter_soloud, pinned at 4.1.7.** Verified from the package source rather than its README:
+  - **Gapless:** recordings load with `LoadMode.memory` and loop inside SoLoud's mix callback, so the wrap is sample-accurate. Ogg Opus pre-skip and end trimming are honoured: the length is the last granule minus pre-skip, and decoded counts equal the loop length exactly for the three files checked.
+  - **Mixing:** SoLoud renders its own output stream beside ExoPlayer, and Android mixes the two.
+  - **Synthesis needs** (for S2): `loadWaveform`, `setPanAbsolute`, `oscillateVolume`, and a parametric EQ of up to 64 bands.
+- **Why not 5.x:** 5.x moved its native build to Dart build hooks, which also run for `flutter test` and need clang. bjslab has only gcc, so with 5.2.1 *every* test file failed to load ("Building native assets failed"). 4.1.7 builds with CMake through Gradle on Android, and host tests build nothing. Revisit 5.x if bjslab gains clang or tests move off bjslab.
+- **Background play is not flutter_soloud's job.** It has no service, notification or audio focus; its own docs pair it with audio_service. During a session, `AudioPlayerService` is already in the foreground. On their own, Sounds hold a small `SoundscapeService` (`mediaPlayback`, Stop action, audio focus: pause on loss, resume after a transient loss). It is held through a pause, because starting it again from the background is refused on Android 12 and later. Screen-off playback is unverified on the phone.
+- **Fallback, if SoLoud fails on the phone:** move the layers into `AudioPlayerService`, one looping ExoPlayer per layer, plus an `AudioTrack` synth for S2. The `SoundscapeEngine` interface is the seam, so only the engine class changes. Not built.
+- **Memory:** each layer is decoded to float (about 23 MB a minute in stereo). Loops are 28–75 s, and a mix holds at most 6 layers.
+
+**Library**
+
+- **22 sounds, all CC0, 8.48 MiB:** 21 from BigSoundBank (Joseph Sardin) and one from OpenGameArt (Ylmir, "Rain (loopable)"). Each licence was read on the sound's own page on 2026-10-19 (`licenseVerifiedOn` in `sources.json`).
+  - **Lossless sources over Blanket's lossy edits.** Blanket's CC0 files are Vorbis re-edits of Freesound originals, and its usable CC BY ones would need attribution. BigSoundBank covers every category in FLAC or WAV. No CC BY sound ships, so the credits screen marks none as "attribution required". BigSoundBank's requested courtesy credit appears in every entry anyway.
+  - **No accounts.** BigSoundBank's file URLs (the ones its own player uses) download without login; its "free account" only speeds up the download form. Freesound originals need a login, so none were used (see `soundscape-sources.md`).
+- **Not auditioned.** Instead of listening:
+  - `find_steady.py` picks each loop from the steadiest window of the recording, scored on transient peaks above the median level and on level drift. This avoids cutting a thunderclap, door or voice into a loop.
+  - Every loop's seam step sits at an ordinary percentile of its sample steps.
+  - Fireplace #3 was dropped: it is sparse pops over near-silence (LRA 26.6 LU), not a bed.
+- **Loudness: a static gain, not dynamic loudnorm.**
+  - `loudnorm` measures the loop and one gain moves it to −27 LUFS, so the seam keeps one level.
+  - Peaky sounds get up to 6 dB of peak limiting under a −2 dBTP ceiling, run over a circularly padded copy so the limiter's state matches across the seam. Beyond that they stay quieter than the target: river −31.8, fire crackle −36.1, wood stove −27.6 LUFS.
+- **Encoding:** Ogg Opus at 48 kHz, 64 kbps stereo or 40 kbps mono, with a 4–6 s equal-power crossfade baked into the loop.
+
+**Mixer and UI**
+
+- **One current mix,** as in Blanket. Tapping a sound with nothing playing starts it on its own. Practice plays "the current mix" by default, so a fresh install's first sit gets the first starter preset, *Rain on the forest*, at 50% under the session.
+- **Volume:** slider positions are squared into gain. Under a session, the master slider sets that session kind's level and leaves the standalone level alone.
+- **Presets:** four starters (*Rain on the forest*, *Night*, *Hearth* with a stove and crackle and no NC fire, and *Shore*), plus the user's own. Long-press deletes one. Built-in names are localised.
+- **Practice/Talk defaults** live in the mixer (`SoundscapeSessionDefault`). Talks keep the legacy sound and bells off, as before, and only the soundscape follows its Talks default. The Sounds sheet carries two switches for now; the Customize sheet takes over the full per-kind choice.
+- **The Sounds sheet is still `BackgroundSoundView`,** opened by `showBackgroundSoundSheet`, so PR #13's Home quick link and its test need no change. No navigation or Home layout changed.
+- **Track titles are English only;** category and preset names are localised in en, de and es.
+
+**Open for Burooj**
+
+1. Listen on the phone: loop seams, the noise floor of *Quiet house*, café murmur, and the fire level. Then check screen-off playback over 10 minutes with the Sounds sheet closed, and Sounds under a Dharma Seed practice.
+2. Freesound picks that need your account (all CC0 unless noted) are listed in `soundscape-sources.md`. Their originals would replace or extend the BigSoundBank set; add them to `sources.json` and rerun the script.
+3. Should Practice be on by default with *Rain on the forest*, or on with nothing chosen until you pick? Decision 8 says on; the choice of sound is mine.

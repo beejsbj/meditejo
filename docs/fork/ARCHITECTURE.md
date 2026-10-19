@@ -57,7 +57,7 @@ and URL) is what a licence asks to be shown where content is played or viewed.
 | `lib/repositories/home/home_repository.dart` | `HomeRepository`: home sections; announcements are currently absent |
 | `lib/repositories/explore/` | Pack and track search results across sources |
 | `lib/repositories/tags/tags_repository.dart` | Tag catalogue and tracks by tag (local catalogue only) |
-| `lib/repositories/background_sounds/` | Empty ambient catalogue; local volume/preferences retained |
+| `lib/repositories/background_sounds/` | Legacy single-sound catalogue (empty) and session-bell preferences; the bundled library and mixer are in `lib/providers/soundscape/` (see Sounds and the mixer) |
 
 ### Dharma Seed (`ds-`)
 
@@ -321,6 +321,88 @@ A track with one voice and one file plays at once from a course's main action;
 only a track with real choices and no remembered preference opens its page. The player
 shows `PlaybackRequest.attribution` (a compact credit under the title) and, for
 a track with no cover, its generated art blurred behind the controls.
+
+## Sounds and the mixer
+
+Background soundscapes are a bundled **library** of looped recordings played
+by a **mixer** of layers. Synthesised layers (noise colours, drone, binaural)
+arrive through the same mixer in slice 7's second PR.
+
+**Library.** `assets/sounds/*.opus` (Ogg Opus loops) and
+`assets/sounds/sounds.json`, the licence-as-data the app reads
+(`SoundLibrary`, `lib/models/soundscape/sound_library.dart`). Each entry has its
+id, title, category (`rain · water · wind · forest · fire · room · night`),
+asset, licence (`CC0-1.0 | CC-BY-3.0 | CC-BY-4.0 | PD`, anything else is
+ignored), author, source page, and its processing record.
+`tools/meditejo/sounds/process_sounds.py` writes the JSON, `assets/sounds/NOTICE`
+and `tools/meditejo/sounds/commands.log` from `tools/meditejo/sounds/sources.json`.
+Never edit the outputs by hand; change the manifest and rerun (see the script's
+docstring for the loop, loudness and encoding steps). The sounds keep their own
+licences, outside the AGPL; Settings › licences lists the mixer's native code
+(`assets/licenses/soloud-native-components.json`), and **Sound credits** (from
+the Sounds sheet) lists every recording.
+
+**Engine.** `SoundscapeEngine` (`lib/services/soundscape/soundscape_engine.dart`)
+is implemented on **flutter_soloud 4.1.7** (pinned; see DECISIONS 2026-10-19,
+slice 7). Recordings are decoded into memory and loop sample-accurately; every
+change fades; *drift* is SoLoud's LFO on the layer volume; the master volume is
+SoLoud's global volume. SoLoud plays its own output stream beside the session
+player's ExoPlayer; Android mixes them. Without the native library (a test
+host) the engine plays nothing rather than throwing.
+
+**Keep-alive.** Sounds playing *on their own* hold `SoundscapeService`
+(`android/.../SoundscapeService.kt`, a `mediaPlayback` foreground service with a
+Stop action and audio focus) over the `meditejo/soundscape` channel. Under a
+session the session's `AudioPlayerService` keeps the app alive and the mixer
+follows `audioStateProvider.isPlaying`; Dart never holds both.
+
+**Controller.** `soundscapeProvider` (`SoundscapeController`,
+`lib/providers/soundscape/soundscape_provider.dart`) owns the state and
+reconciles it to the engine, one pass at a time. Persistence: shared
+preferences `soundscape_mix`, `soundscape_presets`, `soundscape_volume`,
+`soundscape_session_defaults`.
+
+### API for the player's Customize sheet
+
+The sheet's **Background sound** row should drive the mixer only through these
+(stable) members; the Sounds sheet (`showBackgroundSoundSheet`) is the place to
+build or edit a mix.
+
+```dart
+// What to play, as a string the cue settings can store:
+//   'mix' or ''      the current mix (as left on the Sounds sheet)
+//   'preset:<id>'    a preset (state.presets: starters + the user's)
+//   'sound:<id>'     one library sound
+//   'none'           silence
+SoundscapeSelection.parse(String) / selection.encode()
+
+final state = ref.watch(soundscapeProvider);   // SoundscapeState
+state.mix, state.presets, state.playing, state.owner, state.volume (0–1)
+state.sessionDefault(SoundscapeSessionKind.practice | .talks)
+ref.watch(soundLibraryProvider)                // FutureProvider<SoundLibrary>
+
+final mixer = ref.read(soundscapeProvider.notifier);
+mixer.startSession(kind, {SoundscapeSessionDefault? override}); // session starts
+mixer.setSessionPaused(bool) / mixer.endSession();             // follows session
+mixer.play(SoundscapeSelection, {double? volume});             // play now
+mixer.togglePlay() / pause() / resume() / stop();
+mixer.setVolume(double);          // under a session: that kind's level
+mixer.sessionDefault(kind) / mixer.setSessionDefault(kind, value);
+```
+
+`SoundscapeSessionDefault` is `{enabled, selection, volume}`; the initial values
+follow decision 8 (Practice on, Talks off). A caller that keeps its own setting
+(CueSettings' `backgroundEnabled` / `backgroundSoundId` / `backgroundVolume`)
+passes it as `override:` (volume as 0–1) instead of writing the defaults here;
+writing through `setSessionDefault` keeps a single source of truth, which is
+preferred.
+
+**Session wiring today.** `PlayerView` sets the kind
+(`BackgroundSoundsNotifier.setSessionKind`: a track with
+`hasBackgroundSound` is Practice, otherwise Talks) and calls
+`playBackgroundSoundFromPref()`, which starts the soundscape session;
+`stopBackgroundSound()` ends it. Session bells are untouched and stay in the
+notifier until the cue system takes them.
 
 ## Completion, stats and favourites
 
