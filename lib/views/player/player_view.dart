@@ -1,3 +1,11 @@
+import 'package:medito/providers/cues/cue_runtime_provider.dart';
+import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/providers/cues/cue_settings_provider.dart';
+import 'package:medito/services/audio/native_cue_controller.dart';
+import 'package:medito/views/cues/customize_sheet.dart';
+import 'package:medito/providers/meditation/track_provider.dart';
+import 'package:medito/services/content/content_source.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:async';
@@ -38,7 +46,9 @@ import '../../providers/background_sounds/background_sounds_notifier.dart';
 import '../../widgets/errors/medito_error_widget.dart';
 
 class PlayerView extends ConsumerStatefulWidget {
-  const PlayerView({super.key});
+  const PlayerView({super.key, this.skipCustomize = false});
+
+  final bool skipCustomize;
 
   @override
   ConsumerState<PlayerView> createState() => _PlayerViewState();
@@ -59,6 +69,13 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
   /// play → spinner → pause on open.
   bool _playbackStarted = false;
   Timer? _playbackStartFallback;
+  Timer? _countdownPoll;
+  int _countdownMs = 0;
+  CueScope? _cueScope;
+  ProviderSubscription<CueSettings>? _cueSubscription;
+  bool _customized = false;
+  bool _autoplayPending = false;
+  bool _cancelAutoplay = false;
 
   /// Keeps a previous session's completed state from opening the end screen.
   final _completionGate = SessionCompletionGate();
@@ -100,6 +117,32 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
     final request = ref.read(playerProvider);
     if (request == null) return;
     _completionGate.reset();
+    ref.read(cueRuntimeProvider.notifier).reset();
+    try {
+      _cueScope = await ref.read(cueScopeForRequestProvider(request).future);
+      if (!mounted || _isClosing) return;
+      final settings = ref.read(cueSettingsProvider(_cueScope!));
+      if (!_customized &&
+          !widget.skipCustomize &&
+          !request.isTimer &&
+          !settings.hideBeforePractice) {
+        _customized = true;
+        final start = await showCustomizeSheet(
+          context,
+          request: request,
+          beforeStart: true,
+        );
+        if (!mounted || _isClosing) return;
+        if (!start) {
+          Navigator.of(context).pop();
+          return;
+        }
+      }
+    } catch (e, st) {
+      AppLogger.e('CUES', 'Could not load customization', e, st);
+      if (mounted) setState(() => _startError = const UnknownError());
+      return;
+    }
     // So the end screen can be rebuilt if the app is killed before this
     // session's completion gets to open it.
     unawaited(PendingEndScreen.start(_prefs, request, _statsAtSessionStart));
@@ -117,6 +160,42 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
           setState(() => _playbackStarted = true);
         }
       });
+      _cueSubscription?.close();
+      _cueSubscription = ref.listenManual(cueSettingsProvider(_cueScope!), (
+        _,
+        settings,
+      ) {
+        unawaited(
+          ref
+              .read(playerProvider.notifier)
+              .updateCueSettings(settings)
+              .catchError((Object e) {
+                AppLogger.e('CUES', 'Could not update cues: $e');
+              }),
+        );
+        ref
+            .read(backgroundSoundsNotifierProvider.notifier)
+            .applyCueSettings(settings);
+      });
+      _countdownPoll?.cancel();
+      if (Platform.isAndroid || Platform.isIOS) {
+        _countdownPoll = Timer.periodic(const Duration(milliseconds: 200), (
+          _,
+        ) async {
+          try {
+            final cueState = await NativeCueController.state();
+            if (!mounted) return;
+            ref.read(cueRuntimeProvider.notifier).updateFromMap(cueState);
+            final remaining =
+                (cueState['countdownRemainingMs'] as num?)?.toInt() ?? 0;
+            if (mounted && remaining != _countdownMs)
+              setState(() => _countdownMs = remaining);
+          } catch (e) {
+            AppLogger.e('CUES', 'Countdown state unavailable: $e');
+            _countdownPoll?.cancel();
+          }
+        });
+      }
       // The native service must be ready before restoring background audio.
       if (mounted && !_isClosing) unawaited(_initializePlayer());
     } catch (e, st) {
@@ -148,6 +227,9 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
     PendingEndScreen.playerUnmounted();
     unawaited(PendingEndScreen.clear(_prefs));
     _playbackStartFallback?.cancel();
+    _countdownPoll?.cancel();
+    _cueSubscription?.close();
+    _cancelAutoplay = true;
     super.dispose();
   }
 
@@ -180,14 +262,11 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
   }
 
   Future<void> _initializePlayer() async {
-    final currentlyPlayingTrack = ref.watch(playerProvider);
-    if (currentlyPlayingTrack?.hasBackgroundSound ?? false) {
+    final scope = _cueScope;
+    if (scope != null) {
       ref
           .read(backgroundSoundsNotifierProvider.notifier)
-          .playBackgroundSoundFromPref();
-    } else {
-      // Stop background sound if track doesn't allow it
-      ref.read(backgroundSoundsNotifierProvider.notifier).stopBackgroundSound();
+          .applyCueSettings(ref.read(cueSettingsProvider(scope)));
     }
 
     // Only enable DND if permission is already granted and toggle is on
@@ -205,7 +284,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
     // Rebuild on completion; the gate decides whether it is this session's.
     ref.watch(audioStateProvider.select((s) => s.isCompleted));
     if (_completionGate.isSessionComplete(ref.read(audioStateProvider))) {
-      _openEndScreen();
+      if (!_autoplayPending) unawaited(_finishOrAutoplay());
     }
 
     final currentlyPlayingTrack = ref.watch(playerProvider);
@@ -213,24 +292,6 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
     ref.listen(playerProvider.select((p) => p?.coverUrl), (_, next) {
       if (next != null) {
         _precacheImage(next);
-      }
-    });
-
-    // Listen for track changes and handle background sounds
-    ref.listen(playerProvider.select((p) => p?.hasBackgroundSound), (
-      previous,
-      next,
-    ) {
-      if (next == false) {
-        // Stop background sound if track doesn't allow it
-        ref
-            .read(backgroundSoundsNotifierProvider.notifier)
-            .stopBackgroundSound();
-      } else if (next == true) {
-        // Start background sound if track allows it
-        ref
-            .read(backgroundSoundsNotifierProvider.notifier)
-            .playBackgroundSoundFromPref();
       }
     });
 
@@ -271,18 +332,123 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
           _stopAudio();
         }
       },
-      child: PlayerScreenLayout(
-        currentlyPlayingTrack: currentlyPlayingTrack,
-        isPlaying: isPlaying,
-        isAudioLoading: isAudioLoading,
-        isBackgroundSoundSelected: _isBackgroundSoundSelected(),
-        onPlayPausePressed: onPlayPausePressed,
-        onSpeedChanged: (speed) =>
-            ref.read(playerProvider.notifier).setSpeed(speed),
-        onClosePressed: () => _handleClose(),
-        onEndSession: _endTimerSession,
+      child: Stack(
+        children: [
+          PlayerScreenLayout(
+            currentlyPlayingTrack: currentlyPlayingTrack,
+            isPlaying: isPlaying,
+            isAudioLoading: isAudioLoading,
+            isBackgroundSoundSelected: _isBackgroundSoundSelected(),
+            onPlayPausePressed: onPlayPausePressed,
+            onSpeedChanged: (speed) =>
+                ref.read(playerProvider.notifier).setSpeed(speed),
+            onClosePressed: () => _handleClose(),
+            onEndSession: _endTimerSession,
+          ),
+          if (_countdownMs > 0)
+            Positioned.fill(
+              child: Material(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: SafeArea(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${(_countdownMs / 1000).ceil()}',
+                          style: Theme.of(context).textTheme.displayLarge,
+                        ),
+                        const SizedBox(height: 24),
+                        TextButton(
+                          onPressed: () =>
+                              unawaited(NativeCueController.skipCountdown()),
+                          child: const Text('Skip countdown'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (_autoplayPending)
+            Positioned.fill(
+              child: Material(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('Next session'),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: () {
+                          _cancelAutoplay = true;
+                          _openEndScreen();
+                        },
+                        child: const Text('End session'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
+  }
+
+  Future<void> _finishOrAutoplay() async {
+    _autoplayPending = true;
+    final request = ref.read(playerProvider);
+    final scope = _cueScope;
+    final settings = scope == null
+        ? null
+        : ref.read(cueSettingsProvider(scope));
+    if (request == null ||
+        request.isTimer ||
+        settings?.autoplay != true ||
+        scope?.courseId == null) {
+      _openEndScreen();
+      return;
+    }
+    if (mounted) setState(() {});
+    try {
+      final router = ContentRouter(sources: ref.read(contentSourcesProvider));
+      final pack = await router.pack(scope!.courseId!);
+      final items = pack.items
+          .where((item) => item.type == TypeConstants.track)
+          .toList();
+      final index = items.indexWhere((item) => item.id == request.trackId);
+      if (index < 0 || index + 1 >= items.length) {
+        _openEndScreen();
+        return;
+      }
+      await Future<void>.delayed(Duration(seconds: settings!.interludeSeconds));
+      if (!mounted || _cancelAutoplay || _isClosing) return;
+      final track = await ref.read(
+        tracksProvider(trackId: items[index + 1].id).future,
+      );
+      if (!mounted || _cancelAutoplay || _isClosing) return;
+      final voice = track.voices.first;
+      final next = PlaybackRequest.fromTrack(
+        track,
+        voice,
+        voice.audioFiles.first,
+      );
+      ref.read(playerProvider.notifier).prepare(next);
+      // Recreate the player lifecycle so gates and snapshots belong to next.
+      Navigator.of(
+        context,
+      ).popUntil((route) => route == ModalRoute.of(context));
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => const PlayerView(skipCustomize: true),
+        ),
+      );
+    } catch (e, st) {
+      AppLogger.e('CUES', 'Autoplay could not start next session', e, st);
+      if (mounted && !_cancelAutoplay) _openEndScreen();
+    }
   }
 
   /// End session on a timer: records the time sat so far as a session (a
@@ -396,8 +562,10 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
   void _openEndScreen({VoidCallback? afterStop}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_endScreenOpened && mounted) {
+        final endedNatively = ref.read(audioStateProvider).isCompleted;
         _resetState();
-        _stopAudio();
+        // Native teardown owns the end bell tail; stopping here cuts it off.
+        if (!endedNatively) _stopAudio();
         afterStop?.call();
         final currentlyPlayingTrack = ref.read(playerProvider);
         if (currentlyPlayingTrack == null) return;

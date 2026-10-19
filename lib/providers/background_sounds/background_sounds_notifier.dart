@@ -1,3 +1,4 @@
+import 'package:medito/models/cues/cue_settings.dart';
 import '../../services/audio/session_bell_preview.dart';
 import 'dart:async';
 import 'dart:io';
@@ -510,6 +511,31 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
   void _updateItemsInSavedBgSoundList(BackgroundSoundsModel sound) {
     final provider = ref.read(backgroundSoundsRepositoryProvider);
     provider.updateItemsInSavedBgSoundList(sound);
+  }
+
+  /// Ambient preferences belong to Customize's kind/course scope. The cue
+  /// scheduler owns bells; this method never enables the legacy bell layer.
+  void applyCueSettings(CueSettings settings) {
+    final sounds = ref
+        .read(backgroundSoundsRepositoryProvider)
+        .fetchCachedBackgroundSounds();
+    BackgroundSoundsModel? selected;
+    if (settings.backgroundEnabled) {
+      for (final sound in sounds) {
+        if (sound.id == settings.backgroundSoundId) selected = sound;
+      }
+      if (selected == null &&
+          settings.backgroundSoundId.isEmpty &&
+          sounds.isNotEmpty) {
+        selected = sounds.first;
+      }
+    }
+    if (state.selectedBgSound?.id != selected?.id) {
+      handleOnChangeSound(selected, preview: false);
+    } else if (selected == null) {
+      _stopAmbient();
+    }
+    handleOnChangeVolume(settings.backgroundVolume);
   }
 
   void playBackgroundSoundFromPref() {

@@ -1,3 +1,6 @@
+import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/providers/cues/cue_settings_provider.dart';
+import 'package:medito/services/audio/native_cue_controller.dart';
 import 'package:medito/providers/library/library_providers.dart';
 
 import 'dart:io';
@@ -66,7 +69,20 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     state = request;
   }
 
+  CueSettings? _cues;
+
+  Future<void> updateCueSettings(CueSettings settings) async {
+    _cues = settings;
+    final request = state;
+    if (request == null) return;
+    if (Platform.isAndroid || Platform.isIOS) {
+      await NativeCueController.configure(settings, request, update: true);
+    }
+  }
+
   Future<void> _playTrack(PlaybackRequest request) async {
+    final scope = await ref.read(cueScopeForRequestProvider(request).future);
+    _cues = ref.read(cueSettingsProvider(scope));
     AppLogger.d(
       'PLAYER',
       '_playTrack called for track: ${request.trackId}, file: ${request.fileId}',
@@ -138,6 +154,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
       }
       setRepeatMode(repeatMode);
       setSpeed(1.0);
+      await NativeCueController.configure(_cues!, request);
       await _playAudioWithRetry(url, trackData);
     } else {
       AppLogger.d('PLAYER', 'On iOS - setting up audio');
@@ -149,6 +166,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
       setSpeed(1.0);
       await iosAudioHandler.setUrl(downloadPath, request, trackData);
       AppLogger.d('PLAYER', 'iOS setUrl succeeded');
+      await iosAudioHandler.configureCues(_cues!, request);
       await iosAudioHandler.play();
       AppLogger.d('PLAYER', 'iOS play() called');
     }
@@ -237,6 +255,9 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
   }
 
   void stop() {
+    if (Platform.isAndroid || Platform.isIOS) {
+      NativeCueController.stop();
+    }
     if (Platform.isAndroid) {
       _api.stopAudio();
     } else {
@@ -298,7 +319,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
   }
 }
 
-const audioPercentageListened = 0.8;
+const audioPercentageListened = 0.9;
 const androidNotificationIcon = 'logo';
 const notificationId = 1595122;
 const androidNotificationChannelId = 'medito_reminder_channel';

@@ -1,3 +1,5 @@
+import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/services/audio/native_cue_controller.dart';
 import 'dart:async';
 import '../../services/audio/ios_session_bells.dart';
 import 'package:medito/models/models.dart' show PlaybackRequest;
@@ -454,6 +456,14 @@ class IosAudioHandler extends BaseAudioHandler {
     } catch (e) {
       AppLogger.e('IOS', 'Failed to deactivate audio session: $e');
     }
+  }
+
+  /// Shares the same cue configuration with the native iOS clock.
+  Future<void> configureCues(
+    CueSettings settings,
+    PlaybackRequest request,
+  ) async {
+    await NativeCueController.configure(settings, request);
   }
 
   Future<void> setUrl(
