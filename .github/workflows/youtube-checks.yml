@@ -25,7 +25,7 @@ jobs:
       - name: YouTube and affected tests, one file at a time (no live network)
         run: |
           set -euo pipefail
-          mapfile -t files < <(git ls-files 'test/services/youtube/*_test.dart' 'test/services/library/*_test.dart' 'test/views/library/*_test.dart' 'test/views/pack/*_test.dart' 'test/views/player/*_test.dart' 'test/utils/youtube_error_message_test.dart' 'test/utils/bundled_licenses_test.dart' 'test/providers/pack_completion_provider_test.dart')
+          mapfile -t files < <(git ls-files 'test/services/youtube/*_test.dart' 'test/services/library/*_test.dart' 'test/views/library/*_test.dart' 'test/views/pack/*_test.dart' 'test/views/player/*_test.dart' 'test/utils/youtube_error_message_test.dart' 'test/utils/bundled_licenses_test.dart' 'test/providers/pack_completion_provider_test.dart' 'test/providers/youtube_pack_refresh_test.dart')
           for file in "${files[@]}"; do
             timeout 240 nice -n 10 flutter test --reporter expanded "$file"
           done

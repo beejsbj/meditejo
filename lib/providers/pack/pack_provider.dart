@@ -21,7 +21,6 @@ Future<List<PackItemsModel>> fetchAllPacks(Ref ref) {
 /// Empty on failure: a pack then simply shows no tick, never a wrong one.
 @Riverpod(keepAlive: true)
 Future<Map<String, List<String>>> packTrackIds(Ref ref) async {
-  ref.watch(libraryRevisionProvider);
   final checked = ref.watch(statsProvider).value?.tracksChecked;
   try {
     return await ref

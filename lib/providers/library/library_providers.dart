@@ -68,13 +68,17 @@ final youtubeExtractorProvider = Provider<YoutubeExtractorApi>(
   (ref) => YoutubeExtractorApi(),
 );
 
-final youtubeSourceProvider = Provider<YoutubeSource>(
-  (ref) => YoutubeSource(
+final youtubeSourceProvider = Provider<YoutubeSource>((ref) {
+  final source = YoutubeSource(
     db: ref.watch(libraryDatabaseProvider),
     library: ref.watch(libraryStoreProvider),
     api: ref.watch(youtubeExtractorProvider),
-  ),
-);
+  );
+  void refreshCompleted() => ref.invalidate(packTrackIdsProvider);
+  source.refreshRevision.addListener(refreshCompleted);
+  ref.onDispose(() => source.refreshRevision.removeListener(refreshCompleted));
+  return source;
+});
 
 /// Refresh failures are separate from catalogue reads: cached sessions stay usable.
 final youtubeRefreshRevisionProvider =

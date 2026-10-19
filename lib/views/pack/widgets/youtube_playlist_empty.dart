@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/utils/youtube_error_message.dart';
 
@@ -50,6 +51,8 @@ class _YoutubePlaylistEmptyState extends ConsumerState<YoutubePlaylistEmpty>
     setState(() => _refreshing = true);
     try {
       await ref.read(youtubeSourceProvider).refresh(widget.packId);
+    } on YoutubeUnavailableError {
+      // A concurrent pull-to-refresh can throw; the source records its state.
     } finally {
       if (mounted) setState(() => _refreshing = false);
     }
