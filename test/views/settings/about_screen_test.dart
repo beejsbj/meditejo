@@ -60,6 +60,21 @@ void main() {
       expect(h.client.calls, 1);
     });
 
+    testWidgets('the check that found an update is the last checked time', (tester) async {
+      final h = await UpdateHarness.create(
+        latest: () => LatestFound(testRelease(), null),
+      );
+      await _pump(tester, h);
+      expect(find.textContaining('Last checked'), findsNothing);
+
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Check for updates'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Update available: 0.1.1'), findsOneWidget);
+      expect(find.textContaining('Last checked'), findsOneWidget);
+      expect(find.textContaining('Oct 17, 2026'), findsOneWidget);
+    });
+
     testWidgets('a newer release shows its version, Update and the notes', (tester) async {
       final h = await UpdateHarness.create(
         latest: () => LatestFound(testRelease(notes: '- Calmer timer'), null),

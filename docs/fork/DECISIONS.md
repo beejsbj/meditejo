@@ -149,3 +149,50 @@ Product questions here were settled with a reasonable, reversible choice and are
 3. Removing an imported course deletes its copied audio (after asking). Should removal keep the files for a while instead?
 4. Teachers live in the library as their own kind. Fine, or should "Save teacher" stay a separate Explore-only list?
 5. Talk archives default to Talks (three hosts); everything else to Practice. Any host to add?
+
+## 2026-10-19 (slice 4, PR C2: bundled catalogue, starter set, Practice-first)
+
+Measured on bjslab the same day: a full first sync of Dharma Seed is 125 requests, 372 s and 38 MiB, for 1,235 teachers, 4,363 retreats and 49,007 talks; a delta with nothing new is 3 requests and about 2 s.
+
+**The bundled catalogue** (details in ARCHITECTURE.md, "The bundled catalogue")
+
+- **The snapshot is the catalogue database itself, gzipped**, not a row dump. Unpacking is one stream to disk (0.45 s) with no rebuild step, and it carries the FTS indexes and the sync state, so the existing incremental sync continues from it unchanged. 13.0 MiB packed against 35.3 MiB unpacked. Compression alternatives measured on the same file: xz 8.0 MB, zstd -19 10.4 MB, gzip -9 13.7 MB. gzip is in `dart:io`, so it adds no dependency and no slow pure-Dart decoder on the phone; xz would save five MB of APK for a few seconds of install. **Provisional:** swap if APK size starts to matter.
+- **Committed directly, no Git LFS** (13 MiB is under the 20 MB line, LFS is not installed on bjslab, and a checkout without LFS would silently build an app with no catalogue). It costs about 13 MiB of history per release that changes it. **Flagged:** if releases become frequent, move to LFS or to a release asset fetched in CI.
+- **Install rule: no complete catalogue on the device, or the snapshot is newer than the newest per-kind last sync.** A phone that has synced any kind since the snapshot was made keeps its own data (never downgraded; the first version compared against the oldest kind, which could roll back a kind that was newer after an interrupted sync, found in review); a stale one is replaced, and the delta then catches up. The old "Save course / teacher" rows are carried into the new file.
+- **The install is staged, checked and swapped, never delete-then-rename.** The staged copy is checked against the manifest (size, `user_version`) before the device's database is touched; failing to read or copy the saved rows abandons the install (a corrupt old file with nothing readable is the exception and is replaced); the old file is renamed to `.previous` and deleted only after the new one is in place, and a crash between the two renames is undone on the next launch. Any failure leaves what was there and falls back to the old first sync.
+- **A checkpoint that cannot finish abandons the install.** Before the old file is moved aside its write-ahead log is folded in (`wal_checkpoint(TRUNCATE)`); the pragma reports a blocked checkpoint in its result row rather than throwing, so the result is read and a busy or partial one counts as a failure.
+- **No SHA-256 at launch, by decision.** The manifest's hash is checked by a test against the committed asset, and gzip's own CRC covers damage in transit; recomputing the hash in the app cost about 1.1 s on bjslab (about 0.6 s for `quick_check` instead), more on a phone, on every first launch, to guard against a wrong asset that CI already refuses. Size and `user_version` are still checked. Revisit if the snapshot ever comes from anywhere but the build.
+- **A first sync killed part-way is still replaced by the snapshot**, even if one kind finished after the snapshot was made (a reviewer suggested keeping the device's data then). The snapshot brings the missing kind (talks, the 124-request bulk of a first sync) whole; the finished kinds are refetched as a delta from the snapshot's editions, a few requests. Only a device with every kind complete is kept.
+- **The unpack runs in a worker isolate** (`Isolate.run`), so the ~35 MiB inflate and the SQLite checks do not block the UI thread; the main isolate only awaits, so on the very first launch Home's library still waits for it. Not yet timed on the S23+ (the 0.45 s figure is bjslab); `tools/meditejo/dharma_seed_install_time.dart` measures the unpack itself.
+- **The install happens when the database is first opened** (inside the lazy opener), which launch triggers in the background by reading the sync state, and the library's first read triggers anyway. So on the very first launch Home's library waits about half a second on bjslab (longer on a phone) for the unpack. The alternative, installing behind a splash, adds UI for a one-time half second.
+- **A failed automatic sync is not retried for 30 minutes** (in memory, so a restart resets it): after four attempts against a failing server, another tab change must not start another round. Pull-to-refresh and the settings row ignore it.
+- **The starter set and its `starter_seeded` flag are written in one transaction**, so an interruption leaves either nothing (seeded in full next launch) or everything (never again, so removals stick).
+- **Nothing syncs at startup any more.** The delta runs when the user opens Search or Explore (and on a launch that restores Explore), gated by the existing 12-hour rule; pull-to-refresh and the settings row still force it. A consequence: the settings row shows the snapshot's date until Search or Explore is opened.
+- **`release.sh` refreshes the snapshot only when the committed one is more than 30 days old**, judged by the `asOf` in `catalogue.json` (it travels with the commit; file times do not), or when `--refresh-catalogue` forces it. Each committed refresh adds about 13 MiB to git history, and the search-time delta sync covers the gap for users, so a release inside the window ships the snapshot already committed. When it does refresh, it is a delta from the committed one (a few requests) and is committed only if Dharma Seed changed something; "nothing changed" means the sync fetched and removed no record, since editions are the server's clock and differ on every call. `--skip-snapshot` never refreshes; combining it with `--refresh-catalogue` is an error. A missing or unreadable manifest counts as stale. Asked for by Burooj's orchestrator.
+- **`sqlite3` moved from dev to runtime dependencies**: the installer reads the device database's sync state and carries saved rows across with it before drift opens the file.
+- A test fails on a missing, pointer-sized or schema-stale snapshot, so a database schema bump without rerunning the tool cannot ship quietly.
+
+**Practice first**
+
+- **A Dharma Seed retreat is always Practice by default**, whatever its recordings are labelled. Dharma Seed files most of Rob Burbea's guided retreat sittings as "Talk", so the old majority rule put them under Talks. The rule is gone (`retreatGroup` deleted). **Flagged:** a retreat that really is all talks (for example a winter series of dharma talks) now also lands in Practice; the user can move it with the row menu, and the choice sticks as an override.
+- **A single talk follows its own `recording_type`**: guided meditation and chanting are Practice; talk, Q & A, other and untyped are Talks.
+- **`dharmaseed.org` left the talk-host list.** Only dhammatalks.org and audiodharma.org keep the host-based Talk default, for feeds and audio links. A bare Dharma Seed audio link is now Practice, the unknown default.
+- **One-time reclassification** (`group_defaults_v2`): `ds-retreat-*` entries with no user override get `detected_group = practice`. A user's own choice (`group_override`) is never touched. Not migrated: `ds-talk-*` (already followed `recording_type`), `lib-` entries and teachers, since no rule changed for them.
+- Home and the library already led with Practice (`LibrarySections`); a test already covers it, so nothing changed there.
+
+**Starter set**
+
+- **Seeded once, on the first run with an empty library, behind a `starter_seeded` flag.** An install that already has things (Burooj's phone, which imported the same four retreats by hand) is flagged without seeding, and emptying the library or removing any item never brings it back.
+- Items are described from the catalogue on the device, with no network. If the catalogue lacks one, it is added under the title and size in `starter_set.dart` (the course page replaces them when it first opens). The first item leads, with added times a second apart.
+- **The two YouTube playlists are commented out in `starter_set.dart` with a TODO**, because their IDs depend on the YouTube slice's scheme and a dead row is worse than none.
+
+**About**
+
+- **"Last checked" is now shown when an update is available** (it used to appear only under "Up to date"), so the check that found the update is the time shown.
+- **The first launch of a new build checks at once**, whatever the once-a-day gate says, so the time is never older than the update itself. The store remembers the `versionCode` it last ran under. The first launch of the build that adds this will also check, since no code was recorded.
+
+**Open for Burooj**
+
+1. Retreats default to Practice always. Is there a kind of retreat you would want filed under Talks by default? (A per-retreat rule needs a signal; the recording types are not one.)
+2. 13 MiB of git history per release that moves the catalogue, and about 13 MiB more APK. Fine for a personal app, or move the catalogue out of git?
+3. The YouTube playlists join the starter set when the YouTube slice lands.

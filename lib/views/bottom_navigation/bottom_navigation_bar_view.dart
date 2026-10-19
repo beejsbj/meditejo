@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/stats_provider.dart';
@@ -59,6 +60,10 @@ class _BottomNavigationBarViewState
       const SettingsScreen(),
     ];
 
+    if (_currentPageIndex == _exploreIndex) {
+      // Restored straight into Explore.
+      WidgetsBinding.instance.addPostFrameCallback((_) => catchUpDharmaSeed(ref));
+    }
     _initializeStats();
     _trackPlaybackPositions();
     // Completions replayed by the platform after launch arrive late (Android
@@ -235,6 +240,12 @@ class _BottomNavigationBarViewState
     // Load explore data only on the first visit to the explore tab.
     if (index == _exploreIndex) {
       _exploreViewKey.currentState?.loadData();
+    }
+
+    // Opening Explore or Search is when the Dharma Seed catalogue catches up
+    // with what changed since the bundled copy; never at startup.
+    if (index == _exploreIndex || index == _searchIndex) {
+      catchUpDharmaSeed(ref);
     }
 
     // Selecting Search focuses the field so the user can type immediately;

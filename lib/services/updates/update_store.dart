@@ -16,6 +16,7 @@ class UpdateStore {
   static const _releaseKey = 'update_release';
   static const _dismissedKey = 'update_dismissed_version_code';
   static const _explainedKey = 'update_permission_explained';
+  static const _seenBuildKey = 'update_seen_version_code';
 
   DateTime? get lastCheckedAt {
     final ms = _prefs.getInt(_lastCheckedKey);
@@ -59,6 +60,13 @@ class UpdateStore {
 
   Future<void> dismissNotice(int versionCode) =>
       _prefs.setInt(_dismissedKey, versionCode);
+
+  /// The `versionCode` this store last ran under. A different one at launch
+  /// means the app was just installed or updated.
+  int? get seenVersionCode => _prefs.getInt(_seenBuildKey);
+
+  Future<void> setSeenVersionCode(int code) =>
+      _prefs.setInt(_seenBuildKey, code);
 
   bool get permissionExplained => _prefs.getBool(_explainedKey) ?? false;
 

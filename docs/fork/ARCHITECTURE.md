@@ -2,8 +2,8 @@
 
 The app launches without accounts, credentials or a network connection. The
 bundled catalogue is empty; content comes from sources such as Dharma Seed,
-whose metadata syncs in the background after launch and is read from an
-on-device database. The timer uses bundled bells and a locally generated silent
+whose catalogue ships inside the app, is unpacked offline on the first launch and
+is read from an on-device database. The timer uses bundled bells and a locally generated silent
 audio file. Track lookup asks the owning source (or the bundled catalogue)
 first. If an entry is unavailable, it falls back to on-device downloaded track
 metadata by matching ID. An ID missing from both raises
@@ -72,15 +72,19 @@ and URL) is what a licence asks to be shown where content is played or viewed.
   synced), the fetch queue, and saved retreats and teachers. FTS5 tables
   (`ds_talks_fts`, `ds_retreats_fts`, `ds_teachers_fts`) use
   `unicode61 remove_diacritics 2`; user text becomes quoted prefix terms only.
+- `dharma_seed_snapshot.dart` and `dharma_seed_snapshot_writer.dart`: the
+  **bundled catalogue** (below).
 - `dharma_seed_sync.dart`: teachers, then retreats, then talks. Each kind
   lists IDs (`detail=0`, with the stored edition after the first run), queues
   them in the database, and drains the queue in batches (250/250/500),
   one request at a time with a 750 ms gap. A killed app resumes from the
   queue. Opening a course or talk that is not stored yet fetches it, and its
-  teachers, ahead of the background queue on the same lane. Automatic syncs
-  run 3 s after launch, at most every 12 h; the settings row
-  (`DharmaSeedSyncTile`) shows progress, last sync or failure, and refreshes
-  on tap.
+  teachers, ahead of the background queue on the same lane. **Nothing syncs at
+  launch.** `catchUpDharmaSeed` runs the (non-forced) sync when the user opens
+  Search or Explore (including a launch that restores Explore), which is due
+  when the last full sync is over 12 h old and asks only for what changed since
+  the stored editions; pull-to-refresh in Explore and the settings row
+  (`DharmaSeedSyncTile`, which shows progress, last sync or failure) force it.
 - `dharma_seed_source.dart`: the `ContentSource`. A retreat
   (`ds-retreat-<id>`) is a pack whose items are its talks ordered by
   `rec_date`, then ID. A talk (`ds-talk-<id>`) is a track with one voice and
@@ -91,6 +95,61 @@ and URL) is what a licence asks to be shown where content is played or viewed.
   saved retreats, then the 40 most recent. `packTrackIds` covers only saved
   retreats and retreats containing a completed talk, using the retreat's own
   talk list.
+
+#### The bundled catalogue
+
+A fresh install would need all ~49k talks (125 requests, six minutes, 38 MB
+transferred on 2026-10-19) before search worked, so the catalogue ships in the
+app: `assets/dharma_seed/catalogue.sqlite.gz` (a `VACUUM INTO` copy of the
+catalogue database with its FTS indexes merged, gzipped: 13 MiB for 49,007
+talks, 35 MiB unpacked) and `catalogue.json` (the manifest: format and database
+schema versions, `asOf`, the per-kind `edition` cursors, row counts, unpacked
+size and SHA-256). It holds catalogue text only, never audio, and no user data
+(saved rows and the fetch queue are emptied).
+
+- **Install** (`DharmaSeedSnapshot.installIfNeeded`): `DharmaSeedDatabase.open()`
+  runs it inside the lazy opener, so it happens before the database file is
+  first opened, with no network. It unpacks when the device has no complete
+  catalogue (no file, or any kind never finished its first sync) or when the
+  manifest's `asOf` is later than the newest per-kind `last_synced_at` on the
+  device ("the snapshot is newer than local data"). A device that has synced
+  any kind since the snapshot was made keeps its data, and its own incremental
+  sync continues from its own cursors. The unpack runs in a worker isolate (the
+  UI thread is not blocked by the inflate): it writes
+  `dharma_seed.sqlite.installing`, checks size and `user_version` against the
+  manifest, and carries the old `ds_saved` rows across when it replaces a file;
+  a failure at any of these (including a locked or full disk while reading or
+  copying the saves) abandons the install with the old database untouched. Only
+  then is the old file renamed to `.previous`, stale `-wal`/`-shm`/`-journal`
+  files removed, and the new one renamed into place; a crash between the two
+  renames is undone on the next launch (`.previous` comes back if the database
+  is missing, and is deleted if it is not). An old file that is not a readable
+  catalogue holds nothing to keep and is replaced. Any failure leaves what was
+  there and the app falls back to the ordinary first sync. A snapshot whose manifest or database schema this build
+  does not read is ignored. It takes about 0.45 s on bjslab
+  (`tools/meditejo/dharma_seed_install_time.dart`), then the first search takes
+  about 60 ms.
+- **Delta**: the unpacked database carries the sync state, so the ordinary
+  incremental sync continues from the snapshot's editions: three ID listings
+  and the detail records for what changed (3 requests, about 2 s when nothing
+  has). It runs when the user opens Search or Explore, never at startup;
+  startup only reads the state (`prepareDharmaSeed`), which is also what first
+  touches the database and so triggers the install in the background.
+- **Build** (`tools/meditejo/dharma_seed_snapshot.dart`, a `flutter test` file
+  because the sync imports Flutter): runs the app's own polite sync (serial,
+  750 ms apart) starting from the committed snapshot, so a refresh is a delta of
+  a few requests, or from nothing (`DS_FRESH=true`) a full sync. It refuses an
+  unfinished sync, and leaves the files untouched when the sync changed no
+  record. **`release.sh` runs it before the version bump only when the committed
+  snapshot is over 30 days old** (`--refresh-catalogue` forces it,
+  `--skip-snapshot` never runs it), and commits the snapshot when it changed.
+- **Shipping choice**: committed directly, no Git LFS. At 13 MiB it is under the
+  20 MB line, a plain checkout is all CI and `build_apk.sh` need (an LFS pointer
+  in an asset would build an app with no catalogue and no error), and
+  `test/services/dharma_seed/dharma_seed_snapshot_test.dart` fails on a missing,
+  pointer-sized or schema-stale snapshot. The cost is about 13 MiB of git history
+  per release that changes it; revisit (LFS, or a release asset fetched in CI)
+  if releases become frequent.
 
 `DharmaSeedSource` also carries the Dharma Seed screens' reads, outside the
 interface until a second source shows what is shared: `explore({group})`,
@@ -108,7 +167,7 @@ Explore, search and teacher providers.
 `lib/services/library/`. The user's library is **their own database**
 (`meditejo_library.sqlite`, `LibraryDatabase`), apart from the Dharma Seed
 catalogue database: that one is a replaceable copy of someone else's catalogue
-(it will be swapped for a bundled snapshot), this one is the user's data.
+(it is replaced by a newer bundled snapshot when one ships), this one is the user's data.
 
 - `library_database.dart`: `LibraryEntries` (one row per kept thing: source ID,
   kind `course | single | teacher`, detected and overridden Practice/Talks group,
@@ -118,9 +177,12 @@ catalogue database: that one is a replaceable copy of someone else's catalogue
 - `library_store.dart`: `LibraryStore` over it. Entries are listed most recently
   added or played first; `revision` and `positionsRevision` notifiers drive the
   providers. Its `prepare` hook runs once before first use: the app passes
-  `migrateDharmaSeedSaves`, which copies `ds_saved` (old "Save course" / "Save
-  teacher") into the library, keeping the saved time, and marks it done. The old
-  table is left in place.
+  three steps in `library_migration.dart`, each marked done in `LibraryMeta`:
+  `migrateDharmaSeedSaves` copies `ds_saved` (old "Save course" / "Save teacher")
+  into the library, keeping the saved time (the old table is left in place);
+  `reclassifyLibraryDefaults` moves Dharma Seed retreats the user has not
+  classified themselves to Practice, once; and `seedStarterSet` adds the starter
+  set on a first run (below).
 - `lib_source.dart`: `LibSource`, the `ContentSource` for `lib-`. A feed or a set
   of files is a pack (`lib-course-<hash>`); a URL, an episode or a file is a track
   (`lib-track-<hash>`). `pack()` lists sessions oldest first (or newest first, a
@@ -133,6 +195,24 @@ catalogue database: that one is a replaceable copy of someone else's catalogue
   twice finds the first), an episode hashes feed address plus the feed's own
   episode ID (the same episode has one ID alone or in its course), a local file
   gets a random ID when it is copied.
+- `starter_set.dart` is the one small data file listing what a fresh install
+  already holds (BRIEF decision 13): retreats 4496, 1084, 1183 and 1308 as
+  Practice courses, and talk 60864 as a single that follows its own label. The
+  YouTube slice appends its two playlists there (a TODO comment holds their
+  URLs). `seedStarterSet` runs in the library's first-use hook: with no
+  `starter_seeded` flag **and an empty library** it adds the items, described from
+  the on-device catalogue with no network (a missing one is added under the
+  title in the data file), the first leading the list; either way it sets the
+  flag, so an install that already had things is left alone and nothing the user
+  removes comes back.
+- **Practice or Talks by default** (`LibraryDraft.group`, the `detected_group`
+  column; the user's choice is `group_override`): a Dharma Seed **retreat is
+  always Practice**, since Dharma Seed files most of Rob Burbea's guided retreat
+  sittings as "Talk"; a **single Dharma Seed talk follows its own
+  `recording_type`** (guided meditation and chanting → Practice; talk, Q & A,
+  other and untyped → Talks); the host-based Talk default
+  (`isKnownTalkHost`) is kept only for feeds and audio links on dhammatalks.org
+  and audiodharma.org; everything else is Practice.
 - `link_classifier.dart` (text only, no network): Dharma Seed retreat, teacher or
   talk page; audio by extension; YouTube; Apple Podcasts; a service with no
   readable feed (Spotify); any other web address; a local path. `firstLinkIn`

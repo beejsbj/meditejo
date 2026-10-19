@@ -236,8 +236,10 @@ String titleFromFileName(String nameOrUrl) {
   return name.isEmpty ? 'Untitled' : name;
 }
 
-/// Hosts whose material is talks rather than guided practice.
-const _talkHosts = {'dharmaseed.org', 'dhammatalks.org', 'audiodharma.org'};
+/// Talk archives: hosts whose feeds and files are talks rather than guided
+/// practice. Dharma Seed is not here on purpose; its own `recording_type`
+/// (and, for a retreat, Practice) decides, see `DharmaSeedSource.libraryDraft`.
+const _talkHosts = {'dhammatalks.org', 'audiodharma.org'};
 
 /// Whether [host] is a known source of talks. Anything else defaults to
 /// practice, since that is the app's default when nothing says otherwise.

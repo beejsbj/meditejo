@@ -18,6 +18,7 @@ min_code=302473 # Medito's last build; every Meditejo code must exceed it.
 usage() {
   cat <<'EOF'
 release.sh <version> [--notes FILE] [--dry-run] [--yes] [--allow-branch]
+           [--refresh-catalogue] [--skip-snapshot]
 
   <version>      MAJOR.MINOR.PATCH, e.g. 0.1.0. The tag is v<version>.
   --notes FILE   Release notes (Markdown). Default: commit subjects since the
@@ -25,9 +26,23 @@ release.sh <version> [--notes FILE] [--dry-run] [--yes] [--allow-branch]
   --dry-run      Print the plan and every command; change nothing.
   --yes          Publish without the confirmation prompt.
   --allow-branch Release from a branch other than develop.
+  --refresh-catalogue
+                 Refresh the bundled Dharma Seed catalogue even though the
+                 committed snapshot is under 30 days old.
+  --skip-snapshot
+                 Never refresh the catalogue; the release carries whatever
+                 snapshot is already committed.
 
 versionCode is chosen automatically as YYMMDDnn (build date plus a counter for
 the day) and is always above the highest code already released.
+
+Before the version bump the release refreshes the Dharma Seed catalogue shipped
+inside the app (assets/dharma_seed), but only when the committed snapshot is
+more than 30 days old (its asOf date in catalogue.json) or --refresh-catalogue
+is given. Each refreshed snapshot adds about 13 MiB to git history, and the app
+catches up on its own with a delta sync when Search or Explore opens. A refresh
+is a delta from the committed snapshot, a few requests, committed only when
+Dharma Seed changed something.
 EOF
 }
 
@@ -36,12 +51,17 @@ notes_file=
 dry=0
 yes=0
 allow_branch=0
+skip_snapshot=0
+force_snapshot=0
+snapshot_max_days=30
 while (($#)); do
   case $1 in
     --notes) notes_file=${2:?Missing notes file}; shift 2 ;;
     --dry-run) dry=1; shift ;;
     --yes) yes=1; shift ;;
     --allow-branch) allow_branch=1; shift ;;
+    --refresh-catalogue) force_snapshot=1; shift ;;
+    --skip-snapshot) skip_snapshot=1; shift ;;
     -h|--help) usage; exit 0 ;;
     -*) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
     *) [[ -z $version ]] || { echo 'Only one version, please.' >&2; exit 2; }
@@ -51,6 +71,8 @@ done
 [[ -n $version ]] || { usage >&2; exit 2; }
 [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
   echo "Version must look like 0.1.0 (got: $version)" >&2; exit 2; }
+((! (skip_snapshot && force_snapshot))) || {
+  echo '--skip-snapshot and --refresh-catalogue contradict each other.' >&2; exit 2; }
 tag=v$version
 
 problems=0
@@ -89,6 +111,49 @@ else
   problem "could not fetch origin/$branch"
 fi
 [[ -z $notes_file || -s $notes_file ]] || problem "notes file '$notes_file' is missing or empty"
+# Decide whether this release refreshes the bundled catalogue: only when the
+# committed snapshot is older than 30 days (by its asOf date, which travels with
+# the commit; file times do not) or when forced. A missing or unreadable
+# manifest counts as stale. MEDITEJO_SNAPSHOT_NOW (ISO date) fakes "now" for tests.
+snapshot_dir=assets/dharma_seed
+refresh_snapshot=0
+snapshot_why=
+if ((skip_snapshot)); then
+  snapshot_why='skipped (--skip-snapshot): the release carries the committed snapshot'
+elif ((force_snapshot)); then
+  refresh_snapshot=1
+  snapshot_why='forced (--refresh-catalogue)'
+else
+  if age=$(python3 -I - "$snapshot_dir/catalogue.json" "$snapshot_max_days" "${MEDITEJO_SNAPSHOT_NOW:-}" <<'PY'
+import datetime as dt, json, sys
+path, limit, now = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+now = dt.datetime.fromisoformat(now.replace("Z", "+00:00")) if now else dt.datetime.now(dt.timezone.utc)
+if now.tzinfo is None:
+    now = now.replace(tzinfo=dt.timezone.utc)
+try:
+    as_of = dt.datetime.fromisoformat(json.load(open(path))["asOf"].replace("Z", "+00:00"))
+except (OSError, KeyError, ValueError):
+    print("unreadable"); sys.exit(0)
+days = (now - as_of).days
+print(f"{days} {'stale' if days > limit else 'fresh'}")
+PY
+  ); then :; else age=unreadable; fi
+  case $age in
+    unreadable) refresh_snapshot=1; snapshot_why='no readable committed snapshot manifest' ;;
+    *stale) refresh_snapshot=1; snapshot_why="committed snapshot is ${age% *} days old (limit $snapshot_max_days)" ;;
+    *) snapshot_why="skipped: committed snapshot is ${age% *} days old (limit $snapshot_max_days); --refresh-catalogue forces it" ;;
+  esac
+fi
+
+if ((refresh_snapshot)); then
+  command -v flutter >/dev/null || problem 'flutter is not installed (needed to refresh the Dharma Seed snapshot; --skip-snapshot to bypass)'
+  [[ -f lib/services/dharma_seed/dharma_seed_database.g.dart ]] ||
+    problem 'generated code is missing; run the codegen loop in docs/fork/BUILD.md (or --skip-snapshot)'
+  [[ -f $snapshot_dir/catalogue.json ]] ||
+    echo 'note: no snapshot is committed yet; the refresh will be a full sync (about six minutes)'
+fi
+echo "catalogue snapshot: $snapshot_why"
+
 echo "branch: ${branch:-?}   commit: $(git rev-parse --short HEAD)   tag: $tag"
 
 online=1
@@ -164,6 +229,31 @@ if ((! dry)); then
     [[ -t 0 ]] || { echo 'Not a terminal; pass --yes to publish.' >&2; exit 1; }
     read -r -p 'Publish? [y/N] ' answer
     [[ $answer == y || $answer == Y ]] || { echo 'Cancelled.'; exit 1; }
+  fi
+fi
+
+# ----------------------------------------------------------------- catalogue
+# The Dharma Seed catalogue ships inside the app (docs/fork/ARCHITECTURE.md).
+# Every committed refresh costs about 13 MiB of git history, so a release
+# refreshes it only when the committed one is over 30 days old or on request;
+# the app's own delta sync covers the gap. The tool starts from the committed
+# snapshot and asks Dharma Seed only for what changed (a few requests, politely
+# paced); it leaves the files alone when nothing did. Catalogue text only.
+step 'Refresh the bundled Dharma Seed catalogue'
+if ((! refresh_snapshot)); then
+  echo "$snapshot_why"
+else
+  run timeout 2400 nice -n 10 flutter test tools/meditejo/dharma_seed_snapshot.dart
+  if ((dry)); then
+    echo "+ git add $snapshot_dir && git commit   # only if the snapshot changed"
+  elif [[ -n $(git status --porcelain -- "$snapshot_dir") ]]; then
+    git add -- "$snapshot_dir"
+    git commit -q -m 'chore(release): refresh the bundled Dharma Seed catalogue' \
+      -m "Catalogue text only, built by tools/meditejo/dharma_seed_snapshot.dart."
+    python3 -I -c 'import json,sys; m=json.load(open(sys.argv[1])); print("committed: %d talks as of %s" % (m["counts"]["talks"], m["asOf"]))' \
+      "$snapshot_dir/catalogue.json"
+  else
+    echo 'unchanged: Dharma Seed has nothing new since the committed snapshot'
   fi
 fi
 
