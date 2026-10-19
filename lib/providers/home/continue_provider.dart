@@ -130,10 +130,7 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
 
   // Courses begun and not finished, with no session left partway.
   final started = entries.where(
-    (e) =>
-        e.isCourse &&
-        e.lastPlayedAt != null &&
-        !coursesWithPlace.contains(e.sourceId),
+    (e) => e.isCourse && !coursesWithPlace.contains(e.sourceId),
   );
   for (final entry in started) {
     final pack = await packOf(entry.sourceId);

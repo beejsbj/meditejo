@@ -220,6 +220,20 @@ void main() {
     expect(items.single.sessionNumber, 3);
   });
 
+  test(
+    'checked sessions establish progress without a playback timestamp',
+    () async {
+      await addCourse('unrelated');
+      await addCourse('checked');
+      final items = await read(
+        checked: ['x-checked-1'],
+        packs: [_course('unrelated'), _course('checked')],
+      );
+      expect(items.single.trackId, 'x-checked-2');
+      expect(items.single.completedSessions, 1);
+    },
+  );
+
   test('a finished course is not in progress', () async {
     await addCourse('a', played: true);
     // Nothing in progress, so Home falls back; but not to a finished course.

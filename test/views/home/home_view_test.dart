@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/enums/home_widget_type.dart';
+import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
@@ -197,6 +199,37 @@ void main() {
     expect(find.byKey(const ValueKey('pinned_lib-course-a')), findsOneWidget);
     expect(find.text('1 of 2'), findsOneWidget);
   });
+
+  testWidgets(
+    'desktop Customize toggles and reorders without overlapping controls',
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(tester, const CustomiseHomeLayoutScreen());
+      final toggle = find.byKey(const ValueKey('home_section_quickLinks'));
+      await tester.tap(toggle);
+      await settle(tester);
+      expect(tester.widget<Switch>(toggle).value, isFalse);
+      final handle = find.byType(ReorderableDragStartListener).first;
+      final destination = tester.getCenter(
+        find.byKey(const ValueKey('pinned')),
+      );
+      final gesture = await tester.startGesture(tester.getCenter(handle));
+      await gesture.moveBy(const Offset(0, 10));
+      await tester.pump(const Duration(milliseconds: 200));
+      await gesture.moveTo(destination + const Offset(0, 20));
+      await tester.pump(const Duration(milliseconds: 200));
+      await gesture.up();
+      await settle(tester);
+      expect(
+        app.prefs
+            .getStringList(SharedPreferenceConstants.homeWidgetOrder)
+            ?.last,
+        'upNext',
+      );
+    },
+  );
 
   testWidgets('Customize turns sections off and the change shows on Home', (
     tester,

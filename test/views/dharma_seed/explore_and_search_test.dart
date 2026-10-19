@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/providers/main_tab_provider.dart';
+import 'package:medito/services/library/library_models.dart';
 import 'package:medito/views/explore/widgets/explore_view.dart';
 import 'package:medito/services/library/library_database.dart';
 
@@ -190,6 +191,35 @@ void main() {
       final own = tester.getTopLeft(find.text('Zebra jhana notes')).dy;
       final catalogue = tester.getTopLeft(find.text('Jhana Retreat')).dy;
       expect(own, lessThan(catalogue));
+    });
+
+    testWidgets('renamed library titles match and replace source titles', (
+      tester,
+    ) async {
+      final app = await DharmaSeedTestApp.create(tester);
+      await tester.runAsync(() async {
+        await app.source.setSaved('ds-retreat-200', saved: true);
+        await app.library.setTitle('ds-retreat-200', 'My custom course');
+        await app.library.add(
+          const LibraryDraft(
+            sourceId: 'lib-track-renamed',
+            kind: LibraryKind.single,
+            title: 'Original recording',
+          ),
+        );
+        await app.library.setTitle('lib-track-renamed', 'My custom recording');
+      });
+      await app.pump(tester, const ExploreView());
+      await tester.enterText(find.byType(TextField), 'custom');
+      await tester.pump(const Duration(milliseconds: 450));
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.text('My custom course'), findsOneWidget);
+      expect(find.text('My custom recording'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'winter');
+      await tester.pump(const Duration(milliseconds: 450));
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.text('My custom course'), findsOneWidget);
+      expect(find.text('Dharma Talks Winter'), findsNothing);
     });
 
     testWidgets('suggestions run the search when tapped', (tester) async {
