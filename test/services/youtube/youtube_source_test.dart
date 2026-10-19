@@ -896,6 +896,7 @@ void main() {
         ], title: 'New course');
         final before = store.revision.value;
         final outcomes = source.refreshRevision.value;
+        final contents = source.contentRevision.value;
         final stored = await source
             .pack(id)
             .timeout(const Duration(seconds: 1));
@@ -915,6 +916,7 @@ void main() {
         expect(await refresh, isTrue);
         expect(store.revision.value, before + 1);
         expect(source.refreshRevision.value, outcomes + 1);
+        expect(source.contentRevision.value, contents + 1);
         expect(source.refreshError(id), isNull);
         expect((await source.pack(id)).items.single.id, ytVideoId(videoC));
       },
@@ -928,12 +930,14 @@ void main() {
         clock.advance(const Duration(minutes: 1));
         api.failure = PlatformException(code: 'network');
         final notifications = source.refreshRevision.value;
+        final contents = source.contentRevision.value;
 
         final empty = await source.pack(id).timeout(const Duration(seconds: 1));
         expect(empty.items, isEmpty);
         expect(await source.refresh(id), isFalse);
         expect(source.refreshError(id)?.reason, YoutubeFailureReason.offline);
         expect(source.refreshRevision.value, notifications + 1);
+        expect(source.contentRevision.value, contents);
         expect((await db.youtubePlaylist(playlistOne))!.lastCheckedAt, checked);
 
         // Reopening while offline retries but does not repeatedly invalidate UI.

@@ -51,7 +51,7 @@ class YoutubeFailure(val code: String, message: String, cause: Throwable? = null
 
         fun busy() = YoutubeFailure(RATE_LIMITED, "Meditejo is already busy with YouTube. Try again in a moment.")
 
-        fun timedOut(cause: Throwable? = null) = YoutubeFailure(UNAVAILABLE, "YouTube took too long to answer. Try again.", cause)
+        fun timedOut(cause: Throwable? = null) = YoutubeFailure(RATE_LIMITED, "YouTube took too long to answer. Try again.", cause)
 
         /** The failure a thrown exception stands for, looking through wrapped causes. */
         fun from(error: Throwable): YoutubeFailure {

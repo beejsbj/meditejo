@@ -35,11 +35,11 @@ class YoutubeFailureTest {
     @Test
     fun networkProblemsRemainDistinctFromBlocksAndTimeouts() {
         assertEquals("network", code(IOException("reset")))
-        assertEquals("unavailable", code(SocketTimeoutException("slow")))
+        assertEquals("rate-limited", code(SocketTimeoutException("slow")))
         assertEquals("network", code(UnknownHostException("www.youtube.com")))
         assertEquals("rate-limited", code(ReCaptchaException("captcha", "https://www.youtube.com/watch?v=x")))
         assertEquals("rate-limited", code(SignInConfirmNotBotException("bot")))
-        assertEquals("unavailable", code(TimeoutException()))
+        assertEquals("rate-limited", code(TimeoutException()))
         assertEquals("unavailable", code(CancellationException()))
         assertEquals("unavailable", code(InterruptedException()))
     }
@@ -47,7 +47,7 @@ class YoutubeFailureTest {
     @Test
     fun localBusyIsNotOffline() {
         assertEquals("rate-limited", YoutubeFailure.busy().code)
-        assertEquals("unavailable", YoutubeFailure.timedOut().code)
+        assertEquals("rate-limited", YoutubeFailure.timedOut().code)
     }
 
     @Test

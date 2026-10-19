@@ -61,7 +61,7 @@ class YoutubeWorkRunnerTest {
             1
         }) { calls.incrementAndGet(); results.add(it) }
         val failure = results.poll(5, TimeUnit.SECONDS)?.exceptionOrNull() as YoutubeFailure
-        assertEquals("unavailable", failure.code)
+        assertEquals("rate-limited", failure.code)
         assertTrue("the worker was not interrupted", interrupted.await(5, TimeUnit.SECONDS))
         Thread.sleep(100)
         assertEquals(1, calls.get())

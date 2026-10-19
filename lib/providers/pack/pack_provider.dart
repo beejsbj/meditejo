@@ -52,7 +52,9 @@ Set<String> completedPackIds(Ref ref) {
 /// trigger a re-fetch.
 @Riverpod(keepAlive: true)
 Future<PackModel> packData(Ref ref, {required String packId}) {
-  if (packId.startsWith('yt-playlist-')) ref.watch(libraryRevisionProvider);
+  if (packId.startsWith('yt-playlist-')) {
+    ref.watch(youtubeContentRevisionProvider);
+  }
   return ref.read(packRepositoryProvider).fetchPacks(packId);
 }
 

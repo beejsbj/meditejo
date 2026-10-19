@@ -62,6 +62,10 @@ class YoutubeSource
   /// Listen for UI state; do not reopen an empty pack on a failure notification.
   final ValueNotifier<int> refreshRevision = ValueNotifier(0);
 
+  /// Only successful refreshes change course contents. Failures update the
+  /// empty-state notifier without triggering another pack read.
+  final ValueNotifier<int> contentRevision = ValueNotifier(0);
+
   YoutubeUnavailableError? refreshError(String packId) =>
       _refreshErrors[packId];
 
@@ -394,6 +398,7 @@ class YoutubeSource
         ),
       );
       _refreshErrors.remove(id);
+      contentRevision.value++;
       refreshRevision.value++;
       return true;
     } catch (e) {

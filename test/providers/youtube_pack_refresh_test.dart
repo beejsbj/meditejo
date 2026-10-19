@@ -49,7 +49,11 @@ void main() {
         YoutubePlaylistsCompanion(lastCheckedAt: Value(DateTime(2000))),
       );
       final provider = packDataProvider(packId: 'yt-playlist-$playlistOne');
-      final subscription = container.listen(provider, (_, _) {});
+      final loadingStates = <bool>[];
+      final subscription = container.listen(
+        provider,
+        (_, next) => loadingStates.add(next.isLoading),
+      );
       addTearDown(subscription.close);
       final before = await container
           .read(provider.future)
@@ -64,6 +68,15 @@ void main() {
         'yt-video-$videoA',
         'yt-video-$videoB',
       ]);
+      loadingStates.clear();
+      await store.setTitle('yt-playlist-$playlistOne', 'My title');
+      await container.pump();
+      expect(
+        loadingStates,
+        isEmpty,
+        reason: 'library-only edits do not reload the course',
+      );
+      expect(api.playlistCalls, hasLength(1));
     },
   );
 }

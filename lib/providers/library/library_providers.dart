@@ -80,6 +80,13 @@ final youtubeSourceProvider = Provider<YoutubeSource>((ref) {
   return source;
 });
 
+final youtubeContentRevisionProvider =
+    NotifierProvider<ValueListenableNotifier<int>, int>(
+      () => ValueListenableNotifier(
+        (ref) => ref.watch(youtubeSourceProvider).contentRevision,
+      ),
+    );
+
 /// Refresh failures are separate from catalogue reads: cached sessions stay usable.
 final youtubeRefreshRevisionProvider =
     NotifierProvider<ValueListenableNotifier<int>, int>(
