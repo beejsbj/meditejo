@@ -174,6 +174,67 @@ class YoutubePlaylists extends Table {
   Set<Column> get primaryKey => {playlistId};
 }
 
+/// A course the user made: an ordered list of sessions from any source
+/// (`my-course-<random>`). Its Practice/Talks kind is the library entry's
+/// group, since the course lives in the library and nowhere else.
+@DataClassName('MyCourseRow')
+class MyCourses extends Table {
+  TextColumn get id => text()();
+  TextColumn get title => text()();
+  TextColumn get description => text().withDefault(const Constant(''))();
+
+  /// The chosen cover: one of the items' artwork, or empty for generated art.
+  TextColumn get coverUrl => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// One row of a personal course: a session reference (any source ID) or a
+/// section heading ("Day 1"), in [position] order. A session row keeps a
+/// snapshot of what it looked like, so the course still reads when the
+/// session is gone upstream.
+@DataClassName('MyCourseItemRow')
+@TableIndex(name: 'my_course_items_order', columns: {#courseId, #position})
+@TableIndex(name: 'my_course_items_item', columns: {#itemId})
+class MyCourseItems extends Table {
+  IntColumn get rowId => integer().autoIncrement()();
+  TextColumn get courseId => text()();
+  IntColumn get position => integer()();
+
+  /// The session's own ID (`ds-talk-…`, `yt-video-…`, `lib-track-…`); empty
+  /// for a heading.
+  TextColumn get itemId => text().withDefault(const Constant(''))();
+
+  /// The heading's text; empty for a session.
+  TextColumn get heading => text().withDefault(const Constant(''))();
+  TextColumn get title => text().withDefault(const Constant(''))();
+  TextColumn get subtitle => text().withDefault(const Constant(''))();
+  TextColumn get coverUrl => text().withDefault(const Constant(''))();
+  IntColumn get durationMs => integer().withDefault(const Constant(0))();
+
+  /// What the session is ("Guided Meditation", "YouTube"), for its row.
+  TextColumn get kind => text().withDefault(const Constant(''))();
+
+  /// Set when the owning source last said the session no longer exists.
+  BoolColumn get unavailable => boolean().withDefault(const Constant(false))();
+}
+
+/// The course a session was last opened from, so Home's Continue and the
+/// library's order follow the course the user is working through, not
+/// whichever course the source says the session belongs to.
+@DataClassName('SessionContextRow')
+class SessionContexts extends Table {
+  TextColumn get trackId => text()();
+  TextColumn get courseId => text()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {trackId};
+}
+
 @DriftDatabase(
   tables: [
     LibraryEntries,
@@ -183,6 +244,9 @@ class YoutubePlaylists extends Table {
     LibraryMeta,
     YoutubeVideos,
     YoutubePlaylists,
+    MyCourses,
+    MyCourseItems,
+    SessionContexts,
   ],
 )
 class LibraryDatabase extends _$LibraryDatabase {
@@ -195,7 +259,7 @@ class LibraryDatabase extends _$LibraryDatabase {
   );
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -203,6 +267,13 @@ class LibraryDatabase extends _$LibraryDatabase {
       if (from < 2) {
         await m.createTable(youtubeVideos);
         await m.createTable(youtubePlaylists);
+      }
+      if (from < 3) {
+        await m.createTable(myCourses);
+        await m.createTable(myCourseItems);
+        await m.createIndex(myCourseItemsOrder);
+        await m.createIndex(myCourseItemsItem);
+        await m.createTable(sessionContexts);
       }
     },
   );
@@ -283,6 +354,25 @@ class LibraryDatabase extends _$LibraryDatabase {
 
   Future<void> clearPosition(String trackId) =>
       (delete(playbackPositions)..where((p) => p.trackId.equals(trackId))).go();
+
+  // ------------------------------------------------------ session context
+
+  Future<SessionContextRow?> sessionContextOf(String trackId) => (select(
+    sessionContexts,
+  )..where((c) => c.trackId.equals(trackId))).getSingleOrNull();
+
+  Future<void> saveSessionContext(String trackId, String courseId) =>
+      into(sessionContexts).insertOnConflictUpdate(
+        SessionContextsCompanion.insert(
+          trackId: trackId,
+          courseId: courseId,
+          updatedAt: DateTime.now(),
+        ),
+      );
+
+  Future<void> clearSessionContextsOf(String courseId) => (delete(
+    sessionContexts,
+  )..where((c) => c.courseId.equals(courseId))).go();
 
   // ------------------------------------------------------ imported content
 

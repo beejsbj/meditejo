@@ -2207,5 +2207,206 @@
   "unpinCourse": "Unpin from Home",
   "pinnedLimitReached": "Home holds up to three pinned courses. Unpin one first.",
   "pinnedCourseAdded": "Pinned to Home",
-  "statsFeedbackNote": "These numbers are feedback, not a score."
+  "statsFeedbackNote": "These numbers are feedback, not a score.",
+  "myCourseNew": "New course",
+  "@myCourseNew": {
+    "description": "Action that makes a personal course"
+  },
+  "myCourseNameHint": "Course name",
+  "@myCourseNameHint": {
+    "description": "Hint in the new course name field"
+  },
+  "myCourseCreate": "Create",
+  "@myCourseCreate": {
+    "description": "Confirms making a new course"
+  },
+  "myCourseDefaultTitle": "My course",
+  "@myCourseDefaultTitle": {
+    "description": "Title of a new course left unnamed"
+  },
+  "myCourseAddTo": "Add to course…",
+  "@myCourseAddTo": {
+    "description": "Menu entry that adds a session or course to a personal course"
+  },
+  "myCourseAddToTitle": "Add to course",
+  "@myCourseAddToTitle": {
+    "description": "Title of the sheet listing personal courses"
+  },
+  "myCourseAddedSnack": "Added to {title}",
+  "@myCourseAddedSnack": {
+    "description": "Snackbar after adding to a personal course",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "myCourseAddedCountSnack": "{count, plural, =1{1 session added to {title}} other{{count} sessions added to {title}}}",
+  "@myCourseAddedCountSnack": {
+    "description": "Snackbar after adding a course's sessions",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "myCourseAlreadyIn": "Already in {title}",
+  "@myCourseAlreadyIn": {
+    "description": "Snackbar when the course already holds it",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "myCourseNothingToAdd": "There are no sessions to add.",
+  "@myCourseNothingToAdd": {
+    "description": "Snackbar when a course has nothing addable"
+  },
+  "myCourseAddFailed": "Could not add it to the course.",
+  "@myCourseAddFailed": {
+    "description": "Snackbar when adding fails"
+  },
+  "myCourseNoneYet": "You haven't made a course yet. Start one here.",
+  "@myCourseNoneYet": {
+    "description": "Shown in the add-to-course sheet with no courses"
+  },
+  "myCourseDuplicate": "Make my own copy",
+  "@myCourseDuplicate": {
+    "description": "Copies a course into a personal one"
+  },
+  "myCourseCopyTitle": "{title} (my copy)",
+  "@myCourseCopyTitle": {
+    "description": "Title of a duplicated course",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "myCourseDuplicateFailed": "Could not copy this course.",
+  "@myCourseDuplicateFailed": {
+    "description": "Snackbar when duplicating fails"
+  },
+  "myCourseEdit": "Edit course",
+  "@myCourseEdit": {
+    "description": "Opens the course edit screen; also its title"
+  },
+  "myCourseSave": "Save",
+  "@myCourseSave": {
+    "description": "Saves the course edit"
+  },
+  "myCourseTitleLabel": "Title",
+  "@myCourseTitleLabel": {
+    "description": "Course title field"
+  },
+  "myCourseDescriptionLabel": "Description (optional)",
+  "@myCourseDescriptionLabel": {
+    "description": "Course description field"
+  },
+  "myCourseKindLabel": "Kind",
+  "@myCourseKindLabel": {
+    "description": "Practice or Talks selector label"
+  },
+  "myCourseCoverLabel": "Cover",
+  "@myCourseCoverLabel": {
+    "description": "Cover picker label"
+  },
+  "myCourseCoverGenerated": "Generated cover",
+  "@myCourseCoverGenerated": {
+    "description": "Semantics label for the generated cover choice"
+  },
+  "myCourseCoverChoice": "Cover {index}",
+  "@myCourseCoverChoice": {
+    "description": "Semantics label for an artwork cover choice",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "myCourseSessionsLabel": "Sessions",
+  "@myCourseSessionsLabel": {
+    "description": "Header above the course rows on the edit screen"
+  },
+  "myCourseAddHeading": "Add heading",
+  "@myCourseAddHeading": {
+    "description": "Adds a section heading such as Day 1"
+  },
+  "myCourseHeadingHint": "Heading, e.g. Day 1",
+  "@myCourseHeadingHint": {
+    "description": "Hint in a section heading field"
+  },
+  "myCourseRemoveRow": "Remove from course",
+  "@myCourseRemoveRow": {
+    "description": "Removes a row from the course"
+  },
+  "myCourseDragHandle": "Drag to reorder",
+  "@myCourseDragHandle": {
+    "description": "Semantics label of a row's drag handle"
+  },
+  "myCourseEditEmpty": "No sessions yet. Use Add to course… in any session's menu.",
+  "@myCourseEditEmpty": {
+    "description": "Edit screen with no rows"
+  },
+  "myCourseDiscardTitle": "Discard your changes?",
+  "@myCourseDiscardTitle": {
+    "description": "Leaving the edit screen with unsaved changes"
+  },
+  "myCourseDiscard": "Discard",
+  "@myCourseDiscard": {
+    "description": "Discards unsaved changes"
+  },
+  "myCourseKeepEditing": "Keep editing",
+  "@myCourseKeepEditing": {
+    "description": "Returns to the edit screen"
+  },
+  "myCourseDelete": "Delete course",
+  "@myCourseDelete": {
+    "description": "Deletes a personal course"
+  },
+  "myCourseDeleteTitle": "Delete this course?",
+  "@myCourseDeleteTitle": {
+    "description": "Delete confirmation title"
+  },
+  "myCourseDeleteBody": "Only the course goes. Its sessions stay in your library, with their downloads and progress.",
+  "@myCourseDeleteBody": {
+    "description": "Delete confirmation body"
+  },
+  "myCourseDeletedSnack": "Course deleted",
+  "@myCourseDeletedSnack": {
+    "description": "Snackbar after deleting a course"
+  },
+  "myCourseEmptyTitle": "No sessions yet",
+  "@myCourseEmptyTitle": {
+    "description": "Empty personal course page title"
+  },
+  "myCourseEmptyBody": "Add sessions from anywhere: a Dharma Seed talk, a YouTube video, an episode or a file. Open its menu and choose Add to course…",
+  "@myCourseEmptyBody": {
+    "description": "Empty personal course page body"
+  },
+  "myCourseUnavailable": "Unavailable",
+  "@myCourseUnavailable": {
+    "description": "Label on a session its source no longer has"
+  },
+  "myCourseUnavailableSnack": "This session is no longer available from its source.",
+  "@myCourseUnavailableSnack": {
+    "description": "Tapping an unavailable session"
+  },
+  "myCourseRemoveWarning": "{count, plural, =1{It is also in one of your courses, where it will show as unavailable.} other{It is also in {count} of your courses, where it will show as unavailable.}}",
+  "@myCourseRemoveWarning": {
+    "description": "Extra line when removing an import that personal courses list",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "myCourseMore": "More options",
+  "@myCourseMore": {
+    "description": "Tooltip of a row's overflow menu"
+  }
 }

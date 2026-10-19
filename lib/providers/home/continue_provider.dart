@@ -43,7 +43,12 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
   }
 
   PackItemsModel? nextIn(PackModel pack) => pack.items
-      .where((i) => i.type == TypeConstants.track && !checked.contains(i.id))
+      .where(
+        (i) =>
+            i.type == TypeConstants.track &&
+            i.unavailable != true &&
+            !checked.contains(i.id),
+      )
       .firstOrNull;
 
   ContinueItem fromItem(
@@ -80,7 +85,15 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
   for (final place in await store.savedPlaces()) {
     try {
       final track = await router.track(place.trackId);
-      final parentId = await router.parentOf(place.trackId);
+      // A session in several courses counts towards the one it was opened
+      // from, while that course still lists it; else its source's course.
+      final opened = await store.sessionContext(place.trackId);
+      final openedPack = opened == null ? null : await packOf(opened);
+      final inOpened =
+          openedPack?.items.any((i) => i.id == place.trackId) ?? false;
+      final parentId = inOpened
+          ? opened
+          : await router.parentOf(place.trackId);
       final parent = parentId == null ? null : entryById[parentId];
       final own = entryById[place.trackId];
       final group =
@@ -89,7 +102,9 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
           (track.hasBackgroundSound
               ? LibraryGroup.practice
               : LibraryGroup.talks);
-      final pack = parentId == null ? null : await packOf(parentId);
+      final pack = inOpened
+          ? openedPack
+          : (parentId == null ? null : await packOf(parentId));
       final index = pack?.items.indexWhere((i) => i.id == place.trackId) ?? -1;
       if (parentId != null) coursesWithPlace.add(parentId);
       candidates.add(

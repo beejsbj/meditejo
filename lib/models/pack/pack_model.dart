@@ -46,6 +46,14 @@ abstract class PackItemsModel with _$PackItemsModel {
 
     /// Recording date as `yyyy-MM-dd`, for grouping a long course by day.
     String? date,
+
+    /// The heading this session sits under ("Day 1"), in a course whose
+    /// maker grouped it. Consecutive items with the same section form a group.
+    String? section,
+
+    /// True when the session's source no longer has it (a removed video, a
+    /// withdrawn talk). The row stays, greyed, and is skipped when playing.
+    bool? unavailable,
   }) = _PackItemsModel;
 
   factory PackItemsModel.fromJson(Map<String, dynamic> json) =>

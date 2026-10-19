@@ -19,6 +19,7 @@ import 'package:medito/services/library/library_migration.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
 import 'package:medito/services/library/playback_position_tracker.dart';
+import 'package:medito/services/my_courses/my_course_source.dart';
 import 'package:medito/services/content/content_source.dart';
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/utils/logger.dart';
@@ -59,6 +60,31 @@ final libSourceProvider = Provider<LibSource>(
     library: ref.watch(libraryStoreProvider),
   ),
 );
+
+/// Courses the user made from sessions anywhere, served as a content source.
+/// It reads their sessions through the other sources.
+final myCourseSourceProvider = Provider<MyCourseSource>((ref) {
+  final source = MyCourseSource(
+    db: ref.watch(libraryDatabaseProvider),
+    library: ref.watch(libraryStoreProvider),
+    sources: () => ref.read(contentSourcesProvider),
+  );
+  void changed() => ref.invalidate(packTrackIdsProvider);
+  source.revision.addListener(changed);
+  ref.onDispose(() {
+    source.revision.removeListener(changed);
+    source.dispose();
+  });
+  return source;
+});
+
+/// Changes when a personal course or its sessions do.
+final myCoursesRevisionProvider =
+    NotifierProvider<ValueListenableNotifier<int>, int>(
+      () => ValueListenableNotifier(
+        (ref) => ref.watch(myCourseSourceProvider).revision,
+      ),
+    );
 
 final youtubeAvailableProvider = Provider<bool>(
   (ref) => youtubeBridgeAvailable,
@@ -268,11 +294,13 @@ final playbackPositionTrackerProvider = Provider<PlaybackPositionTracker>((
   ref,
 ) {
   final router = ref.watch(libraryContentRouterProvider);
+  final store = ref.watch(libraryStoreProvider);
   return PlaybackPositionTracker(
-    ref.watch(libraryStoreProvider),
-    parentsOf: (trackId) async {
-      final parent = await router.parentOf(trackId);
-      return parent == null ? const [] : [parent];
+    store,
+    // The course the session was opened from, and the one its source names.
+    parentsOf: (trackId) async => {
+      ?await store.sessionContext(trackId),
+      ?await router.parentOf(trackId),
     },
     ignore: (id) => id == kLegacyTimerTrackId || isTimerSessionId(id),
   );

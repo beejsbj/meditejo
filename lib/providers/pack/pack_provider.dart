@@ -3,6 +3,7 @@ import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/repositories/repositories.dart';
+import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'pack_provider.g.dart';
@@ -55,6 +56,7 @@ Future<PackModel> packData(Ref ref, {required String packId}) {
   if (packId.startsWith('yt-playlist-')) {
     ref.watch(youtubeContentRevisionProvider);
   }
+  if (packId.startsWith(myPrefix)) ref.watch(myCoursesRevisionProvider);
   return ref.read(packRepositoryProvider).fetchPacks(packId);
 }
 

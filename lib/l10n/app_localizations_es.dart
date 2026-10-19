@@ -2171,4 +2171,161 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get statsFeedbackNote =>
       'Estas cifras son una guía, no una puntuación.';
+
+  @override
+  String get myCourseNew => 'Nuevo curso';
+
+  @override
+  String get myCourseNameHint => 'Nombre del curso';
+
+  @override
+  String get myCourseCreate => 'Crear';
+
+  @override
+  String get myCourseDefaultTitle => 'Mi curso';
+
+  @override
+  String get myCourseAddTo => 'Añadir a un curso…';
+
+  @override
+  String get myCourseAddToTitle => 'Añadir a un curso';
+
+  @override
+  String myCourseAddedSnack(String title) {
+    return 'Añadido a $title';
+  }
+
+  @override
+  String myCourseAddedCountSnack(int count, String title) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sesiones añadidas a $title',
+      one: '1 sesión añadida a $title',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myCourseAlreadyIn(String title) {
+    return 'Ya está en $title';
+  }
+
+  @override
+  String get myCourseNothingToAdd => 'No hay sesiones que añadir.';
+
+  @override
+  String get myCourseAddFailed => 'No se pudo añadir al curso.';
+
+  @override
+  String get myCourseNoneYet =>
+      'Aún no has creado ningún curso. Empieza uno aquí.';
+
+  @override
+  String get myCourseDuplicate => 'Crear mi propia copia';
+
+  @override
+  String myCourseCopyTitle(String title) {
+    return '$title (mi copia)';
+  }
+
+  @override
+  String get myCourseDuplicateFailed => 'No se pudo copiar este curso.';
+
+  @override
+  String get myCourseEdit => 'Editar curso';
+
+  @override
+  String get myCourseSave => 'Guardar';
+
+  @override
+  String get myCourseTitleLabel => 'Título';
+
+  @override
+  String get myCourseDescriptionLabel => 'Descripción (opcional)';
+
+  @override
+  String get myCourseKindLabel => 'Tipo';
+
+  @override
+  String get myCourseCoverLabel => 'Portada';
+
+  @override
+  String get myCourseCoverGenerated => 'Portada generada';
+
+  @override
+  String myCourseCoverChoice(int index) {
+    return 'Portada $index';
+  }
+
+  @override
+  String get myCourseSessionsLabel => 'Sesiones';
+
+  @override
+  String get myCourseAddHeading => 'Añadir encabezado';
+
+  @override
+  String get myCourseHeadingHint => 'Encabezado, p. ej. Día 1';
+
+  @override
+  String get myCourseRemoveRow => 'Quitar del curso';
+
+  @override
+  String get myCourseDragHandle => 'Arrastra para reordenar';
+
+  @override
+  String get myCourseEditEmpty =>
+      'Aún no hay sesiones. Usa «Añadir a un curso…» en el menú de cualquier sesión.';
+
+  @override
+  String get myCourseDiscardTitle => '¿Descartar los cambios?';
+
+  @override
+  String get myCourseDiscard => 'Descartar';
+
+  @override
+  String get myCourseKeepEditing => 'Seguir editando';
+
+  @override
+  String get myCourseDelete => 'Eliminar curso';
+
+  @override
+  String get myCourseDeleteTitle => '¿Eliminar este curso?';
+
+  @override
+  String get myCourseDeleteBody =>
+      'Solo se elimina el curso. Sus sesiones siguen en tu biblioteca, con sus descargas y tu progreso.';
+
+  @override
+  String get myCourseDeletedSnack => 'Curso eliminado';
+
+  @override
+  String get myCourseEmptyTitle => 'Aún no hay sesiones';
+
+  @override
+  String get myCourseEmptyBody =>
+      'Añade sesiones de cualquier sitio: una charla de Dharma Seed, un vídeo de YouTube, un episodio o un archivo. Abre su menú y elige «Añadir a un curso…».';
+
+  @override
+  String get myCourseUnavailable => 'No disponible';
+
+  @override
+  String get myCourseUnavailableSnack =>
+      'Esta sesión ya no está disponible en su fuente.';
+
+  @override
+  String myCourseRemoveWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'También está en $count de tus cursos, donde aparecerá como no disponible.',
+      one:
+          'También está en uno de tus cursos, donde aparecerá como no disponible.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get myCourseMore => 'Más opciones';
 }
