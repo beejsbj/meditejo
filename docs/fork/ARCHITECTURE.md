@@ -395,3 +395,34 @@ otherwise Practice. Watch links with a playlist can keep the full ordered
 course or only the addressed video. Playlist attempts are throttled for 12 h,
 including failures; opening a course or the delayed feed-refresh pass checks
 when due, and the course's pull to refresh forces a check.
+
+## Session cues and Customize
+
+`lib/models/cues/cue_settings.dart` describes the shared cue settings;
+`CueSettingsStore` persists defaults by Practice/Talks and optional course ID.
+`cueScopeForRequestProvider` resolves a course's effective library group before
+playback. `CueSchedule` is the pure reference for countdown, start/end bells,
+fixed/random intervals, integrated pulse ramps and silent extension.
+
+`CustomizeSheet` is used by `TimerView` as its setup screen and by the player's
+sliders action. `PlayerView` optionally shows it before starting; edits update
+the active native configuration and the existing ambient player. The timer
+continues to use a sparse local WAV as its primary audio.
+
+`NativeCueController` sends plain configuration over `meditejo/cues`.
+Android's `CueEngine` lives in `AudioPlayerService`, with predecoded SoundPool
+assets and pure scheduling/listening maths in `CueMath.kt`. It follows media
+advance while playing and elapsed realtime during countdown/extension holds.
+Swift's `CueScheduler.swift` mirrors those phases, preloads AVAudioPlayers and
+receives transport reports from `IosAudioHandler`; its countdown and extension
+run without per-beat Dart messages. Both consume missed cues after seeking and
+keep the final bell alive through its tail. Native status reports let the UI
+show a countdown and the remaining extension without repurposing the source
+recording's duration.
+
+Listening completion is independent of terminal playback state. Rendered
+ranges are merged so repeated sections count once; a seek rebases the cursor.
+A 90% receipt records progress while playback continues. A timer or finished
+extension may also qualify; the terminal state opens the end screen only at
+the true end. Existing resume positions continue to be saved by the library's
+position tracker.

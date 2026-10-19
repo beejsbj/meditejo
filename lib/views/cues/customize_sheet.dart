@@ -1,3 +1,4 @@
+import 'package:medito/providers/cues/cue_runtime_provider.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -29,13 +30,22 @@ DateTime customizeFinishesAt(
   required int positionMs,
   double speed = 1,
   int? timerMinutes,
+  bool isActive = false,
+  int? extensionRemainingMs,
+  int? countdownRemainingMs,
 }) {
-  final active = positionMs > 0;
+  if (extensionRemainingMs != null) {
+    return now.add(Duration(milliseconds: extensionRemainingMs));
+  }
+  final active = isActive || positionMs > 0;
   final remaining = Duration(
     milliseconds: (audioDurationMs - positionMs).clamp(0, 1 << 40),
   );
   var end = now;
   if (!active) end = end.add(Duration(seconds: settings.countdownSeconds));
+  if (active && countdownRemainingMs != null) {
+    end = end.add(Duration(milliseconds: countdownRemainingMs));
+  }
   if (isTimer) {
     end = end.add(
       active
@@ -80,8 +90,20 @@ Future<bool> showCustomizeSheet(
               15000;
           speed = ref.watch(audioStateProvider.select((s) => s.speed.speed));
         }
+        final runtime = ref.watch(
+          cueRuntimeProvider.select(
+            (s) => (s.phase, s.countdownMs ~/ 1000, s.extensionMs ~/ 1000),
+          ),
+        );
         return CustomizeSheet(
           scope: scope,
+          isActive: !beforeStart,
+          extensionRemainingMs: !beforeStart && runtime.$1 == 'extension'
+              ? runtime.$3 * 1000
+              : null,
+          countdownRemainingMs: !beforeStart && runtime.$1 == 'countdown'
+              ? runtime.$2 * 1000
+              : null,
           isTimer: request.isTimer,
           audioDurationMs: request.duration,
           positionMs: positionMs,
@@ -112,6 +134,9 @@ class CustomizeSheet extends ConsumerStatefulWidget {
     this.showFinishes = true,
     this.timerMinutes,
     this.clock = DateTime.now,
+    this.isActive = false,
+    this.extensionRemainingMs,
+    this.countdownRemainingMs,
   });
 
   final CueScope scope;
@@ -119,6 +144,8 @@ class CustomizeSheet extends ConsumerStatefulWidget {
   final int audioDurationMs;
   final int positionMs;
   final double speed;
+  final bool isActive;
+  final int? extensionRemainingMs, countdownRemainingMs;
 
   /// Shows a Start button; pressing it hands control back to the caller.
   final VoidCallback? onStart;
@@ -286,8 +313,17 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
                 max: 60,
                 divisions: 60,
                 format: (v) => v.round() == 0 ? 'Off' : '${v.round()} min',
-                onChanged: (v) =>
-                    change(s.copyWith(intervalMinutes: v.round())),
+                // A shorter interval pulls the random window in with it, so
+                // the saved value never exceeds what the slider can show.
+                onChanged: (v) => change(
+                  s.copyWith(
+                    intervalMinutes: v.round(),
+                    randomWindowMinutes: s.randomWindowMinutes.clamp(
+                      0,
+                      v.round(),
+                    ),
+                  ),
+                ),
               ),
               if (s.intervalMinutes > 0)
                 _SliderTile(
@@ -508,6 +544,9 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
       positionMs: widget.positionMs,
       speed: widget.speed,
       timerMinutes: widget.timerMinutes,
+      isActive: widget.isActive,
+      extensionRemainingMs: widget.extensionRemainingMs,
+      countdownRemainingMs: widget.countdownRemainingMs,
     );
     final time = MaterialLocalizations.of(context).formatTimeOfDay(
       TimeOfDay.fromDateTime(end),
