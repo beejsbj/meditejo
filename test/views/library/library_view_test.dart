@@ -1,12 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/services/library/import_models.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
 import 'package:medito/widgets/save_button.dart';
-import 'package:medito/views/home/widgets/library/home_library_section.dart';
 import 'package:medito/views/library/import_view.dart';
 import 'package:medito/views/library/library_view.dart';
 import 'package:medito/views/pack/pack_view.dart';
@@ -374,81 +375,41 @@ void main() {
       await settle(tester);
       expect(find.byType(TrackView), findsOneWidget);
     });
-  });
 
-  group('Home', () {
-    testWidgets('leads with the library, practice before talks', (
-      tester,
-    ) async {
+    testWidgets('a course can be pinned to Home, up to three', (tester) async {
       final app = await LibraryTestApp.create(tester);
-      await add(
-        tester,
-        app.harness.store,
-        'ds-retreat-1',
-        'Winter talks',
-        group: LibraryGroup.talks,
-      );
-      await add(tester, app.harness.store, 'ds-retreat-2', 'Body scan');
-      await app.pump(
-        tester,
-        const Scaffold(
-          body: SingleChildScrollView(child: HomeLibrarySection()),
-        ),
+      for (final n in ['a', 'b', 'c', 'd']) {
+        await add(tester, app.harness.store, 'ds-retreat-$n', 'Course $n');
+      }
+      await app.pump(tester, const LibraryView());
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(LibraryView)),
       );
 
-      expect(find.text('Your library'), findsOneWidget);
-      expect(find.text('See all'), findsOneWidget);
-      expect(
-        tester.getTopLeft(find.text('Body scan')).dx,
-        lessThan(tester.getTopLeft(find.text('Winter talks')).dx),
-        reason: 'the rail runs practice first',
-      );
-    });
+      Future<void> pin(String title) async {
+        final menu = find.descendant(
+          of: find.ancestor(
+            of: find.text(title),
+            matching: find.byType(ListTile),
+          ),
+          matching: find.byIcon(Icons.more_vert_rounded),
+        );
+        await tester.tap(menu);
+        await settle(tester);
+        await tester.tap(find.byKey(const ValueKey('library_menu_pin')));
+        await settle(tester);
+      }
 
-    testWidgets('empty, it says how to start and offers Add', (tester) async {
-      final app = await LibraryTestApp.create(tester);
-      await app.pump(
-        tester,
-        const Scaffold(body: HomeLibrarySection()),
-        asRoute: true,
-      );
+      await pin('Course a');
+      await pin('Course b');
+      await pin('Course c');
+      expect(container.read(pinnedCoursesProvider), hasLength(3));
+      await pin('Course d');
+      expect(container.read(pinnedCoursesProvider), hasLength(3));
       expect(
-        find.text('Paste a link, share one from another app, or pick a file.'),
+        find.text('Home holds up to three pinned courses. Unpin one first.'),
         findsOneWidget,
       );
-      expect(find.text('See all'), findsNothing);
-
-      await tester.tap(find.byKey(const ValueKey('home_library_add')));
-      await settle(tester);
-      expect(find.byType(ImportView), findsOneWidget);
-    });
-
-    testWidgets('a library of only teachers is still reachable', (
-      tester,
-    ) async {
-      final app = await LibraryTestApp.create(tester);
-      await add(
-        tester,
-        app.harness.store,
-        'ds-teacher-1',
-        'Rob Burbea',
-        kind: LibraryKind.teacher,
-      );
-      await app.pump(tester, const Scaffold(body: HomeLibrarySection()));
-      expect(find.byKey(const ValueKey('library_see_all')), findsOneWidget);
-      expect(
-        find.text('Paste a link, share one from another app, or pick a file.'),
-        findsNothing,
-      );
-    });
-
-    testWidgets('See all opens the library', (tester) async {
-      final app = await LibraryTestApp.create(tester);
-      await add(tester, app.harness.store, 'ds-retreat-1', 'Body scan');
-      await app.pump(tester, const Scaffold(body: HomeLibrarySection()));
-      await tester.tap(find.byKey(const ValueKey('library_see_all')));
-      await settle(tester);
-      expect(find.byType(LibraryView), findsOneWidget);
     });
   });
 }
