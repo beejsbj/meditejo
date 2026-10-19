@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +14,7 @@ import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_snapshot.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_snapshot_writer.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_sync.dart';
+import 'package:sqlite3/sqlite3.dart' as raw;
 
 import '../../helpers/dharma_seed_fake_api.dart';
 
@@ -32,10 +34,15 @@ void main() {
 
   setUp(() {
     useSystemSqlite();
+    // The unpacking isolate needs the same SQLite the tests use.
+    DharmaSeedSnapshot.isolateSetup = useSystemSqlite;
     dir = Directory.systemTemp.createTempSync('ds_snapshot_test');
     target = File('${dir.path}/app/dharma_seed.sqlite');
   });
-  tearDown(() => dir.deleteSync(recursive: true));
+  tearDown(() {
+    DharmaSeedSnapshot.isolateSetup = null;
+    dir.deleteSync(recursive: true);
+  });
 
   Future<_Built> build({DateTime? at, String name = 'snapshot'}) async {
     final work = File('${dir.path}/$name-work.sqlite');
@@ -222,6 +229,133 @@ void main() {
       expect(await broken.installIfNeeded(target), DsSnapshotResult.failed);
       expect(target.readAsBytesSync(), before);
       expect(File('${target.path}.installing').existsSync(), isFalse);
+    });
+
+    test('a gzip that is not the described database fails safely', () async {
+      final good = await build(at: DateTime.utc(2026, 10, 1), name: 'old');
+      await good.snapshot.installIfNeeded(target);
+      final before = target.readAsBytesSync();
+      final newer = await build(name: 'new');
+      final wrong = DharmaSeedSnapshot(
+        readManifest: newer.snapshot.readManifest,
+        // Valid gzip, but not a database, and not the size the manifest says.
+        readDatabase: () async =>
+            Uint8List.fromList(gzip.encode(List.filled(4096, 7))),
+      );
+
+      expect(await wrong.installIfNeeded(target), DsSnapshotResult.failed);
+      expect(target.readAsBytesSync(), before);
+      expect(File('${target.path}.installing').existsSync(), isFalse);
+      expect(File('${target.path}.previous').existsSync(), isFalse);
+    });
+
+    test('a payload of the right size but another layout is refused', () async {
+      final good = await build(at: DateTime.utc(2026, 10, 1), name: 'old');
+      await good.snapshot.installIfNeeded(target);
+      final before = target.readAsBytesSync();
+      final newer = await build(name: 'new');
+      final json =
+          jsonDecode(await newer.snapshot.readManifest() ?? '')
+              as Map<String, Object?>;
+      final junk = Uint8List(json['bytes']! as int);
+      final wrong = DharmaSeedSnapshot(
+        readManifest: newer.snapshot.readManifest,
+        readDatabase: () async => Uint8List.fromList(gzip.encode(junk)),
+      );
+
+      expect(await wrong.installIfNeeded(target), DsSnapshotResult.failed);
+      expect(target.readAsBytesSync(), before);
+    });
+
+    test('saved rows that cannot be read abandon the install', () async {
+      final old = await build(at: DateTime.utc(2026, 10, 1), name: 'old');
+      await old.snapshot.installIfNeeded(target);
+      var db = await openTarget();
+      await db.setSaved(DsSavedKind.retreat, 6689, saved: true);
+      await db.close();
+      final before = target.readAsBytesSync();
+
+      // Another connection holds the file exclusively, as a busy disk would.
+      final holder = raw.sqlite3.open(target.path)
+        ..execute('BEGIN EXCLUSIVE');
+      final result = await (await build(
+        name: 'new',
+      )).snapshot.installIfNeeded(target);
+      holder.execute('ROLLBACK');
+      holder.dispose();
+
+      expect(result, DsSnapshotResult.failed);
+      expect(target.readAsBytesSync(), before);
+      db = await openTarget();
+      addTearDown(db.close);
+      expect(await db.savedIds(DsSavedKind.retreat), [6689]);
+    });
+
+    test('a database that is not a catalogue is replaced', () async {
+      target.parent.createSync(recursive: true);
+      target.writeAsStringSync('this is not a database ' * 50);
+
+      expect(
+        await (await build()).snapshot.installIfNeeded(target),
+        DsSnapshotResult.installed,
+      );
+      final db = await openTarget();
+      addTearDown(db.close);
+      expect(await db.countOf(DsKind.talks), 9);
+    });
+
+    test('a launch after a crash between the two renames restores the old '
+        'database', () async {
+      final old = await build(at: DateTime.utc(2026, 10, 1), name: 'old');
+      await old.snapshot.installIfNeeded(target);
+      final before = target.readAsBytesSync();
+      // The state a crash leaves: old file moved aside, staged copy beside it.
+      target.renameSync('${target.path}.previous');
+      File('${target.path}.installing').writeAsStringSync('half');
+
+      final none = DharmaSeedSnapshot(
+        readManifest: () async => null,
+        readDatabase: () async => throw StateError('not read'),
+      );
+      expect(await none.installIfNeeded(target), DsSnapshotResult.unavailable);
+
+      expect(target.readAsBytesSync(), before);
+      expect(File('${target.path}.previous').existsSync(), isFalse);
+      expect(File('${target.path}.installing').existsSync(), isFalse);
+    });
+
+    test('a leftover old copy beside a complete install is cleared', () async {
+      final built = await build();
+      await built.snapshot.installIfNeeded(target);
+      File('${target.path}.previous').writeAsStringSync('stale');
+
+      expect(
+        await built.snapshot.installIfNeeded(target),
+        DsSnapshotResult.upToDate,
+      );
+      expect(File('${target.path}.previous').existsSync(), isFalse);
+    });
+
+    test('a device that synced one kind after the snapshot is kept', () async {
+      // Teachers and retreats are newer than the snapshot, talks older (an
+      // interrupted sync). Replacing would roll the newer kinds back.
+      final old = await build(at: DateTime.utc(2026, 10, 18), name: 'old');
+      await old.snapshot.installIfNeeded(target);
+      var db = await openTarget();
+      for (final kind in [DsKind.teachers, DsKind.retreats]) {
+        await db.writeSyncState(
+          kind,
+          DsSyncStateCompanion(lastSyncedAt: Value(DateTime.utc(2026, 10, 20))),
+        );
+      }
+      await db.close();
+      final before = target.readAsBytesSync();
+
+      expect(
+        await (await build(name: 'new')).snapshot.installIfNeeded(target),
+        DsSnapshotResult.upToDate,
+      );
+      expect(target.readAsBytesSync(), before);
     });
 
     test(

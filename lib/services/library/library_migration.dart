@@ -96,6 +96,7 @@ Future<void> seedStarterSet(
 }) async {
   if (await library.metaValue(_starterSeededKey) != null) return;
   try {
+    final drafts = <LibraryEntriesCompanion>[];
     if ((await library.allEntries()).isEmpty) {
       final now = (clock ?? DateTime.now)();
       final describe = DharmaSeedSource(db: dharmaSeed);
@@ -104,7 +105,7 @@ Future<void> seedStarterSet(
         final draft = item.id.startsWith(dharmaSeedPrefix)
             ? await describe.libraryDraft(item.id)
             : null;
-        await library.insertEntry(
+        drafts.add(
           LibraryEntriesCompanion.insert(
             sourceId: item.id,
             kind: item.kind.name,
@@ -123,7 +124,20 @@ Future<void> seedStarterSet(
         );
       }
     }
-    await library.setMeta(_starterSeededKey, DateTime.now().toIso8601String());
+    // The entries and the flag go in together, so an interruption leaves
+    // either nothing (seeded in full next launch) or everything (never again,
+    // whatever the user then removes).
+    await library.transaction(() async {
+      if (drafts.isNotEmpty && (await library.allEntries()).isEmpty) {
+        for (final draft in drafts) {
+          await library.insertEntry(draft);
+        }
+      }
+      await library.setMeta(
+        _starterSeededKey,
+        DateTime.now().toIso8601String(),
+      );
+    });
   } catch (e, st) {
     // Try again next launch rather than mark a half-done seed finished.
     AppLogger.e('LIBRARY', 'Could not add the starter set', e, st);

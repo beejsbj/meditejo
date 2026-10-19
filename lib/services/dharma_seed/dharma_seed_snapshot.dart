@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:medito/services/dharma_seed/dharma_seed_client.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
@@ -94,6 +96,14 @@ enum DsSnapshotResult {
 /// device has no catalogue yet, or the snapshot is newer than the one it has.
 ///
 /// This runs before the database is first opened, offline. It never throws.
+///
+/// Safety, in order: the unpacked copy is built and checked beside the
+/// database (size and layout against the manifest), the saved rows are carried
+/// into it (a failure there abandons the install), and only then is the old
+/// file moved aside and the new one renamed into place. The old file is kept
+/// until the new one is in place, and a crash between the two renames is
+/// undone on the next launch ([_recover]). The unpacking itself runs in a
+/// separate isolate so the 35 MiB inflate never blocks the UI thread.
 class DharmaSeedSnapshot {
   DharmaSeedSnapshot({required this.readManifest, required this.readDatabase});
 
@@ -119,10 +129,16 @@ class DharmaSeedSnapshot {
   /// The gzip-compressed database.
   final Future<Uint8List> Function() readDatabase;
 
+  /// Runs first inside the unpacking isolate. Tests use it to point that
+  /// isolate at the system SQLite, as they do for the main one.
+  @visibleForTesting
+  static void Function()? isolateSetup;
+
   /// Installs into [target] when it is needed: it has no complete catalogue,
   /// or the snapshot is newer than the catalogue it has.
   Future<DsSnapshotResult> installIfNeeded(File target) async {
     try {
+      _recover(target);
       final manifest = await _manifest();
       if (manifest == null) return DsSnapshotResult.unavailable;
 
@@ -132,7 +148,7 @@ class DharmaSeedSnapshot {
       }
 
       final clock = Stopwatch()..start();
-      await _install(target, replacing: target.existsSync());
+      await _install(target, manifest, replacing: target.existsSync());
       AppLogger.d(
         'DHARMA_SEED',
         'Installed the bundled catalogue (${manifest.counts}) in '
@@ -164,7 +180,9 @@ class DharmaSeedSnapshot {
     return manifest;
   }
 
-  /// How current the catalogue in [file] is: its oldest per-kind sync time.
+  /// How current the catalogue in [file] is: its newest per-kind sync time,
+  /// so a device that has synced anything since the snapshot was made is never
+  /// rolled back (its own incremental sync continues from its own cursors).
   /// Null when there is no file, or it never completed a sync of every kind,
   /// in which case the snapshot is the better start.
   static DateTime? _localAsOf(File file) {
@@ -174,7 +192,7 @@ class DharmaSeedSnapshot {
       final rows = db.select(
         'SELECT kind, edition, last_synced_at FROM ds_sync_state',
       );
-      DateTime? oldest;
+      DateTime? newest;
       for (final kind in DsKind.values) {
         final row = rows.where((r) => r['kind'] == kind.name).firstOrNull;
         final at = row?['last_synced_at'];
@@ -183,9 +201,9 @@ class DharmaSeedSnapshot {
           at * 1000,
           isUtc: true,
         );
-        if (oldest == null || time.isBefore(oldest)) oldest = time;
+        if (newest == null || time.isAfter(newest)) newest = time;
       }
-      return oldest;
+      return newest;
     } on SqliteException {
       return null; // not a catalogue database (yet)
     } finally {
@@ -193,46 +211,158 @@ class DharmaSeedSnapshot {
     }
   }
 
-  Future<void> _install(File target, {required bool replacing}) async {
+  /// Undoes an install that was interrupted: leftovers of the staged copy go,
+  /// and an old database moved aside but not replaced comes back.
+  static void _recover(File target) {
     final staged = File('${target.path}.installing');
+    final previous = File('${target.path}.previous');
+    if (staged.existsSync()) staged.deleteSync();
+    if (!previous.existsSync()) return;
+    if (target.existsSync()) {
+      previous.deleteSync();
+    } else {
+      previous.renameSync(target.path);
+    }
+  }
+
+  Future<void> _install(
+    File target,
+    DsSnapshotManifest manifest, {
+    required bool replacing,
+  }) async {
+    final staged = File('${target.path}.installing');
+    final previous = File('${target.path}.previous');
     await target.parent.create(recursive: true);
-    if (staged.existsSync()) await staged.delete();
+    var movedAside = false;
     try {
-      final compressed = await readDatabase();
-      final sink = staged.openWrite();
-      await sink.addStream(
-        Stream<List<int>>.value(compressed).transform(gzip.decoder),
+      final request = _StageRequest(
+        compressed: TransferableTypedData.fromList([await readDatabase()]),
+        stagedPath: staged.path,
+        oldPath: replacing ? target.path : null,
+        expectedBytes: manifest.bytes,
+        expectedSchema: manifest.databaseSchema,
+        setup: isolateSetup,
       );
-      await sink.close();
-      if (replacing) _carryOverSaves(from: target, to: staged);
-      for (final suffix in const ['', '-wal', '-shm', '-journal']) {
-        final old = File('${target.path}$suffix');
-        if (old.existsSync()) await old.delete();
+      await Isolate.run(() => _stage(request));
+
+      if (replacing) {
+        await target.rename(previous.path);
+        movedAside = true;
+        for (final suffix in const ['-wal', '-shm', '-journal']) {
+          final old = File('${target.path}$suffix');
+          if (old.existsSync()) await old.delete();
+        }
       }
       await staged.rename(target.path);
+      if (previous.existsSync()) {
+        try {
+          await previous.delete();
+        } on FileSystemException {
+          // Harmless: the next launch removes it ([_recover]).
+        }
+      }
     } catch (_) {
+      if (movedAside && !target.existsSync() && previous.existsSync()) {
+        await previous.rename(target.path);
+      }
       if (staged.existsSync()) await staged.delete();
       rethrow;
     }
   }
+}
 
-  /// The old "Save course / teacher" rows live in the catalogue database, so
-  /// they are copied into the new file; the library migration reads them.
-  static void _carryOverSaves({required File from, required File to}) {
-    try {
-      final db = sqlite3.open(to.path);
-      try {
-        db.execute('ATTACH DATABASE ? AS old', [from.path]);
-        db.execute(
-          'INSERT OR IGNORE INTO ds_saved (kind, item_id, saved_at) '
-          'SELECT kind, item_id, saved_at FROM old.ds_saved',
-        );
-        db.execute('DETACH DATABASE old');
-      } finally {
-        db.dispose();
-      }
-    } on SqliteException catch (e) {
-      AppLogger.w('DHARMA_SEED', 'Could not carry over saved items: $e');
+class _StageRequest {
+  const _StageRequest({
+    required this.compressed,
+    required this.stagedPath,
+    required this.oldPath,
+    required this.expectedBytes,
+    required this.expectedSchema,
+    required this.setup,
+  });
+
+  final TransferableTypedData compressed;
+  final String stagedPath;
+  final String? oldPath;
+  final int expectedBytes;
+  final int expectedSchema;
+  final void Function()? setup;
+}
+
+/// Builds the staged database in a worker isolate: inflates the snapshot,
+/// checks it is the database the manifest describes, and carries the old saved
+/// rows into it. Throws on any problem, which abandons the install with the
+/// old database untouched.
+void _stage(_StageRequest request) {
+  request.setup?.call();
+  final staged = File(request.stagedPath);
+  if (staged.existsSync()) staged.deleteSync();
+  try {
+    final bytes = gzip.decode(request.compressed.materialize().asUint8List());
+    if (bytes.length != request.expectedBytes) {
+      throw StateError(
+        'The bundled catalogue unpacks to ${bytes.length} bytes, '
+        'not ${request.expectedBytes}',
+      );
     }
+    staged.writeAsBytesSync(bytes, flush: true);
+
+    final db = sqlite3.open(staged.path);
+    try {
+      final version =
+          db.select('PRAGMA user_version').first.values.first as int;
+      if (version != request.expectedSchema) {
+        throw StateError('The bundled catalogue has layout $version');
+      }
+      db.select('SELECT 1 FROM ds_sync_state LIMIT 1');
+      final old = request.oldPath;
+      if (old != null) _carryOverSaves(db, oldPath: old);
+      db.execute('PRAGMA wal_checkpoint(TRUNCATE)');
+    } finally {
+      db.dispose();
+    }
+  } catch (_) {
+    if (staged.existsSync()) staged.deleteSync();
+    rethrow;
+  }
+}
+
+/// The old "Save course / teacher" rows live in the catalogue database, so
+/// they are copied into the new file; the library migration reads them.
+///
+/// An old file that is not a readable catalogue holds nothing to keep. Any
+/// other failure (disk full, locked, I/O) propagates: better to keep the old
+/// database and its saves than to replace it without them.
+void _carryOverSaves(Database staged, {required String oldPath}) {
+  final List<Row> rows;
+  final old = sqlite3.open(oldPath);
+  try {
+    // Fold the write-ahead log in, so the file moved aside is complete.
+    old.execute('PRAGMA wal_checkpoint(TRUNCATE)');
+    rows = old.select('SELECT kind, item_id, saved_at FROM ds_saved');
+  } on SqliteException catch (e) {
+    const unreadable = {1, 11, 26}; // error (no table), corrupt, not a database
+    if (unreadable.contains(e.resultCode)) return;
+    rethrow;
+  } finally {
+    old.dispose();
+  }
+  staged.execute('BEGIN');
+  try {
+    final insert = staged.prepare(
+      'INSERT OR IGNORE INTO ds_saved (kind, item_id, saved_at) '
+      'VALUES (?, ?, ?)',
+    );
+    try {
+      for (final row in rows) {
+        insert.execute([row['kind'], row['item_id'], row['saved_at']]);
+      }
+    } finally {
+      insert.dispose();
+    }
+    staged.execute('COMMIT');
+  } catch (_) {
+    staged.execute('ROLLBACK');
+    rethrow;
   }
 }

@@ -177,6 +177,40 @@ void main() {
     expect(second.status.value.phase, DharmaSeedSyncPhase.idle);
   });
 
+  test('after a failure, automatic syncs wait out a cooldown', () async {
+    final down = FakeDharmaSeedApi(fail: (_, _) => http.Response('', 503));
+    final sync = DharmaSeedSync(
+      db: db,
+      client: DharmaSeedClient(
+        httpClient: down.httpClient,
+        maxAttempts: 2,
+        sleep: (_) async {},
+      ),
+      clock: () => now,
+      sleep: (_) async {},
+    );
+
+    await sync.sync();
+    expect(sync.status.value.phase, DharmaSeedSyncPhase.failed);
+    final after = down.requests.length;
+    expect(after, greaterThan(0));
+
+    // The next tab change, a minute later: no new requests.
+    now = now.add(const Duration(minutes: 1));
+    await sync.sync();
+    expect(down.requests.length, after);
+
+    // A manual refresh ignores the cooldown.
+    await sync.sync(force: true);
+    expect(down.requests.length, greaterThan(after));
+
+    // And once the cooldown has passed, automatic syncs try again.
+    final tried = down.requests.length;
+    now = now.add(const Duration(hours: 1));
+    await sync.sync();
+    expect(down.requests.length, greaterThan(tried));
+  });
+
   test('offline: fails quietly and keeps what is stored', () async {
     final api = FakeDharmaSeedApi();
     await syncWith(api).sync();

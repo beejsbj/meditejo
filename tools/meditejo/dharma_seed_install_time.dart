@@ -17,15 +17,19 @@ import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_snapshot.dart';
 import 'package:sqlite3/open.dart';
 
+// The unpack runs in its own isolate, which needs the same SQLite as this one.
+void _useSystemSqlite() => open.overrideFor(OperatingSystem.linux, () {
+  try {
+    return DynamicLibrary.open('libsqlite3.so');
+  } on ArgumentError {
+    return DynamicLibrary.open('libsqlite3.so.0');
+  }
+});
+
 void main() {
   test('first launch from the bundled catalogue', () async {
-    open.overrideFor(OperatingSystem.linux, () {
-      try {
-        return DynamicLibrary.open('libsqlite3.so');
-      } on ArgumentError {
-        return DynamicLibrary.open('libsqlite3.so.0');
-      }
-    });
+    _useSystemSqlite();
+    DharmaSeedSnapshot.isolateSetup = _useSystemSqlite;
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     final dir = Directory.systemTemp.createTempSync('meditejo-ds-install');
     addTearDown(() => dir.deleteSync(recursive: true));

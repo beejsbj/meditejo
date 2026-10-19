@@ -73,6 +73,7 @@ class DharmaSeedSync {
     required this.client,
     this.pause = const Duration(milliseconds: 750),
     this.autoSyncInterval = const Duration(hours: 12),
+    this.failureCooldown = const Duration(minutes: 30),
     Map<DsKind, int>? batchSizes,
     DateTime Function()? clock,
     Future<void> Function(Duration)? sleep,
@@ -93,6 +94,11 @@ class DharmaSeedSync {
   /// Automatic syncs (app start) are skipped when the last full sync is
   /// newer than this. Manual refreshes always run.
   final Duration autoSyncInterval;
+
+  /// After a sync fails, automatic syncs (opening Search or Explore) wait this
+  /// long before trying again, so a down server is not hit with a full round of
+  /// retries on every tab change. Manual refreshes ignore it.
+  final Duration failureCooldown;
   final Map<DsKind, int> batchSizes;
   final DateTime Function() _clock;
   final _PoliteLane _lane;
@@ -110,6 +116,7 @@ class DharmaSeedSync {
   Future<void>? _running;
   bool _disposed = false;
   bool _changed = false;
+  DateTime? _failedAt;
 
   /// Loads the last-synced time without touching the network.
   Future<void> loadStatus() async {
@@ -126,6 +133,12 @@ class DharmaSeedSync {
   }
 
   Future<void> _run({required bool force}) async {
+    final failedAt = _failedAt;
+    if (!force &&
+        failedAt != null &&
+        _clock().difference(failedAt) < failureCooldown) {
+      return;
+    }
     if (!force && !await _isDue()) {
       await loadStatus();
       return;
@@ -135,10 +148,12 @@ class DharmaSeedSync {
         if (_disposed) return;
         await _syncKind(kind, force: force);
       }
+      _failedAt = null;
       final last = await _lastFullSync();
       _emit(DharmaSeedSyncStatus(lastSyncedAt: last));
     } catch (e, st) {
       AppLogger.w('DHARMA_SEED', 'Sync stopped: $e\n$st');
+      _failedAt = _clock();
       final kind = status.value.kind;
       if (kind != null) {
         await db.writeSyncState(

@@ -111,13 +111,21 @@ size and SHA-256). It holds catalogue text only, never audio, and no user data
   runs it inside the lazy opener, so it happens before the database file is
   first opened, with no network. It unpacks when the device has no complete
   catalogue (no file, or any kind never finished its first sync) or when the
-  manifest's `asOf` is later than the oldest per-kind `last_synced_at` on the
+  manifest's `asOf` is later than the newest per-kind `last_synced_at` on the
   device ("the snapshot is newer than local data"). A device that has synced
-  since the snapshot was made keeps its data. The unpack goes to
-  `dharma_seed.sqlite.installing`, carries the old `ds_saved` rows across when it
-  replaces a file, removes stale `-wal`/`-shm`/`-journal` files and renames into
-  place; any failure leaves what was there and the app falls back to the
-  ordinary first sync. A snapshot whose manifest or database schema this build
+  any kind since the snapshot was made keeps its data, and its own incremental
+  sync continues from its own cursors. The unpack runs in a worker isolate (the
+  UI thread is not blocked by the inflate): it writes
+  `dharma_seed.sqlite.installing`, checks size and `user_version` against the
+  manifest, and carries the old `ds_saved` rows across when it replaces a file;
+  a failure at any of these (including a locked or full disk while reading or
+  copying the saves) abandons the install with the old database untouched. Only
+  then is the old file renamed to `.previous`, stale `-wal`/`-shm`/`-journal`
+  files removed, and the new one renamed into place; a crash between the two
+  renames is undone on the next launch (`.previous` comes back if the database
+  is missing, and is deleted if it is not). An old file that is not a readable
+  catalogue holds nothing to keep and is replaced. Any failure leaves what was
+  there and the app falls back to the ordinary first sync. A snapshot whose manifest or database schema this build
   does not read is ignored. It takes about 0.45 s on bjslab
   (`tools/meditejo/dharma_seed_install_time.dart`), then the first search takes
   about 60 ms.

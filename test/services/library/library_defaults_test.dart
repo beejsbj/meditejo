@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart' show Value;
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
@@ -53,6 +54,20 @@ Future<void> seedStarterCatalogue(DharmaSeedDatabase ds) async {
     11831: dsTalkRecord('Concentration', teacher: 1, retreat: 1183),
     13081: dsTalkRecord('Samatha', teacher: 1, retreat: 1308, type: 'Talk'),
   });
+}
+
+/// A library whose insert fails on the nth call, as a dying disk would.
+class _FlakyLibrary extends LibraryDatabase {
+  _FlakyLibrary({this.failOnInsert}) : super(NativeDatabase.memory());
+
+  int? failOnInsert;
+  var _inserts = 0;
+
+  @override
+  Future<void> insertEntry(LibraryEntriesCompanion entry) {
+    if (++_inserts == failOnInsert) throw StateError('disk I/O error');
+    return super.insertEntry(entry);
+  }
 }
 
 void main() {
@@ -272,6 +287,20 @@ void main() {
         isEmpty,
         reason: 'the flag was set on that first run, so no later seeding',
       );
+    });
+
+    test('an interruption mid-seed leaves nothing, then seeds in full', () async {
+      final flaky = _FlakyLibrary(failOnInsert: 3);
+      addTearDown(flaky.close);
+
+      await seedStarterSet(flaky, ds);
+      expect(await flaky.allEntries(), isEmpty, reason: 'rolled back');
+      expect(await flaky.metaValue('starter_seeded'), isNull);
+
+      flaky.failOnInsert = null;
+      await seedStarterSet(flaky, ds);
+      expect(await flaky.allEntries(), hasLength(starterSet.length));
+      expect(await flaky.metaValue('starter_seeded'), isNotNull);
     });
 
     test('works without the catalogue, under the listed titles', () async {
