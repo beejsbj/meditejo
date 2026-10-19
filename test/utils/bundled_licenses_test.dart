@@ -192,7 +192,7 @@ void main() {
     });
 
     test('unscoped JitPack repositories added by plugins are removed', () {
-      expect(rootGradle, contains('gradle.projectsEvaluated'));
+      expect(rootGradle, contains('gradle.afterProject'));
       expect(rootGradle, contains("it.name != 'JitPackTeamNewPipe'"));
     });
 

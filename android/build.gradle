@@ -46,8 +46,10 @@ allprojects {
 
 // A plugin (disable_battery_optimization) adds an unscoped JitPack repository
 // to every project from its own build.gradle. Drop any JitPack repository
-// that is not the scoped one above.
-gradle.projectsEvaluated {
+// that is not the scoped one above after EACH project evaluation. With
+// configuration-on-demand, a plugin can be evaluated during dependency
+// resolution, after the global projectsEvaluated event has already fired.
+gradle.afterProject {
     rootProject.allprojects { p ->
         p.repositories.removeAll(p.repositories.findAll {
             it instanceof MavenArtifactRepository &&
