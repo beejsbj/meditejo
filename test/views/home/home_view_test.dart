@@ -218,7 +218,7 @@ void main() {
       final gesture = await tester.startGesture(tester.getCenter(handle));
       await gesture.moveBy(const Offset(0, 10));
       await tester.pump(const Duration(milliseconds: 200));
-      await gesture.moveTo(destination + const Offset(0, 20));
+      await gesture.moveTo(destination + const Offset(0, 90));
       await tester.pump(const Duration(milliseconds: 200));
       await gesture.up();
       await settle(tester);

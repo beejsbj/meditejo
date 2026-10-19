@@ -234,6 +234,54 @@ void main() {
     },
   );
 
+  test(
+    'course order changes refresh Continue without a library or stats change',
+    () async {
+      await addCourse('a');
+      var pack = _course('a');
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          libraryStoreProvider.overrideWithValue(store),
+          libraryContentRouterProvider.overrideWithValue(
+            ContentRouter(sources: [_Source()]),
+          ),
+          statsProvider.overrideWith(() => _Stats(['x-a-1'])),
+          packDataProvider(packId: pack.id).overrideWith((ref) async => pack),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(continueItemsProvider, (_, _) {});
+      await container.read(statsProvider.future);
+      expect(
+        (await container.read(continueItemsProvider.future)).single.trackId,
+        'x-a-2',
+      );
+      pack = pack.copyWith(items: pack.items.reversed.toList());
+      container.invalidate(packDataProvider(packId: pack.id));
+      final next = await container.read(continueItemsProvider.future);
+      expect(next.single.trackId, 'x-a-4');
+      expect(next.single.sessionNumber, 1);
+    },
+  );
+
+  test(
+    'a resumed standalone recording uses its library title override',
+    () async {
+      await store.add(
+        const LibraryDraft(
+          sourceId: 'x-loose',
+          kind: LibraryKind.single,
+          title: 'Original',
+        ),
+      );
+      await store.setTitle('x-loose', 'My renamed recording');
+      await leftAt('x-loose', DateTime(2026, 10, 18));
+      final items = await read();
+      expect(items.single.title, 'My renamed recording');
+    },
+  );
+
   test('a finished course is not in progress', () async {
     await addCourse('a', played: true);
     // Nothing in progress, so Home falls back; but not to a finished course.

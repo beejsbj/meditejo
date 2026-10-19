@@ -33,7 +33,7 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
 
   Future<PackModel?> packOf(String id) async {
     try {
-      return await ref.read(packDataProvider(packId: id).future);
+      return await ref.watch(packDataProvider(packId: id).future);
     } catch (e) {
       AppLogger.d('HOME', 'Continue could not read $id: $e');
       return null;
@@ -100,7 +100,7 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
         ContinueItem(
           trackId: place.trackId,
           path: '/tracks/${place.trackId}',
-          title: track.title,
+          title: own?.displayTitle ?? track.title,
           group: group,
           lastPlayed: place.updatedAt,
           courseId: parentId,
