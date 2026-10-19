@@ -886,5 +886,5 @@ void main() {
       expect((await store.entry(id))!.itemCount, 3);
       expect((await store.entry(ytPlaylistId(playlistTwo)))!.itemCount, 1);
     });
-  }, timeout: const Timeout(Duration(seconds: 3)));
+  });
 }
