@@ -75,6 +75,9 @@ void main() async {
   // jsoup, jsr305, protobuf-javalite, Rhino) carry their own notice and source
   // link; see assets/licenses/newpipe-runtime-dependencies.json.
   registerBundledLicenses();
+  // SoLoud, miniaudio, the Xiph codecs and the rest of flutter_soloud's
+  // native code (the Sounds mixer); see soloud-native-components.json.
+  registerBundledLicenses(manifestPath: audioEngineLicensesManifest);
 
   var prefs = await initializeSharedPreferences();
 
