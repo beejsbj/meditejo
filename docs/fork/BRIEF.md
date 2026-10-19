@@ -77,6 +77,10 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
     - YouTube playlist *Meditating with John Vervaeke* (John Vervaeke's Lectern). https://www.youtube.com/playlist?list=PLND1JCRq8VujAHvDA482SXF1cJTQrwlx3
     - YouTube playlist *Qualia Mastery: Building Your Toolkit for Navigating the State-Space of Consciousness* (Qualia Research Institute). https://www.youtube.com/playlist?list=PLbmYHvGI-YSvnpbh3ppQqcG72lpw4aQdE
     - The YouTube items depend on the YouTube slice. Their playlist item lists can be bundled at release time, and audio is resolved at play time.
+14. **Four tabs: Home · Explore · Library · Settings** (Burooj, 2026-10-19).
+    - **Explore and Search are merged.** Explore has a search bar at the top. With nothing typed it shows browse (Practice/Talks chips, saved courses, Dharma Seed courses and teachers). Typing shows grouped results with "Add to library".
+    - **Library gets its own tab,** because the user's library is the core of the app.
+    - **Home** stays for "Continue your practice" and today's practice.
 
 ## Build and run
 
