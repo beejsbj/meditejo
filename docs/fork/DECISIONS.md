@@ -264,6 +264,18 @@ Measured on bjslab the same day: a full first sync of Dharma Seed is 125 request
 - **The Sounds sheet is still `BackgroundSoundView`,** opened by `showBackgroundSoundSheet`, so PR #13's Home quick link and its test need no change. No navigation or Home layout changed.
 - **Track titles are English only;** category and preset names are localised in en, de and es.
 
+**After an independent review (same day)**
+
+- **A running session owns the mixer even when it plays nothing.** Sounds added or resumed during a session join the session at its volume. They never start the standalone service or request audio focus, which would have taken focus from ExoPlayer and dropped the talk to 30%. Stop on the sheet silences the session's sounds without ending the session. A session started and ended before its mix resolved plays nothing. Changing a default during a paused session keeps it paused.
+- **Focus.** The service reports `pause` and `resume` for a transient loss and `lost` for a permanent one. On `lost` it abandons its request, and a user resume asks for focus again. Dart resumes after a call only if it was playing when the call began.
+- **Levels.** SoLoud's constant-power pan plays a centred stereo voice 3 dB down, so stereo loops are set to unity in both channels (`channels` comes from `sounds.json`). Mono loops already keep their loudness.
+- **Robustness.**
+  - The voice limit is raised from 16 to 64, and a refused `play` (an invalid handle) counts as a failure.
+  - A voice that won't unpause no longer stalls the others.
+  - Drift hand-overs wait while paused and are re-applied on resume.
+  - Swiping the app away stops Sounds playing on their own (`AppLifecycleListener.onDetach`). Phone check pending.
+  - A refused `hold` is retried rather than trusted.
+
 **Open for Burooj**
 
 1. Listen on the phone: loop seams, the noise floor of *Quiet house*, café murmur, and the fire level. Then check screen-off playback over 10 minutes with the Sounds sheet closed, and Sounds under a Dharma Seed practice.

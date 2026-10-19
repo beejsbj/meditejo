@@ -34,9 +34,13 @@ class SoundscapeService : Service() {
 
     private var audioManager: AudioManager? = null
     private var focusRequest: AudioFocusRequest? = null
-    private var pausedForTransientLoss = false
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        current = this
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
@@ -80,6 +84,7 @@ class SoundscapeService : Service() {
 
     override fun onDestroy() {
         abandonFocus()
+        if (current === this) current = null
         super.onDestroy()
     }
 
@@ -89,7 +94,8 @@ class SoundscapeService : Service() {
         stopSelf()
     }
 
-    private fun requestFocus() {
+    /** Idempotent: does nothing while focus is held. */
+    fun requestFocus() {
         if (focusRequest != null) return
         val manager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
@@ -107,22 +113,18 @@ class SoundscapeService : Service() {
         manager.requestAudioFocus(request)
     }
 
+    // Dart decides what to do: it resumes after a transient loss only if it
+    // was playing when the loss began.
     private fun onFocusChange(change: Int) {
         when (change) {
             AudioManager.AUDIOFOCUS_LOSS -> {
-                // Another app took over playback: pause, and let the user
-                // resume from the Sounds screen.
-                pausedForTransientLoss = false
-                SoundscapeBridge.send("pause")
+                // Another app took over playback for good. Give the request
+                // up, so resuming from the Sounds screen asks again.
+                abandonFocus()
+                SoundscapeBridge.send("lost")
             }
-            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-                pausedForTransientLoss = true
-                SoundscapeBridge.send("pause")
-            }
-            AudioManager.AUDIOFOCUS_GAIN -> {
-                if (pausedForTransientLoss) SoundscapeBridge.send("resume")
-                pausedForTransientLoss = false
-            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> SoundscapeBridge.send("pause")
+            AudioManager.AUDIOFOCUS_GAIN -> SoundscapeBridge.send("resume")
         }
     }
 
@@ -166,6 +168,10 @@ class SoundscapeService : Service() {
     }
 
     companion object {
+        /** The running service, for the bridge's `focus` call. */
+        var current: SoundscapeService? = null
+            private set
+
         private const val TAG = "SoundscapeService"
         private const val CHANNEL_ID = "meditejo_sounds"
         private const val NOTIFICATION_ID = 4107
@@ -178,9 +184,10 @@ class SoundscapeService : Service() {
 }
 
 /**
- * `meditejo/soundscape`: Dart calls `hold` / `release`; the service sends
- * `command` with `stop`, `pause` or `resume` (the notification's Stop
- * action and audio focus changes).
+ * `meditejo/soundscape`: Dart calls `hold`, `focus` and `release`; the
+ * service sends `command` with `stop` (the notification's Stop), `pause` and
+ * `resume` (a transient focus loss and its end) or `lost` (focus gone for
+ * good).
  */
 object SoundscapeBridge {
     const val CHANNEL = "meditejo/soundscape"
@@ -206,6 +213,10 @@ object SoundscapeBridge {
                             Log.w("SoundscapeBridge", "Could not start the service: ${e.message}")
                             result.success(false)
                         }
+                    }
+                    "focus" -> {
+                        SoundscapeService.current?.requestFocus()
+                        result.success(null)
                     }
                     "release" -> {
                         appContext.stopService(Intent(appContext, SoundscapeService::class.java))
