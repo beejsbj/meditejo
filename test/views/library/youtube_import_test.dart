@@ -327,22 +327,31 @@ void main() {
   });
 
   group('calm failures', () {
-    testWidgets('an unavailable video is one plain sentence', (tester) async {
-      final api = scriptedApi()
-        ..failure = PlatformException(
-          code: 'private',
-          message: 'SECRET extractor detail',
-        );
-      await openImport(tester, api);
-      await enterLink(tester, watchA);
-
-      expect(find.byKey(const ValueKey('import_failure')), findsOneWidget);
-      expect(find.textContaining("isn't available right now"), findsOneWidget);
-      expect(find.textContaining('SECRET'), findsNothing);
-      expect(find.textContaining('Exception'), findsNothing);
-      expect(find.byKey(const ValueKey('import_preview')), findsNothing);
-      expect(find.byKey(const ValueKey('import_add')), findsNothing);
-    });
+    for (final (code, message) in [
+      ('unavailable', "This video isn't available right now"),
+      ('private', 'This video is private'),
+      ('age-restricted', 'This video is age-restricted'),
+      (
+        'rate-limited',
+        'YouTube is busy or asking for a bot check. Try again later',
+      ),
+    ]) {
+      testWidgets('$code is a specific plain sentence', (tester) async {
+        final api = scriptedApi()
+          ..failure = PlatformException(
+            code: code,
+            message: 'SECRET extractor detail',
+          );
+        await openImport(tester, api);
+        await enterLink(tester, watchA);
+        expect(find.byKey(const ValueKey('import_failure')), findsOneWidget);
+        expect(find.text(message), findsOneWidget);
+        expect(find.textContaining('SECRET'), findsNothing);
+        expect(find.textContaining('Exception'), findsNothing);
+        expect(find.byKey(const ValueKey('import_preview')), findsNothing);
+        expect(find.byKey(const ValueKey('import_add')), findsNothing);
+      });
+    }
 
     testWidgets('no network says to check the connection', (tester) async {
       final api = scriptedApi()
