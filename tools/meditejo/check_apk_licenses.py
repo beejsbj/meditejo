@@ -14,6 +14,10 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         asset = 'assets/flutter_assets/' + path.relative_to(root).as_posix()
         if apk.read(asset) != path.read_bytes():
             raise SystemExit(f'APK notice differs: {asset}')
+    # The pinned runtime JARs were inspected: only jsoup ships a legal
+    # resource in its binary JAR. All others need the explicit assets above.
+    if apk.read('META-INF/jsoup/LICENSE') != (root / 'assets/licenses/MIT-jsoup.txt').read_bytes():
+        raise SystemExit('APK stripped or altered jsoup native MIT notice')
     native = [name for name in apk.namelist() if name.startswith('META-INF/') and
               any(word in name.upper() for word in ('LICENSE', 'NOTICE', 'COPYRIGHT'))]
     if not native:

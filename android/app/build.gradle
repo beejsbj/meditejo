@@ -108,6 +108,18 @@ android {
     // excluding or picking one, so no upstream notice is dropped from the APK.
     packaging {
         resources {
+            // AGP 8.11.1 excludes these by default. Removing app-level
+            // exclude statements alone does not restore the upstream notices.
+            excludes -= [
+                '/META-INF/LICENSE',
+                '/META-INF/LICENSE.txt',
+                '/META-INF/NOTICE',
+                '/META-INF/NOTICE.txt',
+                '/LICENSE',
+                '/LICENSE.txt',
+                '/NOTICE',
+                '/NOTICE.txt',
+            ]
             merges += [
                 'META-INF/LICENSE',
                 'META-INF/LICENSE.txt',
@@ -118,6 +130,10 @@ android {
                 'META-INF/ASL2.0',
                 'META-INF/DEPENDENCIES',
                 'META-INF/COPYRIGHT',
+                'LICENSE',
+                'LICENSE.txt',
+                'NOTICE',
+                'NOTICE.txt',
             ]
         }
     }

@@ -207,11 +207,35 @@ void main() {
         'META-INF/ASL2.0',
         'META-INF/DEPENDENCIES',
         'META-INF/COPYRIGHT',
+        'LICENSE',
+        'LICENSE.txt',
+        'NOTICE',
+        'NOTICE.txt',
       ];
       final merges = RegExp(
         r'merges \+= \[(.*?)\]',
         dotAll: true,
       ).firstMatch(appGradle)!.group(1)!;
+      final restoredDefaults = RegExp(
+        r'excludes -= \[(.*?)\]',
+        dotAll: true,
+      ).firstMatch(appGradle)!.group(1)!;
+      for (final path in [
+        'META-INF/LICENSE',
+        'META-INF/LICENSE.txt',
+        'META-INF/NOTICE',
+        'META-INF/NOTICE.txt',
+        'LICENSE',
+        'LICENSE.txt',
+        'NOTICE',
+        'NOTICE.txt',
+      ]) {
+        expect(
+          restoredDefaults,
+          contains("'/$path'"),
+          reason: 'AGP default $path',
+        );
+      }
       for (final path in legal) {
         expect(merges, contains("'$path'"), reason: path);
         expect(appGradle, isNot(contains("exclude '$path'")), reason: path);
