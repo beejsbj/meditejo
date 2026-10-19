@@ -100,12 +100,15 @@ void main() {
   }
 
   group('Dharma Seed classification defaults', () {
-    test('a retreat is Practice even when every recording is a "Talk"', () async {
-      final source = DharmaSeedSource(db: ds);
-      final draft = (await source.libraryDraft('ds-retreat-4496'))!;
-      expect(draft.group, LibraryGroup.practice);
-      expect(draft.kind, LibraryKind.course);
-    });
+    test(
+      'a retreat is Practice even when every recording is a "Talk"',
+      () async {
+        final source = DharmaSeedSource(db: ds);
+        final draft = (await source.libraryDraft('ds-retreat-4496'))!;
+        expect(draft.group, LibraryGroup.practice);
+        expect(draft.kind, LibraryKind.course);
+      },
+    );
 
     test('a single talk follows its own recording type', () async {
       await ds.upsertTalkRecords({
@@ -183,12 +186,15 @@ void main() {
       expect((await db.entryById('ds-retreat-4496'))!.detectedGroup, 'talks');
     });
 
-    test('through the store, so the library lists them under Practice', () async {
-      await insert('ds-retreat-4496', detected: 'talks');
-      final store = await openStore();
-      final entry = (await store.entry('ds-retreat-4496'))!;
-      expect(entry.group, LibraryGroup.practice);
-    });
+    test(
+      'through the store, so the library lists them under Practice',
+      () async {
+        await insert('ds-retreat-4496', detected: 'talks');
+        final store = await openStore();
+        final entry = (await store.entry('ds-retreat-4496'))!;
+        expect(entry.group, LibraryGroup.practice);
+      },
+    );
   });
 
   group('starter set', () {
@@ -199,17 +205,13 @@ void main() {
       expect(entries.map((e) => e.sourceId).toSet(), {
         for (final item in starterSet) item.id,
       });
-      expect(
-        entries.take(5).map((e) => e.sourceId),
-        [
-          'ds-retreat-4496',
-          'ds-retreat-1084',
-          'ds-retreat-1183',
-          'ds-retreat-1308',
-          'ds-talk-60864',
-        ],
-        reason: 'the first starter item leads the library',
-      );
+      expect(entries.take(5).map((e) => e.sourceId), [
+        'ds-retreat-4496',
+        'ds-retreat-1084',
+        'ds-retreat-1183',
+        'ds-retreat-1308',
+        'ds-talk-60864',
+      ], reason: 'the first starter item leads the library');
       for (final id in [
         'ds-retreat-4496',
         'ds-retreat-1084',
@@ -243,13 +245,10 @@ void main() {
         expect(e.kind, LibraryKind.course, reason: id);
         expect(e.group, LibraryGroup.practice, reason: id);
       }
-      expect(
-        starterSet.map((i) => i.id),
-        containsAll([vervaeke, qualia]),
-      );
+      expect(starterSet.map((i) => i.id), containsAll([vervaeke, qualia]));
     });
 
-    test('a seeded YouTube course opens and fetches its sessions', () async {
+    test('a seeded YouTube course opens before its background fetch', () async {
       const vervaeke = 'PLND1JCRq8VujAHvDA482SXF1cJTQrwlx3';
       final store = await openStore();
       await store.entries();
@@ -259,12 +258,11 @@ void main() {
           title: 'Meditating with John Vervaeke',
           uploader: "John Vervaeke's Lectern",
         );
-      final source = YoutubeSource(
-        db: db,
-        library: store,
-        api: api,
-      );
+      final source = YoutubeSource(db: db, library: store, api: api);
 
+      final initial = await source.pack('yt-playlist-$vervaeke');
+      expect(initial.items, isEmpty);
+      await source.refresh('yt-playlist-$vervaeke');
       final pack = await source.pack('yt-playlist-$vervaeke');
 
       expect(api.playlistCalls, hasLength(1));
@@ -274,21 +272,24 @@ void main() {
       ]);
     });
 
-    test('a single marked Meditation follows that label into Practice', () async {
-      await ds.upsertTalkRecords({
-        60864: dsTalkRecord(
-          'Developing Piti',
-          teacher: 1,
-          retreat: 4496,
-          type: 'Meditation',
-        ),
-      });
-      final entries = await (await openStore()).entries();
-      expect(
-        entries.firstWhere((e) => e.sourceId == 'ds-talk-60864').group,
-        LibraryGroup.practice,
-      );
-    });
+    test(
+      'a single marked Meditation follows that label into Practice',
+      () async {
+        await ds.upsertTalkRecords({
+          60864: dsTalkRecord(
+            'Developing Piti',
+            teacher: 1,
+            retreat: 4496,
+            type: 'Meditation',
+          ),
+        });
+        final entries = await (await openStore()).entries();
+        expect(
+          entries.firstWhere((e) => e.sourceId == 'ds-talk-60864').group,
+          LibraryGroup.practice,
+        );
+      },
+    );
 
     test('never re-adds what the user removed', () async {
       final store = await openStore();
@@ -332,19 +333,22 @@ void main() {
       );
     });
 
-    test('an interruption mid-seed leaves nothing, then seeds in full', () async {
-      final flaky = _FlakyLibrary(failOnInsert: 3);
-      addTearDown(flaky.close);
+    test(
+      'an interruption mid-seed leaves nothing, then seeds in full',
+      () async {
+        final flaky = _FlakyLibrary(failOnInsert: 3);
+        addTearDown(flaky.close);
 
-      await seedStarterSet(flaky, ds);
-      expect(await flaky.allEntries(), isEmpty, reason: 'rolled back');
-      expect(await flaky.metaValue('starter_seeded'), isNull);
+        await seedStarterSet(flaky, ds);
+        expect(await flaky.allEntries(), isEmpty, reason: 'rolled back');
+        expect(await flaky.metaValue('starter_seeded'), isNull);
 
-      flaky.failOnInsert = null;
-      await seedStarterSet(flaky, ds);
-      expect(await flaky.allEntries(), hasLength(starterSet.length));
-      expect(await flaky.metaValue('starter_seeded'), isNotNull);
-    });
+        flaky.failOnInsert = null;
+        await seedStarterSet(flaky, ds);
+        expect(await flaky.allEntries(), hasLength(starterSet.length));
+        expect(await flaky.metaValue('starter_seeded'), isNotNull);
+      },
+    );
 
     test('works without the catalogue, under the listed titles', () async {
       final empty = memoryDharmaSeedDb();
