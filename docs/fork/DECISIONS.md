@@ -98,3 +98,54 @@ In-app updates from GitHub Releases (slice 12; BRIEF decision 12). Design in `do
 - **`crypto` became a direct dependency** (it was already in the lock file as a transitive one) for streamed SHA-256.
 - **Tested without a network.** Unit tests cover release parsing and version comparison, the check throttle, the GitHub client (against `MockClient`: ETag, 304, 404, rate limit, offline, bad manifest), the downloader (progress, hash mismatch, short download, reuse, stale cleanup) and the controller flow; widget tests cover the About and Home states. The Kotlin pin function has JVM tests (`UpdateSignaturePolicyTest`); the bridge and receiver are thin Android glue that CI compiles but nothing unit-tests, and they have not run on a device yet.
 
+## 2026-10-17 (slice 3, PR C1: library-first import)
+
+Product questions here were settled with a reasonable, reversible choice and are flagged for Burooj at the end.
+
+**The library**
+
+- **A separate database for the library**, not a table in the Dharma Seed one. The catalogue database is a replaceable copy of someone else's data and is about to be swapped for a bundled snapshot (PR C2); a library inside it would be lost or have to be migrated each time. `meditejo_library.sqlite` holds only the user's own entries, positions and imports, so it survives any catalogue change.
+- **One entry shape for everything kept.** `source_id` (any `ds-…` or `lib-…` ID), `kind` (course, single or teacher), the detected and the overridden Practice/Talks group, a title and a title override, and a snapshot of subtitle, artwork, count and length so the library draws instantly and offline. The content stays with the source that owns the ID.
+- **Teachers are a third kind**, because "Save teacher" is meant to flow into the library too. They are listed apart (Teachers) and never appear in the Practice/Talks split.
+- **Detected and overridden groups are stored apart**, so "Move to Talks" can be undone by going back to what the app saw, and a changed detection later does not erase a choice. Defaults: Dharma Seed by its `recording_type` (a retreat by the half-or-more rule the Explore chips use); a link or feed to **Practice**, except a few talk archives (dharmaseed.org, dhammatalks.org, audiodharma.org) which default to Talks. A title or description is never guessed at.
+- **Old saves are migrated once** from `ds_saved` into the library, keeping the saved time and falling back to a plain title if the catalogue no longer has the item. The old table stays untouched (nothing is deleted); a marker in the library says it is done, and a failed run is retried next launch.
+- **Dharma Seed "Save course / teacher" became "Add to library"**, and talks can be added too (as singles). The Dharma Seed source reads "saved" from the library; Explore no longer lists library courses in its own browse list but shows them itself, first, under any chip. That is also the fix for the PR #7 phone-test finding that saved courses disappeared when a chip was chosen.
+- **Navigation: a pushed Library screen from Home, not a fifth tab.** Medito's bar is Home, Explore, Search, Settings, with the last tab index saved and restored; a fifth tab would touch that logic, the sidebar and the tests for a screen that Home already leads with ("Your library", See all). Reversible: a tab is a small change later.
+- **Removing** a catalogue item just takes it out, with Undo. Removing an import asks first and **deletes its copied audio**, since the library holds the only copy.
+
+**`lib-` content and ids**
+
+- **IDs hash the address.** `lib-course-<hash>` from the feed URL, `lib-track-<hash>` from a URL, or from feed URL plus the feed's own episode ID, so adding the same thing twice finds the first and an episode has one ID alone or in its course. Local files get a random ID when copied. IDs are stored permanently in stats, downloads and favourites, so they never change for the same thing.
+- **Feeds**: RSS 2.0 and Atom, audio enclosures only (text posts and video are left out and counted in the preview). Order is **oldest first** by default and a per-course setting (Oldest first / Newest first on the preview and on the course page): a serial feed follows its episode numbers, otherwise dates, otherwise the feed is read backwards. Missing durations stay unknown rather than zero, and the preview says "at least" when the total is partial.
+- **"Single" from a feed means its latest episode.** The brief wants a single episode importable as a single; with no way to point at one episode from a feed link, the useful form is "just the latest". Flagged below.
+- **Refreshing**: ten seconds after launch, a feed at most every 12 hours, one at a time, with `If-None-Match` / `If-Modified-Since` (a 304 costs no body), failures remembered with their time so a dead feed is not retried on every launch. No background service, and a per-course switch ("Check for new episodes").
+- **Politeness**: a Meditejo User-Agent, a 20 s timeout, an 8 MiB cap on a page, redirects followed, no body read for audio. One request per import; two when a web page has to be searched for the feed it advertises, or an Apple Podcasts link is looked up (the show's iTunes lookup gives the feed address). Links to Dharma Seed use its existing on-demand fetch.
+- **Link kinds**: Dharma Seed retreat, teacher and talk pages resolve to `ds-` IDs; audio by extension; YouTube gets "YouTube support is coming" and no request; Spotify and other directories with no readable feed get a plain explanation; any other address is read once to tell a feed, audio behind a redirect, or a page that links to a feed.
+- **Local files** are moved out of the picker's cache (or copied, when the user pointed at a path) into app storage, never converted. Several files become a course in picked order, a folder in natural name order ("Session 2" before "Session 10"). **The folder picker is unreliable on Android 11+** (scoped storage hides most folders and `file_picker` can answer "/"); the failure is a calm "no audio files found there", and picking several files is the dependable route. Audio lengths are read with a throwaway player where possible.
+- **Attribution**: imported courses always carry a credit (feed site, author) and the licence when the feed states a Creative Commons one; `AttributionNotice` now copes with no licence and no link. The "streamed unmodified" note holds for imports too (the file is played as it is).
+- **Downloads are hidden for imported files** (they are already on the device).
+
+**Import experience**
+
+- **One Add screen**, reachable from Home and the Library: paste (or Preview), a clipboard suggestion, Choose files / folder, a preview, one primary action. The clipboard is read only to look for a link, shown as "Link on your clipboard: host" with a Use button, and nothing is fetched until the user says so. iOS shows its own paste prompt; Android 12+ shows its small "pasted" toast.
+- **The preview**: artwork (or generated art), title (renamable in place, library only), source and author, session count and total length, the first five sessions, the licence line, the Course/Single choice only where both make sense, Practice/Talk (default: detected, else Practice), episode order for a feed course, and **Add to library**. Something already kept says so and offers Open instead.
+- **Failures are sentences**, never codes or traces: nothing entered, not a link, YouTube, an unsupported service, offline, not found, the site refused, no feed or audio on that page, a feed with no audio, a damaged feed, Dharma Seed missing, a missing file, no audio files.
+- **Share target (Android)**: `text/plain` and `audio/*` (send and send-multiple), plus "Open with" for audio files. Shared audio is copied to the cache off the main thread (the sender's read permission ends with the share), then handed to Dart over a small method channel; the share that started the app is read once (guarded against rotation re-delivery), later shares are pushed. The preview opens at once. `content://` and `file://` links are no longer reported as bad deep links.
+
+**Carry-overs from the PR #7 phone test**
+
+- **Library courses stay visible under an Explore chip** (see above).
+- **The course page's main action plays directly** when the track has one voice and one file (every Dharma Seed talk and every import). Only a track with real choices and no remembered guide/duration opens its page first. Details are still one tap away on the row.
+- **Resume.** Medito tracked no per-session position, so the library keeps one: saved about every 5 s of listening (quietly), exactly on pause, cleared when the session finishes; under 10 s or within 20 s of the end it is not kept. The course button, the course header's "Resume: …" line, and the track page ("Resume at 12:34", with a "From the beginning" link) read from it, and the player seeks once the file is loading. Playing a session also brings it and its course to the front of the library.
+
+**Dependencies**: `xml` (feeds), `crypto` (stable IDs), `path`, and `file_picker` (the system picker; no permission needed on Android). `http` was already back for Dharma Seed.
+
+**Not in this PR**: the bundled Dharma Seed catalogue and delta sync (C2), YouTube, the "Continue your practice" hero, design styling, and the 90% completion rule.
+
+**Open questions for Burooj**
+
+1. Is "Single from a feed = its latest episode" the right meaning, or should a feed's single be picked from its episodes?
+2. Android folder import is limited by the platform; multi-select of files works. Is that enough, or should the folder button go?
+3. Removing an imported course deletes its copied audio (after asking). Should removal keep the files for a while instead?
+4. Teachers live in the library as their own kind. Fine, or should "Save teacher" stay a separate Explore-only list?
+5. Talk archives default to Talks (three hosts); everything else to Practice. Any host to add?

@@ -6,6 +6,7 @@ import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/providers/home/up_next_provider.dart';
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/scaffold_messenger_key.dart';
 import 'package:medito/views/player/start_session.dart';
@@ -176,9 +177,12 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
     final l10n = AppLocalizations.of(context)!;
     final onSurface = Theme.of(context).colorScheme.onSurface;
     final done = next == null;
+    // A session left partway also reads Resume, even in an unstarted course.
+    final partway =
+        next != null && ref.watch(resumePointProvider(next.id)).value != null;
     final action = done
         ? l10n.yourPathAllDone
-        : completed == 0
+        : completed == 0 && !partway
         ? l10n.packStart
         : l10n.packContinue;
     final label = done

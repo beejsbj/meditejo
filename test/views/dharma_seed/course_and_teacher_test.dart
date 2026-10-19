@@ -9,7 +9,10 @@ import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
+import 'package:medito/services/library/library_models.dart';
+import 'package:medito/providers/player/player_provider.dart';
 import 'package:medito/views/pack/pack_view.dart';
+import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/teacher/teacher_view.dart';
 import 'package:medito/views/track/track_view.dart';
@@ -153,35 +156,34 @@ void main() {
       expect(find.byIcon(Icons.download_done_rounded), findsNWidgets(2));
     });
 
-    testWidgets('Save course saves and unsaves, and says so', (tester) async {
+    testWidgets('Add to library adds and removes, and says so', (tester) async {
       final app = await createApp(tester);
       await app.pump(tester, const PackView(id: 'ds-retreat-500'));
 
-      expect(find.text('Save course'), findsOneWidget);
-      await tester.tap(find.text('Save course'));
+      expect(find.text('Add to library'), findsOneWidget);
+      await tester.tap(find.text('Add to library'));
       await DharmaSeedTestApp.settle(tester);
-      expect(find.text('Saved'), findsOneWidget);
+      expect(find.text('In library'), findsOneWidget);
       expect(
-        await tester.runAsync(() => app.db.savedIds(DsSavedKind.retreat)),
-        [500],
+        (await tester.runAsync(app.library.entries))!.map((e) => e.sourceId),
+        ['ds-retreat-500'],
       );
 
-      await tester.tap(find.text('Saved'));
+      await tester.tap(find.text('In library'));
       await DharmaSeedTestApp.settle(tester);
-      expect(find.text('Save course'), findsOneWidget);
-      expect(
-        await tester.runAsync(() => app.db.savedIds(DsSavedKind.retreat)),
-        isEmpty,
-      );
+      expect(find.text('Add to library'), findsOneWidget);
+      expect(await tester.runAsync(app.library.entries), isEmpty);
     });
 
-    testWidgets('an already saved course opens as Saved', (tester) async {
+    testWidgets('a course already in the library opens as In library', (
+      tester,
+    ) async {
       final app = await createApp(tester);
       await tester.runAsync(
-        () => app.db.setSaved(DsSavedKind.retreat, 500, saved: true),
+        () => app.source.setSaved('ds-retreat-500', saved: true),
       );
       await app.pump(tester, const PackView(id: 'ds-retreat-500'));
-      expect(find.text('Saved'), findsOneWidget);
+      expect(find.text('In library'), findsOneWidget);
     });
 
     testWidgets('Summary and Teacher tabs, with the credit throughout', (
@@ -264,14 +266,23 @@ void main() {
       expect(find.byType(TrackView), findsOneWidget);
       await back();
 
-      // Press the one primary button: it opens the first talk, not played.
+      // Press the one primary button: a talk has one voice and one file,
+      // nothing to choose, so it plays the first talk at once rather than
+      // opening its page. Nothing is marked played by starting it.
       await tester.tap(
         find.bySemanticsLabel(RegExp('^${l10n.packStart}: ')).first,
       );
       await DharmaSeedTestApp.settle(tester);
-      expect(find.byType(TrackView), findsOneWidget);
-      expect(find.text('Long talk 1'), findsWidgets);
-      await back();
+      // The player precaches the teacher's photo, which cannot load here.
+      while (tester.takeException() != null) {}
+      expect(find.byType(TrackView), findsNothing);
+      expect(find.byType(PlayerView), findsOneWidget);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(PlayerView)),
+      );
+      expect(container.read(playerProvider)?.title, 'Long talk 1');
+      Navigator.of(tester.element(find.byType(PlayerView))).pop();
+      await DharmaSeedTestApp.settle(tester);
 
       // The real stats store exists by now, and no talk is checked off.
       final stats = app.prefs.getString('local_all_stats');
@@ -325,17 +336,16 @@ void main() {
       expect(find.text('Licence: CC BY-NC-ND 4.0'), findsOneWidget);
     });
 
-    testWidgets('Save teacher saves and shows Saved', (tester) async {
+    testWidgets('Adding a teacher puts them in the library', (tester) async {
       final app = await DharmaSeedTestApp.create(tester);
       await app.pump(tester, const TeacherView(teacherId: 'ds-teacher-1'));
 
-      await tester.tap(find.text('Save teacher'));
+      await tester.tap(find.text('Add to library'));
       await DharmaSeedTestApp.settle(tester);
-      expect(find.text('Saved'), findsOneWidget);
-      expect(
-        await tester.runAsync(() => app.db.savedIds(DsSavedKind.teacher)),
-        [1],
-      );
+      expect(find.text('In library'), findsOneWidget);
+      final entries = (await tester.runAsync(app.library.entries))!;
+      expect(entries.single.sourceId, 'ds-teacher-1');
+      expect(entries.single.kind, LibraryKind.teacher);
     });
 
     testWidgets('a teacher without a biography says so', (tester) async {

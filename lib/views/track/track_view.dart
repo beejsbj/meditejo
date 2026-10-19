@@ -9,7 +9,12 @@ import 'package:medito/providers/guide_name_preference_provider.dart';
 import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/routes/routes.dart';
+import 'package:medito/providers/library/library_providers.dart';
+import 'package:medito/services/library/library_models.dart';
+import 'package:medito/utils/resume_request.dart';
 import 'package:medito/utils/track_variant_selector.dart';
+import 'package:medito/views/library/library_format.dart';
+import 'package:medito/widgets/save_button.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
@@ -191,9 +196,42 @@ class _TrackViewState extends ConsumerState<TrackView>
           _durationDropdown(activeVoice, activeFile, isLandscape: false),
         ],
         const SizedBox(height: 12),
+        // Add to the library (a talk or an imported recording), when the
+        // source allows it.
+        SaveButton(
+          id: track.id,
+          label: AppLocalizations.of(context)!.libraryAddToLibrary,
+          savedLabel: AppLocalizations.of(context)!.libraryInLibrary,
+        ),
+        const SizedBox(height: 12),
         _playBtn(ref, track, activeVoice, activeFile, isFullWidth: true),
+        ..._fromStart(track, activeVoice, activeFile),
       ],
     );
+  }
+
+  /// The saved place, if it is in the file shown (another length of the same
+  /// track has its own).
+  ResumePoint? _resumeIn(Track track, TrackAudioFile file) {
+    final point = ref.watch(resumePointProvider(track.id)).value;
+    return point != null && point.appliesTo(file.id) ? point : null;
+  }
+
+  /// "From the beginning", offered only when there is a place to resume.
+  List<Widget> _fromStart(Track track, TrackVoice voice, TrackAudioFile file) {
+    final resume = _resumeIn(track, file);
+    if (resume == null) return const [];
+    return [
+      Align(
+        child: TextButton(
+          key: const ValueKey('track_from_start'),
+          onPressed: _isStarting
+              ? null
+              : () => _handlePlay(ref, track, voice, file, fromStart: true),
+          child: Text(AppLocalizations.of(context)!.libraryFromStart),
+        ),
+      ),
+    ];
   }
 
   Widget _buildCompactPickers(
@@ -232,6 +270,7 @@ class _TrackViewState extends ConsumerState<TrackView>
     // button disappears into the page — so switch to the themed primary
     // (near-black accent) with a white icon for light mode.
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final resume = _resumeIn(track, activeFile);
     return SizedBox(
       height: 56,
       width: isFullWidth ? double.infinity : null,
@@ -251,11 +290,24 @@ class _TrackViewState extends ConsumerState<TrackView>
               ? ColorConstants.black
               : Theme.of(context).colorScheme.onPrimary,
         ),
-        child: Icon(
-          Icons.play_arrow_rounded,
-          size: 32,
-          semanticLabel: AppLocalizations.of(context)!.play,
-        ),
+        child: resume == null
+            ? Icon(
+                Icons.play_arrow_rounded,
+                size: 32,
+                semanticLabel: AppLocalizations.of(context)!.play,
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.play_arrow_rounded, size: 32),
+                  const SizedBox(width: 8),
+                  Text(
+                    AppLocalizations.of(
+                      context,
+                    )!.libraryResumeAt(formatClock(resume.positionMs)),
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -332,19 +384,28 @@ class _TrackViewState extends ConsumerState<TrackView>
     }
   }
 
-  void _handlePlay(
+  Future<void> _handlePlay(
     WidgetRef ref,
     Track track,
     TrackVoice voice,
-    TrackAudioFile file,
-  ) {
+    TrackAudioFile file, {
+    bool fromStart = false,
+  }) async {
     if (_isStarting) return;
     setState(() => _isStarting = true);
 
     // Prepare the request (sets player state synchronously) then open the
     // player immediately. PlayerView starts playback and shows its own loading
     // state, so there's no wait on this screen and no double-tap window.
-    final request = PlaybackRequest.fromTrack(track, voice, file);
+    // Where the user left off is read first (a quick local read); "from the
+    // beginning" forgets it.
+    var request = PlaybackRequest.fromTrack(track, voice, file);
+    if (fromStart) {
+      await ref.read(libraryStoreProvider).clearPosition(track.id);
+    } else {
+      request = await withResumePosition(ref, request);
+    }
+    if (!mounted) return;
     ref.read(playerProvider.notifier).prepare(request);
 
     Navigator.push(

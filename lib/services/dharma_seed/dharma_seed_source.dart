@@ -7,30 +7,41 @@ import 'package:medito/models/explore/track_search_model.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/models/track/track.dart';
 import 'package:medito/services/content/content_source.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_client.dart' show DsKind;
+import 'package:medito/services/dharma_seed/dharma_seed_client.dart'
+    show DsKind;
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_models.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_sync.dart';
+import 'package:medito/services/library/library_models.dart';
+import 'package:medito/services/library/library_store.dart';
 import 'package:medito/services/local_catalogue.dart';
 import 'package:medito/utils/logger.dart';
 
 /// Dharma Seed as a [ContentSource]: a retreat is a course (pack) whose
 /// sessions are its talks in recording order; a talk is a single (track).
 ///
+/// What the user keeps lives in the [library] (courses, talks and teachers
+/// alike); this source only knows how to describe a Dharma Seed item for it.
+///
 /// Reads come from the on-device database. Opening a retreat or talk that
 /// has not synced yet asks [sync] to fetch it first, bounded by
 /// [fetchTimeout]; offline, it shows what is stored.
-class DharmaSeedSource implements ContentSource, SavableContentSource {
+class DharmaSeedSource
+    implements ContentSource, SavableContentSource, ParentedContentSource {
   DharmaSeedSource({
     required this.db,
     this.sync,
+    this.library,
     this.browseLimit = 40,
     this.fetchTimeout = const Duration(seconds: 20),
   });
 
   final DharmaSeedDatabase db;
   final DharmaSeedSync? sync;
+
+  /// The user's library, where saves go. Null in tests that only read.
+  final LibraryStore? library;
   final int browseLimit;
   final Duration fetchTimeout;
 
@@ -39,9 +50,7 @@ class DharmaSeedSource implements ContentSource, SavableContentSource {
 
   @override
   Future<List<PackModel>> browsePacks() => _quietly('browse', () async {
-    final saved = await db.retreatsById(
-      await db.savedIds(DsSavedKind.retreat),
-    );
+    final saved = await db.retreatsById(await _savedIds(DsSavedKind.retreat));
     final savedIds = {for (final r in saved) r.id};
     final recent = await db.recentRetreats(limit: browseLimit);
     final retreats = [
@@ -64,13 +73,14 @@ class DharmaSeedSource implements ContentSource, SavableContentSource {
     final retreat = await db.retreatById(retreatId);
     if (retreat == null) throw CatalogueEntryUnavailable('pack', id);
     final talks = await db.talksOfRetreat(retreatId);
-    final teachers = await db.teachersById(talks.map((t) => t.teacherId).nonNulls);
-    final leads = await db.leadTeacherOfRetreats([retreatId]);
-    return mapRetreat(
-      retreat,
-      [for (final talk in talks) DsTalkWithTeacher(talk, teachers[talk.teacherId])],
-      teachers[leads[retreatId]],
+    final teachers = await db.teachersById(
+      talks.map((t) => t.teacherId).nonNulls,
     );
+    final leads = await db.leadTeacherOfRetreats([retreatId]);
+    return mapRetreat(retreat, [
+      for (final talk in talks)
+        DsTalkWithTeacher(talk, teachers[talk.teacherId]),
+    ], teachers[leads[retreatId]]);
   }
 
   @override
@@ -98,7 +108,7 @@ class DharmaSeedSource implements ContentSource, SavableContentSource {
     final started = await db.retreatIdsOfTalks(
       startedTrackIds.map(parseDsTalkId).nonNulls,
     );
-    final ids = {...await db.savedIds(DsSavedKind.retreat), ...started};
+    final ids = {...await _savedIds(DsSavedKind.retreat), ...started};
     return {
       for (final retreat in await db.retreatsById(ids))
         dsRetreatId(retreat.id): [
@@ -140,28 +150,112 @@ class DharmaSeedSource implements ContentSource, SavableContentSource {
 
   @override
   bool canSave(String id) =>
-      parseDsRetreatId(id) != null || parseDsTeacherId(id) != null;
+      parseDsRetreatId(id) != null ||
+      parseDsTeacherId(id) != null ||
+      parseDsTalkId(id) != null;
 
-  (DsSavedKind, int)? _savedTarget(String id) {
-    if (parseDsRetreatId(id) case final retreat?) {
-      return (DsSavedKind.retreat, retreat);
+  @override
+  Future<bool> isSaved(String id) async =>
+      canSave(id) && await library?.contains(id) == true;
+
+  /// "Saving" is adding to the library: a course, a talk or a teacher.
+  @override
+  Future<void> setSaved(String id, {required bool saved}) async {
+    final store = library;
+    if (store == null || !canSave(id)) return;
+    if (!saved) return store.remove(id);
+    final draft = await libraryDraft(id);
+    if (draft != null) await store.add(draft);
+  }
+
+  /// IDs of this kind in the library, most recently added first.
+  Future<List<int>> _savedIds(DsSavedKind kind) async {
+    final entries = await library?.entries() ?? const <LibraryEntry>[];
+    final parse = switch (kind) {
+      DsSavedKind.retreat => parseDsRetreatId,
+      DsSavedKind.teacher => parseDsTeacherId,
+    };
+    return [for (final entry in entries) ?parse(entry.sourceId)];
+  }
+
+  /// How the library describes a Dharma Seed course, talk or teacher: its
+  /// title, artwork, size and whether it is practice or talks. A course or
+  /// talk not stored yet is fetched first (the same on-demand fetch as
+  /// opening it). Null when Dharma Seed does not have it.
+  Future<LibraryDraft?> libraryDraft(String id) async {
+    if (parseDsRetreatId(id) case final retreatId?) {
+      await _fetch(() => sync?.ensureRetreatTalks(retreatId));
+      final retreat = await db.retreatById(retreatId);
+      if (retreat == null) return null;
+      final talks = await db.talksOfRetreat(retreatId);
+      final lead = (await db.leadTeacherOfRetreats([retreatId]))[retreatId];
+      final leadTeacher = lead == null ? null : await db.teacherById(lead);
+      final group = await db.retreatGroup(retreatId);
+      return LibraryDraft(
+        sourceId: id,
+        kind: LibraryKind.course,
+        title: retreat.name,
+        group: group == DsContentGroup.talks
+            ? LibraryGroup.talks
+            : LibraryGroup.practice,
+        subtitle: retreatSubtitle(retreat, leadTeacher),
+        coverUrl: teacherPhoto(leadTeacher),
+        itemCount: talks.isEmpty
+            ? DharmaSeedDatabase.talkIdsOf(retreat).length
+            : talks.length,
+        durationMs: talks.fold(0, (sum, t) => sum + t.durationMs),
+      );
     }
-    if (parseDsTeacherId(id) case final teacher?) {
-      return (DsSavedKind.teacher, teacher);
+    if (parseDsTalkId(id) case final talkId?) {
+      var talk = await db.talkById(talkId);
+      if (talk == null) {
+        await _fetch(() => sync?.ensureTalk(talkId));
+        talk = await db.talkById(talkId);
+      }
+      if (talk == null) return null;
+      final teacher = talk.teacherId == null
+          ? null
+          : await db.teacherById(talk.teacherId!);
+      final hit = DsTalkWithTeacher(talk, teacher);
+      return LibraryDraft(
+        sourceId: id,
+        kind: LibraryKind.single,
+        title: talk.title,
+        group: DharmaSeedKind.fromRecordingType(talk.recordingType).isPractice
+            ? LibraryGroup.practice
+            : LibraryGroup.talks,
+        subtitle: talkSubtitle(hit),
+        coverUrl: teacherPhoto(teacher),
+        durationMs: talk.durationMs,
+      );
+    }
+    if (parseDsTeacherId(id) case final teacherId?) {
+      await _fetch(() => sync?.ensureTeacher(teacherId));
+      final teacher = await db.teacherById(teacherId);
+      if (teacher == null) return null;
+      final count = (await db.talkCounts([teacherId]))[teacherId] ?? 0;
+      return LibraryDraft(
+        sourceId: id,
+        kind: LibraryKind.teacher,
+        title: teacher.name,
+        subtitle: count == 0 ? '' : '$count ${count == 1 ? 'talk' : 'talks'}',
+        coverUrl: teacherPhoto(teacher),
+        itemCount: count,
+      );
     }
     return null;
   }
 
-  @override
-  Future<bool> isSaved(String id) async {
-    final target = _savedTarget(id);
-    return target == null ? false : db.isSaved(target.$1, target.$2);
-  }
+  /// Fetches one teacher ahead of the background queue, for an import.
+  Future<void> ensureTeacher(int teacherId) =>
+      _fetch(() => sync?.ensureTeacher(teacherId));
 
   @override
-  Future<void> setSaved(String id, {required bool saved}) async {
-    final target = _savedTarget(id);
-    if (target != null) await db.setSaved(target.$1, target.$2, saved: saved);
+  Future<String?> parentOf(String trackId) async {
+    final talkId = parseDsTalkId(trackId);
+    if (talkId == null) return null;
+    final retreat = (await db.talkById(talkId))?.retreatId;
+    return retreat == null || retreat == 0 ? null : dsRetreatId(retreat);
   }
 
   // ------------------------------------------------- Dharma Seed screens
@@ -176,34 +270,29 @@ class DharmaSeedSource implements ContentSource, SavableContentSource {
   /// the latest single sessions.
   Future<DsExplore> explore({DsContentGroup? group}) =>
       _quietly('explore', () async {
-        final saved = group == null
-            ? await db.retreatsById(await db.savedIds(DsSavedKind.retreat))
-            : const <DsRetreat>[];
-        final savedIds = {for (final r in saved) r.id};
+        // Courses in the library are shown by the Explore screen itself, so
+        // they stay visible under any chip; here they are only left out of
+        // the browse list to avoid showing them twice.
+        final savedIds = {...await _savedIds(DsSavedKind.retreat)};
         final recent = await db.recentRetreatsOf(group, limit: browseLimit);
         final courses = [
           for (final r in recent)
             if (!savedIds.contains(r.id)) r,
         ];
         final leads = await db.leadTeacherOfRetreats([
-          ...saved.map((r) => r.id),
           ...courses.map((r) => r.id),
         ]);
         final leadTeachers = await db.teachersById(leads.values);
         PackItemsModel course(DsRetreat r) =>
             retreatItem(r, leadTeachers[leads[r.id]]);
 
-        final savedTeacherIds = group == null
-            ? await db.savedIds(DsSavedKind.teacher)
-            : const <int>[];
-        final savedTeachers = (await db.teachersById(
-          savedTeacherIds,
-        )).values.toList()
-          ..sort(
-            (a, b) => savedTeacherIds
-                .indexOf(a.id)
-                .compareTo(savedTeacherIds.indexOf(b.id)),
-          );
+        final savedTeacherIds = await _savedIds(DsSavedKind.teacher);
+        final savedTeachers =
+            (await db.teachersById(savedTeacherIds)).values.toList()..sort(
+              (a, b) => savedTeacherIds
+                  .indexOf(a.id)
+                  .compareTo(savedTeacherIds.indexOf(b.id)),
+            );
         final top = await db.topTeachers(group: group, limit: 20);
         final savedSet = {for (final t in savedTeachers) t.id};
 
@@ -212,7 +301,6 @@ class DharmaSeedSource implements ContentSource, SavableContentSource {
             : await db.recentTalks(filter: DsTalkFilter(group: group));
 
         return DsExplore(
-          saved: [for (final r in saved) course(r)],
           courses: [for (final r in courses) course(r)],
           savedTeachers: [for (final t in savedTeachers) teacherItem(t)],
           teachers: [
@@ -233,31 +321,29 @@ class DharmaSeedSource implements ContentSource, SavableContentSource {
   /// Search over the local index, grouped: teachers lead (a talk quoting a
   /// teacher outranks the teacher's own talks otherwise), then courses, then
   /// talks, which alone honour [length].
-  Future<DsSearchResults> search(String query, {SessionLength? length}) =>
-      _quietly('search', () async {
-        final teachers = await db.searchTeachers(query, limit: 8);
-        final retreats = await db.searchRetreats(query, limit: 12);
-        final talks = await db.searchTalks(
-          query,
-          filter: DsTalkFilter(
-            minDuration: length?.min,
-            maxDuration: length?.max,
-          ),
-        );
-        final counts = await db.talkCounts(teachers.map((t) => t.id));
-        final leads = await db.leadTeacherOfRetreats(retreats.map((r) => r.id));
-        final leadTeachers = await db.teachersById(leads.values);
-        return DsSearchResults(
-          teachers: [
-            for (final t in teachers)
-              teacherItem(t, talkCount: counts[t.id] ?? 0),
-          ],
-          courses: [
-            for (final r in retreats) retreatItem(r, leadTeachers[leads[r.id]]),
-          ],
-          talks: [for (final t in talks) talkItem(t)],
-        );
-      }, orElse: const DsSearchResults());
+  Future<DsSearchResults> search(
+    String query, {
+    SessionLength? length,
+  }) => _quietly('search', () async {
+    final teachers = await db.searchTeachers(query, limit: 8);
+    final retreats = await db.searchRetreats(query, limit: 12);
+    final talks = await db.searchTalks(
+      query,
+      filter: DsTalkFilter(minDuration: length?.min, maxDuration: length?.max),
+    );
+    final counts = await db.talkCounts(teachers.map((t) => t.id));
+    final leads = await db.leadTeacherOfRetreats(retreats.map((r) => r.id));
+    final leadTeachers = await db.teachersById(leads.values);
+    return DsSearchResults(
+      teachers: [
+        for (final t in teachers) teacherItem(t, talkCount: counts[t.id] ?? 0),
+      ],
+      courses: [
+        for (final r in retreats) retreatItem(r, leadTeachers[leads[r.id]]),
+      ],
+      talks: [for (final t in talks) talkItem(t)],
+    );
+  }, orElse: const DsSearchResults());
 
   /// A teacher's page, or [CatalogueEntryUnavailable] when they are not
   /// stored (yet).

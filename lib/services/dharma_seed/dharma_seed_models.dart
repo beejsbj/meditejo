@@ -27,11 +27,11 @@ class DsTeacherItem {
 }
 
 /// What the Explore tab shows for one content group (or both when null).
-/// Courses are retreats; talks are singles, as session rows.
+/// Courses are retreats; talks are singles, as session rows. Courses the user
+/// has added to the library are left out: the library lists them itself.
 @immutable
 class DsExplore {
   const DsExplore({
-    this.saved = const [],
     this.courses = const [],
     this.teachers = const [],
     this.talks = const [],
@@ -39,7 +39,6 @@ class DsExplore {
     this.hasCatalogue = false,
   });
 
-  final List<PackItemsModel> saved;
   final List<PackItemsModel> courses;
   final List<DsTeacherItem> teachers;
   final List<DsTeacherItem> savedTeachers;
@@ -50,7 +49,10 @@ class DsExplore {
   final bool hasCatalogue;
 
   bool get isEmpty =>
-      saved.isEmpty && courses.isEmpty && teachers.isEmpty && talks.isEmpty;
+      courses.isEmpty &&
+      teachers.isEmpty &&
+      savedTeachers.isEmpty &&
+      talks.isEmpty;
 }
 
 /// Grouped search results: teachers first, then courses, then talks.

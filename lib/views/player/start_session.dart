@@ -11,12 +11,14 @@ import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/utils/logger.dart';
+import 'package:medito/utils/resume_request.dart';
 import 'package:medito/utils/track_variant_selector.dart';
 import 'package:medito/views/player/player_view.dart';
 
 /// Gets the user into [trackId] as fast as possible: straight into the player
-/// with their preferred guide and duration when both are known, otherwise via
-/// the track screen so they can pick. Shared by Up Next and the pack screen's
+/// when the track has nothing to choose or their preferred guide and duration
+/// are known (resuming where they left off), otherwise via the track screen so
+/// they can pick. Shared by Up Next and the pack screen's
 /// Your Path button so both start sessions the same way.
 Future<void> startSession(
   BuildContext context,
@@ -27,22 +29,28 @@ Future<void> startSession(
   final guideName = ref.read(guideNamePreferenceProvider);
   final preferredDuration = ref.read(durationPreferenceProvider);
 
-  if (guideName == null || preferredDuration == null) {
-    handleNavigation(TypeConstants.track, [trackId, path], context, ref: ref);
-    return;
-  }
-
   try {
     final track = await ref.read(tracksProvider(trackId: trackId).future);
-    final selection = TrackVariantSelector.resolve(
-      track,
-      guideName: guideName,
-      durationMs: preferredDuration,
-    );
-    final request = PlaybackRequest.fromTrack(
-      track,
-      selection.voice,
-      selection.file,
+    // A recording with one voice and one file has nothing to choose, so it
+    // plays at once; only a track with real choices and no remembered
+    // preference opens its page first.
+    final onlyChoice =
+        track.voices.length == 1 && track.voices.first.audioFiles.length == 1;
+    if (!onlyChoice && (guideName == null || preferredDuration == null)) {
+      if (!context.mounted) return;
+      handleNavigation(TypeConstants.track, [trackId, path], context, ref: ref);
+      return;
+    }
+    final selection = onlyChoice
+        ? (voice: track.voices.first, file: track.voices.first.audioFiles.first)
+        : TrackVariantSelector.resolve(
+            track,
+            guideName: guideName,
+            durationMs: preferredDuration,
+          );
+    final request = await withResumePosition(
+      ref,
+      PlaybackRequest.fromTrack(track, selection.voice, selection.file),
     );
     if (!context.mounted) return;
     // Prepare + open the player immediately; PlayerView starts playback and

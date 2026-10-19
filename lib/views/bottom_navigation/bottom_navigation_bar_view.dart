@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/utils/logger.dart';
@@ -15,6 +16,7 @@ import 'package:medito/utils/pending_end_screen.dart';
 import 'package:medito/views/end_screen/end_screen_view.dart';
 import 'package:medito/views/bottom_navigation/widgets/medito_nav_bar.dart';
 import 'package:medito/views/explore/widgets/explore_view.dart';
+import 'package:medito/views/library/share_intake_host.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/search/search_view.dart';
 import 'package:medito/views/settings/settings_screen.dart';
@@ -58,12 +60,28 @@ class _BottomNavigationBarViewState
     ];
 
     _initializeStats();
+    _trackPlaybackPositions();
     // Completions replayed by the platform after launch arrive late (Android
     // pushes them from onResume), so listen as well as check now.
     PendingEndScreen.completions.addListener(_restorePendingEndScreen);
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _restorePendingEndScreen(),
     );
+  }
+
+  /// Remembers where the user is in each session, for Resume.
+  void _trackPlaybackPositions() {
+    final tracker = ref.read(playbackPositionTrackerProvider);
+    ref.listenManual(audioStateProvider, (_, state) {
+      tracker.onState(
+        trackId: state.track.id,
+        fileId: state.track.fileId,
+        positionMs: state.position,
+        durationMs: state.duration,
+        isPlaying: state.isPlaying,
+        isCompleted: state.isCompleted,
+      );
+    });
   }
 
   @override
@@ -136,58 +154,60 @@ class _BottomNavigationBarViewState
             ? Brightness.light
             : Brightness.dark,
       ),
-      child: PopScope(
-        canPop: _currentPageIndex == _homeIndex,
-        onPopInvokedWithResult: (didPop, _) {
-          if (didPop) return;
-          _onDestinationSelected(_homeIndex);
-        },
-        child: Scaffold(
-          // The nav bar is lifted to sit just above the keyboard (via the
-          // bottom-inset padding below) rather than hiding behind it, so a tap
-          // aimed at the Search tab hits the icon instead of the keyboard's
-          // spacebar. resizeToAvoidBottomInset stays false so the Scaffold
-          // doesn't also inset the body — padding the bar already reserves the
-          // keyboard's height, shrinking the body to sit above it.
-          resizeToAvoidBottomInset: false,
-          bottomNavigationBar: wide
-              ? null
-              : Padding(
-                  padding: EdgeInsets.only(bottom: keyboardInset),
-                  // While the keyboard is open the bar sits directly on top of it, so
-                  // drop the bar's bottom safe-area (home-indicator) inset — otherwise
-                  // it leaves a gap between the tabs and the keyboard.
-                  child: MediaQuery.removePadding(
-                    context: context,
-                    removeBottom: keyboardOpen,
-                    child: MeditoNavBar(
+      child: ShareIntakeHost(
+        child: PopScope(
+          canPop: _currentPageIndex == _homeIndex,
+          onPopInvokedWithResult: (didPop, _) {
+            if (didPop) return;
+            _onDestinationSelected(_homeIndex);
+          },
+          child: Scaffold(
+            // The nav bar is lifted to sit just above the keyboard (via the
+            // bottom-inset padding below) rather than hiding behind it, so a tap
+            // aimed at the Search tab hits the icon instead of the keyboard's
+            // spacebar. resizeToAvoidBottomInset stays false so the Scaffold
+            // doesn't also inset the body — padding the bar already reserves the
+            // keyboard's height, shrinking the body to sit above it.
+            resizeToAvoidBottomInset: false,
+            bottomNavigationBar: wide
+                ? null
+                : Padding(
+                    padding: EdgeInsets.only(bottom: keyboardInset),
+                    // While the keyboard is open the bar sits directly on top of it, so
+                    // drop the bar's bottom safe-area (home-indicator) inset — otherwise
+                    // it leaves a gap between the tabs and the keyboard.
+                    child: MediaQuery.removePadding(
+                      context: context,
+                      removeBottom: keyboardOpen,
+                      child: MeditoNavBar(
+                        selectedIndex: _currentPageIndex,
+                        onSelected: _onDestinationSelected,
+                        items: items,
+                      ),
+                    ),
+                  ),
+            body: Padding(
+              padding: EdgeInsets.only(bottom: wide ? keyboardInset : 0),
+              child: Row(
+                children: [
+                  if (wide)
+                    MeditoSidebar(
+                      extended: width >= 1100,
+                      items: items,
                       selectedIndex: _currentPageIndex,
                       onSelected: _onDestinationSelected,
-                      items: items,
+                    ),
+                  Expanded(
+                    key: const ValueKey('main-content'),
+                    child: AdaptiveContent(
+                      child: IndexedStack(
+                        index: _currentPageIndex,
+                        children: _pages,
+                      ),
                     ),
                   ),
-                ),
-          body: Padding(
-            padding: EdgeInsets.only(bottom: wide ? keyboardInset : 0),
-            child: Row(
-              children: [
-                if (wide)
-                  MeditoSidebar(
-                    extended: width >= 1100,
-                    items: items,
-                    selectedIndex: _currentPageIndex,
-                    onSelected: _onDestinationSelected,
-                  ),
-                Expanded(
-                  key: const ValueKey('main-content'),
-                  child: AdaptiveContent(
-                    child: IndexedStack(
-                      index: _currentPageIndex,
-                      children: _pages,
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

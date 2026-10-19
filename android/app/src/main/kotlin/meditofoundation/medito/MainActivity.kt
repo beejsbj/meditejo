@@ -5,7 +5,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
+import java.io.File
 import androidx.media3.common.util.UnstableApi
 import com.ryanheise.audioservice.AudioServicePlugin
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -15,6 +18,8 @@ import io.flutter.embedding.engine.FlutterEngineCache
 import io.flutter.plugins.GeneratedPluginRegistrant
 import io.flutter.plugin.common.MethodChannel
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -43,6 +48,12 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
     private var meditoAudioApi: MeditoAudioServiceCallbackApi? = null
     private val activityJob = SupervisorJob()
     private val activityScope = CoroutineScope(Dispatchers.Main + activityJob)
+
+    // Links and audio shared into the app ("Share → Meditejo"). The share that
+    // started the app is read once (audio is copied to the cache off the main
+    // thread) and handed to Dart when it asks; later shares are pushed.
+    private var shareChannel: MethodChannel? = null
+    private var initialShare: Deferred<Map<String, Any?>?>? = null
 
     private val healthConnectBridge by lazy { HealthConnectBridge(this, activityScope) }
     private val healthConnectPermissionLauncher = registerForActivityResult(
@@ -83,6 +94,29 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
         healthConnectBridge.attachLauncher(healthConnectPermissionLauncher)
         MeditoHealthConnectManager.setUp(flutterEngine.dartExecutor.binaryMessenger, healthConnectBridge)
 
+        shareChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SHARE_CHANNEL).also { channel ->
+            channel.setMethodCallHandler { call, result ->
+                if (call.method == "getInitial") {
+                    val pending = initialShare
+                    initialShare = null
+                    if (pending == null) {
+                        result.success(null)
+                    } else {
+                        activityScope.launch {
+                            try {
+                                result.success(pending.await())
+                            } catch (e: Exception) {
+                                println("❌ [Share] Could not read the shared content: ${e.message}")
+                                result.success(null)
+                            }
+                        }
+                    }
+                } else {
+                    result.notImplemented()
+                }
+            }
+        }
+
         meditoAudioApi = MeditoAudioServiceCallbackApi(flutterEngine.dartExecutor.binaryMessenger)
         checkAndSendCompletionData()
         
@@ -120,6 +154,12 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
+        // Only the first creation carries a fresh share; a recreated activity
+        // (rotation) still holds the old intent.
+        if (savedInstanceState == null) {
+            val startIntent = intent
+            initialShare = activityScope.async(Dispatchers.IO) { readShare(startIntent) }
+        }
         super.onCreate(savedInstanceState)
         
         val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
@@ -134,6 +174,123 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
     override fun onResume() {
         super.onResume()
         checkAndSendCompletionData()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        activityScope.launch {
+            val share = withContext(Dispatchers.IO) { readShare(intent) }
+            if (share != null) {
+                shareChannel?.invokeMethod("onShare", share)
+            }
+        }
+    }
+
+    /**
+     * What an intent shares: text (a link) or audio, as a map for Dart. Audio
+     * is copied into the cache because the sender's permission to read the
+     * content URI ends with the share. Returns null for anything else.
+     */
+    @Suppress("DEPRECATION")
+    private fun readShare(intent: Intent?): Map<String, Any?>? {
+        if (intent == null) return null
+        val type = intent.type ?: ""
+        try {
+            cleanSharedCache()
+            when (intent.action) {
+                Intent.ACTION_SEND -> {
+                    if (type.startsWith("audio/")) {
+                        val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM) ?: return null
+                        val file = copySharedAudio(uri, type, longArrayOf(MAX_SHARED_TOTAL_BYTES)) ?: return null
+                        return mapOf("files" to listOf(file))
+                    }
+                    // Some apps put a styled CharSequence here, not a String.
+                    val text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()
+                    return if (text.isNullOrBlank()) null else mapOf("text" to text)
+                }
+                Intent.ACTION_SEND_MULTIPLE -> {
+                    val uris = intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM) ?: return null
+                    val budget = longArrayOf(MAX_SHARED_TOTAL_BYTES)
+                    val files = uris.mapNotNull {
+                        try {
+                            copySharedAudio(it, type, budget)
+                        } catch (e: Exception) {
+                            println("❌ [Share] Skipped one shared file: ${e.message}")
+                            null
+                        }
+                    }
+                    return if (files.isEmpty()) null else mapOf("files" to files)
+                }
+            }
+        } catch (e: Exception) {
+            println("❌ [Share] Could not read the shared content: ${e.message}")
+        }
+        return null
+    }
+
+    private fun copySharedAudio(uri: Uri, mimeType: String, budget: LongArray): Map<String, Any?>? {
+        // Only a content URI another app granted us. A file: URI would let any
+        // app have us copy files only we can read, and our own provider's URIs
+        // are never something to import.
+        if (uri.scheme != "content" || uri.authority?.startsWith(packageName) == true) {
+            println("❌ [Share] Ignored a shared URI that is not a granted content URI")
+            return null
+        }
+        val name = sharedDisplayName(uri) ?: "shared-audio"
+        val folder = File(cacheDir, SHARED_CACHE_DIR).apply { mkdirs() }
+        val safeName = name.replace(Regex("[^A-Za-z0-9._ -]"), "_")
+        val target = File(folder, "${System.currentTimeMillis()}-$safeName")
+        val input = contentResolver.openInputStream(uri) ?: return null
+        try {
+            input.use { source ->
+                target.outputStream().use { sink ->
+                    // Count the bytes actually read; a provider's own size is
+                    // only a claim.
+                    val buffer = ByteArray(64 * 1024)
+                    var copied = 0L
+                    while (true) {
+                        val read = source.read(buffer)
+                        if (read < 0) break
+                        copied += read
+                        budget[0] -= read
+                        if (copied > MAX_SHARED_FILE_BYTES || budget[0] < 0) {
+                            throw java.io.IOException("Shared audio is too large")
+                        }
+                        sink.write(buffer, 0, read)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            target.delete()
+            throw e
+        }
+        return mapOf(
+            "path" to target.absolutePath,
+            "name" to name,
+            "mimeType" to mimeType,
+            "size" to target.length(),
+        )
+    }
+
+    private fun sharedDisplayName(uri: Uri): String? {
+        if (uri.scheme == "content") {
+            contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val name = cursor.getString(0)
+                    if (!name.isNullOrBlank()) return name
+                }
+            }
+        }
+        return uri.lastPathSegment
+    }
+
+    /** Shared copies the app never imported are not kept past a day. */
+    private fun cleanSharedCache() {
+        val cutoff = System.currentTimeMillis() - 24L * 60 * 60 * 1000
+        File(cacheDir, SHARED_CACHE_DIR).listFiles()?.forEach { file ->
+            if (file.lastModified() < cutoff) file.delete()
+        }
     }
 
     override fun onDestroy() {
@@ -366,6 +523,10 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
 
 
     companion object {
+        const val SHARE_CHANNEL = "meditejo/share"
+        const val SHARED_CACHE_DIR = "shared_audio"
+        const val MAX_SHARED_FILE_BYTES = 1024L * 1024 * 1024
+        const val MAX_SHARED_TOTAL_BYTES = 2L * 1024 * 1024 * 1024
         const val ENGINE_ID = "medito_flutter_engine"
         const val REMINDER_CHANNEL_ID = "medito_reminder_channel"
         const val NEWS_CHANNEL_ID = "medito_news_channel"

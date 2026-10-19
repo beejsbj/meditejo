@@ -16,7 +16,10 @@ import 'package:medito/repositories/home/home_repository.dart';
 import 'package:medito/repositories/pack/packs_repository.dart';
 import 'package:medito/repositories/track/track_repository.dart';
 import 'package:medito/services/local_catalogue.dart';
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../helpers/library_fixtures.dart';
 
 const _track = Track(
   id: 'lib-session',
@@ -65,11 +68,18 @@ class _FailingCatalogue extends LocalCatalogue {
 }
 
 void main() {
+  final libraryDb = memoryLibraryDb();
+  tearDownAll(libraryDb.close);
+
   Future<ProviderContainer> containerWith(Map<String, Object> values) async {
     SharedPreferences.setMockInitialValues(values);
     final prefs = await SharedPreferences.getInstance();
     final container = ProviderContainer(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        // A `lib-` ID reaches the imports source, which reads this database.
+        libraryDatabaseProvider.overrideWithValue(libraryDb),
+      ],
     );
     addTearDown(container.dispose);
     container.listen(trackRepositoryProvider, (_, _) {});

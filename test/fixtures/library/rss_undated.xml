@@ -1,0 +1,5 @@
+<rss version="2.0"><channel><title>No dates</title>
+  <item><title>Newest</title><enclosure url="https://cdn.example.org/c.mp3" type="audio/mpeg"/></item>
+  <item><title>Middle</title><enclosure url="https://cdn.example.org/b.mp3" type="audio/mpeg"/></item>
+  <item><title>Oldest</title><enclosure url="https://cdn.example.org/a.mp3" type="audio/mpeg"/></item>
+</channel></rss>

@@ -783,6 +783,33 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
     return _withTeachers([for (final row in rows) dsTalks.map(row.data)]);
   }
 
+  /// Saves from before the library existed, oldest first, with their time.
+  Future<List<DsSavedItem>> savedItems() =>
+      (select(dsSaved)..orderBy([
+            (s) => OrderingTerm.asc(s.savedAt),
+            (s) => OrderingTerm.asc(s.rowId),
+          ]))
+          .get();
+
+  /// Whether a stored retreat is mostly practice or mostly talks, by the
+  /// same half-or-more rule the Explore chips use. Null when none of its
+  /// talks are stored yet.
+  Future<DsContentGroup?> retreatGroup(int retreatId) async {
+    final types = dsPracticeRecordingTypes.map((t) => "'$t'").join(',');
+    final row = await customSelect(
+      'SELECT COUNT(*) AS n, COALESCE(SUM(CASE WHEN '
+      "lower(trim(recording_type)) IN ($types) THEN 1 ELSE 0 END), 0) AS p "
+      'FROM ds_talks WHERE retreat_id = ?',
+      variables: [Variable.withInt(retreatId)],
+      readsFrom: {dsTalks},
+    ).getSingle();
+    final n = row.read<int>('n');
+    if (n == 0) return null;
+    return row.read<int>('p') * 2 >= n
+        ? DsContentGroup.practice
+        : DsContentGroup.talks;
+  }
+
   Future<bool> isSaved(DsSavedKind kind, int id) async =>
       (await (select(dsSaved)
             ..where((s) => s.kind.equals(kind.name) & s.itemId.equals(id)))

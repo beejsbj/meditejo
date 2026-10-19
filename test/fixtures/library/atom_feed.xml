@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Dhamma Notes</title>
+  <subtitle>Short talks &amp; readings</subtitle>
+  <link rel="alternate" href="https://example.net/"/>
+  <link rel="self" href="https://example.net/feed.atom"/>
+  <link rel="license" href="https://creativecommons.org/licenses/by-nc-nd/3.0/"/>
+  <logo>https://example.net/logo.png</logo>
+  <rights>Free to share</rights>
+  <author><name>Ayya Example</name></author>
+  <id>tag:example.net,2025:feed</id>
+  <entry>
+    <title>Note two</title>
+    <id>tag:example.net,2025:2</id>
+    <published>2025-03-02T08:00:00Z</published>
+    <summary>The second note.</summary>
+    <link rel="alternate" href="https://example.net/2"/>
+    <link rel="enclosure" type="audio/mpeg" href="https://example.net/audio/2.mp3" length="1234"/>
+  </entry>
+  <entry>
+    <title>Note one</title>
+    <id>tag:example.net,2025:1</id>
+    <updated>2025-03-01T08:00:00+01:00</updated>
+    <content type="html">&lt;p&gt;The first note.&lt;/p&gt;</content>
+    <author><name>Guest Voice</name></author>
+    <link rel="enclosure" type="audio/ogg" href="/audio/1.ogg"/>
+  </entry>
+  <entry>
+    <title>Text only</title>
+    <id>tag:example.net,2025:0</id>
+    <updated>2025-02-01T08:00:00Z</updated>
+  </entry>
+</feed>

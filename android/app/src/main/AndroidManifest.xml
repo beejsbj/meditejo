@@ -87,6 +87,24 @@
                 <data android:host="meditejo" />
             </intent-filter>
 
+            <!-- Share target: "Share → Meditejo" with a link (browser, podcast
+                 app) or audio (file manager, voice recorder). -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="audio/*" />
+            </intent-filter>
+
             <!-- Health Connect: shown when the user taps "About this permission" -->
             <intent-filter>
                 <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />

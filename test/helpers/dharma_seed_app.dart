@@ -14,13 +14,17 @@ import 'package:medito/providers/meditation/downloaded_track_ids_provider.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/routes/routes.dart';
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
+import 'package:medito/services/library/library_database.dart';
+import 'package:medito/services/library/library_store.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_sync.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'dharma_seed_catalogue.dart';
 import 'dharma_seed_fake_api.dart';
+import 'library_fixtures.dart';
 
 class _Stats extends StatsNotifier {
   _Stats(this.checked);
@@ -36,11 +40,21 @@ class _Stats extends StatsNotifier {
 /// theme, localisations and navigator, so screens can be driven end to end:
 /// a tap on a row really opens the next page.
 class DharmaSeedTestApp {
-  DharmaSeedTestApp._(this.db, this.source, this.prefs);
+  DharmaSeedTestApp._(
+    this.db,
+    this.source,
+    this.prefs,
+    this.libraryDb,
+    this.library,
+  );
 
   final DharmaSeedDatabase db;
   final DharmaSeedSource source;
   final SharedPreferences prefs;
+
+  /// The user's library, over its own in-memory database.
+  final LibraryDatabase libraryDb;
+  final LibraryStore library;
 
   /// Creates the database (seeded with the shared catalogue unless
   /// [seed] is false) and registers its disposal.
@@ -67,18 +81,24 @@ class DharmaSeedTestApp {
       scratch.deleteSync(recursive: true);
     });
     late DharmaSeedDatabase db;
+    late LibraryDatabase libraryDb;
     late SharedPreferences preferences;
     await tester.runAsync(() async {
       db = memoryDharmaSeedDb();
+      libraryDb = memoryLibraryDb();
       if (seed) await seedDharmaSeedCatalogue(db);
       SharedPreferences.setMockInitialValues(prefs);
       preferences = await SharedPreferences.getInstance();
     });
     addTearDown(() => tester.runAsync(db.close));
+    addTearDown(() => tester.runAsync(libraryDb.close));
+    final library = LibraryStore(libraryDb);
     return DharmaSeedTestApp._(
       db,
-      DharmaSeedSource(db: db, browseLimit: 10),
+      DharmaSeedSource(db: db, library: library, browseLimit: 10),
       preferences,
+      libraryDb,
+      library,
     );
   }
 
@@ -106,6 +126,8 @@ class DharmaSeedTestApp {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           dharmaSeedSourceProvider.overrideWithValue(withSource ?? source),
+          libraryDatabaseProvider.overrideWithValue(libraryDb),
+          libraryStoreProvider.overrideWithValue(library),
           // Never contacted: only here so nothing builds a real client.
           dharmaSeedSyncProvider.overrideWithValue(
             DharmaSeedSync(

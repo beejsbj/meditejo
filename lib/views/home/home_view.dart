@@ -17,6 +17,7 @@ import 'package:medito/widgets/adaptive/adaptive_home_sections.dart';
 import 'home_styles.dart';
 import 'widgets/editorial/carousel_widget.dart';
 import 'widgets/header/home_hero.dart';
+import 'widgets/library/home_library_section.dart';
 import 'widgets/quote/quote_widget.dart';
 import 'widgets/shortcuts/shortcuts_items_widget.dart';
 import 'widgets/up_next/up_next_widget.dart';
@@ -73,6 +74,7 @@ class _HomeViewState extends ConsumerState<HomeView>
                     : _buildSection(heroType, homeData, inHero: true),
               ),
               const SliverToBoxAdapter(child: UpdateNotice()),
+              const SliverToBoxAdapter(child: HomeLibrarySection()),
               SliverToBoxAdapter(child: _buildLocalActions(context)),
               SliverToBoxAdapter(
                 child: AdaptiveHomeSections(

@@ -31,7 +31,6 @@ dependencies:
   audio_service: ^0.18.18
   audio_session: ^0.2.3
   cached_network_image: ^3.4.1
-  crypto: ^3.0.7
   device_info_plus: ^12.3.0
   disable_battery_optimization: ^1.1.2
   do_not_disturb: ^1.0.3
@@ -67,6 +66,10 @@ dependencies:
   drift: ^2.31.0
   drift_flutter: ^0.2.8
   http: ^1.6.0
+  xml: ^6.6.1
+  crypto: ^3.0.7
+  file_picker: ^11.0.3
+  path: ^1.9.1
 
 dev_dependencies:
   flutter_test:

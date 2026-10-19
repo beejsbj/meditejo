@@ -1631,10 +1631,10 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get courseSave => 'Guardar curso';
+  String get courseSave => 'Añadir a la biblioteca';
 
   @override
-  String get courseSaved => 'Guardado';
+  String get courseSaved => 'En la biblioteca';
 
   @override
   String get courseSessionsTab => 'Sesiones';
@@ -1662,7 +1662,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get teacherSave => 'Guardar docente';
+  String get teacherSave => 'Añadir a la biblioteca';
 
   @override
   String get teacherCourses => 'Cursos';
@@ -1814,4 +1814,262 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get homeUpdateDismiss => 'Cerrar';
+
+  @override
+  String get libraryTitle => 'Tu biblioteca';
+
+  @override
+  String get libraryAdd => 'Añadir';
+
+  @override
+  String get libraryPractice => 'Práctica';
+
+  @override
+  String get libraryTalks => 'Charlas';
+
+  @override
+  String get libraryTeachers => 'Maestros';
+
+  @override
+  String get librarySeeAll => 'Ver todo';
+
+  @override
+  String get libraryEmptyTitle => 'Tu biblioteca está vacía';
+
+  @override
+  String get libraryEmptyBody =>
+      'Añade un curso, una charla o una grabación desde un enlace o un archivo.';
+
+  @override
+  String get libraryEmptyHome =>
+      'Pega un enlace, compártelo desde otra app o elige un archivo.';
+
+  @override
+  String get libraryMoveToPractice => 'Mover a Práctica';
+
+  @override
+  String get libraryMoveToTalks => 'Mover a Charlas';
+
+  @override
+  String get libraryRename => 'Renombrar';
+
+  @override
+  String get libraryRemove => 'Quitar de la biblioteca';
+
+  @override
+  String get libraryRemoveTitle => '¿Quitar de tu biblioteca?';
+
+  @override
+  String get libraryRemoveImported =>
+      'El audio copiado a este dispositivo se eliminará.';
+
+  @override
+  String get libraryRemoveCatalogue =>
+      'Seguirá en Explorar y podrás añadirlo de nuevo.';
+
+  @override
+  String get libraryRenameTitle => 'Renombrar';
+
+  @override
+  String get libraryRenameHint => 'Nombre en tu biblioteca';
+
+  @override
+  String get libraryRenameSave => 'Guardar';
+
+  @override
+  String librarySessions(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sesiones',
+      one: '1 sesión',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get libraryAddedSnack => 'Añadido a tu biblioteca';
+
+  @override
+  String get libraryAlreadyIn => 'Ya está en tu biblioteca';
+
+  @override
+  String get libraryOpen => 'Abrir';
+
+  @override
+  String get libraryRemovedSnack => 'Quitado de tu biblioteca';
+
+  @override
+  String get libraryAddToLibrary => 'Añadir a la biblioteca';
+
+  @override
+  String get libraryInLibrary => 'En la biblioteca';
+
+  @override
+  String libraryResumeAt(String position) {
+    return 'Reanudar en $position';
+  }
+
+  @override
+  String get importTitle => 'Añadir a tu biblioteca';
+
+  @override
+  String get importFieldHint => 'Pega un enlace';
+
+  @override
+  String get importHelp =>
+      'Páginas de Dharma Seed, feeds de podcast, enlaces de audio o archivos de tu teléfono.';
+
+  @override
+  String get importPaste => 'Pegar';
+
+  @override
+  String get importPreviewAction => 'Vista previa';
+
+  @override
+  String importClipboard(String host) {
+    return 'Enlace en el portapapeles: $host';
+  }
+
+  @override
+  String get importUseClipboard => 'Usar';
+
+  @override
+  String get importChooseFiles => 'Elegir archivos';
+
+  @override
+  String get importChooseFolder => 'Elegir una carpeta';
+
+  @override
+  String get importLooking => 'Mirando el enlace…';
+
+  @override
+  String get importPrimary => 'Añadir a la biblioteca';
+
+  @override
+  String get importAdding => 'Añadiendo…';
+
+  @override
+  String get importKindCourse => 'Curso';
+
+  @override
+  String get importKindSingle => 'Suelta';
+
+  @override
+  String importCaptionCourseAll(int count) {
+    return 'Los $count episodios, en orden';
+  }
+
+  @override
+  String get importCaptionLatest => 'Solo el último episodio';
+
+  @override
+  String get importCaptionFilesCourse => 'Un curso, en el orden mostrado';
+
+  @override
+  String get importCaptionFilesSingles => 'Cada archivo por separado';
+
+  @override
+  String get importCountsAs => 'Cuenta como';
+
+  @override
+  String get importGroupPractice => 'Práctica';
+
+  @override
+  String get importGroupTalk => 'Charla';
+
+  @override
+  String get importOrderOldest => 'Más antiguo primero';
+
+  @override
+  String get importOrderNewest => 'Más reciente primero';
+
+  @override
+  String importAtLeast(String duration) {
+    return 'al menos $duration';
+  }
+
+  @override
+  String importSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Se omitieron $count elementos sin audio',
+      one: 'Se omitió 1 elemento sin audio',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importInLibraryNote => 'Esto ya está en tu biblioteca.';
+
+  @override
+  String get importDefaultTitle => 'Audio importado';
+
+  @override
+  String get importTitleLabel => 'Nombre';
+
+  @override
+  String get importFailEmpty =>
+      'Pega un enlace o elige un archivo para empezar.';
+
+  @override
+  String get importFailUnrecognised =>
+      'Eso no parece un enlace o archivo que pueda usar. Prueba con una dirección que empiece por https://.';
+
+  @override
+  String get importFailYoutube =>
+      'La compatibilidad con YouTube llegará pronto. Mientras tanto, pega un feed de podcast, un enlace de audio o una página de Dharma Seed.';
+
+  @override
+  String get importFailUnsupportedHost =>
+      'No se pueden importar enlaces de ese servicio. Si es un podcast, busca la dirección de su feed o su página en Apple Podcasts.';
+
+  @override
+  String get importFailOffline =>
+      'No se pudo llegar a esa dirección. Comprueba tu conexión e inténtalo de nuevo.';
+
+  @override
+  String get importFailNotFound =>
+      'No se encontró esa página. Revisa el enlace e inténtalo de nuevo.';
+
+  @override
+  String get importFailUnreachable =>
+      'Ese sitio no pudo darnos lo que pedimos. Inténtalo más tarde.';
+
+  @override
+  String get importFailNoFeed =>
+      'En esa página no encuentro ningún feed de podcast ni archivo de audio. Si tienes la dirección del feed (a menudo termina en .xml o /feed), pégala.';
+
+  @override
+  String get importFailNoEpisodes => 'Este feed no tiene episodios de audio.';
+
+  @override
+  String get importFailBrokenFeed =>
+      'No se pudo leer este feed. Puede estar dañado o no ser un feed de podcast.';
+
+  @override
+  String get importFailDharmaSeed =>
+      'Dharma Seed no lo tiene, o no se pudo conectar ahora.';
+
+  @override
+  String get importFailFile => 'No se encontró ese archivo.';
+
+  @override
+  String get importFailNoAudio => 'No se encontraron archivos de audio allí.';
+
+  @override
+  String get importFailAdd => 'No se pudo añadir. Inténtalo de nuevo.';
+
+  @override
+  String get shareArrived => 'Compartido con Meditejo';
+
+  @override
+  String get exploreLibraryHeading => 'En tu biblioteca';
+
+  @override
+  String get libraryFromStart => 'Desde el principio';
+
+  @override
+  String get libraryCheckNew => 'Buscar episodios nuevos';
 }

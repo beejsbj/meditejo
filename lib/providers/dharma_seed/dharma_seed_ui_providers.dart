@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/models/explore/session_length.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/services/content/content_source.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_models.dart';
@@ -19,23 +20,13 @@ class ExploreGroupNotifier extends Notifier<DsContentGroup?> {
   void toggle(DsContentGroup group) => state = state == group ? null : group;
 }
 
-/// Bumps whenever the user saves or unsaves a course or teacher, so lists
-/// built from saved items re-read.
-final savedRevisionProvider = NotifierProvider<_Counter, int>(_Counter.new);
-
-class _Counter extends Notifier<int> {
-  @override
-  int build() => 0;
-
-  void bump() => state++;
-}
-
 /// Routes saves to the source that owns an ID.
 final contentRouterProvider = Provider<ContentRouter>(
   (ref) => ContentRouter(sources: ref.watch(contentSourcesProvider)),
 );
 
-/// Whether a course or teacher is saved, with an optimistic toggle.
+/// Whether a course, talk or teacher is in the library, with an optimistic
+/// toggle.
 final savedProvider = AsyncNotifierProvider.autoDispose
     .family<SavedNotifier, bool, String>(SavedNotifier.new);
 
@@ -45,7 +36,11 @@ class SavedNotifier extends AsyncNotifier<bool> {
   final String id;
 
   @override
-  Future<bool> build() => ref.read(contentRouterProvider).isSaved(id);
+  Future<bool> build() {
+    // Re-read when the library changes elsewhere (a removal from its screen).
+    ref.watch(libraryRevisionProvider);
+    return ref.read(contentRouterProvider).isSaved(id);
+  }
 
   Future<void> toggle() async {
     final saved = !(state.value ?? false);
@@ -54,9 +49,7 @@ class SavedNotifier extends AsyncNotifier<bool> {
       await ref.read(contentRouterProvider).setSaved(id, saved: saved);
     } catch (_) {
       if (ref.mounted) state = AsyncData(!saved);
-      return;
     }
-    if (ref.mounted) ref.read(savedRevisionProvider.notifier).bump();
   }
 }
 
@@ -65,7 +58,7 @@ class SavedNotifier extends AsyncNotifier<bool> {
 final dharmaSeedExploreProvider = FutureProvider.autoDispose
     .family<DsExplore, DsContentGroup?>((ref, group) {
       ref.watch(dharmaSeedRevisionProvider);
-      ref.watch(savedRevisionProvider);
+      ref.watch(libraryRevisionProvider);
       return ref.watch(dharmaSeedSourceProvider).explore(group: group);
     });
 

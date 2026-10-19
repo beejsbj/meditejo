@@ -1596,10 +1596,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get courseSave => 'Save course';
+  String get courseSave => 'Add to library';
 
   @override
-  String get courseSaved => 'Saved';
+  String get courseSaved => 'In library';
 
   @override
   String get courseSessionsTab => 'Sessions';
@@ -1627,7 +1627,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get teacherSave => 'Save teacher';
+  String get teacherSave => 'Add to library';
 
   @override
   String get teacherCourses => 'Courses';
@@ -1778,4 +1778,261 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeUpdateDismiss => 'Dismiss';
+
+  @override
+  String get libraryTitle => 'Your library';
+
+  @override
+  String get libraryAdd => 'Add';
+
+  @override
+  String get libraryPractice => 'Practice';
+
+  @override
+  String get libraryTalks => 'Talks';
+
+  @override
+  String get libraryTeachers => 'Teachers';
+
+  @override
+  String get librarySeeAll => 'See all';
+
+  @override
+  String get libraryEmptyTitle => 'Your library is empty';
+
+  @override
+  String get libraryEmptyBody =>
+      'Add a course, a talk or a recording from a link or a file.';
+
+  @override
+  String get libraryEmptyHome =>
+      'Paste a link, share one from another app, or pick a file.';
+
+  @override
+  String get libraryMoveToPractice => 'Move to Practice';
+
+  @override
+  String get libraryMoveToTalks => 'Move to Talks';
+
+  @override
+  String get libraryRename => 'Rename';
+
+  @override
+  String get libraryRemove => 'Remove from library';
+
+  @override
+  String get libraryRemoveTitle => 'Remove from your library?';
+
+  @override
+  String get libraryRemoveImported =>
+      'The audio copied to this device for it will be deleted.';
+
+  @override
+  String get libraryRemoveCatalogue =>
+      'It stays in Explore, and you can add it again.';
+
+  @override
+  String get libraryRenameTitle => 'Rename';
+
+  @override
+  String get libraryRenameHint => 'Name in your library';
+
+  @override
+  String get libraryRenameSave => 'Save';
+
+  @override
+  String librarySessions(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sessions',
+      one: '1 session',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get libraryAddedSnack => 'Added to your library';
+
+  @override
+  String get libraryAlreadyIn => 'Already in your library';
+
+  @override
+  String get libraryOpen => 'Open';
+
+  @override
+  String get libraryRemovedSnack => 'Removed from your library';
+
+  @override
+  String get libraryAddToLibrary => 'Add to library';
+
+  @override
+  String get libraryInLibrary => 'In library';
+
+  @override
+  String libraryResumeAt(String position) {
+    return 'Resume at $position';
+  }
+
+  @override
+  String get importTitle => 'Add to your library';
+
+  @override
+  String get importFieldHint => 'Paste a link';
+
+  @override
+  String get importHelp =>
+      'Dharma Seed pages, podcast feeds, audio links, or files on your phone.';
+
+  @override
+  String get importPaste => 'Paste';
+
+  @override
+  String get importPreviewAction => 'Preview';
+
+  @override
+  String importClipboard(String host) {
+    return 'Link on your clipboard: $host';
+  }
+
+  @override
+  String get importUseClipboard => 'Use';
+
+  @override
+  String get importChooseFiles => 'Choose files';
+
+  @override
+  String get importChooseFolder => 'Choose a folder';
+
+  @override
+  String get importLooking => 'Looking at the link…';
+
+  @override
+  String get importPrimary => 'Add to library';
+
+  @override
+  String get importAdding => 'Adding…';
+
+  @override
+  String get importKindCourse => 'Course';
+
+  @override
+  String get importKindSingle => 'Single';
+
+  @override
+  String importCaptionCourseAll(int count) {
+    return 'All $count episodes, in order';
+  }
+
+  @override
+  String get importCaptionLatest => 'Just the latest episode';
+
+  @override
+  String get importCaptionFilesCourse => 'One course, in the order shown';
+
+  @override
+  String get importCaptionFilesSingles => 'Each file on its own';
+
+  @override
+  String get importCountsAs => 'Counts as';
+
+  @override
+  String get importGroupPractice => 'Practice';
+
+  @override
+  String get importGroupTalk => 'Talk';
+
+  @override
+  String get importOrderOldest => 'Oldest first';
+
+  @override
+  String get importOrderNewest => 'Newest first';
+
+  @override
+  String importAtLeast(String duration) {
+    return 'at least $duration';
+  }
+
+  @override
+  String importSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items without audio were left out',
+      one: '1 item without audio was left out',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importInLibraryNote => 'This is already in your library.';
+
+  @override
+  String get importDefaultTitle => 'Imported audio';
+
+  @override
+  String get importTitleLabel => 'Name';
+
+  @override
+  String get importFailEmpty => 'Paste a link or choose a file to begin.';
+
+  @override
+  String get importFailUnrecognised =>
+      'That doesn\'t look like a link or file I can use. Try an address that starts with https://.';
+
+  @override
+  String get importFailYoutube =>
+      'YouTube support is coming. For now, paste a podcast feed, an audio link or a Dharma Seed page.';
+
+  @override
+  String get importFailUnsupportedHost =>
+      'Links from that service can\'t be imported. For a podcast, look for its feed address, or its page on Apple Podcasts.';
+
+  @override
+  String get importFailOffline =>
+      'Couldn\'t reach that address. Check your connection and try again.';
+
+  @override
+  String get importFailNotFound =>
+      'That page wasn\'t found. Check the link and try again.';
+
+  @override
+  String get importFailUnreachable =>
+      'That site couldn\'t give us what we asked for. Try again later.';
+
+  @override
+  String get importFailNoFeed =>
+      'That page has no podcast feed or audio file I can find. If you have the feed address (often ending in .xml or /feed), paste that instead.';
+
+  @override
+  String get importFailNoEpisodes => 'This feed has no audio episodes.';
+
+  @override
+  String get importFailBrokenFeed =>
+      'This feed couldn\'t be read. It may be damaged or not a podcast feed.';
+
+  @override
+  String get importFailDharmaSeed =>
+      'Dharma Seed doesn\'t have that, or couldn\'t be reached just now.';
+
+  @override
+  String get importFailFile => 'That file couldn\'t be found.';
+
+  @override
+  String get importFailNoAudio => 'No audio files found there.';
+
+  @override
+  String get importFailAdd => 'Couldn\'t add that. Please try again.';
+
+  @override
+  String get shareArrived => 'Shared with Meditejo';
+
+  @override
+  String get exploreLibraryHeading => 'In your library';
+
+  @override
+  String get libraryFromStart => 'From the beginning';
+
+  @override
+  String get libraryCheckNew => 'Check for new episodes';
 }
