@@ -671,7 +671,11 @@ void main() {
         expect(preview.itemCount, 7);
         expect(preview.attribution!.licenseName, 'CC BY-NC-ND 4.0');
         expect(preview.firstItems, isNotEmpty);
-        expect(preview.group, LibraryGroup.talks, reason: 'recorded as Talk');
+        expect(
+          preview.group,
+          LibraryGroup.practice,
+          reason: 'a retreat is practice even when its recordings are "Talk"',
+        );
         expect(api.requests, isNotEmpty);
         expect(
           h.web.requests,
@@ -683,17 +687,17 @@ void main() {
           preview,
           const ImportChoice(
             kind: LibraryKind.course,
-            group: LibraryGroup.practice,
+            group: LibraryGroup.talks,
           ),
         );
         expect(result.entryId, 'ds-retreat-6689');
         final entry = (await h.store.entry('ds-retreat-6689'))!;
         expect(
           entry.group,
-          LibraryGroup.practice,
+          LibraryGroup.talks,
           reason: 'the user overrode the detected group',
         );
-        expect(entry.detectedGroup, LibraryGroup.talks);
+        expect(entry.detectedGroup, LibraryGroup.practice);
         expect(entry.itemCount, 7);
       },
     );

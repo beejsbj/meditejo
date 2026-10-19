@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_client.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
+import 'package:medito/services/dharma_seed/dharma_seed_snapshot.dart';
+import 'package:path_provider/path_provider.dart';
 
 part 'dharma_seed_database.g.dart';
 
@@ -200,12 +203,30 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
 
   /// The app's database file, opened on first query: constructing it touches
   /// no platform channel, so startup and unrelated tests never wait on it.
-  factory DharmaSeedDatabase.open() => DharmaSeedDatabase(
-    LazyDatabase(() => driftDatabase(name: 'dharma_seed')),
-  );
+  ///
+  /// Before the file is first opened, the catalogue bundled with the app is
+  /// unpacked into it if the device has none yet or a newer one ships (offline,
+  /// see [DharmaSeedSnapshot]). If that fails the app syncs from scratch.
+  factory DharmaSeedDatabase.open({DharmaSeedSnapshot? snapshot}) {
+    return DharmaSeedDatabase(
+      LazyDatabase(() async {
+        final directory = await getApplicationDocumentsDirectory();
+        final file = File('${directory.path}/dharma_seed.sqlite');
+        await (snapshot ?? DharmaSeedSnapshot.bundled()).installIfNeeded(file);
+        return driftDatabase(
+          name: 'dharma_seed',
+          native: DriftNativeOptions(databasePath: () async => file.path),
+        );
+      }),
+    );
+  }
+
+  /// The layout version. The bundled snapshot records the one it was built
+  /// with and is not installed when it differs.
+  static const currentSchemaVersion = 1;
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => currentSchemaVersion;
 
   static const _ftsTokenizer = "tokenize = 'unicode61 remove_diacritics 2'";
 
@@ -790,25 +811,6 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
             (s) => OrderingTerm.asc(s.rowId),
           ]))
           .get();
-
-  /// Whether a stored retreat is mostly practice or mostly talks, by the
-  /// same half-or-more rule the Explore chips use. Null when none of its
-  /// talks are stored yet.
-  Future<DsContentGroup?> retreatGroup(int retreatId) async {
-    final types = dsPracticeRecordingTypes.map((t) => "'$t'").join(',');
-    final row = await customSelect(
-      'SELECT COUNT(*) AS n, COALESCE(SUM(CASE WHEN '
-      "lower(trim(recording_type)) IN ($types) THEN 1 ELSE 0 END), 0) AS p "
-      'FROM ds_talks WHERE retreat_id = ?',
-      variables: [Variable.withInt(retreatId)],
-      readsFrom: {dsTalks},
-    ).getSingle();
-    final n = row.read<int>('n');
-    if (n == 0) return null;
-    return row.read<int>('p') * 2 >= n
-        ? DsContentGroup.practice
-        : DsContentGroup.talks;
-  }
 
   Future<bool> isSaved(DsSavedKind kind, int id) async =>
       (await (select(dsSaved)

@@ -55,14 +55,9 @@ class _UpdateSectionState extends ConsumerState<UpdateSection>
         if (state.phase == UpdatePhase.upToDate) {
           children.add(_Headline(l10n.updateUpToDate));
         }
-        final last = state.lastCheckedAt;
-        if (last != null) {
-          final when = DateFormat.yMMMd(
-            Localizations.localeOf(context).toLanguageTag(),
-          ).add_jm().format(last.toLocal());
-          children.add(_Caption(l10n.updateLastChecked(when)));
-        }
-        children.add(_checkButton(l10n, controller));
+        children
+          ..addAll(_lastChecked(context, l10n, state))
+          ..add(_checkButton(l10n, controller));
       case UpdatePhase.checking:
         children
           ..add(_Headline(l10n.updateChecking))
@@ -72,6 +67,10 @@ class _UpdateSectionState extends ConsumerState<UpdateSection>
       case UpdatePhase.failed:
         if (release != null) {
           children.add(_Headline(l10n.updateAvailable(release.versionName)));
+        }
+        // The check that found the update counts as the last check too.
+        if (state.phase != UpdatePhase.failed) {
+          children.addAll(_lastChecked(context, l10n, state));
         }
         if (state.phase == UpdatePhase.needsPermission) {
           children
@@ -147,6 +146,20 @@ class _UpdateSectionState extends ConsumerState<UpdateSection>
         children: children,
       ),
     );
+  }
+
+  /// "Last checked <time>", or nothing before the first check.
+  List<Widget> _lastChecked(
+    BuildContext context,
+    AppLocalizations l10n,
+    UpdateState state,
+  ) {
+    final last = state.lastCheckedAt;
+    if (last == null) return const [];
+    final when = DateFormat.yMMMd(
+      Localizations.localeOf(context).toLanguageTag(),
+    ).add_jm().format(last.toLocal());
+    return [_Caption(l10n.updateLastChecked(when))];
   }
 
   Widget _checkButton(AppLocalizations l10n, UpdateController controller) =>

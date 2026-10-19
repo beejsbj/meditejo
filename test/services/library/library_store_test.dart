@@ -197,7 +197,11 @@ void main() {
           reason: '3 of 4 talks are guided meditation',
         );
         final talks = entries.firstWhere((e) => e.sourceId == 'ds-retreat-200');
-        expect(talks.group, LibraryGroup.talks);
+        expect(
+          talks.group,
+          LibraryGroup.practice,
+          reason: 'a retreat is practice even when its recordings are talks',
+        );
         expect(
           entries.firstWhere((e) => e.sourceId == 'ds-teacher-2').kind,
           LibraryKind.teacher,

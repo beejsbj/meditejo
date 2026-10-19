@@ -155,6 +155,84 @@ void main() {
       expect(second.read(updateControllerProvider).release?.versionName, '0.1.1');
     });
 
+    test('the first launch after an update checks at once and shows its time', () async {
+      final now = DateTime.utc(2026, 10, 17, 12);
+      final h = await UpdateHarness.create(
+        // The check that found the update was an hour ago, on the old build.
+        prefs: {
+          'update_last_checked_ms': now
+              .subtract(const Duration(hours: 1))
+              .millisecondsSinceEpoch,
+          'update_seen_version_code': 26101701,
+        },
+        installedCode: 26101702,
+        installedName: '0.1.1',
+        latest: () => LatestFound(testRelease(), 'W/"1"'),
+        clock: () => now,
+      );
+      final c = h.container();
+      addTearDown(c.dispose);
+
+      await c.read(updateControllerProvider.notifier).checkOnLaunch();
+
+      expect(h.client.calls, 1, reason: 'a new build is checked, not skipped');
+      final state = c.read(updateControllerProvider);
+      expect(state.phase, UpdatePhase.upToDate);
+      expect(state.lastCheckedAt, now, reason: 'not the hour-old time');
+      expect(UpdateStore(h.prefs).lastCheckedAt?.toUtc(), now);
+      expect(UpdateStore(h.prefs).seenVersionCode, 26101702);
+    });
+
+    test('a failed first check after an update is retried next launch', () async {
+      final now = DateTime.utc(2026, 10, 17, 12);
+      final h = await UpdateHarness.create(
+        prefs: {
+          'update_last_checked_ms': now
+              .subtract(const Duration(hours: 1))
+              .millisecondsSinceEpoch,
+          'update_seen_version_code': 26101701,
+        },
+        installedCode: 26101702,
+        installedName: '0.1.1',
+        latest: () => const UpdateException(UpdateFailure.offline),
+        clock: () => now,
+      );
+      final first = h.container();
+      await first.read(updateControllerProvider.notifier).checkOnLaunch();
+      first.dispose();
+
+      expect(h.client.calls, 1);
+      expect(UpdateStore(h.prefs).seenVersionCode, 26101701);
+
+      h.client.answer = () => LatestFound(testRelease(), 'W/"1"');
+      final second = h.container();
+      addTearDown(second.dispose);
+      await second.read(updateControllerProvider.notifier).checkOnLaunch();
+
+      expect(h.client.calls, 2, reason: 'not skipped for the rest of the day');
+      expect(UpdateStore(h.prefs).seenVersionCode, 26101702);
+    });
+
+    test('an unchanged build checked an hour ago is left alone', () async {
+      final now = DateTime.utc(2026, 10, 17, 12);
+      final h = await UpdateHarness.create(
+        prefs: {
+          'update_last_checked_ms': now
+              .subtract(const Duration(hours: 1))
+              .millisecondsSinceEpoch,
+          'update_seen_version_code': 26101701,
+        },
+        latest: () => LatestFound(testRelease(), null),
+        clock: () => now,
+      );
+      final c = h.container();
+      addTearDown(c.dispose);
+
+      await c.read(updateControllerProvider.notifier).checkOnLaunch();
+
+      expect(h.client.calls, 0);
+    });
+
     test('asks again once a day has passed', () async {
       var now = DateTime.utc(2026, 10, 17, 12);
       final h = await UpdateHarness.create(

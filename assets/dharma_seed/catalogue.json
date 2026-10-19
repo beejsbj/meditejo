@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "databaseSchema": 1,
+  "asOf": "2026-10-19T12:04:59.000Z",
+  "editions": {
+    "teachers": "2026-10-19 12:04:59",
+    "retreats": "2026-10-19 12:05:00",
+    "talks": "2026-10-19 12:05:01"
+  },
+  "counts": {
+    "teachers": 1235,
+    "retreats": 4363,
+    "talks": 49007
+  },
+  "bytes": 37064704,
+  "sha256": "4543f57d5eeddd506db9e59389c605acc481eac098a1a281e6835ff810958ad5"
+}

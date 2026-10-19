@@ -190,14 +190,13 @@ class DharmaSeedSource
       final talks = await db.talksOfRetreat(retreatId);
       final lead = (await db.leadTeacherOfRetreats([retreatId]))[retreatId];
       final leadTeacher = lead == null ? null : await db.teacherById(lead);
-      final group = await db.retreatGroup(retreatId);
+      // A retreat is practice whatever Dharma Seed labels its recordings:
+      // most of Rob Burbea's guided retreat sittings are filed as "Talk".
       return LibraryDraft(
         sourceId: id,
         kind: LibraryKind.course,
         title: retreat.name,
-        group: group == DsContentGroup.talks
-            ? LibraryGroup.talks
-            : LibraryGroup.practice,
+        group: LibraryGroup.practice,
         subtitle: retreatSubtitle(retreat, leadTeacher),
         coverUrl: teacherPhoto(leadTeacher),
         itemCount: talks.isEmpty

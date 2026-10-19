@@ -76,7 +76,15 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
     - Talk 60864, *Developing Piti, Developing Focus, Developing Wellbeing* (Rob Burbea, 89 min, from retreat 4496). https://dharmaseed.org/talks/60864/
     - YouTube playlist *Meditating with John Vervaeke* (John Vervaeke's Lectern). https://www.youtube.com/playlist?list=PLND1JCRq8VujAHvDA482SXF1cJTQrwlx3
     - YouTube playlist *Qualia Mastery: Building Your Toolkit for Navigating the State-Space of Consciousness* (Qualia Research Institute). https://www.youtube.com/playlist?list=PLbmYHvGI-YSvnpbh3ppQqcG72lpw4aQdE
+    - Shipped in PR C2 for the Dharma Seed items (`lib/services/library/starter_set.dart`); the YouTube items join with the YouTube slice.
     - The YouTube items depend on the YouTube slice. Their playlist item lists can be bundled at release time, and audio is resolved at play time.
+14. **Four tabs: Home · Explore · Library · Settings** (Burooj, 2026-10-19).
+    - **Explore and Search are merged.** Explore has a search bar at the top. With nothing typed it shows browse (Practice/Talks chips, saved courses, Dharma Seed courses and teachers). Typing shows grouped results with "Add to library".
+    - **Library gets its own tab,** because the user's library is the core of the app.
+    - **Home is quick links,** a launchpad rather than a catalogue (Burooj, 2026-10-19):
+      - one-tap starts for **Timer** and **Sounds**, plus other supports from the Customize set;
+      - **Continue** items for whatever is in progress. There can be several ("continue this or that"), practice first, each resuming in one tap.
+      - This refines decision 7's single hero into a short list of continues plus quick links. Browsing belongs in Explore, and everything added lives in Library.
 
 ## Build and run
 

@@ -173,7 +173,7 @@ class _ParentWidgetState extends ConsumerState<ParentWidget>
     _setUpSystemUi();
     WidgetsBinding.instance.addObserver(this);
     unawaited(_recoverPreviousSession());
-    unawaited(startDharmaSeedSync(ref));
+    unawaited(prepareDharmaSeed(ref));
     unawaited(startFeedRefresh(ref));
     unawaited(startUpdateCheck(ref));
   }

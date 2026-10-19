@@ -70,6 +70,7 @@ dependencies:
   crypto: ^3.0.7
   file_picker: ^11.0.3
   path: ^1.9.1
+  sqlite3: ^2.9.4
 
 dev_dependencies:
   flutter_test:
@@ -87,13 +88,13 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   drift_dev: ^2.31.0
-  sqlite3: ^2.9.4
 
 flutter:
   generate: true
   assets:
     - assets/licenses/NewPipeExtractor-GPL-3.0.txt
     - assets/audio/
+    - assets/dharma_seed/
     - assets/
     - assets/images/
     - assets/images/app_icons/
