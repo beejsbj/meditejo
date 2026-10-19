@@ -43,6 +43,13 @@ class AudioDownloaderProvider extends Notifier<AudioDownloaderState> {
       request.remoteUrl,
     );
     try {
+      // Show the download as started before any stream is resolved, which can
+      // take a while, so a second tap cannot start a duplicate.
+      var newDownloadState = Map<String, AudioDownloadState>.from(
+        state.audioDownloadState,
+      );
+      newDownloadState[fileName] = AudioDownloadState.downloading;
+      state = state.copyWith(audioDownloadState: newDownloadState);
       if (request.trackId.startsWith('yt-video-')) {
         final fresh = await ref
             .read(youtubeSourceProvider)
@@ -52,11 +59,6 @@ class AudioDownloaderProvider extends Notifier<AudioDownloaderState> {
         );
       }
       final downloadAudio = ref.read(downloaderRepositoryProvider);
-      var newDownloadState = Map<String, AudioDownloadState>.from(
-        state.audioDownloadState,
-      );
-      newDownloadState[fileName] = AudioDownloadState.downloading;
-      state = state.copyWith(audioDownloadState: newDownloadState);
 
       await downloadAudio.downloadFile(
         request.remoteUrl,
