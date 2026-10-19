@@ -194,6 +194,50 @@ void main() {
       );
     });
 
+    group('a watch link that also carries a list', () {
+      test('an unusable list falls back to the video alone', () async {
+        // A radio mix, a private list, anything the extractor will not read.
+        final preview = await previewOf('$watchA&list=RDaaaaaaaaaaa');
+
+        expect(preview.entryId, ytVideoId(videoA));
+        expect(preview.kind, LibraryKind.single);
+        expect(preview.allowedKinds, {LibraryKind.course, LibraryKind.single});
+        expect(preview.youtubePlaylist, isNull);
+        expect(preview.youtubePlaylistId, isNull);
+        final result = await source.add(preview, single);
+        expect(result.entryId, ytVideoId(videoA));
+      });
+
+      test('an empty list falls back to the video alone', () async {
+        api.playlists[playlistOne] = playlist([]);
+        final preview = await previewOf('$watchA&list=$playlistOne');
+        expect(preview.entryId, ytVideoId(videoA));
+        expect(preview.youtubePlaylistId, isNull);
+      });
+
+      test('an unusable video leaves the list as a course', () async {
+        const gone = 'https://www.youtube.com/watch?v=ggggggggggg';
+        final preview = await previewOf('$gone&list=$playlistOne');
+        expect(preview.entryId, ytPlaylistId(playlistOne));
+        expect(preview.allowedKinds, {LibraryKind.course});
+      });
+
+      test('both unusable is the calm unavailable failure', () async {
+        await expectLater(
+          previewOf('https://www.youtube.com/watch?v=ggggggggggg&list=RDx'),
+          failsWith(ImportFailureReason.youtubeUnavailable),
+        );
+      });
+
+      test('no network is still offline, not a silent fallback', () async {
+        api.failure = PlatformException(code: 'network');
+        await expectLater(
+          previewOf('$watchA&list=$playlistOne'),
+          failsWith(ImportFailureReason.offline),
+        );
+      });
+    });
+
     group('failures are calm', () {
       test('no network is offline', () async {
         api.failure = PlatformException(code: 'network', message: 'dns fail');
@@ -778,6 +822,15 @@ void main() {
       expect(await source.refresh(id), isFalse);
       final pack = await source.pack(id);
       expect(pack.items, hasLength(3));
+      expect((await store.entry(id))!.itemCount, 3);
+    });
+
+    test('an empty answer keeps the stored sessions', () async {
+      clock.advance(const Duration(hours: 13));
+      api.playlists[playlistOne] = playlist([]);
+
+      expect(await source.refresh(id), isFalse);
+      expect((await source.pack(id)).items, hasLength(3));
       expect((await store.entry(id))!.itemCount, 3);
     });
 

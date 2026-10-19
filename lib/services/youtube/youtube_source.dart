@@ -67,14 +67,30 @@ class YoutubeSource
       throw const ImportFailure(ImportFailureReason.unrecognised);
     }
     try {
-      final video = link.videoId == null
+      // A watch link may carry both a video and a playlist. Each half is
+      // independently useful, so one that cannot be used (a radio mix, a
+      // private list, a removed video) leaves the other as the preview.
+      final both = link.videoId != null && link.playlistId != null;
+      var video = link.videoId == null
           ? null
-          : await api.resolveVideo(link.videoUrl);
-      final playlist = link.playlistId == null
+          : await _resolveOrNull(
+              () => api.resolveVideo(link.videoUrl),
+              tolerate: both,
+            );
+      var playlist = link.playlistId == null
           ? null
-          : await api.resolvePlaylist(link.playlistUrl);
+          : await _resolveOrNull(
+              () => api.resolvePlaylist(link.playlistUrl),
+              tolerate: both,
+            );
       if (playlist != null && playlist.items.isEmpty) {
-        throw const ImportFailure(ImportFailureReason.noEpisodes);
+        if (video == null) {
+          throw const ImportFailure(ImportFailureReason.noEpisodes);
+        }
+        playlist = null;
+      }
+      if (video == null && playlist == null) {
+        throw const ImportFailure(ImportFailureReason.youtubeUnavailable);
       }
       final title = playlist?.title ?? video!.title;
       final uploader = playlist?.uploader ?? video!.uploader;
@@ -120,7 +136,7 @@ class YoutubeSource
         alreadyInLibrary: await library.contains(id),
         youtubeVideo: video,
         youtubePlaylist: playlist,
-        youtubePlaylistId: link.playlistId,
+        youtubePlaylistId: playlist == null ? null : link.playlistId,
       );
     } on ImportFailure {
       rethrow;
@@ -132,6 +148,23 @@ class YoutubeSource
       );
     } catch (_) {
       throw const ImportFailure(ImportFailureReason.youtubeUnavailable);
+    }
+  }
+
+  /// Resolves one half of a link. With [tolerate], a failure that is not the
+  /// network being down yields null so the other half can stand alone.
+  Future<T?> _resolveOrNull<T>(
+    Future<T> Function() resolve, {
+    required bool tolerate,
+  }) async {
+    if (!tolerate) return resolve();
+    try {
+      return await resolve();
+    } on PlatformException catch (e) {
+      if (e.code == 'network') rethrow;
+      return null;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -284,10 +317,13 @@ class YoutubeSource
           ..where((p) => p.playlistId.equals(key)))
         .write(YoutubePlaylistsCompanion(lastCheckedAt: Value(_clock())));
     try {
-      await storePlaylist(
-        key,
-        await api.resolvePlaylist('https://www.youtube.com/playlist?list=$key'),
+      final fresh = await api.resolvePlaylist(
+        'https://www.youtube.com/playlist?list=$key',
       );
+      // An empty answer is a failed extraction, not an emptied course:
+      // keep the sessions already stored.
+      if (fresh.items.isEmpty) throw const YoutubeUnavailableError();
+      await storePlaylist(key, fresh);
       final updated = (await db.youtubePlaylist(key))!;
       final items = await _items(updated);
       await library.updateSnapshot(
