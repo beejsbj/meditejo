@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/providers/library/library_providers.dart';
@@ -78,19 +80,22 @@ class ValueListenableNotifier<T> extends Notifier<T> {
   }
 }
 
-/// Starts a background sync shortly after launch, without blocking startup.
-/// Skipped when the last sync is recent and nothing is pending; offline, it
-/// fails quietly and the app uses what is already stored.
-Future<void> startDharmaSeedSync(
-  WidgetRef ref, {
-  Duration delay = const Duration(seconds: 3),
-}) async {
-  final sync = ref.read(dharmaSeedSyncProvider);
+/// At launch: reads the catalogue's state, which unpacks the catalogue bundled
+/// with the app on the first run. Nothing here uses the network; the sync that
+/// fetches what changed since the bundle waits for the user to open Search or
+/// Explore ([catchUpDharmaSeed]).
+Future<void> prepareDharmaSeed(WidgetRef ref) async {
   try {
-    await sync.loadStatus();
-    await Future<void>.delayed(delay);
-    await sync.sync();
+    await ref.read(dharmaSeedSyncProvider).loadStatus();
   } catch (e, st) {
-    AppLogger.e('DHARMA_SEED', 'Background sync did not start', e, st);
+    AppLogger.e('DHARMA_SEED', 'Could not read the catalogue state', e, st);
   }
+}
+
+/// Called when the user opens Search or Explore: fetches what Dharma Seed
+/// changed since the bundled catalogue (or the last time), a few small
+/// requests, without waiting for them. Skipped when the last sync is under 12
+/// hours old; offline, it fails quietly and the stored catalogue is used.
+void catchUpDharmaSeed(WidgetRef ref) {
+  unawaited(ref.read(dharmaSeedSyncProvider).sync());
 }

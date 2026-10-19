@@ -112,7 +112,13 @@ class UpdateController extends Notifier<UpdateState> {
             .deleteStale(installedVersionCode: installed.versionCode);
       }
       await _restore();
-      if (isAutoCheckDue(lastCheckedAt: _store.lastCheckedAt, now: _now())) {
+      // The first launch of a new build checks at once, whatever the daily
+      // interval says: the time shown in About must not be older than the
+      // update itself.
+      final updated = _store.seenVersionCode != installed.versionCode;
+      await _store.setSeenVersionCode(installed.versionCode);
+      if (updated ||
+          isAutoCheckDue(lastCheckedAt: _store.lastCheckedAt, now: _now())) {
         await check(manual: false);
       }
     } catch (e, st) {
