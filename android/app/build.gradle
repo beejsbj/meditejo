@@ -106,6 +106,10 @@ android {
         exclude 'META-INF/notice.txt'
         exclude 'META-INF/ASL2.0'
         exclude 'META-INF/*.kotlin_module'
+        // Files jsoup (a NewPipeExtractor dependency) leaves in META-INF.
+        exclude 'META-INF/README.md'
+        exclude 'META-INF/CHANGES'
+        exclude 'META-INF/COPYRIGHT'
     }
 
     lintOptions {
@@ -169,6 +173,10 @@ dependencies {
     implementation "androidx.glance:glance-appwidget:1.2.0-beta01"
     implementation "androidx.glance:glance:1.2.0-beta01"
     implementation "androidx.glance:glance-material:1.2.0-beta01"
+
+    // YouTube link resolution (GPL-3.0-or-later). Pinned to a release tag; if
+    // JitPack ever drops the tag, use its commit f9e6bb808f82bf3e4dc1f2a29a16fd376931c8ef.
+    implementation "com.github.TeamNewPipe:NewPipeExtractor:v0.26.5"
 
     // Health Connect (MindfulnessSessionRecord added in 1.1.0, Oct 2025)
     implementation "androidx.health.connect:connect-client:1.1.0"

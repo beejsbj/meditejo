@@ -45,6 +45,15 @@ Future<LibraryTestApp> openImport(
   FakeYoutubeApi api,
 ) async {
   final app = await LibraryTestApp.create(tester);
+  await pumpImport(tester, app, api);
+  return app;
+}
+
+Future<void> pumpImport(
+  WidgetTester tester,
+  LibraryTestApp app,
+  FakeYoutubeApi api,
+) async {
   final h = app.harness;
   final source = YoutubeSource(db: h.db, library: h.store, api: api);
   final service = ImportService(
@@ -64,7 +73,6 @@ Future<LibraryTestApp> openImport(
       importServiceProvider.overrideWithValue(service),
     ],
   );
-  return app;
 }
 
 SegmentedButton<LibraryGroup> groupButton(WidgetTester tester) =>
@@ -151,6 +159,7 @@ void main() {
       await settle(tester);
 
       expect(find.text('1 session · 10 min'), findsOneWidget);
+      expect(find.text('A quiet sit'), findsOneWidget);
     });
   });
 
@@ -268,6 +277,29 @@ void main() {
       expect(entry.title, 'Evening Sits');
     });
 
+    testWidgets(
+      'a kept playlist can also add its addressed video as a Single',
+      (tester) async {
+        final api = scriptedApi();
+        final app = await openImport(tester, api);
+        await enterLink(tester, '$watchA&list=$playlistOne');
+        await tapAdd(tester);
+        await pumpImport(tester, app, api);
+        await enterLink(tester, '$watchA&list=$playlistOne');
+        expect(find.text('Open'), findsOneWidget);
+        await tester.tap(find.text('Single'));
+        await settle(tester);
+        expect(find.text('A quiet sit'), findsOneWidget);
+        expect(find.text('Add to library'), findsOneWidget);
+        await tapAdd(tester);
+        final entries = (await tester.runAsync(app.harness.store.entries))!;
+        expect(
+          entries.map((e) => e.sourceId),
+          containsAll([ytPlaylistId(playlistOne), ytVideoId(videoA)]),
+        );
+      },
+    );
+
     testWidgets('something already kept says so and offers Open', (
       tester,
     ) async {
@@ -276,7 +308,7 @@ void main() {
       await enterLink(tester, listOne);
       await tapAdd(tester);
 
-      await app.pump(tester, const ImportView(), asRoute: true);
+      await pumpImport(tester, app, api);
       await enterLink(tester, listOne);
 
       expect(find.byKey(const ValueKey('import_already')), findsOneWidget);

@@ -41,6 +41,7 @@ import meditofoundation.medito.widget.MeditationWidget
 import meditofoundation.medito.widget.MeditationWidgetReceiver
 import meditofoundation.medito.widget.ConsistencyWidget
 import meditofoundation.medito.widget.ConsistencyWidgetReceiver
+import meditofoundation.medito.youtube.YoutubeExtractorBridge
 
 @UnstableApi
 class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager, MeditoWidgetManager {
@@ -54,6 +55,10 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
     // thread) and handed to Dart when it asks; later shares are pushed.
     private var shareChannel: MethodChannel? = null
     private var initialShare: Deferred<Map<String, Any?>?>? = null
+
+    // Resolves YouTube links through NewPipeExtractor; owns worker threads that
+    // end with the activity.
+    private var youtubeBridge: YoutubeExtractorBridge? = null
 
     private val healthConnectBridge by lazy { HealthConnectBridge(this, activityScope) }
     private val healthConnectPermissionLauncher = registerForActivityResult(
@@ -90,6 +95,11 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
         MeditoAppIconManager.setUp(flutterEngine.dartExecutor.binaryMessenger, AppIconManagerImpl(this))
 
         ApkUpdaterBridge(this, activityScope).attach(flutterEngine.dartExecutor.binaryMessenger)
+
+        youtubeBridge?.dispose()
+        youtubeBridge = YoutubeExtractorBridge.create().also {
+            it.attach(flutterEngine.dartExecutor.binaryMessenger)
+        }
 
         healthConnectBridge.attachLauncher(healthConnectPermissionLauncher)
         MeditoHealthConnectManager.setUp(flutterEngine.dartExecutor.binaryMessenger, healthConnectBridge)
@@ -294,6 +304,8 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
     }
 
     override fun onDestroy() {
+        youtubeBridge?.dispose()
+        youtubeBridge = null
         super.onDestroy()
         activityJob.cancel()
     }
