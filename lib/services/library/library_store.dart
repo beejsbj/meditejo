@@ -197,7 +197,7 @@ class LibraryStore {
   }
 
   /// Sessions the user left partway, most recently left first.
-  Future<List<SavedPlace>> savedPlaces({int limit = 12}) async {
+  Future<List<SavedPlace>> savedPlaces({int? limit}) async {
     await _ready();
     return [
       for (final row in await db.recentPositions(limit: limit))

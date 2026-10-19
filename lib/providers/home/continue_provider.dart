@@ -23,9 +23,7 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
 ) async {
   ref.watch(libraryRevisionProvider);
   ref.watch(playbackPositionsRevisionProvider);
-  final checked = {
-    ...?ref.watch(statsProvider).value?.tracksChecked,
-  };
+  final checked = {...?ref.watch(statsProvider).value?.tracksChecked};
   final pinned = ref.watch(pinnedCoursesProvider);
   final store = ref.watch(libraryStoreProvider);
   final router = ref.watch(libraryContentRouterProvider);
@@ -35,7 +33,7 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
 
   Future<PackModel?> packOf(String id) async {
     try {
-      return await ref.read(packDataProvider(packId: id).future);
+      return await ref.watch(packDataProvider(packId: id).future);
     } catch (e) {
       AppLogger.d('HOME', 'Continue could not read $id: $e');
       return null;
@@ -74,7 +72,12 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
       coverUrl: item.coverUrl ?? pack.coverUrl ?? '',
       resume: resume,
       sessionNumber: index < 0 ? null : index + 1,
-      sessionTotal: pack.items.length,
+      sessionTotal: pack.items
+          .where((i) => i.type == TypeConstants.track)
+          .length,
+      completedSessions: pack.items
+          .where((i) => i.type == TypeConstants.track && checked.contains(i.id))
+          .length,
     );
   }
 
@@ -83,6 +86,7 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
 
   // Sessions left partway.
   for (final place in await store.savedPlaces()) {
+    if (checked.contains(place.trackId)) continue;
     try {
       final track = await router.track(place.trackId);
       // A session in several courses counts towards the one it was opened
@@ -111,7 +115,7 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
         ContinueItem(
           trackId: place.trackId,
           path: '/tracks/${place.trackId}',
-          title: track.title,
+          title: own?.displayTitle ?? track.title,
           group: group,
           lastPlayed: place.updatedAt,
           courseId: parentId,
@@ -121,7 +125,17 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
               : (pack?.coverUrl ?? ''),
           resume: place.point,
           sessionNumber: index < 0 ? null : index + 1,
-          sessionTotal: pack?.items.length,
+          sessionTotal: pack?.items
+              .where((i) => i.type == TypeConstants.track)
+              .length,
+          completedSessions:
+              pack?.items
+                  .where(
+                    (i) =>
+                        i.type == TypeConstants.track && checked.contains(i.id),
+                  )
+                  .length ??
+              0,
         ),
       );
     } catch (e) {
@@ -130,14 +144,9 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
   }
 
   // Courses begun and not finished, with no session left partway.
-  final started = entries
-      .where(
-        (e) =>
-            e.isCourse &&
-            e.lastPlayedAt != null &&
-            !coursesWithPlace.contains(e.sourceId),
-      )
-      .take(6);
+  final started = entries.where(
+    (e) => e.isCourse && !coursesWithPlace.contains(e.sourceId),
+  );
   for (final entry in started) {
     final pack = await packOf(entry.sourceId);
     if (pack == null) continue;

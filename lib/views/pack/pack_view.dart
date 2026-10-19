@@ -316,7 +316,8 @@ class _PackViewState extends ConsumerState<PackView>
               label: l10n.courseSave,
               savedLabel: l10n.courseSaved,
             ),
-          if (ref.watch(inLibraryProvider(pack.id)).value ?? false)
+          if ((ref.watch(inLibraryProvider(pack.id)).value ?? false) ||
+              ref.watch(pinnedCoursesProvider).contains(pack.id))
             TextButton.icon(
               key: const ValueKey('course_pin'),
               onPressed: () => togglePinnedCourse(context, ref, pack.id),

@@ -58,15 +58,19 @@ class CustomiseHomeLayoutScreenState
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: ReorderableListView.builder(
+                    buildDefaultDragHandles: false,
                     itemCount: order.length,
                     itemBuilder: (context, index) {
                       var widgetType = order[index];
 
                       return ListTile(
                         key: ValueKey(widgetType.name),
-                        leading: MeditoIcon(
-                          assetName: MeditoIcons.dragHandle,
-                          color: Theme.of(context).colorScheme.onSurface,
+                        leading: ReorderableDragStartListener(
+                          index: index,
+                          child: MeditoIcon(
+                            assetName: MeditoIcons.dragHandle,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                         ),
                         title: Text(_getTitleForType(widgetType)),
                         trailing: Switch(

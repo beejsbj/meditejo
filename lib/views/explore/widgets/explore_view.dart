@@ -59,6 +59,19 @@ class ExploreViewState extends ConsumerState<ExploreView> {
   String _query = '';
   bool _hasLoadedData = false;
 
+  @override
+  void initState() {
+    super.initState();
+    ref.listenManual(exploreFocusRequestProvider, (_, request) {
+      if (request == 0) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        focusSearch();
+        ref.read(exploreFocusRequestProvider.notifier).consume(request);
+      });
+    }, fireImmediately: true);
+  }
+
   bool get _searching => _query.trim().isNotEmpty;
 
   /// Reads the lists the first time the tab is shown.
@@ -128,10 +141,6 @@ class ExploreViewState extends ConsumerState<ExploreView> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(
-      exploreFocusRequestProvider,
-      (_, _) => WidgetsBinding.instance.addPostFrameCallback((_) => focusSearch()),
-    );
     return Scaffold(
       // No bottom inset: the nav bar is outside this page, and the trailing
       // sliver keeps the last row clear.

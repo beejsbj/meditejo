@@ -120,7 +120,7 @@ class _HomeViewState extends ConsumerState<HomeView>
     final first = items?.firstOrNull;
     final signature = first == null
         ? ''
-        : '${first.trackId}|${first.sessionNumber}/${first.sessionTotal}';
+        : '${first.trackId}|${first.completedSessions}/${first.sessionTotal}|${first.title}|${first.courseTitle}';
     if (signature == _lastWidgetSignature) return;
     _lastWidgetSignature = signature;
     HomeWidgetService.updateUpNextWidget(
@@ -128,7 +128,7 @@ class _HomeViewState extends ConsumerState<HomeView>
       packTitle: first?.courseTitle ?? '',
       trackId: first?.trackId ?? '',
       subtitle: '',
-      completed: first == null ? 0 : (first.sessionNumber ?? 1) - 1,
+      completed: first?.completedSessions ?? 0,
       total: first?.sessionTotal ?? 0,
     ).ignore();
   }

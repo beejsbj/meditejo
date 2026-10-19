@@ -17,6 +17,7 @@ class ContinueItem {
     this.resume,
     this.sessionNumber,
     this.sessionTotal,
+    this.completedSessions = 0,
   });
 
   final String trackId;
@@ -36,6 +37,9 @@ class ContinueItem {
   /// "Session 4 of 18", when the session belongs to a course.
   final int? sessionNumber;
   final int? sessionTotal;
+
+  /// Actual completions, independent of the offered session's ordinal.
+  final int completedSessions;
 }
 
 /// How many Continue items Home shows.
