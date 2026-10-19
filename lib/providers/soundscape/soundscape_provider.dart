@@ -8,9 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/soundscape/sound_library.dart';
 import '../../models/soundscape/sound_mix.dart';
 import '../../models/soundscape/starter_presets.dart';
+import '../../models/soundscape/synth.dart';
 import '../../services/soundscape/soundscape_engine.dart';
 import '../../services/soundscape/soundscape_keep_alive.dart';
 import '../../services/soundscape/soundscape_store.dart';
+import '../../services/soundscape/synth/noise_generator.dart';
 import '../../utils/logger.dart';
 import '../player/audio_state_provider.dart';
 import '../shared_preference/shared_preference_provider.dart';
@@ -205,7 +207,9 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     if (mix.layers.length >= SoundMix.kMaxLayers) return;
     final failed = {...state.failed}..remove(soundId);
     _editMix(
-      mix.put(SoundLayer(soundId: soundId)),
+      mix.put(
+        SoundLayer(soundId: soundId, params: defaultSynthParams(soundId)),
+      ),
       failed: failed,
       start: true,
     );
@@ -223,6 +227,14 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     final layer = state.mix.layer(soundId);
     if (layer == null) return;
     _editMix(state.mix.put(layer.copyWith(animate: animate)));
+  }
+
+  /// A generated layer's settings (noise bands, drone root, beat …), as
+  /// JSON (see `synth.dart`). The engine retunes it without a gap.
+  void setLayerParams(String soundId, Map<String, Object?> params) {
+    final layer = state.mix.layer(soundId);
+    if (layer == null) return;
+    _editMix(state.mix.put(layer.copyWith(params: params)));
   }
 
   void clearMix() => _editMix(SoundMix.empty);
@@ -400,8 +412,25 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         SoundLayer(soundId: selection.id, volume: 0.8),
       ]),
     };
-    return mix.where(library.contains);
+    return mix.where((id) => _isKnown(id, library));
   }
+
+  static bool _isKnown(String id, SoundLibrary library) =>
+      library.contains(id) || isSynthId(id);
+
+  static LayerSource _sourceFor(SoundLayer layer, SoundLibrary library) =>
+      switch (layer.soundId) {
+        kSynthNoiseId => NoiseLoopSource(
+          NoiseSpec(params: NoiseParams.fromJson(layer.params)),
+        ),
+        kSynthDroneId => OscillatorSource(
+          DroneParams.fromJson(layer.params).partials(),
+        ),
+        kSynthBinauralId => OscillatorSource(
+          BinauralParams.fromJson(layer.params).partials(),
+        ),
+        _ => AssetLoopSource(library[layer.soundId]!.asset),
+      };
 
   void _editMix(SoundMix mix, {Set<String>? failed, bool start = false}) {
     _store.writeMix(mix);
@@ -459,7 +488,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     final desired = <String, SoundLayer>{
       if (s.active)
         for (final l in s.mix.layers)
-          if (library.contains(l.soundId) && !s.failed.contains(l.soundId))
+          if (_isKnown(l.soundId, library) && !s.failed.contains(l.soundId))
             l.soundId: l,
     };
 
@@ -489,10 +518,9 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       final motion = layer.animate ? LayerMotion.forSound(layer.soundId) : null;
       final current = _applied[layer.soundId];
       if (current == null) {
-        final entry = library[layer.soundId]!;
         final ok = await _engine.start(
           layer.soundId,
-          AssetLoopSource(entry.asset),
+          _sourceFor(layer, library),
           gain: layerGain(layer.volume),
           motion: motion,
         );
@@ -501,6 +529,14 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         } else {
           failed.add(layer.soundId);
         }
+      } else if (!mapEquals(current.params, layer.params)) {
+        final ok = await _engine.retune(
+          layer.soundId,
+          _sourceFor(layer, library),
+          gain: layerGain(layer.volume),
+          motion: motion,
+        );
+        if (ok) _applied[layer.soundId] = layer;
       } else if (current != layer) {
         _engine.setGain(layer.soundId, layerGain(layer.volume), motion: motion);
         _applied[layer.soundId] = layer;
