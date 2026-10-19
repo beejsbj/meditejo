@@ -108,8 +108,9 @@ void main() {
     if (played) await store.touchPlayed(['x-course-$name']);
   }
 
-  Future<void> leftAt(String trackId, DateTime when) =>
-      db.into(db.playbackPositions).insertOnConflictUpdate(
+  Future<void> leftAt(String trackId, DateTime when) => db
+      .into(db.playbackPositions)
+      .insertOnConflictUpdate(
         PlaybackPositionsCompanion.insert(
           trackId: trackId,
           positionMs: 120000,
@@ -154,6 +155,58 @@ void main() {
     expect(items.single.sessionTotal, 4);
   });
 
+  test('a completed resume point yields the next unfinished session', () async {
+    await addCourse('a', played: true);
+    await leftAt('x-a-1', DateTime(2026, 10, 18));
+    final items = await read(checked: ['x-a-1'], packs: [_course('a')]);
+    expect(items.single.trackId, 'x-a-2');
+    expect(items.single.resume, isNull);
+    expect(items.single.completedSessions, 1);
+  });
+
+  test(
+    'resuming a later session does not invent earlier completions',
+    () async {
+      await addCourse('a', played: true);
+      await leftAt('x-a-4', DateTime(2026, 10, 18));
+      final items = await read(packs: [_course('a')]);
+      expect(items.single.sessionNumber, 4);
+      expect(items.single.completedSessions, 0);
+    },
+  );
+
+  test(
+    'all started courses participate before the practice-first limit',
+    () async {
+      final names = [
+        'oldPractice',
+        'done1',
+        'done2',
+        'done3',
+        'done4',
+        'done5',
+        'talk',
+      ];
+      for (final name in names) {
+        await addCourse(
+          name,
+          group: name == 'talk' ? LibraryGroup.talks : LibraryGroup.practice,
+          played: true,
+        );
+      }
+      final items = await read(
+        packs: [for (final name in names) _course(name)],
+        checked: [
+          'x-oldPractice-1',
+          'x-talk-1',
+          for (final name in names.where((n) => n.startsWith('done')))
+            for (var i = 1; i <= 4; i++) 'x-$name-$i',
+        ],
+      );
+      expect(items.map((i) => i.trackId), ['x-oldPractice-2', 'x-talk-2']);
+    },
+  );
+
   test('a course with some sessions done offers its next one', () async {
     await addCourse('a', played: true);
 
@@ -197,15 +250,27 @@ void main() {
     await leftAt('x-p3-1', DateTime(2026, 10, 11));
 
     final items = await read(
-      packs: [
-        _course('talkA'),
-        _course('p1'),
-        _course('p2'),
-        _course('p3'),
-      ],
+      packs: [_course('talkA'), _course('p1'), _course('p2'), _course('p3')],
     );
 
     expect(items.map((i) => i.trackId), ['x-p2-1', 'x-p3-1', 'x-p1-1']);
+  });
+
+  test('an older practice resume ranks ahead of twelve recent talks', () async {
+    await addCourse('practice');
+    await leftAt('x-practice-1', DateTime(2026, 10, 1));
+    for (var i = 0; i < 12; i++) {
+      await addCourse('talk$i', group: LibraryGroup.talks);
+      await leftAt('x-talk$i-1', DateTime(2026, 10, 19));
+    }
+    final items = await read(
+      packs: [
+        _course('practice'),
+        for (var i = 0; i < 12; i++) _course('talk$i'),
+      ],
+    );
+    expect(items, hasLength(3));
+    expect(items.first.trackId, 'x-practice-1');
   });
 
   test('a session from outside the library still counts', () async {

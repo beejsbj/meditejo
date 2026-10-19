@@ -63,6 +63,31 @@ void main() {
     expect(find.text('Pinned courses'), findsNothing);
   });
 
+  testWidgets('an unavailable pin can be removed to free its slot', (
+    tester,
+  ) async {
+    final app = await LibraryTestApp.create(tester);
+    await app.prefs.setStringList('pinned_course_ids', ['lib-course-gone']);
+    await app.pump(
+      tester,
+      const HomeView(),
+      overrides: [
+        continueItemsProvider.overrideWith((ref) async => []),
+        packProvider(
+          packId: 'lib-course-gone',
+        ).overrideWith(() => _MissingPack()),
+      ],
+    );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(HomeView)),
+    );
+    expect(find.byTooltip('Unpin from Home'), findsOneWidget);
+    await tester.tap(find.byTooltip('Unpin from Home'));
+    await settle(tester);
+    expect(container.read(pinnedCoursesProvider), isEmpty);
+    expect(app.prefs.getStringList('pinned_course_ids'), isEmpty);
+  });
+
   testWidgets('with nothing to continue it says so and keeps the quick links', (
     tester,
   ) async {
@@ -148,10 +173,27 @@ void main() {
     final container = ProviderScope.containerOf(
       tester.element(find.byType(HomeView)),
     );
+    await tester.runAsync(() async {
+      await app.harness.store.add(
+        const LibraryDraft(
+          sourceId: 'lib-course-a',
+          kind: LibraryKind.course,
+          title: 'Course A',
+          group: LibraryGroup.practice,
+        ),
+      );
+      await app.harness.store.setTitle(pack.id, 'My course');
+    });
     await container.read(pinnedCoursesProvider.notifier).pin(pack.id);
     await settle(tester);
 
     expect(find.text('Pinned courses'), findsOneWidget);
+    expect(find.text('My course'), findsOneWidget);
+    await tester.runAsync(
+      () => app.harness.store.setTitle(pack.id, 'Renamed again'),
+    );
+    await settle(tester);
+    expect(find.text('Renamed again'), findsOneWidget);
     expect(find.byKey(const ValueKey('pinned_lib-course-a')), findsOneWidget);
     expect(find.text('1 of 2'), findsOneWidget);
   });
@@ -191,4 +233,10 @@ class _FakePack extends Pack {
 
   @override
   AsyncValue<PackModel> build({required String packId}) => AsyncData(model);
+}
+
+class _MissingPack extends Pack {
+  @override
+  AsyncValue<PackModel> build({required String packId}) =>
+      AsyncError(StateError('Removed'), StackTrace.current);
 }

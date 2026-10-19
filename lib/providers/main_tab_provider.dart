@@ -78,4 +78,8 @@ class ExploreFocusRequestNotifier extends Notifier<int> {
   int build() => 0;
 
   void request() => state++;
+
+  void consume(int request) {
+    if (state == request) state = 0;
+  }
 }

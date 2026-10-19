@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/views/explore/widgets/explore_view.dart';
 import 'package:medito/services/library/library_database.dart';
 
@@ -106,20 +108,51 @@ void main() {
   });
 
   group('Search (in Explore)', () {
+    testWidgets('consumes a search focus request made before mount', (
+      tester,
+    ) async {
+      final app = await DharmaSeedTestApp.create(tester);
+      await app.pump(tester, const SizedBox.shrink());
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaterialApp)),
+      );
+      container.read(exploreFocusRequestProvider.notifier).request();
+      await app.pump(tester, const ExploreView());
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.focusNode!.hasFocus, isTrue);
+      expect(container.read(exploreFocusRequestProvider), 0);
+      // A consumed request must not reopen the keyboard on a later mount.
+      await app.pump(tester, const SizedBox.shrink());
+      await app.pump(tester, const ExploreView());
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).focusNode!.hasFocus,
+        isFalse,
+      );
+    });
+
     testWidgets('nothing typed browses; typing swaps in grouped results, '
         'debounced; clearing browses again', (tester) async {
       final app = await DharmaSeedTestApp.create(tester);
       await app.pump(tester, const ExploreView());
 
-      expect(find.byKey(const ValueKey('explore_search_field')), findsOneWidget);
-      expect(find.byKey(const ValueKey('explore_chip_practice')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('explore_search_field')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('explore_chip_practice')),
+        findsOneWidget,
+      );
       expect(find.byKey(const ValueKey('suggestion_metta')), findsOneWidget);
       expect(find.text('Mixed Weekend'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField), 'jhana');
       await tester.pump(const Duration(milliseconds: 100));
       // Still browsing: the 400 ms pause has not passed.
-      expect(find.byKey(const ValueKey('explore_chip_practice')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('explore_chip_practice')),
+        findsOneWidget,
+      );
       await tester.pump(const Duration(milliseconds: 400));
       await DharmaSeedTestApp.settle(tester);
       expect(find.byKey(const ValueKey('explore_chip_practice')), findsNothing);
@@ -128,7 +161,10 @@ void main() {
 
       await tester.tap(find.byTooltip('Clear search'));
       await DharmaSeedTestApp.settle(tester);
-      expect(find.byKey(const ValueKey('explore_chip_practice')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('explore_chip_practice')),
+        findsOneWidget,
+      );
       expect(find.text('Mixed Weekend'), findsOneWidget);
     });
 
@@ -164,7 +200,6 @@ void main() {
       expect(find.widgetWithText(TextField, 'jhana'), findsOneWidget);
       expect(find.text('Jhana basics'), findsOneWidget);
     });
-
 
     testWidgets('opens on suggestions that run the search when tapped', (
       tester,
