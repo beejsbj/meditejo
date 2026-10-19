@@ -29,6 +29,8 @@ void _useSystemSqlite() => open.overrideFor(OperatingSystem.linux, () {
 void main() {
   test('first launch from the bundled catalogue', () async {
     _useSystemSqlite();
+    // A measuring tool, standing in for a test.
+    // ignore: invalid_use_of_visible_for_testing_member
     DharmaSeedSnapshot.isolateSetup = _useSystemSqlite;
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     final dir = Directory.systemTemp.createTempSync('meditejo-ds-install');
