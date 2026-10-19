@@ -37,10 +37,13 @@ final dharmaSeedSourceProvider = Provider<DharmaSeedSource>(
   ),
 );
 
-/// Every built-in or imported source, consulted by ID prefix. Later sources
-/// (`yt-`) join this list.
+/// Every built-in or imported source, consulted by stable ID prefix.
 final contentSourcesProvider = Provider<List<ContentSource>>(
-  (ref) => [ref.watch(dharmaSeedSourceProvider), ref.watch(libSourceProvider)],
+  (ref) => [
+    ref.watch(dharmaSeedSourceProvider),
+    ref.watch(libSourceProvider),
+    ref.watch(youtubeSourceProvider),
+  ],
 );
 
 /// Live sync state for the settings row (in progress, last synced, failed).

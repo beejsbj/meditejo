@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:medito/services/youtube/youtube_source.dart';
+
 import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
 import 'package:medito/services/library/feed_parser.dart';
@@ -35,6 +37,7 @@ class ImportService {
     required this.storageDirectory,
     this.temporaryDirectories,
     this.dharmaSeed,
+    this.youtube,
     this.durationProbe,
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now;
@@ -43,6 +46,7 @@ class ImportService {
   final LibSource lib;
   final LibraryStore library;
   final DharmaSeedSource? dharmaSeed;
+  final YoutubeSource? youtube;
 
   /// Where imported files are kept, created on demand.
   final Future<Directory> Function() storageDirectory;
@@ -82,7 +86,10 @@ class ImportService {
         if (await Directory(path).exists()) return resolveDirectory(path);
         return resolveFiles([PickedFile(path: path)]);
       case ImportLinkKind.youtube:
-        throw ImportFailure(ImportFailureReason.youtube, link.raw);
+        final source = youtube;
+        if (source == null)
+          throw const ImportFailure(ImportFailureReason.youtubeUnavailable);
+        return source.preview(link.uri!);
       case ImportLinkKind.unsupportedHost:
         throw ImportFailure(ImportFailureReason.unsupportedHost, link.raw);
       case ImportLinkKind.unrecognised:
@@ -503,6 +510,8 @@ class ImportService {
         ? choice.kind
         : preview.kind;
     switch (preview.origin) {
+      case ImportOrigin.youtube:
+        return youtube!.add(preview, choice);
       case ImportOrigin.dharmaSeed:
         return _addDharmaSeed(preview, choice);
       case ImportOrigin.feed:

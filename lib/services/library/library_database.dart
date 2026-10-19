@@ -145,6 +145,35 @@ class LibraryMeta extends Table {
   Set<Column> get primaryKey => {key};
 }
 
+/// YouTube metadata only. Signed stream addresses never enter this database.
+@DataClassName('YoutubeVideoRow')
+class YoutubeVideos extends Table {
+  TextColumn get videoId => text()();
+  TextColumn get title => text()();
+  TextColumn get uploader => text()();
+  TextColumn get thumbnail => text()();
+  TextColumn get description => text().withDefault(const Constant(''))();
+  IntColumn get durationSeconds => integer()();
+
+  @override
+  Set<Column> get primaryKey => {videoId};
+}
+
+/// The ordered ID list preserves duplicates and permits a video in several
+/// courses. A single-video course uses `single-<videoId>` as its playlist ID.
+@DataClassName('YoutubePlaylistRow')
+class YoutubePlaylists extends Table {
+  TextColumn get playlistId => text()();
+  TextColumn get title => text()();
+  TextColumn get uploader => text()();
+  TextColumn get thumbnail => text()();
+  TextColumn get videoIds => text()();
+  DateTimeColumn get lastCheckedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {playlistId};
+}
+
 @DriftDatabase(
   tables: [
     LibraryEntries,
@@ -152,6 +181,8 @@ class LibraryMeta extends Table {
     LibCourses,
     LibTracks,
     LibraryMeta,
+    YoutubeVideos,
+    YoutubePlaylists,
   ],
 )
 class LibraryDatabase extends _$LibraryDatabase {
@@ -164,7 +195,31 @@ class LibraryDatabase extends _$LibraryDatabase {
   );
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.createTable(youtubeVideos);
+        await m.createTable(youtubePlaylists);
+      }
+    },
+  );
+
+  Future<YoutubeVideoRow?> youtubeVideo(String id) => (select(
+    youtubeVideos,
+  )..where((v) => v.videoId.equals(id))).getSingleOrNull();
+
+  Future<YoutubePlaylistRow?> youtubePlaylist(String id) => (select(
+    youtubePlaylists,
+  )..where((p) => p.playlistId.equals(id))).getSingleOrNull();
+
+  Future<List<YoutubePlaylistRow>> youtubeCourses() =>
+      select(youtubePlaylists).get();
+
+  Future<List<YoutubeVideoRow>> youtubeSessions() =>
+      select(youtubeVideos).get();
 
   // ---------------------------------------------------------------- meta
 

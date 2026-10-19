@@ -291,3 +291,27 @@ and the header sit outside that reorderable list. Removed/unknown saved section
 names are ignored. The timer shortcut works with an empty catalogue. A future
 “Continue your practice” section belongs in `upNext`; populate it from a pinned
 source course plus the same local pack-completion data.
+
+### YouTube (`yt-`)
+
+`pigeons/youtube.dart` defines the Android `YoutubeExtractorApi`: complete
+playlist metadata, single video metadata and a fresh best audio-only stream.
+`YoutubeExtractorBridge` uses pinned NewPipeExtractor v0.26.5 off the main
+thread. Typed extraction failures never expose stack traces to the UI.
+
+`lib/services/youtube/youtube_source.dart` registers beside `ds-` and `lib-`.
+The library database's schema 2 adds `YoutubeVideos` and `YoutubePlaylists`;
+ordered ID lists permit shared and repeated videos. Track IDs are
+`yt-video-<id>`, courses `yt-playlist-<id>`, and a single video kept as Course
+uses a synthetic `yt-playlist-single-<id>`. `track()` resolves an audio-only URL
+and caches it only in memory with an expiry margin. `PlayerProvider` and the
+downloader re-enter the source before playback/download, so cached UI models
+cannot replay expired addresses. Persistent track and end-screen metadata
+strip signed URLs. Local download filenames are stable by ID (`.audio`).
+
+The existing Add screen handles YouTube paste and share text through the same
+classifier and preview. Whole-title talk/lecture words select Talks;
+otherwise Practice. Watch links with a playlist can keep the full ordered
+course or only the addressed video. Playlist attempts are throttled for 12 h,
+including failures; opening a course or the delayed feed-refresh pass checks
+when due, and the course's pull to refresh forces a check.

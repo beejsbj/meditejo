@@ -1,0 +1,26 @@
+name: YouTube checks
+on:
+  push:
+    branches: [fork/youtube]
+permissions:
+  contents: read
+jobs:
+  dart:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2.12.0
+        with:
+          flutter-version: '3.47.2'
+          cache: false
+      - run: timeout 600 nice -n 10 flutter pub get
+      - name: Generate bridges and models
+        run: |
+          for f in pigeon_conf.dart pigeons/*.dart; do
+            [ -f "$f" ] && dart run pigeon --input "$f" --package_name=medito
+          done
+          dart run build_runner build --delete-conflicting-outputs
+      - run: timeout 600 nice -n 10 flutter analyze
+      - name: YouTube and import tests (no live network)
+        run: timeout 600 nice -n 10 flutter test -j 2 test/services/youtube test/services/library test/views/library

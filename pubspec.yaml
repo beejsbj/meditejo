@@ -92,6 +92,7 @@ dev_dependencies:
 flutter:
   generate: true
   assets:
+    - assets/licenses/NewPipeExtractor-GPL-3.0.txt
     - assets/audio/
     - assets/
     - assets/images/

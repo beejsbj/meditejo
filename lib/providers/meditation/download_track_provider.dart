@@ -26,7 +26,7 @@ Future<void> removeDownloadedTrack(
   required String fileId,
   required String fileUrl,
 }) async {
-  final fileName = '$trackId-$fileId${getAudioFileExtension(fileUrl)}';
+  final fileName = audioFileName(trackId, fileId, fileUrl);
 
   AppLogger.d('DOWNLOAD', 'removeDownloadedTrack: checking file $fileName');
   final isDownloaded = await ref

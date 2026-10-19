@@ -1,3 +1,4 @@
+import 'package:medito/providers/library/library_providers.dart';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -77,6 +78,14 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
               .read(audioDownloaderProvider.notifier)
               .getTrackPath(_constructFileName(request));
 
+    if (downloadPath == null && request.trackId.startsWith('yt-video-')) {
+      final fresh = await ref
+          .read(youtubeSourceProvider)
+          .track(request.trackId);
+      request = request.copyWith(
+        remoteUrl: fresh.voices.single.audioFiles.single.path,
+      );
+    }
     final url = downloadPath ?? request.remoteUrl;
     AppLogger.d('PLAYER', 'Will use path: $url');
 
@@ -216,7 +225,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
   }
 
   String _constructFileName(PlaybackRequest request) =>
-      '${request.trackId}-${request.fileId}${getAudioFileExtension(request.remoteUrl)}';
+      audioFileName(request.trackId, request.fileId, request.remoteUrl);
 
   Future<void> seekToPosition(int position) async {
     if (Platform.isAndroid) {

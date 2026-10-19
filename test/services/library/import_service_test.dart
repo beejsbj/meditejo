@@ -379,13 +379,16 @@ void main() {
       ),
     );
 
-    test('YouTube says it is coming, without any request', () async {
-      expect(
-        await failureOf(() => h.service.resolve('https://youtu.be/abc')),
-        ImportFailureReason.youtube,
-      );
-      expect(h.web.requests, isEmpty);
-    });
+    test(
+      'YouTube without a bridge reports unavailable, without web requests',
+      () async {
+        expect(
+          await failureOf(() => h.service.resolve('https://youtu.be/abc')),
+          ImportFailureReason.youtubeUnavailable,
+        );
+        expect(h.web.requests, isEmpty);
+      },
+    );
 
     test('Spotify and rubbish are named, not crashed on', () async {
       expect(

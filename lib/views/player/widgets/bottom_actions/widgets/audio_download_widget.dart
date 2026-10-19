@@ -20,8 +20,11 @@ class AudioDownloadWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final downloadAudioState = ref.watch(audioDownloaderProvider);
-    final downloadFileKey =
-        '${request.trackId}-${request.fileId}${getAudioFileExtension(request.remoteUrl)}';
+    final downloadFileKey = audioFileName(
+      request.trackId,
+      request.fileId,
+      request.remoteUrl,
+    );
 
     return SizedBox(
       width: 48,
@@ -197,7 +200,7 @@ class AudioDownloadWidget extends ConsumerWidget {
         await ref
             .read(audioDownloaderProvider.notifier)
             .deleteTrackAudio(
-              '${request.trackId}-${request.fileId}${getAudioFileExtension(request.remoteUrl)}',
+              audioFileName(request.trackId, request.fileId, request.remoteUrl),
             );
         ref.read(deleteDownloadedTrackByIdProvider(fileId: request.fileId));
       } catch (e) {

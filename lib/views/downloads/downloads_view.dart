@@ -321,8 +321,7 @@ class _DownloadsViewState extends ConsumerState<DownloadsView>
     Track item,
   ) async {
     final firstFile = item.voices.first.audioFiles.first;
-    final fileName =
-        '${item.id}-${firstFile.id}${getAudioFileExtension(firstFile.path)}';
+    final fileName = audioFileName(item.id, firstFile.id, firstFile.path);
 
     final isDownloaded = await container
         .read(downloaderRepositoryProvider)

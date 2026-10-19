@@ -1,5 +1,8 @@
 import 'dart:io';
 
+import 'package:medito/services/youtube/youtube_source.dart';
+import 'package:medito/src/youtube_api.g.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
@@ -45,6 +48,18 @@ final libSourceProvider = Provider<LibSource>(
   ),
 );
 
+final youtubeExtractorProvider = Provider<YoutubeExtractorApi>(
+  (ref) => YoutubeExtractorApi(),
+);
+
+final youtubeSourceProvider = Provider<YoutubeSource>(
+  (ref) => YoutubeSource(
+    db: ref.watch(libraryDatabaseProvider),
+    library: ref.watch(libraryStoreProvider),
+    api: ref.watch(youtubeExtractorProvider),
+  ),
+);
+
 final importHttpProvider = Provider<ImportHttp>((ref) {
   final http = ImportHttp();
   ref.onDispose(http.close);
@@ -73,6 +88,7 @@ final importServiceProvider = Provider<ImportService>(
     lib: ref.watch(libSourceProvider),
     library: ref.watch(libraryStoreProvider),
     dharmaSeed: ref.watch(dharmaSeedSourceProvider),
+    youtube: ref.watch(youtubeSourceProvider),
     storageDirectory: () async {
       final directory = await getApplicationSupportDirectory();
       return Directory(directory.path);
@@ -187,8 +203,9 @@ Future<void> startFeedRefresh(
 }) async {
   try {
     await Future<void>.delayed(delay);
+    final youtubeChanged = await ref.read(youtubeSourceProvider).refreshAll();
     final report = await ref.read(feedRefresherProvider).refreshAll();
-    if (report.checked > report.failed) {
+    if (youtubeChanged || report.checked > report.failed) {
       // A feed answered, so its name, artwork or episodes may have changed.
       // Course pages and completion ticks cached before would otherwise keep
       // showing the old ones.

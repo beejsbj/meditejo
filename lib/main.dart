@@ -70,6 +70,18 @@ void main() async {
     yield LicenseEntryWithLineBreaks(const ['Google Sans'], ofl);
   });
 
+  LicenseRegistry.addLicense(() async* {
+    final gpl = await rootBundle.loadString(
+      'assets/licenses/NewPipeExtractor-GPL-3.0.txt',
+    );
+    yield LicenseEntryWithLineBreaks(
+      const ['NewPipeExtractor'],
+      'NewPipeExtractor v0.26.5 — Team NewPipe\n'
+      'Source: https://github.com/TeamNewPipe/NewPipeExtractor/tree/v0.26.5\n'
+      'GPL-3.0. Combined into Meditejo under AGPL-3.0 (GPLv3 section 13).\n\n$gpl',
+    );
+  });
+
   var prefs = await initializeSharedPreferences();
 
   try {

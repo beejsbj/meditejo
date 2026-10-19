@@ -1,3 +1,4 @@
+import 'package:medito/exceptions/app_error.dart';
 import 'dart:convert';
 
 import 'package:medito/constants/strings/shared_preference_constants.dart';
@@ -38,7 +39,9 @@ class TrackRepositoryImpl extends TrackRepository {
   Future<Track> fetchTrack(String trackId) async {
     try {
       return await router.track(trackId);
-    } on CatalogueEntryUnavailable {
+    } catch (e) {
+      if (e is! CatalogueEntryUnavailable && e is! YoutubeUnavailableError)
+        rethrow;
       // Saved favourites resolve by ID too. Keep downloaded metadata usable
       // when its source catalogue is empty or no longer carries the track.
       final downloads = await fetchTrackFromPreference();
@@ -70,7 +73,10 @@ class TrackRepositoryImpl extends TrackRepository {
   Future<void> addTrackInPreference(List<Track> trackList) async {
     await ref
         .read(sharedPreferencesProvider)
-        .setString(SharedPreferenceConstants.downloads, json.encode(trackList));
+        .setString(
+          SharedPreferenceConstants.downloads,
+          json.encode(trackList.map(withoutYoutubeStream).toList()),
+        );
   }
 
   @override
@@ -79,7 +85,7 @@ class TrackRepositoryImpl extends TrackRepository {
         .read(sharedPreferencesProvider)
         .setString(
           SharedPreferenceConstants.currentPlayingTrack,
-          json.encode(track),
+          json.encode(withoutYoutubeStream(track)),
         );
   }
 
@@ -110,3 +116,18 @@ TrackRepository trackRepository(Ref ref) {
     sources: ref.watch(contentSourcesProvider),
   );
 }
+
+/// A resolved YouTube URL is valid only in memory. Downloads retain their
+/// stable file IDs; the existing downloader finds local audio by those IDs.
+Track withoutYoutubeStream(Track track) => !track.id.startsWith('yt-video-')
+    ? track
+    : track.copyWith(
+        voices: [
+          for (final voice in track.voices)
+            voice.copyWith(
+              audioFiles: [
+                for (final file in voice.audioFiles) file.copyWith(path: ''),
+              ],
+            ),
+        ],
+      );

@@ -2099,10 +2099,6 @@
   "@importFailUnrecognised": {
     "description": "Calm failure: not a usable link"
   },
-  "importFailYoutube": "YouTube support is coming. For now, paste a podcast feed, an audio link or a Dharma Seed page.",
-  "@importFailYoutube": {
-    "description": "Calm failure: YouTube"
-  },
   "importFailUnsupportedHost": "Links from that service can't be imported. For a podcast, look for its feed address, or its page on Apple Podcasts.",
   "@importFailUnsupportedHost": {
     "description": "Calm failure: a service with no readable feed"
@@ -2162,5 +2158,11 @@
   "libraryCheckNew": "Check for new episodes",
   "@libraryCheckNew": {
     "description": "Switch on an imported feed course: look for new episodes now and then"
-  }
+  },
+  "youtubeUnavailable": "This video isn't available right now",
+  "@youtubeUnavailable": {
+    "description": "Calm one-line YouTube extraction or playback failure"
+  },
+  "youtubeCourseCaption": "All sessions, in playlist order",
+  "youtubeSingleCaption": "Just this video"
 }

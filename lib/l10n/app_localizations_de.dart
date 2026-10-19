@@ -2013,10 +2013,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Das sieht nicht nach einem nutzbaren Link oder einer Datei aus. Versuche eine Adresse, die mit https:// beginnt.';
 
   @override
-  String get importFailYoutube =>
-      'YouTube-Unterstützung kommt noch. Füge bis dahin einen Podcast-Feed, einen Audio-Link oder eine Dharma-Seed-Seite ein.';
-
-  @override
   String get importFailUnsupportedHost =>
       'Links von diesem Dienst lassen sich nicht importieren. Suche bei einem Podcast nach der Feed-Adresse oder der Seite bei Apple Podcasts.';
 
@@ -2068,4 +2064,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get libraryCheckNew => 'Nach neuen Folgen suchen';
+
+  @override
+  String get youtubeUnavailable => 'Dieses Video ist gerade nicht verfügbar';
+
+  @override
+  String get youtubeCourseCaption => 'Alle Sitzungen in Playlist-Reihenfolge';
+
+  @override
+  String get youtubeSingleCaption => 'Nur dieses Video';
 }
