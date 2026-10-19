@@ -72,19 +72,25 @@ class Pack extends _$Pack {
     final completed = stats.value?.tracksChecked ?? const <String>[];
     final completedPacks = ref.watch(completedPackIdsProvider);
 
-    return rawPack.whenData(
-      (pack) => pack.copyWith(
-        items: pack.items
-            .map(
-              (item) => item.copyWith(
-                isCompleted: item.type == TypeConstants.pack
-                    ? completedPacks.contains(item.id)
-                    : completed.contains(item.id),
-              ),
-            )
-            .toList(),
-      ),
+    PackModel withCompletion(PackModel pack) => pack.copyWith(
+      items: pack.items
+          .map(
+            (item) => item.copyWith(
+              isCompleted: item.type == TypeConstants.pack
+                  ? completedPacks.contains(item.id)
+                  : completed.contains(item.id),
+            ),
+          )
+          .toList(),
     );
+
+    // A background refresh re-reads the pack while the page is open. Keep
+    // showing what is there rather than dropping to the loading placeholder,
+    // which would rebuild the page and lose the scroll position.
+    if (rawPack.isLoading && rawPack.hasValue) {
+      return AsyncData(withCompletion(rawPack.requireValue));
+    }
+    return rawPack.whenData(withCompletion);
   }
 
   /// Sets a track's completion to an absolute value in local stats, then asks
