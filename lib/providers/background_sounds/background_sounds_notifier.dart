@@ -193,6 +193,7 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
   /// one shared choice; only the bells switch is remembered per scope (on by
   /// default for the Timer, off under tracks).
   bool _timerScope = false;
+  int _extensionMinutes = 0;
 
   void setTimerScope(bool isTimer) => _timerScope = isTimer;
 
@@ -516,6 +517,7 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
   /// Ambient preferences belong to Customize's kind/course scope. The cue
   /// scheduler owns bells; this method never enables the legacy bell layer.
   void applyCueSettings(CueSettings settings) {
+    _extensionMinutes = _timerScope ? 0 : settings.extendMinutes;
     final sounds = ref
         .read(backgroundSoundsRepositoryProvider)
         .fetchCachedBackgroundSounds();
@@ -569,7 +571,8 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
         return;
       }
 
-      var remainingTime = duration - currentPosition.inMilliseconds;
+      var remainingTime =
+          duration - currentPosition.inMilliseconds + _extensionMinutes * 60000;
 
       if (remainingTime <= 0) {
         // At or past the end: stay silent. Without this the fade would snap

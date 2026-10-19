@@ -141,4 +141,11 @@ void main() {
       at.add(const Duration(minutes: 20, seconds: 5)),
     );
   });
+  test('random gaps match the Kotlin and Swift pinned vectors', () {
+    expect(
+      [for (var i = 1; i <= 3; i++) CueSchedule.gapMs(10, 4, 42, i)],
+      [448678, 652441, 726809],
+    );
+    expect(CueSchedule.gapMs(10, 4, -9, 1), 409580);
+  });
 }

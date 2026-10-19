@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -88,4 +90,35 @@ void main() {
     expect(map['pulseSound'], isNull);
     expect(map['durationMs'], 600000);
   });
+  test(
+    'legacy timer duration is retained until Customize has its own default',
+    () async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('timer_minutes', 25);
+      final store = CueSettingsStore(prefs);
+      expect(store.read(const CueScope(CueKind.practice)).durationMinutes, 25);
+      await store.save(
+        const CueScope(CueKind.practice),
+        const CueSettings(durationMinutes: 15),
+      );
+      expect(store.read(const CueScope(CueKind.practice)).durationMinutes, 15);
+    },
+  );
+  test(
+    'editing a kind refreshes previously read inheriting course scopes',
+    () async {
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(container.dispose);
+      const base = CueScope(CueKind.practice);
+      const course = CueScope(CueKind.practice, courseId: 'course');
+      expect(container.read(cueSettingsProvider(course)).extendMinutes, 0);
+      await container
+          .read(cueSettingsProvider(base).notifier)
+          .update(const CueSettings(extendMinutes: 10));
+      expect(container.read(cueSettingsProvider(course)).extendMinutes, 10);
+    },
+  );
 }

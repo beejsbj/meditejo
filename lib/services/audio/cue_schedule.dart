@@ -53,26 +53,38 @@ class CueSchedule {
     return countdown + Duration(microseconds: (seconds * 1000000).round());
   }
 
-  /// Park-Miller PRNG, deliberately reproducible in Dart/Kotlin/Swift.
-  /// Integer modulo arithmetic avoids platform-specific Random sequences.
+  /// Stateless SplitMix64 matches the native implementations, including the
+  /// integer-millisecond gap rounding. Seed/index pairs are cross-platform
+  /// test vectors rather than relying on each language's Random sequence.
+  static int _mix64(int x) {
+    var z = x + -0x61c8864680b583eb;
+    z = (z ^ (z >>> 30)) * -0x40a7b892e31b1a47;
+    z = (z ^ (z >>> 27)) * -0x6b2fb644ecceee15;
+    return z ^ (z >>> 31);
+  }
+
+  static double randomUnit(int seed, int index) =>
+      (_mix64(seed * 31 + index * -0x61c8864680b583eb) >>> 11) /
+      9007199254740992.0;
+  static int gapMs(int interval, int window, int seed, int index) {
+    if (window <= 0) return interval * 60000;
+    final low = math.max(1, interval - window) * 60000;
+    final high = (interval + window) * 60000;
+    return (low + randomUnit(seed, index) * (high - low)).floor();
+  }
+
   Iterable<Duration> intervals() sync* {
     if (settings.intervalMinutes <= 0 || settings.intervalSound.isEmpty) return;
-    var state = seed.abs() % 2147483647;
-    if (state == 0) state = 1;
-    var elapsedUs = 0;
-    final low =
-        math.max(1, settings.intervalMinutes - settings.randomWindowMinutes) *
-        60000000;
-    final high =
-        (settings.intervalMinutes + settings.randomWindowMinutes) * 60000000;
-    while (true) {
-      state = state * 48271 % 2147483647;
-      final gap = settings.randomWindowMinutes == 0
-          ? settings.intervalMinutes * 60000000
-          : low + ((high - low) * state / 2147483647).round();
-      elapsedUs += gap;
-      if (elapsedUs >= practiceDuration.inMicroseconds) return;
-      yield countdown + Duration(microseconds: elapsedUs);
+    var elapsedMs = 0;
+    for (var index = 1; ; index++) {
+      elapsedMs += gapMs(
+        settings.intervalMinutes,
+        settings.randomWindowMinutes,
+        seed,
+        index,
+      );
+      if (elapsedMs >= practiceDuration.inMilliseconds) return;
+      yield countdown + Duration(milliseconds: elapsedMs);
     }
   }
 

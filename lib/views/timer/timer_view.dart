@@ -60,10 +60,11 @@ class _TimerViewState extends ConsumerState<TimerView> {
       );
     } catch (e, st) {
       AppLogger.e('TIMER', 'Failed to start timer', e, st);
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.unableToLoadAudio)));
+      }
     } finally {
       if (mounted) setState(() => _starting = false);
     }
