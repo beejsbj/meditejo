@@ -10,6 +10,7 @@ import 'package:medito/services/library/library_store.dart';
 import 'package:medito/widgets/save_button.dart';
 import 'package:medito/views/library/import_view.dart';
 import 'package:medito/views/library/library_view.dart';
+import 'package:medito/views/library/library_widgets.dart';
 import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/track/track_view.dart';
 
@@ -390,7 +391,7 @@ void main() {
         final menu = find.descendant(
           of: find.ancestor(
             of: find.text(title),
-            matching: find.byType(ListTile),
+            matching: find.byType(LibraryEntryTile),
           ),
           matching: find.byIcon(Icons.more_vert_rounded),
         );

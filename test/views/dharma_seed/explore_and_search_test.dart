@@ -19,7 +19,8 @@ void main() {
       expect(find.text('Mixed Weekend'), findsOneWidget);
       expect(find.text('Jhana Retreat'), findsOneWidget);
       expect(find.text('Teachers'), findsOneWidget);
-      expect(find.text('Rob Burbea'), findsOneWidget);
+      // The name is also a search suggestion beside the field.
+      expect(find.text('Rob Burbea'), findsNWidgets(2));
       expect(find.text('Latest talks'), findsNothing);
       expect(find.text('Latest guided practice'), findsNothing);
     });
@@ -28,6 +29,8 @@ void main() {
         'tap', (tester) async {
       final app = await DharmaSeedTestApp.create(tester);
       await app.pump(tester, const ExploreView());
+      // The search field and suggestions take room the lists used to have.
+      tester.view.physicalSize = const Size(430, 2400);
 
       await tester.tap(find.byKey(const ValueKey('explore_chip_practice')));
       await DharmaSeedTestApp.settle(tester);

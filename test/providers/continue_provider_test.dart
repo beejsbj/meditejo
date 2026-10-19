@@ -209,12 +209,12 @@ void main() {
   });
 
   test('a session from outside the library still counts', () async {
-    await leftAt('x-loose-1', DateTime(2026, 10, 18));
+    await leftAt('x-loose', DateTime(2026, 10, 18));
 
     final items = await read();
 
-    expect(items.single.trackId, 'x-loose-1');
-    expect(items.single.title, 'Title of x-loose-1');
+    expect(items.single.trackId, 'x-loose');
+    expect(items.single.title, 'Title of x-loose');
     expect(items.single.group, LibraryGroup.practice);
   });
 

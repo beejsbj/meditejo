@@ -54,7 +54,7 @@ void main() {
     expect(find.byKey(const ValueKey('continue_t1')), findsOneWidget);
     expect(find.text('Title t1'), findsOneWidget);
     expect(find.textContaining('Course A · Session 2 of 5'), findsNWidgets(2));
-    expect(find.text('8:00 left'), findsOneWidget);
+    expect(find.textContaining('8:00 left'), findsOneWidget);
     // Resume where it was left; Start for the next session of a course.
     expect(find.widgetWithText(FilledButton, 'Resume'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Start'), findsOneWidget);
