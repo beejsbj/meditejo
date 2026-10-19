@@ -116,10 +116,16 @@ class UpdateController extends Notifier<UpdateState> {
       // interval says: the time shown in About must not be older than the
       // update itself.
       final updated = _store.seenVersionCode != installed.versionCode;
-      await _store.setSeenVersionCode(installed.versionCode);
+      final checkedBefore = _store.lastCheckedAt;
       if (updated ||
           isAutoCheckDue(lastCheckedAt: _store.lastCheckedAt, now: _now())) {
         await check(manual: false);
+      }
+      // The build counts as seen only once a check has succeeded under it
+      // (a successful check is what moves the time), so a failed first check
+      // is tried again at the next launch rather than waiting out the day.
+      if (updated && _store.lastCheckedAt != checkedBefore) {
+        await _store.setSeenVersionCode(installed.versionCode);
       }
     } catch (e, st) {
       AppLogger.e(_tag, 'Launch check did not run', e, st);

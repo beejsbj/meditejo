@@ -291,6 +291,35 @@ void main() {
       expect(await db.savedIds(DsSavedKind.retreat), [6689]);
     });
 
+    test('a checkpoint that a reader blocks abandons the install', () async {
+      final old = await build(at: DateTime.utc(2026, 10, 1), name: 'old');
+      await old.snapshot.installIfNeeded(target);
+      // A WAL database with a save that only the log holds, and a reader
+      // pinned to an older view so the log cannot be folded in.
+      final reader = raw.sqlite3.open(target.path)
+        ..execute('PRAGMA journal_mode=WAL')
+        ..execute('BEGIN')
+        ..select('SELECT count(*) FROM ds_saved');
+      final writer = raw.sqlite3.open(target.path)
+        ..execute(
+          "INSERT INTO ds_saved (kind, item_id, saved_at) "
+          "VALUES ('retreat', 6689, 1)",
+        );
+      writer.dispose();
+
+      final result = await (await build(
+        name: 'new',
+      )).snapshot.installIfNeeded(target);
+      reader.execute('ROLLBACK');
+      reader.dispose();
+
+      expect(result, DsSnapshotResult.failed);
+      expect(File('${target.path}.previous').existsSync(), isFalse);
+      final db = await openTarget();
+      addTearDown(db.close);
+      expect(await db.savedIds(DsSavedKind.retreat), [6689]);
+    });
+
     test('a database that is not a catalogue is replaced', () async {
       target.parent.createSync(recursive: true);
       target.writeAsStringSync('this is not a database ' * 50);
@@ -509,5 +538,11 @@ void main() {
       manifest.editions.keys,
       containsAll(['teachers', 'retreats', 'talks']),
     );
+    // The installer trusts gzip's CRC and does not hash at launch, so this is
+    // where a wrong asset (unpacking to another database than the manifest
+    // describes) is caught.
+    final unpacked = gzip.decode(packed.readAsBytesSync());
+    expect(unpacked.length, manifest.bytes);
+    expect(sha256.convert(unpacked).toString(), manifest.sha256);
   });
 }

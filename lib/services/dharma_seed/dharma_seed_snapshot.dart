@@ -183,8 +183,10 @@ class DharmaSeedSnapshot {
   /// How current the catalogue in [file] is: its newest per-kind sync time,
   /// so a device that has synced anything since the snapshot was made is never
   /// rolled back (its own incremental sync continues from its own cursors).
-  /// Null when there is no file, or it never completed a sync of every kind,
-  /// in which case the snapshot is the better start.
+  /// Null when there is no file, or it never completed a sync of every kind
+  /// (a first sync killed part-way): the snapshot is then the better start,
+  /// since it brings the missing kind whole, and the delta refetches whatever
+  /// the other kinds gained since, a few requests.
   static DateTime? _localAsOf(File file) {
     if (!file.existsSync() || file.lengthSync() == 0) return null;
     final db = sqlite3.open(file.path, mode: OpenMode.readOnly);
@@ -305,6 +307,9 @@ void _stage(_StageRequest request) {
         'not ${request.expectedBytes}',
       );
     }
+    // gzip's own CRC has already vouched for the asset's bytes. The manifest's
+    // SHA-256 is not recomputed here (about a second on bjslab, several on a
+    // phone, at first launch); a test checks the committed asset against it.
     staged.writeAsBytesSync(bytes, flush: true);
 
     final db = sqlite3.open(staged.path);
@@ -337,8 +342,16 @@ void _carryOverSaves(Database staged, {required String oldPath}) {
   final List<Row> rows;
   final old = sqlite3.open(oldPath);
   try {
-    // Fold the write-ahead log in, so the file moved aside is complete.
-    old.execute('PRAGMA wal_checkpoint(TRUNCATE)');
+    // Fold the write-ahead log in, so the file moved aside is complete. A
+    // checkpoint another connection blocks reports it in the result row
+    // (busy, log frames, frames checkpointed) instead of throwing.
+    final checkpoint = old.select('PRAGMA wal_checkpoint(TRUNCATE)').first;
+    final busy = checkpoint.columnAt(0) as int;
+    final log = checkpoint.columnAt(1) as int;
+    final done = checkpoint.columnAt(2) as int;
+    if (busy != 0 || (log >= 0 && log != done)) {
+      throw StateError('The catalogue database is busy; not replacing it');
+    }
     rows = old.select('SELECT kind, item_id, saved_at FROM ds_saved');
   } on SqliteException catch (e) {
     const unreadable = {1, 11, 26}; // error (no table), corrupt, not a database
