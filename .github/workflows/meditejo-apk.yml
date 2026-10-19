@@ -67,6 +67,10 @@ jobs:
             dart run pigeon --input "$f" --package_name=medito
           done
           dart run build_runner build --delete-conflicting-outputs
+      - name: Verify resolved notice versions and scoped repositories
+        run: |
+          cd android
+          ./gradlew -I ../tools/meditejo/verify_youtube_runtime.gradle :app:verifyYoutubeRuntime -Ptarget-platform=android-arm64 --no-daemon --max-workers=2
       - name: Build arm64 APK without phone credentials
         run: |
           # Keep the JVM within the hosted runner's memory budget.
@@ -79,10 +83,6 @@ jobs:
           PROPERTIES
           timeout 1800 nice -n 10 flutter build apk --flavor "$FLAVOR" "--$MODE" \
             --target-platform android-arm64
-      - name: Verify resolved notice versions and scoped repositories
-        run: |
-          cd android
-          ./gradlew -I ../tools/meditejo/verify_youtube_runtime.gradle :app:verifyYoutubeRuntime -Ptarget-platform=android-arm64 --no-daemon --max-workers=2
       - name: Verify packaged licence texts
         run: python3 -I tools/meditejo/check_apk_licenses.py "build/app/outputs/flutter-apk/app-$FLAVOR-$MODE.apk"
       - name: YouTube native unit tests
