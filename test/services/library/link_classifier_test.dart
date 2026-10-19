@@ -173,7 +173,12 @@ void main() {
 
     test('known talk hosts', () {
       expect(isKnownTalkHost('www.dhammatalks.org'), isTrue);
-      expect(isKnownTalkHost('dharmaseed.org'), isTrue);
+      expect(isKnownTalkHost('audiodharma.org'), isTrue);
+      expect(
+        isKnownTalkHost('dharmaseed.org'),
+        isFalse,
+        reason: 'Dharma Seed is classified by its own recording type',
+      );
       expect(isKnownTalkHost('example.org'), isFalse);
       expect(isKnownTalkHost('notdhammatalks.org'), isFalse);
     });
