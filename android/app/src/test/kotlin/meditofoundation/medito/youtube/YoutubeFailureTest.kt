@@ -54,7 +54,7 @@ class YoutubeFailureTest {
     fun aWrappedCauseDecidesWhenTheWrapperSaysNothing() {
         assertEquals("network", code(ExtractionException("Could not get streams", IOException("reset"))))
         assertEquals("rate-limited", code(ExtractionException("wrapped", SignInConfirmNotBotException("bot"))))
-        assertEquals("unavailable", code(ExtractionException("wrapped", TimeoutException())))
+        assertEquals("rate-limited", code(ExtractionException("wrapped", TimeoutException())))
         assertEquals("private", code(ParsingException("Could not parse", PrivateContentException("private"))))
         assertEquals("age-restricted", code(RuntimeException(ExtractionException("x", AgeRestrictedContentException("age")))))
     }
