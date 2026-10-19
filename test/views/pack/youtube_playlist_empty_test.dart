@@ -61,4 +61,56 @@ void main() {
       await tester.runAsync(db.close);
     },
   );
+
+  Future<void> pollsWhileFailing(
+    WidgetTester tester,
+    String code,
+    List<int> expectedCallsAfterEachMinute,
+  ) async {
+    final db = memoryLibraryDb();
+    final store = LibraryStore(db);
+    final api = FakeYoutubeApi()..failure = PlatformException(code: code);
+    final source = YoutubeSource(db: db, library: store, api: api);
+    await tester.runAsync(() async {
+      await source.storePlaylist(playlistOne, playlist([]));
+      await source.refresh('yt-playlist-$playlistOne');
+    });
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [youtubeSourceProvider.overrideWithValue(source)],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(
+            body: YoutubePlaylistEmpty(packId: 'yt-playlist-PLone'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final start = api.playlistCalls.length;
+    for (final expected in expectedCallsAfterEachMinute) {
+      await tester.pump(const Duration(minutes: 1));
+      await DharmaSeedTestApp.settle(tester);
+      expect(api.playlistCalls.length - start, expected);
+    }
+    await tester.pumpWidget(const SizedBox());
+    store.dispose();
+    await tester.runAsync(db.close);
+  }
+
+  testWidgets('a rate-limited playlist backs off instead of polling', (
+    tester,
+  ) async {
+    // Attempts at 30 s, 60 s, 120 s and 240 s (an offline playlist would
+    // make two a minute: 2, 4, 6, 8).
+    await pollsWhileFailing(tester, 'rate-limited', [2, 3, 3, 4]);
+  });
+
+  testWidgets('a permanently unavailable playlist is not polled', (
+    tester,
+  ) async {
+    await pollsWhileFailing(tester, 'private', [0, 0, 0]);
+  });
 }
