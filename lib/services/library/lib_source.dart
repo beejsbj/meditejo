@@ -14,6 +14,7 @@ import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
 import 'package:medito/services/local_catalogue.dart';
 import 'package:medito/utils/logger.dart';
+import 'package:path/path.dart' as p;
 
 /// The user's own imports as a [ContentSource]: a feed or a set of files is a
 /// course (a pack whose sessions are its episodes or files), and a URL or a
@@ -300,12 +301,22 @@ class LibSource
     await library.remove(id);
     final paths = <String>[];
     if (isLibCourseId(id)) {
+      // Sessions of the course that were also added on their own go too.
+      for (final child in await db.trackIdsOfCourse(id)) {
+        await library.remove(child);
+      }
       paths.addAll(await db.deleteCourse(id));
     } else if (isLibTrackId(id)) {
-      final path = await db.deleteTrack(id);
-      if (path != null) paths.add(path);
+      // A session inside a course belongs to the course: taking it out of the
+      // library as its own entry leaves the course (and its audio) alone.
+      if ((await db.trackById(id))?.courseId == null) {
+        final path = await db.deleteTrack(id);
+        if (path != null) paths.add(path);
+      }
     }
     for (final path in paths) {
+      // Only ever our own copies, never a path from anywhere else.
+      if (p.basename(p.dirname(path)) != 'library') continue;
       try {
         final file = File(path);
         if (await file.exists()) await file.delete();
@@ -363,7 +374,32 @@ class LibSource
         now: stamp,
       );
     }
+    await _renumber(courseId, {
+      for (final e in feed.episodes) libEpisodeId(feedUrl, e.guid): e.ordinal,
+    });
     return added;
+  }
+
+  /// Oldest-first ranks 0..N-1 over the whole course. Episodes the feed no
+  /// longer lists (it trimmed its history) are older than the ones it does,
+  /// so they go first, by date, instead of sharing ranks with current ones.
+  Future<void> _renumber(String courseId, Map<String, int> current) async {
+    final tracks = await db.tracksOfCourse(courseId);
+    final dropped = [
+      for (final t in tracks)
+        if (!current.containsKey(t.id)) t,
+    ]..sort((a, b) => a.publishedAt.compareTo(b.publishedAt));
+    var rank = 0;
+    for (final t in dropped) {
+      await db.updateTrack(t.id, LibTracksCompanion(ordinal: Value(rank++)));
+    }
+    final live = [
+      for (final t in tracks)
+        if (current.containsKey(t.id)) t,
+    ]..sort((a, b) => current[a.id]!.compareTo(current[b.id]!));
+    for (final t in live) {
+      await db.updateTrack(t.id, LibTracksCompanion(ordinal: Value(rank++)));
+    }
   }
 
   /// Stores one feed episode, attached to [courseId] or on its own.

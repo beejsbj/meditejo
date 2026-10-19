@@ -203,19 +203,21 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
                         val file = copySharedAudio(uri, type) ?: return null
                         return mapOf("files" to listOf(file))
                     }
-                    val text = intent.getStringExtra(Intent.EXTRA_TEXT)
+                    // Some apps put a styled CharSequence here, not a String.
+                    val text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()
                     return if (text.isNullOrBlank()) null else mapOf("text" to text)
                 }
                 Intent.ACTION_SEND_MULTIPLE -> {
                     val uris = intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM) ?: return null
-                    val files = uris.mapNotNull { copySharedAudio(it, type) }
+                    val files = uris.mapNotNull {
+                        try {
+                            copySharedAudio(it, type)
+                        } catch (e: Exception) {
+                            println("❌ [Share] Skipped one shared file: ${e.message}")
+                            null
+                        }
+                    }
                     return if (files.isEmpty()) null else mapOf("files" to files)
-                }
-                Intent.ACTION_VIEW -> {
-                    val uri = intent.data ?: return null
-                    if (!type.startsWith("audio/")) return null
-                    val file = copySharedAudio(uri, type) ?: return null
-                    return mapOf("files" to listOf(file))
                 }
             }
         } catch (e: Exception) {

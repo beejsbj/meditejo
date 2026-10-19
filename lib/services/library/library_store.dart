@@ -26,7 +26,12 @@ class LibraryStore {
   Future<void>? _prepared;
 
   Future<void> _ready() => _prepared ??= () async {
-    await prepare?.call(db);
+    try {
+      await prepare?.call(db);
+    } catch (_) {
+      _prepared = null; // try again on the next call
+      rethrow;
+    }
   }();
 
   void _changed() => revision.value++;
@@ -191,8 +196,11 @@ class LibraryStore {
     };
   }
 
-  ResumePoint _resume(PlaybackPositionRow row) =>
-      ResumePoint(positionMs: row.positionMs, durationMs: row.durationMs);
+  ResumePoint _resume(PlaybackPositionRow row) => ResumePoint(
+    positionMs: row.positionMs,
+    durationMs: row.durationMs,
+    fileId: row.fileId,
+  );
 
   /// Remembers where the user is. A position at the very start, or within
   /// [finishedWithin] of the end, is not worth resuming and clears the mark.
@@ -203,6 +211,7 @@ class LibraryStore {
     String trackId,
     int positionMs,
     int durationMs, {
+    String fileId = '',
     bool notify = true,
   }) async {
     await _ready();
@@ -212,7 +221,7 @@ class LibraryStore {
     if (positionMs < minimumResume.inMilliseconds || nearEnd) {
       await db.clearPosition(trackId);
     } else {
-      await db.savePosition(trackId, positionMs, durationMs);
+      await db.savePosition(trackId, positionMs, durationMs, fileId: fileId);
     }
     if (notify) positionsRevision.value++;
   }

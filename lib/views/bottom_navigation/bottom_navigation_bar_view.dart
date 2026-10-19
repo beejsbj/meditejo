@@ -75,6 +75,7 @@ class _BottomNavigationBarViewState
     ref.listenManual(audioStateProvider, (_, state) {
       tracker.onState(
         trackId: state.track.id,
+        fileId: state.track.fileId,
         positionMs: state.position,
         durationMs: state.duration,
         isPlaying: state.isPlaying,

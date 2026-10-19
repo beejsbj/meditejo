@@ -33,6 +33,7 @@ class ImportService {
     required this.lib,
     required this.library,
     required this.storageDirectory,
+    this.temporaryDirectories,
     this.dharmaSeed,
     this.durationProbe,
     DateTime Function()? clock,
@@ -45,6 +46,12 @@ class ImportService {
 
   /// Where imported files are kept, created on demand.
   final Future<Directory> Function() storageDirectory;
+
+  /// Folders whose files are the app's own temporary copies (the picker's
+  /// and the share target's). Only files inside them are moved into storage
+  /// and removed from where they were; any other path is copied, so the
+  /// user's own file is never touched.
+  final Future<List<String>> Function()? temporaryDirectories;
   final DurationProbe? durationProbe;
   final DateTime Function() _clock;
 
@@ -439,9 +446,15 @@ class ImportService {
       throw const ImportFailure(ImportFailureReason.noAudioFiles);
     }
 
-    final durations = await Future.wait([
-      for (final f in audio) _probe(f.path),
-    ]);
+    // A few at a time: each probe is a throwaway player.
+    final durations = <int?>[];
+    for (var i = 0; i < audio.length; i += 4) {
+      durations.addAll(
+        await Future.wait([
+          for (final f in audio.skip(i).take(4)) _probe(f.path),
+        ]),
+      );
+    }
     final multiple = audio.length > 1;
     final known = durations.whereType<int>().fold(0, (a, b) => a + b);
     final titles = [for (final f in audio) titleFromFileName(f.name ?? f.path)];
@@ -701,9 +714,8 @@ class ImportService {
     }
     final target = p.join(folder.path, '$id$extension');
     final file = File(source);
-    final isCache = source.contains(
-      '${Platform.pathSeparator}cache${Platform.pathSeparator}',
-    );
+    final roots = await temporaryDirectories?.call() ?? const <String>[];
+    final isCache = roots.any((root) => p.isWithin(root, source));
     if (isCache) {
       try {
         await file.rename(target);

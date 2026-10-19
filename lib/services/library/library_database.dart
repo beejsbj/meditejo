@@ -48,6 +48,10 @@ class LibraryEntries extends Table {
 class PlaybackPositions extends Table {
   TextColumn get trackId => text()();
   IntColumn get positionMs => integer()();
+
+  /// The audio file the position belongs to (a track can have several
+  /// lengths); empty when unknown.
+  TextColumn get fileId => text().withDefault(const Constant(''))();
   IntColumn get durationMs => integer().withDefault(const Constant(0))();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -200,15 +204,20 @@ class LibraryDatabase extends _$LibraryDatabase {
   Future<List<PlaybackPositionRow>> positionsOf(Iterable<String> trackIds) =>
       (select(playbackPositions)..where((p) => p.trackId.isIn(trackIds))).get();
 
-  Future<void> savePosition(String trackId, int positionMs, int durationMs) =>
-      into(playbackPositions).insertOnConflictUpdate(
-        PlaybackPositionsCompanion.insert(
-          trackId: trackId,
-          positionMs: positionMs,
-          durationMs: Value(durationMs),
-          updatedAt: DateTime.now(),
-        ),
-      );
+  Future<void> savePosition(
+    String trackId,
+    int positionMs,
+    int durationMs, {
+    String fileId = '',
+  }) => into(playbackPositions).insertOnConflictUpdate(
+    PlaybackPositionsCompanion.insert(
+      trackId: trackId,
+      fileId: Value(fileId),
+      positionMs: positionMs,
+      durationMs: Value(durationMs),
+      updatedAt: DateTime.now(),
+    ),
+  );
 
   Future<void> clearPosition(String trackId) =>
       (delete(playbackPositions)..where((p) => p.trackId.equals(trackId))).go();

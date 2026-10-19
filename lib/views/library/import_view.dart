@@ -137,6 +137,7 @@ class _ImportViewState extends ConsumerState<ImportView> {
     if (input.isEmpty) {
       setState(() {
         _phase = _Phase.idle;
+        _preview = null;
         _failure = ImportFailureReason.empty;
       });
       return;
@@ -273,6 +274,16 @@ class _ImportViewState extends ConsumerState<ImportView> {
               textInputAction: TextInputAction.go,
               autocorrect: false,
               onSubmitted: (_) => _resolve(),
+              // Changing the link drops a preview of the old one, so Add can
+              // never add something other than what the field shows.
+              onChanged: (_) {
+                if (_preview != null && _phase == _Phase.preview) {
+                  setState(() {
+                    _preview = null;
+                    _phase = _Phase.idle;
+                  });
+                }
+              },
               decoration: InputDecoration(
                 hintText: l10n.importFieldHint,
                 prefixIcon: const Icon(Icons.link_rounded),

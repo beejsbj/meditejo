@@ -38,6 +38,7 @@ class PlaybackPositionTracker {
     required int durationMs,
     required bool isPlaying,
     required bool isCompleted,
+    String fileId = '',
   }) async {
     if (trackId.isEmpty || ignore(trackId)) {
       _trackId = null;
@@ -66,11 +67,17 @@ class PlaybackPositionTracker {
 
     if (paused) {
       _lastSavedMs = positionMs;
-      await store.savePosition(trackId, positionMs, durationMs);
+      await store.savePosition(trackId, positionMs, durationMs, fileId: fileId);
     } else if (isPlaying &&
         (positionMs - _lastSavedMs).abs() >= interval.inMilliseconds) {
       _lastSavedMs = positionMs;
-      await store.savePosition(trackId, positionMs, durationMs, notify: false);
+      await store.savePosition(
+        trackId,
+        positionMs,
+        durationMs,
+        fileId: fileId,
+        notify: false,
+      );
     }
   }
 }

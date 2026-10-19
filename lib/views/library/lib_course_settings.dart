@@ -29,7 +29,11 @@ class LibCourseSettings extends ConsumerWidget {
     Future<void> change({String? order, bool? refresh}) async {
       await ref
           .read(libSourceProvider)
-          .updateCourseSettings(courseId, episodeOrder: order, autoRefresh: refresh);
+          .updateCourseSettings(
+            courseId,
+            episodeOrder: order,
+            autoRefresh: refresh,
+          );
       ref.invalidate(_libCourseProvider(courseId));
       ref.invalidate(packDataProvider(packId: courseId));
     }

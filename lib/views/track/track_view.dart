@@ -10,6 +10,7 @@ import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/providers/library/library_providers.dart';
+import 'package:medito/services/library/library_models.dart';
 import 'package:medito/utils/resume_request.dart';
 import 'package:medito/utils/track_variant_selector.dart';
 import 'package:medito/views/library/library_format.dart';
@@ -209,9 +210,16 @@ class _TrackViewState extends ConsumerState<TrackView>
     );
   }
 
+  /// The saved place, if it is in the file shown (another length of the same
+  /// track has its own).
+  ResumePoint? _resumeIn(Track track, TrackAudioFile file) {
+    final point = ref.watch(resumePointProvider(track.id)).value;
+    return point != null && point.appliesTo(file.id) ? point : null;
+  }
+
   /// "From the beginning", offered only when there is a place to resume.
   List<Widget> _fromStart(Track track, TrackVoice voice, TrackAudioFile file) {
-    final resume = ref.watch(resumePointProvider(track.id)).value;
+    final resume = _resumeIn(track, file);
     if (resume == null) return const [];
     return [
       Align(
@@ -262,7 +270,7 @@ class _TrackViewState extends ConsumerState<TrackView>
     // button disappears into the page — so switch to the themed primary
     // (near-black accent) with a white icon for light mode.
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final resume = ref.watch(resumePointProvider(track.id)).value;
+    final resume = _resumeIn(track, activeFile);
     return SizedBox(
       height: 56,
       width: isFullWidth ? double.infinity : null,

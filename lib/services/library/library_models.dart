@@ -109,10 +109,20 @@ class LibraryDraft {
 /// Where the user stopped in a session.
 @immutable
 class ResumePoint {
-  const ResumePoint({required this.positionMs, required this.durationMs});
+  const ResumePoint({
+    required this.positionMs,
+    required this.durationMs,
+    this.fileId = '',
+  });
 
   final int positionMs;
   final int durationMs;
+
+  /// The audio file this place is in; empty when it was not recorded.
+  final String fileId;
+
+  /// Whether this place is in [file] (or was recorded without one).
+  bool appliesTo(String file) => fileId.isEmpty || fileId == file;
 
   Duration get position => Duration(milliseconds: positionMs);
 }

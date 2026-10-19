@@ -116,6 +116,7 @@ class LibraryHarness {
       library: store,
       dharmaSeed: ds,
       storageDirectory: () async => storage,
+      temporaryDirectories: () async => ['${storage.path}/cache'],
       durationProbe: probe,
       clock: () => DateTime.utc(2026, 10, 17, 12),
     );

@@ -14,7 +14,8 @@ Future<PlaybackRequest> withResumePosition(
     final point = await ref
         .read(libraryStoreProvider)
         .resumePoint(request.trackId);
-    if (point == null) return request;
+    // A place in another length of the same track is not this one's.
+    if (point == null || !point.appliesTo(request.fileId)) return request;
     return request.copyWith(startPositionMs: point.positionMs);
   } catch (e) {
     AppLogger.w('LIBRARY', 'Could not read the saved position: $e');

@@ -76,6 +76,7 @@ final importServiceProvider = Provider<ImportService>(
       final directory = await getApplicationSupportDirectory();
       return Directory(directory.path);
     },
+    temporaryDirectories: () async => [(await getTemporaryDirectory()).path],
     durationProbe: probeAudioDuration,
   ),
 );

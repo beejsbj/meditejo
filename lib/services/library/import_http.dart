@@ -66,7 +66,7 @@ class ImportHttp {
     http.Client? client,
     this.userAgent = DharmaSeedClient.defaultUserAgent,
     this.timeout = const Duration(seconds: 20),
-    this.maxBytes = 8 * 1024 * 1024,
+    this.maxBytes = 16 * 1024 * 1024,
   }) : _client = client ?? http.Client();
 
   final http.Client _client;

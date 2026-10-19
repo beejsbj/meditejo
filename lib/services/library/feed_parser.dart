@@ -174,10 +174,10 @@ String plainText(String html) {
     '&mdash;': '—',
   };
   entities.forEach((entity, value) => text = text.replaceAll(entity, value));
-  text = text.replaceAllMapped(
-    RegExp(r'&#(\d+);'),
-    (m) => String.fromCharCode(int.parse(m.group(1)!)),
-  );
+  text = text.replaceAllMapped(RegExp(r'&#(\d+);'), (m) {
+    final code = int.tryParse(m.group(1)!) ?? 0;
+    return code > 0 && code <= 0x10FFFF ? String.fromCharCode(code) : '';
+  });
   return text
       .replaceAll(RegExp(r'[ \t]+\n'), '\n')
       .replaceAll(RegExp(r'\n{3,}'), '\n\n')
@@ -196,6 +196,7 @@ int? parseDurationMs(String? text) {
     if (number == null || number < 0) return null;
     seconds = seconds * 60 + number;
   }
+  if (!seconds.isFinite) return null;
   final ms = (seconds * 1000).round();
   return ms > 0 ? ms : null;
 }

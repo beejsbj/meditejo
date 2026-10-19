@@ -102,16 +102,6 @@
 
                 <data android:mimeType="audio/*" />
             </intent-filter>
-            <!-- "Open with Meditejo" on an audio file. -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-
-                <data android:scheme="content" />
-                <data android:scheme="file" />
-                <data android:mimeType="audio/*" />
-            </intent-filter>
 
             <!-- Health Connect: shown when the user taps "About this permission" -->
             <intent-filter>
