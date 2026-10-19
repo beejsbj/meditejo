@@ -253,6 +253,8 @@ clipboard reader and share intake as providers, so tests need no platform.
   Teachers; a row menu to move between Practice and Talks, rename (library only),
   pin a course to Home, or remove (an import asks first, since its audio is
   deleted). It is the third of four tabs (below), where Home used to link to it.
+- **New course** (the Library app bar): makes a personal course (below) and
+  opens it.
 - **Add** (`import_view.dart`): a link field with Paste and Preview, a clipboard
   suggestion, Choose files / Choose a folder, then the preview and one primary
   action, Add to library. Course/Single appears where both make sense (a feed:
@@ -343,7 +345,8 @@ a track with no cover, its generated art blurred behind the controls.
 `LocalAllStats.tracksChecked`. A track item is checked when its ID is present.
 A nested pack is checked when its nonempty track-ID set is entirely checked;
 `fetchPackTrackIds()` must include descendant tracks. Repeated tracks contribute
-to each containing pack. No server marks completion.
+to each containing pack, which is how a session listed in several personal
+courses counts in each (see "Sessions in several courses"). No server marks completion.
 
 A session is complete when playback reaches its end (ExoPlayer `STATE_ENDED`,
 or `completed` on iOS, with `SessionCompletionGate`'s 5 s guard). There is no
@@ -432,3 +435,73 @@ otherwise Practice. Watch links with a playlist can keep the full ordered
 course or only the addressed video. Playlist attempts are throttled for 12 h,
 including failures; opening a course or the delayed feed-refresh pass checks
 when due, and the course's pull to refresh forces a check.
+
+### Personal courses (`my-`)
+
+A course the user makes from sessions anywhere: a Dharma Seed talk, a YouTube
+video, a podcast episode, a local file. A course and a playlist are the same
+thing (DECISIONS, 2026-10-19 "My courses").
+
+- **Model** (`lib/services/my_courses/my_course_models.dart`): a course is
+  `my-course-<16 random hex>`, an ordered list of rows. A row is a session
+  reference (any source's track ID, kept as it is: `ds-talk-…`, `yt-video-…`,
+  `lib-track-…`) or a heading ("Day 1"). It has a title, a description, a cover
+  (one of its sessions' artwork, or empty for `GeneratedArtwork` seeded by the
+  course ID) and a Practice/Talks kind, which is its library entry's group
+  (default Practice). A session appears at most once per course.
+- **Storage**: the library database's schema 3 adds `MyCourses`,
+  `MyCourseItems` (rows in `position` order; a heading is a row with an empty
+  `item_id`) and `SessionContexts` (below). Each session row keeps a snapshot
+  of the session as it was added (title, teacher, artwork, length, kind) and
+  an `unavailable` flag. The course is also a library entry (kind `course`),
+  so it is listed, pinned and ranked like any other.
+- **Source** (`my_course_source.dart`, `MyCourseSource`, registered last in
+  `contentSourcesProvider`): `pack()` returns the rows as `PackItemsModel`s with
+  their own IDs and paths, so PackView, the player, downloads, Resume and
+  completion need no changes. Each session is re-read from its own source
+  (8 s limit) and its snapshot refreshed; only `CatalogueEntryUnavailable`
+  from the owning source marks it unavailable, and being offline or slow
+  shows the snapshot as it was. A heading becomes `PackItemsModel.section` on
+  the sessions under it; PackView draws the headings (`_sectioned`) instead of
+  its date grouping. `track()` owns nothing. `packTrackIds()` lists every
+  personal course (few, all the user's own) with its available sessions.
+  `searchPacks` matches titles and descriptions for Explore search. Changes bump
+  `revision`, which `packDataProvider` (for `my-` IDs) and `packTrackIdsProvider`
+  follow.
+- **Unavailable sessions**: `PackItemsModel.unavailable`. The row stays, faded
+  and labelled "Unavailable" in words; a tap explains instead of opening it.
+  `PackModel.playableTracks` (in `pack_model.dart`) is the sessions that can
+  be played. The play button, the progress line and edge, "mark all", Continue
+  and `packTrackIds` count only those. A session that comes back is available
+  again the next time the course opens.
+- **Making and editing** (`lib/views/my_courses/`): `my_course_actions.dart`
+  holds the New course dialog (name, Practice/Talks), the "Add to course…"
+  sheet (the user's courses, ticked when they already hold everything being
+  added, plus New course), Make my own copy, Delete, and `ContentActionsButton`,
+  the row "⋮" that offers them. `my_course_edit_view.dart` edits title,
+  description, kind and cover, and drags, removes or adds headings; nothing is
+  written until Save, and leaving with changes asks.
+- **Entry points**: the Library tab's New course button; "⋮" on library rows
+  (not teachers), on course and session rows from Dharma Seed, Explore search and
+  teacher pages, and on a course page's session rows (which also offer "Remove
+  from this course" in a personal course); the course page's bottom-bar "⋮"
+  (Add to course…, Make my own copy, and Edit and Delete for the user's own);
+  the track page's bottom bar (Add to course). The player is untouched.
+- **Copying a course** (`duplicate`) reads any source's course in its order
+  (with headings, from a personal course) into a new personal one called
+  "<title> (my copy)", with the original's kind, description and cover, then
+  opens it and its editor. The original is not changed.
+- **Deleting** removes the course's rows, its session contexts and its library
+  entry. The sessions, their own library entries, saved places and downloads
+  stay. Removing an import from the library warns when personal courses list
+  it; they keep its row, which then shows as unavailable.
+
+**Sessions in several courses.** Completion and Resume belong to the session
+ID, as everywhere else: finishing a session ticks it in every course that lists
+it, and its saved place is the same from any of them. What depends on the
+course is attribution. Opening a session from a course page (its row or the
+play button) records that course in `SessionContexts`. Continue then credits
+the session ("Session 2 of 6", the course's title and progress) to that course
+while it still lists it, and otherwise to the session's own source course
+(`ParentedContentSource`). Playing it brings both courses to the front of the
+library.

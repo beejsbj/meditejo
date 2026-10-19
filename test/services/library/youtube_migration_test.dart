@@ -31,11 +31,14 @@ void main() {
       store.dispose();
       await db.close();
 
-      // Recreate the previous schema exactly: only the two additive tables
-      // differ. The old library's data is left in place.
+      // Recreate the previous schema exactly: only the additive tables of
+      // schemas 2 and 3 differ. The old library's data is left in place.
       final old = sqlite3.open(file.path);
       old.execute('DROP TABLE youtube_videos');
       old.execute('DROP TABLE youtube_playlists');
+      old.execute('DROP TABLE my_courses');
+      old.execute('DROP TABLE my_course_items');
+      old.execute('DROP TABLE session_contexts');
       old.execute('PRAGMA user_version = 1');
       old.dispose();
 
