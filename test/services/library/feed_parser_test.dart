@@ -159,6 +159,17 @@ void main() {
       );
     });
 
+    test('media:content with medium="audio" counts without a type', () {
+      final feed = parseFeed(
+        '<rss xmlns:media="http://search.yahoo.com/mrss/"><channel><title>T</title>'
+        '<item><title>x</title><media:content url="https://cdn.example.org/a1" medium="audio"/></item>'
+        '<item><title>y</title><media:content url="https://cdn.example.org/v1" medium="video"/></item>'
+        '</channel></rss>',
+      );
+      expect(feed.episodes.map((e) => e.audioUrl), ['https://cdn.example.org/a1']);
+      expect(feed.skippedItems, 1);
+    });
+
     test('a feed with no audio parses to no episodes', () {
       final feed = parseFeed(
         '<rss><channel><title>T</title><item><title>x</title></item></channel></rss>',

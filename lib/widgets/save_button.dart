@@ -47,6 +47,11 @@ class SaveButton extends ConsumerWidget {
       if (confirmed != true) return;
     }
     await ref.read(savedProvider(id).notifier).toggle();
+    // The page shows what was just deleted (a Play for a file that is gone),
+    // so an imported item's page closes with it.
+    if (saved && id.startsWith(libPrefix) && context.mounted) {
+      Navigator.of(context).maybePop();
+    }
   }
 
   @override

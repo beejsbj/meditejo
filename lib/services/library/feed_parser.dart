@@ -475,10 +475,13 @@ _Draft? _rssItem(
     for (final child in item.childElements) {
       if (child.name.local != 'content' || !_isMedia(child.name)) continue;
       final candidate = _resolve(child.getAttribute('url'), base);
-      final type = child.getAttribute('type') ?? '';
+      var type = child.getAttribute('type') ?? '';
+      // medium="audio" says it is audio when there is no type or extension.
+      final medium = (child.getAttribute('medium') ?? '').toLowerCase();
+      if (type.isEmpty && medium == 'audio') type = 'audio/mpeg';
       if (candidate.isNotEmpty && _isAudio(type, candidate)) {
         url = candidate;
-        mime = type;
+        mime = child.getAttribute('type') ?? '';
         break;
       }
     }

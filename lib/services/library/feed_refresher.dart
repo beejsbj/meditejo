@@ -120,12 +120,18 @@ class FeedRefresher {
       lastModified: result.lastModified,
       now: _clock(),
     );
-    if (added > 0) {
-      final tracks = await db.tracksOfCourse(course.id);
+    // The library shows a snapshot, so carry over whatever the feed changed:
+    // its name, author and artwork as well as the episode count. A rename the
+    // user made is kept apart and is not touched.
+    final fresh = await lib.draftFor(course.id);
+    if (fresh != null) {
       await library.updateSnapshot(
         course.id,
-        itemCount: tracks.length,
-        durationMs: tracks.fold<int>(0, (sum, t) => sum + t.durationMs),
+        title: fresh.title,
+        subtitle: fresh.subtitle,
+        coverUrl: fresh.coverUrl,
+        itemCount: fresh.itemCount,
+        durationMs: fresh.durationMs,
       );
     }
     return added;

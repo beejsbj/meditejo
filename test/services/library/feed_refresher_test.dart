@@ -92,6 +92,21 @@ void main() {
     expect((await h.db.courseById(entry.sourceId))!.etag, '"v2"');
   });
 
+  test('a renamed feed updates the library entry, a user rename is kept', () async {
+    final id = (await h.store.entries()).single.sourceId;
+    await h.store.setTitle(id, 'My name');
+    respond = (_) => xmlResponse(
+      libraryFixture('rss_podcast.xml').replaceFirst('<title>Evening Sits</title>', '<title>Night Sits</title>'),
+    );
+    now = DateTime.utc(2026, 10, 18, 9);
+    final report = await refresher.refreshAll();
+
+    expect(report.newEpisodes, 0, reason: 'metadata only');
+    final entry = (await h.store.entries()).single;
+    expect(entry.title, 'Night Sits');
+    expect(entry.displayTitle, 'My name');
+  });
+
   test('a feed checked recently is left alone, unless forced', () async {
     now = DateTime.utc(2026, 10, 17, 9);
     expect((await refresher.refreshAll()).checked, 0);
