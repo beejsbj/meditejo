@@ -113,7 +113,7 @@ Future<void> seedStarterSet(
               (item.group ?? draft?.group ?? LibraryGroup.practice).name,
             ),
             title: draft?.title ?? item.title,
-            subtitle: Value(draft?.subtitle ?? ''),
+            subtitle: Value(draft?.subtitle ?? item.uploader),
             coverUrl: Value(draft?.coverUrl ?? ''),
             itemCount: Value(draft?.itemCount ?? item.itemCount),
             durationMs: Value(draft?.durationMs ?? 0),
@@ -131,6 +131,23 @@ Future<void> seedStarterSet(
       if (drafts.isNotEmpty && (await library.allEntries()).isEmpty) {
         for (final draft in drafts) {
           await library.insertEntry(draft);
+        }
+        // A YouTube course needs its playlist row to open at all. Seed it
+        // empty and already due, so the first open fetches the sessions.
+        for (final item in items) {
+          if (!item.id.startsWith('yt-playlist-')) continue;
+          await library
+              .into(library.youtubePlaylists)
+              .insertOnConflictUpdate(
+                YoutubePlaylistsCompanion.insert(
+                  playlistId: item.id.substring('yt-playlist-'.length),
+                  title: item.title,
+                  uploader: item.uploader,
+                  thumbnail: '',
+                  videoIds: '[]',
+                  lastCheckedAt: DateTime.fromMillisecondsSinceEpoch(0),
+                ),
+              );
         }
       }
       await library.setMeta(

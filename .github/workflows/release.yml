@@ -133,9 +133,11 @@ jobs:
         with:
           path: |
             lib/src/audio_pigeon.g.dart
+            lib/src/youtube_api.g.dart
             android/app/src/main/kotlin/meditofoundation/medito/pigeon/AudioPigeon.g.kt
-          key: ${{ runner.os }}-pigeon-local-${{ hashFiles('pigeon_conf.dart', 'pigeons/**', 'pubspec.lock') }}
-          restore-keys: ${{ runner.os }}-pigeon-local-
+            android/app/src/main/kotlin/meditofoundation/medito/pigeon/YoutubeApi.g.kt
+          key: ${{ runner.os }}-pigeon-local-v2-${{ hashFiles('pigeon_conf.dart', 'pigeons/**', 'pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-pigeon-local-v2-
 
       - name: Run pigeon
         if: steps.cache-pigeon.outputs.cache-hit != 'true'
@@ -553,9 +555,11 @@ jobs:
         with:
           path: |
             lib/src/audio_pigeon.g.dart
+            lib/src/youtube_api.g.dart
             android/app/src/main/kotlin/meditofoundation/medito/pigeon/AudioPigeon.g.kt
-          key: ${{ runner.os }}-pigeon-local-${{ hashFiles('pigeon_conf.dart', 'pigeons/**', 'pubspec.lock') }}
-          restore-keys: ${{ runner.os }}-pigeon-local-
+            android/app/src/main/kotlin/meditofoundation/medito/pigeon/YoutubeApi.g.kt
+          key: ${{ runner.os }}-pigeon-local-v2-${{ hashFiles('pigeon_conf.dart', 'pigeons/**', 'pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-pigeon-local-v2-
 
       - name: Run pigeon
         if: steps.cache-ios-app.outputs.cache-hit != 'true' && steps.cache-pigeon.outputs.cache-hit != 'true'
@@ -883,9 +887,11 @@ jobs:
         with:
           path: |
             lib/src/audio_pigeon.g.dart
+            lib/src/youtube_api.g.dart
             android/app/src/main/kotlin/meditofoundation/medito/pigeon/AudioPigeon.g.kt
-          key: ${{ runner.os }}-pigeon-local-${{ hashFiles('pigeon_conf.dart', 'pigeons/**', 'pubspec.lock') }}
-          restore-keys: ${{ runner.os }}-pigeon-local-
+            android/app/src/main/kotlin/meditofoundation/medito/pigeon/YoutubeApi.g.kt
+          key: ${{ runner.os }}-pigeon-local-v2-${{ hashFiles('pigeon_conf.dart', 'pigeons/**', 'pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-pigeon-local-v2-
 
       - name: Run pigeon
         if: steps.cache-pigeon.outputs.cache-hit != 'true'

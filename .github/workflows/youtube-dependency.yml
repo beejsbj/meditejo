@@ -1,0 +1,21 @@
+name: YouTube dependency
+on:
+  push:
+    branches: [fork/youtube]
+    paths:
+      - .github/workflows/youtube-dependency.yml
+      - android/app/build.gradle
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  jitpack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Resolve pinned NewPipeExtractor from JitPack
+        run: |
+          base=https://jitpack.io/com/github/TeamNewPipe/NewPipeExtractor/v0.26.5
+          curl --fail --location --retry 3 --max-time 180 "$base/NewPipeExtractor-v0.26.5.pom" -o /tmp/newpipe.pom
+          curl --fail --location --retry 3 --max-time 180 "$base/NewPipeExtractor-v0.26.5.jar" -o /tmp/newpipe.jar
+          jar tf /tmp/newpipe.jar | head -30

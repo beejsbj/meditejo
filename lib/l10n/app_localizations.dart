@@ -3562,12 +3562,6 @@ abstract class AppLocalizations {
   /// **'That doesn\'t look like a link or file I can use. Try an address that starts with https://.'**
   String get importFailUnrecognised;
 
-  /// Calm failure: YouTube
-  ///
-  /// In en, this message translates to:
-  /// **'YouTube support is coming. For now, paste a podcast feed, an audio link or a Dharma Seed page.'**
-  String get importFailYoutube;
-
   /// Calm failure: a service with no readable feed
   ///
   /// In en, this message translates to:
@@ -3657,6 +3651,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check for new episodes'**
   String get libraryCheckNew;
+
+  /// Calm one-line YouTube extraction or playback failure
+  ///
+  /// In en, this message translates to:
+  /// **'This video isn\'t available right now'**
+  String get youtubeUnavailable;
+
+  /// No description provided for @youtubeCourseCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'All sessions, in playlist order'**
+  String get youtubeCourseCaption;
+
+  /// No description provided for @youtubeSingleCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Just this video'**
+  String get youtubeSingleCaption;
 }
 
 class _AppLocalizationsDelegate

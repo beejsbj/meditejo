@@ -27,6 +27,9 @@ class MeditoErrorWidget extends ConsumerWidget {
 
   String _getErrorMessage(BuildContext context) {
     return switch (error) {
+      YoutubeUnavailableError() => AppLocalizations.of(
+        context,
+      )!.youtubeUnavailable,
       NetworkConnectionError() => AppLocalizations.of(
         context,
       )!.errorNoInternetMessage,

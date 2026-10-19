@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:medito/exceptions/app_error.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/types/type_constants.dart';
@@ -30,6 +32,9 @@ Future<void> startSession(
   final preferredDuration = ref.read(durationPreferenceProvider);
 
   try {
+    if (trackId.startsWith('yt-video-')) {
+      ref.invalidate(tracksProvider(trackId: trackId));
+    }
     final track = await ref.read(tracksProvider(trackId: trackId).future);
     // A recording with one voice and one file has nothing to choose, so it
     // plays at once; only a track with real choices and no remembered
@@ -68,7 +73,13 @@ Future<void> startSession(
     AppLogger.e('START_SESSION', 'Failed to start session $trackId', e, st);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context)!.unableToLoadAudio)),
+      SnackBar(
+        content: Text(
+          e is YoutubeUnavailableError
+              ? AppLocalizations.of(context)!.youtubeUnavailable
+              : AppLocalizations.of(context)!.unableToLoadAudio,
+        ),
+      ),
     );
   }
 }

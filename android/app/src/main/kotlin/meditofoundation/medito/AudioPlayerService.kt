@@ -776,7 +776,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     }
 
     override fun playAudio(audioData: AudioData): Boolean {
-        Log.d(TAG, "🔊 playAudio called with URL: ${audioData.url}, trackId: ${audioData.track.id}")
+        Log.d(TAG, "🔊 playAudio called, trackId: ${audioData.track.id}")
         if (!isServiceFullyInitialized || !::primaryPlayer.isInitialized || !::backgroundMusicPlayer.isInitialized) {
             Log.e(TAG, "❌ Players not initialized or service not ready")
             return false

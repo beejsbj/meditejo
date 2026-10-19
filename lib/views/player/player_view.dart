@@ -239,7 +239,9 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
 
     if (_startFailed) {
       return MeditoErrorWidget(
-        error: const UnknownError(),
+        error: currentlyPlayingTrack.trackId.startsWith('yt-video-')
+            ? const YoutubeUnavailableError()
+            : const UnknownError(),
         onTap: _retryPlayback,
       );
     }

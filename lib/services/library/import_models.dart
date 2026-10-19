@@ -1,17 +1,18 @@
 import 'package:flutter/foundation.dart';
+import 'package:medito/src/youtube_api.g.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/services/library/feed_parser.dart';
 import 'package:medito/services/library/library_models.dart';
 
 /// Where an import came from.
-enum ImportOrigin { dharmaSeed, feed, audioUrl, localFiles }
+enum ImportOrigin { dharmaSeed, feed, audioUrl, localFiles, youtube }
 
 /// Why an import did not work. The screen turns each into a plain sentence;
 /// nothing here is shown to the user as it stands.
 enum ImportFailureReason {
   empty,
   unrecognised,
-  youtube,
+  youtubeUnavailable,
   unsupportedHost,
   offline,
   notFound,
@@ -84,6 +85,9 @@ class ImportPreview {
     this.attribution,
     this.alreadyInLibrary = false,
     this.skippedItems = 0,
+    this.youtubeVideo,
+    this.youtubePlaylist,
+    this.youtubePlaylistId,
     this.feed,
     this.feedUrl,
     this.etag,
@@ -131,6 +135,9 @@ class ImportPreview {
   final int skippedItems;
 
   // What storing needs.
+  final YoutubeVideo? youtubeVideo;
+  final YoutubePlaylist? youtubePlaylist;
+  final String? youtubePlaylistId;
   final ParsedFeed? feed;
   final String? feedUrl;
   final String? etag;

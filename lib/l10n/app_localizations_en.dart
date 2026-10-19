@@ -1981,10 +1981,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'That doesn\'t look like a link or file I can use. Try an address that starts with https://.';
 
   @override
-  String get importFailYoutube =>
-      'YouTube support is coming. For now, paste a podcast feed, an audio link or a Dharma Seed page.';
-
-  @override
   String get importFailUnsupportedHost =>
       'Links from that service can\'t be imported. For a podcast, look for its feed address, or its page on Apple Podcasts.';
 
@@ -2035,4 +2031,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get libraryCheckNew => 'Check for new episodes';
+
+  @override
+  String get youtubeUnavailable => 'This video isn\'t available right now';
+
+  @override
+  String get youtubeCourseCaption => 'All sessions, in playlist order';
+
+  @override
+  String get youtubeSingleCaption => 'Just this video';
 }

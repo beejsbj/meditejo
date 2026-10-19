@@ -1144,7 +1144,6 @@
   "importTitleLabel": "Name",
   "importFailEmpty": "Füge einen Link ein oder wähle eine Datei.",
   "importFailUnrecognised": "Das sieht nicht nach einem nutzbaren Link oder einer Datei aus. Versuche eine Adresse, die mit https:// beginnt.",
-  "importFailYoutube": "YouTube-Unterstützung kommt noch. Füge bis dahin einen Podcast-Feed, einen Audio-Link oder eine Dharma-Seed-Seite ein.",
   "importFailUnsupportedHost": "Links von diesem Dienst lassen sich nicht importieren. Suche bei einem Podcast nach der Feed-Adresse oder der Seite bei Apple Podcasts.",
   "importFailOffline": "Diese Adresse ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
   "importFailNotFound": "Diese Seite wurde nicht gefunden. Prüfe den Link und versuche es erneut.",
@@ -1159,5 +1158,11 @@
   "shareArrived": "Mit Meditejo geteilt",
   "exploreLibraryHeading": "In deiner Bibliothek",
   "libraryFromStart": "Von Anfang an",
-  "libraryCheckNew": "Nach neuen Folgen suchen"
+  "libraryCheckNew": "Nach neuen Folgen suchen",
+  "youtubeUnavailable": "Dieses Video ist gerade nicht verfügbar",
+  "@youtubeUnavailable": {
+    "description": "Calm one-line YouTube extraction or playback failure"
+  },
+  "youtubeCourseCaption": "Alle Sitzungen in Playlist-Reihenfolge",
+  "youtubeSingleCaption": "Nur dieses Video"
 }

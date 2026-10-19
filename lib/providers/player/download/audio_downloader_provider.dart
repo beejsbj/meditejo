@@ -1,3 +1,4 @@
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/repositories/repositories.dart';
@@ -36,15 +37,28 @@ class AudioDownloaderProvider extends Notifier<AudioDownloaderState> {
   }
 
   Future<void> downloadTrackAudio(PlaybackRequest request) async {
-    final fileName =
-        '${request.trackId}-${request.fileId}${getAudioFileExtension(request.remoteUrl)}';
+    final fileName = audioFileName(
+      request.trackId,
+      request.fileId,
+      request.remoteUrl,
+    );
     try {
-      final downloadAudio = ref.read(downloaderRepositoryProvider);
+      // Show the download as started before any stream is resolved, which can
+      // take a while, so a second tap cannot start a duplicate.
       var newDownloadState = Map<String, AudioDownloadState>.from(
         state.audioDownloadState,
       );
       newDownloadState[fileName] = AudioDownloadState.downloading;
       state = state.copyWith(audioDownloadState: newDownloadState);
+      if (request.trackId.startsWith('yt-video-')) {
+        final fresh = await ref
+            .read(youtubeSourceProvider)
+            .track(request.trackId);
+        request = request.copyWith(
+          remoteUrl: fresh.voices.single.audioFiles.single.path,
+        );
+      }
+      final downloadAudio = ref.read(downloaderRepositoryProvider);
 
       await downloadAudio.downloadFile(
         request.remoteUrl,

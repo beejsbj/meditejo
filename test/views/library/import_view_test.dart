@@ -201,12 +201,14 @@ void main() {
   });
 
   group('calm failures', () {
-    testWidgets('YouTube says it is coming, in plain words', (tester) async {
+    testWidgets('YouTube without a bridge says it is unavailable calmly', (
+      tester,
+    ) async {
       final app = await LibraryTestApp.create(tester);
       await app.pump(tester, const ImportView(), asRoute: true);
       await enterLink(tester, 'https://www.youtube.com/watch?v=abc');
 
-      expect(find.textContaining('YouTube support is coming'), findsOneWidget);
+      expect(find.text("This video isn't available right now"), findsOneWidget);
       expect(find.byKey(const ValueKey('import_preview')), findsNothing);
       expect(find.byKey(const ValueKey('import_add')), findsNothing);
       expect(app.harness.web.requests, isEmpty);

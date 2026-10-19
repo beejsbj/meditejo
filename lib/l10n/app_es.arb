@@ -904,7 +904,6 @@
   "importTitleLabel": "Nombre",
   "importFailEmpty": "Pega un enlace o elige un archivo para empezar.",
   "importFailUnrecognised": "Eso no parece un enlace o archivo que pueda usar. Prueba con una dirección que empiece por https://.",
-  "importFailYoutube": "La compatibilidad con YouTube llegará pronto. Mientras tanto, pega un feed de podcast, un enlace de audio o una página de Dharma Seed.",
   "importFailUnsupportedHost": "No se pueden importar enlaces de ese servicio. Si es un podcast, busca la dirección de su feed o su página en Apple Podcasts.",
   "importFailOffline": "No se pudo llegar a esa dirección. Comprueba tu conexión e inténtalo de nuevo.",
   "importFailNotFound": "No se encontró esa página. Revisa el enlace e inténtalo de nuevo.",
@@ -919,5 +918,11 @@
   "shareArrived": "Compartido con Meditejo",
   "exploreLibraryHeading": "En tu biblioteca",
   "libraryFromStart": "Desde el principio",
-  "libraryCheckNew": "Buscar episodios nuevos"
+  "libraryCheckNew": "Buscar episodios nuevos",
+  "youtubeUnavailable": "Este vídeo no está disponible en este momento",
+  "@youtubeUnavailable": {
+    "description": "Calm one-line YouTube extraction or playback failure"
+  },
+  "youtubeCourseCaption": "Todas las sesiones en el orden de la lista",
+  "youtubeSingleCaption": "Solo este vídeo"
 }

@@ -11,7 +11,7 @@ enum ImportLinkKind {
   /// A direct link to an audio file, by its extension.
   audioFile,
 
-  /// A YouTube video or playlist. Not supported yet.
+  /// A YouTube video or playlist, resolved by the native extractor.
   youtube,
 
   /// A podcast directory that has no readable feed (Spotify, and so on).

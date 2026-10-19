@@ -1,3 +1,5 @@
+import 'package:medito/providers/library/library_providers.dart';
+import 'package:medito/exceptions/app_error.dart';
 import 'dart:math' as math;
 
 import 'package:intl/intl.dart';
@@ -5,9 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/models/models.dart';
-import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/views/dharma_seed/widgets/teacher_avatar.dart';
@@ -169,6 +169,20 @@ class _PackViewState extends ConsumerState<PackView>
   }) {
     return RefreshIndicator(
       onRefresh: () async {
+        if (widget.id.startsWith('yt-playlist-')) {
+          try {
+            await ref
+                .read(youtubeSourceProvider)
+                .refresh(widget.id, force: true);
+            ref.invalidate(packTrackIdsProvider);
+          } on YoutubeUnavailableError catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(e.message)));
+            }
+          }
+        }
         return ref.refresh(packDataProvider(packId: widget.id));
       },
       child: CustomScrollView(

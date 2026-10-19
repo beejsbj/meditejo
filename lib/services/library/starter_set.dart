@@ -8,6 +8,7 @@ class StarterItem {
     required this.title,
     this.itemCount = 1,
     this.group,
+    this.uploader = '',
   });
 
   /// The content ID, for the source that owns it (`ds-retreat-4496`).
@@ -20,6 +21,9 @@ class StarterItem {
 
   /// Practice or Talks. Null follows the source's own label for the item.
   final LibraryGroup? group;
+
+  /// The channel of a YouTube playlist, shown until its first refresh.
+  final String uploader;
 }
 
 /// Burooj's built-in starter set (docs/fork/BRIEF.md, decision 13), in the
@@ -60,12 +64,25 @@ const starterSet = <StarterItem>[
     kind: LibraryKind.single,
     title: 'Developing Piti, Developing Focus, Developing Wellbeing',
   ),
-  // TODO(youtube): the YouTube slice appends its two playlists here once the
-  // `yt-` source exists, using its playlist ID scheme, as courses. Until then
-  // an ID no source can open would only be a dead row.
-  //   Meditating with John Vervaeke (John Vervaeke's Lectern)
-  //     https://www.youtube.com/playlist?list=PLND1JCRq8VujAHvDA482SXF1cJTQrwlx3
-  //   Qualia Mastery: Building Your Toolkit for Navigating the State-Space of
-  //   Consciousness (Qualia Research Institute)
-  //     https://www.youtube.com/playlist?list=PLbmYHvGI-YSvnpbh3ppQqcG72lpw4aQdE
+  // YouTube playlists, as courses (docs/fork/BRIEF.md, decision 13). The
+  // sessions arrive when the course is first opened online; see
+  // `seedStarterSet`.
+  StarterItem(
+    id: 'yt-playlist-PLND1JCRq8VujAHvDA482SXF1cJTQrwlx3',
+    kind: LibraryKind.course,
+    title: 'Meditating with John Vervaeke',
+    itemCount: 18,
+    group: LibraryGroup.practice,
+    uploader: "John Vervaeke's Lectern",
+  ),
+  StarterItem(
+    id: 'yt-playlist-PLbmYHvGI-YSvnpbh3ppQqcG72lpw4aQdE',
+    kind: LibraryKind.course,
+    title:
+        'Qualia Mastery: Building Your Toolkit for Navigating the State-Space '
+        'of Consciousness',
+    itemCount: 9,
+    group: LibraryGroup.practice,
+    uploader: 'Qualia Research Institute',
+  ),
 ];

@@ -119,3 +119,9 @@ class StorageReadError extends AppError {
     super.message = 'Failed to read data from local storage',
   });
 }
+
+/// All YouTube extraction failures have one calm playback message.
+final class YoutubeUnavailableError extends AppError {
+  const YoutubeUnavailableError()
+    : super(message: "This video isn't available right now");
+}

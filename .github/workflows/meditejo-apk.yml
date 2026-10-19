@@ -79,6 +79,16 @@ jobs:
           PROPERTIES
           flutter build apk --flavor "$FLAVOR" "--$MODE" \
             --target-platform android-arm64
+      - name: YouTube native unit tests
+        run: |
+          cd android
+          ./gradlew :app:testDevReleaseUnitTest -Ptarget-platform=android-arm64 --tests 'meditofoundation.medito.youtube.*' --no-daemon --max-workers=2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: youtube-native-tests-${{ env.SHORT_SHA }}
+          path: build/app/test-results/testDevReleaseUnitTest/
+          if-no-files-found: ignore
       - name: Prepare unsigned artifact
         run: |
           python3 tools/meditejo/prepare_unsigned.py \

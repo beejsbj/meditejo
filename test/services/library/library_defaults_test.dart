@@ -8,10 +8,12 @@ import 'package:medito/services/library/library_migration.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
 import 'package:medito/services/library/starter_set.dart';
+import 'package:medito/services/youtube/youtube_source.dart';
 
 import '../../helpers/dharma_seed_catalogue.dart';
 import '../../helpers/dharma_seed_fake_api.dart';
 import '../../helpers/library_fixtures.dart';
+import '../../helpers/youtube_fake.dart';
 
 /// The four starter retreats and the starter talk, shaped like Dharma Seed's
 /// own records: Rob Burbea's retreat sittings are filed as "Talk".
@@ -229,6 +231,47 @@ void main() {
         LibraryGroup.talks,
         reason: 'the talk follows its own label ("Talk")',
       );
+    });
+
+    test('includes the two YouTube playlists as Practice courses', () async {
+      const vervaeke = 'yt-playlist-PLND1JCRq8VujAHvDA482SXF1cJTQrwlx3';
+      const qualia = 'yt-playlist-PLbmYHvGI-YSvnpbh3ppQqcG72lpw4aQdE';
+      final entries = await (await openStore()).entries();
+
+      for (final id in [vervaeke, qualia]) {
+        final e = entries.firstWhere((e) => e.sourceId == id);
+        expect(e.kind, LibraryKind.course, reason: id);
+        expect(e.group, LibraryGroup.practice, reason: id);
+      }
+      expect(
+        starterSet.map((i) => i.id),
+        containsAll([vervaeke, qualia]),
+      );
+    });
+
+    test('a seeded YouTube course opens and fetches its sessions', () async {
+      const vervaeke = 'PLND1JCRq8VujAHvDA482SXF1cJTQrwlx3';
+      final store = await openStore();
+      await store.entries();
+      final api = FakeYoutubeApi()
+        ..playlists[vervaeke] = playlist(
+          [item(videoA), item(videoB)],
+          title: 'Meditating with John Vervaeke',
+          uploader: "John Vervaeke's Lectern",
+        );
+      final source = YoutubeSource(
+        db: db,
+        library: store,
+        api: api,
+      );
+
+      final pack = await source.pack('yt-playlist-$vervaeke');
+
+      expect(api.playlistCalls, hasLength(1));
+      expect(pack.items.map((i) => i.id), [
+        'yt-video-$videoA',
+        'yt-video-$videoB',
+      ]);
     });
 
     test('a single marked Meditation follows that label into Practice', () async {

@@ -74,6 +74,11 @@ extension EmptyOrNull on String? {
   }
 }
 
+/// YouTube's signed URL (and its suffix) may change. Local filenames use only
+/// stable IDs; `.audio` is a container-neutral suffix, not a conversion.
+String audioFileName(String trackId, String fileId, String url) =>
+    '$trackId-$fileId${trackId.startsWith('yt-video-') ? '.audio' : getAudioFileExtension(url)}';
+
 String getAudioFileExtension(String path) {
   var lastIndex = path.lastIndexOf('/');
   if (lastIndex != -1) {

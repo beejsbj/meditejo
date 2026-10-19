@@ -1,3 +1,5 @@
+import 'package:medito/services/youtube/youtube_ids.dart';
+import 'package:medito/services/youtube/youtube_source.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -80,6 +82,7 @@ class _ImportViewState extends ConsumerState<ImportView> {
   String? _clipboardLink;
   bool _editingTitle = false;
   var _kind = LibraryKind.course;
+  var _alreadyInLibrary = false;
   var _group = LibraryGroup.practice;
   var _order = 'oldest';
 
@@ -166,6 +169,7 @@ class _ImportViewState extends ConsumerState<ImportView> {
       setState(() {
         _preview = preview;
         _kind = preview.kind;
+        _alreadyInLibrary = preview.alreadyInLibrary;
         _group = preview.group;
         _order = 'oldest';
         _editingTitle = false;
@@ -203,16 +207,36 @@ class _ImportViewState extends ConsumerState<ImportView> {
     await _resolve();
   }
 
+  String _selectedId(ImportPreview preview, LibraryKind kind) {
+    if (preview.origin != ImportOrigin.youtube) return preview.entryId;
+    if (kind == LibraryKind.single) {
+      return ytVideoId(preview.youtubeVideo!.videoId);
+    }
+    return preview.youtubePlaylistId != null
+        ? ytPlaylistId(preview.youtubePlaylistId!)
+        : ytSingleCourseId(preview.youtubeVideo!.videoId);
+  }
+
+  Future<void> _checkSelection(ImportPreview preview, LibraryKind kind) async {
+    if (preview.origin != ImportOrigin.youtube) return;
+    final present = await ref
+        .read(libraryStoreProvider)
+        .contains(_selectedId(preview, kind));
+    if (mounted && _preview == preview && _kind == kind) {
+      setState(() => _alreadyInLibrary = present);
+    }
+  }
+
   Future<void> _add() async {
     final preview = _preview;
     if (preview == null || _phase == _Phase.adding) return;
     final l10n = AppLocalizations.of(context)!;
-    if (preview.alreadyInLibrary) {
+    if (_alreadyInLibrary) {
       Navigator.pop(
         context,
         ImportResult(
-          entryId: preview.entryId,
-          kind: preview.kind,
+          entryId: _selectedId(preview, _kind),
+          kind: _kind,
           alreadyPresent: true,
         ),
       );
@@ -373,6 +397,7 @@ class _ImportViewState extends ConsumerState<ImportView> {
               if (_failure != null) const SizedBox(height: 12),
               _PreviewCard(
                 preview: preview,
+                alreadyInLibrary: _alreadyInLibrary,
                 titleField: _titleField,
                 editingTitle: _editingTitle,
                 onEditTitle: () => setState(() => _editingTitle = true),
@@ -380,7 +405,26 @@ class _ImportViewState extends ConsumerState<ImportView> {
                 kind: _kind,
                 group: _group,
                 order: _order,
-                onKind: (value) => setState(() => _kind = value),
+                onKind: (value) => setState(() {
+                  final video = preview.youtubeVideo;
+                  if (preview.origin == ImportOrigin.youtube && video != null) {
+                    final previousTitle = _kind == LibraryKind.single
+                        ? video.title
+                        : preview.title;
+                    final nextTitle = value == LibraryKind.single
+                        ? video.title
+                        : preview.title;
+                    if (_titleField.text == previousTitle) {
+                      _titleField.text = nextTitle;
+                    }
+                    if (_group == youtubeGroup(previousTitle)) {
+                      _group = youtubeGroup(nextTitle);
+                    }
+                  }
+                  _kind = value;
+                  _alreadyInLibrary = false;
+                  unawaited(_checkSelection(preview, value));
+                }),
                 onGroup: (value) => setState(() => _group = value),
                 onOrder: (value) => setState(() => _order = value),
               ),
@@ -394,7 +438,7 @@ class _ImportViewState extends ConsumerState<ImportView> {
                 child: _phase == _Phase.adding
                     ? Text(l10n.importAdding)
                     : Text(
-                        preview.alreadyInLibrary
+                        _alreadyInLibrary
                             ? l10n.libraryOpen
                             : l10n.importPrimary,
                       ),
@@ -438,7 +482,7 @@ class _FailureCard extends StatelessWidget {
   String _message(AppLocalizations l10n) => switch (reason) {
     ImportFailureReason.empty => l10n.importFailEmpty,
     ImportFailureReason.unrecognised => l10n.importFailUnrecognised,
-    ImportFailureReason.youtube => l10n.importFailYoutube,
+    ImportFailureReason.youtubeUnavailable => l10n.youtubeUnavailable,
     ImportFailureReason.unsupportedHost => l10n.importFailUnsupportedHost,
     ImportFailureReason.offline => l10n.importFailOffline,
     ImportFailureReason.notFound => l10n.importFailNotFound,
@@ -485,6 +529,7 @@ class _FailureCard extends StatelessWidget {
 class _PreviewCard extends StatelessWidget {
   const _PreviewCard({
     required this.preview,
+    required this.alreadyInLibrary,
     required this.titleField,
     required this.editingTitle,
     required this.onEditTitle,
@@ -498,6 +543,7 @@ class _PreviewCard extends StatelessWidget {
   });
 
   final ImportPreview preview;
+  final bool alreadyInLibrary;
   final TextEditingController titleField;
   final bool editingTitle;
   final VoidCallback onEditTitle;
@@ -516,6 +562,8 @@ class _PreviewCard extends StatelessWidget {
         course
             ? l10n.importCaptionCourseAll(preview.itemCount)
             : l10n.importCaptionLatest,
+      ImportOrigin.youtube =>
+        course ? l10n.youtubeCourseCaption : l10n.youtubeSingleCaption,
       ImportOrigin.localFiles =>
         course ? l10n.importCaptionFilesCourse : l10n.importCaptionFilesSingles,
       _ => '',
@@ -531,18 +579,31 @@ class _PreviewCard extends StatelessWidget {
         ? l10n.importDefaultTitle
         : titleField.text.trim();
 
+    final youtubeSingle =
+        preview.origin == ImportOrigin.youtube && kind == LibraryKind.single;
+    final displayedDuration = youtubeSingle
+        ? (preview.youtubeVideo?.durationSeconds ?? 0) * 1000
+        : preview.durationMs;
+    final selectedSubtitle = youtubeSingle
+        ? preview.youtubeVideo!.uploader
+        : preview.subtitle;
+    final selectedArtwork = youtubeSingle
+        ? preview.youtubeVideo!.thumbnail
+        : preview.artworkUrl;
     final counts = [
       if (kind != LibraryKind.teacher || preview.itemCount > 0)
         l10n.librarySessions(
-          kind == LibraryKind.single && preview.origin == ImportOrigin.feed
+          kind == LibraryKind.single &&
+                  (preview.origin == ImportOrigin.feed ||
+                      preview.origin == ImportOrigin.youtube)
               ? 1
               : preview.itemCount,
         ),
-      if (preview.durationMs > 0 && kind != LibraryKind.single ||
-          preview.durationMs > 0 && preview.origin != ImportOrigin.feed)
-        preview.durationComplete
-            ? formatLongDuration(preview.durationMs)
-            : l10n.importAtLeast(formatLongDuration(preview.durationMs)),
+      if (displayedDuration > 0 &&
+          (kind != LibraryKind.single || preview.origin != ImportOrigin.feed))
+        preview.durationComplete || youtubeSingle
+            ? formatLongDuration(displayedDuration)
+            : l10n.importAtLeast(formatLongDuration(displayedDuration)),
     ].join(' · ');
 
     return Container(
@@ -565,7 +626,7 @@ class _PreviewCard extends StatelessWidget {
                 child: SizedBox.square(
                   dimension: 88,
                   child: NetworkImageWidget(
-                    url: preview.artworkUrl,
+                    url: selectedArtwork,
                     shouldCache: true,
                     seed: title,
                     alignment: Alignment.topCenter,
@@ -616,9 +677,9 @@ class _PreviewCard extends StatelessWidget {
                     Text(
                       [
                         preview.sourceLabel,
-                        if (preview.subtitle.isNotEmpty &&
+                        if (selectedSubtitle.isNotEmpty &&
                             preview.origin != ImportOrigin.audioUrl)
-                          preview.subtitle,
+                          selectedSubtitle,
                       ].join(' · '),
                       style: theme.textTheme.bodyMedium?.copyWith(color: muted),
                     ),
@@ -643,7 +704,7 @@ class _PreviewCard extends StatelessWidget {
               style: theme.textTheme.bodyMedium,
             ),
           ],
-          if (preview.firstItems.isNotEmpty) ...[
+          if (preview.firstItems.isNotEmpty && !youtubeSingle) ...[
             const SizedBox(height: 12),
             for (final item in preview.firstItems)
               Padding(
@@ -690,14 +751,15 @@ class _PreviewCard extends StatelessWidget {
               compact: true,
               padding: const EdgeInsets.only(top: 4),
             ),
-          if (preview.alreadyInLibrary) ...[
+          if (alreadyInLibrary) ...[
             const SizedBox(height: 8),
             Text(
               l10n.importInLibraryNote,
               key: const ValueKey('import_already'),
               style: theme.textTheme.bodyMedium,
             ),
-          ] else ...[
+          ],
+          if (!alreadyInLibrary || preview.origin == ImportOrigin.youtube) ...[
             if (preview.hasKindChoice) ...[
               const SizedBox(height: 16),
               SegmentedButton<LibraryKind>(
@@ -745,7 +807,7 @@ class _PreviewCard extends StatelessWidget {
                 ],
               ),
             ],
-            if (kind != LibraryKind.teacher) ...[
+            if (kind != LibraryKind.teacher && !alreadyInLibrary) ...[
               const SizedBox(height: 16),
               Text(l10n.importCountsAs, style: theme.textTheme.bodySmall),
               const SizedBox(height: 6),

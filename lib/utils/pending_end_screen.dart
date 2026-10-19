@@ -71,7 +71,11 @@ class PendingEndScreen {
       await prefs.setString(
         prefsKey,
         jsonEncode({
-          _requestKey: request.toJson(),
+          _requestKey:
+              (request.trackId.startsWith('yt-video-')
+                      ? request.copyWith(remoteUrl: '')
+                      : request)
+                  .toJson(),
           if (priorStats != null) _priorStatsKey: priorStats.toJson(),
           _startedAtKey: (now ?? DateTime.now()).millisecondsSinceEpoch,
         }),
