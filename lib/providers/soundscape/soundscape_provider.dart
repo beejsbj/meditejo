@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/soundscape/sound_library.dart';
@@ -96,6 +96,10 @@ class SoundscapeState {
 
   bool get underSession => owner == SoundscapeOwner.session;
 
+  /// A session is running ([sessionKind] is set), whether or not the mixer
+  /// plays under it. Sounds added meanwhile join the session.
+  bool get inSession => sessionKind != null;
+
   List<SoundPreset> get presets => [...kStarterPresets, ...userPresets];
 
   /// The preset the current mix still matches, if any.
@@ -158,6 +162,17 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   bool _held = false;
   bool? _enginePaused;
   double? _engineVolume;
+
+  /// Whether the session player is playing (followed while a session runs).
+  bool _sessionPlaying = true;
+
+  /// Bumped when a session starts or ends; a start that finds it changed
+  /// after resolving its mix was overtaken and does nothing.
+  int _sessionToken = 0;
+
+  /// Paused for another app's transient audio (a call); resumed with it.
+  bool _pausedByFocus = false;
+  AppLifecycleListener? _lifecycle;
   var _notification = const SoundscapeNotificationText(
     title: 'Sounds',
     text: 'Playing your mix',
@@ -174,13 +189,23 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     _engine = ref.watch(soundscapeEngineProvider);
     _keepAlive = ref.watch(soundscapeKeepAliveProvider);
     _commands = _keepAlive.commands.listen(_onCommand);
+    try {
+      // Swiping the app away detaches the (cached) engine; Sounds playing on
+      // their own must not carry on with no screen to stop them from.
+      _lifecycle = AppLifecycleListener(onDetach: _onDetach);
+    } on FlutterError {
+      // No widgets binding (plain unit tests).
+    }
     ref.onDispose(() {
+      _lifecycle?.dispose();
       _commands?.cancel();
       if (_held) unawaited(_keepAlive.release());
       unawaited(_engine.stopAll(fade: Duration.zero));
     });
     // Under a session, follow the session player (pauses, phone calls).
     ref.listen(audioStateProvider.select((s) => s.isPlaying), (_, playing) {
+      if (!state.inSession) return;
+      _sessionPlaying = playing;
       if (state.underSession && state.playing != playing) {
         _update(state.copyWith(playing: playing));
       }
@@ -243,7 +268,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   void setVolume(double volume) {
     final v = volume.clamp(0.0, 1.0);
     final kind = state.sessionKind;
-    if (state.underSession && kind != null) {
+    if (kind != null) {
       final defaults = {
         ...state.sessionDefaults,
         kind: state.sessionDefault(kind).copyWith(volume: v),
@@ -269,22 +294,35 @@ class SoundscapeController extends Notifier<SoundscapeState> {
 
   void resume() {
     if (state.mix.isEmpty) return;
-    if (state.active) {
+    _pausedByFocus = false;
+    if (state.underSession) {
+      _update(state.copyWith(playing: _sessionPlaying));
+    } else if (state.active) {
       _update(state.copyWith(playing: true));
+      // Another app may have taken focus for good meanwhile.
+      if (_held) unawaited(_keepAlive.requestFocus());
     } else {
-      _startStandalone();
+      _start();
     }
   }
 
-  /// Stops everything (the Sounds screen's Stop; the notification's Stop).
-  void stop() => _update(
-    state.copyWith(
-      playing: false,
-      owner: SoundscapeOwner.none,
-      sessionKind: null,
-      volume: _store.readVolume(),
-    ),
-  );
+  /// Stops the sounds (the Sounds screen's Stop; the notification's Stop).
+  /// A running session stays a session: sounds added later join it.
+  void stop() {
+    _pausedByFocus = false;
+    if (state.inSession) {
+      _update(state.copyWith(playing: false, owner: SoundscapeOwner.none));
+      return;
+    }
+    _update(
+      state.copyWith(
+        playing: false,
+        owner: SoundscapeOwner.none,
+        sessionKind: null,
+        volume: _store.readVolume(),
+      ),
+    );
+  }
 
   /// Plays [selection] now. Outside a session it plays on its own; under a
   /// session it replaces what the session plays.
@@ -299,9 +337,14 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       return;
     }
     _store.writeMix(mix);
-    if (state.underSession) {
+    if (state.inSession) {
       _update(
-        state.copyWith(mix: mix, playing: true, volume: volume ?? state.volume),
+        state.copyWith(
+          mix: mix,
+          playing: _sessionPlaying,
+          owner: SoundscapeOwner.session,
+          volume: volume ?? state.sessionDefault(state.sessionKind!).volume,
+        ),
       );
     } else {
       _update(state.copyWith(mix: mix));
@@ -349,9 +392,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     final defaults = {...state.sessionDefaults, kind: value};
     _store.writeSessionDefaults(defaults);
     _update(state.copyWith(sessionDefaults: defaults));
-    if (state.underSession && state.sessionKind == kind) {
-      unawaited(startSession(kind));
-    }
+    if (state.sessionKind == kind) unawaited(startSession(kind));
   }
 
   /// A session of [kind] is starting: play what its default says (or
@@ -361,26 +402,30 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     SoundscapeSessionKind kind, {
     SoundscapeSessionDefault? override,
   }) async {
+    final token = ++_sessionToken;
+    // Restarting within a running session (its setting changed) keeps the
+    // player's play state; a new session starts as playing.
+    if (state.sessionKind == null) _sessionPlaying = true;
+    // Mark the session at once, so an endSession() while the mix resolves
+    // is not lost.
+    if (state.sessionKind != kind) {
+      _update(state.copyWith(sessionKind: kind));
+    }
     final setting = override ?? state.sessionDefault(kind);
     final mix = setting.enabled
         ? await _resolve(setting.selection)
         : SoundMix.empty;
+    if (token != _sessionToken || state.sessionKind != kind) return;
+    _pausedByFocus = false;
     if (mix.isEmpty) {
-      _update(
-        state.copyWith(
-          playing: false,
-          owner: SoundscapeOwner.none,
-          sessionKind: null,
-        ),
-      );
+      _update(state.copyWith(playing: false, owner: SoundscapeOwner.none));
       return;
     }
     _update(
       state.copyWith(
         mix: mix,
-        playing: true,
+        playing: _sessionPlaying,
         owner: SoundscapeOwner.session,
-        sessionKind: kind,
         volume: setting.volume,
       ),
     );
@@ -389,12 +434,23 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   /// The session player paused or resumed (iOS calls this; Android's state
   /// arrives through [audioStateProvider]).
   void setSessionPaused(bool paused) {
+    if (!state.inSession) return;
+    _sessionPlaying = !paused;
     if (state.underSession) _update(state.copyWith(playing: !paused));
   }
 
   /// The session is over: fade out and stop.
   void endSession() {
-    if (state.underSession) stop();
+    if (!state.inSession) return;
+    _sessionToken++;
+    _update(
+      state.copyWith(
+        playing: false,
+        owner: SoundscapeOwner.none,
+        sessionKind: null,
+        volume: _store.readVolume(),
+      ),
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -429,18 +485,38 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         kSynthBinauralId => OscillatorSource(
           BinauralParams.fromJson(layer.params).partials(),
         ),
-        _ => AssetLoopSource(library[layer.soundId]!.asset),
+        _ => AssetLoopSource(
+          library[layer.soundId]!.asset,
+          channels: library[layer.soundId]!.channels,
+        ),
       };
 
   void _editMix(SoundMix mix, {Set<String>? failed, bool start = false}) {
     _store.writeMix(mix);
-    if (mix.isEmpty && state.owner == SoundscapeOwner.standalone) {
+    if (mix.isEmpty && state.active) {
       _update(state.copyWith(mix: mix, failed: failed));
       stop();
       return;
     }
     _update(state.copyWith(mix: mix, failed: failed));
-    if (start && !state.active) _startStandalone();
+    if (start && !state.active) _start();
+  }
+
+  /// Plays the current mix: under the running session if there is one,
+  /// otherwise on its own.
+  void _start({double? volume}) {
+    final kind = state.sessionKind;
+    if (kind == null) {
+      _startStandalone(volume: volume);
+      return;
+    }
+    _update(
+      state.copyWith(
+        playing: _sessionPlaying,
+        owner: SoundscapeOwner.session,
+        volume: volume ?? state.sessionDefault(kind).volume,
+      ),
+    );
   }
 
   void _startStandalone({double? volume}) {
@@ -461,10 +537,24 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       case SoundscapeCommand.stop:
         stop();
       case SoundscapeCommand.pause:
+        // A call or a prompt: come back with it, but only if we were
+        // playing (a paused mix stays paused).
+        _pausedByFocus = _pausedByFocus || state.playing;
+        pause();
+      case SoundscapeCommand.lost:
+        // Another app took over playback: stay paused.
+        _pausedByFocus = false;
         pause();
       case SoundscapeCommand.resume:
-        resume();
+        if (_pausedByFocus) {
+          _pausedByFocus = false;
+          _update(state.copyWith(playing: true));
+        }
     }
+  }
+
+  void _onDetach() {
+    if (state.owner == SoundscapeOwner.standalone) stop();
   }
 
   void _update(SoundscapeState next) {
@@ -529,14 +619,17 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         } else {
           failed.add(layer.soundId);
         }
-      } else if (!mapEquals(current.params, layer.params)) {
+      } else if (!SoundLayer.paramsEqual(current.params, layer.params)) {
         final ok = await _engine.retune(
           layer.soundId,
           _sourceFor(layer, library),
           gain: layerGain(layer.volume),
           motion: motion,
         );
-        if (ok) _applied[layer.soundId] = layer;
+        // On failure the old settings keep playing; don't retry (a noise
+        // regeneration) on every later pass.
+        _applied[layer.soundId] = layer;
+        if (!ok) AppLogger.w('SOUNDSCAPE', 'Kept ${layer.soundId} as it was');
       } else if (current != layer) {
         _engine.setGain(layer.soundId, layerGain(layer.volume), motion: motion);
         _applied[layer.soundId] = layer;
@@ -553,11 +646,14 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     _held = hold;
     if (hold) {
       final text = _notification;
-      await _keepAlive.hold(
+      final held = await _keepAlive.hold(
         title: text.title,
         text: text.text,
         stopLabel: text.stop,
       );
+      // Refused (the app was not in the foreground): try again on the next
+      // change rather than believe it held.
+      if (!held) _held = false;
     } else {
       await _keepAlive.release();
     }

@@ -74,6 +74,7 @@ class SoundEntry {
     this.originalTitle = '',
     this.authorUrl = '',
     this.durationMs = 0,
+    this.channels = 2,
     this.modifications = '',
   });
 
@@ -89,6 +90,9 @@ class SoundEntry {
   final String originalTitle;
   final String sourceUrl;
   final int durationMs;
+
+  /// 1 or 2: the engine plays stereo loops at unity in both channels.
+  final int channels;
 
   /// What was changed from the original, for the credit line.
   final String modifications;
@@ -115,6 +119,7 @@ class SoundEntry {
       originalTitle: json['originalTitle'] as String? ?? '',
       sourceUrl: json['sourceUrl'] as String? ?? '',
       durationMs: (json['durationMs'] as num?)?.toInt() ?? 0,
+      channels: (json['channels'] as num?)?.toInt() == 1 ? 1 : 2,
       modifications: json['modifications'] as String? ?? '',
     );
   }

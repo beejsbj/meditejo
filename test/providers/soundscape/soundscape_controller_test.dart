@@ -80,6 +80,7 @@ class _Engine implements SoundscapeEngine {
 class _KeepAlive implements SoundscapeKeepAlive {
   bool held = false;
   int holds = 0;
+  int focusRequests = 0;
   final _commands = StreamController<SoundscapeCommand>.broadcast();
 
   void send(SoundscapeCommand c) => _commands.add(c);
@@ -88,17 +89,21 @@ class _KeepAlive implements SoundscapeKeepAlive {
   Stream<SoundscapeCommand> get commands => _commands.stream;
 
   @override
-  Future<void> hold({
+  Future<bool> hold({
     required String title,
     required String text,
     required String stopLabel,
   }) async {
     held = true;
     holds++;
+    return true;
   }
 
   @override
   Future<void> release() async => held = false;
+
+  @override
+  Future<void> requestFocus() async => focusRequests++;
 }
 
 class _Audio extends AudioStateNotifier {
@@ -453,6 +458,119 @@ void main() {
       );
       expect(drone.rootHz, 73.42);
       expect(drone.timbre, DroneTimbre.pure);
+    });
+  });
+
+  group('review fixes', () {
+    test('a sound added during a silent session joins the session', () async {
+      await ctl().startSession(SoundscapeSessionKind.talks); // off by default
+      await settle();
+      expect(st().inSession, isTrue);
+      expect(st().active, isFalse);
+      ctl().toggleSound('cafe');
+      await settle();
+      expect(st().owner, SoundscapeOwner.session);
+      expect(keepAlive.held, isFalse, reason: 'never a second service');
+      expect(engine.playing.containsKey('cafe'), isTrue);
+      ctl().endSession();
+      await settle();
+      expect(engine.playing, isEmpty);
+      expect(st().inSession, isFalse);
+    });
+
+    test('Stop mid-session keeps the session; resuming rejoins it', () async {
+      await ctl().startSession(SoundscapeSessionKind.practice);
+      await settle();
+      ctl().stop();
+      await settle();
+      expect(st().active, isFalse);
+      expect(st().inSession, isTrue);
+      ctl().resume();
+      await settle();
+      expect(st().owner, SoundscapeOwner.session);
+      expect(keepAlive.held, isFalse);
+    });
+
+    test('a mix the user paused stays paused through a call', () async {
+      ctl().resume();
+      await settle();
+      ctl().pause();
+      keepAlive.send(SoundscapeCommand.pause);
+      keepAlive.send(SoundscapeCommand.resume);
+      await settle();
+      expect(st().playing, isFalse);
+    });
+
+    test('after another app takes focus, resuming asks for it again', () async {
+      ctl().resume();
+      await settle();
+      keepAlive.send(SoundscapeCommand.lost);
+      await settle();
+      expect(st().playing, isFalse);
+      keepAlive.send(SoundscapeCommand.resume);
+      await settle();
+      expect(st().playing, isFalse, reason: 'a lasting loss is not undone');
+      ctl().resume();
+      await settle();
+      expect(st().playing, isTrue);
+      expect(keepAlive.focusRequests, 1);
+    });
+
+    test(
+      'changing a default while the session is paused stays paused',
+      () async {
+        await ctl().startSession(SoundscapeSessionKind.practice);
+        ctl().setSessionPaused(true);
+        await settle();
+        expect(engine.paused, isTrue);
+        ctl().setSessionDefault(
+          SoundscapeSessionKind.practice,
+          const SoundscapeSessionDefault(
+            enabled: true,
+            selection: SoundscapeSelection.sound('river'),
+          ),
+        );
+        await settle();
+        expect(st().playing, isFalse);
+        expect(engine.paused, isTrue);
+        expect(engine.playing.keys, ['river']);
+      },
+    );
+
+    test('a session ended while its mix resolves plays nothing', () async {
+      final starting = ctl().startSession(SoundscapeSessionKind.practice);
+      ctl().endSession();
+      await starting;
+      await settle();
+      expect(st().active, isFalse);
+      expect(engine.playing, isEmpty);
+    });
+
+    test('layers compare settings by value', () {
+      const a = SoundLayer(
+        soundId: 'x',
+        params: {
+          'bands': [1.0, 0.5],
+        },
+      );
+      final b = SoundLayer(
+        soundId: 'x',
+        params: {
+          'bands': [1, 0.5],
+        },
+      );
+      expect(a, b);
+      expect(a.hashCode, b.hashCode);
+      expect(
+        a ==
+            const SoundLayer(
+              soundId: 'x',
+              params: {
+                'bands': [1.0],
+              },
+            ),
+        isFalse,
+      );
     });
   });
 

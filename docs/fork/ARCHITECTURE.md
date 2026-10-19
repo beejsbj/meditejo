@@ -340,8 +340,8 @@ other layer.
   loop that is periodic and therefore seamless. Its BS.1770 loudness is
   computed from the spectrum through the K-weighting response and set to
   −27 LUFS. It is generated in a `compute` isolate and loaded as an in-memory
-  WAV. A settings change regenerates it with the same phases and crossfades
-  it in at the old loop's position.
+  WAV. A settings change regenerates it and crossfades it in near the old
+  loop's position, with equal power.
 * **Drone**: SoLoud sine oscillators for a chord on the root: the root, a
   0.15% detuned twin, the octave and the fifth, plus upper partials for warm
   and bright. Each voice swells on its own incommensurate period, scaled by

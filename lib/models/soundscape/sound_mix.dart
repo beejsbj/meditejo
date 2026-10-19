@@ -62,18 +62,46 @@ class SoundLayer {
       other.soundId == soundId &&
       other.volume == volume &&
       other.animate == animate &&
-      mapEquals(other.params, params);
+      paramsEqual(other.params, params);
 
   @override
-  int get hashCode => Object.hash(
-    soundId,
-    volume,
-    animate,
-    Object.hashAllUnordered(
-      params.entries.map((e) => Object.hash(e.key, e.value)),
-    ),
-  );
+  int get hashCode =>
+      Object.hash(soundId, volume, animate, _paramsHash(params));
+
+  /// Settings compared by value: a preset read back from storage holds new
+  /// lists, which must still match the mix it was saved from.
+  static bool paramsEqual(Map<String, Object?> a, Map<String, Object?> b) =>
+      _deepEquals(a, b);
 }
+
+bool _deepEquals(Object? a, Object? b) {
+  if (a is Map && b is Map) {
+    if (a.length != b.length) return false;
+    for (final key in a.keys) {
+      if (!b.containsKey(key) || !_deepEquals(a[key], b[key])) return false;
+    }
+    return true;
+  }
+  if (a is List && b is List) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (!_deepEquals(a[i], b[i])) return false;
+    }
+    return true;
+  }
+  // JSON numbers: 1 and 1.0 are the same setting.
+  if (a is num && b is num) return a == b;
+  return a == b;
+}
+
+int _paramsHash(Object? v) => switch (v) {
+  Map() => Object.hashAllUnordered(
+    v.entries.map((e) => Object.hash(e.key, _paramsHash(e.value))),
+  ),
+  List() => Object.hashAll(v.map(_paramsHash)),
+  num() => v.toDouble().hashCode,
+  _ => v.hashCode,
+};
 
 /// Layers playing together. At most one layer per sound.
 @immutable
