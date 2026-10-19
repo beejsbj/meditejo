@@ -1,8 +1,10 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:async';
+
 import 'package:medito/widgets/adaptive/adaptive_player_layout.dart';
 import 'package:medito/models/player/playback_request.dart';
+
 import 'dart:ui';
 import 'dart:io';
 
@@ -48,7 +50,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
   // Set when play() throws (e.g. offline, native audio failed to start). The
   // caller no longer awaits play() before navigating — we own starting
   // playback here — so this is how a start failure surfaces to the user.
-  bool _startFailed = false;
+  AppError? _startError;
 
   /// Whether playback has actually started on this screen. Until it has, the
   /// play button shows a spinner regardless of the shared audio state, which
@@ -92,7 +94,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
   /// Starts playback for the request the caller prepared. Runs here (rather
   /// than at the call site, awaited before navigation) so the screen opens
   /// instantly and shows a loading state while the audio spins up. A failure
-  /// flips [_startFailed] so build() can show a retryable error instead of a
+  /// flips [_startError] so build() can show a retryable error instead of a
   /// silent, stuck player.
   Future<void> _startPlayback() async {
     final request = ref.read(playerProvider);
@@ -119,13 +121,15 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
       if (mounted && !_isClosing) unawaited(_initializePlayer());
     } catch (e, st) {
       AppLogger.e('PLAYER', 'Failed to start playback', e, st);
-      if (mounted) setState(() => _startFailed = true);
+      if (mounted) {
+        setState(() => _startError = e is AppError ? e : const UnknownError());
+      }
     }
   }
 
   void _retryPlayback() {
     setState(() {
-      _startFailed = false;
+      _startError = null;
       _playbackStarted = false;
     });
     _startPlayback();
@@ -237,13 +241,8 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
       );
     }
 
-    if (_startFailed) {
-      return MeditoErrorWidget(
-        error: currentlyPlayingTrack.trackId.startsWith('yt-video-')
-            ? const YoutubeUnavailableError()
-            : const UnknownError(),
-        onTap: _retryPlayback,
-      );
+    if (_startError case final error?) {
+      return MeditoErrorWidget(error: error, onTap: _retryPlayback);
     }
 
     final isPlaying = ref.watch(audioStateProvider.select((s) => s.isPlaying));

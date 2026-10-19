@@ -1,7 +1,7 @@
 name: YouTube checks
 on:
   push:
-    branches: [fork/youtube]
+    branches: [fork/youtube, fork/yt-followups]
 permissions:
   contents: read
 jobs:
@@ -22,5 +22,10 @@ jobs:
           done
           dart run build_runner build --delete-conflicting-outputs
       - run: timeout 600 nice -n 10 flutter analyze
-      - name: YouTube and import tests (no live network)
-        run: timeout 600 nice -n 10 flutter test -j 2 test/services/youtube test/services/library test/views/library
+      - name: YouTube and affected tests, one file at a time (no live network)
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(git ls-files 'test/services/youtube/*_test.dart' 'test/services/library/*_test.dart' 'test/views/library/*_test.dart' 'test/views/pack/*_test.dart' 'test/views/player/*_test.dart' 'test/utils/youtube_error_message_test.dart' 'test/utils/bundled_licenses_test.dart' 'test/providers/pack_completion_provider_test.dart' 'test/providers/youtube_pack_refresh_test.dart')
+          for file in "${files[@]}"; do
+            timeout 240 nice -n 10 flutter test --reporter expanded "$file"
+          done

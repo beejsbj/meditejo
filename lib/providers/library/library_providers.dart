@@ -1,6 +1,9 @@
 import 'dart:io';
 
+import 'package:medito/exceptions/app_error.dart';
+
 import 'package:medito/services/youtube/youtube_source.dart';
+import 'package:medito/services/youtube/youtube_platform.dart';
 import 'package:medito/src/youtube_api.g.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,7 +41,11 @@ final libraryStoreProvider = Provider<LibraryStore>((ref) {
       final dharmaSeed = ref.read(dharmaSeedDatabaseProvider);
       await migrateDharmaSeedSaves(db, dharmaSeed);
       await reclassifyLibraryDefaults(db);
-      await seedStarterSet(db, dharmaSeed);
+      await seedStarterSet(
+        db,
+        dharmaSeed,
+        includeYoutube: ref.read(youtubeAvailableProvider),
+      );
     },
   );
   ref.onDispose(store.dispose);
@@ -53,17 +60,46 @@ final libSourceProvider = Provider<LibSource>(
   ),
 );
 
+final youtubeAvailableProvider = Provider<bool>(
+  (ref) => youtubeBridgeAvailable,
+);
+
 final youtubeExtractorProvider = Provider<YoutubeExtractorApi>(
   (ref) => YoutubeExtractorApi(),
 );
 
-final youtubeSourceProvider = Provider<YoutubeSource>(
-  (ref) => YoutubeSource(
+final youtubeSourceProvider = Provider<YoutubeSource>((ref) {
+  final source = YoutubeSource(
     db: ref.watch(libraryDatabaseProvider),
     library: ref.watch(libraryStoreProvider),
     api: ref.watch(youtubeExtractorProvider),
-  ),
-);
+  );
+  void refreshCompleted() => ref.invalidate(packTrackIdsProvider);
+  source.refreshRevision.addListener(refreshCompleted);
+  ref.onDispose(() => source.refreshRevision.removeListener(refreshCompleted));
+  return source;
+});
+
+final youtubeContentRevisionProvider =
+    NotifierProvider<ValueListenableNotifier<int>, int>(
+      () => ValueListenableNotifier(
+        (ref) => ref.watch(youtubeSourceProvider).contentRevision,
+      ),
+    );
+
+/// Refresh failures are separate from catalogue reads: cached sessions stay usable.
+final youtubeRefreshRevisionProvider =
+    NotifierProvider<ValueListenableNotifier<int>, int>(
+      () => ValueListenableNotifier(
+        (ref) => ref.watch(youtubeSourceProvider).refreshRevision,
+      ),
+    );
+
+final youtubeRefreshErrorProvider = Provider.autoDispose
+    .family<YoutubeUnavailableError?, String>((ref, id) {
+      ref.watch(youtubeRefreshRevisionProvider);
+      return ref.watch(youtubeSourceProvider).refreshError(id);
+    });
 
 final importHttpProvider = Provider<ImportHttp>((ref) {
   final http = ImportHttp();
@@ -93,7 +129,9 @@ final importServiceProvider = Provider<ImportService>(
     lib: ref.watch(libSourceProvider),
     library: ref.watch(libraryStoreProvider),
     dharmaSeed: ref.watch(dharmaSeedSourceProvider),
-    youtube: ref.watch(youtubeSourceProvider),
+    youtube: ref.watch(youtubeAvailableProvider)
+        ? ref.watch(youtubeSourceProvider)
+        : null,
     storageDirectory: () async {
       final directory = await getApplicationSupportDirectory();
       return Directory(directory.path);
@@ -208,7 +246,9 @@ Future<void> startFeedRefresh(
 }) async {
   try {
     await Future<void>.delayed(delay);
-    final youtubeChanged = await ref.read(youtubeSourceProvider).refreshAll();
+    final youtubeChanged =
+        ref.read(youtubeAvailableProvider) &&
+        await ref.read(youtubeSourceProvider).refreshAll();
     final report = await ref.read(feedRefresherProvider).refreshAll();
     if (youtubeChanged || report.checked > report.failed) {
       // A feed answered, so its name, artwork or episodes may have changed.

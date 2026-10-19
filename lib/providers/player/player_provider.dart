@@ -1,4 +1,5 @@
 import 'package:medito/providers/library/library_providers.dart';
+
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -81,7 +82,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     if (downloadPath == null && request.trackId.startsWith('yt-video-')) {
       final fresh = await ref
           .read(youtubeSourceProvider)
-          .track(request.trackId);
+          .resolveTrack(request.trackId);
       request = request.copyWith(
         remoteUrl: fresh.voices.single.audioFiles.single.path,
       );

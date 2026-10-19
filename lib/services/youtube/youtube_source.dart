@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/exceptions/app_error.dart';
@@ -55,6 +56,19 @@ class YoutubeSource
   final _streams = <String, ({YoutubeAudioStream stream, DateTime until})>{};
   final _resolving = <String, Future<YoutubeAudioStream>>{};
   final _refreshing = <String, Future<bool>>{};
+  final _refreshErrors = <String, YoutubeUnavailableError>{};
+
+  /// Refresh outcomes, including failures that leave the library unchanged.
+  /// Listen for UI state; do not reopen an empty pack on a failure notification.
+  final ValueNotifier<int> refreshRevision = ValueNotifier(0);
+
+  /// Only successful refreshes change course contents. Failures update the
+  /// empty-state notifier without triggering another pack read.
+  final ValueNotifier<int> contentRevision = ValueNotifier(0);
+
+  YoutubeUnavailableError? refreshError(String packId) =>
+      _refreshErrors[packId];
+
   static const refreshInterval = Duration(hours: 12);
   static const expiryMargin = Duration(minutes: 5);
 
@@ -71,17 +85,20 @@ class YoutubeSource
       // independently useful, so one that cannot be used (a radio mix, a
       // private list, a removed video) leaves the other as the preview.
       final both = link.videoId != null && link.playlistId != null;
+      final failures = <YoutubeUnavailableError>[];
       var video = link.videoId == null
           ? null
           : await _resolveOrNull(
               () => api.resolveVideo(link.videoUrl),
               tolerate: both,
+              onFailure: failures.add,
             );
       var playlist = link.playlistId == null
           ? null
           : await _resolveOrNull(
               () => api.resolvePlaylist(link.playlistUrl),
               tolerate: both,
+              onFailure: failures.add,
             );
       if (playlist != null && playlist.items.isEmpty) {
         if (video == null) {
@@ -90,7 +107,9 @@ class YoutubeSource
         playlist = null;
       }
       if (video == null && playlist == null) {
-        throw const ImportFailure(ImportFailureReason.youtubeUnavailable);
+        throw failures.isEmpty
+            ? const YoutubeUnavailableError()
+            : failures.first;
       }
       final title = playlist?.title ?? video!.title;
       final uploader = playlist?.uploader ?? video!.uploader;
@@ -140,30 +159,53 @@ class YoutubeSource
       );
     } on ImportFailure {
       rethrow;
-    } on PlatformException catch (e) {
-      throw ImportFailure(
-        e.code == 'network'
-            ? ImportFailureReason.offline
-            : ImportFailureReason.youtubeUnavailable,
-      );
-    } catch (_) {
-      throw const ImportFailure(ImportFailureReason.youtubeUnavailable);
+    } catch (e) {
+      throw ImportFailure(switch (_failure(e).reason) {
+        YoutubeFailureReason.offline => ImportFailureReason.offline,
+        YoutubeFailureReason.ageRestricted =>
+          ImportFailureReason.youtubeAgeRestricted,
+        YoutubeFailureReason.private => ImportFailureReason.youtubePrivate,
+        YoutubeFailureReason.rateLimited =>
+          ImportFailureReason.youtubeRateLimited,
+        YoutubeFailureReason.unavailable =>
+          ImportFailureReason.youtubeUnavailable,
+      });
     }
   }
 
-  /// Resolves one half of a link. With [tolerate], a failure that is not the
-  /// network being down yields null so the other half can stand alone.
+  static YoutubeUnavailableError _failure(Object error) {
+    if (error is YoutubeUnavailableError) return error;
+    return YoutubeUnavailableError(
+      reason: switch (error) {
+        PlatformException(code: 'network' || 'offline') =>
+          YoutubeFailureReason.offline,
+        PlatformException(code: 'age-restricted') =>
+          YoutubeFailureReason.ageRestricted,
+        PlatformException(code: 'private') => YoutubeFailureReason.private,
+        PlatformException(code: 'rate-limited' || 'bot-check' || 'busy') =>
+          YoutubeFailureReason.rateLimited,
+        _ => YoutubeFailureReason.unavailable,
+      },
+    );
+  }
+
+  /// A content failure may leave the other half of a watch/list link usable.
+  /// Connection failures and blocks apply to the entire request.
   Future<T?> _resolveOrNull<T>(
     Future<T> Function() resolve, {
     required bool tolerate,
+    required void Function(YoutubeUnavailableError) onFailure,
   }) async {
     if (!tolerate) return resolve();
     try {
       return await resolve();
-    } on PlatformException catch (e) {
-      if (e.code == 'network') rethrow;
-      return null;
-    } catch (_) {
+    } catch (e) {
+      final failure = _failure(e);
+      if (failure.reason == YoutubeFailureReason.offline ||
+          failure.reason == YoutubeFailureReason.rateLimited) {
+        throw failure;
+      }
+      onFailure(failure);
       return null;
     }
   }
@@ -296,26 +338,44 @@ class YoutubeSource
     for (final id in _ids(row)) ?await db.youtubeVideo(id),
   ];
 
-  Future<bool> refresh(String id, {bool force = false}) =>
-      _refreshing[id] ??= _refresh(id, force: force).whenComplete(() {
-        // Removing the entry returns its Future. Returning that value from
-        // whenComplete would make completion wait on itself indefinitely.
+  Future<bool> refresh(String id, {bool force = false}) {
+    final active = _refreshing[id];
+    if (active != null) {
+      // Manual refresh shares in-flight extraction, but still surfaces its
+      // failure. If the automatic check was skipped, honor the forced retry.
+      return force
+          ? active.then<bool>(
+              (changed) => changed ? true : refresh(id, force: true),
+            )
+          : active.catchError((Object _) => false);
+    }
+    final pending = _refreshing[id] = _refresh(id, force: force).whenComplete(
+      () {
+        // Do not return remove(): that would wait on this same Future.
         _refreshing.remove(id);
-      });
+      },
+    );
+    return force ? pending : pending.catchError((Object _) => false);
+  }
 
   Future<bool> _refresh(String id, {required bool force}) async {
     if (!id.startsWith('yt-playlist-')) return false;
     final key = id.substring('yt-playlist-'.length);
     final row = await db.youtubePlaylist(key);
-    if (row == null ||
-        key.startsWith('single-') ||
-        (!force && _clock().difference(row.lastCheckedAt) < refreshInterval)) {
+    if (row == null || key.startsWith('single-')) return false;
+    final hasStoredItems = (await _items(row)).isNotEmpty;
+    if (!force &&
+        hasStoredItems &&
+        _clock().difference(row.lastCheckedAt) < refreshInterval) {
       return false;
     }
-    // Remember attempts as well as successes, including across app restarts.
-    await (db.update(db.youtubePlaylists)
-          ..where((p) => p.playlistId.equals(key)))
-        .write(YoutubePlaylistsCompanion(lastCheckedAt: Value(_clock())));
+    // Throttle failed attempts only when stored sessions remain usable.
+    // An empty starter must retry as soon as connectivity returns.
+    if (hasStoredItems) {
+      await (db.update(db.youtubePlaylists)
+            ..where((p) => p.playlistId.equals(key)))
+          .write(YoutubePlaylistsCompanion(lastCheckedAt: Value(_clock())));
+    }
     try {
       final fresh = await api.resolvePlaylist(
         'https://www.youtube.com/playlist?list=$key',
@@ -337,10 +397,17 @@ class YoutubeSource
           (a, b) => a + (b.durationSeconds > 0 ? b.durationSeconds * 1000 : 0),
         ),
       );
+      _refreshErrors.remove(id);
+      contentRevision.value++;
+      refreshRevision.value++;
       return true;
-    } catch (_) {
-      if (force) throw const YoutubeUnavailableError();
-      return false; // Existing sessions remain available offline.
+    } catch (e) {
+      final failure = _failure(e);
+      final previous = _refreshErrors[id];
+      _refreshErrors[id] = failure;
+      // Repeated offline opens need no new UI invalidation.
+      if (previous?.reason != failure.reason) refreshRevision.value++;
+      throw failure; // Automatic callers retain their stored sessions quietly.
     }
   }
 
@@ -380,10 +447,9 @@ class YoutubeSource
     if (!id.startsWith('yt-playlist-')) {
       throw CatalogueEntryUnavailable('pack', id);
     }
-    await refresh(id);
     final row = await db.youtubePlaylist(id.substring('yt-playlist-'.length));
     if (row == null) throw CatalogueEntryUnavailable('pack', id);
-    return _summary(row).copyWith(
+    final stored = _summary(row).copyWith(
       items: [
         for (final item in await _items(row))
           PackItemsModel(
@@ -397,6 +463,28 @@ class YoutubeSource
             durationMs: item.durationSeconds > 0
                 ? item.durationSeconds * 1000
                 : null,
+          ),
+      ],
+    );
+    // A slow extractor must not delay opening stored courses or Home.
+    // Automatic refresh records failures and returns false quietly.
+    unawaited(refresh(id));
+    return stored;
+  }
+
+  /// Resolves an expiring URL immediately before streaming or downloading.
+  /// Callers must check for local audio before using this method.
+  Future<Track> resolveTrack(String id) async {
+    final metadata = await track(id);
+    final stream = await _audio(id.substring('yt-video-'.length));
+    return metadata.copyWith(
+      voices: [
+        for (final voice in metadata.voices)
+          voice.copyWith(
+            audioFiles: [
+              for (final file in voice.audioFiles)
+                file.copyWith(path: stream.url),
+            ],
           ),
       ],
     );
@@ -423,8 +511,8 @@ class YoutubeSource
         if (!expiry.isAfter(_clock())) throw const YoutubeUnavailableError();
         _streams[id] = (stream: stream, until: expiry.subtract(expiryMargin));
         return stream;
-      } catch (_) {
-        throw const YoutubeUnavailableError();
+      } catch (e) {
+        throw _failure(e);
       } finally {
         _resolving.remove(id);
       }
@@ -439,7 +527,6 @@ class YoutubeSource
     final videoId = id.substring('yt-video-'.length);
     final video = await db.youtubeVideo(videoId);
     if (video == null) throw CatalogueEntryUnavailable('track', id);
-    final stream = await _audio(videoId);
     final parent = await parentOf(id);
     final group =
         await library.groupOf(id) ??
@@ -462,7 +549,7 @@ class YoutubeSource
           audioFiles: [
             TrackAudioFile(
               id: id,
-              path: stream.url,
+              path: url,
               duration: video.durationSeconds > 0
                   ? video.durationSeconds * 1000
                   : 0,
@@ -503,9 +590,22 @@ class YoutubeSource
   Future<List<TrackSearchModel>> searchTracks(String query) async {
     final needle = query.trim().toLowerCase();
     if (needle.isEmpty) return [];
+    final activeVideoIds = <String>{};
+    for (final entry in await library.entries()) {
+      final id = entry.sourceId;
+      if (id.startsWith('yt-video-')) {
+        activeVideoIds.add(id.substring('yt-video-'.length));
+      } else if (id.startsWith('yt-playlist-')) {
+        final row = await db.youtubePlaylist(
+          id.substring('yt-playlist-'.length),
+        );
+        if (row != null) activeVideoIds.addAll(_ids(row));
+      }
+    }
     return [
       for (final row in await db.youtubeSessions())
-        if ('${row.title} ${row.uploader}'.toLowerCase().contains(needle))
+        if (activeVideoIds.contains(row.videoId) &&
+            ('${row.title} ${row.uploader}'.toLowerCase().contains(needle)))
           TrackSearchModel(
             id: ytVideoId(row.videoId),
             title: row.title,

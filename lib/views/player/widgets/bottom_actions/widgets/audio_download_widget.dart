@@ -3,6 +3,8 @@
 import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/exceptions/app_error.dart';
+import 'package:medito/utils/youtube_error_message.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/utils/utils.dart';
@@ -165,7 +167,14 @@ class AudioDownloadWidget extends ConsumerWidget {
           .read(audioDownloaderProvider.notifier)
           .downloadTrackAudio(request);
     } catch (e) {
-      showSnackBar(context, e.toString(), backgroundColor: Colors.red);
+      if (!context.mounted) return;
+      showSnackBar(
+        context,
+        e is YoutubeUnavailableError
+            ? youtubeErrorMessage(AppLocalizations.of(context)!, e)
+            : e.toString(),
+        backgroundColor: Colors.red,
+      );
     }
   }
 
@@ -204,7 +213,14 @@ class AudioDownloadWidget extends ConsumerWidget {
             );
         ref.read(deleteDownloadedTrackByIdProvider(fileId: request.fileId));
       } catch (e) {
-        showSnackBar(context, e.toString(), backgroundColor: Colors.red);
+        if (!context.mounted) return;
+        showSnackBar(
+          context,
+          e is YoutubeUnavailableError
+              ? youtubeErrorMessage(AppLocalizations.of(context)!, e)
+              : e.toString(),
+          backgroundColor: Colors.red,
+        );
       }
     }
   }

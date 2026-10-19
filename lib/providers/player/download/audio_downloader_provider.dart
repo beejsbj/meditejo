@@ -53,7 +53,7 @@ class AudioDownloaderProvider extends Notifier<AudioDownloaderState> {
       if (request.trackId.startsWith('yt-video-')) {
         final fresh = await ref
             .read(youtubeSourceProvider)
-            .track(request.trackId);
+            .resolveTrack(request.trackId);
         request = request.copyWith(
           remoteUrl: fresh.voices.single.audioFiles.single.path,
         );

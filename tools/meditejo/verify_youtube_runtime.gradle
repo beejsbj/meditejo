@@ -1,0 +1,34 @@
+// CI-only init script: inspect the resolved release graph and effective repos.
+// Run from android: ./gradlew -I ../tools/meditejo/verify_youtube_runtime.gradle :app:verifyYoutubeRuntime
+import groovy.json.JsonSlurper
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.artifacts.repositories.MavenArtifactRepository
+
+// Register before task selection, including with configuration-on-demand.
+// Init scripts also run in Flutter's included tooling build; only Meditejo's
+// application has this manifest beside its Android root.
+gradle.beforeProject { app ->
+    if (app.path != ':app' || !app.rootProject.file('../assets/licenses/newpipe-runtime-dependencies.json').isFile()) return
+    app.tasks.register('verifyYoutubeRuntime') {
+        doLast {
+            def manifest = new JsonSlurper().parse(app.rootProject.file('../assets/licenses/newpipe-runtime-dependencies.json'))
+            def selected = app.configurations.devReleaseRuntimeClasspath.incoming.resolutionResult.allComponents
+                .findAll { it.id instanceof ModuleComponentIdentifier }
+                .collectEntries { [("${it.id.group}:${it.id.module}".toString()): it.id.version] }
+            manifest.components.each { component ->
+                component.coordinates.each { coordinate ->
+                    def parts = coordinate.split(':')
+                    def key = "${parts[0]}:${parts[1]}".toString()
+                    assert selected[key] == parts[2] : "Notice version mismatch for ${key}: listed ${parts[2]}, resolved ${selected[key]}"
+                    println "Noticed runtime: ${coordinate}"
+                }
+            }
+            app.rootProject.allprojects.each { project ->
+                project.repositories.withType(MavenArtifactRepository).findAll { it.url.host == 'jitpack.io' }.each {
+                    assert it.name == 'JitPackTeamNewPipe' : "Unscoped JitPack repository: ${project.path}/${it.name}"
+                }
+            }
+            println "Scoped JitPack repositories verified in ${app.rootProject.allprojects.size()} projects"
+        }
+    }
+}

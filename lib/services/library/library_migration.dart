@@ -92,6 +92,7 @@ Future<void> seedStarterSet(
   LibraryDatabase library,
   DharmaSeedDatabase dharmaSeed, {
   List<StarterItem> items = starterSet,
+  bool includeYoutube = true,
   DateTime Function()? clock,
 }) async {
   if (await library.metaValue(_starterSeededKey) != null) return;
@@ -102,6 +103,7 @@ Future<void> seedStarterSet(
       final describe = DharmaSeedSource(db: dharmaSeed);
       for (var i = 0; i < items.length; i++) {
         final item = items[i];
+        if (!includeYoutube && item.id.startsWith('yt-')) continue;
         final draft = item.id.startsWith(dharmaSeedPrefix)
             ? await describe.libraryDraft(item.id)
             : null;
@@ -135,7 +137,7 @@ Future<void> seedStarterSet(
         // A YouTube course needs its playlist row to open at all. Seed it
         // empty and already due, so the first open fetches the sessions.
         for (final item in items) {
-          if (!item.id.startsWith('yt-playlist-')) continue;
+          if (!includeYoutube || !item.id.startsWith('yt-playlist-')) continue;
           await library
               .into(library.youtubePlaylists)
               .insertOnConflictUpdate(

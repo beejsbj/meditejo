@@ -120,8 +120,20 @@ class StorageReadError extends AppError {
   });
 }
 
-/// All YouTube extraction failures have one calm playback message.
+/// Safe categories shared by playback, refresh and localized UI.
+enum YoutubeFailureReason {
+  offline,
+  unavailable,
+  ageRestricted,
+  private,
+  rateLimited,
+}
+
+/// Extractor details and signed addresses never become user-facing messages.
 final class YoutubeUnavailableError extends AppError {
-  const YoutubeUnavailableError()
-    : super(message: "This video isn't available right now");
+  const YoutubeUnavailableError({
+    this.reason = YoutubeFailureReason.unavailable,
+  }) : super(message: "This video isn't available right now");
+
+  final YoutubeFailureReason reason;
 }

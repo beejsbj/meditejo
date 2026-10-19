@@ -61,7 +61,7 @@ class YoutubeWorkRunnerTest {
             1
         }) { calls.incrementAndGet(); results.add(it) }
         val failure = results.poll(5, TimeUnit.SECONDS)?.exceptionOrNull() as YoutubeFailure
-        assertEquals("network", failure.code)
+        assertEquals("rate-limited", failure.code)
         assertTrue("the worker was not interrupted", interrupted.await(5, TimeUnit.SECONDS))
         Thread.sleep(100)
         assertEquals(1, calls.get())
@@ -87,7 +87,7 @@ class YoutubeWorkRunnerTest {
         runner.run(30_000, { 2 }) { results.add(it) } // queued
         runner.run(30_000, { 3 }) { results.add(it) } // rejected
         val busy = results.poll(5, TimeUnit.SECONDS)?.exceptionOrNull() as YoutubeFailure
-        assertEquals("network", busy.code)
+        assertEquals("rate-limited", busy.code)
         gate.countDown()
         assertEquals(1, results.poll(5, TimeUnit.SECONDS)?.getOrNull())
         assertEquals(2, results.poll(5, TimeUnit.SECONDS)?.getOrNull())

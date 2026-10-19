@@ -33,20 +33,28 @@ class YoutubeFailureTest {
     }
 
     @Test
-    fun networkProblemsAndBlocksMapToNetwork() {
+    fun networkProblemsRemainDistinctFromBlocksAndTimeouts() {
         assertEquals("network", code(IOException("reset")))
-        assertEquals("network", code(SocketTimeoutException("slow")))
+        assertEquals("rate-limited", code(SocketTimeoutException("slow")))
         assertEquals("network", code(UnknownHostException("www.youtube.com")))
-        assertEquals("network", code(ReCaptchaException("captcha", "https://www.youtube.com/watch?v=x")))
-        assertEquals("network", code(SignInConfirmNotBotException("bot")))
-        assertEquals("network", code(TimeoutException()))
-        assertEquals("network", code(CancellationException()))
-        assertEquals("network", code(InterruptedException()))
+        assertEquals("rate-limited", code(ReCaptchaException("captcha", "https://www.youtube.com/watch?v=x")))
+        assertEquals("rate-limited", code(SignInConfirmNotBotException("bot")))
+        assertEquals("rate-limited", code(TimeoutException()))
+        assertEquals("unavailable", code(CancellationException()))
+        assertEquals("unavailable", code(InterruptedException()))
+    }
+
+    @Test
+    fun localBusyIsNotOffline() {
+        assertEquals("rate-limited", YoutubeFailure.busy().code)
+        assertEquals("rate-limited", YoutubeFailure.timedOut().code)
     }
 
     @Test
     fun aWrappedCauseDecidesWhenTheWrapperSaysNothing() {
         assertEquals("network", code(ExtractionException("Could not get streams", IOException("reset"))))
+        assertEquals("rate-limited", code(ExtractionException("wrapped", SignInConfirmNotBotException("bot"))))
+        assertEquals("rate-limited", code(ExtractionException("wrapped", TimeoutException())))
         assertEquals("private", code(ParsingException("Could not parse", PrivateContentException("private"))))
         assertEquals("age-restricted", code(RuntimeException(ExtractionException("x", AgeRestrictedContentException("age")))))
     }

@@ -1,5 +1,8 @@
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/exceptions/app_error.dart';
+import 'package:medito/utils/youtube_error_message.dart';
+import 'package:medito/views/pack/widgets/youtube_playlist_empty.dart';
+
 import 'dart:math' as math;
 
 import 'package:intl/intl.dart';
@@ -177,9 +180,17 @@ class _PackViewState extends ConsumerState<PackView>
             ref.invalidate(packTrackIdsProvider);
           } on YoutubeUnavailableError catch (e) {
             if (mounted) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(e.message)));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    youtubeErrorMessage(
+                      AppLocalizations.of(context)!,
+                      e,
+                      playlist: true,
+                    ),
+                  ),
+                ),
+              );
             }
           }
         }
@@ -414,6 +425,9 @@ class _PackViewState extends ConsumerState<PackView>
   /// The session rows, with the "mark all" button after them. A long course
   /// recorded over several days is grouped under day headings.
   List<Widget> _sessions(PackModel pack) {
+    if (pack.items.isEmpty && pack.id.startsWith('yt-playlist-')) {
+      return [YoutubePlaylistEmpty(packId: pack.id)];
+    }
     final groups = _dayGroups(pack.items);
     final rows = <Widget>[];
     if (groups == null) {

@@ -44,7 +44,7 @@ final contentSourcesProvider = Provider<List<ContentSource>>(
   (ref) => [
     ref.watch(dharmaSeedSourceProvider),
     ref.watch(libSourceProvider),
-    ref.watch(youtubeSourceProvider),
+    if (ref.watch(youtubeAvailableProvider)) ref.watch(youtubeSourceProvider),
   ],
 );
 

@@ -1,5 +1,6 @@
 import 'package:medito/services/youtube/youtube_ids.dart';
 import 'package:medito/services/youtube/youtube_source.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -483,6 +484,9 @@ class _FailureCard extends StatelessWidget {
     ImportFailureReason.empty => l10n.importFailEmpty,
     ImportFailureReason.unrecognised => l10n.importFailUnrecognised,
     ImportFailureReason.youtubeUnavailable => l10n.youtubeUnavailable,
+    ImportFailureReason.youtubeAgeRestricted => l10n.youtubeAgeRestricted,
+    ImportFailureReason.youtubePrivate => l10n.youtubePrivate,
+    ImportFailureReason.youtubeRateLimited => l10n.youtubeRateLimited,
     ImportFailureReason.unsupportedHost => l10n.importFailUnsupportedHost,
     ImportFailureReason.offline => l10n.importFailOffline,
     ImportFailureReason.notFound => l10n.importFailNotFound,

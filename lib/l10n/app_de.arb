@@ -1164,5 +1164,14 @@
     "description": "Calm one-line YouTube extraction or playback failure"
   },
   "youtubeCourseCaption": "Alle Sitzungen in Playlist-Reihenfolge",
-  "youtubeSingleCaption": "Nur dieses Video"
+  "youtubeSingleCaption": "Nur dieses Video",
+  "youtubeOffline": "Du bist offline. Verbinde dich, um dieses Video abzuspielen",
+  "youtubePlaylistOffline": "Du bist offline. Verbinde dich, um diese Playlist zu laden",
+  "youtubePlaylistUnavailable": "Diese Playlist ist gerade nicht verfügbar",
+  "youtubeAgeRestricted": "Dieses Video hat eine Altersbeschränkung",
+  "youtubePlaylistAgeRestricted": "Diese Playlist enthält Videos mit Altersbeschränkung",
+  "youtubePrivate": "Dieses Video ist privat",
+  "youtubePlaylistPrivate": "Diese Playlist ist privat",
+  "youtubeRateLimited": "YouTube ist ausgelastet oder verlangt eine Bot-Prüfung. Versuche es später erneut",
+  "youtubePlaylistEmpty": "Die Sitzungen sind noch nicht auf diesem Gerät gespeichert. Wir versuchen es gleich erneut"
 }
