@@ -188,9 +188,10 @@ Future<void> startFeedRefresh(
   try {
     await Future<void>.delayed(delay);
     final report = await ref.read(feedRefresherProvider).refreshAll();
-    if (report.newEpisodes > 0) {
-      // Course pages and completion ticks cached before the new episodes
-      // arrived would otherwise keep showing the old list.
+    if (report.checked > report.failed) {
+      // A feed answered, so its name, artwork or episodes may have changed.
+      // Course pages and completion ticks cached before would otherwise keep
+      // showing the old ones.
       ref.invalidate(packDataProvider);
       ref.invalidate(packTrackIdsProvider);
     }
