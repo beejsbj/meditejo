@@ -7,6 +7,10 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
 import 'package:medito/views/background_sound/widgets/sound_listtile_widget.dart';
+import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers/soundscape_fakes.dart';
 
 const _rain = BackgroundSoundsModel(
   id: '12',
@@ -177,9 +181,13 @@ void main() {
     tester,
   ) async {
     final notifier = _FakeNotifier(const BackgroundSoundsState());
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          ...soundscapeTestOverrides(FakeSoundscapeEngine()),
           backgroundSoundsNotifierProvider.overrideWith(() => notifier),
           backgroundSoundsProvider.overrideWith(
             (ref) async => throw const ServerError(),
@@ -193,13 +201,18 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Session bells'), findsOneWidget);
-    await tester.tap(find.text('Session bells'));
+    final bells = find.text('Session bells');
+    await tester.scrollUntilVisible(bells, 200);
+    await tester.tap(bells);
     await tester.pump();
     // A switch now, not a sound: no ambient change, bells on.
     expect(notifier.changed, isEmpty);
     expect(notifier.bells, [true]);
-    expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
+    final bellsSwitch = find.descendant(
+      of: find.ancestor(of: bells, matching: find.byType(InkWell)).first,
+      matching: find.byType(Switch),
+    );
+    expect(tester.widget<Switch>(bellsSwitch).value, isTrue);
     expect(tester.takeException(), isNull);
   });
 }

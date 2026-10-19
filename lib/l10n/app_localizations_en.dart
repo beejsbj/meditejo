@@ -2072,4 +2072,146 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get youtubePlaylistEmpty =>
       'Sessions aren\'t stored on this device yet. We\'ll try again shortly';
+
+  @override
+  String get soundsYourMix => 'Your mix';
+
+  @override
+  String get soundsEmptyMix => 'Tap a sound below to start a mix.';
+
+  @override
+  String soundsLayerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sounds',
+      one: '1 sound',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get soundsPlay => 'Play';
+
+  @override
+  String get soundsPause => 'Pause';
+
+  @override
+  String get soundsStop => 'Stop';
+
+  @override
+  String soundsRemove(String sound) {
+    return 'Remove $sound';
+  }
+
+  @override
+  String get soundsDrift => 'Drift';
+
+  @override
+  String get soundsDriftHint => 'Let the level rise and fall slowly';
+
+  @override
+  String get soundsPresets => 'Presets';
+
+  @override
+  String get soundsSavePreset => 'Save mix';
+
+  @override
+  String get soundsPresetName => 'Preset name';
+
+  @override
+  String soundsPresetSaved(String name) {
+    return 'Saved “$name”';
+  }
+
+  @override
+  String soundsDeletePreset(String name) {
+    return 'Delete “$name”?';
+  }
+
+  @override
+  String get soundsDelete => 'Delete';
+
+  @override
+  String get soundsCancel => 'Cancel';
+
+  @override
+  String get soundsSave => 'Save';
+
+  @override
+  String soundsLayerLimit(int count) {
+    return 'A mix holds up to $count sounds';
+  }
+
+  @override
+  String get soundsCouldNotPlay => 'This sound could not be played';
+
+  @override
+  String get soundsUnderSessions => 'Under sessions';
+
+  @override
+  String get soundsUnderPractice => 'Play under practice';
+
+  @override
+  String get soundsUnderTalks => 'Play under talks';
+
+  @override
+  String get soundsUnderSessionsHint =>
+      'Your mix plays beneath the session, at its own volume';
+
+  @override
+  String get soundsCredits => 'Sound credits';
+
+  @override
+  String get soundsNotificationText => 'Playing your mix';
+
+  @override
+  String get soundCategoryRain => 'Rain';
+
+  @override
+  String get soundCategoryWater => 'Water';
+
+  @override
+  String get soundCategoryWind => 'Wind';
+
+  @override
+  String get soundCategoryForest => 'Forest and birds';
+
+  @override
+  String get soundCategoryFire => 'Fire';
+
+  @override
+  String get soundCategoryRoom => 'Rooms and city';
+
+  @override
+  String get soundCategoryNight => 'Night';
+
+  @override
+  String get soundPresetRainForest => 'Rain on the forest';
+
+  @override
+  String get soundPresetNight => 'Night';
+
+  @override
+  String get soundPresetHearth => 'Hearth';
+
+  @override
+  String get soundPresetShore => 'Shore';
+
+  @override
+  String get soundCreditsIntro =>
+      'These recordings are shared by their authors under their own licences, not the app’s AGPL. Each was cut to a loop, crossfaded, levelled and re-encoded for Meditejo.';
+
+  @override
+  String soundCreditsBy(String original, String author) {
+    return '“$original” by $author';
+  }
+
+  @override
+  String soundCreditsChanges(String changes) {
+    return 'Changes: $changes';
+  }
+
+  @override
+  String get soundCreditsAttributionRequired => 'Attribution required';
 }

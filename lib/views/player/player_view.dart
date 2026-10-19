@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:medito/models/soundscape/sound_mix.dart';
 import 'dart:async';
 
 import 'package:medito/widgets/adaptive/adaptive_player_layout.dart';
@@ -181,14 +182,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
 
   Future<void> _initializePlayer() async {
     final currentlyPlayingTrack = ref.watch(playerProvider);
-    if (currentlyPlayingTrack?.hasBackgroundSound ?? false) {
-      ref
-          .read(backgroundSoundsNotifierProvider.notifier)
-          .playBackgroundSoundFromPref();
-    } else {
-      // Stop background sound if track doesn't allow it
-      ref.read(backgroundSoundsNotifierProvider.notifier).stopBackgroundSound();
-    }
+    _playSessionSounds(currentlyPlayingTrack?.hasBackgroundSound ?? false);
 
     // Only enable DND if permission is already granted and toggle is on
     if (Platform.isAndroid) {
@@ -221,17 +215,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
       previous,
       next,
     ) {
-      if (next == false) {
-        // Stop background sound if track doesn't allow it
-        ref
-            .read(backgroundSoundsNotifierProvider.notifier)
-            .stopBackgroundSound();
-      } else if (next == true) {
-        // Start background sound if track allows it
-        ref
-            .read(backgroundSoundsNotifierProvider.notifier)
-            .playBackgroundSoundFromPref();
-      }
+      if (next != null) _playSessionSounds(next);
     });
 
     if (currentlyPlayingTrack == null) {
@@ -337,6 +321,16 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
             )
           : null,
     );
+  }
+
+  /// Practice (a track that allows background sound) or Talks: each plays
+  /// its own soundscape default (decision 8: on for Practice, off for Talks).
+  void _playSessionSounds(bool practice) {
+    ref.read(backgroundSoundsNotifierProvider.notifier)
+      ..setSessionKind(
+        practice ? SoundscapeSessionKind.practice : SoundscapeSessionKind.talks,
+      )
+      ..playBackgroundSoundFromPref();
   }
 
   void onPlayPausePressed() {

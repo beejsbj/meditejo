@@ -7,11 +7,13 @@ import 'package:just_audio/just_audio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../models/background_sounds/background_sounds_model.dart';
+import '../../models/soundscape/sound_mix.dart';
 import '../../repositories/background_sounds/background_sounds_repository.dart';
 import '../../repositories/downloader/downloader_repository.dart';
 import '../../src/audio_pigeon.g.dart';
 import '../../utils/logger.dart';
 import '../player/player_provider.dart';
+import '../soundscape/soundscape_provider.dart';
 
 part 'background_sounds_notifier.g.dart';
 
@@ -194,6 +196,12 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
   bool _timerScope = false;
 
   void setTimerScope(bool isTimer) => _timerScope = isTimer;
+
+  /// Practice or Talks: which soundscape default the session plays under
+  /// (decision 8). Set before [playBackgroundSoundFromPref].
+  SoundscapeSessionKind _sessionKind = SoundscapeSessionKind.practice;
+
+  void setSessionKind(SoundscapeSessionKind kind) => _sessionKind = kind;
 
   @override
   BackgroundSoundsState build() {
@@ -454,6 +462,11 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
   }
 
   void togglePlayPause(bool isPlaying) {
+    // iOS reports the session's play/pause here; Android's arrives through
+    // audioStateProvider, which the soundscape follows itself.
+    if (Platform.isIOS) {
+      ref.read(soundscapeProvider.notifier).setSessionPaused(isPlaying);
+    }
     // Bells follow the primary player in their own controller; this only
     // pauses/resumes an ambient sound, if one is playing.
     if (Platform.isIOS && !iosAmbientActive) return;
@@ -481,8 +494,9 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
     }
   }
 
-  /// Session over: stops the ambient sound and the bells.
+  /// Session over: stops the ambient sound, the soundscape and the bells.
   void stopBackgroundSound() {
+    ref.read(soundscapeProvider.notifier).endSession();
     _stopAmbient();
     if (Platform.isAndroid) {
       unawaited(_api.setSessionBells(false));
@@ -512,7 +526,20 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
     provider.updateItemsInSavedBgSoundList(sound);
   }
 
+  /// A session is starting: the soundscape for its kind, and the bells.
+  /// Talks keep their old behaviour for the legacy sound and bells (both
+  /// off); only the soundscape follows its Talks default.
   void playBackgroundSoundFromPref() {
+    unawaited(ref.read(soundscapeProvider.notifier).startSession(_sessionKind));
+    if (_sessionKind == SoundscapeSessionKind.talks) {
+      _stopAmbient();
+      if (Platform.isAndroid) {
+        unawaited(_api.setSessionBells(false));
+      } else {
+        unawaited(iosAudioHandler.sessionBells.disable());
+      }
+      return;
+    }
     final repo = ref.read(backgroundSoundsRepositoryProvider);
     final selectedBgSound = repo.getSelectedBgSoundFromSharedPreferences();
     handleOnChangeSound(selectedBgSound, preview: false);

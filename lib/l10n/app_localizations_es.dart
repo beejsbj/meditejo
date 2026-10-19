@@ -2112,4 +2112,146 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get youtubePlaylistEmpty =>
       'Las sesiones aún no están guardadas en este dispositivo. Volveremos a intentarlo en breve';
+
+  @override
+  String get soundsYourMix => 'Tu mezcla';
+
+  @override
+  String get soundsEmptyMix => 'Toca un sonido para empezar una mezcla.';
+
+  @override
+  String soundsLayerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sonidos',
+      one: '1 sonido',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get soundsPlay => 'Reproducir';
+
+  @override
+  String get soundsPause => 'Pausar';
+
+  @override
+  String get soundsStop => 'Detener';
+
+  @override
+  String soundsRemove(String sound) {
+    return 'Quitar $sound';
+  }
+
+  @override
+  String get soundsDrift => 'Vaivén';
+
+  @override
+  String get soundsDriftHint => 'Deja que el volumen suba y baje despacio';
+
+  @override
+  String get soundsPresets => 'Preajustes';
+
+  @override
+  String get soundsSavePreset => 'Guardar mezcla';
+
+  @override
+  String get soundsPresetName => 'Nombre del preajuste';
+
+  @override
+  String soundsPresetSaved(String name) {
+    return '“$name” guardado';
+  }
+
+  @override
+  String soundsDeletePreset(String name) {
+    return '¿Eliminar “$name”?';
+  }
+
+  @override
+  String get soundsDelete => 'Eliminar';
+
+  @override
+  String get soundsCancel => 'Cancelar';
+
+  @override
+  String get soundsSave => 'Guardar';
+
+  @override
+  String soundsLayerLimit(int count) {
+    return 'Una mezcla admite hasta $count sonidos';
+  }
+
+  @override
+  String get soundsCouldNotPlay => 'No se pudo reproducir este sonido';
+
+  @override
+  String get soundsUnderSessions => 'Durante las sesiones';
+
+  @override
+  String get soundsUnderPractice => 'Reproducir durante la práctica';
+
+  @override
+  String get soundsUnderTalks => 'Reproducir durante las charlas';
+
+  @override
+  String get soundsUnderSessionsHint =>
+      'Tu mezcla suena bajo la sesión, con su propio volumen';
+
+  @override
+  String get soundsCredits => 'Créditos de sonido';
+
+  @override
+  String get soundsNotificationText => 'Sonando tu mezcla';
+
+  @override
+  String get soundCategoryRain => 'Lluvia';
+
+  @override
+  String get soundCategoryWater => 'Agua';
+
+  @override
+  String get soundCategoryWind => 'Viento';
+
+  @override
+  String get soundCategoryForest => 'Bosque y aves';
+
+  @override
+  String get soundCategoryFire => 'Fuego';
+
+  @override
+  String get soundCategoryRoom => 'Interiores y ciudad';
+
+  @override
+  String get soundCategoryNight => 'Noche';
+
+  @override
+  String get soundPresetRainForest => 'Lluvia en el bosque';
+
+  @override
+  String get soundPresetNight => 'Noche';
+
+  @override
+  String get soundPresetHearth => 'Hogar';
+
+  @override
+  String get soundPresetShore => 'Orilla';
+
+  @override
+  String get soundCreditsIntro =>
+      'Sus autores comparten estas grabaciones con sus propias licencias, no con la AGPL de la app. Cada una se recortó en bucle, se fundió, se niveló y se recodificó para Meditejo.';
+
+  @override
+  String soundCreditsBy(String original, String author) {
+    return '“$original” de $author';
+  }
+
+  @override
+  String soundCreditsChanges(String changes) {
+    return 'Cambios: $changes';
+  }
+
+  @override
+  String get soundCreditsAttributionRequired => 'Atribución obligatoria';
 }

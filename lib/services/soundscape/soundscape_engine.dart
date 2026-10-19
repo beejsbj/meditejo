@@ -100,6 +100,18 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
 
   SoLoud get _soloud => SoLoud.instance;
 
+  /// Whether the native engine loaded. A build or host without it (a test
+  /// machine, a missing ABI) plays nothing instead of throwing.
+  late final bool _available = () {
+    try {
+      SoLoud.instance;
+      return true;
+    } catch (error) {
+      AppLogger.e('SOUNDSCAPE', 'SoLoud is unavailable', error);
+      return false;
+    }
+  }();
+
   Future<void> _ensureReady() => _ready ??= () async {
     if (!_soloud.isInitialized) await _soloud.init();
     _soloud.setGlobalVolume(_master);
@@ -112,6 +124,7 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
     required double gain,
     LayerMotion? motion,
   }) async {
+    if (!_available) return false;
     try {
       await _ensureReady();
       await stop(key, fade: Duration.zero);
@@ -202,7 +215,7 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
     _master = gain;
     // Before the first layer starts there is no engine yet; [_ensureReady]
     // applies it.
-    if (!_soloud.isInitialized) return;
+    if (!_available || !_soloud.isInitialized) return;
     if (fade == Duration.zero) {
       _soloud.setGlobalVolume(gain);
     } else {
@@ -213,6 +226,7 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
   @override
   void setPaused(bool paused) {
     _paused = paused;
+    if (!_available) return;
     for (final handle in _handles.values) {
       _soloud.setPause(handle, paused);
     }

@@ -11,7 +11,7 @@ const kStarterPresets = <SoundPreset>[
     name: 'Rain on the forest',
     builtIn: true,
     mix: SoundMix([
-      SoundLayer(soundId: 'rain-light', volume: 0.7),
+      SoundLayer(soundId: 'rain-terrace', volume: 0.7),
       SoundLayer(soundId: 'forest-birds', volume: 0.45, animate: true),
       SoundLayer(soundId: 'wind-trees', volume: 0.3, animate: true),
     ]),
@@ -21,7 +21,7 @@ const kStarterPresets = <SoundPreset>[
     name: 'Night',
     builtIn: true,
     mix: SoundMix([
-      SoundLayer(soundId: 'night-crickets', volume: 0.6),
+      SoundLayer(soundId: 'night-meadow', volume: 0.6),
       SoundLayer(soundId: 'stream', volume: 0.35, animate: true),
     ]),
   ),
@@ -30,7 +30,8 @@ const kStarterPresets = <SoundPreset>[
     name: 'Hearth',
     builtIn: true,
     mix: SoundMix([
-      SoundLayer(soundId: 'fire-hearth', volume: 0.65),
+      SoundLayer(soundId: 'fire-stove', volume: 0.6),
+      SoundLayer(soundId: 'fire-crackle', volume: 0.55, animate: true),
       SoundLayer(soundId: 'rain-window', volume: 0.4, animate: true),
     ]),
   ),
@@ -40,7 +41,7 @@ const kStarterPresets = <SoundPreset>[
     builtIn: true,
     mix: SoundMix([
       SoundLayer(soundId: 'waves', volume: 0.7, animate: true),
-      SoundLayer(soundId: 'wind-soft', volume: 0.3),
+      SoundLayer(soundId: 'wind-grass', volume: 0.3),
     ]),
   ),
 ];

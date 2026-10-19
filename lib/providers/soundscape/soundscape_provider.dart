@@ -292,8 +292,8 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         state.copyWith(mix: mix, playing: true, volume: volume ?? state.volume),
       );
     } else {
-      _update(state.copyWith(mix: mix, volume: volume ?? state.volume));
-      _startStandalone();
+      _update(state.copyWith(mix: mix));
+      _startStandalone(volume: volume);
     }
   }
 
@@ -414,14 +414,17 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     if (start && !state.active) _startStandalone();
   }
 
-  void _startStandalone() => _update(
-    state.copyWith(
-      playing: true,
-      owner: SoundscapeOwner.standalone,
-      sessionKind: null,
-      volume: _store.readVolume(),
-    ),
-  );
+  void _startStandalone({double? volume}) {
+    if (volume != null) _store.writeVolume(volume.clamp(0.0, 1.0));
+    _update(
+      state.copyWith(
+        playing: true,
+        owner: SoundscapeOwner.standalone,
+        sessionKind: null,
+        volume: _store.readVolume(),
+      ),
+    );
+  }
 
   void _onCommand(SoundscapeCommand command) {
     if (state.owner != SoundscapeOwner.standalone) return;
@@ -436,6 +439,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   }
 
   void _update(SoundscapeState next) {
+    if (!ref.mounted) return;
     state = next;
     _sync = _sync.then((_) => _apply()).catchError((
       Object error,
@@ -448,7 +452,9 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   /// Brings the engine and the keep-alive service in line with [state].
   /// Serialised: one pass at a time, each reading the latest state.
   Future<void> _apply() async {
+    if (!ref.mounted) return;
     final library = await ref.read(soundLibraryProvider.future);
+    if (!ref.mounted) return;
     final s = state;
     final desired = <String, SoundLayer>{
       if (s.active)
@@ -500,7 +506,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         _applied[layer.soundId] = layer;
       }
     }
-    if (failed.isNotEmpty) {
+    if (failed.isNotEmpty && ref.mounted) {
       state = state.copyWith(failed: {...state.failed, ...failed});
     }
     await Future.wait(fades);
