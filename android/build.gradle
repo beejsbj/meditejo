@@ -32,7 +32,28 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://jitpack.io' }
+        maven {
+            name 'JitPackTeamNewPipe'
+            url 'https://jitpack.io'
+            content {
+                // NewPipeExtractor and its nanojson fork are the only
+                // artifacts taken from JitPack.
+                includeGroup 'com.github.TeamNewPipe'
+            }
+        }
+    }
+}
+
+// A plugin (disable_battery_optimization) adds an unscoped JitPack repository
+// to every project from its own build.gradle. Drop any JitPack repository
+// that is not the scoped one above.
+gradle.projectsEvaluated {
+    rootProject.allprojects { p ->
+        p.repositories.removeAll(p.repositories.findAll {
+            it instanceof MavenArtifactRepository &&
+                it.url.host == 'jitpack.io' &&
+                it.name != 'JitPackTeamNewPipe'
+        })
     }
 }
 

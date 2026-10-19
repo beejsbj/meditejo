@@ -12,7 +12,6 @@ pluginManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://jitpack.io' }
         gradlePluginPortal()
     }
 }
@@ -27,7 +26,15 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://jitpack.io' }
+        maven {
+            name 'JitPackTeamNewPipe'
+            url 'https://jitpack.io'
+            content {
+                // NewPipeExtractor and its nanojson fork are the only
+                // artifacts taken from JitPack.
+                includeGroup 'com.github.TeamNewPipe'
+            }
+        }
     }
 }
 
