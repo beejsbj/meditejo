@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/services/library/link_classifier.dart';
 import 'package:medito/services/youtube/youtube_ids.dart';
 
 import '../../helpers/youtube_fake.dart';
@@ -12,6 +13,18 @@ void main() {
       expect(ytPlaylistId(playlistOne), 'yt-playlist-PLone');
       expect(ytSingleCourseId(videoA), 'yt-playlist-single-$videoA');
     });
+  });
+
+  test('shared text and mobile short links route to the YouTube importer', () {
+    for (final link in [
+      'https://m.youtube.com/watch?v=$videoA',
+      'https://youtu.be/$videoA?si=share',
+      'https://www.youtube.com/playlist?list=$playlistOne',
+    ]) {
+      final shared = firstLinkIn('Listen to this: $link)');
+      expect(shared, link);
+      expect(classifyLink(shared!).kind, ImportLinkKind.youtube);
+    }
   });
 
   group('link shapes', () {

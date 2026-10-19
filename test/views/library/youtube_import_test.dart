@@ -102,6 +102,18 @@ void main() {
       expect(api.audioCalls, isEmpty, reason: 'no audio asked for');
     });
 
+    testWidgets('share-target text resolves through the same preview', (
+      tester,
+    ) async {
+      await openImport(tester, scriptedApi());
+      await enterLink(
+        tester,
+        'Listen to this practice: https://m.youtube.com/watch?v=$videoA&list=$playlistOne)',
+      );
+      expect(find.text('Evening Sits'), findsOneWidget);
+      expect(find.text('3 sessions · 40 min'), findsOneWidget);
+    });
+
     testWidgets('a playlist shows its count and total length', (tester) async {
       final api = scriptedApi();
       await openImport(tester, api);
