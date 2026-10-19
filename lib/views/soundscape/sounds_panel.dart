@@ -4,10 +4,12 @@ import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/soundscape/sound_library.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
+import 'package:medito/models/soundscape/synth.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/widgets/filter_pill.dart';
 
 import 'sound_credits_view.dart';
+import 'synth_editors.dart';
 
 /// Localised names for the shelves of the library.
 String soundCategoryLabel(AppLocalizations l10n, SoundCategory category) =>
@@ -28,6 +30,7 @@ String soundPresetLabel(AppLocalizations l10n, SoundPreset preset) =>
       'starter-night' => l10n.soundPresetNight,
       'starter-hearth' => l10n.soundPresetHearth,
       'starter-shore' => l10n.soundPresetShore,
+      'starter-stillness' => l10n.soundPresetStillness,
       _ => preset.name,
     };
 
@@ -159,20 +162,24 @@ class SoundsMixLayers extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(soundscapeProvider);
     final library = ref.watch(soundLibraryProvider).value ?? SoundLibrary.empty;
     final layers = [
       for (final l in state.mix.layers)
-        if (library[l.soundId] case final entry?) (l, entry),
+        if (isSynthId(l.soundId))
+          (l, synthTitle(l10n, l.soundId))
+        else if (library[l.soundId] case final entry?)
+          (l, entry.title),
     ];
     if (layers.isEmpty) return const SizedBox.shrink();
     return Column(
       children: [
-        for (final (layer, entry) in layers)
+        for (final (layer, title) in layers)
           _LayerRow(
             key: ValueKey('layer_${layer.soundId}'),
             layer: layer,
-            entry: entry,
+            title: title,
             failed: state.failed.contains(layer.soundId),
           ),
       ],
@@ -184,12 +191,12 @@ class _LayerRow extends ConsumerWidget {
   const _LayerRow({
     super.key,
     required this.layer,
-    required this.entry,
+    required this.title,
     required this.failed,
   });
 
   final SoundLayer layer;
-  final SoundEntry entry;
+  final String title;
   final bool failed;
 
   @override
@@ -207,12 +214,19 @@ class _LayerRow extends ConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                  entry.title,
+                  title,
                   style: theme.textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
+              if (isSynthId(layer.soundId))
+                IconButton(
+                  key: ValueKey('adjust_${layer.soundId}'),
+                  tooltip: l10n.synthAdjust(title),
+                  onPressed: () => showSynthEditor(context, layer.soundId),
+                  icon: Icon(Icons.tune_rounded, color: muted),
+                ),
               IconButton(
                 key: ValueKey('drift_${layer.soundId}'),
                 tooltip: l10n.soundsDriftHint,
@@ -227,12 +241,13 @@ class _LayerRow extends ConsumerWidget {
               ),
               IconButton(
                 key: ValueKey('remove_${layer.soundId}'),
-                tooltip: l10n.soundsRemove(entry.title),
+                tooltip: l10n.soundsRemove(title),
                 onPressed: () => controller.toggleSound(layer.soundId),
                 icon: Icon(Icons.close_rounded, color: muted),
               ),
             ],
           ),
+          if (layer.soundId == kSynthBinauralId) const BinauralHeadphonesNote(),
           if (failed)
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
@@ -247,8 +262,7 @@ class _LayerRow extends ConsumerWidget {
             key: ValueKey('volume_${layer.soundId}'),
             value: layer.volume,
             activeColor: context.brandAccent,
-            semanticFormatterCallback: (v) =>
-                '${entry.title} ${(v * 100).round()}%',
+            semanticFormatterCallback: (v) => '$title ${(v * 100).round()}%',
             onChanged: (v) => controller.setLayerVolume(layer.soundId, v),
           ),
         ],
@@ -460,6 +474,26 @@ class SoundsLibraryShelves extends ConsumerWidget {
               style: _sectionStyle(context)?.copyWith(letterSpacing: 0),
             ),
           ),
+        SoundsSectionLabel(l10n.soundCategoryGenerated),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: padding16),
+          child: Wrap(
+            spacing: padding8,
+            runSpacing: padding8,
+            children: [
+              for (final id in kSynthIds)
+                Opacity(
+                  opacity: full && !state.mix.contains(id) ? 0.4 : 1,
+                  child: FilterPill(
+                    key: ValueKey('sound_$id'),
+                    label: synthTitle(l10n, id),
+                    selected: state.mix.contains(id),
+                    onTap: () => controller.toggleSound(id),
+                  ),
+                ),
+            ],
+          ),
+        ),
         for (final category in library.categories) ...[
           SoundsSectionLabel(soundCategoryLabel(l10n, category)),
           Padding(
