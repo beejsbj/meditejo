@@ -75,6 +75,12 @@ void main() async {
   // jsoup, jsr305, protobuf-javalite, Rhino) carry their own notice and source
   // link; see assets/licenses/newpipe-runtime-dependencies.json.
   registerBundledLicenses();
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(
+      const ['Meditejo cue sounds'],
+      await rootBundle.loadString('assets/audio/NOTICE'),
+    );
+  });
 
   var prefs = await initializeSharedPreferences();
 

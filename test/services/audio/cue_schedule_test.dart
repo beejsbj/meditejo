@@ -1,0 +1,144 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/services/audio/cue_schedule.dart';
+
+void main() {
+  CueSchedule schedule(CueSettings s, {bool timer = false, int seed = 1}) =>
+      CueSchedule(
+        s,
+        audioDuration: const Duration(minutes: 20),
+        isTimer: timer,
+        seed: seed,
+      );
+  test('countdown precedes start, exact end includes extension', () {
+    final cues = schedule(
+      const CueSettings(countdownSeconds: 10, extendMinutes: 5),
+    );
+    final events = cues.events();
+    expect(events.first.at, const Duration(seconds: 10));
+    expect(events.first.type, CueType.start);
+    expect(events.last.at, const Duration(minutes: 25, seconds: 10));
+    expect(events.last.type, CueType.end);
+  });
+  test('timer uses its duration without adding extension twice', () {
+    expect(
+      schedule(
+        const CueSettings(
+          durationMinutes: 10,
+          extendMinutes: 5,
+          countdownSeconds: 5,
+        ),
+        timer: true,
+      ).end,
+      const Duration(minutes: 10, seconds: 5),
+    );
+  });
+  test('off sounds produce no cues', () {
+    expect(
+      schedule(
+        const CueSettings(
+          startSound: '',
+          endSound: '',
+          intervalSound: '',
+          intervalMinutes: 1,
+        ),
+      ).events(),
+      isEmpty,
+    );
+  });
+  test('fixed intervals continue into extension and exclude exact end', () {
+    final cues = schedule(
+      const CueSettings(intervalMinutes: 5, extendMinutes: 5),
+    );
+    expect(cues.intervals().toList(), [
+      for (final m in [5, 10, 15, 20]) Duration(minutes: m),
+    ]);
+  });
+  test('seeded random windows have bounded, reproducible gaps', () {
+    const settings = CueSettings(
+      intervalMinutes: 3,
+      randomWindowMinutes: 2,
+      extendMinutes: 60,
+    );
+    final first = schedule(settings, seed: 42).intervals().toList();
+    expect(first, schedule(settings, seed: 42).intervals().toList());
+    expect(first, isNot(schedule(settings, seed: 43).intervals().toList()));
+    var last = Duration.zero;
+    for (final deadline in first) {
+      expect(
+        (deadline - last).inMicroseconds,
+        inInclusiveRange(60000000, 300000000),
+      );
+      last = deadline;
+    }
+    expect(last, lessThan(const Duration(minutes: 80)));
+  });
+  test('wide random window never creates zero or negative gaps', () {
+    final cues = schedule(
+      const CueSettings(intervalMinutes: 1, randomWindowMinutes: 60),
+    );
+    for (final at in cues.intervals()) {
+      expect(at, greaterThan(Duration.zero));
+    }
+  });
+  test('constant 60 BPM pulse is phase accurate to under 1ms after hours', () {
+    final cues = schedule(
+      const CueSettings(pulseSound: 'assets/audio/pulse_click.wav'),
+    );
+    for (final beat in [1, 10, 3600, 18000]) {
+      expect(
+        (cues.pulseAt(beat) - Duration(seconds: beat)).inMicroseconds.abs(),
+        lessThan(1000),
+      );
+    }
+  });
+  test('settle from 60 to 40 over ten minutes integrates to 500 beats', () {
+    final cues = schedule(const CueSettings(pulseRampMinutes: 10));
+    expect(cues.pulseAt(500), const Duration(minutes: 10));
+    expect(cues.pulseAt(501), const Duration(minutes: 10, milliseconds: 1500));
+    expect(cues.pulseAt(1), greaterThan(const Duration(seconds: 1)));
+    expect(cues.pulseAt(1), lessThan(const Duration(milliseconds: 1100)));
+  });
+  test('ramp deadlines match integrated phase within 100ms', () {
+    final cues = schedule(
+      const CueSettings(pulseBpm: 120, pulseEndBpm: 20, pulseRampMinutes: 60),
+    );
+    for (var n = 1; n < 4200; n += 17) {
+      final t = cues.pulseAt(n).inMicroseconds / 1000000;
+      final beats = (120 * t + 0.5 * (20 - 120) / 3600 * t * t) / 60;
+      expect((beats - n).abs(), lessThan(0.001));
+    }
+  });
+  test('pulse has its own volume and never fires at end boundary', () {
+    final events = schedule(
+      const CueSettings(
+        durationMinutes: 1,
+        pulseSound: 'assets/audio/pulse_click.wav',
+        pulseVolume: .15,
+      ),
+      timer: true,
+    ).events();
+    final pulses = events.where((e) => e.type == CueType.pulse).toList();
+    expect(pulses.length, 59);
+    expect(pulses.every((e) => e.volume == .15), isTrue);
+    expect(events.last.type, CueType.end);
+    expect(events.last.at, const Duration(minutes: 1));
+  });
+  test('countdown can be skipped without changing meditation cue offsets', () {
+    final before = schedule(
+      const CueSettings(countdownSeconds: 10, intervalMinutes: 5),
+    ).events();
+    final skipped = schedule(const CueSettings(intervalMinutes: 5)).events();
+    for (var i = 0; i < before.length; i++) {
+      expect(before[i].at - skipped[i].at, const Duration(seconds: 10));
+    }
+  });
+  test('live finish time includes speed, countdown and silent extension', () {
+    final at = DateTime(2026, 10, 19, 12);
+    const s = CueSettings(countdownSeconds: 5, extendMinutes: 10);
+    expect(
+      s.finishesAt(at, const Duration(minutes: 20), isTimer: false, speed: 2),
+      at.add(const Duration(minutes: 20, seconds: 5)),
+    );
+  });
+}
