@@ -74,6 +74,9 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
     - Retreat 1183, *The Art Of Concentration (Samatha Meditation)* (2008, 9 talks). https://dharmaseed.org/retreats/1183/
     - Retreat 1308, *Samatha Meditation* (2007, 7 talks). https://dharmaseed.org/retreats/1308/
     - Talk 60864, *Developing Piti, Developing Focus, Developing Wellbeing* (Rob Burbea, 89 min, from retreat 4496). https://dharmaseed.org/talks/60864/
+    - YouTube playlist *Meditating with John Vervaeke* (John Vervaeke's Lectern). https://www.youtube.com/playlist?list=PLND1JCRq8VujAHvDA482SXF1cJTQrwlx3
+    - YouTube playlist *Qualia Mastery: Building Your Toolkit for Navigating the State-Space of Consciousness* (Qualia Research Institute). https://www.youtube.com/playlist?list=PLbmYHvGI-YSvnpbh3ppQqcG72lpw4aQdE
+    - The YouTube items depend on the YouTube slice. Their playlist item lists can be bundled at release time, and audio is resolved at play time.
 
 ## Build and run
 
