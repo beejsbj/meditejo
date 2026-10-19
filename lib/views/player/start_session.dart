@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:medito/exceptions/app_error.dart';
+import 'package:medito/utils/youtube_error_message.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -76,7 +77,7 @@ Future<void> startSession(
       SnackBar(
         content: Text(
           e is YoutubeUnavailableError
-              ? AppLocalizations.of(context)!.youtubeUnavailable
+              ? youtubeErrorMessage(AppLocalizations.of(context)!, e)
               : AppLocalizations.of(context)!.unableToLoadAudio,
         ),
       ),

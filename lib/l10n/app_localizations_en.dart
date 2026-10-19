@@ -2040,4 +2040,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get youtubeSingleCaption => 'Just this video';
+
+  @override
+  String get youtubeOffline => 'You\'re offline. Connect to play this video';
+
+  @override
+  String get youtubePlaylistOffline =>
+      'You\'re offline. Connect to load this playlist';
+
+  @override
+  String get youtubePlaylistUnavailable =>
+      'This playlist isn\'t available right now';
+
+  @override
+  String get youtubeAgeRestricted => 'This video is age-restricted';
+
+  @override
+  String get youtubePlaylistAgeRestricted =>
+      'This playlist contains age-restricted videos';
+
+  @override
+  String get youtubePrivate => 'This video is private';
+
+  @override
+  String get youtubePlaylistPrivate => 'This playlist is private';
+
+  @override
+  String get youtubeRateLimited =>
+      'YouTube is busy or asking for a bot check. Try again later';
+
+  @override
+  String get youtubePlaylistEmpty =>
+      'Sessions aren\'t stored on this device yet. We\'ll try again shortly';
 }

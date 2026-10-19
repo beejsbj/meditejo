@@ -2079,4 +2079,37 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get youtubeSingleCaption => 'Solo este vídeo';
+
+  @override
+  String get youtubeOffline =>
+      'No tienes conexión. Conéctate para reproducir este vídeo';
+
+  @override
+  String get youtubePlaylistOffline =>
+      'No tienes conexión. Conéctate para cargar esta lista de reproducción';
+
+  @override
+  String get youtubePlaylistUnavailable =>
+      'Esta lista de reproducción no está disponible en este momento';
+
+  @override
+  String get youtubeAgeRestricted => 'Este vídeo tiene una restricción de edad';
+
+  @override
+  String get youtubePlaylistAgeRestricted =>
+      'Esta lista de reproducción contiene vídeos con restricción de edad';
+
+  @override
+  String get youtubePrivate => 'Este vídeo es privado';
+
+  @override
+  String get youtubePlaylistPrivate => 'Esta lista de reproducción es privada';
+
+  @override
+  String get youtubeRateLimited =>
+      'YouTube está ocupado o solicita una comprobación de bots. Inténtalo más tarde';
+
+  @override
+  String get youtubePlaylistEmpty =>
+      'Las sesiones aún no están guardadas en este dispositivo. Volveremos a intentarlo en breve';
 }

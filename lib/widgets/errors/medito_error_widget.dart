@@ -1,6 +1,7 @@
 import 'package:medito/constants/constants.dart';
 import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/utils/youtube_error_message.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:flutter/gestures.dart';
@@ -27,9 +28,10 @@ class MeditoErrorWidget extends ConsumerWidget {
 
   String _getErrorMessage(BuildContext context) {
     return switch (error) {
-      YoutubeUnavailableError() => AppLocalizations.of(
-        context,
-      )!.youtubeUnavailable,
+      YoutubeUnavailableError() => youtubeErrorMessage(
+        AppLocalizations.of(context)!,
+        error as YoutubeUnavailableError,
+      ),
       NetworkConnectionError() => AppLocalizations.of(
         context,
       )!.errorNoInternetMessage,
@@ -97,9 +99,8 @@ class MeditoErrorWidget extends ConsumerWidget {
                     ),
                   if (isShowCheckDownload)
                     TextSpan(
-                      text: AppLocalizations.of(
-                        context,
-                      )!.downloads.toLowerCase(),
+                      text: AppLocalizations.of(context)!.downloads
+                          .toLowerCase(),
                       style: textStyle?.copyWith(
                         decoration: TextDecoration.underline,
                         color: ColorConstants.accentDark,

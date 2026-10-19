@@ -924,5 +924,14 @@
     "description": "Calm one-line YouTube extraction or playback failure"
   },
   "youtubeCourseCaption": "Todas las sesiones en el orden de la lista",
-  "youtubeSingleCaption": "Solo este vídeo"
+  "youtubeSingleCaption": "Solo este vídeo",
+  "youtubeOffline": "No tienes conexión. Conéctate para reproducir este vídeo",
+  "youtubePlaylistOffline": "No tienes conexión. Conéctate para cargar esta lista de reproducción",
+  "youtubePlaylistUnavailable": "Esta lista de reproducción no está disponible en este momento",
+  "youtubeAgeRestricted": "Este vídeo tiene una restricción de edad",
+  "youtubePlaylistAgeRestricted": "Esta lista de reproducción contiene vídeos con restricción de edad",
+  "youtubePrivate": "Este vídeo es privado",
+  "youtubePlaylistPrivate": "Esta lista de reproducción es privada",
+  "youtubeRateLimited": "YouTube está ocupado o solicita una comprobación de bots. Inténtalo más tarde",
+  "youtubePlaylistEmpty": "Las sesiones aún no están guardadas en este dispositivo. Volveremos a intentarlo en breve"
 }

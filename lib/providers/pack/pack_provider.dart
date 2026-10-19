@@ -1,4 +1,5 @@
 import 'package:medito/constants/constants.dart';
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/repositories/repositories.dart';
@@ -20,6 +21,7 @@ Future<List<PackItemsModel>> fetchAllPacks(Ref ref) {
 /// Empty on failure: a pack then simply shows no tick, never a wrong one.
 @Riverpod(keepAlive: true)
 Future<Map<String, List<String>>> packTrackIds(Ref ref) async {
+  ref.watch(libraryRevisionProvider);
   final checked = ref.watch(statsProvider).value?.tracksChecked;
   try {
     return await ref
@@ -51,6 +53,7 @@ Set<String> completedPackIds(Ref ref) {
 /// trigger a re-fetch.
 @Riverpod(keepAlive: true)
 Future<PackModel> packData(Ref ref, {required String packId}) {
+  if (packId.startsWith('yt-playlist-')) ref.watch(libraryRevisionProvider);
   return ref.read(packRepositoryProvider).fetchPacks(packId);
 }
 

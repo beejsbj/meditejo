@@ -3669,6 +3669,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Just this video'**
   String get youtubeSingleCaption;
+
+  /// No description provided for @youtubeOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re offline. Connect to play this video'**
+  String get youtubeOffline;
+
+  /// No description provided for @youtubePlaylistOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re offline. Connect to load this playlist'**
+  String get youtubePlaylistOffline;
+
+  /// No description provided for @youtubePlaylistUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This playlist isn\'t available right now'**
+  String get youtubePlaylistUnavailable;
+
+  /// No description provided for @youtubeAgeRestricted.
+  ///
+  /// In en, this message translates to:
+  /// **'This video is age-restricted'**
+  String get youtubeAgeRestricted;
+
+  /// No description provided for @youtubePlaylistAgeRestricted.
+  ///
+  /// In en, this message translates to:
+  /// **'This playlist contains age-restricted videos'**
+  String get youtubePlaylistAgeRestricted;
+
+  /// No description provided for @youtubePrivate.
+  ///
+  /// In en, this message translates to:
+  /// **'This video is private'**
+  String get youtubePrivate;
+
+  /// No description provided for @youtubePlaylistPrivate.
+  ///
+  /// In en, this message translates to:
+  /// **'This playlist is private'**
+  String get youtubePlaylistPrivate;
+
+  /// No description provided for @youtubeRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'YouTube is busy or asking for a bot check. Try again later'**
+  String get youtubeRateLimited;
+
+  /// No description provided for @youtubePlaylistEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions aren\'t stored on this device yet. We\'ll try again shortly'**
+  String get youtubePlaylistEmpty;
 }
 
 class _AppLocalizationsDelegate

@@ -2164,5 +2164,14 @@
     "description": "Calm one-line YouTube extraction or playback failure"
   },
   "youtubeCourseCaption": "All sessions, in playlist order",
-  "youtubeSingleCaption": "Just this video"
+  "youtubeSingleCaption": "Just this video",
+  "youtubeOffline": "You're offline. Connect to play this video",
+  "youtubePlaylistOffline": "You're offline. Connect to load this playlist",
+  "youtubePlaylistUnavailable": "This playlist isn't available right now",
+  "youtubeAgeRestricted": "This video is age-restricted",
+  "youtubePlaylistAgeRestricted": "This playlist contains age-restricted videos",
+  "youtubePrivate": "This video is private",
+  "youtubePlaylistPrivate": "This playlist is private",
+  "youtubeRateLimited": "YouTube is busy or asking for a bot check. Try again later",
+  "youtubePlaylistEmpty": "Sessions aren't stored on this device yet. We'll try again shortly"
 }
