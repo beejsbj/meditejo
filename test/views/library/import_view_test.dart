@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -285,6 +287,33 @@ void main() {
         'Imported audio',
         reason: 'a default name for several files',
       );
+    });
+
+    testWidgets('editing the link while it resolves drops that result', (
+      tester,
+    ) async {
+      final gate = Completer<int?>();
+      final app = await LibraryTestApp.create(
+        tester,
+        probe: (_) => gate.future,
+      );
+      late PickedFile file;
+      await tester.runAsync(() async {
+        file = PickedFile(path: app.harness.writeAudio('Metta.mp3').path);
+      });
+      app.pickers.files = [file];
+      await app.pump(tester, const ImportView(), asRoute: true);
+
+      await tester.tap(find.byKey(const ValueKey('import_files')));
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('import_field')),
+        'https://example.org/other',
+      );
+      gate.complete(60000);
+      await settle(tester);
+
+      expect(find.byKey(const ValueKey('import_preview')), findsNothing);
     });
 
     testWidgets('files that arrive from outside are previewed at once', (

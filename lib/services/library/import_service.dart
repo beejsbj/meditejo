@@ -623,10 +623,43 @@ class ImportService {
     return _finish(id, LibraryKind.single, choice, preview);
   }
 
+  /// Copies every file in, records them, and only then drops the temporary
+  /// originals. A failure part-way removes the copies not yet recorded and
+  /// leaves the originals, so the same preview can be added again.
   Future<ImportResult> _addFiles(
     ImportPreview preview,
     ImportChoice choice, {
     required bool asCourse,
+  }) async {
+    final copied = <String>[];
+    try {
+      final result = await _storeFiles(
+        preview,
+        choice,
+        asCourse: asCourse,
+        copied: copied,
+      );
+      for (final file in preview.files) {
+        await _discardTemporary(file.path);
+      }
+      return result;
+    } catch (_) {
+      for (final path in copied) {
+        try {
+          await File(path).delete();
+        } catch (e) {
+          AppLogger.w('LIBRARY', 'Could not remove a partial import: $e');
+        }
+      }
+      rethrow;
+    }
+  }
+
+  Future<ImportResult> _storeFiles(
+    ImportPreview preview,
+    ImportChoice choice, {
+    required bool asCourse,
+    required List<String> copied,
   }) async {
     final stored = <StoredFile>[];
     for (var i = 0; i < preview.files.length; i++) {
@@ -637,6 +670,7 @@ class ImportService {
         id,
         mimeType: file.mimeType,
       );
+      copied.add(path);
       stored.add(
         StoredFile(
           id: id,
@@ -661,6 +695,7 @@ class ImportService {
         files: stored,
         now: now,
       );
+      copied.clear();
       return _finish(
         courseId,
         LibraryKind.course,
@@ -681,6 +716,7 @@ class ImportService {
       );
       final single = await lib.draftFor(file.id, group: preview.group);
       await library.add(single!);
+      copied.remove(file.path);
       if (choice.group != preview.group) {
         await library.setGroup(file.id, choice.group);
       }
@@ -697,9 +733,8 @@ class ImportService {
     );
   }
 
-  /// Moves a file into app storage, or copies it when it cannot be moved
-  /// (another volume). The original of a picked file is a cache copy that
-  /// nothing else wants; a file the user pointed at by path is left alone.
+  /// Copies a file into app storage. The original stays until the import is
+  /// recorded; see [_discardTemporary].
   Future<String> _copyIntoStorage(
     String source,
     String id, {
@@ -713,26 +748,27 @@ class ImportService {
       extension = _extensionFor(mimeType) ?? '.audio';
     }
     final target = p.join(folder.path, '$id$extension');
-    final file = File(source);
-    final roots = await temporaryDirectories?.call() ?? const <String>[];
-    final isCache = roots.any((root) => p.isWithin(root, source));
-    if (isCache) {
+    try {
+      await File(source).copy(target);
+    } catch (_) {
       try {
-        await file.rename(target);
-        return target;
-      } on FileSystemException {
-        // Fall through to copy.
-      }
-    }
-    await file.copy(target);
-    if (isCache) {
-      try {
-        await file.delete();
-      } catch (e) {
-        AppLogger.w('LIBRARY', 'Could not remove the temporary copy: $e');
-      }
+        await File(target).delete();
+      } catch (_) {}
+      rethrow;
     }
     return target;
+  }
+
+  /// A picked or shared file is a cache copy that nothing else wants; a file
+  /// the user pointed at by path is left alone.
+  Future<void> _discardTemporary(String source) async {
+    final roots = await temporaryDirectories?.call() ?? const <String>[];
+    if (!roots.any((root) => p.isWithin(root, source))) return;
+    try {
+      await File(source).delete();
+    } catch (e) {
+      AppLogger.w('LIBRARY', 'Could not remove the temporary copy: $e');
+    }
   }
 }
 

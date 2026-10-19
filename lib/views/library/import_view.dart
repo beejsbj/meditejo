@@ -274,10 +274,14 @@ class _ImportViewState extends ConsumerState<ImportView> {
               textInputAction: TextInputAction.go,
               autocorrect: false,
               onSubmitted: (_) => _resolve(),
-              // Changing the link drops a preview of the old one, so Add can
-              // never add something other than what the field shows.
+              // Changing the link drops a preview of the old one, and abandons
+              // one still resolving, so Add can never add something other
+              // than what the field shows.
               onChanged: (_) {
-                if (_preview != null && _phase == _Phase.preview) {
+                final resolving = _phase == _Phase.resolving;
+                if (resolving ||
+                    (_preview != null && _phase == _Phase.preview)) {
+                  if (resolving) _request++;
                   setState(() {
                     _preview = null;
                     _phase = _Phase.idle;

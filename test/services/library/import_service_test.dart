@@ -510,6 +510,45 @@ void main() {
     });
 
     test(
+      'a failure part-way leaves the cache copies and stores nothing',
+      () async {
+        final cacheDir = Directory('${h.storage.path}/cache/file_picker')
+          ..createSync(recursive: true);
+        final first = File('${cacheDir.path}/01.mp3')..writeAsStringSync('one');
+        final second = File('${cacheDir.path}/02.mp3')
+          ..writeAsStringSync('two');
+        final preview = await h.service.resolveFiles([
+          PickedFile(path: first.path),
+          PickedFile(path: second.path),
+        ]);
+        second.deleteSync(); // vanishes between the preview and Add
+        const choice = ImportChoice(
+          kind: LibraryKind.single,
+          group: LibraryGroup.practice,
+        );
+
+        await expectLater(h.service.add(preview, choice), throwsA(anything));
+        expect(first.existsSync(), isTrue, reason: 'the original is kept');
+        expect(await h.store.entries(), isEmpty);
+        final library = Directory('${h.storage.path}/library');
+        expect(
+          library.existsSync()
+              ? library.listSync()
+              : const <FileSystemEntity>[],
+          isEmpty,
+          reason: 'no stranded copy',
+        );
+
+        // Once the cause is gone the same preview adds cleanly.
+        second.writeAsStringSync('two');
+        await h.service.add(preview, choice);
+        expect(await h.store.entries(), hasLength(2));
+        expect(first.existsSync(), isFalse);
+        expect(second.existsSync(), isFalse);
+      },
+    );
+
+    test(
       'several files become a course in the order given, or separate singles',
       () async {
         final a = h.writeAudio('01 arrive.mp3');

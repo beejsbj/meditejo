@@ -202,7 +202,7 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
                 Intent.ACTION_SEND -> {
                     if (type.startsWith("audio/")) {
                         val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM) ?: return null
-                        val file = copySharedAudio(uri, type) ?: return null
+                        val file = copySharedAudio(uri, type, longArrayOf(MAX_SHARED_TOTAL_BYTES)) ?: return null
                         return mapOf("files" to listOf(file))
                     }
                     // Some apps put a styled CharSequence here, not a String.
@@ -211,9 +211,10 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
                 }
                 Intent.ACTION_SEND_MULTIPLE -> {
                     val uris = intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM) ?: return null
+                    val budget = longArrayOf(MAX_SHARED_TOTAL_BYTES)
                     val files = uris.mapNotNull {
                         try {
-                            copySharedAudio(it, type)
+                            copySharedAudio(it, type, budget)
                         } catch (e: Exception) {
                             println("❌ [Share] Skipped one shared file: ${e.message}")
                             null
@@ -228,14 +229,41 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
         return null
     }
 
-    private fun copySharedAudio(uri: Uri, mimeType: String): Map<String, Any?>? {
+    private fun copySharedAudio(uri: Uri, mimeType: String, budget: LongArray): Map<String, Any?>? {
+        // Only a content URI another app granted us. A file: URI would let any
+        // app have us copy files only we can read, and our own provider's URIs
+        // are never something to import.
+        if (uri.scheme != "content" || uri.authority?.startsWith(packageName) == true) {
+            println("❌ [Share] Ignored a shared URI that is not a granted content URI")
+            return null
+        }
         val name = sharedDisplayName(uri) ?: "shared-audio"
         val folder = File(cacheDir, SHARED_CACHE_DIR).apply { mkdirs() }
         val safeName = name.replace(Regex("[^A-Za-z0-9._ -]"), "_")
         val target = File(folder, "${System.currentTimeMillis()}-$safeName")
         val input = contentResolver.openInputStream(uri) ?: return null
-        input.use { source ->
-            target.outputStream().use { sink -> source.copyTo(sink) }
+        try {
+            input.use { source ->
+                target.outputStream().use { sink ->
+                    // Count the bytes actually read; a provider's own size is
+                    // only a claim.
+                    val buffer = ByteArray(64 * 1024)
+                    var copied = 0L
+                    while (true) {
+                        val read = source.read(buffer)
+                        if (read < 0) break
+                        copied += read
+                        budget[0] -= read
+                        if (copied > MAX_SHARED_FILE_BYTES || budget[0] < 0) {
+                            throw java.io.IOException("Shared audio is too large")
+                        }
+                        sink.write(buffer, 0, read)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            target.delete()
+            throw e
         }
         return mapOf(
             "path" to target.absolutePath,
@@ -497,6 +525,8 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
     companion object {
         const val SHARE_CHANNEL = "meditejo/share"
         const val SHARED_CACHE_DIR = "shared_audio"
+        const val MAX_SHARED_FILE_BYTES = 1024L * 1024 * 1024
+        const val MAX_SHARED_TOTAL_BYTES = 2L * 1024 * 1024 * 1024
         const val ENGINE_ID = "medito_flutter_engine"
         const val REMINDER_CHANNEL_ID = "medito_reminder_channel"
         const val NEWS_CHANNEL_ID = "medito_news_channel"
