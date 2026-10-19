@@ -1,3 +1,4 @@
+import 'package:medito/src/youtube_api.g.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -19,9 +20,8 @@ const watchA = 'https://www.youtube.com/watch?v=$videoA';
 const listOne = 'https://www.youtube.com/playlist?list=$playlistOne';
 const unavailable = "This video isn't available right now";
 
-Matcher failsWith(ImportFailureReason reason) => throwsA(
-  isA<ImportFailure>().having((e) => e.reason, 'reason', reason),
-);
+Matcher failsWith(ImportFailureReason reason) =>
+    throwsA(isA<ImportFailure>().having((e) => e.reason, 'reason', reason));
 
 const practice = ImportChoice(
   kind: LibraryKind.course,
@@ -53,10 +53,10 @@ void main() {
         item(videoB, title: 'Second sit', seconds: 1200),
         item(videoA, title: 'First sit', seconds: 600),
       ])
-      ..playlists[playlistTwo] = playlist(
-        [item(videoA), item(videoC)],
-        title: 'Other course',
-      );
+      ..playlists[playlistTwo] = playlist([
+        item(videoA),
+        item(videoC),
+      ], title: 'Other course');
     clock = TestClock();
     source = newSource();
   });
@@ -111,24 +111,26 @@ void main() {
       expect(preview.itemCount, 3, reason: 'repeats count');
       expect(preview.durationMs, 2400000);
       expect(preview.durationComplete, isTrue);
-      expect([for (final i in preview.firstItems) i.title], [
-        'First sit',
-        'Second sit',
-        'First sit',
-      ]);
+      expect(
+        [for (final i in preview.firstItems) i.title],
+        ['First sit', 'Second sit', 'First sit'],
+      );
       expect(preview.attribution?.url, listOne);
     });
 
-    test('a watch link inside a list previews the course, offers both', () async {
-      final preview = await previewOf('$watchA&list=$playlistOne');
+    test(
+      'a watch link inside a list previews the course, offers both',
+      () async {
+        final preview = await previewOf('$watchA&list=$playlistOne');
 
-      expect(api.videoCalls, [watchA]);
-      expect(api.playlistCalls, [listOne]);
-      expect(preview.entryId, ytPlaylistId(playlistOne));
-      expect(preview.kind, LibraryKind.course);
-      expect(preview.allowedKinds, {LibraryKind.course, LibraryKind.single});
-      expect(preview.itemCount, 3);
-    });
+        expect(api.videoCalls, [watchA]);
+        expect(api.playlistCalls, [listOne]);
+        expect(preview.entryId, ytPlaylistId(playlistOne));
+        expect(preview.kind, LibraryKind.course);
+        expect(preview.allowedKinds, {LibraryKind.course, LibraryKind.single});
+        expect(preview.itemCount, 3);
+      },
+    );
 
     test('only the first five items are previewed', () async {
       api.playlists[playlistOne] = playlist([
@@ -166,20 +168,23 @@ void main() {
       expect((await previewOf(watchA)).alreadyInLibrary, isFalse);
     });
 
-    test('links that are not YouTube pages are unrecognised, unasked', () async {
-      for (final url in [
-        'https://example.org/watch?v=$videoA',
-        'https://www.youtube.com/@quietchannel',
-        'https://www.youtube.com/watch?v=short',
-      ]) {
-        await expectLater(
-          previewOf(url),
-          failsWith(ImportFailureReason.unrecognised),
-        );
-      }
-      expect(api.videoCalls, isEmpty);
-      expect(api.playlistCalls, isEmpty);
-    });
+    test(
+      'links that are not YouTube pages are unrecognised, unasked',
+      () async {
+        for (final url in [
+          'https://example.org/watch?v=$videoA',
+          'https://www.youtube.com/@quietchannel',
+          'https://www.youtube.com/watch?v=short',
+        ]) {
+          await expectLater(
+            previewOf(url),
+            failsWith(ImportFailureReason.unrecognised),
+          );
+        }
+        expect(api.videoCalls, isEmpty);
+        expect(api.playlistCalls, isEmpty);
+      },
+    );
 
     test('an empty playlist has no episodes', () async {
       api.playlists[playlistOne] = playlist([]);
@@ -264,20 +269,23 @@ void main() {
       }
     });
 
-    test('the preview starts from the title, the description is ignored', () async {
-      api.videos[videoA] = video(
-        videoA,
-        title: 'Dharma talk on patience',
-        description: 'A guided meditation',
-      );
-      expect((await previewOf(watchA)).group, LibraryGroup.talks);
-      api.videos[videoA] = video(
-        videoA,
-        title: 'Patience',
-        description: 'A dharma talk and lecture',
-      );
-      expect((await previewOf(watchA)).group, LibraryGroup.practice);
-    });
+    test(
+      'the preview starts from the title, the description is ignored',
+      () async {
+        api.videos[videoA] = video(
+          videoA,
+          title: 'Dharma talk on patience',
+          description: 'A guided meditation',
+        );
+        expect((await previewOf(watchA)).group, LibraryGroup.talks);
+        api.videos[videoA] = video(
+          videoA,
+          title: 'Patience',
+          description: 'A dharma talk and lecture',
+        );
+        expect((await previewOf(watchA)).group, LibraryGroup.practice);
+      },
+    );
 
     test('a choice that differs from detection is an override', () async {
       api.videos[videoA] = video(videoA, title: 'Dharma talk');
@@ -341,19 +349,22 @@ void main() {
       expect(await db.youtubeVideo(videoA), isNotNull);
     });
 
-    test('a watch link inside a list: Course keeps the list, Single the video', () async {
-      final asCourse = await addCourse('$watchA&list=$playlistOne');
-      expect(asCourse.entryId, 'yt-playlist-PLone');
-      expect(await store.contains(ytVideoId(videoA)), isFalse);
+    test(
+      'a watch link inside a list: Course keeps the list, Single the video',
+      () async {
+        final asCourse = await addCourse('$watchA&list=$playlistOne');
+        expect(asCourse.entryId, 'yt-playlist-PLone');
+        expect(await store.contains(ytVideoId(videoA)), isFalse);
 
-      final asSingle = await addCourse(
-        '$watchA&list=$playlistOne',
-        choice: single,
-      );
-      expect(asSingle.entryId, 'yt-video-$videoA');
-      expect(asSingle.alreadyPresent, isFalse);
-      expect(await store.entries(), hasLength(2));
-    });
+        final asSingle = await addCourse(
+          '$watchA&list=$playlistOne',
+          choice: single,
+        );
+        expect(asSingle.entryId, 'yt-video-$videoA');
+        expect(asSingle.alreadyPresent, isFalse);
+        expect(await store.entries(), hasLength(2));
+      },
+    );
 
     test('adding twice changes nothing and says so', () async {
       await addCourse(listOne);
@@ -386,8 +397,10 @@ void main() {
           title: 'Evening Sits',
         ),
       );
-      expect((await store.entry(ytPlaylistId(playlistOne)))!.titleOverride,
-          isNull);
+      expect(
+        (await store.entry(ytPlaylistId(playlistOne)))!.titleOverride,
+        isNull,
+      );
     });
 
     test('playlist order and repeats are kept exactly', () async {
@@ -422,24 +435,25 @@ void main() {
   });
 
   group('reading what was kept', () {
-    test('a pack lists its items in playlist order, repeats included', () async {
-      await addCourse(listOne);
-      final pack = await source.pack(ytPlaylistId(playlistOne));
+    test(
+      'a pack lists its items in playlist order, repeats included',
+      () async {
+        await addCourse(listOne);
+        final pack = await source.pack(ytPlaylistId(playlistOne));
 
-      expect(pack.title, 'Evening Sits');
-      expect([for (final i in pack.items) i.id], [
-        ytVideoId(videoA),
-        ytVideoId(videoB),
-        ytVideoId(videoA),
-      ]);
-      expect([for (final i in pack.items) i.title], [
-        'First sit',
-        'Second sit',
-        'First sit',
-      ]);
-      expect(pack.items.first.durationMs, 600000);
-      expect(pack.attribution?.url, listOne);
-    });
+        expect(pack.title, 'Evening Sits');
+        expect(
+          [for (final i in pack.items) i.id],
+          [ytVideoId(videoA), ytVideoId(videoB), ytVideoId(videoA)],
+        );
+        expect(
+          [for (final i in pack.items) i.title],
+          ['First sit', 'Second sit', 'First sit'],
+        );
+        expect(pack.items.first.durationMs, 600000);
+        expect(pack.attribution?.url, listOne);
+      },
+    );
 
     test('a one-session course points back at its video', () async {
       await addCourse(watchA);
@@ -459,19 +473,26 @@ void main() {
 
     test('search finds courses and sessions by title or channel', () async {
       await addCourse(listOne);
-      expect((await source.searchPacks('evening')).single.id,
-          ytPlaylistId(playlistOne));
+      expect(
+        (await source.searchPacks('evening')).single.id,
+        ytPlaylistId(playlistOne),
+      );
       expect(await source.searchPacks('quiet channel'), hasLength(1));
       expect(await source.searchPacks('  '), isEmpty);
       expect(await source.searchPacks('nothing'), isEmpty);
-      expect((await source.searchTracks('second')).single.id,
-          ytVideoId(videoB));
+      expect(
+        (await source.searchTracks('second')).single.id,
+        ytVideoId(videoB),
+      );
       expect(await source.searchTracks(''), isEmpty);
     });
 
     test('a course is the parent of its sessions', () async {
       await addCourse(listOne);
-      expect(await source.parentOf(ytVideoId(videoB)), ytPlaylistId(playlistOne));
+      expect(
+        await source.parentOf(ytVideoId(videoB)),
+        ytPlaylistId(playlistOne),
+      );
       expect(await source.parentOf(ytVideoId(videoC)), isNull);
     });
 
@@ -522,8 +543,10 @@ void main() {
 
       expect(track.id, ytVideoId(videoA));
       expect(track.title, 'A quiet sit');
-      expect(track.voices.single.audioFiles.single.path,
-          api.streams[videoA]!.url);
+      expect(
+        track.voices.single.audioFiles.single.path,
+        api.streams[videoA]!.url,
+      );
       expect(track.voices.single.audioFiles.single.duration, 600000);
       expect(track.attribution?.url, watchA);
       expect(track.hasBackgroundSound, isTrue, reason: 'Practice');
@@ -531,28 +554,35 @@ void main() {
 
     test('a Talk plays without background sound', () async {
       await store.setGroup(ytVideoId(videoA), LibraryGroup.talks);
-      expect((await source.track(ytVideoId(videoA))).hasBackgroundSound,
-          isFalse);
+      expect(
+        (await source.track(ytVideoId(videoA))).hasBackgroundSound,
+        isFalse,
+      );
     });
 
     test('a session takes the group of its course', () async {
       await addCourse(listOne);
       await store.setGroup(ytPlaylistId(playlistOne), LibraryGroup.talks);
       await store.remove(ytVideoId(videoA)); // leave only the course
-      expect((await source.track(ytVideoId(videoA))).hasBackgroundSound,
-          isFalse);
+      expect(
+        (await source.track(ytVideoId(videoA))).hasBackgroundSound,
+        isFalse,
+      );
     });
 
-    test('the address is reused until five minutes before it expires', () async {
-      await source.track(ytVideoId(videoA));
-      clock.advance(const Duration(minutes: 54));
-      await source.track(ytVideoId(videoA));
-      expect(api.audioCalls, hasLength(1));
+    test(
+      'the address is reused until five minutes before it expires',
+      () async {
+        await source.track(ytVideoId(videoA));
+        clock.advance(const Duration(minutes: 54));
+        await source.track(ytVideoId(videoA));
+        expect(api.audioCalls, hasLength(1));
 
-      clock.advance(const Duration(minutes: 2)); // 56 min: inside the margin
-      await source.track(ytVideoId(videoA));
-      expect(api.audioCalls, hasLength(2));
-    });
+        clock.advance(const Duration(minutes: 2)); // 56 min: inside the margin
+        await source.track(ytVideoId(videoA));
+        expect(api.audioCalls, hasLength(2));
+      },
+    );
 
     test('the cache boundary is exactly the margin', () async {
       await source.track(ytVideoId(videoA));
@@ -598,8 +628,9 @@ void main() {
       api.audioGate!.complete();
       final tracks = await Future.wait([first, second, third]);
       expect(api.audioCalls, hasLength(1));
-      expect({for (final t in tracks) t.voices.single.audioFiles.single.path},
-          hasLength(1));
+      expect({
+        for (final t in tracks) t.voices.single.audioFiles.single.path,
+      }, hasLength(1));
     });
 
     test('a failed extraction is calm and the next try asks again', () async {
@@ -688,30 +719,36 @@ void main() {
       expect(calls(), before);
     });
 
-    test('after twelve hours the list is re-read and the library follows', () async {
-      api.playlists[playlistOne] = playlist(
-        [item(videoB, seconds: 300), item(videoC, seconds: 300)],
-        title: 'Evening Sits, renewed',
-      );
-      final before = calls();
-      clock.advance(const Duration(hours: 12));
+    test(
+      'after twelve hours the list is re-read and the library follows',
+      () async {
+        api.playlists[playlistOne] = playlist([
+          item(videoB, seconds: 300),
+          item(videoC, seconds: 300),
+        ], title: 'Evening Sits, renewed');
+        final before = calls();
+        clock.advance(const Duration(hours: 12));
 
-      expect(await source.refresh(id), isTrue);
-      expect(calls(), before + 1);
-      expect(api.playlistCalls.last, listOne);
-      final entry = (await store.entry(id))!;
-      expect(entry.title, 'Evening Sits, renewed');
-      expect(entry.itemCount, 2);
-      expect(entry.durationMs, 600000);
-      expect(
-        (await db.youtubePlaylist(playlistOne))!.lastCheckedAt
-            .isAtSameMomentAs(clock.now),
-        isTrue,
-      );
-      final pack = await source.pack(id);
-      expect([for (final i in pack.items) i.id],
-          [ytVideoId(videoB), ytVideoId(videoC)]);
-    });
+        expect(await source.refresh(id), isTrue);
+        expect(calls(), before + 1);
+        expect(api.playlistCalls.last, listOne);
+        final entry = (await store.entry(id))!;
+        expect(entry.title, 'Evening Sits, renewed');
+        expect(entry.itemCount, 2);
+        expect(entry.durationMs, 600000);
+        expect(
+          (await db.youtubePlaylist(
+            playlistOne,
+          ))!.lastCheckedAt.isAtSameMomentAs(clock.now),
+          isTrue,
+        );
+        final pack = await source.pack(id);
+        expect(
+          [for (final i in pack.items) i.id],
+          [ytVideoId(videoB), ytVideoId(videoC)],
+        );
+      },
+    );
 
     test('a changed list leaves other courses intact', () async {
       await addCourse('https://www.youtube.com/playlist?list=$playlistTwo');
@@ -720,8 +757,10 @@ void main() {
       await source.refresh(id);
 
       final other = await source.pack(ytPlaylistId(playlistTwo));
-      expect([for (final i in other.items) i.id],
-          [ytVideoId(videoA), ytVideoId(videoC)]);
+      expect(
+        [for (final i in other.items) i.id],
+        [ytVideoId(videoA), ytVideoId(videoC)],
+      );
     });
 
     test('a forced refresh ignores the interval', () async {
@@ -763,20 +802,23 @@ void main() {
       expect(calls(), attempted + 1);
     });
 
-    test('a forced refresh that fails says so plainly, keeping content', () async {
-      api.failure = PlatformException(code: 'unavailable');
-      await expectLater(
-        source.refresh(id, force: true),
-        throwsA(
-          isA<YoutubeUnavailableError>().having(
-            (e) => e.message,
-            'message',
-            unavailable,
+    test(
+      'a forced refresh that fails says so plainly, keeping content',
+      () async {
+        api.failure = PlatformException(code: 'unavailable');
+        await expectLater(
+          source.refresh(id, force: true),
+          throwsA(
+            isA<YoutubeUnavailableError>().having(
+              (e) => e.message,
+              'message',
+              unavailable,
+            ),
           ),
-        ),
-      );
-      expect((await source.pack(id)).items, hasLength(3));
-    });
+        );
+        expect((await source.pack(id)).items, hasLength(3));
+      },
+    );
 
     test('a forced refresh after a failure is not throttled', () async {
       clock.advance(const Duration(hours: 13));
@@ -806,7 +848,10 @@ void main() {
       await addCourse(watchA);
       clock.advance(const Duration(days: 2));
       final before = calls();
-      expect(await source.refresh(ytSingleCourseId(videoA), force: true), isFalse);
+      expect(
+        await source.refresh(ytSingleCourseId(videoA), force: true),
+        isFalse,
+      );
       expect(await source.refresh(ytVideoId(videoA), force: true), isFalse);
       expect(await source.refresh('lib-x', force: true), isFalse);
       expect(await source.refresh('yt-playlist-unknown', force: true), isFalse);

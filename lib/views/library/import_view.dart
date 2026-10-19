@@ -209,8 +209,9 @@ class _ImportViewState extends ConsumerState<ImportView> {
 
   String _selectedId(ImportPreview preview, LibraryKind kind) {
     if (preview.origin != ImportOrigin.youtube) return preview.entryId;
-    if (kind == LibraryKind.single)
+    if (kind == LibraryKind.single) {
       return ytVideoId(preview.youtubeVideo!.videoId);
+    }
     return preview.youtubePlaylistId != null
         ? ytPlaylistId(preview.youtubePlaylistId!)
         : ytSingleCourseId(preview.youtubeVideo!.videoId);
