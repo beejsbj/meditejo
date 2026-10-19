@@ -13,7 +13,7 @@ Branch `fork/cues`, PR https://github.com/beejsbj/meditejo/pull/14.
 - [x] Shared Customize surface in player and timer, live finish estimate.
 - [x] Four original bundled pulse sounds, reproducible generator and notice.
 - [x] Scheduler, coverage, persistence, widget and native maths tests written.
-- [ ] Final hosted analyze/serial tests/full suite and signed APK receipt.
+- [x] Final hosted analyze/serial tests/full suite and signed APK receipt.
 
 ## Verification and limits
 
@@ -21,8 +21,15 @@ Branch `fork/cues`, PR https://github.com/beejsbj/meditejo/pull/14.
 - Portable Flutter checks were unavailable (Daytona exit 125 before execution).
   Hosted `Cue checks` runs affected files one at a time with a 1200-second
   timeout; the existing Flutter workflow runs the full suite.
-- The native worker ran 28 pure JVM tests through the queue; later coverage
-  persistence tests are included in the hosted APK test gate.
+- Code commit `a1d5cfcf`: analyze clean; 78 affected tests in 14 serial files;
+  all 1,071 Flutter tests passed. Hosted native gate: 83 passed, including
+  26 cue maths/listening tests, with zero failures or errors.
+- Signed APK: `/home/admin/.local/share/meditejo/apk/meditejo-cues-a1d5cfcf.apk`
+  (62,559,665 bytes). The build receipt verifies the code commit and pinned
+  signing certificate; all six cue WAV/NOTICE entries match the sources
+  byte-for-byte. Final workflow: https://github.com/beejsbj/meditejo/actions/runs/39313709640.
+- Flutter verification: https://github.com/beejsbj/meditejo/actions/runs/39313634697;
+  serial checks: https://github.com/beejsbj/meditejo/actions/runs/39313634720.
 - No local Gradle, phone operation or release publication was performed.
 - iOS remains unbuilt. Native deadline maths does not prove acoustic latency;
   a real screen-off sit and speaker/Bluetooth timing remain device checks.
