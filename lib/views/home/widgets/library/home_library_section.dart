@@ -40,7 +40,7 @@ class HomeLibrarySection extends ConsumerWidget {
                     ),
                   ),
                 ),
-                if (entries.isNotEmpty)
+                if (!sections.isEmpty)
                   TextButton(
                     key: const ValueKey('library_see_all'),
                     onPressed: () => Navigator.of(context).push<void>(
@@ -58,7 +58,7 @@ class HomeLibrarySection extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
-          if (entries.isEmpty)
+          if (sections.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: padding16),
               child: Text(
@@ -66,7 +66,7 @@ class HomeLibrarySection extends ConsumerWidget {
                 style: theme.textTheme.bodyMedium,
               ),
             )
-          else
+          else if (entries.isNotEmpty)
             SizedBox(
               height: 214,
               child: ListView.separated(

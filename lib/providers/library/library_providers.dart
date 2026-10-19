@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
+import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/services/library/feed_refresher.dart';
 import 'package:medito/services/library/import_http.dart';
 import 'package:medito/services/library/import_service.dart';
@@ -186,7 +187,13 @@ Future<void> startFeedRefresh(
 }) async {
   try {
     await Future<void>.delayed(delay);
-    await ref.read(feedRefresherProvider).refreshAll();
+    final report = await ref.read(feedRefresherProvider).refreshAll();
+    if (report.newEpisodes > 0) {
+      // Course pages and completion ticks cached before the new episodes
+      // arrived would otherwise keep showing the old list.
+      ref.invalidate(packDataProvider);
+      ref.invalidate(packTrackIdsProvider);
+    }
   } catch (e, st) {
     AppLogger.e('LIBRARY', 'Feed refresh did not run', e, st);
   }

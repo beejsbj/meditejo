@@ -83,4 +83,11 @@ void main() {
     expect(await store.resumePoint('lib-track-2'), isNull, reason: '1 s is just an opening');
     expect((await store.resumePoint('lib-track-1'))!.positionMs, 50000);
   });
+
+  test('states that arrive close together are handled in order', () async {
+    final playing = play(30000);
+    final paused = play(33500, playing: false);
+    await Future.wait([playing, paused]);
+    expect((await store.resumePoint('lib-track-1'))!.positionMs, 33500, reason: 'the later pause is the last word');
+  });
 }

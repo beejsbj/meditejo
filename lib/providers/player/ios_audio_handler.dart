@@ -468,12 +468,16 @@ class IosAudioHandler extends BaseAudioHandler {
     _sessionCompleted.add(false);
     sessionBells.reset();
 
-    if (downloadPath == null) {
+    // A file in the library is an absolute path, which is not a URI.
+    final localPath =
+        downloadPath ??
+        (request.remoteUrl.startsWith('/') ? request.remoteUrl : null);
+    if (localPath == null) {
       await _player.setAudioSource(
         AudioSource.uri(Uri.parse(request.remoteUrl)),
       );
     } else {
-      await _player.setFilePath(downloadPath);
+      await _player.setFilePath(localPath);
     }
 
     await setCustomRepeatMode(_currentRepeatMode);

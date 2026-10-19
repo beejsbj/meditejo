@@ -269,6 +269,14 @@ void main() {
       expect(find.byType(ImportView), findsOneWidget);
     });
 
+    testWidgets('a library of only teachers is still reachable', (tester) async {
+      final app = await LibraryTestApp.create(tester);
+      await add(tester, app.harness.store, 'ds-teacher-1', 'Rob Burbea', kind: LibraryKind.teacher);
+      await app.pump(tester, const Scaffold(body: HomeLibrarySection()));
+      expect(find.byKey(const ValueKey('library_see_all')), findsOneWidget);
+      expect(find.text('Paste a link, share one from another app, or pick a file.'), findsNothing);
+    });
+
     testWidgets('See all opens the library', (tester) async {
       final app = await LibraryTestApp.create(tester);
       await add(tester, app.harness.store, 'ds-retreat-1', 'Body scan');

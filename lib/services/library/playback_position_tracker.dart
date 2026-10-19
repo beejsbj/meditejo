@@ -32,6 +32,9 @@ class PlaybackPositionTracker {
 
   /// One player state: the session's ID, the position and length in
   /// milliseconds, and whether it is playing or has finished.
+  ///
+  /// States are handled one at a time, in the order they arrive, so a slow
+  /// save can never land after, and overwrite, a later one.
   Future<void> onState({
     required String trackId,
     required int positionMs,
@@ -39,6 +42,31 @@ class PlaybackPositionTracker {
     required bool isPlaying,
     required bool isCompleted,
     String fileId = '',
+  }) {
+    final turn = _queue.then(
+      (_) => _handle(
+        trackId: trackId,
+        positionMs: positionMs,
+        durationMs: durationMs,
+        isPlaying: isPlaying,
+        isCompleted: isCompleted,
+        fileId: fileId,
+      ),
+    );
+    // A failed save must not stop the ones after it.
+    _queue = turn.then<void>((_) {}, onError: (Object _) {});
+    return turn;
+  }
+
+  Future<void> _queue = Future<void>.value();
+
+  Future<void> _handle({
+    required String trackId,
+    required int positionMs,
+    required int durationMs,
+    required bool isPlaying,
+    required bool isCompleted,
+    required String fileId,
   }) async {
     if (trackId.isEmpty || ignore(trackId)) {
       _trackId = null;
