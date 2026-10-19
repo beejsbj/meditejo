@@ -78,14 +78,14 @@ jobs:
           org.gradle.daemon=false
           PROPERTIES
           timeout 300 nice -n 10 flutter build apk --config-only --flavor "$FLAVOR" "--$MODE" --target-platform android-arm64
+      - name: Verify resolved notice versions and scoped repositories
+        run: |
+          cd android
+          ./gradlew -I ../tools/meditejo/verify_youtube_runtime.gradle :app:verifyYoutubeRuntime -Ptarget-platform=android-arm64 --no-daemon --max-workers=2
       - name: Build arm64 APK without phone credentials
         run: |
           timeout 1800 nice -n 10 flutter build apk --flavor "$FLAVOR" "--$MODE" \
             --target-platform android-arm64
-      - name: Verify resolved notice versions and scoped repositories
-        run: |
-          cd android
-          ./gradlew -I ../tools/meditejo/verify_youtube_runtime.gradle :app:verifyYoutubeRuntime -Ptarget-platform=android-arm64 --no-daemon --max-workers=2 --info
       - name: Verify packaged licence texts
         run: python3 -I tools/meditejo/check_apk_licenses.py "build/app/outputs/flutter-apk/app-$FLAVOR-$MODE.apk"
       - name: YouTube native unit tests
