@@ -42,7 +42,7 @@ class _YoutubePlaylistEmptyState extends ConsumerState<YoutubePlaylistEmpty>
       }
       if ((ModalRoute.of(context)?.isCurrent ?? true) &&
           WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
-        unawaited(_retry(automatic: true));
+        unawaited(_retry(automatic: true, fromTimer: true));
       }
     });
   }
@@ -52,14 +52,16 @@ class _YoutubePlaylistEmptyState extends ConsumerState<YoutubePlaylistEmpty>
   /// (30 s, 1, 2, 4 and at most 8 minutes) so YouTube is not poked while it
   /// asks the app to slow down, and a private, age-restricted or removed
   /// playlist will not change on its own, so only the Retry button asks.
-  bool get _mayRetryAutomatically {
+  /// Returning to the app is not a reason to ask a rate-limiting YouTube
+  /// again: only the paced timer does.
+  bool _mayRetryAutomatically({required bool fromTimer}) {
     final reason = ref
         .read(youtubeSourceProvider)
         .refreshError(widget.packId)
         ?.reason;
     return switch (reason) {
       null || YoutubeFailureReason.offline => true,
-      YoutubeFailureReason.rateLimited => _skipTicks == 0,
+      YoutubeFailureReason.rateLimited => fromTimer && _skipTicks == 0,
       YoutubeFailureReason.unavailable ||
       YoutubeFailureReason.ageRestricted ||
       YoutubeFailureReason.private => false,
@@ -70,12 +72,15 @@ class _YoutubePlaylistEmptyState extends ConsumerState<YoutubePlaylistEmpty>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed &&
         (ModalRoute.of(context)?.isCurrent ?? true)) {
-      unawaited(_retry(automatic: true));
+      unawaited(_retry(automatic: true, fromTimer: false));
     }
   }
 
-  Future<void> _retry({bool automatic = false}) async {
-    if (_refreshing || (automatic && !_mayRetryAutomatically)) return;
+  Future<void> _retry({bool automatic = false, bool fromTimer = false}) async {
+    if (_refreshing ||
+        (automatic && !_mayRetryAutomatically(fromTimer: fromTimer))) {
+      return;
+    }
     setState(() => _refreshing = true);
     try {
       await ref.read(youtubeSourceProvider).refresh(widget.packId);

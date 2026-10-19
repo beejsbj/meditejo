@@ -108,6 +108,52 @@ void main() {
     await pollsWhileFailing(tester, 'rate-limited', [2, 3, 3, 4]);
   });
 
+  testWidgets('resuming the app does not re-ask a rate-limiting YouTube', (
+    tester,
+  ) async {
+    final db = memoryLibraryDb();
+    final store = LibraryStore(db);
+    final api = FakeYoutubeApi()
+      ..failure = PlatformException(code: 'rate-limited');
+    final source = YoutubeSource(db: db, library: store, api: api);
+    await tester.runAsync(() async {
+      await source.storePlaylist(playlistOne, playlist([]));
+      await source.refresh('yt-playlist-$playlistOne');
+    });
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [youtubeSourceProvider.overrideWithValue(source)],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(
+            body: YoutubePlaylistEmpty(packId: 'yt-playlist-PLone'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final before = api.playlistCalls.length;
+    for (final state in [
+      AppLifecycleState.paused,
+      AppLifecycleState.resumed,
+      AppLifecycleState.paused,
+      AppLifecycleState.resumed,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pump(const Duration(seconds: 1));
+    }
+    // Under 30 s have passed, so no timer tick: resuming alone asked nothing.
+    expect(api.playlistCalls.length, before);
+    await tester.pumpWidget(const SizedBox());
+    store.dispose();
+    await tester.runAsync(db.close);
+  });
+
   testWidgets('a permanently unavailable playlist is not polled', (
     tester,
   ) async {
