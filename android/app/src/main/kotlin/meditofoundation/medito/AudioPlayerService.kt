@@ -1072,7 +1072,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         artist: String,
         artworkBitmap: Bitmap?
     ): NotificationCompat.Builder {
-        val isPlaying = if (::primaryPlayer.isInitialized) primaryPlayer.isPlaying else false
+        val isPlaying = (::primaryPlayer.isInitialized && primaryPlayer.isPlaying) ||
+            (::cues.isInitialized && cues.isHoldRunning())
 
         val builder = NotificationCompat.Builder(this@AudioPlayerService, CHANNEL_ID)
             .setContentTitle(title)

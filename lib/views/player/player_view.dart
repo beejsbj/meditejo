@@ -153,7 +153,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
     try {
       _playRequested = true;
       await ref.read(playerProvider.notifier).play(request);
-      if (!mounted) return;
+      if (!mounted || _isClosing) return;
       _completionGate.trackLoaded(
         isCompleted: ref.read(audioStateProvider).isCompleted,
       );
