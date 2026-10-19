@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/services/library/library_models.dart';
@@ -41,9 +40,8 @@ void main() {
     WidgetTester tester,
     String title,
     List<MyCourseLine> lines,
-  ) async => (await tester.runAsync(
-    () => source.create(title: title, lines: lines),
-  ))!;
+  ) async =>
+      (await tester.runAsync(() => source.create(title: title, lines: lines)))!;
 
   Future<void> pump(WidgetTester tester, Widget page) => app.pump(
     tester,
@@ -124,7 +122,7 @@ void main() {
 
       final handle = find.byIcon(Icons.drag_handle_rounded).first;
       final gesture = await tester.startGesture(tester.getCenter(handle));
-      await tester.pump(kLongPressTimeout);
+      await tester.pump(const Duration(milliseconds: 100));
       for (var i = 0; i < 10; i++) {
         await gesture.moveBy(const Offset(0, 20));
         await tester.pump(const Duration(milliseconds: 16));
@@ -174,6 +172,8 @@ void main() {
         find.byKey(const ValueKey('my_course_title')),
         'Changed',
       );
+      // The frame that applies the typing, as one always does on a device.
+      await tester.pump();
       await tester.pageBack();
       await settle(tester);
       expect(find.text('Discard your changes?'), findsOneWidget);
@@ -193,9 +193,8 @@ void main() {
       ]);
       await pump(tester, MyCourseEditView(courseId: id));
 
-      await tester.scrollUntilVisible(
+      await tester.ensureVisible(
         find.byKey(const ValueKey('my_course_delete')),
-        200,
       );
       await tester.tap(find.byKey(const ValueKey('my_course_delete')));
       await settle(tester);
@@ -259,7 +258,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('new_course_create')));
       await settle(tester);
 
-      final made = (await tester.runAsync(() => source.courses())).single;
+      final made = (await tester.runAsync(() => source.courses()))!.single;
       expect(made.title, 'My jhāna curriculum');
       expect(made.sessionCount, 1);
       final entry = await tester.runAsync(

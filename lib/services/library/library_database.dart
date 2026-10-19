@@ -371,9 +371,8 @@ class LibraryDatabase extends _$LibraryDatabase {
         ),
       );
 
-  Future<void> clearSessionContextsOf(String courseId) => (delete(
-    sessionContexts,
-  )..where((c) => c.courseId.equals(courseId))).go();
+  Future<void> clearSessionContextsOf(String courseId) =>
+      (delete(sessionContexts)..where((c) => c.courseId.equals(courseId))).go();
 
   // ------------------------------------------------------ imported content
 

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/types/type_constants.dart';
+import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/services/content/content_source.dart';
 import 'package:medito/services/library/library_database.dart';
 import 'package:medito/services/library/library_models.dart';
@@ -43,7 +44,8 @@ void main() {
   });
 
   List<String> ids(List<MyCourseLine> lines) => [
-    for (final line in lines) line.isHeading ? '# ${line.heading}' : line.item!.id,
+    for (final line in lines)
+      line.isHeading ? '# ${line.heading}' : line.item!.id,
   ];
 
   group('the model', () {
@@ -78,7 +80,9 @@ void main() {
   group('migration', () {
     test('a schema 2 library gains course tables and keeps its data', () async {
       useSystemSqlite();
-      final scratch = Directory.systemTemp.createTempSync('my_course_migration');
+      final scratch = Directory.systemTemp.createTempSync(
+        'my_course_migration',
+      );
       addTearDown(() => scratch.deleteSync(recursive: true));
       final file = File('${scratch.path}/library.sqlite');
       var fileDb = LibraryDatabase(NativeDatabase(file));
@@ -157,12 +161,10 @@ void main() {
       );
       final pack = await source.pack(id);
       expect([for (final i in pack.items) i.id], ['x-1', 'x-2', 'x-3', 'x-4']);
-      expect([for (final i in pack.items) i.section], [
-        null,
-        'Day 1',
-        'Day 1',
-        'Day 2',
-      ]);
+      expect(
+        [for (final i in pack.items) i.section],
+        [null, 'Day 1', 'Day 1', 'Day 2'],
+      );
       final first = pack.items.first;
       expect(first.type, TypeConstants.track);
       expect(first.path, '/tracks/x-1');
@@ -207,10 +209,10 @@ void main() {
       );
       expect(await source.addItems(id, [draft('x-2'), draft('x-1')]), 1);
       expect(await source.addItems(id, [draft('x-2')]), 0);
-      expect([for (final i in (await source.pack(id)).items) i.id], [
-        'x-1',
-        'x-2',
-      ]);
+      expect(
+        [for (final i in (await source.pack(id)).items) i.id],
+        ['x-1', 'x-2'],
+      );
       expect((await store.entry(id))!.itemCount, 2);
       expect((await store.entry(id))!.durationMs, 1200000);
     });
@@ -367,25 +369,27 @@ void main() {
   });
 
   group('sessions gone upstream', () {
-    test('show as unavailable from their snapshot; the course still opens',
-        () async {
-      final id = await source.create(
-        title: 'C',
-        lines: [
-          MyCourseLine.session(draft('x-1')),
-          MyCourseLine.session(draft('x-2')),
-        ],
-      );
-      upstream.gone.add('x-1');
-      final pack = await source.pack(id);
-      expect(pack.items.first.unavailable, isTrue);
-      expect(pack.items.first.title, 'Session x-1');
-      expect(pack.items.last.unavailable, isNull);
-      // Progress counts only what can be played.
-      expect((await source.packTrackIds())[id], ['x-2']);
-      expect([for (final i in pack.playableTracks) i.id], ['x-2']);
-      expect((await source.edit(id))!.lines.first.unavailable, isTrue);
-    });
+    test(
+      'show as unavailable from their snapshot; the course still opens',
+      () async {
+        final id = await source.create(
+          title: 'C',
+          lines: [
+            MyCourseLine.session(draft('x-1')),
+            MyCourseLine.session(draft('x-2')),
+          ],
+        );
+        upstream.gone.add('x-1');
+        final pack = await source.pack(id);
+        expect(pack.items.first.unavailable, isTrue);
+        expect(pack.items.first.title, 'Session x-1');
+        expect(pack.items.last.unavailable, isNull);
+        // Progress counts only what can be played.
+        expect((await source.packTrackIds())[id], ['x-2']);
+        expect([for (final i in pack.playableTracks) i.id], ['x-2']);
+        expect((await source.edit(id))!.lines.first.unavailable, isTrue);
+      },
+    );
 
     test('being offline is not being gone', () async {
       final id = await source.create(
@@ -424,34 +428,36 @@ void main() {
   });
 
   group('deleting', () {
-    test('removes the course only: sessions, places and entries stay',
-        () async {
-      await store.add(
-        const LibraryDraft(
-          sourceId: 'x-1',
-          kind: LibraryKind.single,
-          title: 'Saved single',
-          group: LibraryGroup.practice,
-        ),
-      );
-      await store.savePosition('x-1', 60000, 600000);
-      final id = await source.create(
-        title: 'C',
-        lines: [MyCourseLine.session(draft('x-1'))],
-      );
-      await store.noteSessionContext('x-1', id);
-      await source.delete(id);
+    test(
+      'removes the course only: sessions, places and entries stay',
+      () async {
+        await store.add(
+          const LibraryDraft(
+            sourceId: 'x-1',
+            kind: LibraryKind.single,
+            title: 'Saved single',
+            group: LibraryGroup.practice,
+          ),
+        );
+        await store.savePosition('x-1', 60000, 600000);
+        final id = await source.create(
+          title: 'C',
+          lines: [MyCourseLine.session(draft('x-1'))],
+        );
+        await store.noteSessionContext('x-1', id);
+        await source.delete(id);
 
-      expect(await store.entry(id), isNull);
-      expect(await source.courses(), isEmpty);
-      expect(
-        () => source.pack(id),
-        throwsA(isA<CatalogueEntryUnavailable>()),
-      );
-      expect((await store.entry('x-1'))!.title, 'Saved single');
-      expect((await store.resumePoint('x-1'))!.positionMs, 60000);
-      expect(await store.sessionContext('x-1'), isNull);
-    });
+        expect(await store.entry(id), isNull);
+        expect(await source.courses(), isEmpty);
+        expect(
+          () => source.pack(id),
+          throwsA(isA<CatalogueEntryUnavailable>()),
+        );
+        expect((await store.entry('x-1'))!.title, 'Saved single');
+        expect((await store.resumePoint('x-1'))!.positionMs, 60000);
+        expect(await store.sessionContext('x-1'), isNull);
+      },
+    );
   });
 
   group('a session in several courses', () {

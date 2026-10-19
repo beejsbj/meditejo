@@ -96,8 +96,8 @@ Future<void> showAddToCourse(
     if (choice.newCourse) {
       final created = await createMyCourse(context, ref, items: items);
       if (created == null || !context.mounted) return;
-      final title = (await ref.read(libraryStoreProvider).entry(created))
-          ?.displayTitle;
+      final title =
+          (await ref.read(libraryStoreProvider).entry(created))?.displayTitle;
       if (context.mounted) {
         _addedSnack(context, l10n, items.length, title ?? '', created, ref);
       }
@@ -335,14 +335,7 @@ Future<void> showContentActionsSheet(
     ),
   );
   if (action == null || !context.mounted) return;
-  return _run(
-    context,
-    ref,
-    action,
-    id: id,
-    title: title,
-    fallback: fallback,
-  );
+  return _run(context, ref, action, id: id, title: title, fallback: fallback);
 }
 
 class _Choice {
@@ -410,9 +403,7 @@ class _AddToCourseSheet extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      subtitle: Text(
-                        l10n.librarySessions(course.sessionCount),
-                      ),
+                      subtitle: Text(l10n.librarySessions(course.sessionCount)),
                       trailing: course.contains
                           ? const Icon(Icons.check_rounded)
                           : null,
@@ -510,7 +501,10 @@ class MyCourseKindPicker extends StatelessWidget {
           value: LibraryGroup.practice,
           label: Text(l10n.libraryPractice),
         ),
-        ButtonSegment(value: LibraryGroup.talks, label: Text(l10n.libraryTalks)),
+        ButtonSegment(
+          value: LibraryGroup.talks,
+          label: Text(l10n.libraryTalks),
+        ),
       ],
       selected: {value},
       onSelectionChanged: (selection) => onChanged(selection.first),

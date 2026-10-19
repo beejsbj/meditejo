@@ -142,9 +142,8 @@ class _MyCourseEditViewState extends ConsumerState<MyCourseEditView> {
     return discard == true;
   }
 
-  void _addHeading() => setState(
-    () => _lines.insert(0, _wrap(const MyCourseLine.heading(''))),
-  );
+  void _addHeading() =>
+      setState(() => _lines.insert(0, _wrap(const MyCourseLine.heading(''))));
 
   void _remove(_Line line) => setState(() {
     _lines.remove(line);

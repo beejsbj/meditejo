@@ -161,17 +161,17 @@ class MyCourseSource implements ContentSource {
       return row;
     }
     if (next != row) {
-      await (db.update(db.myCourseItems)
-            ..where((r) => r.rowId.equals(row.rowId)))
-          .write(
-            MyCourseItemsCompanion(
-              title: Value(next.title),
-              subtitle: Value(next.subtitle),
-              coverUrl: Value(next.coverUrl),
-              durationMs: Value(next.durationMs),
-              unavailable: Value(next.unavailable),
-            ),
-          );
+      await (db.update(
+        db.myCourseItems,
+      )..where((r) => r.rowId.equals(row.rowId))).write(
+        MyCourseItemsCompanion(
+          title: Value(next.title),
+          subtitle: Value(next.subtitle),
+          coverUrl: Value(next.coverUrl),
+          durationMs: Value(next.durationMs),
+          unavailable: Value(next.unavailable),
+        ),
+      );
     }
     return next;
   }
@@ -301,7 +301,9 @@ class MyCourseSource implements ContentSource {
         kind: LibraryKind.course,
         title: _titleOr(title),
         group: group,
-        subtitle: sessionCountText(stored.where((r) => r.itemId.isNotEmpty).length),
+        subtitle: sessionCountText(
+          stored.where((r) => r.itemId.isNotEmpty).length,
+        ),
         coverUrl: coverUrl,
         itemCount: stored.where((r) => r.itemId.isNotEmpty).length,
         durationMs: stored.fold(0, (sum, r) => sum + r.durationMs),
@@ -326,7 +328,9 @@ class MyCourseSource implements ContentSource {
     var position = existing.isEmpty ? 0 : existing.last.position + 1;
     await db.transaction(() async {
       for (final item in fresh) {
-        await db.into(db.myCourseItems).insert(_session(courseId, position++, item));
+        await db
+            .into(db.myCourseItems)
+            .insert(_session(courseId, position++, item));
       }
       await _touch(courseId);
     });
@@ -339,14 +343,16 @@ class MyCourseSource implements ContentSource {
   /// or one session. [fallback] stands in when the session cannot be read
   /// (for example a talk whose source is offline).
   Future<List<MyItemDraft>> itemsFor(String id, {MyItemDraft? fallback}) async {
-    if (isCourseId(id)) {
-      final pack = isMyCourseId(id) ? await this.pack(id) : await _router.pack(id);
+    Future<List<MyItemDraft>> sessionsOf(String packId) async {
+      final pack = isMyCourseId(packId)
+          ? await this.pack(packId)
+          : await _router.pack(packId);
       return [
-        for (final item in pack.items)
-          if (item.type == TypeConstants.track && item.unavailable != true)
-            MyItemDraft.fromPackItem(item),
+        for (final item in pack.playableTracks) MyItemDraft.fromPackItem(item),
       ];
     }
+
+    if (isCourseId(id)) return sessionsOf(id);
     try {
       final track = await _router.track(id).timeout(resolveTimeout);
       final draft = MyItemDraft.fromTrack(track);
@@ -360,6 +366,11 @@ class MyCourseSource implements ContentSource {
           kind: fallback?.kind ?? '',
         ),
       ];
+    } on CatalogueEntryUnavailable {
+      // Not a session its source knows: perhaps a course under a prefix
+      // [isCourseId] does not list.
+      if (fallback != null) return [fallback];
+      return sessionsOf(id);
     } catch (e) {
       if (fallback != null) return [fallback];
       rethrow;
@@ -442,7 +453,9 @@ class MyCourseSource implements ContentSource {
           updatedAt: Value(_clock()),
         ),
       );
-      await (db.delete(db.myCourseItems)..where((r) => r.courseId.equals(id))).go();
+      await (db.delete(
+        db.myCourseItems,
+      )..where((r) => r.courseId.equals(id))).go();
       await _writeLines(id, _deduplicated(edit.lines));
     });
     final entry = await library.entry(id);
@@ -489,7 +502,9 @@ class MyCourseSource implements ContentSource {
   /// own library entries, saved places and downloads are not touched.
   Future<void> delete(String id) async {
     await db.transaction(() async {
-      await (db.delete(db.myCourseItems)..where((r) => r.courseId.equals(id))).go();
+      await (db.delete(
+        db.myCourseItems,
+      )..where((r) => r.courseId.equals(id))).go();
       await (db.delete(db.myCourses)..where((c) => c.id.equals(id))).go();
       await db.clearSessionContextsOf(id);
     });
@@ -528,7 +543,12 @@ class MyCourseSource implements ContentSource {
                     position: i,
                     heading: Value(row.heading.trim()),
                   )
-                : _session(courseId, i, row.item!, unavailable: row.unavailable),
+                : _session(
+                    courseId,
+                    i,
+                    row.item!,
+                    unavailable: row.unavailable,
+                  ),
           );
     }
   }

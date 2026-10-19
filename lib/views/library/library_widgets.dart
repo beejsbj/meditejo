@@ -191,10 +191,7 @@ class LibraryEntryMenu extends ConsumerWidget {
             child: Text(l10n.myCourseDelete),
           )
         else
-          PopupMenuItem(
-            value: _Action.remove,
-            child: Text(l10n.libraryRemove),
-          ),
+          PopupMenuItem(value: _Action.remove, child: Text(l10n.libraryRemove)),
       ],
     );
   }
