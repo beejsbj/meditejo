@@ -81,9 +81,11 @@ void main() {
       );
       final messenger =
           TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-      messenger.setMockDecodedMessageHandler(channel, (Object? message) async {
+      messenger.setMockDecodedMessageHandler<Object?>(channel, (
+        Object? message,
+      ) async {
         expect(message, ['aaaaaaaaaaa']);
-        return [code, 'Safe sentence', null];
+        return <Object?>[code, 'Safe sentence', null];
       });
       addTearDown(() => messenger.setMockDecodedMessageHandler(channel, null));
       await expectLater(
