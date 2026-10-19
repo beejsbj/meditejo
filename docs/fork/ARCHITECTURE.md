@@ -132,8 +132,9 @@ size and SHA-256). It holds catalogue text only, never audio, and no user data
   750 ms apart) starting from the committed snapshot, so a refresh is a delta of
   a few requests, or from nothing (`DS_FRESH=true`) a full sync. It refuses an
   unfinished sync, and leaves the files untouched when the sync changed no
-  record. **`release.sh` runs it before the version bump** and commits the
-  snapshot when it changed (`--skip-snapshot` bypasses it).
+  record. **`release.sh` runs it before the version bump only when the committed
+  snapshot is over 30 days old** (`--refresh-catalogue` forces it,
+  `--skip-snapshot` never runs it), and commits the snapshot when it changed.
 - **Shipping choice**: committed directly, no Git LFS. At 13 MiB it is under the
   20 MB line, a plain checkout is all CI and `build_apk.sh` need (an LFS pointer
   in an asset would build an app with no catalogue and no error), and

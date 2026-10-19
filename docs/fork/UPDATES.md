@@ -70,8 +70,10 @@ tools/meditejo/release.sh 0.1.0 --notes notes.md --yes       # publish
 ```
 
 Steps: preflight (clean tree matching origin, `gh` auth, tag unused) → pick the next `versionCode` →
-**refresh the bundled Dharma Seed catalogue** (`tools/meditejo/dharma_seed_snapshot.dart`, a delta from
-the committed snapshot; a commit only if it changed; `--skip-snapshot` bypasses it; see ARCHITECTURE.md) → bump
+**refresh the bundled Dharma Seed catalogue only if the committed one is over 30 days old**
+(`tools/meditejo/dharma_seed_snapshot.dart`, a delta from the committed snapshot; a commit only if it
+changed; `--refresh-catalogue` forces it, `--skip-snapshot` never does; each refresh adds about 13 MiB to
+git history and the app's search-time delta covers the gap; see ARCHITECTURE.md) → bump
 `pubspec.yaml` and commit → push the commit → `build_apk.sh HEAD --flavor prod` (GitHub
 Actions builds unsigned, bjslab aligns and signs with the durable key and checks the pinned
 digest) → independently re-verify the pinned digest on the staged APK → write the `.sha256`
