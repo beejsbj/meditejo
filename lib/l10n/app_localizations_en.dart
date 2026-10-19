@@ -1683,6 +1683,103 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String aboutVersion(String version, String build) {
+    return 'Version $version ($build)';
+  }
+
+  @override
+  String get updateCheck => 'Check for updates';
+
+  @override
+  String get updateChecking => 'Checking for updates…';
+
+  @override
+  String get updateUpToDate => 'Up to date';
+
+  @override
+  String updateLastChecked(String when) {
+    return 'Last checked $when';
+  }
+
+  @override
+  String updateAvailable(String version) {
+    return 'Update available: $version';
+  }
+
+  @override
+  String get updateAction => 'Update';
+
+  @override
+  String get updateWhatsNew => 'What\'s new';
+
+  @override
+  String updateDownloading(int percent) {
+    return 'Downloading… $percent%';
+  }
+
+  @override
+  String get updateVerifying => 'Checking the download…';
+
+  @override
+  String get updateInstalling => 'Handing it to Android…';
+
+  @override
+  String get updatePermissionExplanation =>
+      'To install updates, Android needs “Install unknown apps” switched on for Meditejo. The next screen is Android’s own; switch it on, then come back here and the update will continue.';
+
+  @override
+  String get updatePermissionWaiting =>
+      'Waiting for “Install unknown apps”. Switch it on for Meditejo, then come back.';
+
+  @override
+  String get updateOpenSettings => 'Open settings';
+
+  @override
+  String get updateTryAgain => 'Try again';
+
+  @override
+  String get updateErrorOffline =>
+      'Couldn’t reach GitHub. Check your connection and try again.';
+
+  @override
+  String get updateErrorRateLimited =>
+      'GitHub is asking for a pause. Try again in an hour or so.';
+
+  @override
+  String get updateErrorUnavailable =>
+      'The update information isn’t available right now. Try again later.';
+
+  @override
+  String get updateErrorDownload =>
+      'The download didn’t finish. Try again when you’re ready.';
+
+  @override
+  String get updateErrorHash =>
+      'The download doesn’t match what was published, so it wasn’t installed. Try downloading it again.';
+
+  @override
+  String get updateErrorSignature =>
+      'This file wasn’t signed with Meditejo’s key, so it wasn’t installed.';
+
+  @override
+  String get updateErrorNotMeditejo =>
+      'This file isn’t the Meditejo update it should be, so it wasn’t installed.';
+
+  @override
+  String get updateErrorInstall => 'Android couldn’t install the update.';
+
+  @override
+  String homeUpdateNotice(String version) {
+    return 'Meditejo $version is available';
+  }
+
+  @override
+  String get homeUpdateView => 'View';
+
+  @override
+  String get homeUpdateDismiss => 'Dismiss';
+
+  @override
   String get libraryTitle => 'Your library';
 
   @override

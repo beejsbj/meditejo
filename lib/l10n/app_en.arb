@@ -1753,6 +1753,94 @@
       }
     }
   },
+  "aboutVersion": "Version {version} ({build})",
+  "@aboutVersion": {
+    "description": "Installed version name and build number",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "build": {
+        "type": "String"
+      }
+    }
+  },
+  "updateCheck": "Check for updates",
+  "@updateCheck": {
+    "description": "Button that asks GitHub for a newer Meditejo"
+  },
+  "updateChecking": "Checking for updates…",
+  "updateUpToDate": "Up to date",
+  "@updateUpToDate": {
+    "description": "Shown when the installed build is the newest"
+  },
+  "updateLastChecked": "Last checked {when}",
+  "@updateLastChecked": {
+    "description": "when is a formatted date and time",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "updateAvailable": "Update available: {version}",
+  "@updateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateAction": "Update",
+  "@updateAction": {
+    "description": "Button that downloads and installs the update"
+  },
+  "updateWhatsNew": "What's new",
+  "@updateWhatsNew": {
+    "description": "Heading above the release notes"
+  },
+  "updateDownloading": "Downloading… {percent}%",
+  "@updateDownloading": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "updateVerifying": "Checking the download…",
+  "updateInstalling": "Handing it to Android…",
+  "updatePermissionExplanation": "To install updates, Android needs “Install unknown apps” switched on for Meditejo. The next screen is Android’s own; switch it on, then come back here and the update will continue.",
+  "@updatePermissionExplanation": {
+    "description": "Shown once, before opening Android's settings"
+  },
+  "updatePermissionWaiting": "Waiting for “Install unknown apps”. Switch it on for Meditejo, then come back.",
+  "updateOpenSettings": "Open settings",
+  "updateTryAgain": "Try again",
+  "updateErrorOffline": "Couldn’t reach GitHub. Check your connection and try again.",
+  "updateErrorRateLimited": "GitHub is asking for a pause. Try again in an hour or so.",
+  "updateErrorUnavailable": "The update information isn’t available right now. Try again later.",
+  "updateErrorDownload": "The download didn’t finish. Try again when you’re ready.",
+  "updateErrorHash": "The download doesn’t match what was published, so it wasn’t installed. Try downloading it again.",
+  "updateErrorSignature": "This file wasn’t signed with Meditejo’s key, so it wasn’t installed.",
+  "updateErrorNotMeditejo": "This file isn’t the Meditejo update it should be, so it wasn’t installed.",
+  "updateErrorInstall": "Android couldn’t install the update.",
+  "homeUpdateNotice": "Meditejo {version} is available",
+  "@homeUpdateNotice": {
+    "description": "One quiet line on Home",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "homeUpdateView": "View",
+  "@homeUpdateView": {
+    "description": "Opens About Meditejo"
+  },
+  "homeUpdateDismiss": "Dismiss",
+  "@homeUpdateDismiss": {
+    "description": "Accessibility label of the close button"
+  },
   "libraryTitle": "Your library",
   "@libraryTitle": {
     "description": "Heading of the screen and Home section listing what the user added"

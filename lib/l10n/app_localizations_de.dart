@@ -1713,6 +1713,104 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String aboutVersion(String version, String build) {
+    return 'Version $version ($build)';
+  }
+
+  @override
+  String get updateCheck => 'Nach Updates suchen';
+
+  @override
+  String get updateChecking => 'Suche nach Updates…';
+
+  @override
+  String get updateUpToDate => 'Auf dem neuesten Stand';
+
+  @override
+  String updateLastChecked(String when) {
+    return 'Zuletzt geprüft $when';
+  }
+
+  @override
+  String updateAvailable(String version) {
+    return 'Update verfügbar: $version';
+  }
+
+  @override
+  String get updateAction => 'Aktualisieren';
+
+  @override
+  String get updateWhatsNew => 'Neuigkeiten';
+
+  @override
+  String updateDownloading(int percent) {
+    return 'Wird geladen… $percent%';
+  }
+
+  @override
+  String get updateVerifying => 'Download wird geprüft…';
+
+  @override
+  String get updateInstalling => 'Wird an Android übergeben…';
+
+  @override
+  String get updatePermissionExplanation =>
+      'Zum Installieren von Updates muss „Unbekannte Apps installieren“ für Meditejo aktiviert sein. Der nächste Bildschirm gehört zu Android; aktiviere die Option und komm zurück, dann geht das Update weiter.';
+
+  @override
+  String get updatePermissionWaiting =>
+      'Warte auf „Unbekannte Apps installieren“. Aktiviere es für Meditejo und komm dann zurück.';
+
+  @override
+  String get updateOpenSettings => 'Einstellungen öffnen';
+
+  @override
+  String get updateTryAgain => 'Erneut versuchen';
+
+  @override
+  String get updateErrorOffline =>
+      'GitHub ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.';
+
+  @override
+  String get updateErrorRateLimited =>
+      'GitHub bittet um eine Pause. Versuche es in etwa einer Stunde erneut.';
+
+  @override
+  String get updateErrorUnavailable =>
+      'Die Update-Informationen sind gerade nicht verfügbar. Versuche es später erneut.';
+
+  @override
+  String get updateErrorDownload =>
+      'Der Download wurde nicht abgeschlossen. Versuche es erneut, wenn du soweit bist.';
+
+  @override
+  String get updateErrorHash =>
+      'Der Download stimmt nicht mit dem Veröffentlichten überein und wurde daher nicht installiert. Lade ihn erneut herunter.';
+
+  @override
+  String get updateErrorSignature =>
+      'Diese Datei wurde nicht mit Meditejos Schlüssel signiert und wurde daher nicht installiert.';
+
+  @override
+  String get updateErrorNotMeditejo =>
+      'Diese Datei ist nicht das erwartete Meditejo-Update und wurde daher nicht installiert.';
+
+  @override
+  String get updateErrorInstall =>
+      'Android konnte das Update nicht installieren.';
+
+  @override
+  String homeUpdateNotice(String version) {
+    return 'Meditejo $version ist verfügbar';
+  }
+
+  @override
+  String get homeUpdateView => 'Ansehen';
+
+  @override
+  String get homeUpdateDismiss => 'Schließen';
+
+  @override
   String get libraryTitle => 'Deine Bibliothek';
 
   @override

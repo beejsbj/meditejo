@@ -3064,6 +3064,162 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 course} other{{count} courses}}'**
   String teacherCourseCount(int count);
 
+  /// Installed version name and build number
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version} ({build})'**
+  String aboutVersion(String version, String build);
+
+  /// Button that asks GitHub for a newer Meditejo
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get updateCheck;
+
+  /// No description provided for @updateChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking for updates…'**
+  String get updateChecking;
+
+  /// Shown when the installed build is the newest
+  ///
+  /// In en, this message translates to:
+  /// **'Up to date'**
+  String get updateUpToDate;
+
+  /// when is a formatted date and time
+  ///
+  /// In en, this message translates to:
+  /// **'Last checked {when}'**
+  String updateLastChecked(String when);
+
+  /// No description provided for @updateAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Update available: {version}'**
+  String updateAvailable(String version);
+
+  /// Button that downloads and installs the update
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get updateAction;
+
+  /// Heading above the release notes
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s new'**
+  String get updateWhatsNew;
+
+  /// No description provided for @updateDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading… {percent}%'**
+  String updateDownloading(int percent);
+
+  /// No description provided for @updateVerifying.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking the download…'**
+  String get updateVerifying;
+
+  /// No description provided for @updateInstalling.
+  ///
+  /// In en, this message translates to:
+  /// **'Handing it to Android…'**
+  String get updateInstalling;
+
+  /// Shown once, before opening Android's settings
+  ///
+  /// In en, this message translates to:
+  /// **'To install updates, Android needs “Install unknown apps” switched on for Meditejo. The next screen is Android’s own; switch it on, then come back here and the update will continue.'**
+  String get updatePermissionExplanation;
+
+  /// No description provided for @updatePermissionWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for “Install unknown apps”. Switch it on for Meditejo, then come back.'**
+  String get updatePermissionWaiting;
+
+  /// No description provided for @updateOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get updateOpenSettings;
+
+  /// No description provided for @updateTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get updateTryAgain;
+
+  /// No description provided for @updateErrorOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t reach GitHub. Check your connection and try again.'**
+  String get updateErrorOffline;
+
+  /// No description provided for @updateErrorRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub is asking for a pause. Try again in an hour or so.'**
+  String get updateErrorRateLimited;
+
+  /// No description provided for @updateErrorUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The update information isn’t available right now. Try again later.'**
+  String get updateErrorUnavailable;
+
+  /// No description provided for @updateErrorDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'The download didn’t finish. Try again when you’re ready.'**
+  String get updateErrorDownload;
+
+  /// No description provided for @updateErrorHash.
+  ///
+  /// In en, this message translates to:
+  /// **'The download doesn’t match what was published, so it wasn’t installed. Try downloading it again.'**
+  String get updateErrorHash;
+
+  /// No description provided for @updateErrorSignature.
+  ///
+  /// In en, this message translates to:
+  /// **'This file wasn’t signed with Meditejo’s key, so it wasn’t installed.'**
+  String get updateErrorSignature;
+
+  /// No description provided for @updateErrorNotMeditejo.
+  ///
+  /// In en, this message translates to:
+  /// **'This file isn’t the Meditejo update it should be, so it wasn’t installed.'**
+  String get updateErrorNotMeditejo;
+
+  /// No description provided for @updateErrorInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Android couldn’t install the update.'**
+  String get updateErrorInstall;
+
+  /// One quiet line on Home
+  ///
+  /// In en, this message translates to:
+  /// **'Meditejo {version} is available'**
+  String homeUpdateNotice(String version);
+
+  /// Opens About Meditejo
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get homeUpdateView;
+
+  /// Accessibility label of the close button
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get homeUpdateDismiss;
+
   /// Heading of the screen and Home section listing what the user added
   ///
   /// In en, this message translates to:
