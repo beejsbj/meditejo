@@ -64,6 +64,14 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     private lateinit var primaryPlayer: ExoPlayer
     private lateinit var backgroundMusicPlayer: ExoPlayer
     private lateinit var sessionBells: SessionBellPlayer
+    private lateinit var cues: CueEngine
+
+    // Real listening of the current track, and whether its completion has been
+    // recorded. The playthrough index is how many passes had finished when it was.
+    private val listening = ListeningTracker()
+    private var completionSent = false
+    private val pendingFinish = Runnable { finishPlayback() }
+    private var completionPlaythroughIndex = 0
     private var primaryMediaSession: MediaSession? = null
     private var meditoAudioApi: MeditoAudioServiceCallbackApi? = null
     private var isCompletionHandled = false
@@ -118,8 +126,11 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             val state = withContext(Dispatchers.Main) {
                 if (!::primaryPlayer.isInitialized) return@withContext null
                 
+                sampleListeningFromPlayer()
+                // The countdown and the extension are part of the session: report it as running.
+                val sessionRunning = primaryPlayer.isPlaying || (::cues.isInitialized && cues.isHoldRunning())
                 PlaybackState(
-                    isPlaying = primaryPlayer.isPlaying,
+                    isPlaying = sessionRunning,
                     position = primaryPlayer.currentPosition,
                     volume = primaryPlayer.volume.toLong(),
                     speed = Speed(primaryPlayer.playbackParameters.speed.toDouble()),
@@ -134,6 +145,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             // Apply background sound volume on main thread (touches ExoPlayer)
             withContext(Dispatchers.Main) {
                 applyBackgroundSoundVolume(state.duration, state.position)
+                recordThresholdCompletionIfEarned()
             }
 
             // Pigeon channel communication - already async/non-blocking
@@ -174,7 +186,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     // native STATE_ENDED handler on the main thread, before finishPlayback()
     // cancels the position poll — the poll would otherwise be the only sender of
     // isCompleted and it never gets to run once the track ends.
-    private fun pushCompletedStateToDart() {
+    private fun pushCompletedStateToDart(completed: Boolean = true) {
         if (!::primaryPlayer.isInitialized) return
         val api = meditoAudioApi ?: return
 
@@ -190,7 +202,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             isBuffering = false,
             duration = duration,
             isSeeking = false,
-            isCompleted = true,
+            isCompleted = completed,
             track = trackFromCurrentMediaItem()
         )
 
@@ -212,17 +224,61 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         )
     }
 
-    // Records one finished play-through. `isTerminal` is false at a repeat
-    // boundary (playback continues), so the service must not be torn down.
-    private fun recordPlaythroughFromPlayer(isTerminal: Boolean) {
+    // 90% of the track really heard, a finished timer or a finished extension
+    // earn the completion. Reaching the end by seeking does not.
+    private fun completionEarned(extensionFinished: Boolean): Boolean {
+        if (completionSent || extensionFinished) return true
+        if (::cues.isInitialized && cues.isTimer) return true
+        return listening.completed(currentDurationMs())
+    }
+
+    private fun currentDurationMs(): Long {
+        val fromPlayer = if (::primaryPlayer.isInitialized) primaryPlayer.duration else C.TIME_UNSET
+        val fallback = if (::cues.isInitialized) cues.config?.durationMs ?: 0L else 0L
+        return fromPlayer.takeIf { it != C.TIME_UNSET && it > 0 } ?: fallback
+    }
+
+    // Records one finished play-through. The first one that earns it is the
+    // session; each later one only adds its listening time. A pass whose
+    // completion went out mid-play (at 90%) is not counted again at its end.
+    private fun recordPlaythroughFromPlayer(extensionFinished: Boolean = false) {
         completedPlaythroughs++
         val completionData = createCompletionDataFromPlayer()
-        if (completedPlaythroughs == 1) {
-            saveAndSendCompletionData(completionData, finish = isTerminal)
-        } else {
+        if (!completionSent) {
+            if (completionEarned(extensionFinished)) {
+                completionSent = true
+                completionPlaythroughIndex = completedPlaythroughs - 1
+                saveAndSendCompletionData(completionData, finish = false)
+            }
+        } else if (completedPlaythroughs > completionPlaythroughIndex + 1) {
             saveAndSendRepeatPlaythrough(completionData)
-            if (isTerminal) finishPlayback()
         }
+    }
+
+    // Persists the completion as soon as 90% has been heard, without the
+    // terminal isCompleted state: the end screen waits for the true end.
+    private fun recordThresholdCompletionIfEarned() {
+        if (completionSent || !::cues.isInitialized || cues.isTimer || !::primaryPlayer.isInitialized) return
+        if (!listening.completed(currentDurationMs())) return
+        completionSent = true
+        completionPlaythroughIndex = completedPlaythroughs
+        saveAndSendCompletionData(createCompletionDataFromPlayer(), finish = false)
+    }
+
+    private fun sampleListeningFromPlayer() {
+        if (!::primaryPlayer.isInitialized) return
+        listening.sample(primaryPlayer.currentPosition, primaryPlayer.isPlaying)
+    }
+
+    // The session reached its true end: the voice, plus the extension if there
+    // was one. The end bell is already ringing; the service lives until it is done.
+    private fun finalizeSession(extensionFinished: Boolean, tailMs: Long) {
+        stopPositionUpdates()
+        listening.sample(currentDurationMs(), true)
+        recordPlaythroughFromPlayer(extensionFinished)
+        pushCompletedStateToDart(completed = completionSent)
+        if (::backgroundMusicPlayer.isInitialized) backgroundMusicPlayer.stop()
+        if (tailMs > 0) handler.postDelayed(pendingFinish, tailMs) else finishPlayback()
     }
 
     private fun saveAndSendRepeatPlaythrough(completionData: CompletionData) {
@@ -286,6 +342,16 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             if (backgroundSoundUri == null || 
                 !::backgroundMusicPlayer.isInitialized || 
                 backgroundMusicVolume <= 0.0F) {
+                return
+            }
+
+            // With an extension the ambient plays on past the voice and fades at the very end.
+            if (::cues.isInitialized && cues.hasExtension()) {
+                val left = cues.extensionRemainingMs()
+                backgroundMusicPlayer.volume =
+                    if (cues.phase == CueEngine.Phase.EXTENSION && left < fadeOutDurationMillis)
+                        backgroundMusicVolume * (left.toFloat() / fadeOutDurationMillis).coerceIn(0f, 1f)
+                    else backgroundMusicVolume
                 return
             }
 
@@ -424,6 +490,18 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             Log.d(TAG, "🔊 Background music player initialized successfully")
 
             sessionBells = SessionBellPlayer(this, primaryPlayer)
+            cues = CueEngine(this, primaryPlayer, object : CueEngine.Host {
+                override fun startNarration() {
+                    primaryPlayer.play()
+                    updateNotification()
+                }
+
+                override fun onSessionEnded(extensionFinished: Boolean, tailMs: Long) {
+                    isCompletionHandled = true
+                    finalizeSession(extensionFinished, tailMs)
+                }
+            })
+            instance = this
             primaryPlayer.addListener(this)
 
             primaryMediaSession = createMediaSession()
@@ -466,6 +544,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             abandonAudioFocus()
         }
 
+        if (instance === this) instance = null
+
         // Cancel any pending coroutines
         serviceJob.cancel()
         stopPositionUpdates()
@@ -476,6 +556,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
                 Log.d(TAG, "🔊 Removing callbacks and stopping players")
                 
                 if (::sessionBells.isInitialized) sessionBells.release()
+                if (::cues.isInitialized) cues.release()
                 if (::primaryPlayer.isInitialized) {
                     primaryPlayer.stop()
                     primaryPlayer.removeListener(this@AudioPlayerService)
@@ -544,8 +625,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
                 // finishPlayback() cancels the position poll before it can observe
                 // STATE_ENDED, and PlayerView opens the end screen off that flag.
                 sessionBells.disable()
-                pushCompletedStateToDart()
-                recordPlaythroughFromPlayer(isTerminal = true)
+                if (cues.isEngaged) cues.onPrimaryEnded()
+                else finalizeSession(extensionFinished = false, tailMs = 0)
             }
             return
         }
@@ -569,7 +650,35 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ||
             reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT
         ) {
-            recordPlaythroughFromPlayer(isTerminal = false)
+            recordPlaythroughFromPlayer()
+        }
+    }
+
+    // Listening counts only what playback walked through: a seek is not listening.
+    override fun onPositionDiscontinuity(
+        oldPosition: Player.PositionInfo,
+        newPosition: Player.PositionInfo,
+        reason: Int,
+    ) {
+        when (reason) {
+            Player.DISCONTINUITY_REASON_SEEK, Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT -> {
+                if (isCompletionHandled) isCompletionHandled = false
+                listening.sample(oldPosition.positionMs, true)
+                listening.rebase(newPosition.positionMs)
+            }
+            Player.DISCONTINUITY_REASON_AUTO_TRANSITION -> {
+                listening.sample(oldPosition.positionMs, true)
+                listening.rebase(newPosition.positionMs)
+            }
+        }
+    }
+
+    override fun onIsPlayingChanged(isPlaying: Boolean) {
+        if (!::primaryPlayer.isInitialized) return
+        if (isPlaying) listening.rebase(primaryPlayer.currentPosition)
+        else {
+            listening.sample(primaryPlayer.currentPosition, true)
+            listening.markNotPlaying()
         }
     }
 
@@ -784,7 +893,12 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
 
         isCompletionHandled = false
         completedPlaythroughs = 0
+        completionSent = false
+        completionPlaythroughIndex = 0
+        listening.reset()
         sessionBells.reset()
+        handler.removeCallbacks(pendingFinish)
+        cues.prepareSession()
 
         try {
             // Remember if background was playing
@@ -819,8 +933,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
                     requestAudioFocus()
                 }
                 
-                // Start playback
-                primaryPlayer.play()
+                // Start playback, unless a countdown comes first
+                if (!cues.beginCountdown()) primaryPlayer.play()
                 
                 // Update notification
                 updateNotification()
@@ -1163,6 +1277,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
 
     override fun stopAudio() {
         sessionBells.disable()
+        cues.stop()
         isCompletionHandled = false
         primaryPlayer.stop()
         backgroundMusicPlayer.stop()
@@ -1173,13 +1288,22 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     override fun playPauseAudio() {
         Log.d(TAG, "🔊 playPauseAudio called")
         try {
-            isCompletionHandled = false
-            
             // Check if player is initialized and in a valid state
             if (!::primaryPlayer.isInitialized) {
                 Log.e(TAG, "❌ Primary player not initialized")
                 return
             }
+
+            // The countdown and the extension have no player to pause: hold their clock.
+            if (cues.toggleHold()) {
+                if (::backgroundMusicPlayer.isInitialized) {
+                    if (cues.isHoldRunning()) {
+                        if (backgroundSoundUri != null) backgroundMusicPlayer.play()
+                    } else backgroundMusicPlayer.pause()
+                }
+                return
+            }
+            isCompletionHandled = false
             
             if (primaryPlayer.isPlaying) {
                 Log.d(TAG, "🔊 Pausing primary player")
@@ -1390,7 +1514,40 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         return super.onBind(intent)
     }
 
+    // ---- Cue system (meditejo/cues channel) ----------------------------------
+
+    fun configureCues(args: Map<*, *>) {
+        if (!::cues.isInitialized) throw IllegalStateException("Service not fully initialized")
+        cues.configure(CueConfig.fromMap(args))
+    }
+
+    fun skipCountdown() { if (::cues.isInitialized) cues.skipCountdown() }
+
+    fun stopCues() {
+        if (::cues.isInitialized) cues.stop()
+    }
+
+    fun cueState(): Map<String, Any?> = if (::cues.isInitialized) {
+        cues.state() + mapOf("heardMs" to listening.heardMs(), "completionSent" to completionSent)
+    } else emptyMap()
+
+    /** Android samples the player itself; the call reports whether 90% has been heard. */
+    fun sampleListening(): Boolean {
+        if (!::primaryPlayer.isInitialized) return false
+        sampleListeningFromPlayer()
+        return completionSent || listening.completed(currentDurationMs())
+    }
+
+    fun resetListening() {
+        listening.reset()
+        completionSent = false
+    }
+
     companion object {
+        /** The live service, for the cue channel. Main thread only. */
+        @Volatile var instance: AudioPlayerService? = null
+            private set
+
         const val CHANNEL_ID = "medito_reminder_channel"
         const val NOTIFICATION_ID = 101011
         private const val TAG = "MeditoAudioService"

@@ -1,6 +1,7 @@
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/services/audio/native_cue_controller.dart';
 import 'dart:async';
+import 'dart:io';
 import '../../services/audio/ios_session_bells.dart';
 import 'package:medito/models/models.dart' show PlaybackRequest;
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
@@ -463,7 +464,7 @@ class IosAudioHandler extends BaseAudioHandler {
     CueSettings settings,
     PlaybackRequest request,
   ) async {
-    await NativeCueController.configure(settings, request);
+    if (Platform.isIOS) await NativeCueController.configure(settings, request);
   }
 
   Future<void> setUrl(

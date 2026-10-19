@@ -1,13 +1,13 @@
+import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/background_sounds/background_sounds_model.dart';
-import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
 import 'package:medito/providers/home/home_provider.dart';
 import 'package:medito/providers/player/ios_audio_handler.dart';
 import 'package:medito/providers/player/player_provider.dart';
@@ -218,13 +218,6 @@ Future<void> _openTimer(WidgetTester tester) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late SharedPreferences prefs;
-  late ByteData bundledBell;
-
-  // Asset messages are loaded before entering a widget test's FakeAsync zone.
-  // Do not await rootBundle.load from inside tester.runAsync.
-  setUpAll(() async {
-    bundledBell = await rootBundle.load(kSessionBellAsset).timeout(_ioTimeout);
-  });
 
   setUp(() async {
     // The same preferences are supplied to Riverpod and plugin consumers.
@@ -249,164 +242,134 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets(
-    'home timer preset starts a local silent track with bundled session cues',
-    (tester) async {
-      final semantics = tester.ensureSemantics();
-      final directory = (await tester.runAsync(
-        () => Directory.systemTemp
-            .createTemp('local_home_timer_')
-            .timeout(_ioTimeout),
-      ))!;
-      final native = _NativeAudio()..install(directory);
-      addTearDown(native.uninstall);
-      addTearDown(() => directory.delete(recursive: true).timeout(_ioTimeout));
-      iosAudioHandler = IosAudioHandler();
+  testWidgets('home timer Customize duration starts a local silent track', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    final directory = (await tester.runAsync(
+      () => Directory.systemTemp
+          .createTemp('local_home_timer_')
+          .timeout(_ioTimeout),
+    ))!;
+    final native = _NativeAudio()..install(directory);
+    addTearDown(native.uninstall);
+    addTearDown(() => directory.delete(recursive: true).timeout(_ioTimeout));
+    iosAudioHandler = IosAudioHandler();
 
-      try {
-        final container = await _home(tester, prefs);
-        await _openTimer(tester);
+    try {
+      final container = await _home(tester, prefs);
+      await _openTimer(tester);
 
-        final preset = find.bySemanticsLabel('3 minutes');
-        expect(preset, findsOneWidget);
-        await tester.ensureVisible(preset);
-        await tester.tap(preset);
-        await tester.pumpAndSettle(
-          const Duration(milliseconds: 100),
-          EnginePhase.sendSemanticsUpdate,
-          _settleTimeout,
-        );
-        expect(container.read(timerSettingsProvider).minutes, 3);
-        expect(prefs.getInt(SharedPreferenceConstants.timerMinutes), 3);
+      await tester.tap(find.text('Duration'));
+      await tester.pumpAndSettle();
+      tester.widget<Slider>(find.byType(Slider)).onChanged!(3);
+      await tester.pumpAndSettle();
+      Navigator.of(tester.element(find.byType(Slider))).pop();
+      await tester.pumpAndSettle();
+      expect(
+        container
+            .read(cueSettingsProvider(const CueScope(CueKind.practice)))
+            .durationMinutes,
+        3,
+      );
+      final start = find.widgetWithText(ElevatedButton, 'Start');
+      await tester.ensureVisible(start);
+      await tester.tap(start);
+      await _pumpUntil(
+        tester,
+        () => find.byType(PlayerView).evaluate().isNotEmpty,
+        reason: 'Start must navigate to the real player after creating audio',
+      );
 
-        await tester.tap(find.widgetWithText(ElevatedButton, 'Start'));
-        await _pumpUntil(
-          tester,
-          () => find.byType(PlayerView).evaluate().isNotEmpty,
-          reason: 'Start must navigate to the real player after creating audio',
-        );
+      final request = container.read(playerProvider)!;
+      expect(
+        native.healthPermissionRequests,
+        0,
+        reason: 'Starting a timer must never ask for Health permission',
+      );
+      expect(request.trackId, 'timer-180');
+      expect(request.fileId, 'timer-countdown-180000');
+      expect(request.duration, 180000);
+      expect(request.title, 'Timer');
+      expect(request.coverUrl, isEmpty);
+      expect(request.hasBackgroundSound, isTrue);
+      final uri = Uri.parse(request.remoteUrl);
+      expect(uri.scheme, 'file');
+      expect(uri.toFilePath(), startsWith(directory.path));
 
-        final request = container.read(playerProvider)!;
-        expect(
-          native.healthPermissionRequests,
-          0,
-          reason: 'Starting a timer must never ask for Health permission',
-        );
-        expect(request.trackId, 'timer-180');
-        expect(request.fileId, 'timer-countdown-180000');
-        expect(request.duration, 180000);
-        expect(request.title, 'Timer');
-        expect(request.coverUrl, isEmpty);
-        expect(request.hasBackgroundSound, isTrue);
-        final uri = Uri.parse(request.remoteUrl);
-        expect(uri.scheme, 'file');
-        expect(uri.toFilePath(), startsWith(directory.path));
-
-        await _fileIO(tester, () async {
-          final file = File.fromUri(uri);
-          expect(await file.exists(), isTrue);
-          expect(await file.length(), 44 + 180 * 8000 * 2);
-          final reader = await file.open();
-          try {
-            final header = await reader.read(44);
-            expect(String.fromCharCodes(header.take(4)), 'RIFF');
-            expect(String.fromCharCodes(header.sublist(8, 12)), 'WAVE');
-            // Sample the sparse PCM body, not only its file extension/header.
-            expect(await reader.read(64), everyElement(0));
-            await reader.setPosition(44 + 90 * 8000 * 2);
-            expect(await reader.read(64), everyElement(0));
-          } finally {
-            await reader.close();
-          }
-        }, reason: 'Verify the generated silent WAV');
-
-        await _pumpUntil(
-          tester,
-          () => native.players.values.any(
-            (player) =>
-                player.uri?.path.endsWith('session_bell_v2.wav') == true &&
-                player.count('play') > 0,
-          ),
-          reason:
-              'The real player must start audio and its default timer bells',
-        );
-        final primary = native.players.values.singleWhere(
-          (player) => player.uri == uri,
-        );
-        final bell = native.players.values.singleWhere(
-          (player) => player.uri?.path.endsWith('session_bell_v2.wav') == true,
-        );
-        expect(primary.count('play'), 1);
-        expect(iosAudioHandler.playing, isTrue);
-        expect(iosAudioHandler.sessionBells.enabled, isTrue);
-        expect(
-          container.read(backgroundSoundsNotifierProvider).bellsEnabled,
-          isTrue,
-        );
-        expect(bell.count('seek'), 1, reason: 'Opening cue restarts the bell');
-
-        await _fileIO(tester, () async {
-          expect(
-            await File.fromUri(bell.uri!).readAsBytes(),
-            bundledBell.buffer.asUint8List(
-              bundledBell.offsetInBytes,
-              bundledBell.lengthInBytes,
-            ),
-            reason: 'The native sound must be the bundled bell asset',
-          );
-        }, reason: 'Verify native playback uses the bundled bell bytes');
-
-        // Native position reports drive the real scheduler. No seek is sent
-        // to the primary player, which would intentionally consume past cues.
-        for (final (seconds, cues) in [
-          (89, 1),
-          (90, 2),
-          (173, 2),
-          (174, 3),
-          (179, 3),
-        ]) {
-          native.position(primary, Duration(seconds: seconds));
-          await tester.pump();
-          await tester.pump(const Duration(milliseconds: 1));
-          expect(bell.count('seek'), cues, reason: 'Cue count at $seconds s');
-        }
-        expect(primary.count('seek'), 0);
-        expect(tester.takeException(), isNull);
-      } finally {
-        // Stop before removing channel handlers so position timers and pending
-        // bell work cannot leak into subsequent tests. Plugin shutdown also
-        // cancels event streams: pump those callbacks instead of awaiting a
-        // future whose continuations may still be queued in FakeAsync.
-        var stopped = false;
-        Object? stopError;
-        StackTrace? stopTrace;
-        // Pause changes just_audio's playing state synchronously, cancelling
-        // its position timer even if native disposal then fails.
-        await iosAudioHandler.pause();
-        iosAudioHandler.stop().then<void>(
-          (_) => stopped = true,
-          onError: (Object error, StackTrace trace) {
-            stopError = error;
-            stopTrace = trace;
-            stopped = true;
-          },
-        );
+      await _fileIO(tester, () async {
+        final file = File.fromUri(uri);
+        expect(await file.exists(), isTrue);
+        expect(await file.length(), 44 + 180 * 8000 * 2);
+        final reader = await file.open();
         try {
-          await _pumpUntil(
-            tester,
-            () => stopped,
-            reason: 'The audio handler must finish stopping native players',
-          );
-          if (stopError != null) {
-            Error.throwWithStackTrace(stopError!, stopTrace!);
-          }
+          final header = await reader.read(44);
+          expect(String.fromCharCodes(header.take(4)), 'RIFF');
+          expect(String.fromCharCodes(header.sublist(8, 12)), 'WAVE');
+          // Sample the sparse PCM body, not only its file extension/header.
+          expect(await reader.read(64), everyElement(0));
+          await reader.setPosition(44 + 90 * 8000 * 2);
+          expect(await reader.read(64), everyElement(0));
         } finally {
-          await tester.pumpWidget(const SizedBox());
-          await tester.pump();
-          semantics.dispose();
+          await reader.close();
         }
+      }, reason: 'Verify the generated silent WAV');
+
+      await _pumpUntil(
+        tester,
+        () => native.players.values.any(
+          (player) => player.uri == uri && player.count('play') > 0,
+        ),
+        reason: 'The primary player must start the generated local silence',
+      );
+      final primary = native.players.values.singleWhere(
+        (player) => player.uri == uri,
+      );
+      expect(primary.count('play'), 1);
+      expect(iosAudioHandler.playing, isTrue);
+      // Cue execution now lives in the native channel, covered by the
+      // scheduling maths tests, rather than a second just_audio player.
+      final cues = container.read(
+        cueSettingsProvider(const CueScope(CueKind.practice)),
+      );
+      expect(cues.startSound, kSessionBellAsset);
+      expect(cues.endSound, kSessionBellAsset);
+      expect(iosAudioHandler.sessionBells.enabled, isFalse);
+      expect(primary.count('seek'), 0);
+      expect(tester.takeException(), isNull);
+    } finally {
+      // Stop before removing channel handlers so position timers and pending
+      // bell work cannot leak into subsequent tests. Plugin shutdown also
+      // cancels event streams: pump those callbacks instead of awaiting a
+      // future whose continuations may still be queued in FakeAsync.
+      var stopped = false;
+      Object? stopError;
+      StackTrace? stopTrace;
+      // Pause changes just_audio's playing state synchronously, cancelling
+      // its position timer even if native disposal then fails.
+      await iosAudioHandler.pause();
+      iosAudioHandler.stop().then<void>(
+        (_) => stopped = true,
+        onError: (Object error, StackTrace trace) {
+          stopError = error;
+          stopTrace = trace;
+          stopped = true;
+        },
+      );
+      try {
+        await _pumpUntil(
+          tester,
+          () => stopped,
+          reason: 'The audio handler must finish stopping native players',
+        );
+        if (stopError != null) {
+          Error.throwWithStackTrace(stopError!, stopTrace!);
+        }
+      } finally {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump();
+        semantics.dispose();
       }
-    },
-    timeout: const Timeout(Duration(seconds: 45)),
-  );
+    }
+  }, timeout: const Timeout(Duration(seconds: 45)));
 }
