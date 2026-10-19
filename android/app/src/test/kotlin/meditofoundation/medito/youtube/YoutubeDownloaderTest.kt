@@ -1,6 +1,11 @@
 package meditofoundation.medito.youtube
 
-import com.sun.net.httpserver.HttpServer
+import okhttp3.mockwebserver.Dispatcher
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.RecordedRequest
+import okhttp3.mockwebserver.SocketPolicy
+import okio.Buffer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -11,78 +16,49 @@ import org.schabi.newpipe.extractor.downloader.Request
 import org.schabi.newpipe.extractor.exceptions.ReCaptchaException
 import java.io.ByteArrayOutputStream
 import java.io.IOException
-import java.net.InetAddress
-import java.net.InetSocketAddress
 import java.net.SocketTimeoutException
+import java.util.concurrent.TimeUnit
 import java.util.zip.GZIPOutputStream
 
 class YoutubeDownloaderTest {
-    private lateinit var server: HttpServer
+    private lateinit var server: MockWebServer
     private lateinit var base: String
-    private val release = java.util.concurrent.CountDownLatch(1)
 
     @Before
     fun start() {
-        server = HttpServer.create(InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0)
-        server.executor = java.util.concurrent.Executors.newCachedThreadPool { Thread(it).apply { isDaemon = true } }
-        server.createContext("/ok") { ex ->
-            val bytes = "héllo".toByteArray(Charsets.UTF_8)
-            ex.responseHeaders.add("Content-Type", "text/plain; charset=utf-8")
-            ex.responseHeaders.add("X-Seen-Agent", ex.requestHeaders.getFirst("User-Agent") ?: "")
-            ex.responseHeaders.add("X-Seen-Custom", ex.requestHeaders.getFirst("X-Custom") ?: "")
-            ex.sendResponseHeaders(200, bytes.size.toLong())
-            ex.responseBody.use { it.write(bytes) }
-        }
-        server.createContext("/echo") { ex ->
-            val body = ex.requestBody.readBytes()
-            ex.sendResponseHeaders(200, body.size.toLong())
-            ex.responseBody.use { it.write(body) }
-        }
-        server.createContext("/limited") { ex ->
-            ex.sendResponseHeaders(429, -1)
-            ex.close()
-        }
-        server.createContext("/missing") { ex ->
-            val bytes = "nope".toByteArray()
-            ex.sendResponseHeaders(404, bytes.size.toLong())
-            ex.responseBody.use { it.write(bytes) }
-        }
-        server.createContext("/gzip") { ex ->
-            val packed = ByteArrayOutputStream().also { out -> GZIPOutputStream(out).use { it.write("zipped text".toByteArray()) } }.toByteArray()
-            ex.responseHeaders.add("Content-Encoding", "gzip")
-            ex.sendResponseHeaders(200, packed.size.toLong())
-            ex.responseBody.use { it.write(packed) }
-        }
-        server.createContext("/big") { ex ->
-            ex.sendResponseHeaders(200, 0)
-            ex.responseBody.use { out -> val chunk = ByteArray(8192) { 'a'.code.toByte() }; repeat(64) { out.write(chunk) } }
-        }
-        server.createContext("/hang") { ex ->
-            release.await()
-            ex.close()
-        }
-        server.createContext("/drip") { ex ->
-            ex.sendResponseHeaders(200, 0)
-            try {
-                ex.responseBody.use { out -> repeat(100) { out.write('x'.code); out.flush(); Thread.sleep(50) } }
-            } catch (e: IOException) {
-                // the client gave up
+        // Android's unit-test compiler omits the JDK-only com.sun HTTP server.
+        // MockWebServer exercises the same real socket paths on both routes.
+        server = MockWebServer()
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse = when (request.path) {
+                "/ok" -> MockResponse()
+                    .addHeader("Content-Type", "text/plain; charset=utf-8")
+                    .addHeader("X-Seen-Agent", request.getHeader("User-Agent") ?: "")
+                    .addHeader("X-Seen-Custom", request.getHeader("X-Custom") ?: "")
+                    .setBody("héllo")
+                "/echo" -> MockResponse().setBody(request.body.readUtf8())
+                "/limited" -> MockResponse().setResponseCode(429)
+                "/missing" -> MockResponse().setResponseCode(404).setBody("nope")
+                "/gzip" -> {
+                    val packed = ByteArrayOutputStream().also { out ->
+                        GZIPOutputStream(out).use { it.write("zipped text".toByteArray()) }
+                    }.toByteArray()
+                    MockResponse().addHeader("Content-Encoding", "gzip").setBody(Buffer().write(packed))
+                }
+                "/big" -> MockResponse().setBody("a".repeat(512 * 1024))
+                "/hang" -> MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE)
+                "/drip" -> MockResponse().setBody("x".repeat(100))
+                    .throttleBody(1, 50, TimeUnit.MILLISECONDS)
+                "/redirect" -> MockResponse().setResponseCode(302).addHeader("Location", "$base/ok")
+                else -> MockResponse().setResponseCode(404)
             }
         }
-        server.createContext("/redirect") { ex ->
-            ex.responseHeaders.add("Location", "$base/ok")
-            ex.sendResponseHeaders(302, -1)
-            ex.close()
-        }
         server.start()
-        base = "http://127.0.0.1:${server.address.port}"
+        base = server.url("/").toString().removeSuffix("/")
     }
 
     @After
-    fun stop() {
-        release.countDown()
-        server.stop(0)
-    }
+    fun stop() = server.shutdown()
 
     private fun downloader(
         connect: Int = 2_000, read: Int = 2_000, deadline: Long = 5_000, max: Int = 64 * 1024,
