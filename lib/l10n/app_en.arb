@@ -2408,5 +2408,13 @@
   "myCourseMore": "More options",
   "@myCourseMore": {
     "description": "Tooltip of a row's overflow menu"
+  },
+  "myCourseRemovedSnack": "Removed from the course",
+  "@myCourseRemovedSnack": {
+    "description": "After taking a session out of a personal course"
+  },
+  "myCourseEditAction": "Edit",
+  "@myCourseEditAction": {
+    "description": "Button on a personal course page that opens its edit screen"
   }
 }

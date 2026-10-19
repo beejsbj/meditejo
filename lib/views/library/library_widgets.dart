@@ -6,7 +6,9 @@ import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/services/library/library_models.dart';
+import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/views/library/library_actions.dart';
+import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/widgets/network_image_widget.dart';
 
 /// "3 of 12" for a course the user has started; null otherwise.
@@ -100,7 +102,9 @@ class LibraryEntryTile extends ConsumerWidget {
   }
 }
 
-/// Reclassify, rename or remove an entry.
+/// Edit or copy a course, add to a personal course, reclassify, rename, pin,
+/// or remove an entry. A personal course is deleted rather than removed: it
+/// exists nowhere else.
 class LibraryEntryMenu extends ConsumerWidget {
   const LibraryEntryMenu({super.key, required this.entry});
 
@@ -110,10 +114,25 @@ class LibraryEntryMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final isTeacher = entry.kind == LibraryKind.teacher;
+    final mine = isMyCourseId(entry.sourceId);
     return PopupMenuButton<_Action>(
+      key: ValueKey('library_menu_${entry.sourceId}'),
       tooltip: MaterialLocalizations.of(context).showMenuTooltip,
       icon: const Icon(Icons.more_vert_rounded),
       onSelected: (action) => switch (action) {
+        _Action.edit => openMyCourseEditor(context, entry.sourceId),
+        _Action.addToCourse => showAddToCourse(
+          context,
+          ref,
+          id: entry.sourceId,
+        ),
+        _Action.duplicate => duplicateAsMyCourse(
+          context,
+          ref,
+          packId: entry.sourceId,
+          title: entry.displayTitle,
+        ),
+        _Action.delete => deleteMyCourse(context, ref, entry.sourceId),
         _Action.toPractice => setLibraryGroup(
           ref,
           entry,
@@ -125,6 +144,24 @@ class LibraryEntryMenu extends ConsumerWidget {
         _Action.remove => removeFromLibrary(context, ref, entry),
       },
       itemBuilder: (context) => [
+        if (mine)
+          PopupMenuItem(
+            key: const ValueKey('library_menu_edit'),
+            value: _Action.edit,
+            child: Text(l10n.myCourseEdit),
+          ),
+        if (!isTeacher)
+          PopupMenuItem(
+            key: const ValueKey('library_menu_add_to_course'),
+            value: _Action.addToCourse,
+            child: Text(l10n.myCourseAddTo),
+          ),
+        if (entry.isCourse)
+          PopupMenuItem(
+            key: const ValueKey('library_menu_duplicate'),
+            value: _Action.duplicate,
+            child: Text(l10n.myCourseDuplicate),
+          ),
         if (!isTeacher && entry.group == LibraryGroup.talks)
           PopupMenuItem(
             value: _Action.toPractice,
@@ -147,13 +184,33 @@ class LibraryEntryMenu extends ConsumerWidget {
                   : l10n.pinCourse,
             ),
           ),
-        PopupMenuItem(value: _Action.remove, child: Text(l10n.libraryRemove)),
+        if (mine)
+          PopupMenuItem(
+            key: const ValueKey('library_menu_delete'),
+            value: _Action.delete,
+            child: Text(l10n.myCourseDelete),
+          )
+        else
+          PopupMenuItem(
+            value: _Action.remove,
+            child: Text(l10n.libraryRemove),
+          ),
       ],
     );
   }
 }
 
-enum _Action { toPractice, toTalks, rename, pin, remove }
+enum _Action {
+  edit,
+  addToCourse,
+  duplicate,
+  toPractice,
+  toTalks,
+  rename,
+  pin,
+  remove,
+  delete,
+}
 
 /// A square card for the Home rail: artwork, name, and what it is.
 class LibraryRailCard extends ConsumerWidget {

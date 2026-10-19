@@ -2287,4 +2287,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myCourseMore => 'More options';
+
+  @override
+  String get myCourseRemovedSnack => 'Removed from the course';
+
+  @override
+  String get myCourseEditAction => 'Edit';
 }

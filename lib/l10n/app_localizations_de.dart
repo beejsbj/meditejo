@@ -2323,4 +2323,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get myCourseMore => 'Weitere Optionen';
+
+  @override
+  String get myCourseRemovedSnack => 'Aus dem Kurs entfernt';
+
+  @override
+  String get myCourseEditAction => 'Bearbeiten';
 }

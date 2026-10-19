@@ -186,61 +186,116 @@ Future<bool> deleteMyCourse(
   return true;
 }
 
-/// A row's "⋮": Add to course…, and for a course, Make my own copy.
+/// What a row's "⋮" or a page's actions sheet offers for [id].
+enum ContentAction { edit, addToCourse, duplicate, removeFromCourse, delete }
+
+/// The actions for [id], in menu order. A personal course can be edited and
+/// deleted; any course can be copied into a personal one; a session listed
+/// in the personal course [inCourse] can be taken out of it.
+List<ContentAction> contentActionsFor(String id, {String? inCourse}) => [
+  if (isMyCourseId(id)) ContentAction.edit,
+  ContentAction.addToCourse,
+  if (isCourseId(id)) ContentAction.duplicate,
+  if (inCourse != null && isMyCourseId(inCourse))
+    ContentAction.removeFromCourse,
+  if (isMyCourseId(id)) ContentAction.delete,
+];
+
+String _actionLabel(AppLocalizations l10n, ContentAction action) =>
+    switch (action) {
+      ContentAction.edit => l10n.myCourseEdit,
+      ContentAction.addToCourse => l10n.myCourseAddTo,
+      ContentAction.duplicate => l10n.myCourseDuplicate,
+      ContentAction.removeFromCourse => l10n.myCourseRemoveRow,
+      ContentAction.delete => l10n.myCourseDelete,
+    };
+
+IconData _actionIcon(ContentAction action) => switch (action) {
+  ContentAction.edit => Icons.edit_rounded,
+  ContentAction.addToCourse => Icons.playlist_add_rounded,
+  ContentAction.duplicate => Icons.copy_all_rounded,
+  ContentAction.removeFromCourse => Icons.playlist_remove_rounded,
+  ContentAction.delete => Icons.delete_outline_rounded,
+};
+
+Future<void> _run(
+  BuildContext context,
+  WidgetRef ref,
+  ContentAction action, {
+  required String id,
+  required String title,
+  MyItemDraft? fallback,
+  String? inCourse,
+}) async {
+  switch (action) {
+    case ContentAction.edit:
+      return openMyCourseEditor(context, id);
+    case ContentAction.addToCourse:
+      return showAddToCourse(context, ref, id: id, fallback: fallback);
+    case ContentAction.duplicate:
+      return duplicateAsMyCourse(context, ref, packId: id, title: title);
+    case ContentAction.removeFromCourse:
+      final l10n = AppLocalizations.of(context)!;
+      await ref.read(myCourseSourceProvider).removeItem(inCourse!, id);
+      if (context.mounted) showSnackBar(context, l10n.myCourseRemovedSnack);
+    case ContentAction.delete:
+      if (await deleteMyCourse(context, ref, id) && context.mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+  }
+}
+
+/// A row's "⋮": Add to course…, and more for a course (see
+/// [contentActionsFor]).
 class ContentActionsButton extends ConsumerWidget {
   const ContentActionsButton({
     super.key,
     required this.id,
     this.title = '',
     this.fallback,
+    this.inCourse,
   });
 
   final String id;
 
   /// The course's title, for its copy's name.
   final String title;
+
+  /// Describes a session in case its source cannot be read when adding it.
   final MyItemDraft? fallback;
+
+  /// The personal course this row is listed in, if any.
+  final String? inCourse;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final course = isCourseId(id);
-    return PopupMenuButton<_RowAction>(
+    return PopupMenuButton<ContentAction>(
       key: ValueKey('content_actions_$id'),
       tooltip: l10n.myCourseMore,
       icon: const Icon(Icons.more_vert_rounded),
-      onSelected: (action) => switch (action) {
-        _RowAction.addToCourse => showAddToCourse(
-          context,
-          ref,
-          id: id,
-          fallback: fallback,
-        ),
-        _RowAction.duplicate => duplicateAsMyCourse(
-          context,
-          ref,
-          packId: id,
-          title: title,
-        ),
-      },
+      onSelected: (action) => _run(
+        context,
+        ref,
+        action,
+        id: id,
+        title: title,
+        fallback: fallback,
+        inCourse: inCourse,
+      ),
       itemBuilder: (context) => [
-        PopupMenuItem(
-          value: _RowAction.addToCourse,
-          child: Text(l10n.myCourseAddTo),
-        ),
-        if (course)
+        for (final action in contentActionsFor(id, inCourse: inCourse))
           PopupMenuItem(
-            value: _RowAction.duplicate,
-            child: Text(l10n.myCourseDuplicate),
+            key: ValueKey('content_action_${action.name}'),
+            value: action,
+            child: Text(_actionLabel(l10n, action)),
           ),
       ],
     );
   }
 }
 
-enum _RowAction { addToCourse, duplicate }
-
-/// The same two actions as a bottom sheet, for a course or session page.
+/// The same actions as a bottom sheet, for a course or session page.
 Future<void> showContentActionsSheet(
   BuildContext context,
   WidgetRef ref, {
@@ -248,44 +303,46 @@ Future<void> showContentActionsSheet(
   String title = '',
   MyItemDraft? fallback,
 }) async {
-  if (!isCourseId(id)) {
-    return showAddToCourse(context, ref, id: id, fallback: fallback);
+  final actions = contentActionsFor(id);
+  if (actions.length == 1) {
+    return _run(
+      context,
+      ref,
+      actions.single,
+      id: id,
+      title: title,
+      fallback: fallback,
+    );
   }
   final l10n = AppLocalizations.of(context)!;
-  final action = await showModalBottomSheet<_RowAction>(
+  final action = await showModalBottomSheet<ContentAction>(
     context: context,
     showDragHandle: true,
     builder: (context) => SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ListTile(
-            key: const ValueKey('sheet_add_to_course'),
-            leading: const Icon(Icons.playlist_add_rounded),
-            title: Text(l10n.myCourseAddTo),
-            onTap: () => Navigator.pop(context, _RowAction.addToCourse),
-          ),
-          ListTile(
-            key: const ValueKey('sheet_duplicate_course'),
-            leading: const Icon(Icons.copy_all_rounded),
-            title: Text(l10n.myCourseDuplicate),
-            onTap: () => Navigator.pop(context, _RowAction.duplicate),
-          ),
+          for (final action in actions)
+            ListTile(
+              key: ValueKey('sheet_${action.name}'),
+              leading: Icon(_actionIcon(action)),
+              title: Text(_actionLabel(l10n, action)),
+              onTap: () => Navigator.pop(context, action),
+            ),
           const SizedBox(height: 16),
         ],
       ),
     ),
   );
   if (action == null || !context.mounted) return;
-  return switch (action) {
-    _RowAction.addToCourse => showAddToCourse(context, ref, id: id),
-    _RowAction.duplicate => duplicateAsMyCourse(
-      context,
-      ref,
-      packId: id,
-      title: title,
-    ),
-  };
+  return _run(
+    context,
+    ref,
+    action,
+    id: id,
+    title: title,
+    fallback: fallback,
+  );
 }
 
 class _Choice {
@@ -354,7 +411,7 @@ class _AddToCourseSheet extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       subtitle: Text(
-                        l10n.courseSessionCount(course.sessionCount),
+                        l10n.librarySessions(course.sessionCount),
                       ),
                       trailing: course.contains
                           ? const Icon(Icons.check_rounded)

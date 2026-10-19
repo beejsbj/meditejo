@@ -63,7 +63,7 @@ final libSourceProvider = Provider<LibSource>(
 
 /// Courses the user made from sessions anywhere, served as a content source.
 /// It reads their sessions through the other sources.
-final myCourseSourceProvider = Provider<MyCourseSource>((ref) {
+final Provider<MyCourseSource> myCourseSourceProvider = Provider((ref) {
   final source = MyCourseSource(
     db: ref.watch(libraryDatabaseProvider),
     library: ref.watch(libraryStoreProvider),

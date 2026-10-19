@@ -17,6 +17,8 @@ import 'package:medito/views/dharma_seed/widgets/teacher_avatar.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/views/library/lib_course_settings.dart';
 import 'package:medito/views/library/library_actions.dart';
+import 'package:medito/services/my_courses/my_course_models.dart';
+import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/pack/widgets/pack_item_widget.dart';
 import 'package:medito/views/pack/widgets/pack_path_button.dart';
@@ -246,6 +248,7 @@ class _PackViewState extends ConsumerState<PackView>
   /// kinds, its teacher or its credit, so the page shows progress, tabs and
   /// attribution. Plain packs keep the original layout.
   bool _isCourse(PackModel pack) =>
+      isMyCourseId(pack.id) ||
       pack.teacher != null ||
       pack.attribution != null ||
       pack.items.any((item) => item.kind != null);
@@ -255,7 +258,7 @@ class _PackViewState extends ConsumerState<PackView>
   Widget _courseHeader(PackModel pack) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final tracks = pack.items.where((i) => i.type == TypeConstants.track);
+    final tracks = pack.playableTracks;
     final total = tracks.length;
     final done = tracks.where((i) => i.isCompleted == true).length;
     final next = tracks.where((i) => i.isCompleted != true).firstOrNull;
@@ -298,11 +301,21 @@ class _PackViewState extends ConsumerState<PackView>
               ),
           ],
           const SizedBox(height: 16),
-          SaveButton(
-            id: pack.id,
-            label: l10n.courseSave,
-            savedLabel: l10n.courseSaved,
-          ),
+          // A personal course lives in the library; it is deleted, not
+          // unsaved.
+          if (isMyCourseId(pack.id))
+            FilledButton.tonalIcon(
+              key: const ValueKey('my_course_edit'),
+              onPressed: () => openMyCourseEditor(context, pack.id),
+              icon: const Icon(Icons.edit_rounded),
+              label: Text(l10n.myCourseEditAction),
+            )
+          else
+            SaveButton(
+              id: pack.id,
+              label: l10n.courseSave,
+              savedLabel: l10n.courseSaved,
+            ),
           if (ref.watch(inLibraryProvider(pack.id)).value ?? false)
             TextButton.icon(
               key: const ValueKey('course_pin'),
@@ -445,9 +458,14 @@ class _PackViewState extends ConsumerState<PackView>
     if (pack.items.isEmpty && pack.id.startsWith('yt-playlist-')) {
       return [YoutubePlaylistEmpty(packId: pack.id)];
     }
+    if (pack.items.isEmpty && isMyCourseId(pack.id)) {
+      return [_myCourseEmpty()];
+    }
     final groups = _dayGroups(pack.items);
     final rows = <Widget>[];
-    if (groups == null) {
+    if (pack.items.any((i) => i.section != null)) {
+      rows.addAll(_sectioned(pack));
+    } else if (groups == null) {
       rows.addAll(_listItems(pack, ref));
     } else {
       final first = _day(groups.first.date);
@@ -529,6 +547,60 @@ class _PackViewState extends ConsumerState<PackView>
     );
   }
 
+  /// A personal course's sessions under the headings its maker gave them;
+  /// sessions before the first heading stand on their own.
+  List<Widget> _sectioned(PackModel pack) {
+    final theme = Theme.of(context);
+    final rows = <Widget>[];
+    String? section;
+    for (final (index, item) in pack.items.indexed) {
+      if (item.section != null && item.section != section) {
+        rows.add(
+          Padding(
+            key: ValueKey('section_$index'),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+            child: Semantics(
+              header: true,
+              child: Text(
+                item.section!,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+      section = item.section;
+      final next = index + 1 < pack.items.length ? pack.items[index + 1] : null;
+      rows.add(
+        _buildListTile(
+          item,
+          next == null || (next.section != null && next.section != section),
+        ),
+      );
+    }
+    return rows;
+  }
+
+  Widget _myCourseEmpty() {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return Padding(
+      key: const ValueKey('my_course_empty'),
+      padding: const EdgeInsets.fromLTRB(20, 32, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.myCourseEmptyTitle, style: theme.textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(l10n.myCourseEmptyBody, style: theme.textTheme.bodyMedium),
+        ],
+      ),
+    );
+  }
+
   List<Widget> _listItems(PackModel pack, WidgetRef ref) {
     return [
       for (final packItem in pack.items)
@@ -537,25 +609,52 @@ class _PackViewState extends ConsumerState<PackView>
   }
 
   Widget _buildListTile(PackItemsModel item, bool isLast) {
+    final unavailable = item.unavailable == true;
+    final row = Semantics(
+      button: true,
+      child: InkWell(
+        onTap: () => unavailable
+            ? showSnackBar(
+                context,
+                AppLocalizations.of(context)!.myCourseUnavailableSnack,
+              )
+            : _onListItemTap(item.id, item.type, context),
+        splashColor: ColorConstants.charcoal,
+        child: unavailable
+            // Said in words too, not only by fading the row.
+            ? PackItemWidget(
+                item: item.copyWith(
+                  kind: AppLocalizations.of(context)!.myCourseUnavailable,
+                ),
+              )
+            : item.type == TypeConstants.pack
+            ? PackItemWidget(item: item)
+            : PackItemWidget(
+                item: item,
+                onSetComplete: (complete) => _setComplete(item, complete),
+              ),
+      ),
+    );
     return Column(
       children: [
         // Rows open a session, pack or link; without the role they read as
-        // plain text.
-        Semantics(
-          button: true,
-          child: InkWell(
-            onTap: () {
-              _onListItemTap(item.id, item.type, context);
-            },
-            splashColor: ColorConstants.charcoal,
-            child: item.type == TypeConstants.pack
-                ? PackItemWidget(item: item)
-                : PackItemWidget(
-                    item: item,
-                    onSetComplete: (complete) => _setComplete(item, complete),
-                  ),
-          ),
-        ),
+        // plain text. A session row's menu adds it to a personal course.
+        if (item.type == TypeConstants.track)
+          Opacity(
+            opacity: unavailable ? 0.5 : 1,
+            child: Row(
+              children: [
+                Expanded(child: row),
+                ContentActionsButton(
+                  id: item.id,
+                  fallback: MyItemDraft.fromPackItem(item),
+                  inCourse: widget.id,
+                ),
+              ],
+            ),
+          )
+        else
+          row,
         if (!isLast)
           const Divider(
             color: ColorConstants.charcoal,
@@ -626,6 +725,11 @@ class _PackViewState extends ConsumerState<PackView>
   }
 
   void _onListItemTap(String id, String type, BuildContext context) {
+    if (type == TypeConstants.track) {
+      // A session several courses list counts towards the one it was opened
+      // from.
+      ref.read(libraryStoreProvider).noteSessionContext(id, widget.id);
+    }
     handleNavigation(type, [id], context, ref: ref);
   }
 

@@ -459,6 +459,20 @@ class MyCourseSource implements ContentSource {
     _changed();
   }
 
+  /// Takes the session [itemId] out of [courseId] only; it stays in its
+  /// source, the library and any other course.
+  Future<void> removeItem(String courseId, String itemId) async {
+    await db.transaction(() async {
+      await (db.delete(db.myCourseItems)..where(
+            (r) => r.courseId.equals(courseId) & r.itemId.equals(itemId),
+          ))
+          .go();
+      await _touch(courseId);
+    });
+    await _syncEntry(courseId);
+    _changed();
+  }
+
   /// Renames a course (from the library's menu).
   Future<void> rename(String id, String title) async {
     await (db.update(db.myCourses)..where((c) => c.id.equals(id))).write(

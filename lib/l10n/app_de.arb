@@ -1232,5 +1232,7 @@
   "myCourseUnavailable": "Nicht verfügbar",
   "myCourseUnavailableSnack": "Diese Sitzung ist bei ihrer Quelle nicht mehr verfügbar.",
   "myCourseRemoveWarning": "{count, plural, =1{Sie ist auch in einem deiner Kurse und wird dort als nicht verfügbar angezeigt.} other{Sie ist auch in {count} deiner Kurse und wird dort als nicht verfügbar angezeigt.}}",
-  "myCourseMore": "Weitere Optionen"
+  "myCourseMore": "Weitere Optionen",
+  "myCourseRemovedSnack": "Aus dem Kurs entfernt",
+  "myCourseEditAction": "Bearbeiten"
 }

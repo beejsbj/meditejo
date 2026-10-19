@@ -4077,6 +4077,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'More options'**
   String get myCourseMore;
+
+  /// After taking a session out of a personal course
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from the course'**
+  String get myCourseRemovedSnack;
+
+  /// Button on a personal course page that opens its edit screen
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get myCourseEditAction;
 }
 
 class _AppLocalizationsDelegate

@@ -7,6 +7,8 @@ import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/services/library/lib_ids.dart';
 import 'package:medito/services/library/library_models.dart';
+import 'package:medito/services/my_courses/my_course_models.dart';
+import 'package:medito/utils/logger.dart';
 import 'package:medito/widgets/snackbar_widget.dart';
 
 /// Opens a library entry on its own page: a course, a single or a teacher.
@@ -57,11 +59,18 @@ Future<void> removeFromLibrary(
   final store = ref.read(libraryStoreProvider);
 
   if (imported) {
+    final listedIn = await _personalCoursesListing(ref, entry);
+    if (!context.mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.libraryRemoveTitle),
-        content: Text(l10n.libraryRemoveImported),
+        content: Text(
+          [
+            l10n.libraryRemoveImported,
+            if (listedIn > 0) l10n.myCourseRemoveWarning(listedIn),
+          ].join('\n\n'),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -110,6 +119,30 @@ Future<void> removeFromLibrary(
   );
 }
 
+/// How many personal courses list the imported [entry] or one of its
+/// sessions: removing it leaves them there, unavailable.
+Future<int> _personalCoursesListing(WidgetRef ref, LibraryEntry entry) async {
+  try {
+    final ids = entry.isCourse
+        ? [
+            for (final item
+                in (await ref
+                        .read(libraryContentRouterProvider)
+                        .pack(entry.sourceId))
+                    .items)
+              item.id,
+          ]
+        : [entry.sourceId];
+    final source = ref.read(myCourseSourceProvider);
+    return <String>{
+      for (final id in ids) ...await source.coursesHolding(id),
+    }.length;
+  } catch (e) {
+    AppLogger.d('LIBRARY', 'Could not check courses for ${entry.sourceId}: $e');
+    return 0;
+  }
+}
+
 Future<void> renameLibraryEntry(
   BuildContext context,
   WidgetRef ref,
@@ -120,6 +153,10 @@ Future<void> renameLibraryEntry(
     builder: (context) => _RenameDialog(initial: entry.displayTitle),
   );
   if (name == null) return;
+  // A personal course's title is its own, not an override.
+  if (isMyCourseId(entry.sourceId)) {
+    return ref.read(myCourseSourceProvider).rename(entry.sourceId, name);
+  }
   // Back to the source's own title when the new name is the same or blank.
   await ref
       .read(libraryStoreProvider)

@@ -40,7 +40,7 @@ final dharmaSeedSourceProvider = Provider<DharmaSeedSource>(
 );
 
 /// Every built-in or imported source, consulted by stable ID prefix.
-final contentSourcesProvider = Provider<List<ContentSource>>(
+final Provider<List<ContentSource>> contentSourcesProvider = Provider(
   (ref) => [
     ref.watch(dharmaSeedSourceProvider),
     ref.watch(libSourceProvider),

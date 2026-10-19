@@ -138,10 +138,7 @@ class Pack extends _$Pack {
     final pack = state.value;
     if (pack == null) return;
 
-    final trackIds = pack.items
-        .where((item) => item.type == TypeConstants.track)
-        .map((item) => item.id)
-        .toList();
+    final trackIds = [for (final item in pack.playableTracks) item.id];
     if (trackIds.isEmpty) return;
 
     final statsManager = ref.read(statsManagerProvider);

@@ -156,8 +156,7 @@ class _MyCourseEditViewState extends ConsumerState<MyCourseEditView> {
   });
 
   void _reorder(int from, int to) => setState(() {
-    final line = _lines.removeAt(from);
-    _lines.insert(to > from ? to - 1 : to, line);
+    _lines.insert(to, _lines.removeAt(from));
   });
 
   @override
@@ -197,7 +196,7 @@ class _MyCourseEditViewState extends ConsumerState<MyCourseEditView> {
                 header: _header(context, edit),
                 footer: _footer(context),
                 itemCount: _lines.length,
-                onReorder: _reorder,
+                onReorderItem: _reorder,
                 itemBuilder: (context, index) =>
                     _lineTile(context, _lines[index], index),
               ),
