@@ -149,3 +149,8 @@ Product questions here were settled with a reasonable, reversible choice and are
 3. Removing an imported course deletes its copied audio (after asking). Should removal keep the files for a while instead?
 4. Teachers live in the library as their own kind. Fine, or should "Save teacher" stay a separate Explore-only list?
 5. Talk archives default to Talks (three hosts); everything else to Practice. Any host to add?
+
+## 2026-10-19 (slice 5: YouTube)
+
+- **Build gate first:** resolve the pinned NewPipeExtractor v0.26.5 POM and JAR from JitPack on GitHub Actions before completing the source integration. Android builds stay on Actions; bjslab handles source and signing only.
+- **Licence:** NewPipeExtractor is GPL-3.0. Combining it into this AGPL-3.0 application is permitted (GPLv3 section 13); retain its notice and source link in the in-app licences. The extractor's licence does not grant a licence to any YouTube recording.
