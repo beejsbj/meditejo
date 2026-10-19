@@ -1,19 +1,34 @@
 # Slice 6: cues and Customize
 
-Implementation checkpoint for `fork/cues`.
+Branch `fork/cues`, PR https://github.com/beejsbj/meditejo/pull/14.
 
 ## Progress
 
-- [x] Read the fork decisions and existing playback seams.
-- [ ] Shared cue model, deterministic scheduler and scoped defaults.
-- [ ] Native Android execution and Swift parity; real-listening completion.
-- [ ] Shared Customize sheet in player and timer.
-- [ ] Bundled generated pulse assets and notices.
-- [ ] Analyze, focused tests, native maths tests and signed APK.
+- [x] Read fork decisions, architecture and existing playback seams.
+- [x] Shared cue configuration and deterministic scheduling maths.
+- [x] Defaults per Practice/Talks, optional course overrides, timer migration.
+- [x] Native Android execution with countdown, extension and end-bell tail.
+- [x] Swift scheduler and Flutter transport hookup (unbuilt on iOS).
+- [x] Persisted distinct heard ranges and 90% completion, separate from EOF.
+- [x] Shared Customize surface in player and timer, live finish estimate.
+- [x] Four original bundled pulse sounds, reproducible generator and notice.
+- [x] Scheduler, coverage, persistence, widget and native maths tests written.
+- [ ] Final hosted analyze/serial tests/full suite and signed APK receipt.
 
-## Reversible implementation choices
+## Verification and limits
 
-- Cue configuration crosses a dedicated `meditejo/cues` method channel; existing playback Pigeon APIs stay focused on transport.
-- Pulse settles linearly in BPM over session time; beat deadlines come from the integral of that ramp, so polling does not accumulate drift.
-- Interval randomness uses a seeded generator and bounded gaps around the selected interval; no cue at or beyond the session end.
-- Completion records listening separately from the terminal player state; crossing 90% must not interrupt a playing session.
+- Local Pigeon/build_runner codegen passed through the heavy-job queue.
+- Portable Flutter checks were unavailable (Daytona exit 125 before execution).
+  Hosted `Cue checks` runs affected files one at a time with a 1200-second
+  timeout; the existing Flutter workflow runs the full suite.
+- The native worker ran 28 pure JVM tests through the queue; later coverage
+  persistence tests are included in the hosted APK test gate.
+- No local Gradle, phone operation or release publication was performed.
+- iOS remains unbuilt. Native deadline maths does not prove acoustic latency;
+  a real screen-off sit and speaker/Bluetooth timing remain device checks.
+- The existing ambient catalogue is empty. Practice defaults enabled, Talks
+  disabled; the next soundscape slice supplies playable presets.
+- New Customize labels are English, retaining the current Medito styling.
+
+Implementation choices and the runtime seams are recorded in DECISIONS.md
+and ARCHITECTURE.md.
