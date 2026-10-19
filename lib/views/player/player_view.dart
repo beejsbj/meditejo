@@ -74,6 +74,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
   CueScope? _cueScope;
   ProviderSubscription<CueSettings>? _cueSubscription;
   bool _customized = false;
+  bool _playRequested = false;
   bool _autoplayPending = false;
   bool _finishing = false;
   bool _cancelAutoplay = false;
@@ -135,7 +136,9 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
         );
         if (!mounted || _isClosing) return;
         if (!start) {
-          Navigator.of(context).pop();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) Navigator.of(context).pop();
+          });
           return;
         }
       }
@@ -148,6 +151,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
     // session's completion gets to open it.
     unawaited(PendingEndScreen.start(_prefs, request, _statsAtSessionStart));
     try {
+      _playRequested = true;
       await ref.read(playerProvider.notifier).play(request);
       if (!mounted) return;
       _completionGate.trackLoaded(
@@ -552,12 +556,15 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
   }
 
   void _stopAudio() {
+    if (!_playRequested) return;
+    _playRequested = false;
     ref.read(playerProvider.notifier).stop();
     ref.read(backgroundSoundsNotifierProvider.notifier).stopBackgroundSound();
   }
 
   void _resetState() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       ref.read(audioStateProvider.notifier).resetState();
     });
   }

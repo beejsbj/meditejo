@@ -27,6 +27,7 @@ final playerProvider = NotifierProvider<PlayerProvider, PlaybackRequest?>(() {
 });
 
 class PlayerProvider extends Notifier<PlaybackRequest?> {
+  int _generation = 0;
   @override
   PlaybackRequest? build() => null;
 
@@ -47,8 +48,10 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
 
     // The audio state outlives sessions; drop the previous track's (possibly
     // completed, full-position) values so nothing reads them as this one's.
+    final generation = ++_generation;
     ref.read(audioStateProvider.notifier).resetState();
-    await _playTrack(request);
+    await _playTrack(request, generation);
+    if (generation != _generation) return;
     // Resuming: the player is already preparing the file, and a seek issued
     // now is applied as soon as it is ready.
     if (request.startPositionMs > 0) {
@@ -80,8 +83,9 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     }
   }
 
-  Future<void> _playTrack(PlaybackRequest request) async {
+  Future<void> _playTrack(PlaybackRequest request, int generation) async {
     final scope = await ref.read(cueScopeForRequestProvider(request).future);
+    if (generation != _generation) return;
     _cues = ref.read(cueSettingsProvider(scope));
     AppLogger.d(
       'PLAYER',
@@ -103,6 +107,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
         remoteUrl: fresh.voices.single.audioFiles.single.path,
       );
     }
+    if (generation != _generation) return;
     final url = downloadPath ?? request.remoteUrl;
     AppLogger.d('PLAYER', 'Will use path: $url');
 
@@ -152,10 +157,12 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
         );
         await Future.delayed(const Duration(seconds: 1));
       }
+      if (generation != _generation) return;
       setRepeatMode(repeatMode);
       setSpeed(1.0);
       await NativeCueController.configure(_cues!, request);
-      await _playAudioWithRetry(url, trackData);
+      if (generation != _generation) return;
+      await _playAudioWithRetry(url, trackData, generation);
     } else {
       AppLogger.d('PLAYER', 'On iOS - setting up audio');
       // NOTE: errors here intentionally propagate (see comment above for the
@@ -164,9 +171,12 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
       // here propagates immediately. That's intentional: callers need to know.
       setRepeatMode(repeatMode);
       setSpeed(1.0);
+      if (generation != _generation) return;
       await iosAudioHandler.setUrl(downloadPath, request, trackData);
+      if (generation != _generation) return;
       AppLogger.d('PLAYER', 'iOS setUrl succeeded');
       await iosAudioHandler.configureCues(_cues!, request);
+      if (generation != _generation) return;
       await iosAudioHandler.play();
       AppLogger.d('PLAYER', 'iOS play() called');
     }
@@ -211,11 +221,16 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     return false;
   }
 
-  Future<void> _playAudioWithRetry(String url, pigeon.Track trackData) async {
+  Future<void> _playAudioWithRetry(
+    String url,
+    pigeon.Track trackData,
+    int generation,
+  ) async {
     const maxAttempts = 3;
     const initialDelayMs = 300;
 
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      if (generation != _generation) return;
       try {
         AppLogger.d(
           'PLAYER',
@@ -255,6 +270,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
   }
 
   void stop() {
+    _generation++;
     if (Platform.isAndroid || Platform.isIOS) {
       NativeCueController.stop();
     }

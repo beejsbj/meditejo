@@ -207,7 +207,7 @@ void main() {
     await _drag(tester, 'Slow down over', 0);
     await tester.pumpAndSettle();
     expect(find.text('Ends at'), findsNothing);
-    await tester.tap(find.text('Off').last);
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Off'));
     await tester.pumpAndSettle();
     expect(_read(container).pulseSound, '');
     expect(find.text('Rate'), findsNothing);

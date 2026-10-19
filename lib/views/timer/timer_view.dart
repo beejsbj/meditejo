@@ -82,7 +82,7 @@ class _TimerViewState extends ConsumerState<TimerView> {
       body: AdaptivePageBody(
         maxWidth: 600,
         child: SafeArea(
-          child: SingleChildScrollView(
+          child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -104,15 +104,16 @@ class _TimerViewState extends ConsumerState<TimerView> {
                   Text(l10n.timerStopwatchCaption),
                   const SizedBox(height: 16),
                 ],
-                IgnorePointer(
-                  ignoring: _starting,
-                  child: CustomizeSheet(
-                    scope: _scope,
-                    isTimer: true,
-                    embedded: true,
-                    onStart: _start,
-                    showFinishes: !stopwatch,
-                    timerMinutes: stopwatch ? 0 : null,
+                Expanded(
+                  child: IgnorePointer(
+                    ignoring: _starting,
+                    child: CustomizeSheet(
+                      scope: _scope,
+                      isTimer: true,
+                      onStart: _start,
+                      showFinishes: !stopwatch,
+                      timerMinutes: stopwatch ? 0 : null,
+                    ),
                   ),
                 ),
                 if (_starting) const Center(child: CircularProgressIndicator()),

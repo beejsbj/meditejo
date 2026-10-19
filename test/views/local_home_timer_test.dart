@@ -213,6 +213,8 @@ Future<void> _openTimer(WidgetTester tester) async {
   );
   expect(find.byType(TimerView), findsOneWidget);
   expect(find.widgetWithText(ElevatedButton, 'Start'), findsOneWidget);
+  expect(tester.getBottomLeft(find.text('Start')).dy, lessThan(844));
+  expect(find.text('Duration'), findsOneWidget);
 }
 
 void main() {
