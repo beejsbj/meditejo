@@ -238,6 +238,20 @@ void main() {
       });
     });
 
+    for (final (code, reason) in [
+      ('age-restricted', ImportFailureReason.youtubeAgeRestricted),
+      ('private', ImportFailureReason.youtubePrivate),
+      ('rate-limited', ImportFailureReason.youtubeRateLimited),
+    ]) {
+      test('both halves failing preserve $code', () async {
+        api.failure = PlatformException(code: code);
+        await expectLater(
+          previewOf('$watchA&list=$playlistOne'),
+          failsWith(reason),
+        );
+      });
+    }
+
     group('failures are calm', () {
       test('no network is offline', () async {
         api.failure = PlatformException(code: 'network', message: 'dns fail');
@@ -251,13 +265,16 @@ void main() {
         );
       });
 
-      for (final code in ['unavailable', 'age-restricted', 'private']) {
-        test('$code is one plain unavailable', () async {
+      for (final (code, reason) in [
+        ('unavailable', ImportFailureReason.youtubeUnavailable),
+        ('age-restricted', ImportFailureReason.youtubeAgeRestricted),
+        ('private', ImportFailureReason.youtubePrivate),
+        ('rate-limited', ImportFailureReason.youtubeRateLimited),
+      ]) {
+        test('$code preserves its import reason', () async {
           api.failure = PlatformException(code: code, message: 'internal');
-          await expectLater(
-            previewOf(watchA),
-            failsWith(ImportFailureReason.youtubeUnavailable),
-          );
+          await expectLater(previewOf(watchA), failsWith(reason));
+          await expectLater(previewOf(listOne), failsWith(reason));
         });
       }
 
@@ -533,6 +550,69 @@ void main() {
       expect(await source.searchTracks(''), isEmpty);
     });
 
+    test(
+      'removing a single hides it from search but retains metadata',
+      () async {
+        await addCourse(watchA, choice: single);
+        await store.remove(ytVideoId(videoA));
+        expect(await source.searchTracks('quiet'), isEmpty);
+        expect((await source.track(ytVideoId(videoA))).id, ytVideoId(videoA));
+        expect(await db.youtubeVideo(videoA), isNotNull);
+        expect(api.audioCalls, isEmpty);
+      },
+    );
+
+    test(
+      'removed courses hide unique videos while shared active videos remain',
+      () async {
+        await addCourse(listOne);
+        await addCourse('https://www.youtube.com/playlist?list=$playlistTwo');
+        await store.remove(ytPlaylistId(playlistOne));
+        expect((await source.searchTracks('quiet')).map((t) => t.id).toSet(), {
+          ytVideoId(videoA),
+          ytVideoId(videoC),
+        });
+        expect(await source.searchPacks('evening'), isEmpty);
+        expect((await source.browsePacks()).map((p) => p.id), [
+          ytPlaylistId(playlistTwo),
+        ]);
+        expect(await db.youtubeSessions(), hasLength(3));
+        expect(
+          (await source.pack(ytPlaylistId(playlistOne))).items,
+          hasLength(3),
+          reason: 'history can still read retained source metadata',
+        );
+      },
+    );
+
+    test(
+      'a saved single stays searchable after its course is removed',
+      () async {
+        await addCourse(listOne);
+        await addCourse(
+          'https://www.youtube.com/watch?v=$videoB',
+          choice: single,
+        );
+        await store.remove(ytPlaylistId(playlistOne));
+        expect((await source.searchTracks('quiet')).map((t) => t.id), [
+          ytVideoId(videoB),
+        ]);
+      },
+    );
+
+    test(
+      'refresh hides orphaned videos without erasing their metadata',
+      () async {
+        await addCourse(listOne);
+        api.playlists[playlistOne] = playlist([item(videoB)]);
+        await source.refresh(ytPlaylistId(playlistOne), force: true);
+        expect((await source.searchTracks('quiet')).map((t) => t.id), [
+          ytVideoId(videoB),
+        ]);
+        expect(await db.youtubeVideo(videoA), isNotNull);
+      },
+    );
+
     test('a course is the parent of its sessions', () async {
       await addCourse(listOne);
       expect(
@@ -584,8 +664,26 @@ void main() {
       await addCourse(watchA, choice: single);
     });
 
-    test('a track plays the resolved audio address', () async {
+    test('metadata opens offline without stream or video lookup', () async {
+      api.failure = PlatformException(code: 'network');
+      api.audioGate = Completer<void>();
       final track = await source.track(ytVideoId(videoA));
+      expect(track.voices.single.audioFiles.single.path, watchA);
+      expect(track.voices.single.audioFiles.single.id, ytVideoId(videoA));
+      expect(api.audioCalls, isEmpty);
+      expect(api.videoCalls, hasLength(1), reason: 'only the earlier import');
+    });
+
+    test('retained metadata remains available after library removal', () async {
+      await store.remove(ytVideoId(videoA));
+      api.failure = PlatformException(code: 'network');
+      final track = await source.track(ytVideoId(videoA));
+      expect(track.title, 'A quiet sit');
+      expect(api.audioCalls, isEmpty);
+    });
+
+    test('a track plays the resolved audio address', () async {
+      final track = await source.resolveTrack(ytVideoId(videoA));
 
       expect(track.id, ytVideoId(videoA));
       expect(track.title, 'A quiet sit');
@@ -619,55 +717,55 @@ void main() {
     test(
       'the address is reused until five minutes before it expires',
       () async {
-        await source.track(ytVideoId(videoA));
+        await source.resolveTrack(ytVideoId(videoA));
         clock.advance(const Duration(minutes: 54));
-        await source.track(ytVideoId(videoA));
+        await source.resolveTrack(ytVideoId(videoA));
         expect(api.audioCalls, hasLength(1));
 
         clock.advance(const Duration(minutes: 2)); // 56 min: inside the margin
-        await source.track(ytVideoId(videoA));
+        await source.resolveTrack(ytVideoId(videoA));
         expect(api.audioCalls, hasLength(2));
       },
     );
 
     test('the cache boundary is exactly the margin', () async {
-      await source.track(ytVideoId(videoA));
+      await source.resolveTrack(ytVideoId(videoA));
       clock.advance(const Duration(minutes: 54, seconds: 59));
-      await source.track(ytVideoId(videoA));
+      await source.resolveTrack(ytVideoId(videoA));
       expect(api.audioCalls, hasLength(1));
 
       clock.advance(const Duration(seconds: 1)); // 55:00 — no longer fresh
-      await source.track(ytVideoId(videoA));
+      await source.resolveTrack(ytVideoId(videoA));
       expect(api.audioCalls, hasLength(2));
     });
 
     test('an unknown expiry is cached briefly, not for hours', () async {
       api.streams[videoA] = stream(videoA); // expiresAt null
-      await source.track(ytVideoId(videoA));
+      await source.resolveTrack(ytVideoId(videoA));
       clock.advance(const Duration(minutes: 4));
-      await source.track(ytVideoId(videoA));
+      await source.resolveTrack(ytVideoId(videoA));
       expect(api.audioCalls, hasLength(1));
 
       clock.advance(const Duration(minutes: 2));
-      await source.track(ytVideoId(videoA));
+      await source.resolveTrack(ytVideoId(videoA));
       expect(api.audioCalls, hasLength(2));
 
       clock.advance(const Duration(minutes: 30));
-      await source.track(ytVideoId(videoA));
+      await source.resolveTrack(ytVideoId(videoA));
       expect(api.audioCalls, hasLength(3));
     });
 
     test('a new source starts with nothing cached', () async {
-      await source.track(ytVideoId(videoA));
-      await newSource().track(ytVideoId(videoA));
+      await source.resolveTrack(ytVideoId(videoA));
+      await newSource().resolveTrack(ytVideoId(videoA));
       expect(api.audioCalls, hasLength(2));
     });
 
     test('simultaneous requests share one extraction', () async {
       api.audioGate = Completer<void>();
-      final first = source.track(ytVideoId(videoA));
-      final second = source.track(ytVideoId(videoA));
-      final third = source.track(ytVideoId(videoA));
+      final first = source.resolveTrack(ytVideoId(videoA));
+      final second = source.resolveTrack(ytVideoId(videoA));
+      final third = source.resolveTrack(ytVideoId(videoA));
       await pumpEventQueue();
       expect(api.audioCalls, hasLength(1));
 
@@ -685,7 +783,7 @@ void main() {
         message: 'dns lookup for rr1.googlevideo.com failed',
       );
       await expectLater(
-        source.track(ytVideoId(videoA)),
+        source.resolveTrack(ytVideoId(videoA)),
         throwsA(
           isA<YoutubeUnavailableError>().having(
             (e) => e.message,
@@ -696,22 +794,53 @@ void main() {
       );
 
       api.failure = null;
-      expect((await source.track(ytVideoId(videoA))).title, 'A quiet sit');
+      expect(
+        (await source.resolveTrack(ytVideoId(videoA))).title,
+        'A quiet sit',
+      );
       expect(api.audioCalls, hasLength(2));
     });
 
-    test('every kind of failure is the same plain error', () async {
-      for (final error in [
-        PlatformException(code: 'age-restricted'),
-        PlatformException(code: 'private'),
-        StateError('boom'),
-      ]) {
-        api.failure = error;
-        await expectLater(
-          source.track(ytVideoId(videoA)),
-          throwsA(isA<YoutubeUnavailableError>()),
-        );
-      }
+    for (final (code, reason) in [
+      ('network', YoutubeFailureReason.offline),
+      ('unavailable', YoutubeFailureReason.unavailable),
+      ('age-restricted', YoutubeFailureReason.ageRestricted),
+      ('private', YoutubeFailureReason.private),
+      ('rate-limited', YoutubeFailureReason.rateLimited),
+      ('unrecognised-code', YoutubeFailureReason.unavailable),
+    ]) {
+      test(
+        'audio preserves $code as $reason without extractor detail',
+        () async {
+          api.failure = PlatformException(code: code, message: 'SECRET');
+          await expectLater(
+            source.resolveTrack(ytVideoId(videoA)),
+            throwsA(
+              isA<YoutubeUnavailableError>()
+                  .having((e) => e.reason, 'reason', reason)
+                  .having(
+                    (e) => e.toString(),
+                    'safe message',
+                    isNot(contains('SECRET')),
+                  ),
+            ),
+          );
+        },
+      );
+    }
+
+    test('unexpected audio failures remain safely unavailable', () async {
+      api.failure = StateError('SECRET');
+      await expectLater(
+        source.resolveTrack(ytVideoId(videoA)),
+        throwsA(
+          isA<YoutubeUnavailableError>().having(
+            (e) => e.reason,
+            'reason',
+            YoutubeFailureReason.unavailable,
+          ),
+        ),
+      );
     });
 
     for (final (name, bad) in <(String, YoutubeAudioStream)>[
@@ -723,11 +852,11 @@ void main() {
       test('$name is refused and not cached', () async {
         api.streams[videoA] = bad;
         await expectLater(
-          source.track(ytVideoId(videoA)),
+          source.resolveTrack(ytVideoId(videoA)),
           throwsA(isA<YoutubeUnavailableError>()),
         );
         await expectLater(
-          source.track(ytVideoId(videoA)),
+          source.resolveTrack(ytVideoId(videoA)),
           throwsA(isA<YoutubeUnavailableError>()),
         );
         expect(api.audioCalls, hasLength(2));
@@ -736,7 +865,7 @@ void main() {
 
     test('the database holds metadata only, never an address', () async {
       await addCourse(listOne);
-      await source.track(ytVideoId(videoA));
+      await source.resolveTrack(ytVideoId(videoA));
       final url = api.streams[videoA]!.url;
 
       final everything = [
@@ -756,6 +885,161 @@ void main() {
     setUp(() async => addCourse(listOne));
 
     int calls() => api.playlistCalls.length;
+
+    test(
+      'pack returns stored sessions while a slow refresh notifies later',
+      () async {
+        clock.advance(const Duration(hours: 13));
+        api.playlistGate = Completer<void>();
+        api.playlists[playlistOne] = playlist([
+          item(videoC),
+        ], title: 'New course');
+        final before = store.revision.value;
+        final outcomes = source.refreshRevision.value;
+        final stored = await source
+            .pack(id)
+            .timeout(const Duration(seconds: 1));
+        expect(stored.items.map((i) => i.id), [
+          ytVideoId(videoA),
+          ytVideoId(videoB),
+          ytVideoId(videoA),
+        ]);
+        await pumpEventQueue();
+        expect(calls(), 2);
+        expect(store.revision.value, before);
+
+        final refresh = source.refresh(
+          id,
+        ); // shares the pack's background attempt
+        api.playlistGate!.complete();
+        expect(await refresh, isTrue);
+        expect(store.revision.value, before + 1);
+        expect(source.refreshRevision.value, outcomes + 1);
+        expect(source.refreshError(id), isNull);
+        expect((await source.pack(id)).items.single.id, ytVideoId(videoC));
+      },
+    );
+
+    test(
+      'empty starter failure keeps timestamp and retries within twelve hours',
+      () async {
+        await source.storePlaylist(playlistOne, playlist([]));
+        final checked = (await db.youtubePlaylist(playlistOne))!.lastCheckedAt;
+        clock.advance(const Duration(minutes: 1));
+        api.failure = PlatformException(code: 'network');
+        final notifications = source.refreshRevision.value;
+
+        final empty = await source.pack(id).timeout(const Duration(seconds: 1));
+        expect(empty.items, isEmpty);
+        expect(await source.refresh(id), isFalse);
+        expect(source.refreshError(id)?.reason, YoutubeFailureReason.offline);
+        expect(source.refreshRevision.value, notifications + 1);
+        expect((await db.youtubePlaylist(playlistOne))!.lastCheckedAt, checked);
+
+        // Reopening while offline retries but does not repeatedly invalidate UI.
+        await source.pack(id);
+        expect(await source.refresh(id), isFalse);
+        expect(source.refreshRevision.value, notifications + 1);
+        final attempted = calls();
+        api.failure = null;
+        expect(
+          await newSource().refresh(id),
+          isTrue,
+          reason: 'empty state bypasses the persisted twelve-hour gate',
+        );
+        expect(calls(), attempted + 1);
+        expect((await source.pack(id)).items, hasLength(3));
+        // An explicit successful refresh clears this source's recorded failure.
+        expect(await source.refresh(id, force: true), isTrue);
+        expect(source.refreshError(id), isNull);
+      },
+    );
+
+    test(
+      'an empty extraction also leaves an empty starter immediately retryable',
+      () async {
+        await source.storePlaylist(playlistOne, playlist([]));
+        final checked = (await db.youtubePlaylist(playlistOne))!.lastCheckedAt;
+        clock.advance(const Duration(minutes: 1));
+        api.playlists[playlistOne] = playlist([]);
+        expect(await source.refresh(id), isFalse);
+        expect((await db.youtubePlaylist(playlistOne))!.lastCheckedAt, checked);
+        expect(
+          source.refreshError(id)?.reason,
+          YoutubeFailureReason.unavailable,
+        );
+        api.playlists[playlistOne] = playlist([item(videoA)]);
+        expect(await source.refresh(id), isTrue);
+        expect(source.refreshError(id), isNull);
+      },
+    );
+
+    for (final (code, reason) in [
+      ('network', YoutubeFailureReason.offline),
+      ('unavailable', YoutubeFailureReason.unavailable),
+      ('age-restricted', YoutubeFailureReason.ageRestricted),
+      ('private', YoutubeFailureReason.private),
+      ('rate-limited', YoutubeFailureReason.rateLimited),
+    ]) {
+      test(
+        'forced refresh preserves $code and automatic refresh records it',
+        () async {
+          api.failure = PlatformException(code: code, message: 'SECRET');
+          clock.advance(const Duration(hours: 13));
+          expect(await source.refresh(id), isFalse);
+          expect(source.refreshError(id)?.reason, reason);
+          await expectLater(
+            source.refresh(id, force: true),
+            throwsA(
+              isA<YoutubeUnavailableError>()
+                  .having((e) => e.reason, 'reason', reason)
+                  .having(
+                    (e) => e.toString(),
+                    'safe message',
+                    isNot(contains('SECRET')),
+                  ),
+            ),
+          );
+          expect((await source.pack(id)).items, hasLength(3));
+        },
+      );
+    }
+
+    test(
+      'forced refresh joining a background failure still throws its reason',
+      () async {
+        clock.advance(const Duration(hours: 13));
+        api.playlistGate = Completer<void>();
+        api.failure = PlatformException(code: 'private');
+        await source.pack(id);
+        await pumpEventQueue();
+        final forced = source.refresh(id, force: true);
+        final assertion = expectLater(
+          forced,
+          throwsA(
+            isA<YoutubeUnavailableError>().having(
+              (e) => e.reason,
+              'reason',
+              YoutubeFailureReason.private,
+            ),
+          ),
+        );
+        api.playlistGate!.complete();
+        await assertion;
+        expect(calls(), 2, reason: 'one import and one shared refresh');
+      },
+    );
+
+    test(
+      'forced refresh bypasses a simultaneous automatic throttle check',
+      () async {
+        final automatic = source.refresh(id);
+        final forced = source.refresh(id, force: true);
+        expect(await automatic, isFalse);
+        expect(await forced, isTrue);
+        expect(calls(), 2);
+      },
+    );
 
     test('a fresh course is not asked again within twelve hours', () async {
       final before = calls();
@@ -838,6 +1122,7 @@ void main() {
       clock.advance(const Duration(days: 3));
       api.failure = PlatformException(code: 'network');
       expect((await source.pack(id)).items, hasLength(3));
+      expect(await source.refresh(id), isFalse);
     });
 
     test('a failed attempt is remembered, across new sources', () async {

@@ -11,7 +11,7 @@ import java.util.concurrent.CancellationException
 import java.util.concurrent.TimeoutException
 
 /**
- * A failure the app can show: one of four codes and a calm sentence. Nothing
+ * A failure the app can show: a typed code and a calm sentence. Nothing
  * from the extractor (URLs, stack traces, server text) is ever put in the
  * message, so it is safe to hand to Dart as it is.
  */
@@ -23,6 +23,7 @@ class YoutubeFailure(val code: String, message: String, cause: Throwable? = null
         const val AGE_RESTRICTED = "age-restricted"
         const val PRIVATE = "private"
         const val NETWORK = "network"
+        const val RATE_LIMITED = "rate-limited"
 
         fun unavailable() = YoutubeFailure(UNAVAILABLE, "This isn't available on YouTube.")
 
@@ -45,9 +46,12 @@ class YoutubeFailure(val code: String, message: String, cause: Throwable? = null
         fun network(cause: Throwable? = null) =
             YoutubeFailure(NETWORK, "Couldn't reach YouTube. Check the connection and try again.", cause)
 
-        fun busy() = YoutubeFailure(NETWORK, "Meditejo is already busy with YouTube. Try again in a moment.")
+        fun rateLimited(cause: Throwable? = null) =
+            YoutubeFailure(RATE_LIMITED, "YouTube is limiting requests. Try again later.", cause)
 
-        fun timedOut() = YoutubeFailure(NETWORK, "YouTube took too long to answer. Try again.")
+        fun busy() = YoutubeFailure(RATE_LIMITED, "Meditejo is already busy with YouTube. Try again in a moment.")
+
+        fun timedOut(cause: Throwable? = null) = YoutubeFailure(UNAVAILABLE, "YouTube took too long to answer. Try again.", cause)
 
         /** The failure a thrown exception stands for, looking through wrapped causes. */
         fun from(error: Throwable): YoutubeFailure {
@@ -67,9 +71,11 @@ class YoutubeFailure(val code: String, message: String, cause: Throwable? = null
                 YoutubeFailure(AGE_RESTRICTED, "YouTube only shows this to signed-in adults, so Meditejo can't play it.", root)
             is PrivateContentException ->
                 YoutubeFailure(PRIVATE, "This is private on YouTube, so Meditejo can't reach it.", root)
-            is ReCaptchaException, is SignInConfirmNotBotException -> network(root)
+            is ReCaptchaException, is SignInConfirmNotBotException -> rateLimited(root)
             is ContentNotAvailableException -> YoutubeFailure(UNAVAILABLE, unavailable().message!!, root)
-            is TimeoutException, is CancellationException, is InterruptedException, is IOException -> network(root)
+            is TimeoutException, is java.io.InterruptedIOException -> timedOut(root)
+            is CancellationException, is InterruptedException -> unreadable(root)
+            is IOException -> network(root)
             is ExtractionException -> null // a wrapper: its cause may say more
             else -> null
         }

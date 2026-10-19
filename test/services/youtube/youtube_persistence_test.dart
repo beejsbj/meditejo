@@ -73,7 +73,13 @@ void main() {
     );
   });
 
-  for (final code in ['private', 'age-restricted', 'network', 'unavailable']) {
+  for (final code in [
+    'private',
+    'age-restricted',
+    'network',
+    'unavailable',
+    'rate-limited',
+  ]) {
     test('generated Pigeon codec preserves typed $code failures', () async {
       const channel = BasicMessageChannel<Object?>(
         'dev.flutter.pigeon.medito.YoutubeExtractorApi.resolveAudioStream',

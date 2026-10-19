@@ -100,7 +100,7 @@ class YoutubeDownloaderTest {
             downloader().execute(Request.newBuilder().get("$base/limited").build())
             fail("expected ReCaptchaException")
         } catch (e: ReCaptchaException) {
-            assertEquals("network", YoutubeFailure.from(e).code)
+            assertEquals("rate-limited", YoutubeFailure.from(e).code)
         }
     }
 
