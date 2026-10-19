@@ -188,8 +188,9 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
             ref.read(cueRuntimeProvider.notifier).updateFromMap(cueState);
             final remaining =
                 (cueState['countdownRemainingMs'] as num?)?.toInt() ?? 0;
-            if (mounted && remaining != _countdownMs)
+            if (mounted && remaining != _countdownMs) {
               setState(() => _countdownMs = remaining);
+            }
           } catch (e) {
             AppLogger.e('CUES', 'Countdown state unavailable: $e');
             _countdownPoll?.cancel();

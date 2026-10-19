@@ -6,6 +6,7 @@ import 'package:medito/services/content/content_source.dart';
 import 'package:medito/services/library/library_models.dart';
 
 import 'dart:convert';
+import 'package:medito/constants/strings/shared_preference_constants.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,10 +23,15 @@ class CueSettingsStore {
       scope.courseId != null && prefs.containsKey(_key(scope));
   CueSettings read(CueScope scope) {
     final own = prefs.getString(_key(scope));
-    return CueSettings.decode(
-      own ?? prefs.getString(_key(CueScope(scope.kind))),
-      scope.kind,
-    );
+    final saved = own ?? prefs.getString(_key(CueScope(scope.kind)));
+    var settings = CueSettings.decode(saved, scope.kind);
+    // Preserve the user's old timer length on the first Customize visit.
+    if (saved == null && scope.kind == CueKind.practice) {
+      final minutes = prefs.getInt(SharedPreferenceConstants.timerMinutes);
+      if (minutes != null)
+        settings = settings.copyWith(durationMinutes: minutes);
+    }
+    return settings;
   }
 
   Future<void> save(CueScope scope, CueSettings settings) async {
