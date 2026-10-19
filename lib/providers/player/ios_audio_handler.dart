@@ -601,6 +601,11 @@ class IosAudioHandler extends BaseAudioHandler {
     }
   }
 
+  Future<void> waitForInterlude(int seconds) async {
+    _nativeTailRelease?.cancel();
+    await NativeCueController.holdInterlude(seconds);
+  }
+
   Future<void> _finishNativeSession({
     required bool extensionFinished,
     required int tailMs,

@@ -62,6 +62,7 @@ internal class CueEngine(
     private var beatNumber = Long.MAX_VALUE
     private var beatAtMs = Double.MAX_VALUE
 
+    private var interludeReady: Runnable? = null
     private val tick = Runnable { run() }
     private val cleanup = Runnable {
         releaseWake()
@@ -140,7 +141,20 @@ internal class CueEngine(
         primary.removeListener(this)
     }
 
+    fun holdInterlude(seconds: Int, ready: () -> Unit) {
+        val delay = seconds.coerceIn(0, 30) * 1000L
+        handler.removeCallbacks(cleanup)
+        interludeReady?.let { handler.removeCallbacks(it); it.run() }
+        acquireWake(delay + WAKE_SLACK_MS)
+        val callback = Runnable { interludeReady = null; ready() }
+        interludeReady = callback
+        handler.postDelayed(callback, delay)
+        handler.postDelayed(cleanup, delay + WAKE_SLACK_MS)
+    }
+
     private fun stopTimers() {
+        interludeReady?.let { handler.removeCallbacks(it); it.run() }
+        interludeReady = null
         handler.removeCallbacks(tick)
         handler.removeCallbacks(cleanup)
         releaseWake()

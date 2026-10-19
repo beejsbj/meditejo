@@ -1560,6 +1560,13 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         cues.configure(CueConfig.fromMap(args))
     }
 
+    fun holdInterlude(seconds: Int, ready: () -> Unit) {
+        handler.removeCallbacks(pendingFinish)
+        cues.holdInterlude(seconds, ready)
+        // Keep the foreground service alive while Dart resolves the next source.
+        handler.postDelayed(pendingFinish, seconds.coerceIn(0, 30) * 1000L + 30_000L)
+    }
+
     fun skipCountdown() { if (::cues.isInitialized) cues.skipCountdown() }
 
     fun stopCues() {

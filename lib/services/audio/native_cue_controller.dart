@@ -24,6 +24,9 @@ class NativeCueController {
     });
   }
 
+  static Future<void> holdInterlude(int seconds) =>
+      channel.invokeMethod<void>('holdInterlude', {'seconds': seconds});
+
   static Future<void> skipCountdown() =>
       channel.invokeMethod<void>('skipCountdown');
   static Future<Map<Object?, Object?>> state() async =>

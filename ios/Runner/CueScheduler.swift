@@ -331,6 +331,10 @@ final class CueScheduler {
     private(set) var phase: Phase = .idle
     private var bank = CueSoundBank()
     private var timer: DispatchSourceTimer?
+    private var interludeWork: DispatchWorkItem?
+    private var interludeReady: (() -> Void)?
+    private var interludeHolding = false
+    private var interludeGeneration = 0
 
     // Countdown and extension run on the monotonic clock. nil anchor means held.
     private var holdRemainingMs = 0.0
@@ -357,7 +361,7 @@ final class CueScheduler {
 
     func configure(_ cfg: CueConfig) {
         let live = phase == .playing || phase == .countdown || phase == .extending
-        if !live { cancelTimer(); phase = .idle; started = false }
+        if !live { cancelInterlude(); bank.stopKeepAlive(); cancelTimer(); phase = .idle; started = false }
         if phase == .extending {
             let elapsed = (config?.extensionMs ?? 0) - heldRemaining()
             holdRemainingMs = max(cfg.extensionMs - elapsed, 0)
@@ -391,7 +395,42 @@ final class CueScheduler {
 
     func skipCountdown() { if phase == .countdown { finishCountdown() } }
 
+    func holdInterlude(seconds: Int, ready: @escaping () -> Void) {
+        cancelInterlude()
+        configureAudioSession()
+        bank.startKeepAlive()
+        interludeHolding = true
+        let generation = interludeGeneration
+        interludeReady = ready
+        let work = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            self.interludeWork = nil
+            let completion = self.interludeReady
+            self.interludeReady = nil
+            completion?()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in
+                if let self = self, self.phase == .ended, self.interludeGeneration == generation {
+                    self.interludeHolding = false
+                    self.bank.stopKeepAlive()
+                }
+            }
+        }
+        interludeWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(min(max(seconds, 0), 30)), execute: work)
+    }
+
+    private func cancelInterlude() {
+        interludeGeneration += 1
+        interludeHolding = false
+        interludeWork?.cancel()
+        interludeWork = nil
+        let completion = interludeReady
+        interludeReady = nil
+        completion?()
+    }
+
     func stop() {
+        cancelInterlude()
         cancelTimer()
         phase = .idle
         started = false
@@ -643,7 +682,7 @@ final class CueScheduler {
         if tail > 0 {
             bank.startKeepAlive()
             DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(Int(tail) + 300)) { [weak self] in
-                guard let self = self, self.phase == .ended else { return }
+                guard let self = self, self.phase == .ended, !self.interludeHolding else { return }
                 self.bank.stopKeepAlive()
             }
         } else {
@@ -723,6 +762,8 @@ final class CueChannel {
         case "skipCountdown":
             scheduler.skipCountdown()
             result(nil)
+        case "holdInterlude":
+            scheduler.holdInterlude(seconds: (args["seconds"] as? NSNumber)?.intValue ?? 0) { result(nil) }
         case "setHeld":
             scheduler.setHeld((args["held"] as? Bool) ?? false)
             result(nil)

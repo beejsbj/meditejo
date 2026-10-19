@@ -389,6 +389,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
                       TextButton(
                         onPressed: () {
                           _cancelAutoplay = true;
+                          _stopAudio();
                           _openEndScreen();
                         },
                         child: const Text('End session'),
@@ -430,7 +431,15 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
         _openEndScreen();
         return;
       }
-      await Future<void>.delayed(Duration(seconds: settings!.interludeSeconds));
+      if (Platform.isAndroid) {
+        await NativeCueController.holdInterlude(settings!.interludeSeconds);
+      } else if (Platform.isIOS) {
+        await iosAudioHandler.waitForInterlude(settings!.interludeSeconds);
+      } else {
+        await Future<void>.delayed(
+          Duration(seconds: settings!.interludeSeconds),
+        );
+      }
       if (!mounted || _cancelAutoplay || _isClosing) return;
       final track = await ref.read(
         tracksProvider(trackId: items[index + 1].id).future,

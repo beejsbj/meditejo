@@ -38,6 +38,10 @@ internal object CueChannel {
                         service.configureCues(call.arguments as? Map<*, *> ?: emptyMap<String, Any?>())
                         result.success(null)
                     }
+                    "holdInterlude" -> {
+                        val args = call.arguments as? Map<*, *>
+                        service.holdInterlude((args?.get("seconds") as? Number)?.toInt() ?: 0) { result.success(null) }
+                    }
                     "skipCountdown" -> { service.skipCountdown(); result.success(null) }
                     "stop" -> { service.stopCues(); result.success(null) }
                     "state" -> result.success(service.cueState())
