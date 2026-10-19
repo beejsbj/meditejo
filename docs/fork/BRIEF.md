@@ -85,6 +85,7 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
       - one-tap starts for **Timer** and **Sounds**, plus other supports from the Customize set;
       - **Continue** items for whatever is in progress. There can be several ("continue this or that"), practice first, each resuming in one tap.
       - This refines decision 7's single hero into a short list of continues plus quick links. Browsing belongs in Explore, and everything added lives in Library.
+15. **Order after navigation and Home: cues and the Customize sheet first** (Burooj, 2026-10-19). Build the full player Customize sheet and the cue system now, in Medito's current look. The design pass restyles them later. After that come soundscapes and then more catalogues. The design pass follows cues.
 
 ## Build and run
 
