@@ -933,5 +933,22 @@
   "youtubePrivate": "Este vídeo es privado",
   "youtubePlaylistPrivate": "Esta lista de reproducción es privada",
   "youtubeRateLimited": "YouTube está ocupado o solicita una comprobación de bots. Inténtalo más tarde",
-  "youtubePlaylistEmpty": "Las sesiones aún no están guardadas en este dispositivo. Volveremos a intentarlo en breve"
+  "youtubePlaylistEmpty": "Las sesiones aún no están guardadas en este dispositivo. Volveremos a intentarlo en breve",
+  "navLibrary": "Biblioteca",
+  "exploreSearchHint": "Buscar en tu biblioteca y en Dharma Seed",
+  "homeQuickLinksTitle": "Accesos rápidos",
+  "homePinnedTitle": "Cursos fijados",
+  "homeCustomize": "Personalizar",
+  "homeCustomizeHint": "Activa o desactiva secciones y arrástralas para ordenarlas.",
+  "homeContinueEmpty": "Nada en curso. Añade algo a tu biblioteca o abre Explorar.",
+  "homeContinueResume": "Reanudar",
+  "homeContinueStart": "Empezar",
+  "homeContinueSessionOf": "Sesión {number} de {total}",
+  "homeContinueTimeLeft": "quedan {time}",
+  "homeQuickAdd": "Añadir",
+  "pinCourse": "Fijar en Inicio",
+  "unpinCourse": "Quitar de Inicio",
+  "pinnedLimitReached": "Inicio admite hasta tres cursos fijados. Quita uno primero.",
+  "pinnedCourseAdded": "Fijado en Inicio",
+  "statsFeedbackNote": "Estas cifras son una guía, no una puntuación."
 }

@@ -196,6 +196,19 @@ class LibraryStore {
     };
   }
 
+  /// Sessions the user left partway, most recently left first.
+  Future<List<SavedPlace>> savedPlaces({int? limit}) async {
+    await _ready();
+    return [
+      for (final row in await db.recentPositions(limit: limit))
+        SavedPlace(
+          trackId: row.trackId,
+          point: _resume(row),
+          updatedAt: row.updatedAt,
+        ),
+    ];
+  }
+
   ResumePoint _resume(PlaybackPositionRow row) => ResumePoint(
     positionMs: row.positionMs,
     durationMs: row.durationMs,

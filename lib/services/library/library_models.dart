@@ -126,3 +126,17 @@ class ResumePoint {
 
   Duration get position => Duration(milliseconds: positionMs);
 }
+
+/// A session left partway: where, and when the user last moved it.
+@immutable
+class SavedPlace {
+  const SavedPlace({
+    required this.trackId,
+    required this.point,
+    required this.updatedAt,
+  });
+
+  final String trackId;
+  final ResumePoint point;
+  final DateTime updatedAt;
+}

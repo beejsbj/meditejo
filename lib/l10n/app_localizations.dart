@@ -3723,6 +3723,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sessions aren\'t stored on this device yet. We\'ll try again shortly'**
   String get youtubePlaylistEmpty;
+
+  /// No description provided for @navLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Library'**
+  String get navLibrary;
+
+  /// No description provided for @exploreSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search your library and Dharma Seed'**
+  String get exploreSearchHint;
+
+  /// No description provided for @homeQuickLinksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick links'**
+  String get homeQuickLinksTitle;
+
+  /// No description provided for @homePinnedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned courses'**
+  String get homePinnedTitle;
+
+  /// No description provided for @homeCustomize.
+  ///
+  /// In en, this message translates to:
+  /// **'Customize'**
+  String get homeCustomize;
+
+  /// No description provided for @homeCustomizeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch sections on or off, and drag to put them in your order.'**
+  String get homeCustomizeHint;
+
+  /// No description provided for @homeContinueEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing in progress. Add something to your library, or open Explore.'**
+  String get homeContinueEmpty;
+
+  /// No description provided for @homeContinueResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get homeContinueResume;
+
+  /// No description provided for @homeContinueStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get homeContinueStart;
+
+  /// No description provided for @homeContinueSessionOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Session {number} of {total}'**
+  String homeContinueSessionOf(int number, int total);
+
+  /// No description provided for @homeContinueTimeLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{time} left'**
+  String homeContinueTimeLeft(String time);
+
+  /// No description provided for @homeQuickAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get homeQuickAdd;
+
+  /// No description provided for @pinCourse.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin to Home'**
+  String get pinCourse;
+
+  /// No description provided for @unpinCourse.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin from Home'**
+  String get unpinCourse;
+
+  /// No description provided for @pinnedLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Home holds up to three pinned courses. Unpin one first.'**
+  String get pinnedLimitReached;
+
+  /// No description provided for @pinnedCourseAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned to Home'**
+  String get pinnedCourseAdded;
+
+  /// No description provided for @statsFeedbackNote.
+  ///
+  /// In en, this message translates to:
+  /// **'These numbers are feedback, not a score.'**
+  String get statsFeedbackNote;
 }
 
 class _AppLocalizationsDelegate

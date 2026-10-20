@@ -14,7 +14,9 @@ import 'package:medito/models/models.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/views/dharma_seed/widgets/teacher_avatar.dart';
+import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/views/library/lib_course_settings.dart';
+import 'package:medito/views/library/library_actions.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/pack/widgets/pack_item_widget.dart';
 import 'package:medito/views/pack/widgets/pack_path_button.dart';
@@ -301,6 +303,22 @@ class _PackViewState extends ConsumerState<PackView>
             label: l10n.courseSave,
             savedLabel: l10n.courseSaved,
           ),
+          if ((ref.watch(inLibraryProvider(pack.id)).value ?? false) ||
+              ref.watch(pinnedCoursesProvider).contains(pack.id))
+            TextButton.icon(
+              key: const ValueKey('course_pin'),
+              onPressed: () => togglePinnedCourse(context, ref, pack.id),
+              icon: Icon(
+                ref.watch(pinnedCoursesProvider).contains(pack.id)
+                    ? Icons.push_pin
+                    : Icons.push_pin_outlined,
+              ),
+              label: Text(
+                ref.watch(pinnedCoursesProvider).contains(pack.id)
+                    ? l10n.unpinCourse
+                    : l10n.pinCourse,
+              ),
+            ),
           LibCourseSettings(courseId: pack.id),
           _packTags(pack),
         ],

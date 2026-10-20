@@ -9,9 +9,7 @@ import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 import 'package:medito/widgets/section_header.dart';
 
 /// Everything the user has added, with Practice before Talks and followed
-/// teachers apart. It is a screen of its own, reached from Home, rather than
-/// a fifth tab: the tab bar stays as it is, and the library is what Home
-/// already leads with.
+/// teachers apart. It is the Library tab.
 class LibraryView extends ConsumerWidget {
   const LibraryView({super.key});
 

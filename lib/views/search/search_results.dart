@@ -1,24 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
-import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/explore/session_length.dart';
-import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
+import 'package:medito/providers/explore/explore_search_provider.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_models.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/dharma_seed/widgets/course_rows_sliver.dart';
 import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
 import 'package:medito/views/dharma_seed/widgets/teacher_widgets.dart';
 import 'package:medito/widgets/filter_pill.dart';
-import 'package:medito/widgets/medito_icon.dart';
 import 'package:medito/widgets/section_header.dart';
 import 'package:medito/widgets/widgets.dart';
-
-/// A few starting points shown before anything is typed. They are Burooj's
-/// own material (see docs/fork/BRIEF.md), not a ranking of Dharma Seed.
-const searchSuggestions = ['Rob Burbea', 'metta', 'jhana', 'emptiness'];
 
 extension SessionLengthLabel on SessionLength {
   String label(AppLocalizations l10n) => switch (this) {
@@ -30,16 +24,15 @@ extension SessionLengthLabel on SessionLength {
   };
 }
 
-/// Search results for [query]: suggestions while empty, otherwise results
-/// grouped as Teachers, Courses and Talks (teachers lead, because a talk that
-/// quotes a teacher can outrank the teacher's own), with a session-length
+/// Search results for a non-empty [query], as Teachers, Courses and Talks (teachers lead, because a talk that
+/// quotes a teacher can outrank the teacher's own; the user's library leads
+/// within courses and talks), with a session-length
 /// filter that narrows the talks.
 class SearchResults extends ConsumerStatefulWidget {
   const SearchResults({
     super.key,
     required this.query,
     this.onBeforeNavigate,
-    this.onSuggestion,
   });
 
   final String query;
@@ -47,8 +40,6 @@ class SearchResults extends ConsumerStatefulWidget {
   /// Runs before a result navigates, e.g. to dismiss the keyboard.
   final VoidCallback? onBeforeNavigate;
 
-  /// Called with a suggestion the user tapped on the empty page.
-  final ValueChanged<String>? onSuggestion;
 
   @override
   ConsumerState<SearchResults> createState() => _SearchResultsState();
@@ -64,7 +55,6 @@ class _SearchResultsState extends ConsumerState<SearchResults> {
   @override
   void didUpdateWidget(covariant SearchResults oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.query.trim().isEmpty) _shown = null;
     // A new query starts unfiltered: a length left over from the last search
     // can empty the next one with nothing on screen to explain it.
     if (widget.query.trim() != oldWidget.query.trim()) _length = null;
@@ -74,63 +64,14 @@ class _SearchResultsState extends ConsumerState<SearchResults> {
   Widget build(BuildContext context) {
     return CustomScrollView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      slivers: widget.query.trim().isEmpty
-          ? [_buildEmptyState()]
-          : _buildResults(),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    return SliverFillRemaining(
-      hasScrollBody: false,
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(padding24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              MeditoIcon(
-                assetName: MeditoIcons.search,
-                size: 32,
-                color: theme.colorScheme.onSurface.withOpacityValue(0.3),
-              ),
-              const SizedBox(height: padding12),
-              Text(
-                l10n.searchTryHint,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacityValue(0.6),
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: padding16),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: padding8,
-                runSpacing: padding8,
-                children: [
-                  for (final suggestion in searchSuggestions)
-                    FilterPill(
-                      key: ValueKey('suggestion_$suggestion'),
-                      label: suggestion,
-                      selected: false,
-                      onTap: () => widget.onSuggestion?.call(suggestion),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+      slivers: _buildResults(),
     );
   }
 
   List<Widget> _buildResults() {
     final query = widget.query.trim();
     final async = ref.watch(
-      dharmaSeedSearchProvider((query: query, length: _length)),
+      exploreSearchProvider((query: query, length: _length)),
     );
     // Keep the last results up while the next ones load, but never show them
     // for a query that failed.
@@ -147,7 +88,7 @@ class _SearchResultsState extends ConsumerState<SearchResults> {
             child: MeditoErrorWidget(
               error: err is AppError ? err : const UnknownError(),
               isScaffold: false,
-              onTap: () => ref.invalidate(dharmaSeedSearchProvider),
+              onTap: () => ref.invalidate(exploreSearchProvider),
             ),
           ),
         ];

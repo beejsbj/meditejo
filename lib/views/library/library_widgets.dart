@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/services/library/library_models.dart';
@@ -120,6 +121,7 @@ class LibraryEntryMenu extends ConsumerWidget {
         ),
         _Action.toTalks => setLibraryGroup(ref, entry, LibraryGroup.talks),
         _Action.rename => renameLibraryEntry(context, ref, entry),
+        _Action.pin => togglePinnedCourse(context, ref, entry.sourceId),
         _Action.remove => removeFromLibrary(context, ref, entry),
       },
       itemBuilder: (context) => [
@@ -135,13 +137,23 @@ class LibraryEntryMenu extends ConsumerWidget {
           ),
         if (!isTeacher)
           PopupMenuItem(value: _Action.rename, child: Text(l10n.libraryRename)),
+        if (entry.isCourse)
+          PopupMenuItem(
+            key: const ValueKey('library_menu_pin'),
+            value: _Action.pin,
+            child: Text(
+              ref.read(pinnedCoursesProvider).contains(entry.sourceId)
+                  ? l10n.unpinCourse
+                  : l10n.pinCourse,
+            ),
+          ),
         PopupMenuItem(value: _Action.remove, child: Text(l10n.libraryRemove)),
       ],
     );
   }
 }
 
-enum _Action { toPractice, toTalks, rename, remove }
+enum _Action { toPractice, toTalks, rename, pin, remove }
 
 /// A square card for the Home rail: artwork, name, and what it is.
 class LibraryRailCard extends ConsumerWidget {
