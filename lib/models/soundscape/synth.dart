@@ -119,7 +119,8 @@ class OscillatorPartial {
 
   final double hz;
 
-  /// Linear voice gain, before the layer's own volume.
+  /// Linear SoLoud voice volume, before the layer's own volume. The voice
+  /// comes out at [kSoLoudWaveAmplitude] × this.
   final double gain;
   final OscillatorWave wave;
 
@@ -150,10 +151,58 @@ class OscillatorPartial {
       Object.hash(hz, gain, wave, pan, left, right, swellPeriod, swellFloor);
 }
 
-/// Linear amplitude for [count] equal sines summing to [lufs] (a sine's
-/// mean square is a²/2; K-weighting is about flat from 100 Hz to 1 kHz).
-double _sineAmplitude(double lufs, int count) =>
-    math.sqrt(2 * math.pow(10, (lufs + 0.691) / 10) / count);
+/// Peak of SoLoud's sine and triangle waveforms at voice volume 1:
+/// flutter_soloud 4.1.7 generates them at ±0.5, not full scale
+/// (`soloud_misc.cpp`, `generateWaveform`), so a voice's volume is twice
+/// its output amplitude.
+const kSoLoudWaveAmplitude = 0.5;
+
+/// Power response |H(f)|² of the BS.1770 K-weighting filter (the pre-filter
+/// shelf and the RLB high-pass) with the standard 48 kHz coefficients.
+double kWeightingPower(double hz) {
+  final w = 2 * math.pi * hz / 48000;
+  return _biquadPower(
+        w,
+        1.53512485958697,
+        -2.69169618940638,
+        1.19839281085285,
+        -1.69065929318241,
+        0.73248077421585,
+      ) *
+      _biquadPower(w, 1, -2, 1, -1.99004745483398, 0.99007225036621);
+}
+
+double _biquadPower(
+  double w,
+  double b0,
+  double b1,
+  double b2,
+  double a1,
+  double a2,
+) {
+  final c1 = math.cos(w), s1 = math.sin(w);
+  final c2 = math.cos(2 * w), s2 = math.sin(2 * w);
+  final nr = b0 + b1 * c1 + b2 * c2, ni = -(b1 * s1 + b2 * s2);
+  final dr = 1 + a1 * c1 + a2 * c2, di = -(a1 * s1 + a2 * s2);
+  return (nr * nr + ni * ni) / (dr * dr + di * di);
+}
+
+/// Mean square of a waveform of peak 1: a²/2 for a sine, a²/3 for a
+/// triangle.
+double _meanSquare(OscillatorWave wave) =>
+    wave == OscillatorWave.triangle ? 1 / 3 : 1 / 2;
+
+/// The K-weighted power, at voice volume 1, of one oscillator voice: what
+/// it adds to BS.1770 loudness (summed over channels; SoLoud's pans keep a
+/// mono voice's total power).
+double _unitPower(double hz, OscillatorWave wave) =>
+    kSoLoudWaveAmplitude *
+    kSoLoudWaveAmplitude *
+    _meanSquare(wave) *
+    kWeightingPower(hz);
+
+/// BS.1770 loudness (LUFS) to K-weighted power.
+double _lufsPower(double lufs) => math.pow(10, (lufs + 0.691) / 10).toDouble();
 
 // ---------------------------------------------------------------------------
 // Drone
@@ -225,17 +274,24 @@ class DroneParams {
       if (timbre == DroneTimbre.bright) ...[(5, 0.1, 0.45), (6, 0.08, -0.45)],
     ];
     const periods = [29, 41, 53, 67, 37, 47, 59, 71];
-    final weightSum = spec.fold<double>(0, (s, p) => s + p.$2 * p.$2);
-    final unit = _sineAmplitude(kSynthTargetLufs, 1) / math.sqrt(weightSum);
+    OscillatorWave wave(int i) => timbre == DroneTimbre.bright && i == 2
+        ? OscillatorWave.triangle
+        : OscillatorWave.sine;
+    // The voices are at different frequencies, so their powers add: scale
+    // the weights so the K-weighted sum lands on the target.
+    var power = 0.0;
+    for (var i = 0; i < spec.length; i++) {
+      power +=
+          spec[i].$2 * spec[i].$2 * _unitPower(rootHz * spec[i].$1, wave(i));
+    }
+    final unit = math.sqrt(_lufsPower(kSynthTargetLufs) / power);
     final floor = 1 - 0.6 * movement;
     return [
       for (var i = 0; i < spec.length; i++)
         OscillatorPartial(
           hz: rootHz * spec[i].$1,
           gain: unit * spec[i].$2,
-          wave: timbre == DroneTimbre.bright && i == 2
-              ? OscillatorWave.triangle
-              : OscillatorWave.sine,
+          wave: wave(i),
           pan: spec[i].$3,
           swellPeriod: movement == 0
               ? null
@@ -288,21 +344,15 @@ class BinauralParams {
   };
 
   List<OscillatorPartial> partials() {
-    // Each ear hears one tone: per-ear loudness is that of one sine.
-    final gain = _sineAmplitude(kSynthTargetLufs, 2);
+    // Each ear hears one tone, carrying half the target power.
+    double gain(double hz) => math.sqrt(
+      _lufsPower(kSynthTargetLufs) / 2 / _unitPower(hz, OscillatorWave.sine),
+    );
+    final low = carrierHz - beatHz / 2;
+    final high = carrierHz + beatHz / 2;
     return [
-      OscillatorPartial(
-        hz: carrierHz - beatHz / 2,
-        gain: gain,
-        left: 1,
-        right: 0,
-      ),
-      OscillatorPartial(
-        hz: carrierHz + beatHz / 2,
-        gain: gain,
-        left: 0,
-        right: 1,
-      ),
+      OscillatorPartial(hz: low, gain: gain(low), left: 1, right: 0),
+      OscillatorPartial(hz: high, gain: gain(high), left: 0, right: 1),
     ];
   }
 }

@@ -167,36 +167,6 @@ void inverseFft(Float64List re, Float64List im) {
   }
 }
 
-/// Power response |H(f)|² of the BS.1770 K-weighting filter (the pre-filter
-/// shelf and the RLB high-pass) with the standard 48 kHz coefficients.
-double kWeightingPower(double hz) {
-  final w = 2 * math.pi * hz / NoiseSpec.sampleRate;
-  return _biquadPower(
-        w,
-        1.53512485958697,
-        -2.69169618940638,
-        1.19839281085285,
-        -1.69065929318241,
-        0.73248077421585,
-      ) *
-      _biquadPower(w, 1, -2, 1, -1.99004745483398, 0.99007225036621);
-}
-
-double _biquadPower(
-  double w,
-  double b0,
-  double b1,
-  double b2,
-  double a1,
-  double a2,
-) {
-  final c1 = math.cos(w), s1 = math.sin(w);
-  final c2 = math.cos(2 * w), s2 = math.sin(2 * w);
-  final nr = b0 + b1 * c1 + b2 * c2, ni = -(b1 * s1 + b2 * s2);
-  final dr = 1 + a1 * c1 + a2 * c2, di = -(a1 * s1 + a2 * s2);
-  return (nr * nr + ni * ni) / (dr * dr + di * di);
-}
-
 /// A 16-bit stereo PCM WAV of [loop] for SoLoud to decode into memory.
 Uint8List encodeWav(NoiseLoop loop) {
   final frames = loop.left.length;

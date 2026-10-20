@@ -2,54 +2,114 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/models/soundscape/starter_presets.dart';
 import 'package:medito/models/soundscape/synth.dart';
+import 'package:medito/providers/soundscape/soundscape_provider.dart'
+    show layerGain;
 import 'package:medito/services/soundscape/synth/noise_generator.dart';
 
-/// BS.1770 loudness measured the long way: filter the loop through the
-/// K-weighting biquads in the time domain (twice round, keeping the second
-/// lap so the filters are in their periodic steady state) and average.
-double measureLufs(Float64List left, Float64List right) {
-  double weighted(Float64List x) {
-    final n = x.length;
-    final y = Float64List(2 * n);
-    void biquad(
-      Float64List input,
-      Float64List out,
-      List<double> b,
-      List<double> a,
-    ) {
-      var x1 = 0.0, x2 = 0.0, y1 = 0.0, y2 = 0.0;
-      for (var i = 0; i < input.length; i++) {
-        final v = input[i];
-        final o = b[0] * v + b[1] * x1 + b[2] * x2 - a[0] * y1 - a[1] * y2;
-        x2 = x1;
-        x1 = v;
-        y2 = y1;
-        y1 = o;
-        out[i] = o;
-      }
+/// K-weighted mean square of [x] measured the long way: filter it through
+/// the BS.1770 K-weighting biquads in the time domain (twice round, keeping
+/// the second lap so the filters are in their periodic steady state) and
+/// average.
+double weightedPower(Float64List x) {
+  final n = x.length;
+  final y = Float64List(2 * n);
+  void biquad(
+    Float64List input,
+    Float64List out,
+    List<double> b,
+    List<double> a,
+  ) {
+    var x1 = 0.0, x2 = 0.0, y1 = 0.0, y2 = 0.0;
+    for (var i = 0; i < input.length; i++) {
+      final v = input[i];
+      final o = b[0] * v + b[1] * x1 + b[2] * x2 - a[0] * y1 - a[1] * y2;
+      x2 = x1;
+      x1 = v;
+      y2 = y1;
+      y1 = o;
+      out[i] = o;
     }
-
-    final twice = Float64List(2 * n)
-      ..setRange(0, n, x)
-      ..setRange(n, 2 * n, x);
-    final stage1 = Float64List(2 * n);
-    biquad(
-      twice,
-      stage1,
-      [1.53512485958697, -2.69169618940638, 1.19839281085285],
-      [-1.69065929318241, 0.73248077421585],
-    );
-    biquad(stage1, y, [1, -2, 1], [-1.99004745483398, 0.99007225036621]);
-    var sum = 0.0;
-    for (var i = n; i < 2 * n; i++) {
-      sum += y[i] * y[i];
-    }
-    return sum / n;
   }
 
-  return -0.691 + 10 * math.log(weighted(left) + weighted(right)) / math.ln10;
+  final twice = Float64List(2 * n)
+    ..setRange(0, n, x)
+    ..setRange(n, 2 * n, x);
+  final stage1 = Float64List(2 * n);
+  biquad(
+    twice,
+    stage1,
+    [1.53512485958697, -2.69169618940638, 1.19839281085285],
+    [-1.69065929318241, 0.73248077421585],
+  );
+  biquad(stage1, y, [1, -2, 1], [-1.99004745483398, 0.99007225036621]);
+  var sum = 0.0;
+  for (var i = n; i < 2 * n; i++) {
+    sum += y[i] * y[i];
+  }
+  return sum / n;
 }
+
+double lufsOf(double power) => -0.691 + 10 * math.log(power) / math.ln10;
+
+/// BS.1770 loudness of a stereo signal: channel powers add.
+double measureLufs(Float64List left, Float64List right) =>
+    lufsOf(weightedPower(left) + weightedPower(right));
+
+/// One sample of SoLoud's waveform generator at phase [p] (0–1), as
+/// flutter_soloud 4.1.7 writes it in `soloud_misc.cpp`: ±0.5, not ±1.
+double soloudWave(OscillatorWave wave, double p) => switch (wave) {
+  OscillatorWave.sine => math.sin(p * math.pi * 2) * 0.5,
+  OscillatorWave.triangle => (p > 0.5 ? 1 - (p - 0.5) * 2 : p * 2) - 0.5,
+};
+
+/// SoLoud's channel volumes for a voice: an absolute (left, right), or the
+/// constant-power pan law of `setVoicePan`.
+(double, double) channelGains(OscillatorPartial p) =>
+    p.left != null && p.right != null
+    ? (p.left!, p.right!)
+    : (
+        math.cos((p.pan + 1) * math.pi / 4),
+        math.sin((p.pan + 1) * math.pi / 4),
+      );
+
+/// Loudness of an oscillator layer at full volume, rendered sample by
+/// sample the way SoLoud plays it. The voices are at different
+/// frequencies, so over a long listen their powers add: each is rendered
+/// and measured on its own (a short window of the sum would catch the
+/// drone's slow beating at one point in its cycle).
+double renderedLufs(List<OscillatorPartial> partials) {
+  const n = 48000; // one second at the K-weighting filters' rate
+  var power = 0.0;
+  for (final p in partials) {
+    final (l, r) = channelGains(p);
+    final x = Float64List(n);
+    for (var i = 0; i < n; i++) {
+      final phase = (p.hz * i / n) % 1.0;
+      x[i] = p.gain * soloudWave(p.wave, phase);
+    }
+    power += weightedPower(x) * (l * l + r * r);
+  }
+  return lufsOf(power);
+}
+
+/// The highest a layer can reach in one channel at full volume: every
+/// voice's peak (gain × 0.5) in phase.
+double worstChannelPeak(List<OscillatorPartial> partials) {
+  var left = 0.0, right = 0.0;
+  for (final p in partials) {
+    final (l, r) = channelGains(p);
+    left += p.gain * 0.5 * l;
+    right += p.gain * 0.5 * r;
+  }
+  return math.max(left, right);
+}
+
+/// Peak bound for one generated layer at full volume, every voice in
+/// phase: −12 dBFS. The loudest case, a bright A1 drone, peaks at about
+/// 0.15 (−16 dBFS); binaural beats at about 0.065 an ear.
+const kLayerPeakBound = 0.25;
 
 /// Power between [lo] and [hi] Hz, from a forward DFT (via the inverse:
 /// DFT(x) = conj(IDFT(conj(x))) · n).
@@ -190,21 +250,72 @@ void main() {
   });
 
   group('drone', () {
-    double meanSquare(List<OscillatorPartial> ps) =>
-        ps.fold(0.0, (s, p) => s + p.gain * p.gain / 2);
-
-    test('is a chord on the root at the target loudness', () {
+    test('is a chord on the root', () {
       for (final timbre in DroneTimbre.values) {
         final partials = DroneParams(rootHz: 110, timbre: timbre).partials();
         expect(partials.first.hz, 110);
         expect(partials.map((p) => p.hz), contains(220));
         expect(partials.map((p) => p.hz), contains(165));
-        final lufs = -0.691 + 10 * math.log(meanSquare(partials)) / math.ln10;
-        expect(lufs, closeTo(kSynthTargetLufs, 0.01), reason: timbre.name);
       }
       expect(
         DroneParams(timbre: DroneTimbre.bright).partials().length,
         greaterThan(DroneParams(timbre: DroneTimbre.pure).partials().length),
+      );
+    });
+
+    for (final root in ['A1', 'D2', 'A2', 'A3']) {
+      test('$root plays at the target loudness, as rendered', () {
+        for (final timbre in DroneTimbre.values) {
+          final partials = DroneParams(
+            rootHz: DroneParams.roots[root]!,
+            timbre: timbre,
+          ).partials();
+          expect(
+            renderedLufs(partials),
+            closeTo(kSynthTargetLufs, 0.2),
+            reason: '$root ${timbre.name}',
+          );
+          expect(
+            worstChannelPeak(partials),
+            lessThan(kLayerPeakBound),
+            reason: '$root ${timbre.name}',
+          );
+        }
+      });
+    }
+
+    test('every root stays under the peak bound', () {
+      for (final hz in DroneParams.roots.values) {
+        for (final timbre in DroneTimbre.values) {
+          final partials = DroneParams(rootHz: hz, timbre: timbre).partials();
+          expect(worstChannelPeak(partials), lessThan(kLayerPeakBound));
+        }
+      }
+    });
+
+    test('Stillness sets its drone under its noise by the sliders alone', () {
+      final stillness = kStarterPresets.firstWhere(
+        (p) => p.id == 'starter-stillness',
+      );
+      final noise = stillness.mix.layer(kSynthNoiseId)!;
+      final drone = stillness.mix.layer(kSynthDroneId)!;
+      final loop = generateNoise(
+        NoiseSpec(
+          params: NoiseParams.fromJson(noise.params),
+          log2Length: small,
+        ),
+      );
+      double db20(double g) => 20 * math.log(g) / math.ln10;
+      final noiseLevel =
+          measureLufs(loop.left, loop.right) + db20(layerGain(noise.volume));
+      final droneLevel =
+          renderedLufs(DroneParams.fromJson(drone.params).partials()) +
+          db20(layerGain(drone.volume));
+      // Both are made at −27 LUFS, so the gap is the sliders' (0.35² against
+      // 0.55², about 7.9 dB), not the generators'.
+      expect(
+        droneLevel - noiseLevel,
+        closeTo(db20(layerGain(drone.volume) / layerGain(noise.volume)), 0.4),
       );
     });
 
@@ -232,11 +343,28 @@ void main() {
       expect(ps.map((p) => p.hz), [197, 203]);
       expect((ps[0].left, ps[0].right), (1, 0));
       expect((ps[1].left, ps[1].right), (0, 1));
-      final ms = ps.fold(0.0, (s, p) => s + p.gain * p.gain / 2);
-      expect(
-        -0.691 + 10 * math.log(ms) / math.ln10,
-        closeTo(kSynthTargetLufs, 0.01),
-      );
+    });
+
+    test('plays at the target loudness down to an 80 Hz carrier', () {
+      for (final (carrier, beat) in [
+        (80.0, 4.0),
+        (200.0, 6.0),
+        (500.0, 30.0),
+      ]) {
+        final ps = BinauralParams(carrierHz: carrier, beatHz: beat).partials();
+        expect(
+          renderedLufs(ps),
+          closeTo(kSynthTargetLufs, 0.2),
+          reason: '$carrier Hz',
+        );
+        expect(worstChannelPeak(ps), lessThan(kLayerPeakBound));
+        // Each ear carries the same loudness.
+        expect(
+          renderedLufs([ps[0]]),
+          closeTo(renderedLufs([ps[1]]), 0.1),
+          reason: '$carrier Hz',
+        );
+      }
     });
 
     test('names the band and clamps to sane ranges', () {
