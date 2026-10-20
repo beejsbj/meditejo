@@ -78,6 +78,10 @@ abstract interface class SoundscapeEngine {
   void setPaused(bool paused);
 
   Future<void> stopAll({Duration fade});
+
+  /// Nothing is playing or loaded: close the output stream, so an idle
+  /// mixer costs no battery. The next [start] opens it again.
+  Future<void> shutdown();
 }
 
 /// Pausing fades the whole mixer out before the voices pause, and resuming
@@ -374,5 +378,30 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
     await Future.wait([
       for (final key in [..._handles.keys]) stop(key, fade: fade),
     ]);
+  }
+
+  @override
+  Future<void> shutdown() async {
+    if (!_available || _handles.isNotEmpty || _sources.isNotEmpty) return;
+    final ready = _ready;
+    if (ready == null) return;
+    _ready = null;
+    try {
+      await ready;
+    } catch (_) {
+      return; // Never opened: nothing to close.
+    }
+    // A layer may have started while this waited.
+    if (_handles.isNotEmpty || _sources.isNotEmpty) {
+      _ready = ready;
+      return;
+    }
+    try {
+      // flutter_soloud keeps the Android output stream running through a
+      // pause; only deinit closes it.
+      if (_soloud.isInitialized) await _soloud.deinitAsync();
+    } catch (error, stack) {
+      AppLogger.e('SOUNDSCAPE', 'Could not shut the engine down', error, stack);
+    }
   }
 }

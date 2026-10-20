@@ -170,6 +170,13 @@ class SoundscapeController extends Notifier<SoundscapeState> {
 
   /// Paused for another app's transient audio (a call); resumed with it.
   bool _pausedByFocus = false;
+
+  /// How long Sounds may sit paused on their own (after a manual pause, an
+  /// unplug, a lost focus) before they stop and let go of the foreground
+  /// service and its notification.
+  @visibleForTesting
+  static Duration pausedStandaloneTimeout = const Duration(minutes: 10);
+  Timer? _idleTimer;
   AppLifecycleListener? _lifecycle;
   var _notification = const SoundscapeNotificationText(
     title: 'Sounds',
@@ -195,6 +202,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       // No widgets binding (plain unit tests).
     }
     ref.onDispose(() {
+      _idleTimer?.cancel();
       _lifecycle?.dispose();
       _commands?.cancel();
       if (_held) unawaited(_keepAlive.release());
@@ -578,11 +586,26 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   void _update(SoundscapeState next) {
     if (!ref.mounted) return;
     state = next;
+    _syncIdleTimer();
     _sync = _sync.then((_) => _apply()).catchError((
       Object error,
       StackTrace s,
     ) {
       AppLogger.e('SOUNDSCAPE', 'Mixer sync failed', error, s);
+    });
+  }
+
+  void _syncIdleTimer() {
+    final idle = state.owner == SoundscapeOwner.standalone && !state.playing;
+    if (!idle) {
+      _idleTimer?.cancel();
+      _idleTimer = null;
+      return;
+    }
+    _idleTimer ??= Timer(pausedStandaloneTimeout, () {
+      _idleTimer = null;
+      if (!ref.mounted) return;
+      if (state.owner == SoundscapeOwner.standalone && !state.playing) stop();
     });
   }
 
@@ -657,6 +680,10 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         state.active &&
         state.mix == s.mix) {
       stop();
+    }
+    // Silent and nothing loaded: close the output stream too.
+    if (ref.mounted && !s.active && _applied.isEmpty && !state.active) {
+      await _engine.shutdown();
     }
   }
 

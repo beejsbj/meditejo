@@ -56,6 +56,11 @@ class _Engine implements SoundscapeEngine {
   @override
   Future<void> stopAll({Duration fade = Duration.zero}) async =>
       playing.clear();
+
+  int shutdowns = 0;
+
+  @override
+  Future<void> shutdown() async => shutdowns++;
 }
 
 class _KeepAlive implements SoundscapeKeepAlive {
@@ -234,6 +239,39 @@ void main() {
       expect(st().active, isTrue);
       expect(engine.playing.keys, ['waves']);
       expect(keepAlive.held, isTrue);
+    },
+  );
+
+  test(
+    'Sounds paused on their own stop after a while and close the engine',
+    () async {
+      SoundscapeController.pausedStandaloneTimeout = const Duration(
+        milliseconds: 60,
+      );
+      addTearDown(
+        () => SoundscapeController.pausedStandaloneTimeout = const Duration(
+          minutes: 10,
+        ),
+      );
+      ctl().resume();
+      await settle();
+      expect(keepAlive.held, isTrue);
+      // Resuming in time keeps them.
+      ctl().pause();
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      ctl().resume();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await settle();
+      expect(st().active, isTrue);
+
+      // Headphones out, nobody comes back: the notification goes.
+      keepAlive.send(SoundscapeCommand.noisy);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await settle();
+      expect(st().active, isFalse);
+      expect(keepAlive.held, isFalse);
+      expect(engine.playing, isEmpty);
+      expect(engine.shutdowns, greaterThan(0), reason: 'the stream closes');
     },
   );
 

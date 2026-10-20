@@ -42,6 +42,11 @@ class FakeSoundscapeEngine implements SoundscapeEngine {
   @override
   Future<void> stopAll({Duration fade = Duration.zero}) async =>
       playing.clear();
+
+  int shutdowns = 0;
+
+  @override
+  Future<void> shutdown() async => shutdowns++;
 }
 
 /// The bundled library, read straight from disk: `rootBundle` hands an
