@@ -46,13 +46,18 @@ class SoundLayer {
     if (json is! Map) return null;
     final id = json['soundId'];
     if (id is! String || id.isEmpty) return null;
-    final volume = (json['volume'] as num?)?.toDouble() ?? kDefaultLayerVolume;
+    final rawVolume = json['volume'];
+    final volume = rawVolume is num
+        ? rawVolume.toDouble()
+        : kDefaultLayerVolume;
     final params = json['params'];
     return SoundLayer(
       soundId: id,
       volume: volume.clamp(0.0, 1.0),
       animate: json['animate'] == true,
-      params: params is Map ? params.cast<String, Object?>() : const {},
+      params: params is Map && params.keys.every((k) => k is String)
+          ? Map<String, Object?>.from(params)
+          : const {},
     );
   }
 
@@ -111,7 +116,8 @@ class SoundMix {
   static const empty = SoundMix();
 
   /// How many layers can play at once. Each recording is decoded into
-  /// memory (about 10 MB a minute of stereo), so this bounds memory too.
+  /// memory (about 22 MiB a minute of 48 kHz stereo; DECISIONS has the
+  /// worst case), so this bounds memory too.
   static const kMaxLayers = 6;
 
   final List<SoundLayer> layers;
@@ -224,7 +230,13 @@ class SoundscapeSelection {
   final SoundscapeSelectionKind kind;
   final String id;
 
-  static SoundscapeSelection parse(String? value) {
+  static SoundscapeSelection parse(String? value) =>
+      tryParse(value) ?? currentMix;
+
+  /// [value] in the grammar above, or null when it is not one (a damaged
+  /// value, or a kind a newer version added): the caller picks the
+  /// fallback. Empty is `mix`.
+  static SoundscapeSelection? tryParse(String? value) {
     final v = value?.trim() ?? '';
     if (v.isEmpty || v == 'mix') return currentMix;
     if (v == 'none') return none;
@@ -234,7 +246,7 @@ class SoundscapeSelection {
     if (v.startsWith('sound:') && v.length > 6) {
       return SoundscapeSelection.sound(v.substring(6));
     }
-    return currentMix;
+    return null;
   }
 
   String encode() => switch (kind) {
@@ -313,11 +325,14 @@ class SoundscapeSessionDefault {
       enabled: json['enabled'] is bool
           ? json['enabled'] as bool
           : fallback.enabled,
-      selection: SoundscapeSelection.parse(json['selection'] as String?),
-      volume: ((json['volume'] as num?)?.toDouble() ?? fallback.volume).clamp(
-        0.0,
-        1.0,
+      selection: SoundscapeSelection.parse(
+        json['selection'] is String ? json['selection'] as String : null,
       ),
+      volume:
+          (json['volume'] is num
+                  ? (json['volume'] as num).toDouble()
+                  : fallback.volume)
+              .clamp(0.0, 1.0),
     );
   }
 

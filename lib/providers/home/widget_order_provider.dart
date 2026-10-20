@@ -9,12 +9,7 @@ final homeWidgetOrderProvider =
     );
 
 class HomeWidgetOrderNotifier extends Notifier<List<HomeWidgetType>> {
-  static const _defaultOrder = [
-    HomeWidgetType.upNext,
-    HomeWidgetType.shortcuts,
-    HomeWidgetType.carousel,
-    HomeWidgetType.quote,
-  ];
+  static const _defaultOrder = HomeWidgetType.values;
 
   @override
   List<HomeWidgetType> build() => _loadOrder();
@@ -25,11 +20,11 @@ class HomeWidgetOrderNotifier extends Notifier<List<HomeWidgetType>> {
         .getStringList(SharedPreferenceConstants.homeWidgetOrder);
     if (saved == null) return List.of(_defaultOrder);
 
-    // Ignore retired sections and unknown names rather than mapping them to
-    // shortcuts. Preserve the relative order of the remaining sections.
-    final byName = {for (final type in _defaultOrder) type.name: type};
+    // Ignore retired sections and unknown names. Preserve the relative order
+    // of the remaining sections; a section the saved layout predates joins
+    // at its default place (Continue first, the rest last).
     final order = <HomeWidgetType>{
-      for (final name in saved) ?byName[name],
+      for (final name in saved) ?HomeWidgetType.tryParse(name),
     }.toList();
     for (final type in _defaultOrder) {
       if (order.contains(type)) continue;
@@ -54,4 +49,31 @@ class HomeWidgetOrderNotifier extends Notifier<List<HomeWidgetType>> {
   }
 
   void refreshOrder() => state = _loadOrder();
+}
+
+/// Sections the user has switched off. Empty by default: every section shows.
+final homeHiddenWidgetsProvider =
+    NotifierProvider<HomeHiddenWidgetsNotifier, Set<HomeWidgetType>>(
+      HomeHiddenWidgetsNotifier.new,
+    );
+
+class HomeHiddenWidgetsNotifier extends Notifier<Set<HomeWidgetType>> {
+  @override
+  Set<HomeWidgetType> build() => {
+    for (final name
+        in ref
+                .read(sharedPreferencesProvider)
+                .getStringList(SharedPreferenceConstants.homeWidgetHidden) ??
+            const <String>[])
+      ?HomeWidgetType.tryParse(name),
+  };
+
+  Future<void> setVisible(HomeWidgetType type, bool visible) async {
+    state = visible ? ({...state}..remove(type)) : {...state, type};
+    await ref
+        .read(sharedPreferencesProvider)
+        .setStringList(SharedPreferenceConstants.homeWidgetHidden, [
+          for (final t in state) t.name,
+        ]);
+  }
 }

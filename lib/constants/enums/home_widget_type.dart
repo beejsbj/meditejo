@@ -1,20 +1,18 @@
-// Defines the different types of widgets that can be displayed on the home screen
+/// The sections of Home the user can switch on or off and reorder.
+///
+/// Names are saved, so renaming one drops it from a saved layout: [upNext]
+/// keeps its old name for what is now the Continue section. Sections saved by
+/// earlier versions (shortcuts, carousel, quote) no longer exist and are
+/// ignored.
 enum HomeWidgetType {
-  shortcuts, // For shortcut buttons
-  carousel, // For the featured content carousel
-  quote, // For the daily quote
-  upNext; // For the next session of a pinned local course
+  upNext, // Continue: what is in progress, one tap to resume
+  quickLinks, // Timer, Sounds, Add
+  pinned; // Up to three pinned courses
 
-  // Helper method to convert string to enum value
-  static HomeWidgetType fromString(String value) {
-    return HomeWidgetType.values.firstWhere(
-      (type) => type.name == value,
-      orElse: () => HomeWidgetType.shortcuts,
-    );
-  }
-
-  // Helper method to convert enum to string
-  static List<String> toStringList(List<HomeWidgetType> types) {
-    return types.map((type) => type.name).toList();
+  static HomeWidgetType? tryParse(String value) {
+    for (final type in values) {
+      if (type.name == value) return type;
+    }
+    return null;
   }
 }

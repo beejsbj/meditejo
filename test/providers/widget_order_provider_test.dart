@@ -11,9 +11,8 @@ void main() {
   late ProviderContainer container;
   const defaults = [
     HomeWidgetType.upNext,
-    HomeWidgetType.shortcuts,
-    HomeWidgetType.carousel,
-    HomeWidgetType.quote,
+    HomeWidgetType.quickLinks,
+    HomeWidgetType.pinned,
   ];
 
   setUp(() async {
@@ -26,44 +25,38 @@ void main() {
 
   tearDown(() => container.dispose());
 
-  test('new installs show only local practice sections', () {
+  test('new installs show every section, Continue first', () {
     expect(container.read(homeWidgetOrderProvider), defaults);
   });
 
-  test('preserves the relative order of saved local sections', () async {
+  test('preserves the relative order of saved sections', () async {
     await prefs.setStringList(SharedPreferenceConstants.homeWidgetOrder, [
-      'quote',
-      'shortcuts',
+      'pinned',
+      'quickLinks',
       'upNext',
-      'carousel',
     ]);
     expect(container.read(homeWidgetOrderProvider), [
-      HomeWidgetType.quote,
-      HomeWidgetType.shortcuts,
+      HomeWidgetType.pinned,
+      HomeWidgetType.quickLinks,
       HomeWidgetType.upNext,
-      HomeWidgetType.carousel,
     ]);
   });
 
-  test(
-    'migrates retired sections without moving shortcuts ahead of quote',
-    () async {
-      await prefs.setStringList(SharedPreferenceConstants.homeWidgetOrder, [
-        'products',
-        'donation',
-        'unknown',
-        'quote',
-        'shortcuts',
-        'quote',
-      ]);
-      expect(container.read(homeWidgetOrderProvider), [
-        HomeWidgetType.upNext,
-        HomeWidgetType.quote,
-        HomeWidgetType.shortcuts,
-        HomeWidgetType.carousel,
-      ]);
-    },
-  );
+  test('ignores retired sections and a section the layout predates joins last', () async {
+    await prefs.setStringList(SharedPreferenceConstants.homeWidgetOrder, [
+      'products',
+      'unknown',
+      'quote',
+      'quickLinks',
+      'quickLinks',
+      'carousel',
+    ]);
+    expect(container.read(homeWidgetOrderProvider), [
+      HomeWidgetType.upNext,
+      HomeWidgetType.quickLinks,
+      HomeWidgetType.pinned,
+    ]);
+  });
 
   test('an entirely retired order recovers the default sections', () async {
     await prefs.setStringList(SharedPreferenceConstants.homeWidgetOrder, [
@@ -86,14 +79,13 @@ void main() {
   test('refresh reloads a changed local preference', () async {
     final notifier = container.read(homeWidgetOrderProvider.notifier);
     await prefs.setStringList(SharedPreferenceConstants.homeWidgetOrder, [
-      'quote',
+      'pinned',
     ]);
     notifier.refreshOrder();
     expect(container.read(homeWidgetOrderProvider), [
       HomeWidgetType.upNext,
-      HomeWidgetType.quote,
-      HomeWidgetType.shortcuts,
-      HomeWidgetType.carousel,
+      HomeWidgetType.pinned,
+      HomeWidgetType.quickLinks,
     ]);
   });
 }

@@ -72,6 +72,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         path: '${RouteConstants.stats}:history',
       ),
+      SettingsItem(
+        section: AppLocalizations.of(context)!.helpLegalSection,
+        type: TypeConstants.pack,
+        title: AppLocalizations.of(context)!.favorites,
+        icon: MeditoIcon(
+          assetName: MeditoIcons.heart,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+        path: 'favorites',
+      ),
+      SettingsItem(
+        section: AppLocalizations.of(context)!.helpLegalSection,
+        type: TypeConstants.flow,
+        title: AppLocalizations.of(context)!.downloads,
+        icon: MeditoIcon(
+          assetName: MeditoIcons.downloadCircle,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+        path: TypeConstants.downloads,
+      ),
 
       SettingsItem(
         section: AppLocalizations.of(context)!.customizationSection,

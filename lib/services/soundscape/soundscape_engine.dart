@@ -129,6 +129,106 @@ abstract interface class SoundscapeEngine {
   void setPaused(bool paused);
 
   Future<void> stopAll({Duration fade});
+
+  /// Nothing is playing or loaded: close the output stream, so an idle
+  /// mixer costs no battery. The next [start] opens it again.
+  Future<void> shutdown();
+}
+
+/// A start-up that runs once and is shared, unless it fails: a failed one
+/// is forgotten, so the next call tries again rather than rethrowing the
+/// old failure for the rest of the app's life.
+class RetryableOnce {
+  RetryableOnce(this._run);
+
+  final Future<void> Function() _run;
+  Future<void>? _pending;
+
+  /// The start-up under way or done, if any.
+  Future<void>? get current => _pending;
+
+  Future<void> call() {
+    final existing = _pending;
+    if (existing != null) return existing;
+    final run = _pending = _run();
+    run.catchError((Object _) {
+      if (identical(_pending, run)) _pending = null;
+    });
+    return run;
+  }
+
+  /// Forget a finished start-up (the engine was shut down).
+  void reset() => _pending = null;
+}
+
+/// Pausing fades the whole mixer out before the voices pause, and resuming
+/// unpauses them and fades back in, so a session's end, a pause or an
+/// autoplay interlude never cuts the sound dead. Kept apart from SoLoud so
+/// its timing can be tested.
+class PauseFade {
+  PauseFade({
+    required this.fadeMaster,
+    required this.pauseVoices,
+    this.fadeOut = const Duration(milliseconds: 1200),
+    this.fadeIn = const Duration(milliseconds: 1200),
+  });
+
+  /// Fades the master level to a gain over a time.
+  final void Function(double gain, Duration over) fadeMaster;
+
+  /// Pauses (true) or unpauses every voice.
+  final void Function(bool paused) pauseVoices;
+  final Duration fadeOut;
+  final Duration fadeIn;
+
+  bool _paused = false;
+  Timer? _timer;
+  Completer<void>? _fading;
+
+  bool get paused => _paused;
+
+  /// Completes when a fade-out under way has finished (at once otherwise),
+  /// so a layer stopped meanwhile is not cut before the fade ends.
+  Future<void> get settled => _fading?.future ?? Future.value();
+
+  /// With [fade] false (nothing is audible) the voices pause at once.
+  void pause({bool fade = true}) {
+    if (_paused) return;
+    _paused = true;
+    if (!fade) {
+      pauseVoices(true);
+      return;
+    }
+    fadeMaster(0, fadeOut);
+    final fading = _fading = Completer<void>();
+    _timer = Timer(fadeOut, () {
+      _timer = null;
+      pauseVoices(true);
+      if (identical(_fading, fading)) _fading = null;
+      fading.complete();
+    });
+  }
+
+  /// Resumes at [master], from wherever a fade-out had got to.
+  void resume(double master) {
+    if (!_paused) return;
+    _paused = false;
+    _timer?.cancel();
+    _timer = null;
+    final fading = _fading;
+    _fading = null;
+    fading?.complete();
+    pauseVoices(false);
+    fadeMaster(master, fadeIn);
+  }
+
+  void cancel() {
+    _timer?.cancel();
+    _timer = null;
+    final fading = _fading;
+    _fading = null;
+    fading?.complete();
+  }
 }
 
 /// [SoundscapeEngine] on flutter_soloud (SoLoud + miniaudio), 4.1.7.
@@ -160,13 +260,19 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
   final math.Random _random;
   final _layers = <String, _Layer>{};
 
-  /// Voices fading out (a stopped layer, the old side of a crossfade): they
-  /// pause with the rest.
+  /// Voices on their way out (a stopped layer, the old side of a finished
+  /// crossfade): they pause with the rest, and [shutdown] waits for them.
   final _fading = <_Voice>{};
-  Future<void>? _ready;
-  bool _paused = false;
+  final _releasing = <Future<void>>{};
+  late final _ready = RetryableOnce(_initialise);
+  late final _pause = PauseFade(
+    fadeMaster: _fadeMaster,
+    pauseVoices: _pauseVoices,
+  );
   double _master = 1;
   int _generated = 0;
+
+  bool get _paused => _pause.paused;
 
   SoLoud get _soloud => SoLoud.instance;
 
@@ -182,7 +288,9 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
     }
   }();
 
-  Future<void> _ensureReady() => _ready ??= () async {
+  Future<void> _ensureReady() => _ready();
+
+  Future<void> _initialise() async {
     if (!_soloud.isInitialized) {
       // 48 kHz: the rate of every bundled loop and of the phone's output,
       // so nothing is resampled. Ambience needs no low latency: the
@@ -197,8 +305,8 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
     // SoLoud refuses new voices past 16 by default, counting paused and
     // fading ones too; a bright drone alone is 8.
     _soloud.setMaxActiveVoiceCount(64);
-    _soloud.setGlobalVolume(_master);
-  }();
+    _soloud.setGlobalVolume(_paused ? 0 : _master);
+  }
 
   @override
   Future<bool> start(
@@ -211,7 +319,7 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
     try {
       await _ensureReady();
       await stop(key, fade: Duration.zero);
-      final layer = _Layer(source, await _open(source), gain, motion);
+      final layer = _Layer(key, source, await _open(source), gain, motion);
       _layers[key] = layer;
       _applyLayer(layer, fade: _fadeIn);
       return true;
@@ -409,21 +517,31 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
     return true;
   }
 
-  /// Equal-power crossfade from [outgoing] to [layer]'s new voices, in
+  /// Equal-power crossfade from [replaced] to [layer]'s new voices, in
   /// steps (SoLoud's fades are linear), then the new voices take up their
   /// drift and swell.
-  void _crossfadeIn(_Layer layer, List<_Voice> outgoing) {
+  ///
+  /// The old voices belong to the layer until the crossfade ends, so a stop
+  /// meanwhile takes them with it (through the pause fade, before
+  /// [shutdown]), and a second retune folds them into its own outgoing side.
+  void _crossfadeIn(_Layer layer, List<_Voice> replaced) {
     const steps = 6;
     final stepTime = _crossfade ~/ steps;
+    layer.crossfade?.cancel();
+    final outgoing = [...layer.outgoing, ...replaced];
+    layer.outgoing = outgoing;
     final from = [for (final v in outgoing) _soloud.getVolume(v.handle)];
     for (final v in outgoing) {
       v.timer?.cancel();
       v.timer = null;
     }
-    _fading.addAll(outgoing);
     var step = 0;
-    Timer.periodic(stepTime, (timer) {
+    layer.crossfade = Timer.periodic(stepTime, (timer) {
       if (_paused) return; // the voices' clocks are stopped too
+      if (!identical(_layers[layer.key], layer)) {
+        timer.cancel(); // stopped: stop() took the old voices
+        return;
+      }
       step++;
       final t = step / steps;
       final fadeIn = math.sin(t * math.pi / 2);
@@ -431,24 +549,16 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
       for (var i = 0; i < outgoing.length; i++) {
         _soloud.fadeVolume(outgoing[i].handle, from[i] * fadeOut, stepTime);
       }
-      if (_layers.containsValue(layer)) {
-        for (final v in layer.voices) {
-          _soloud.fadeVolume(
-            v.handle,
-            layer.gain * v.weight * fadeIn,
-            stepTime,
-          );
-        }
+      for (final v in layer.voices) {
+        _soloud.fadeVolume(v.handle, layer.gain * v.weight * fadeIn, stepTime);
       }
       if (step >= steps) {
         timer.cancel();
-        if (_layers.containsValue(layer)) _applyLayer(layer, fade: _retune);
-        unawaited(
-          _fadeAndDispose(
-            outgoing,
-            stepTime,
-          ).whenComplete(() => _fading.removeAll(outgoing)),
-        );
+        layer
+          ..crossfade = null
+          ..outgoing = const [];
+        _applyLayer(layer, fade: _retune);
+        unawaited(_release(outgoing, stepTime));
       }
     });
   }
@@ -493,6 +603,10 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
           _soloud.fadeVolume(v.handle, 0, fade);
         }
         await Future<void>.delayed(fade);
+      } else if (voices.isNotEmpty && fade > Duration.zero && _paused) {
+        // Pausing fades the whole mix out (the session ended, or paused):
+        // let that fade finish rather than cut it.
+        await _pause.settled;
       }
       for (final v in voices) {
         v.timer?.cancel();
@@ -504,21 +618,40 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
     }
   }
 
+  /// Fades [voices] out and disposes of them, keeping them paused with the
+  /// rest meanwhile; [shutdown] waits for every release under way.
+  Future<void> _release(List<_Voice> voices, Duration fade) {
+    if (voices.isEmpty) return Future.value();
+    _fading.addAll(voices);
+    late final Future<void> done;
+    done = _fadeAndDispose(voices, fade).whenComplete(() {
+      _fading.removeAll(voices);
+      _releasing.remove(done);
+    });
+    _releasing.add(done);
+    return done;
+  }
+
   @override
   Future<void> stop(String key, {Duration fade = _fadeOut}) async {
     final layer = _layers.remove(key);
     if (layer == null) return;
-    _fading.addAll(layer.voices);
-    await _fadeAndDispose(layer.voices, fade);
-    _fading.removeAll(layer.voices);
+    // A crossfade under way ends here; its old voices go out with the rest.
+    layer.crossfade?.cancel();
+    layer.crossfade = null;
+    _cancelSwells(layer);
+    final voices = [...layer.voices, ...layer.outgoing];
+    layer.outgoing = const [];
+    await _release(voices, fade);
   }
 
   @override
   void setMaster(double gain, {Duration fade = _retune}) {
     _master = gain;
     // Before the first layer starts there is no engine yet; [_ensureReady]
-    // applies it.
-    if (!_available || !_soloud.isInitialized) return;
+    // applies it. While paused the master stays faded out; resuming fades
+    // in to it.
+    if (_paused || !_available || !_soloud.isInitialized) return;
     if (fade == Duration.zero) {
       _soloud.setGlobalVolume(gain);
     } else {
@@ -529,10 +662,41 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
   @override
   void setPaused(bool paused) {
     if (_paused == paused) return;
-    _paused = paused;
-    if (!_available) return;
+    if (paused) {
+      // Nothing loaded or no engine: nothing to fade, so no timer either.
+      final audible =
+          (_layers.isNotEmpty || _fading.isNotEmpty) &&
+          _available &&
+          _soloud.isInitialized;
+      _pause.pause(fade: audible);
+      return;
+    }
+    _pause.resume(_master);
+    // Drift and swell hand-overs were held while paused. A layer still
+    // crossfading takes them up when its crossfade ends.
+    for (final layer in [..._layers.values]) {
+      if (layer.crossfade == null) _applyLayer(layer, fade: _retune);
+    }
+  }
+
+  void _fadeMaster(double gain, Duration over) {
+    if (!_available || !_soloud.isInitialized) return;
+    try {
+      _soloud.fadeGlobalVolume(gain, over);
+    } catch (error) {
+      AppLogger.e('SOUNDSCAPE', 'Could not fade the mix', error);
+    }
+  }
+
+  /// Every voice: the layers' own, the old side of their crossfades, and
+  /// voices fading out after a stop.
+  void _pauseVoices(bool paused) {
+    if (!_available || !_soloud.isInitialized) return;
     for (final voice in [
-      for (final layer in _layers.values) ...layer.voices,
+      for (final layer in _layers.values) ...[
+        ...layer.voices,
+        ...layer.outgoing,
+      ],
       ..._fading,
     ]) {
       try {
@@ -543,12 +707,6 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
         AppLogger.e('SOUNDSCAPE', 'Could not (un)pause a voice', error);
       }
     }
-    if (!paused) {
-      // Drift and swell hand-overs were held while paused.
-      for (final layer in [..._layers.values]) {
-        _applyLayer(layer, fade: _retune);
-      }
-    }
   }
 
   @override
@@ -557,15 +715,48 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
       for (final key in [..._layers.keys]) stop(key, fade: fade),
     ]);
   }
+
+  @override
+  Future<void> shutdown() async {
+    if (!_available || _layers.isNotEmpty) return;
+    final ready = _ready.current;
+    if (ready == null) return;
+    try {
+      await ready;
+    } catch (_) {
+      return; // Never opened: nothing to close.
+    }
+    // Voices still on their way out (a stop's fade, the end of a noise
+    // crossfade) finish and are disposed of before the device closes.
+    while (_releasing.isNotEmpty) {
+      await Future.wait([..._releasing]);
+    }
+    // The controller's passes are serialised, so no layer starts meanwhile;
+    // check anyway.
+    if (_layers.isNotEmpty || _fading.isNotEmpty) return;
+    _ready.reset();
+    try {
+      // flutter_soloud keeps the Android output stream running through a
+      // pause; only deinit closes it.
+      if (_soloud.isInitialized) await _soloud.deinitAsync();
+    } catch (error, stack) {
+      AppLogger.e('SOUNDSCAPE', 'Could not shut the engine down', error, stack);
+    }
+  }
 }
 
 class _Layer {
-  _Layer(this.source, this.voices, this.gain, this.motion);
+  _Layer(this.key, this.source, this.voices, this.gain, this.motion);
 
+  final String key;
   LayerSource source;
   List<_Voice> voices;
   double gain;
   LayerMotion? motion;
+
+  /// A noise retune's crossfade under way, and the voices it fades out.
+  Timer? crossfade;
+  List<_Voice> outgoing = const [];
 }
 
 class _Voice {

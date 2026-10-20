@@ -9,8 +9,10 @@ import '../../utils/logger.dart';
 /// audio focus moving to another app and back.
 ///
 /// `pause` and `resume` are a transient loss (a call) and its end; `lost` is
-/// another app taking over playback for good.
-enum SoundscapeCommand { stop, pause, lost, resume }
+/// another app taking over playback for good, or focus refused outright;
+/// `noisy` is the headphones being unplugged (Android would move the sound
+/// to the speaker).
+enum SoundscapeCommand { stop, pause, lost, resume, noisy }
 
 /// Holds the app in the foreground while Sounds play outside a session
 /// (Android's `SoundscapeService`), so they continue with the screen off.

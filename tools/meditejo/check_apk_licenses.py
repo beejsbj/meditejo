@@ -14,6 +14,8 @@ for manifest in manifests:
     paths |= {root / 'assets/licenses' / text for c in components for text in c['texts']}
 # The bundled sounds' own licence notice travels with them.
 paths.add(root / 'assets/sounds/NOTICE')
+# The cue sounds' notice (pulse CC0 dedication, bell attribution) ships too.
+paths.add(root / 'assets/audio/NOTICE')
 with zipfile.ZipFile(sys.argv[1]) as apk:
     for path in sorted(paths):
         asset = 'assets/flutter_assets/' + path.relative_to(root).as_posix()

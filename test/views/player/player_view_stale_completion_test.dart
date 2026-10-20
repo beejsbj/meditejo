@@ -1,3 +1,5 @@
+import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -13,7 +15,7 @@ import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/services/review_service.dart';
 import 'package:medito/src/audio_pigeon.g.dart';
 import 'package:medito/views/end_screen/end_screen_view.dart';
-import 'package:medito/views/home/previews/home_previews.dart';
+import 'package:medito/views/home/previews/stats_fixtures.dart';
 import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/previews/preview_support.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -86,6 +88,9 @@ class _FakePlayer extends PlayerProvider {
 
 class _SilentBackgroundSounds extends BackgroundSoundsNotifier {
   @override
+  void applyCueSettings(CueSettings settings) {}
+
+  @override
   void stopBackgroundSound() {}
 
   @override
@@ -139,6 +144,9 @@ void main() {
           prefs: prefsDark,
           overrides: [
             playerProvider.overrideWith(() => player),
+            cueScopeForRequestProvider.overrideWith(
+              (ref, request) async => const CueScope(CueKind.practice),
+            ),
             audioStateProvider.overrideWith(_PreviousSessionCompleted.new),
             backgroundSoundsNotifierProvider.overrideWith(
               _SilentBackgroundSounds.new,
@@ -146,7 +154,7 @@ void main() {
             statsProvider.overrideWith(_Stats.new),
             reviewServiceProvider.overrideWithValue(_Review()),
           ],
-          child: const PlayerView(),
+          child: const PlayerView(skipCustomize: true),
         ),
       );
       final audio = ProviderScope.containerOf(
@@ -195,7 +203,11 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
       expect(find.byType(EndScreenView), findsOneWidget);
-      expect(player.stops, 1);
+      expect(
+        player.stops,
+        0,
+        reason: 'Native teardown lets the end bell ring out',
+      );
 
       await tester.pump(const Duration(seconds: 3));
       await tester.pumpWidget(const SizedBox());

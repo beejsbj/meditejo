@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/models/timer/timer_session.dart';
+import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/downloads/downloads_view.dart';
@@ -21,6 +22,15 @@ extension SanitisePath on String {
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
+/// The tab a link such as `meditejo://library` opens; `search` is Explore with
+/// the cursor in its field. Null for anything else.
+MainTab? tabForLink(String type) => switch (type) {
+  TypeConstants.tabHome => MainTab.home,
+  TypeConstants.tabExplore || TypeConstants.tabSearch => MainTab.explore,
+  TypeConstants.tabLibrary => MainTab.library,
+  _ => null,
+};
+
 /// Source repositories supply track/pack IDs; navigation does not resolve media.
 Future<void> handleNavigation(
   String? type,
@@ -33,6 +43,27 @@ Future<void> handleNavigation(
 }) async {
   final values = ids.whereType<String>().where((id) => id.isNotEmpty).toList();
   if (type == null) return;
+  final tab = tabForLink(type);
+  if (tab != null) {
+    final container = ref != null
+        ? null
+        : ProviderScope.containerOf(context, listen: false);
+    // Close whatever is on top of the tabs, then show the one asked for.
+    navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    if (ref != null) {
+      ref.read(mainTabProvider.notifier).select(tab);
+      if (type == TypeConstants.tabSearch) {
+        ref.read(exploreFocusRequestProvider.notifier).request();
+      }
+    } else {
+      container!.read(mainTabProvider.notifier).select(tab);
+      if (type == TypeConstants.tabSearch) {
+        container.read(exploreFocusRequestProvider.notifier).request();
+      }
+    }
+    onNavigationComplete?.call();
+    return;
+  }
   Widget? page;
   if (type.contains('track') && values.isNotEmpty) {
     page = values.first == kLegacyTimerTrackId

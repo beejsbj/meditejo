@@ -5,8 +5,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
@@ -34,6 +36,18 @@ class SoundscapeService : Service() {
 
     private var audioManager: AudioManager? = null
     private var focusRequest: AudioFocusRequest? = null
+
+    // Headphones unplugged (or a Bluetooth route dropped): Android would move
+    // the sound to the speaker. ExoPlayer does this for sessions; the mixer
+    // on its own needs its own receiver. Dart pauses and stays paused.
+    private var noisyRegistered = false
+    private val noisyReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
+                SoundscapeBridge.send("noisy")
+            }
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -64,12 +78,20 @@ class SoundscapeService : Service() {
                         startForeground(NOTIFICATION_ID, notification)
                     }
                     requestFocus()
+                    registerNoisy()
                 } catch (e: Exception) {
                     // Most likely ForegroundServiceStartNotAllowedException: the
                     // app was not in the foreground. Sounds still play while
                     // the app is visible.
                     Log.w(TAG, "Could not hold the foreground: ${e.message}")
                     stopSelf()
+                }
+                // A release that arrived before this hold reached the
+                // foreground was deferred to here (see SoundscapeBridge).
+                if (SoundscapeBridge.pendingHolds > 0) SoundscapeBridge.pendingHolds--
+                if (SoundscapeBridge.pendingHolds == 0 && SoundscapeBridge.releaseDeferred) {
+                    SoundscapeBridge.releaseDeferred = false
+                    finish()
                 }
             }
         }
@@ -84,17 +106,54 @@ class SoundscapeService : Service() {
 
     override fun onDestroy() {
         abandonFocus()
+        unregisterNoisy()
         if (current === this) current = null
         super.onDestroy()
     }
 
     private fun finish() {
         abandonFocus()
+        unregisterNoisy()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 
-    /** Idempotent: does nothing while focus is held. */
+    /**
+     * Idempotent, on every hold: a hold that reaches a service already told
+     * to stop (Stop, then Play again) keeps the same instance, so onCreate
+     * alone would miss it.
+     */
+    private fun registerNoisy() {
+        if (noisyRegistered) return
+        try {
+            ContextCompat.registerReceiver(
+                this,
+                noisyReceiver,
+                IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),
+                ContextCompat.RECEIVER_NOT_EXPORTED,
+            )
+            noisyRegistered = true
+        } catch (e: Exception) {
+            Log.w(TAG, "No unplug receiver: ${e.message}")
+        }
+    }
+
+    /** Idempotent; every path out (Stop, swipe away, release, a refused
+     * foreground start) reaches it through finish() or onDestroy(). */
+    private fun unregisterNoisy() {
+        if (!noisyRegistered) return
+        noisyRegistered = false
+        try {
+            unregisterReceiver(noisyReceiver)
+        } catch (_: Exception) {
+        }
+    }
+
+    /**
+     * Idempotent: does nothing while focus is held. A refused request (a call
+     * holds focus) is not kept, so the next request (a resume from the
+     * Sounds screen) asks again.
+     */
     fun requestFocus() {
         if (focusRequest != null) return
         val manager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -109,8 +168,15 @@ class SoundscapeService : Service() {
             .setOnAudioFocusChangeListener({ change -> onFocusChange(change) }, Handler(Looper.getMainLooper()))
             .build()
         audioManager = manager
-        focusRequest = request
-        manager.requestAudioFocus(request)
+        if (manager.requestAudioFocus(request) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            focusRequest = request
+        } else {
+            // No delayed gain was asked for, so this is a plain refusal: do
+            // not play over the focus owner. Dart pauses and stays paused, as
+            // after a lasting loss, until the user resumes.
+            Log.w(TAG, "Audio focus refused")
+            SoundscapeBridge.send("lost")
+        }
     }
 
     // Dart decides what to do: it resumes after a transient loss only if it
@@ -186,14 +252,23 @@ class SoundscapeService : Service() {
 /**
  * `meditejo/soundscape`: Dart calls `hold`, `focus` and `release`; the
  * service sends `command` with `stop` (the notification's Stop), `pause` and
- * `resume` (a transient focus loss and its end) or `lost` (focus gone for
- * good).
+ * `resume` (a transient focus loss and its end), `lost` (focus gone for
+ * good, or refused when asked for) or `noisy` (the audio route became
+ * noisy: headphones unplugged).
  */
 object SoundscapeBridge {
     const val CHANNEL = "meditejo/soundscape"
 
     private var channel: MethodChannel? = null
     private val main = Handler(Looper.getMainLooper())
+
+    // Holds sent whose onStartCommand (startForeground) has not run yet.
+    // Stopping the service in that window makes Android 9+ crash the app
+    // ("did not then call startForeground"), so a release then is deferred
+    // until the last of them has run. Main thread only, like the channel
+    // handler and onStartCommand.
+    internal var pendingHolds = 0
+    internal var releaseDeferred = false
 
     fun attach(context: Context, messenger: BinaryMessenger) {
         val appContext = context.applicationContext
@@ -208,6 +283,8 @@ object SoundscapeBridge {
                             .putExtra(SoundscapeService.EXTRA_STOP_LABEL, call.argument<String>("stopLabel"))
                         try {
                             ContextCompat.startForegroundService(appContext, intent)
+                            pendingHolds++
+                            releaseDeferred = false
                             result.success(true)
                         } catch (e: Exception) {
                             Log.w("SoundscapeBridge", "Could not start the service: ${e.message}")
@@ -219,7 +296,11 @@ object SoundscapeBridge {
                         result.success(null)
                     }
                     "release" -> {
-                        appContext.stopService(Intent(appContext, SoundscapeService::class.java))
+                        if (pendingHolds > 0) {
+                            releaseDeferred = true
+                        } else {
+                            appContext.stopService(Intent(appContext, SoundscapeService::class.java))
+                        }
                         result.success(null)
                     }
                     else -> result.notImplemented()

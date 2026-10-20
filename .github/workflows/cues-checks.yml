@@ -1,0 +1,39 @@
+name: Cue checks
+on:
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'android/app/src/**/meditofoundation/medito/*Cue*'
+      - '.github/workflows/cues-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2.12.0
+        with:
+          flutter-version: '3.47.2'
+      - run: flutter pub get
+      - name: Generate playback and model APIs
+        run: |
+          for f in pigeon_conf.dart pigeons/*.dart; do
+            [ -f "$f" ] || continue
+            dart run pigeon --input "$f" --package_name=medito
+          done
+          dart run build_runner build --delete-conflicting-outputs
+      - name: Analyze
+        run: timeout 1200 nice -n 10 flutter analyze
+      - name: Affected files, serially without live network
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find test/services/audio test/providers/cues test/views/cues test/views/player -name '*_test.dart' -type f | sort)
+          files+=(test/models/timer_session_test.dart test/providers/timer_settings_provider_test.dart)
+          for file in "${files[@]}"; do
+            timeout 1200 nice -n 10 flutter test "$file" --reporter expanded
+          done

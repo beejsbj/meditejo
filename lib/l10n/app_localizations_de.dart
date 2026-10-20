@@ -2108,6 +2108,65 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Sitzungen sind noch nicht auf diesem Gerät gespeichert. Wir versuchen es gleich erneut';
 
   @override
+  String get navLibrary => 'Bibliothek';
+
+  @override
+  String get exploreSearchHint => 'Bibliothek und Dharma Seed durchsuchen';
+
+  @override
+  String get homeQuickLinksTitle => 'Schnellzugriff';
+
+  @override
+  String get homePinnedTitle => 'Angeheftete Kurse';
+
+  @override
+  String get homeCustomize => 'Anpassen';
+
+  @override
+  String get homeCustomizeHint =>
+      'Bereiche ein- oder ausschalten und per Ziehen anordnen.';
+
+  @override
+  String get homeContinueEmpty =>
+      'Nichts begonnen. Füge etwas zur Bibliothek hinzu oder öffne Entdecken.';
+
+  @override
+  String get homeContinueResume => 'Fortsetzen';
+
+  @override
+  String get homeContinueStart => 'Starten';
+
+  @override
+  String homeContinueSessionOf(int number, int total) {
+    return 'Einheit $number von $total';
+  }
+
+  @override
+  String homeContinueTimeLeft(String time) {
+    return 'noch $time';
+  }
+
+  @override
+  String get homeQuickAdd => 'Hinzufügen';
+
+  @override
+  String get pinCourse => 'An Start anheften';
+
+  @override
+  String get unpinCourse => 'Von Start lösen';
+
+  @override
+  String get pinnedLimitReached =>
+      'Auf Start passen bis zu drei angeheftete Kurse. Löse zuerst einen.';
+
+  @override
+  String get pinnedCourseAdded => 'An Start angeheftet';
+
+  @override
+  String get statsFeedbackNote =>
+      'Diese Zahlen sind Rückmeldung, keine Bewertung.';
+
+  @override
   String get soundsYourMix => 'Dein Mix';
 
   @override

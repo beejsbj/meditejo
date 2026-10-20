@@ -5,7 +5,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
@@ -19,7 +18,8 @@ import 'package:medito/views/bottom_navigation/widgets/medito_nav_bar.dart';
 import 'package:medito/views/explore/widgets/explore_view.dart';
 import 'package:medito/views/library/share_intake_host.dart';
 import 'package:medito/views/home/home_view.dart';
-import 'package:medito/views/search/search_view.dart';
+import 'package:medito/providers/main_tab_provider.dart';
+import 'package:medito/views/library/library_view.dart';
 import 'package:medito/views/settings/settings_screen.dart';
 
 class BottomNavigationBarView extends ConsumerStatefulWidget {
@@ -32,35 +32,23 @@ class BottomNavigationBarView extends ConsumerStatefulWidget {
 
 class _BottomNavigationBarViewState
     extends ConsumerState<BottomNavigationBarView> {
-  // Nav destination index == page index in _pages: Home, Explore, Search,
-  // Settings. Search is a full tab (not an overlay), so it behaves like any
-  // other tab: you leave it by switching tabs, and Android back returns Home.
-  static const _homeIndex = 0;
-  static const _exploreIndex = 1;
-  static const _searchIndex = 2;
-
-  late int _currentPageIndex;
+  // Nav destination index == MainTab index == page index in _pages: Home,
+  // Explore, Library, Settings. Search lives inside Explore.
   final _exploreViewKey = GlobalKey<ExploreViewState>();
-  final _searchViewKey = GlobalKey<SearchViewState>();
   late final List<Widget> _pages;
   bool _restoringEndScreen = false;
 
   @override
   void initState() {
     super.initState();
-    final prefs = ref.read(sharedPreferencesProvider);
-    final saved = prefs.getInt(SharedPreferenceConstants.lastMainTabIndex) ?? 0;
-    // Only Home/Explore are restored on launch; never open straight into
-    // Search or Settings.
-    _currentPageIndex = saved <= _exploreIndex ? saved : _homeIndex;
     _pages = [
       const HomeView(),
       ExploreView(key: _exploreViewKey),
-      SearchView(key: _searchViewKey),
+      const LibraryView(),
       const SettingsScreen(),
     ];
 
-    if (_currentPageIndex == _exploreIndex) {
+    if (ref.read(mainTabProvider) == MainTab.explore) {
       // Restored straight into Explore.
       WidgetsBinding.instance.addPostFrameCallback((_) => catchUpDharmaSeed(ref));
     }
@@ -136,6 +124,9 @@ class _BottomNavigationBarViewState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final currentTab = ref.watch(mainTabProvider);
+    final currentIndex = currentTab.index;
+    ref.listen(mainTabProvider, (_, next) => _onTabChanged(next));
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
@@ -144,8 +135,8 @@ class _BottomNavigationBarViewState
     final wide = width >= 700;
     final items = [
       MeditoNavItem(icon: MeditoIcons.home, label: l10n.home),
-      MeditoNavItem(icon: MeditoIcons.book, label: l10n.explore),
-      MeditoNavItem(icon: MeditoIcons.search, label: l10n.search),
+      MeditoNavItem(icon: MeditoIcons.search, label: l10n.explore),
+      MeditoNavItem(icon: MeditoIcons.libraries, label: l10n.libraryTitle),
       MeditoNavItem(icon: MeditoIcons.settings, label: l10n.settings),
     ];
 
@@ -161,10 +152,10 @@ class _BottomNavigationBarViewState
       ),
       child: ShareIntakeHost(
         child: PopScope(
-          canPop: _currentPageIndex == _homeIndex,
+          canPop: currentTab == MainTab.home,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
-            _onDestinationSelected(_homeIndex);
+            _onDestinationSelected(MainTab.home.index);
           },
           child: Scaffold(
             // The nav bar is lifted to sit just above the keyboard (via the
@@ -185,7 +176,7 @@ class _BottomNavigationBarViewState
                       context: context,
                       removeBottom: keyboardOpen,
                       child: MeditoNavBar(
-                        selectedIndex: _currentPageIndex,
+                        selectedIndex: currentIndex,
                         onSelected: _onDestinationSelected,
                         items: items,
                       ),
@@ -199,14 +190,14 @@ class _BottomNavigationBarViewState
                     MeditoSidebar(
                       extended: width >= 1100,
                       items: items,
-                      selectedIndex: _currentPageIndex,
+                      selectedIndex: currentIndex,
                       onSelected: _onDestinationSelected,
                     ),
                   Expanded(
                     key: const ValueKey('main-content'),
                     child: AdaptiveContent(
                       child: IndexedStack(
-                        index: _currentPageIndex,
+                        index: currentIndex,
                         children: _pages,
                       ),
                     ),
@@ -220,40 +211,18 @@ class _BottomNavigationBarViewState
     );
   }
 
-  void _onDestinationSelected(int index) {
-    // Leaving Search dismisses the keyboard so it doesn't linger over another
-    // tab. (Entering Search focuses the field below.)
-    if (index != _searchIndex) {
-      FocusManager.instance.primaryFocus?.unfocus();
-    }
+  void _onDestinationSelected(int index) =>
+      ref.read(mainTabProvider.notifier).select(MainTab.values[index]);
 
-    setState(() {
-      _currentPageIndex = index;
-    });
+  void _onTabChanged(MainTab tab) {
+    // Leaving a tab dismisses its keyboard so it doesn't linger over another.
+    FocusManager.instance.primaryFocus?.unfocus();
 
-    if (index <= _exploreIndex) {
-      ref
-          .read(sharedPreferencesProvider)
-          .setInt(SharedPreferenceConstants.lastMainTabIndex, index);
-    }
-
-    // Load explore data only on the first visit to the explore tab.
-    if (index == _exploreIndex) {
+    // Opening Explore is when the Dharma Seed catalogue catches up with what
+    // changed since the bundled copy; never at startup.
+    if (tab == MainTab.explore) {
       _exploreViewKey.currentState?.loadData();
-    }
-
-    // Opening Explore or Search is when the Dharma Seed catalogue catches up
-    // with what changed since the bundled copy; never at startup.
-    if (index == _exploreIndex || index == _searchIndex) {
       catchUpDharmaSeed(ref);
-    }
-
-    // Selecting Search focuses the field so the user can type immediately;
-    // re-tapping the active tab re-opens the keyboard too.
-    if (index == _searchIndex) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _searchViewKey.currentState?.focusInput();
-      });
     }
   }
 }

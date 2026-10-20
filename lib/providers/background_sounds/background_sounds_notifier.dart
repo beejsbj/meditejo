@@ -1,6 +1,11 @@
+import 'package:medito/models/cues/cue_settings.dart';
+
 import '../../services/audio/session_bell_preview.dart';
+
 import 'dart:async';
 import 'dart:io';
+
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
@@ -24,6 +29,15 @@ final iosBackgroundPlayer = AudioPlayer()..setLoopMode(LoopMode.all);
 /// session. Session bells are separate (IosSessionBells), so this is no
 /// longer implied by "bells are off".
 bool iosAmbientActive = false;
+
+/// The ambient volume [remainingMs] before the session's true end: full until
+/// the last ten seconds, then linear to silence, and silent at or past it.
+double ambientFadeVolume(double volume, int remainingMs) {
+  const fadeMs = 10000;
+  if (remainingMs <= 0) return 0;
+  if (remainingMs <= fadeMs) return volume * remainingMs / fadeMs;
+  return volume;
+}
 
 @riverpod
 Future<List<BackgroundSoundsModel>> backgroundSounds(Ref ref) {
@@ -143,12 +157,10 @@ class BackgroundSoundsState {
     this.bellsEnabled = false,
   });
 
-  /// Whether anything plays over the session (lights the player's sound
-  /// button).
+  /// Whether the legacy ambient layer plays (lights the player's sound
+  /// button). Not the legacy bells: the cue scheduler owns bells.
   bool get hasAnySound =>
-      bellsEnabled ||
-      (selectedBgSound != null &&
-          selectedBgSound!.id != kNoneBackgroundSoundId);
+      selectedBgSound != null && selectedBgSound!.id != kNoneBackgroundSoundId;
 
   BackgroundSoundsState copyWith({
     bool? bellsEnabled,
@@ -189,24 +201,35 @@ final backgroundSoundsNotifierProvider =
 
 class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
   StreamSubscription<Duration>? _fadeSubscription;
+  StreamSubscription<int>? _extensionFadeSubscription;
 
   /// True while a home Timer session owns the player. The ambient sound is
   /// one shared choice; only the bells switch is remembered per scope (on by
   /// default for the Timer, off under tracks).
   bool _timerScope = false;
+  int _extensionMinutes = 0;
 
   void setTimerScope(bool isTimer) => _timerScope = isTimer;
 
   /// Practice or Talks: which soundscape default the session plays under
-  /// (decision 8). Set before [playBackgroundSoundFromPref].
+  /// (decision 8), and the session scope's own Customize choice, if any.
+  /// Set before [playBackgroundSoundFromPref].
   SoundscapeSessionKind _sessionKind = SoundscapeSessionKind.practice;
+  SoundscapeSelection? _sessionSelection;
 
-  void setSessionKind(SoundscapeSessionKind kind) => _sessionKind = kind;
+  void setSessionKind(
+    SoundscapeSessionKind kind, {
+    SoundscapeSelection? selection,
+  }) {
+    _sessionKind = kind;
+    _sessionSelection = selection;
+  }
 
   @override
   BackgroundSoundsState build() {
     ref.onDispose(() {
       _fadeSubscription?.cancel();
+      _extensionFadeSubscription?.cancel();
     });
     return const BackgroundSoundsState();
   }
@@ -247,9 +270,10 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
       return;
     }
 
-    // Bells used to be one of the background sounds; they are a switch now.
+    // Bells used to be one of the background sounds. A stale selection of
+    // them is no sound, and never turns the legacy bells on: the cue
+    // scheduler owns bells.
     if (sound.id == kSessionBellsId) {
-      setSessionBells(true, preview: preview);
       handleOnChangeSound(_noneSound, preview: preview);
       return;
     }
@@ -450,7 +474,7 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
         iosBackgroundPlayer.setVolume(scaledVolume(state.volume));
         iosAmbientActive = true;
         unawaited(iosBackgroundPlayer.play());
-        _handleFadeAtEndForIos();
+        followIosFade();
 
         return true;
       } catch (e, s) {
@@ -513,6 +537,8 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
     iosAmbientActive = false;
     _fadeSubscription?.cancel();
     _fadeSubscription = null;
+    _extensionFadeSubscription?.cancel();
+    _extensionFadeSubscription = null;
     if (Platform.isAndroid) {
       _api.setBackgroundSound(null);
       _api.stopBackgroundSound();
@@ -526,26 +552,40 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
     provider.updateItemsInSavedBgSoundList(sound);
   }
 
-  /// A session is starting: the soundscape for its kind, and the bells.
-  /// Talks keep their old behaviour for the legacy sound and bells (both
-  /// off); only the soundscape follows its Talks default.
-  void playBackgroundSoundFromPref() {
-    unawaited(ref.read(soundscapeProvider.notifier).startSession(_sessionKind));
-    if (_sessionKind == SoundscapeSessionKind.talks) {
-      _stopAmbient();
-      if (Platform.isAndroid) {
-        unawaited(_api.setSessionBells(false));
-      } else {
-        unawaited(iosAudioHandler.sessionBells.disable());
+  /// Ambient preferences belong to Customize's kind/course scope. The cue
+  /// scheduler owns bells; this method never enables the legacy bell layer.
+  void applyCueSettings(CueSettings settings) {
+    _extensionMinutes = _timerScope ? 0 : settings.extendMinutes;
+    final sounds = ref
+        .read(backgroundSoundsRepositoryProvider)
+        .fetchCachedBackgroundSounds();
+    BackgroundSoundsModel? selected;
+    if (settings.backgroundEnabled) {
+      for (final sound in sounds) {
+        if (sound.id == settings.backgroundSoundId) selected = sound;
       }
-      return;
+      if (selected == null &&
+          settings.backgroundSoundId.isEmpty &&
+          sounds.isNotEmpty) {
+        selected = sounds.first;
+      }
     }
-    final repo = ref.read(backgroundSoundsRepositoryProvider);
-    final selectedBgSound = repo.getSelectedBgSoundFromSharedPreferences();
-    handleOnChangeSound(selectedBgSound, preview: false);
-    setSessionBells(
-      repo.getSessionBellsEnabled(forTimer: _timerScope),
-      preview: false,
+    if (state.selectedBgSound?.id != selected?.id) {
+      handleOnChangeSound(selected, preview: false);
+    } else if (selected == null) {
+      _stopAmbient();
+    }
+    handleOnChangeVolume(settings.backgroundVolume);
+  }
+
+  /// A session is starting: the soundscape for its kind (decision 8). The
+  /// legacy ambient layer follows Customize through [applyCueSettings] and the
+  /// cue scheduler owns the bells, so neither is started here.
+  void playBackgroundSoundFromPref() {
+    unawaited(
+      ref
+          .read(soundscapeProvider.notifier)
+          .startSession(_sessionKind, selection: _sessionSelection),
     );
   }
 
@@ -555,11 +595,16 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
     handleOnChangeVolume(value);
   }
 
-  void _handleFadeAtEndForIos() {
+  /// Fades the iOS ambient sound into the session's true end.
+  @visibleForTesting
+  void followIosFade() {
     _fadeSubscription?.cancel();
     _fadeSubscription = null;
-
-    var durationFromEnd = const Duration(seconds: 10).inMilliseconds;
+    _extensionFadeSubscription?.cancel();
+    // Past the voice's end its position stands still: the Swift extension
+    // clock carries the fade on to the true end.
+    _extensionFadeSubscription = iosAudioHandler.extensionRemainingStream
+        .listen(_fadeIosAmbient);
 
     _fadeSubscription = iosAudioHandler.positionStream.listen((
       currentPosition,
@@ -569,21 +614,20 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
         iosBackgroundPlayer.setVolume(scaledVolume(state.volume));
         return;
       }
+      if (iosAudioHandler.extending) return;
 
-      var remainingTime = duration - currentPosition.inMilliseconds;
-
-      if (remainingTime <= 0) {
-        // At or past the end: stay silent. Without this the fade would snap
-        // back to full volume on the final position update, causing an
-        // audible blip right before playback completes.
-        iosBackgroundPlayer.setVolume(0);
-      } else if (remainingTime <= durationFromEnd) {
-        var newVolume = state.volume * remainingTime / durationFromEnd;
-        iosBackgroundPlayer.setVolume(scaledVolume(newVolume));
-      } else {
-        iosBackgroundPlayer.setVolume(scaledVolume(state.volume));
-      }
+      // At or past the end it stays silent: snapping back to full volume on
+      // the final position update would blip right before completion.
+      _fadeIosAmbient(
+        duration - currentPosition.inMilliseconds + _extensionMinutes * 60000,
+      );
     });
+  }
+
+  void _fadeIosAmbient(int remainingMs) {
+    iosBackgroundPlayer.setVolume(
+      scaledVolume(ambientFadeVolume(state.volume, remainingMs)),
+    );
   }
 
   double scaledVolume(double vol) {

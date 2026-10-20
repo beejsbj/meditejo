@@ -1,0 +1,501 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/models/soundscape/sound_mix.dart';
+import 'package:medito/providers/cues/cue_settings_provider.dart';
+import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
+import 'package:medito/providers/soundscape/soundscape_provider.dart';
+import 'package:medito/views/cues/customize_sheet.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers/soundscape_fakes.dart';
+
+Future<ProviderContainer> _pump(
+  WidgetTester tester, {
+  CueScope scope = const CueScope(CueKind.practice),
+  bool isTimer = false,
+  VoidCallback? onStart,
+  int positionMs = 0,
+  Size? size,
+  double textScale = 1,
+}) async {
+  if (size != null) {
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+  }
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
+  final container = ProviderContainer(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      ...soundscapeTestOverrides(FakeSoundscapeEngine()),
+    ],
+  );
+  addTearDown(container.dispose);
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
+        home: Scaffold(
+          body: CustomizeSheet(
+            scope: scope,
+            isTimer: isTimer,
+            audioDurationMs: 20 * 60000,
+            positionMs: positionMs,
+            onStart: onStart,
+            clock: () => DateTime(2026, 1, 1, 9, 0),
+          ),
+        ),
+      ),
+    ),
+  );
+  return container;
+}
+
+/// Drops the sheet so its 30 second refresh timer is cancelled.
+Future<void> _unmount(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pump();
+}
+
+const _practice = CueScope(CueKind.practice);
+
+/// The slider belonging to the labelled tile (the nearest enclosing column).
+Finder _sliderFor(String label) => find.descendant(
+  of: find.ancestor(of: find.text(label), matching: find.byType(Column)).first,
+  matching: find.byType(Slider),
+);
+
+Future<void> _drag(WidgetTester tester, String label, double value) async {
+  tester.widget<Slider>(_sliderFor(label)).onChanged!(value);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _closeSub(WidgetTester tester) async {
+  await tester.tapAt(const Offset(5, 5));
+  await tester.pumpAndSettle();
+}
+
+CueSettings _read(ProviderContainer c, [CueScope scope = _practice]) =>
+    c.read(cueSettingsProvider(scope));
+
+void main() {
+  test('finish time accounts for countdown, speed and extension', () {
+    final s = const CueSettings().copyWith(
+      countdownSeconds: 10,
+      extendMinutes: 5,
+    );
+    final now = DateTime(2026, 1, 1, 9);
+    expect(
+      customizeFinishesAt(
+        now,
+        s,
+        isTimer: false,
+        audioDurationMs: 20 * 60000,
+        positionMs: 0,
+        speed: 0.5,
+      ),
+      now.add(const Duration(minutes: 45, seconds: 10)),
+    );
+    // Playing: countdown is already spent, only the remainder counts.
+    expect(
+      customizeFinishesAt(
+        now,
+        s,
+        isTimer: false,
+        audioDurationMs: 20 * 60000,
+        positionMs: 10 * 60000,
+      ),
+      now.add(const Duration(minutes: 15)),
+    );
+    expect(
+      customizeFinishesAt(
+        now,
+        s,
+        isTimer: true,
+        audioDurationMs: 0,
+        positionMs: 0,
+        timerMinutes: 12,
+      ),
+      now.add(const Duration(minutes: 12, seconds: 10)),
+    );
+  });
+
+  testWidgets('rows show values and a pick persists as the kind default', (
+    tester,
+  ) async {
+    final container = await _pump(tester);
+    expect(find.text('Finishes at 9:20 AM'), findsOneWidget);
+    expect(find.text('Countdown'), findsOneWidget);
+    await tester.tap(find.text('Countdown'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('10 sec'));
+    await tester.pumpAndSettle();
+    expect(
+      container
+          .read(cueSettingsProvider(const CueScope(CueKind.practice)))
+          .countdownSeconds,
+      10,
+    );
+    await _unmount(tester);
+  });
+
+  Future<void> tapChip(WidgetTester tester, String label) async {
+    final chip = find.widgetWithText(ChoiceChip, label);
+    await tester.ensureVisible(chip);
+    await tester.tap(chip);
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('background sound chooses from the library for the kind', (
+    tester,
+  ) async {
+    final container = await _pump(tester);
+    SoundscapeSessionDefault practice() => container
+        .read(soundscapeProvider)
+        .sessionDefault(SoundscapeSessionKind.practice);
+    // Practice is on by default with the current mix.
+    expect(find.text('Current mix'), findsOneWidget);
+    await tester.ensureVisible(find.text('Background sound'));
+    await tester.tap(find.text('Background sound'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(ChoiceChip, 'Off'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, 'Rain on the forest'), findsOne);
+    // The library, grouped by shelf.
+    expect(find.text('Rain'), findsOneWidget);
+    final river = bundledSoundLibrary['river']!;
+    expect(find.widgetWithText(ChoiceChip, river.title), findsOneWidget);
+
+    // A kind-wide pick is the mixer's default, not a second copy.
+    await tapChip(tester, 'Night');
+    expect(practice().enabled, isTrue);
+    expect(
+      practice().selection,
+      const SoundscapeSelection.preset('starter-night'),
+    );
+    expect(_read(container).soundscape, '');
+    await tapChip(tester, river.title);
+    expect(practice().selection, const SoundscapeSelection.sound('river'));
+
+    // The volume is the mixer's level for the kind.
+    await _drag(tester, 'Volume', 80);
+    expect(practice().volume, closeTo(0.8, 1e-9));
+
+    await tapChip(tester, 'Off');
+    expect(practice().enabled, isFalse);
+    expect(find.text('Volume'), findsNothing);
+    await _closeSub(tester);
+    expect(find.text('Off'), findsWidgets);
+    await _unmount(tester);
+  });
+
+  testWidgets('talks are off, and a course keeps its own choice', (
+    tester,
+  ) async {
+    const course = CueScope(CueKind.talks, courseId: 'c1');
+    const kind = CueScope(CueKind.talks);
+    final container = await _pump(tester, scope: course);
+    final store = container.read(cueSettingsStoreProvider);
+    final row = find.text('Background sound');
+    final toggle = find.widgetWithText(
+      SwitchListTile,
+      'Use these only for this course',
+    );
+    expect(
+      find.descendant(
+        of: find.ancestor(of: row, matching: find.byType(Row)),
+        matching: find.text('Off'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(row);
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+    await tapChip(tester, 'Shore');
+    await _closeSub(tester);
+    expect(store.read(course).soundscape, 'preset:starter-shore');
+    expect(store.read(kind).soundscape, '');
+    expect(
+      container
+          .read(soundscapeProvider)
+          .sessionDefault(SoundscapeSessionKind.talks)
+          .enabled,
+      isFalse,
+      reason: 'the talks default is untouched',
+    );
+    expect(find.text('Shore'), findsOneWidget);
+
+    // Back to the kind's settings: the course inherits Off again.
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(_read(container, course).soundscape, '');
+    await _unmount(tester);
+  });
+
+  testWidgets('a deleted preset shows as the current mix it plays', (
+    tester,
+  ) async {
+    const course = CueScope(CueKind.talks, courseId: 'c1');
+    final container = await _pump(tester, scope: course);
+    await container
+        .read(cueSettingsProvider(course).notifier)
+        .update(
+          const CueSettings(soundscape: 'preset:user-deleted'),
+          courseOverride: true,
+        );
+    await tester.pumpAndSettle();
+    final row = find.ancestor(
+      of: find.text('Background sound'),
+      matching: find.byType(Row),
+    );
+    expect(
+      find.descendant(of: row, matching: find.text('Current mix')),
+      findsOneWidget,
+    );
+    await _unmount(tester);
+  });
+
+  testWidgets('course scope offers an override and the timer hides autoplay', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      scope: const CueScope(CueKind.talks, courseId: 'c1'),
+      isTimer: true,
+    );
+    expect(find.text('Use these only for this course'), findsOneWidget);
+    expect(find.text('Autoplay'), findsNothing);
+    await _unmount(tester);
+  });
+
+  testWidgets('Start button calls back', (tester) async {
+    var started = false;
+    await _pump(tester, onStart: () => started = true);
+    await tester.tap(find.text('Start'));
+    expect(started, isTrue);
+    await _unmount(tester);
+  });
+
+  testWidgets('pulse sound, rate, ramp and volume are saved', (tester) async {
+    final container = await _pump(tester);
+    await tester.tap(find.text('Pulse'));
+    await tester.pumpAndSettle();
+    // No sound yet: only the sound choice is offered.
+    expect(find.text('Rate'), findsNothing);
+    await tester.tap(find.text('Heartbeat'));
+    await tester.pumpAndSettle();
+    expect(_read(container).pulseSound, cuePulseSounds['Heartbeat']);
+    expect(find.text('Rate'), findsOneWidget);
+    expect(find.text('Ends at'), findsNothing);
+
+    await _drag(tester, 'Rate', 90);
+    await tester.pumpAndSettle();
+    expect(_read(container).pulseBpm, 90);
+
+    await _drag(tester, 'Slow down over', 10);
+    await tester.pumpAndSettle();
+    expect(_read(container).pulseRampMinutes, 10);
+    expect(find.text('Ends at'), findsOneWidget);
+
+    await _drag(tester, 'Ends at', 30);
+    await _drag(tester, 'Volume', 0.8);
+    await tester.pumpAndSettle();
+    expect(_read(container).pulseEndBpm, 30);
+    expect(_read(container).pulseVolume, 0.8);
+    expect(find.text('Heartbeat · 90→30 BPM'), findsOneWidget);
+
+    // Back to no ramp hides the end rate again; Off hides everything.
+    await _drag(tester, 'Slow down over', 0);
+    await tester.pumpAndSettle();
+    expect(find.text('Ends at'), findsNothing);
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Off'));
+    await tester.pumpAndSettle();
+    expect(_read(container).pulseSound, '');
+    expect(find.text('Rate'), findsNothing);
+    await _closeSub(tester);
+    await _unmount(tester);
+  });
+
+  testWidgets('shrinking the interval pulls the random window in', (
+    tester,
+  ) async {
+    final container = await _pump(tester);
+    await tester.tap(find.text('Interval bell'));
+    await tester.pumpAndSettle();
+    expect(find.text('Random window ±'), findsNothing);
+
+    await _drag(tester, 'Every', 30);
+    await tester.pumpAndSettle();
+    await _drag(tester, 'Random window ±', 20);
+    await tester.pumpAndSettle();
+    expect(_read(container).randomWindowMinutes, 20);
+
+    await _drag(tester, 'Every', 10);
+    await tester.pumpAndSettle();
+    expect(_read(container).intervalMinutes, 10);
+    expect(_read(container).randomWindowMinutes, 10);
+    expect(tester.widget<Slider>(_sliderFor('Random window ±')).max, 10);
+    expect(tester.takeException(), isNull);
+
+    await _drag(tester, 'Every', 0);
+    await tester.pumpAndSettle();
+    expect(_read(container).randomWindowMinutes, 0);
+    expect(find.text('Random window ±'), findsNothing);
+    await _closeSub(tester);
+    await _unmount(tester);
+  });
+
+  testWidgets('course override saves and clears real defaults', (tester) async {
+    const course = CueScope(CueKind.talks, courseId: 'c1');
+    const kind = CueScope(CueKind.talks);
+    final container = await _pump(tester, scope: course);
+    final store = container.read(cueSettingsStoreProvider);
+    final toggle = find.widgetWithText(
+      SwitchListTile,
+      'Use these only for this course',
+    );
+
+    Future<void> setCountdown(String label) async {
+      await tester.tap(find.text('Countdown'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+      await _closeSub(tester);
+    }
+
+    await setCountdown('5 sec');
+    expect(store.hasOverride(course), isFalse);
+    expect(store.read(kind).countdownSeconds, 5);
+
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(store.hasOverride(course), isTrue);
+
+    await setCountdown('10 sec');
+    expect(store.read(course).countdownSeconds, 10);
+    expect(store.read(kind).countdownSeconds, 5);
+
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(store.hasOverride(course), isFalse);
+    expect(store.read(course).countdownSeconds, 5);
+    expect(_read(container, course).countdownSeconds, 5);
+    await _unmount(tester);
+  });
+
+  testWidgets('hide toggle is reachable in the manual sheet and reversible', (
+    tester,
+  ) async {
+    final container = await _pump(tester);
+    final toggle = find.widgetWithText(
+      SwitchListTile,
+      'Hide these settings before practice',
+    );
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(_read(container).hideBeforePractice, isTrue);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(_read(container).hideBeforePractice, isFalse);
+    await _unmount(tester);
+  });
+
+  for (final scale in [1.0, 2.0]) {
+    testWidgets('scrolls on a narrow screen at ${scale}x text', (tester) async {
+      const scope = CueScope(CueKind.talks, courseId: 'c1');
+      final container = await _pump(
+        tester,
+        scope: scope,
+        onStart: () {},
+        size: const Size(280, 480),
+        textScale: scale,
+      );
+      await container
+          .read(cueSettingsProvider(scope).notifier)
+          .update(
+            const CueSettings().copyWith(
+              pulseSound: cuePulseSounds['Soft click'],
+              pulseRampMinutes: 20,
+              pulseBpm: 120,
+              pulseEndBpm: 20,
+              intervalMinutes: 60,
+              randomWindowMinutes: 60,
+            ),
+          );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      // Start stays pinned on screen while the list scrolls under it.
+      expect(
+        tester.getBottomLeft(find.text('Start')).dy,
+        lessThanOrEqualTo(480),
+      );
+      final last = find.text('Use these only for this course');
+      await tester.scrollUntilVisible(last, 200);
+      expect(last, findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      // Sub-sheets scroll too.
+      await tester.ensureVisible(find.text('Pulse'));
+      await tester.tap(find.text('Pulse'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Volume'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.text('Volume'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await _closeSub(tester);
+      await _unmount(tester);
+    });
+  }
+  test(
+    'active finish time uses the native extension remainder and spent countdown',
+    () {
+      final now = DateTime(2026, 1, 1, 9);
+      const settings = CueSettings(countdownSeconds: 10, extendMinutes: 5);
+      expect(
+        customizeFinishesAt(
+          now,
+          settings,
+          isTimer: false,
+          audioDurationMs: 1200000,
+          positionMs: 1200000,
+          isActive: true,
+          extensionRemainingMs: 120000,
+        ),
+        now.add(const Duration(minutes: 2)),
+      );
+      expect(
+        customizeFinishesAt(
+          now,
+          settings,
+          isTimer: false,
+          audioDurationMs: 1200000,
+          positionMs: 0,
+          isActive: true,
+        ),
+        now.add(const Duration(minutes: 25)),
+      );
+    },
+  );
+}

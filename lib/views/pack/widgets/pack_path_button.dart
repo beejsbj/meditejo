@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/colors/color_constants.dart';
-import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
-import 'package:medito/providers/home/up_next_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
-import 'package:medito/providers/providers.dart';
-import 'package:medito/scaffold_messenger_key.dart';
 import 'package:medito/views/player/start_session.dart';
-import 'package:medito/widgets/snackbar_widget.dart';
 
 /// The pack's header surface with its play button sitting on the lower edge,
 /// half over the header and half over the track list (Spotify-style). The
@@ -130,11 +125,8 @@ typedef StartSessionFn =
       required String path,
     });
 
-/// Plays the pack's next unfinished session and makes the pack the one Home
-/// continues. Tapping a single track in the list only plays that track —
-/// exploring never changes Home. Only this button does, so the snackbar says
-/// so (with Undo) the first time a pack takes over Home. Removing lives on the
-/// Home hero, where it shows.
+/// Plays the pack's next unfinished session. Home's Continue follows what the
+/// user plays; pinning a course is a separate, deliberate action.
 class PackPlayButton extends ConsumerStatefulWidget {
   const PackPlayButton({
     super.key,
@@ -161,7 +153,6 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
     final completed = pack.items
         .where((item) => item.isCompleted == true)
         .length;
-    // Same rule as upNextProvider, so this plays what Home would.
     final next = pack.items
         .where((item) => item.isCompleted != true)
         .firstOrNull;
@@ -236,8 +227,6 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
     if (_starting) return;
     setState(() => _starting = true);
     try {
-      await _putOnHome(context);
-      if (!context.mounted) return;
       await widget.onStartSession(
         context,
         ref,
@@ -247,42 +236,5 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
     } finally {
       if (mounted) setState(() => _starting = false);
     }
-  }
-
-  /// Makes this pack the one Home continues. A no-op (and no snackbar) when it
-  /// already is. Progress lives in stats, so replacing loses nothing.
-  Future<void> _putOnHome(BuildContext context) async {
-    final previousId = ref.read(upNextPackIdProvider);
-    if (previousId == pack.id) return;
-
-    final prefs = ref.read(sharedPreferencesProvider);
-    // Null when Home was unpinned; Undo restores exactly that.
-    final previousRaw = prefs.getString(SharedPreferenceConstants.upNextPackId);
-    // Container, not ref: Undo is usually tapped from the player.
-    final container = ProviderScope.containerOf(context, listen: false);
-    final l10n = AppLocalizations.of(context)!;
-
-    // Retired course sequences must not become a return target for this pin.
-    await prefs.remove(SharedPreferenceConstants.upNextReturnPackId);
-    await prefs.setString(SharedPreferenceConstants.upNextPackId, pack.id);
-    ref.invalidate(upNextPackIdProvider);
-
-    scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
-    showSnackBar(
-      context.mounted ? context : null,
-      l10n.packAddedToHome,
-      actionLabel: l10n.undo,
-      onActionPressed: () async {
-        if (previousRaw == null) {
-          await prefs.remove(SharedPreferenceConstants.upNextPackId);
-        } else {
-          await prefs.setString(
-            SharedPreferenceConstants.upNextPackId,
-            previousRaw,
-          );
-        }
-        container.invalidate(upNextPackIdProvider);
-      },
-    );
   }
 }
