@@ -27,8 +27,12 @@ internal data class CueConfig(
     val isTimer: Boolean = false,
     val durationMs: Long = 0,
     val randomSeed: Long = 0,
+    /** Autoplay is on: the session end holds the service for the interlude. */
+    val autoplay: Boolean = false,
+    val interludeSeconds: Int = 0,
 ) {
     val countdownMs: Long get() = countdownSeconds.coerceIn(0, 10) * 1000L
+    val interludeMs: Long get() = interludeSeconds.coerceIn(0, 30) * 1000L
     val extensionMs: Long get() = extendMinutes.coerceIn(0, 60) * 60_000L
     val hasInterval: Boolean get() = intervalMinutes > 0 && intervalSound != null
     val hasPulse: Boolean get() = pulseSound != null
@@ -56,6 +60,8 @@ internal data class CueConfig(
             isTimer = m["isTimer"] as? Boolean ?: false,
             durationMs = long(m["durationMs"]),
             randomSeed = long(m["randomSeed"]),
+            autoplay = m["autoplay"] as? Boolean ?: false,
+            interludeSeconds = int(m["interludeSeconds"]).coerceIn(0, 30),
         )
     }
 }

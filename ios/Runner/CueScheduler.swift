@@ -27,9 +27,13 @@ struct CueConfig {
     var isTimer = false
     var durationMs: Int64 = 0
     var randomSeed: Int64 = 0
+    /// Autoplay is on: the session end holds the app for the interlude.
+    var autoplay = false
+    var interludeSeconds = 0
 
     var countdownMs: Double { Double(min(max(countdownSeconds, 0), 10)) * 1000 }
     var extensionMs: Double { Double(min(max(extendMinutes, 0), 60)) * 60_000 }
+    var interludeMs: Double { Double(min(max(interludeSeconds, 0), 30)) * 1000 }
     var hasInterval: Bool { intervalMinutes > 0 && intervalSound != nil }
     var hasPulse: Bool { pulseSound != nil }
 
@@ -59,6 +63,8 @@ struct CueConfig {
         isTimer = (map["isTimer"] as? Bool) ?? false
         durationMs = i64("durationMs")
         randomSeed = i64("randomSeed")
+        autoplay = (map["autoplay"] as? Bool) ?? false
+        interludeSeconds = min(max(int("interludeSeconds"), 0), 30)
     }
 }
 
@@ -335,6 +341,14 @@ final class CueScheduler {
     private var interludeReady: (() -> Void)?
     private var interludeHolding = false
     private var interludeGeneration = 0
+    // With autoplay the interlude starts at the session end, before Dart has
+    // resolved the next session: when it ends (nil: none), and when the end
+    // bell stops ringing.
+    private var interludeEndsAtMs: Double?
+    private var tailEndsAtMs = 0.0
+
+    /// An autoplay interlude began at the session end and is still waiting.
+    var holdsInterlude: Bool { interludeEndsAtMs != nil }
 
     // Countdown and extension run on the monotonic clock. nil anchor means held.
     private var holdRemainingMs = 0.0
@@ -396,6 +410,12 @@ final class CueScheduler {
     func skipCountdown() { if phase == .countdown { finishCountdown() } }
 
     func holdInterlude(seconds: Int, ready: @escaping () -> Void) {
+        // Already counting since the session end: wait only for what is left.
+        let full = Double(min(max(seconds, 0), 30)) * 1000
+        var delayMs = full
+        if let endsAt = interludeEndsAtMs {
+            delayMs = min(max(endsAt - CueScheduler.uptimeMs(), 0), full)
+        }
         cancelInterlude()
         configureAudioSession()
         bank.startKeepAlive()
@@ -416,10 +436,24 @@ final class CueScheduler {
             }
         }
         interludeWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(min(max(seconds, 0), 30)), execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(Int(delayMs)), execute: work)
+    }
+
+    /// Dart will not autoplay after all: drop the interlude begun at the
+    /// session end and let only the end bell ring out.
+    func endInterlude() {
+        guard phase == .ended, interludeEndsAtMs != nil else { return }
+        cancelInterlude()
+        let left = max(tailEndsAtMs - CueScheduler.uptimeMs(), 0)
+        let generation = interludeGeneration
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(Int(left) + 300)) { [weak self] in
+            guard let self = self, self.phase == .ended, self.interludeGeneration == generation else { return }
+            self.bank.stopKeepAlive()
+        }
     }
 
     private func cancelInterlude() {
+        interludeEndsAtMs = nil
         interludeGeneration += 1
         interludeHolding = false
         interludeWork?.cancel()
@@ -696,11 +730,27 @@ final class CueScheduler {
         holdRemainingMs = 0
         phase = .ended
         let tail = bank.tailMs(config?.endSound)
+        tailEndsAtMs = CueScheduler.uptimeMs() + tail
         if let cfg = config, cfg.endSound != nil {
             configureAudioSession()
             bank.play(cfg.endSound, volume: cfg.bellVolume)
         }
-        if tail > 0 {
+        if let cfg = config, cfg.autoplay, !cfg.isTimer {
+            // The interlude starts now, so a locked phone is not suspended
+            // while Dart resolves the next session. Bounded like holdInterlude.
+            interludeEndsAtMs = CueScheduler.uptimeMs() + cfg.interludeMs
+            interludeHolding = true
+            configureAudioSession()
+            bank.startKeepAlive()
+            let generation = interludeGeneration
+            let holdMs = max(tail + 300, cfg.interludeMs + 30_000)
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(Int(holdMs))) { [weak self] in
+                guard let self = self, self.phase == .ended, self.interludeGeneration == generation else { return }
+                self.interludeEndsAtMs = nil
+                self.interludeHolding = false
+                self.bank.stopKeepAlive()
+            }
+        } else if tail > 0 {
             bank.startKeepAlive()
             DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(Int(tail) + 300)) { [weak self] in
                 guard let self = self, self.phase == .ended, !self.interludeHolding else { return }
@@ -765,6 +815,7 @@ final class CueChannel {
             self?.channel.invokeMethod("sessionEnded", arguments: [
                 "extensionFinished": extensionFinished,
                 "tailMs": Int(tailMs),
+                "interlude": self?.scheduler.holdsInterlude ?? false,
             ])
         }
         channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result) }
@@ -785,6 +836,9 @@ final class CueChannel {
             result(nil)
         case "holdInterlude":
             scheduler.holdInterlude(seconds: (args["seconds"] as? NSNumber)?.intValue ?? 0) { result(nil) }
+        case "endInterlude":
+            scheduler.endInterlude()
+            result(nil)
         case "setHeld":
             scheduler.setHeld((args["held"] as? Bool) ?? false)
             result(nil)

@@ -101,10 +101,18 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
         .setTimerScope(ref.read(playerProvider)?.isTimer ?? false);
     // A listener rather than build(): build only sees the latest value, and a
     // not-completed reading between two completed ones must still arm the gate.
-    ref.listenManual(
-      audioStateProvider.select((s) => s.isCompleted),
-      (_, isCompleted) => _completionGate.completionChanged(isCompleted),
-    );
+    ref.listenManual(audioStateProvider.select((s) => s.isCompleted), (
+      _,
+      isCompleted,
+    ) {
+      _completionGate.completionChanged(isCompleted);
+      // Here, not in build(): with the screen locked no frame is built, and
+      // the end of a session must still start autoplay.
+      if (!_finishing &&
+          _completionGate.isSessionComplete(ref.read(audioStateProvider))) {
+        unawaited(_finishOrAutoplay());
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startPlayback();
     });
@@ -287,12 +295,6 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
 
   @override
   Widget build(BuildContext context) {
-    // Rebuild on completion; the gate decides whether it is this session's.
-    ref.watch(audioStateProvider.select((s) => s.isCompleted));
-    if (_completionGate.isSessionComplete(ref.read(audioStateProvider))) {
-      if (!_finishing) unawaited(_finishOrAutoplay());
-    }
-
     final currentlyPlayingTrack = ref.watch(playerProvider);
 
     ref.listen(playerProvider.select((p) => p?.coverUrl), (_, next) {
@@ -415,6 +417,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
         request.isTimer ||
         settings?.autoplay != true ||
         scope?.courseId == null) {
+      _releaseInterlude();
       _openEndScreen();
       return;
     }
@@ -428,6 +431,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
           .toList();
       final index = items.indexWhere((item) => item.id == request.trackId);
       if (index < 0 || index + 1 >= items.length) {
+        _releaseInterlude();
         _openEndScreen();
         return;
       }
@@ -451,19 +455,38 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
         voice,
         voice.audioFiles.first,
       );
+      // Start it now rather than from a new route's first frame: with the
+      // screen locked none is built until the user returns, and the native
+      // interlude hold is bounded. This screen carries on with the next
+      // session; _startPlayback restarts its gate and per-session state.
+      _statsAtSessionStart = ref.read(statsProvider).value;
+      _customized = true;
+      _playbackStarted = false;
+      _autoplayPending = false;
+      _finishing = false;
       ref.read(playerProvider.notifier).prepare(next);
-      // Recreate the player lifecycle so gates and snapshots belong to next.
-      Navigator.of(
-        context,
-      ).popUntil((route) => route == ModalRoute.of(context));
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => const PlayerView(skipCustomize: true),
-        ),
-      );
+      if (mounted) setState(() {});
+      await _startPlayback();
     } catch (e, st) {
       AppLogger.e('CUES', 'Autoplay could not start next session', e, st);
-      if (mounted && !_cancelAutoplay) _openEndScreen();
+      if (mounted && !_cancelAutoplay) {
+        _releaseInterlude();
+        _openEndScreen();
+      }
+    }
+  }
+
+  /// No autoplay after all: the native side stops holding the interlude it
+  /// began at the session end (a no-op when autoplay was off).
+  void _releaseInterlude() {
+    if (Platform.isAndroid) {
+      unawaited(
+        NativeCueController.endInterlude().catchError((Object e) {
+          AppLogger.e('CUES', 'Could not end the interlude: $e');
+        }),
+      );
+    } else if (Platform.isIOS) {
+      unawaited(iosAudioHandler.endInterlude());
     }
   }
 

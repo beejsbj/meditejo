@@ -4,18 +4,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/models/background_sounds/background_sounds_model.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/local_all_stats.dart';
+import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/models/timer/timer_session.dart';
+import 'package:medito/models/track/track.dart';
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
+import 'package:medito/providers/cues/cue_settings_provider.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
+import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/review_service_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
+import 'package:medito/services/content/content_source.dart';
 import 'package:medito/services/review_service.dart';
-import 'package:medito/src/audio_pigeon.g.dart';
+import 'package:medito/src/audio_pigeon.g.dart' hide Track;
+import 'package:medito/src/audio_pigeon.g.dart' as pigeon show Track;
+import 'package:medito/views/end_screen/end_screen_view.dart';
 import 'package:medito/views/home/previews/stats_fixtures.dart';
 import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/previews/preview_support.dart';
@@ -36,7 +45,7 @@ PlaybackState _state({
     duration: durationMs,
     speed: Speed(speed: 1),
     volume: 100,
-    track: Track(
+    track: pigeon.Track(
       id: '',
       title: '',
       fileId: '',
@@ -115,7 +124,7 @@ Widget _player({
   required PlayerProvider player,
   required Map<String, Object> prefs,
   SessionBellPreview? bell,
-  List overrides = const [],
+  List<dynamic> overrides = const [],
 }) => PreviewShell(
   prefs: prefs,
   overrides: [
@@ -129,6 +138,88 @@ Widget _player({
   ],
   child: const PlayerView(skipCustomize: true),
 );
+
+const _first = PlaybackRequest(
+  trackId: 'fake-a',
+  fileId: 'a-file',
+  title: 'Session A',
+  description: '',
+  coverUrl: '',
+  remoteUrl: 'https://example.test/a.mp3',
+  duration: 60000,
+  hasBackgroundSound: false,
+);
+
+const _nextTrack = Track(
+  id: 'fake-b',
+  title: 'Session B',
+  description: '',
+  coverUrl: '',
+  isPublished: true,
+  hasBackgroundSound: false,
+  voices: [
+    TrackVoice(
+      audioFiles: [
+        TrackAudioFile(
+          id: 'b-file',
+          path: 'https://example.test/b.mp3',
+          duration: 60000,
+        ),
+      ],
+    ),
+  ],
+);
+
+/// A two-session course.
+class _Course implements ContentSource {
+  @override
+  String get prefix => 'fake-';
+
+  @override
+  Future<PackModel> pack(String id) async => const PackModel(
+    id: 'fake-course',
+    title: 'Course',
+    items: [
+      PackItemsModel(
+        type: TypeConstants.track,
+        id: 'fake-a',
+        title: 'Session A',
+        path: '',
+      ),
+      PackItemsModel(
+        type: TypeConstants.track,
+        id: 'fake-b',
+        title: 'Session B',
+        path: '',
+      ),
+    ],
+  );
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _NextTrack extends Tracks {
+  @override
+  Future<Track> build({required String trackId}) async => _nextTrack;
+}
+
+final _courseOverrides = [
+  cueScopeForRequestProvider.overrideWith(
+    (ref, request) async =>
+        const CueScope(CueKind.practice, courseId: 'fake-course'),
+  ),
+  contentSourcesProvider.overrideWithValue([_Course()]),
+  tracksProvider(trackId: 'fake-b').overrideWith(_NextTrack.new),
+];
+
+const _autoplay = CueSettings(autoplay: true, interludeSeconds: 5);
+
+void _setLifecycle(WidgetTester tester, List<AppLifecycleState> states) {
+  for (final state in states) {
+    tester.binding.handleAppLifecycleStateChanged(state);
+  }
+}
 
 final _timer = timerPlaybackRequest(
   mode: TimerMode.countdown,
@@ -201,6 +292,105 @@ void main() {
       expect(bell.rung, [(0.8, kSessionBellAsset)]);
     },
   );
+
+  testWidgets('autoplay starts the next session while the screen is locked', (
+    tester,
+  ) async {
+    addTearDown(
+      () => _setLifecycle(tester, [
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]),
+    );
+    final player = _FakePlayer(_first);
+    await tester.pumpWidget(
+      _player(
+        player: player,
+        prefs: _prefsWith(_autoplay),
+        overrides: _courseOverrides,
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    final audio = ProviderScope.containerOf(
+      tester.element(find.byType(PlayerView)),
+    ).read(audioStateProvider.notifier);
+    audio.updatePlaybackState(
+      _state(
+        completed: false,
+        positionMs: 1000,
+        durationMs: 60000,
+        playing: true,
+      ),
+    );
+    await tester.pump();
+    expect(player.played, [_first]);
+
+    // The screen locks: Flutter builds no more frames.
+    _setLifecycle(tester, [
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.paused,
+    ]);
+    expect(tester.binding.framesEnabled, isFalse);
+
+    audio.updatePlaybackState(
+      _state(completed: true, positionMs: 60000, durationMs: 60000),
+    );
+    await tester.pump(const Duration(seconds: 4));
+    expect(player.played, hasLength(1), reason: 'the interlude is 5 s');
+    await tester.pump(const Duration(seconds: 2));
+    expect(player.played.map((r) => r.trackId), ['fake-a', 'fake-b']);
+
+    // Unlocking shows the next session on the same screen.
+    _setLifecycle(tester, [
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]);
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Session B'), findsWidgets);
+    expect(find.byType(EndScreenView), findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 4));
+  });
+
+  testWidgets('autoplay after the last session of a course opens the end '
+      'screen', (tester) async {
+    final last = _first.copyWith(trackId: 'fake-b', title: 'Session B');
+    final player = _FakePlayer(last);
+    await tester.pumpWidget(
+      _player(
+        player: player,
+        prefs: _prefsWith(_autoplay),
+        overrides: _courseOverrides,
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    final audio = ProviderScope.containerOf(
+      tester.element(find.byType(PlayerView)),
+    ).read(audioStateProvider.notifier);
+    audio.updatePlaybackState(
+      _state(completed: false, positionMs: 1000, durationMs: 60000),
+    );
+    await tester.pump();
+    audio.updatePlaybackState(
+      _state(completed: true, positionMs: 60000, durationMs: 60000),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byType(EndScreenView), findsOneWidget);
+    expect(player.played, [last]);
+
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+  });
 
   testWidgets('ending a timer early with the end cue Off rings nothing', (
     tester,

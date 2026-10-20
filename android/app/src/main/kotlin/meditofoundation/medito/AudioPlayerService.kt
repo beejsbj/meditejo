@@ -310,7 +310,10 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         // session earned its stats above: the end screen and autoplay need it.
         pushCompletedStateToDart()
         if (::backgroundMusicPlayer.isInitialized) backgroundMusicPlayer.stop()
-        if (tailMs > 0) handler.postDelayed(pendingFinish, tailMs) else finishPlayback()
+        // With autoplay the service stays through the interlude so the next
+        // session can start with the screen locked; endInterlude lets it go.
+        val keepMs = maxOf(tailMs, if (::cues.isInitialized) cues.interludeHoldMs() else 0L)
+        if (keepMs > 0) handler.postDelayed(pendingFinish, keepMs) else finishPlayback()
     }
 
     private fun saveAndSendRepeatPlaythrough(completionData: CompletionData) {
@@ -1575,6 +1578,13 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         cues.holdInterlude(seconds, ready)
         // Keep the foreground service alive while Dart resolves the next source.
         handler.postDelayed(pendingFinish, seconds.coerceIn(0, 30) * 1000L + 30_000L)
+    }
+
+    /** Dart will not autoplay: finish once the end bell has rung out. */
+    fun endInterlude() {
+        if (!::cues.isInitialized || !cues.endInterlude()) return
+        handler.removeCallbacks(pendingFinish)
+        handler.postDelayed(pendingFinish, cues.tailRemainingMs())
     }
 
     fun skipCountdown() { if (::cues.isInitialized) cues.skipCountdown() }

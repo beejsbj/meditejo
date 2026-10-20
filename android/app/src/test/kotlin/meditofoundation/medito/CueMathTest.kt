@@ -158,6 +158,7 @@ class CueMathTest {
             "pulseSound" to "assets/audio/pulse_click.wav", "pulseBpm" to 70, "pulseEndBpm" to 40.0,
             "pulseRampMinutes" to 10, "pulseVolume" to 3.0, "bellVolume" to 0.5, "extendMinutes" to 5,
             "isTimer" to true, "durationMs" to 600000, "randomSeed" to 12345,
+            "autoplay" to true, "interludeSeconds" to 99,
         ))
         assertEquals(10_000L, cfg.countdownMs)
         assertEquals(300_000L, cfg.extensionMs)
@@ -165,7 +166,10 @@ class CueMathTest {
         assertEquals(1.0, cfg.pulseVolume, 0.0)
         assertEquals(12345L, cfg.randomSeed)
         assertNull(cfg.endSound)
+        assertTrue(cfg.autoplay)
+        assertEquals(30_000L, cfg.interludeMs)
         assertFalse(CueConfig.fromMap(emptyMap<String, Any?>()).hasInterval)
+        assertFalse(CueConfig.fromMap(emptyMap<String, Any?>()).autoplay)
     }
 
     // ---- Real listening ---------------------------------------------------------

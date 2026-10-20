@@ -24,8 +24,15 @@ class NativeCueController {
     });
   }
 
+  /// Waits out the autoplay interlude. With autoplay configured it began at
+  /// the session end, natively, so only the rest of it is waited for.
   static Future<void> holdInterlude(int seconds) =>
       channel.invokeMethod<void>('holdInterlude', {'seconds': seconds});
+
+  /// No autoplay after all: the native side stops holding the interlude it
+  /// began at the session end, once the end bell has rung out.
+  static Future<void> endInterlude() =>
+      channel.invokeMethod<void>('endInterlude');
 
   static Future<void> skipCountdown() =>
       channel.invokeMethod<void>('skipCountdown');

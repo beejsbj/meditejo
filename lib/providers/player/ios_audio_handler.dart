@@ -604,6 +604,7 @@ class IosAudioHandler extends BaseAudioHandler {
         final args = Map<Object?, Object?>.from(call.arguments as Map);
         await _finishNativeSession(
           tailMs: (args['tailMs'] as num?)?.toInt() ?? 0,
+          interlude: args['interlude'] == true,
         );
       }
     });
@@ -654,7 +655,24 @@ class IosAudioHandler extends BaseAudioHandler {
     await NativeCueController.holdInterlude(seconds);
   }
 
-  Future<void> _finishNativeSession({required int tailMs}) async {
+  /// No autoplay after all: Swift drops the interlude it began at the end,
+  /// and the session is released once the end bell has rung out.
+  Future<void> endInterlude() async {
+    if (!_nativeCues) return;
+    try {
+      await NativeCueController.endInterlude();
+    } catch (e) {
+      AppLogger.e('CUES', 'Could not end the interlude: $e');
+    }
+    _releaseAfterTail(_nativeTailMs);
+  }
+
+  int _nativeTailMs = 0;
+
+  Future<void> _finishNativeSession({
+    required int tailMs,
+    bool interlude = false,
+  }) async {
     _nativeExtending = false;
     _nativeCountdown = false;
     // A timer counts at its end; a recording only once 90% was really heard
@@ -665,7 +683,15 @@ class IosAudioHandler extends BaseAudioHandler {
     await _recordPlaythrough();
     // The true end is terminal whether or not it earned the stats above.
     _sessionCompleted.add(true);
-    // The Swift bell and silent keep-alive must finish before deactivation.
+    _nativeTailMs = tailMs;
+    // With autoplay Swift holds the session through the interlude; the next
+    // session or endInterlude releases it.
+    if (!interlude) _releaseAfterTail(tailMs);
+  }
+
+  /// The Swift bell and silent keep-alive must finish before deactivation.
+  void _releaseAfterTail(int tailMs) {
+    _nativeTailRelease?.cancel();
     _nativeTailRelease = Timer(Duration(milliseconds: tailMs + 350), () {
       if (_nativeCues &&
           !_nativeExtending &&

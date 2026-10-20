@@ -246,6 +246,25 @@ void main() {
     },
   );
 
+  test('with autoplay Swift holds the interlude until Dart ends it', () async {
+    final calls = _mockSwift();
+    final handler = _NativeHandler(_endedPlayer());
+    await handler.configureCues(
+      const CueSettings(autoplay: true, interludeSeconds: 10),
+      _guided,
+    );
+    await _fromSwift('sessionEnded', {
+      'extensionFinished': false,
+      'tailMs': 0,
+      'interlude': true,
+    });
+    expect(handler.sessionCompleted, isTrue);
+
+    // The course has no next session: release the hold.
+    await handler.endInterlude();
+    expect(calls.map((c) => c.method), contains('endInterlude'));
+  });
+
   test(
     'a finished extension after a seek to the end does not earn the stats',
     () async {

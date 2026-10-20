@@ -63,6 +63,12 @@ internal class CueEngine(
     private var beatAtMs = Double.MAX_VALUE
 
     private var interludeReady: Runnable? = null
+
+    // With autoplay the interlude starts at the session end, before Dart has
+    // resolved the next session: when it ends (0: none), and when the end
+    // bell stops ringing.
+    private var interludeEndsAt = 0L
+    private var tailEndsAt = 0L
     private val tick = Runnable { run() }
     private val cleanup = Runnable {
         releaseWake()
@@ -146,7 +152,12 @@ internal class CueEngine(
     }
 
     fun holdInterlude(seconds: Int, ready: () -> Unit) {
-        val delay = seconds.coerceIn(0, 30) * 1000L
+        val full = seconds.coerceIn(0, 30) * 1000L
+        // Already counting since the session end: wait only for what is left.
+        val delay = if (interludeEndsAt != 0L) {
+            (interludeEndsAt - SystemClock.elapsedRealtime()).coerceIn(0L, full)
+        } else full
+        interludeEndsAt = 0L
         handler.removeCallbacks(cleanup)
         interludeReady?.let { handler.removeCallbacks(it); it.run() }
         acquireWake(delay + WAKE_SLACK_MS)
@@ -156,7 +167,29 @@ internal class CueEngine(
         handler.postDelayed(cleanup, delay + WAKE_SLACK_MS)
     }
 
+    /**
+     * Dart will not autoplay after all: drop the interlude begun at the
+     * session end and keep only the end bell's tail. False when none runs.
+     */
+    fun endInterlude(): Boolean {
+        if (interludeEndsAt == 0L) return false
+        interludeEndsAt = 0L
+        val tail = tailRemainingMs()
+        handler.removeCallbacks(cleanup)
+        acquireWake(tail + WAKE_SLACK_MS)
+        handler.postDelayed(cleanup, tail + 500)
+        return true
+    }
+
+    fun tailRemainingMs(): Long = (tailEndsAt - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
+
+    /** How long the service must stay for the autoplay interlude; 0 when none runs. */
+    fun interludeHoldMs(): Long =
+        if (interludeEndsAt == 0L) 0L
+        else (interludeEndsAt - SystemClock.elapsedRealtime()).coerceAtLeast(0L) + WAKE_SLACK_MS
+
     private fun stopTimers() {
+        interludeEndsAt = 0L
         interludeReady?.let { handler.removeCallbacks(it); it.run() }
         interludeReady = null
         handler.removeCallbacks(tick)
@@ -463,10 +496,17 @@ internal class CueEngine(
         phase = Phase.ENDED
         val tail = bank?.tailMs(cfg?.endSound) ?: 0L
         if (cfg?.endSound != null) bank?.play(cfg.endSound, cfg.bellVolume)
-        // Keep the CPU up until the end bell has rung out.
-        acquireWake(tail + WAKE_SLACK_MS)
+        val now = SystemClock.elapsedRealtime()
+        tailEndsAt = now + tail
+        // With autoplay the interlude starts now, so a locked phone keeps the
+        // service and the CPU while Dart resolves the next session.
+        val interlude = if (cfg != null && cfg.autoplay && !cfg.isTimer) cfg.interludeMs else -1L
+        interludeEndsAt = if (interlude >= 0) now + interlude else 0L
+        val holdMs = if (interlude >= 0) interlude + WAKE_SLACK_MS else 0L
+        // Keep the CPU up until the end bell has rung out (and the interlude).
+        acquireWake(maxOf(tail, holdMs) + WAKE_SLACK_MS)
         host.onSessionEnded(extensionFinished, tail)
-        handler.postDelayed(cleanup, tail + 500)
+        handler.postDelayed(cleanup, maxOf(tail + 500, holdMs))
     }
 
     // ---- Wake lock -----------------------------------------------------------

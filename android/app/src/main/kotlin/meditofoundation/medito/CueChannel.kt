@@ -9,6 +9,8 @@ import io.flutter.plugin.common.MethodChannel
  *
  *  - `configure(map)`  arm the cues for the next playAudio (or re-arm a live session)
  *  - `skipCountdown`   end the countdown now
+ *  - `holdInterlude`   wait out the autoplay interlude (the rest of it, when it began at the end)
+ *  - `endInterlude`    no autoplay after all: finish once the end bell has rung out
  *  - `stop`            cancel every timer, sound and the configuration
  *  - `state`           map: phase, countdownRemainingMs, extensionRemainingMs, sessionMs, paused, heardMs
  *  - `countdownRemainingMs`  int
@@ -24,7 +26,7 @@ internal object CueChannel {
             if (service == null) {
                 when (call.method) {
                     // Nothing is playing, so there is nothing to cancel or report.
-                    "stop", "skipCountdown", "resetListening" -> result.success(null)
+                    "stop", "skipCountdown", "resetListening", "endInterlude" -> result.success(null)
                     "state" -> result.success(mapOf("phase" to "idle"))
                     "countdownRemainingMs" -> result.success(0L)
                     "sampleListening" -> result.success(false)
@@ -42,6 +44,7 @@ internal object CueChannel {
                         val args = call.arguments as? Map<*, *>
                         service.holdInterlude((args?.get("seconds") as? Number)?.toInt() ?: 0) { result.success(null) }
                     }
+                    "endInterlude" -> { service.endInterlude(); result.success(null) }
                     "skipCountdown" -> { service.skipCountdown(); result.success(null) }
                     "stop" -> { service.stopCues(); result.success(null) }
                     "state" -> result.success(service.cueState())
