@@ -60,7 +60,14 @@ Future<PackModel> packData(Ref ref, {required String packId}) {
   } else if (packId.startsWith(dharmaSeedPrefix)) {
     ref.watch(dharmaSeedRevisionProvider);
   }
-  if (packId.startsWith(myPrefix)) ref.watch(myCoursesRevisionProvider);
+  if (packId.startsWith(myPrefix)) {
+    // A personal course lists sessions of every source: one removed from the
+    // library, or gone from its feed, must not stay playable here.
+    ref.watch(myCoursesRevisionProvider);
+    ref.watch(libraryRevisionProvider);
+    ref.watch(youtubeContentRevisionProvider);
+    ref.watch(dharmaSeedRevisionProvider);
+  }
   return ref.read(packRepositoryProvider).fetchPacks(packId);
 }
 
