@@ -449,7 +449,13 @@ final class CueScheduler {
             holdAnchorMs = nil
             cancelTimer()
             bank.pauseAll()
+            // A held session must not keep the app alive with silence.
+            bank.stopKeepAlive()
         } else if !held, holdAnchorMs == nil {
+            // The session may have been deactivated during a long pause, and
+            // an interruption stops the silent player: bring both back.
+            configureAudioSession()
+            bank.startKeepAlive()
             holdAnchorMs = CueScheduler.uptimeMs()
             bank.resumeAll()
             rearm()

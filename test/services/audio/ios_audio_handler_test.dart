@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:audio_session/audio_session.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:just_audio/just_audio.dart';
@@ -146,6 +147,63 @@ Future<void> _settle() => Future<void>.delayed(Duration.zero);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('an interruption during the extension', () {
+    late List<MethodCall> calls;
+    late _WiredHandler handler;
+
+    setUp(() async {
+      calls = _mockSwift();
+      final streams = _Streams();
+      handler = _WiredHandler(streams.player());
+      await handler.ensureInitialized();
+      await handler.configureCues(const CueSettings(extendMinutes: 5), _guided);
+      streams.processing.add(ProcessingState.completed);
+      await _settle();
+      calls.clear();
+    });
+
+    List<Object?> held() => [
+      for (final call in calls)
+        if (call.method == 'setHeld') (call.arguments as Map)['held'],
+    ];
+
+    test('holds it and resumes only when the interruption ends', () async {
+      handler.handleInterruption(
+        AudioInterruptionEvent(true, AudioInterruptionType.pause),
+      );
+      await _settle();
+      expect(held(), [true]);
+
+      handler.handleInterruption(
+        AudioInterruptionEvent(false, AudioInterruptionType.pause),
+      );
+      await _settle();
+      expect(held(), [true, false]);
+    });
+
+    test('stays held when iOS does not ask to resume', () async {
+      handler.handleInterruption(
+        AudioInterruptionEvent(true, AudioInterruptionType.unknown),
+      );
+      handler.handleInterruption(
+        AudioInterruptionEvent(false, AudioInterruptionType.unknown),
+      );
+      await _settle();
+      expect(held(), [true]);
+    });
+
+    test('unplugging headphones holds it until the listener plays', () async {
+      handler.handleBecomingNoisy();
+      await _settle();
+      expect(held(), [true]);
+      handler.handleInterruption(
+        AudioInterruptionEvent(false, AudioInterruptionType.pause),
+      );
+      await _settle();
+      expect(held(), [true]);
+    });
+  });
 
   test('seeking back during the extension ends the Swift hold', () async {
     final calls = _mockSwift();

@@ -496,6 +496,15 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
                                 )
                                 abandonAudioFocus()
 
+                                // Headphones unplugged in the countdown or extension: hold
+                                // their clock like a pause, so no cue rings from the speaker.
+                                if (reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY &&
+                                    ::cues.isInitialized && cues.isHoldRunning()
+                                ) {
+                                    cues.toggleHold()
+                                    updateNotification()
+                                }
+
                                 // 👉 Sync background to pause
                                 if (backgroundMusicPlayer.isPlaying) {
                                     Log.d(

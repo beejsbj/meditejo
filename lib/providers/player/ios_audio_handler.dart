@@ -31,6 +31,8 @@ class IosAudioHandler extends BaseAudioHandler {
   bool _nativeCountdown = false;
   bool _nativeExtending = false;
   bool _nativeHoldPaused = false;
+  // A hold paused by an interruption, to resume when it ends.
+  bool _interruptedHold = false;
   bool _nativeCompletionEarned = false;
   bool _thresholdRecorded = false;
   bool _isTimer = false;
@@ -56,36 +58,8 @@ class IosAudioHandler extends BaseAudioHandler {
       final session = await AudioSession.instance;
 
       // Configure interruption handling
-      session.interruptionEventStream.listen((event) {
-        if (event.begin) {
-          switch (event.type) {
-            case AudioInterruptionType.duck:
-              _player.setVolume(_player.volume * 0.5);
-              break;
-            case AudioInterruptionType.pause:
-            case AudioInterruptionType.unknown:
-              _player.pause();
-              break;
-          }
-        } else {
-          switch (event.type) {
-            case AudioInterruptionType.duck:
-              _player.setVolume(_player.volume * 2.0);
-              break;
-            case AudioInterruptionType.pause:
-              if (_player.playing) {
-                _player.play();
-              }
-              break;
-            case AudioInterruptionType.unknown:
-              break;
-          }
-        }
-      });
-
-      session.becomingNoisyEventStream.listen((_) {
-        _player.pause();
-      });
+      session.interruptionEventStream.listen(handleInterruption);
+      session.becomingNoisyEventStream.listen((_) => handleBecomingNoisy());
 
       await session.configure(
         const AudioSessionConfiguration(
@@ -103,6 +77,58 @@ class IosAudioHandler extends BaseAudioHandler {
     } catch (e) {
       AppLogger.e('IOS', 'Failed to initialize audio session: $e');
       rethrow;
+    }
+  }
+
+  /// A call or another app takes the audio. The countdown and the extension
+  /// have no voice to pause, so they are held like a pause and resumed only
+  /// when the interruption ends and iOS says to resume.
+  @visibleForTesting
+  void handleInterruption(AudioInterruptionEvent event) {
+    if (event.begin) {
+      switch (event.type) {
+        case AudioInterruptionType.duck:
+          _player.setVolume(_player.volume * 0.5);
+          break;
+        case AudioInterruptionType.pause:
+        case AudioInterruptionType.unknown:
+          if (nativeHold) {
+            _interruptedHold = !_nativeHoldPaused;
+            unawaited(pause());
+          } else {
+            _player.pause();
+          }
+          break;
+      }
+    } else {
+      switch (event.type) {
+        case AudioInterruptionType.duck:
+          _player.setVolume(_player.volume * 2.0);
+          break;
+        case AudioInterruptionType.pause:
+          if (_interruptedHold) {
+            _interruptedHold = false;
+            if (nativeHold) unawaited(play());
+          } else if (_player.playing) {
+            _player.play();
+          }
+          break;
+        case AudioInterruptionType.unknown:
+          _interruptedHold = false;
+          break;
+      }
+    }
+  }
+
+  /// Headphones unplugged: pause, holding the countdown or extension too, so
+  /// the end bell never rings out of the speaker.
+  @visibleForTesting
+  void handleBecomingNoisy() {
+    if (nativeHold) {
+      _interruptedHold = false;
+      unawaited(pause());
+    } else {
+      _player.pause();
     }
   }
 
