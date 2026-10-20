@@ -6,11 +6,16 @@ import sys
 import zipfile
 
 root = Path(__file__).resolve().parents[2]
-manifest = root / 'assets/licenses/newpipe-runtime-dependencies.json'
-components = json.loads(manifest.read_text())['components']
+manifests = [root / 'assets/licenses/newpipe-runtime-dependencies.json',
+             root / 'assets/licenses/soloud-native-components.json']
+paths = set(manifests)
+for manifest in manifests:
+    components = json.loads(manifest.read_text())['components']
+    paths |= {root / 'assets/licenses' / text for c in components for text in c['texts']}
+# The bundled sounds' own licence notice travels with them.
+paths.add(root / 'assets/sounds/NOTICE')
 # The cue sounds' notice (pulse CC0 dedication, bell attribution) ships too.
-cue_notice = root / 'assets/audio/NOTICE'
-paths = {manifest, cue_notice, *(root / 'assets/licenses' / text for c in components for text in c['texts'])}
+paths.add(root / 'assets/audio/NOTICE')
 with zipfile.ZipFile(sys.argv[1]) as apk:
     for path in sorted(paths):
         asset = 'assets/flutter_assets/' + path.relative_to(root).as_posix()

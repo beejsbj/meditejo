@@ -1,5 +1,7 @@
 import 'package:medito/models/cues/cue_settings.dart';
+
 import '../../services/audio/session_bell_preview.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -10,11 +12,13 @@ import 'package:just_audio/just_audio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../models/background_sounds/background_sounds_model.dart';
+import '../../models/soundscape/sound_mix.dart';
 import '../../repositories/background_sounds/background_sounds_repository.dart';
 import '../../repositories/downloader/downloader_repository.dart';
 import '../../src/audio_pigeon.g.dart';
 import '../../utils/logger.dart';
 import '../player/player_provider.dart';
+import '../soundscape/soundscape_provider.dart';
 
 part 'background_sounds_notifier.g.dart';
 
@@ -153,12 +157,10 @@ class BackgroundSoundsState {
     this.bellsEnabled = false,
   });
 
-  /// Whether anything plays over the session (lights the player's sound
-  /// button).
+  /// Whether the legacy ambient layer plays (lights the player's sound
+  /// button). Not the legacy bells: the cue scheduler owns bells.
   bool get hasAnySound =>
-      bellsEnabled ||
-      (selectedBgSound != null &&
-          selectedBgSound!.id != kNoneBackgroundSoundId);
+      selectedBgSound != null && selectedBgSound!.id != kNoneBackgroundSoundId;
 
   BackgroundSoundsState copyWith({
     bool? bellsEnabled,
@@ -209,6 +211,20 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
 
   void setTimerScope(bool isTimer) => _timerScope = isTimer;
 
+  /// Practice or Talks: which soundscape default the session plays under
+  /// (decision 8), and the session scope's own Customize choice, if any.
+  /// Set before [playBackgroundSoundFromPref].
+  SoundscapeSessionKind _sessionKind = SoundscapeSessionKind.practice;
+  SoundscapeSelection? _sessionSelection;
+
+  void setSessionKind(
+    SoundscapeSessionKind kind, {
+    SoundscapeSelection? selection,
+  }) {
+    _sessionKind = kind;
+    _sessionSelection = selection;
+  }
+
   @override
   BackgroundSoundsState build() {
     ref.onDispose(() {
@@ -254,9 +270,10 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
       return;
     }
 
-    // Bells used to be one of the background sounds; they are a switch now.
+    // Bells used to be one of the background sounds. A stale selection of
+    // them is no sound, and never turns the legacy bells on: the cue
+    // scheduler owns bells.
     if (sound.id == kSessionBellsId) {
-      setSessionBells(true, preview: preview);
       handleOnChangeSound(_noneSound, preview: preview);
       return;
     }
@@ -469,6 +486,11 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
   }
 
   void togglePlayPause(bool isPlaying) {
+    // iOS reports the session's play/pause here; Android's arrives through
+    // audioStateProvider, which the soundscape follows itself.
+    if (Platform.isIOS) {
+      ref.read(soundscapeProvider.notifier).setSessionPaused(isPlaying);
+    }
     // Bells follow the primary player in their own controller; this only
     // pauses/resumes an ambient sound, if one is playing.
     if (Platform.isIOS && !iosAmbientActive) return;
@@ -496,8 +518,9 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
     }
   }
 
-  /// Session over: stops the ambient sound and the bells.
+  /// Session over: stops the ambient sound, the soundscape and the bells.
   void stopBackgroundSound() {
+    ref.read(soundscapeProvider.notifier).endSession();
     _stopAmbient();
     if (Platform.isAndroid) {
       unawaited(_api.setSessionBells(false));
@@ -555,13 +578,14 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
     handleOnChangeVolume(settings.backgroundVolume);
   }
 
+  /// A session is starting: the soundscape for its kind (decision 8). The
+  /// legacy ambient layer follows Customize through [applyCueSettings] and the
+  /// cue scheduler owns the bells, so neither is started here.
   void playBackgroundSoundFromPref() {
-    final repo = ref.read(backgroundSoundsRepositoryProvider);
-    final selectedBgSound = repo.getSelectedBgSoundFromSharedPreferences();
-    handleOnChangeSound(selectedBgSound, preview: false);
-    setSessionBells(
-      repo.getSessionBellsEnabled(forTimer: _timerScope),
-      preview: false,
+    unawaited(
+      ref
+          .read(soundscapeProvider.notifier)
+          .startSession(_sessionKind, selection: _sessionSelection),
     );
   }
 

@@ -76,3 +76,25 @@
 **Optional CC-BY:** [the_very_Real_Horst's 5-minute bowl](https://freesound.org/s/206034), CC BY 4.0. Needs a credit.
 
 **Gaps:** I found no verified CC0 thunder or gong. Fire and forest were checked less thoroughly than the rest. I did not audition any of these by ear.
+
+## What shipped (slice 7, 2026-10-19)
+
+The bundled library is 22 CC0 loops: 21 from BigSoundBank (Joseph Sardin) and one from OpenGameArt (Ylmir). The full record per sound, including its licence evidence, source hash, cut, gain and measured loudness, is `tools/meditejo/sounds/sources.json` and `assets/sounds/sounds.json`. Blanket's files were not used: they are lossy Vorbis edits, and BigSoundBank's lossless originals cover the same ground.
+
+### Freesound originals that need Burooj's account
+
+Freesound requires a login to download originals, and no account was created. Each page's licence was read on 2026-10-19. To add one, download the original, put its direct URL or a local path in `sources.json`, and rerun `process_sounds.py --pin`.
+
+| Sound | Page | Licence | Why |
+|---|---|---|---|
+| Rain from indoors, "perfect loop" (samesamesame) | https://freesound.org/people/samesamesame/sounds/242889/ | CC0 | Indoor rain, already a loop |
+| Slowly raining loop (unfa) | https://freesound.org/people/unfa/sounds/177479/ | CC0 | Balcony rain; has a distant dog and cars |
+| Gentle ocean waves loop (kkenny101) | https://freesound.org/people/kkenny101/sounds/852826/ | CC0 | Seamless 22 s mono |
+| Wind in a field, Texas (felix.blume) | https://freesound.org/people/felix.blume/sounds/217506/ | CC0 | 3:32 original of Blanket's 15 s wind |
+| Crackling fire (samarobryn) | https://freesound.org/people/samarobryn/sounds/414767/ | CC0 | A denser crackle than BigSoundBank's |
+| Wood thrush, morning forest (kvgarlic) | https://freesound.org/people/kvgarlic/sounds/156826/ | CC0 | Original of Blanket's birds |
+| Crickets by the beach, Mexico (felix.blume) | https://freesound.org/people/felix.blume/sounds/479041/ | CC0 | Night with sea; 289 MB WAV |
+| Wind in pines (sinewave1kHz) | https://freesound.org/people/sinewave1kHz/sounds/202989/ | CC0 | Blankie's forest |
+| Laundry room ambience (moviebuffgavin) | https://freesound.org/people/moviebuffgavin/sounds/411914/ | CC0 | Room tone |
+| Air conditioner fan hum (LilMati) | https://freesound.org/people/LilMati/sounds/515859/ | CC0 | Fan |
+| Trains of the Yamanote Line (SDLx) | https://freesound.org/people/SDLx/sounds/259988/ | CC BY 3.0 | 9:28 train interior; needs a credit |

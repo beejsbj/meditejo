@@ -5,8 +5,10 @@ import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/models/timer/timer_session.dart';
+import 'package:medito/views/background_sound/background_sound_view.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_download_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_speed_widget.dart';
+import 'package:medito/views/player/widgets/bottom_actions/widgets/bg_sound_widget.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/speed_sheet.dart';
 
@@ -31,13 +33,21 @@ class PlayerActionBar extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     // A timer is local silence: nothing to download, and speed would only
-    // change how long the session takes. Keep close and the sound picker.
+    // change how long the session takes. Keep close, the Sounds sheet and
+    // Customize.
     if (request.isTimer) {
       return BottomActionBar(
         leftItem: BottomActionBarItem(
           child: const Icon(Icons.close, color: ColorConstants.white),
           onTap: onClosePressed,
           semanticLabel: l10n.close,
+        ),
+        rightCenterItem: BottomActionBarItem(
+          child: _buildBackgroundSoundWidget(),
+          onTap: () {
+            showBackgroundSoundSheet(context);
+          },
+          semanticLabel: l10n.backgroundSounds,
         ),
         rightItem: BottomActionBarItem(
           child: _customizeIcon,
@@ -61,6 +71,16 @@ class PlayerActionBar extends StatelessWidget {
             ? AudioDownloadWidget(request: request)
             : const SizedBox(width: 48, height: 48),
       ),
+      // Open for every session: the Sounds mixer can play under a talk too
+      // (its Talks default or a Customize choice), so it must be reachable
+      // here to adjust or stop it.
+      centerItem: BottomActionBarItem(
+        child: _buildBackgroundSoundWidget(),
+        onTap: () {
+          showBackgroundSoundSheet(context);
+        },
+        semanticLabel: l10n.backgroundSounds,
+      ),
       rightCenterItem: BottomActionBarItem(
         child: _customizeIcon,
         onTap: () => _customize(context),
@@ -78,6 +98,9 @@ class PlayerActionBar extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildBackgroundSoundWidget() =>
+      BgSoundWidget(isBackgroundSoundSelected: isBackgroundSoundSelected);
 
   static const _customizeLabel = 'Customize';
   static const _customizeIcon = Icon(

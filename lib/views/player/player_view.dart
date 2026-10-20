@@ -8,6 +8,8 @@ import 'package:medito/services/content/content_source.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:medito/models/soundscape/sound_mix.dart';
+
 import 'dart:async';
 
 import 'package:medito/widgets/adaptive/adaptive_player_layout.dart';
@@ -43,7 +45,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../providers/background_sounds/background_sounds_notifier.dart';
+import '../../providers/soundscape/soundscape_provider.dart';
 import '../../widgets/errors/medito_error_widget.dart';
+
+/// Whether the player's sound button shows sound playing: the Sounds mixer
+/// (which follows the session's play/pause itself), or the legacy ambient
+/// layer while the session plays.
+bool isPlayerSoundActive({
+  required bool sessionPlaying,
+  required bool legacyAmbient,
+  required bool mixerPlaying,
+}) => mixerPlaying || (sessionPlaying && legacyAmbient);
 
 class PlayerView extends ConsumerStatefulWidget {
   const PlayerView({super.key, this.skipCustomize = false});
@@ -251,7 +263,7 @@ class _PlayerViewState extends ConsumerState<PlayerView>
       });
       _cueSubscription?.close();
       _cueSubscription = ref.listenManual(cueSettingsProvider(_cueScope!), (
-        _,
+        previous,
         settings,
       ) {
         unawaited(
@@ -265,6 +277,13 @@ class _PlayerViewState extends ConsumerState<PlayerView>
         ref
             .read(backgroundSoundsNotifierProvider.notifier)
             .applyCueSettings(settings);
+        // A new Background sound choice for this scope plays at once.
+        if (previous?.soundscape != settings.soundscape) {
+          _playSessionSounds(
+            _cueScope?.kind != CueKind.talks,
+            settings.soundscapeSelection,
+          );
+        }
       });
       _countdownPoll?.cancel();
       _countdownPoll = null;
@@ -348,6 +367,20 @@ class _PlayerViewState extends ConsumerState<PlayerView>
           .read(backgroundSoundsNotifierProvider.notifier)
           .applyCueSettings(ref.read(cueSettingsProvider(scope)));
     }
+    // The session's soundscape follows the same Practice/Talks scope as its
+    // cues (a course's classification wins over the recording's label).
+    final practice =
+        (scope?.kind ??
+            (ref.read(playerProvider)?.hasBackgroundSound ?? false
+                ? CueKind.practice
+                : CueKind.talks)) ==
+        CueKind.practice;
+    _playSessionSounds(
+      practice,
+      scope == null
+          ? null
+          : ref.read(cueSettingsProvider(scope)).soundscapeSelection,
+    );
 
     // Only enable DND if permission is already granted and toggle is on
     if (Platform.isAndroid) {
@@ -612,6 +645,18 @@ class _PlayerViewState extends ConsumerState<PlayerView>
     );
   }
 
+  /// Practice or Talks: each plays its own soundscape default (decision 8:
+  /// on for Practice, off for Talks), unless Customize chose a [selection]
+  /// for the session's scope.
+  void _playSessionSounds(bool practice, SoundscapeSelection? selection) {
+    ref.read(backgroundSoundsNotifierProvider.notifier)
+      ..setSessionKind(
+        practice ? SoundscapeSessionKind.practice : SoundscapeSessionKind.talks,
+        selection: selection,
+      )
+      ..playBackgroundSoundFromPref();
+  }
+
   void onPlayPausePressed() {
     final isPlaying = ref.read(audioStateProvider).isPlaying;
 
@@ -630,8 +675,15 @@ class _PlayerViewState extends ConsumerState<PlayerView>
   bool _isBackgroundSoundSelected() {
     final bgSoundNotifier = ref.watch(backgroundSoundsNotifierProvider);
     final isPlaying = ref.watch(audioStateProvider.select((s) => s.isPlaying));
+    final mixerPlaying = ref.watch(
+      soundscapeProvider.select((s) => s.active && s.playing),
+    );
 
-    return isPlaying && bgSoundNotifier.hasAnySound;
+    return isPlayerSoundActive(
+      sessionPlaying: isPlaying,
+      legacyAmbient: bgSoundNotifier.hasAnySound,
+      mixerPlaying: mixerPlaying,
+    );
   }
 
   void _handleClose({bool shouldPop = true}) {
@@ -677,12 +729,27 @@ class _PlayerViewState extends ConsumerState<PlayerView>
   }
 
   void _openEndScreen({VoidCallback? afterStop}) {
+    // The end screen waits for a frame, and none comes while the screen is
+    // locked. The mix must not wait with it: end its session now, so it
+    // finishes its fade and releases the audio output.
+    if (mounted &&
+        ref.read(audioStateProvider).isCompleted &&
+        ref.exists(soundscapeProvider)) {
+      ref.read(soundscapeProvider.notifier).endSession();
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_endScreenOpened && mounted) {
         final endedNatively = ref.read(audioStateProvider).isCompleted;
         _resetState();
         // Native teardown owns the end bell tail; stopping here cuts it off.
-        if (!endedNatively) _stopAudio();
+        // The soundscape is not part of that teardown. It began fading out
+        // when the voice stopped (the mixer fades before it pauses); ending
+        // its session here lets that fade finish, then stops it.
+        if (!endedNatively) {
+          _stopAudio();
+        } else if (ref.exists(soundscapeProvider)) {
+          ref.read(soundscapeProvider.notifier).endSession();
+        }
         afterStop?.call();
         final currentlyPlayingTrack = ref.read(playerProvider);
         if (currentlyPlayingTrack == null) return;

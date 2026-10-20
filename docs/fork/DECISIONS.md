@@ -237,7 +237,7 @@ Measured on bjslab the same day: a full first sync of Dharma Seed is 125 request
 - **Randomness is bounded and reproducible.** Each interval gap is uniform between `max(1, interval-window)` and `interval+window` minutes. A stateless SplitMix64 seed/index generator and integer-millisecond gaps have common Dart/Kotlin/Swift test vectors. Cues at the exact session end are excluded.
 - **Completion and transport termination are separate.** Distinct rendered media ranges earn completion at 90%; opening, pausing or seeking to the end does not. Threshold completion is persisted without ending playback. Timers qualify at their natural end. A recording qualifies only through 90% heard, so a finished extension after a seek to the end earns nothing (owner's rule: opening or seeking never completes a session). The true end always reaches the player as terminal, earned or not. Resume points remain separate from listening evidence.
 - **One Customize surface in the current theme.** The player bottom row has a sliders action; the timer setup embeds the same widget, with Duration in place of Extend. Rows open small sub-sheets. The preference to hide pre-session settings remains accessible from the manual sheet. Stopwatch mode remains available.
-- **Ambient sound remains the existing layer.** Practice defaults enabled, Talks disabled; both allow playback mixing. This branch has no bundled ambient catalogue yet, so Customize explains the empty list and remembers the preference for the next soundscape slice. No network catalogue or mixer was introduced.
+- **Ambient sound remains the existing layer.** Practice defaults enabled, Talks disabled; both allow playback mixing. No network catalogue or mixer was introduced here. (Superseded by slice 7's mixer: Customize's Background sound row now chooses from the sound library; see "Customize and the mixer" under slice 7.)
 - **Autoplay follows the next ordered session in the current course.** It is off by default, supports 0/5/10/30-second interludes, and can be cancelled. A single session has no invented queue. Autoplay skips the pre-start settings prompt; an ordinary session start honours it. With autoplay on, the native side starts the interlude at the session end and holds itself for it plus a bounded 30-second grace (Android: the foreground service and a bounded wake lock, also when the end cue is Off; iOS: the silent keep-alive on an active session). Dart starts the next session from a provider listener, without waiting for a frame, and the same player screen carries on with it; the screen catches up when the user returns. When no next session follows, or the listener leaves during the interlude, Dart releases the hold after the end bell's tail; a late request from a session already left holds nothing. Customize edits made after the session end leave the interlude as it is. Covered by a widget test with frames disabled; a real locked-phone run is still owed on both platforms (Android 12+ background service start, Media3 foreground state after ENDED, iOS background reactivation).
 - **Known limit: repeat passes.** Once a session has been earned, each further full pass of a looped recording adds its length to stats minutes (and HealthKit mindful minutes) without needing 90% heard on its own, so a deliberate seek to the end of a loop counts a full repeat. It never creates a new session or streak entry. Follow-up: require each repeat to be 90% heard.
 - **Verification boundaries.** Hosted checks run affected Flutter files serially and the existing CI runs the full suite. Android's APK workflow includes the pure cue maths tests. Swift is kept in source and registered in the Xcode project but remains unbuilt here. Physical speaker/Bluetooth latency and a long screen-off sit require device verification; unit deadlines alone do not establish acoustic latency. New Customize labels are English; localisation can accompany the later design pass.
@@ -254,3 +254,82 @@ Measured on bjslab the same day: a full first sync of Dharma Seed is 125 request
 - **Pinning.** Up to three, from the library row menu and the course page; a fourth is refused with a message instead of replacing one (a silent swap would be a hidden trade-off). Playing a course no longer pins it (the old behaviour replaced the single pin and showed a snackbar). The old single pin becomes the first of the three.
 - **Stats.** The consistency score and streak are off Home (the pill and its "show on Home" preference are removed); the stats screen opens with one line, "These numbers are feedback, not a score." The consistency-score explanation is unchanged.
 - **Strings** added in en, de and es (de/es are my translations, for Burooj to check).
+
+## 2026-10-19 (slice 7, S1: sound library and mixer)
+
+**Engine**
+
+- **flutter_soloud, pinned at 4.1.7.** Verified from the package source rather than its README:
+  - **Gapless:** recordings load with `LoadMode.memory` and loop inside SoLoud's mix callback, so the wrap is sample-accurate. Ogg Opus pre-skip and end trimming are honoured: the length is the last granule minus pre-skip, and decoded counts equal the loop length exactly for the three files checked.
+  - **Mixing:** SoLoud renders its own output stream beside ExoPlayer, and Android mixes the two.
+  - **Synthesis needs** (for S2): `loadWaveform`, `setPanAbsolute`, `oscillateVolume`, and a parametric EQ of up to 64 bands.
+- **Why not 5.x:** 5.x moved its native build to Dart build hooks, which also run for `flutter test` and need clang. bjslab has only gcc, so with 5.2.1 *every* test file failed to load ("Building native assets failed"). 4.1.7 builds with CMake through Gradle on Android, and host tests build nothing. Revisit 5.x if bjslab gains clang or tests move off bjslab.
+- **Background play is not flutter_soloud's job.** It has no service, notification or audio focus; its own docs pair it with audio_service. During a session, `AudioPlayerService` is already in the foreground. On their own, Sounds hold a small `SoundscapeService` (`mediaPlayback`, Stop action, audio focus: pause on loss, resume after a transient loss). It is held through a pause, because starting it again from the background is refused on Android 12 and later. Screen-off playback is unverified on the phone.
+- **Fallback, if SoLoud fails on the phone:** move the layers into `AudioPlayerService`, one looping ExoPlayer per layer, plus an `AudioTrack` synth for S2. The `SoundscapeEngine` interface is the seam, so only the engine class changes. Not built.
+- **Memory:** each layer is decoded to float (about 23 MB a minute in stereo). Loops are 28–75 s, and a mix holds at most 6 layers. Worst case, six of the longest stereo loops, is about 154 MiB decoded, with about 180 MiB held briefly while a swapped layer fades out. The default preset is about 62 MiB. That is fine on the S23, but a likely low-memory kill in the background on a 3 GB phone.
+
+**Library**
+
+- **22 sounds, all CC0, 8.48 MiB:** 21 from BigSoundBank (Joseph Sardin) and one from OpenGameArt (Ylmir, "Rain (loopable)"). Each licence was read on the sound's own page on 2026-10-19 (`licenseVerifiedOn` in `sources.json`).
+  - **Lossless sources over Blanket's lossy edits.** Blanket's CC0 files are Vorbis re-edits of Freesound originals, and its usable CC BY ones would need attribution. BigSoundBank covers every category in FLAC or WAV. No CC BY sound ships, so the credits screen marks none as "attribution required". BigSoundBank's requested courtesy credit appears in every entry anyway.
+  - **No accounts.** BigSoundBank's file URLs (the ones its own player uses) download without login; its "free account" only speeds up the download form. Freesound originals need a login, so none were used (see `soundscape-sources.md`).
+- **Not auditioned.** Instead of listening:
+  - `find_steady.py` picks each loop from the steadiest window of the recording, scored on transient peaks above the median level and on level drift. This avoids cutting a thunderclap, door or voice into a loop.
+  - Every loop's seam step sits at an ordinary percentile of its sample steps.
+  - Fireplace #3 was dropped: it is sparse pops over near-silence (LRA 26.6 LU), not a bed.
+- **Loudness: a static gain, not dynamic loudnorm.**
+  - `loudnorm` measures the loop and one gain moves it to −27 LUFS, so the seam keeps one level.
+  - Peaky sounds get up to 6 dB of peak limiting under a −2 dBTP ceiling, run over a circularly padded copy so the limiter's state matches across the seam. Beyond that they stay quieter than the target: river −31.8, fire crackle −36.1, wood stove −27.6 LUFS.
+- **Encoding:** Ogg Opus at 48 kHz, 64 kbps stereo or 40 kbps mono, with a 4–6 s equal-power crossfade baked into the loop.
+
+**Mixer and UI**
+
+- **One current mix,** as in Blanket. Tapping a sound with nothing playing starts it on its own. Practice plays "the current mix" by default, so a fresh install's first sit gets the first starter preset, *Rain on the forest*, at 50% under the session.
+- **Volume:** slider positions are squared into gain. Under a session, the master slider sets that session kind's level and leaves the standalone level alone.
+- **Presets:** four starters (*Rain on the forest*, *Night*, *Hearth* with a stove and crackle and no NC fire, and *Shore*), plus the user's own. Long-press deletes one. Built-in names are localised.
+- **Practice/Talk defaults** live in the mixer (`SoundscapeSessionDefault`). Talks keep the legacy sound and bells off, as before, and only the soundscape follows its Talks default. The Sounds sheet carries the two switches; the Customize sheet chooses what plays (see "Customize and the mixer" below).
+- **The Sounds sheet is still `BackgroundSoundView`,** opened by `showBackgroundSoundSheet`, so PR #13's Home quick link and its test need no change. No navigation or Home layout changed.
+- **Track titles are English only;** category and preset names are localised in en, de and es.
+
+**After an independent review (same day)**
+
+- **A running session owns the mixer even when it plays nothing.** Sounds added or resumed during a session join the session at its volume. They never start the standalone service or request audio focus, which would have taken focus from ExoPlayer and dropped the talk to 30%. Stop on the sheet silences the session's sounds without ending the session. A session started and ended before its mix resolved plays nothing. Changing a default during a paused session keeps it paused.
+- **Focus.** The service reports `pause` and `resume` for a transient loss and `lost` for a permanent one. On `lost` it abandons its request, and a user resume asks for focus again. Dart resumes after a call only if it was playing when the call began.
+- **Levels.** SoLoud's constant-power pan plays a centred stereo voice 3 dB down, so stereo loops are set to unity in both channels (`channels` comes from `sounds.json`). Mono loops already keep their loudness.
+- **Robustness.**
+  - The voice limit is raised from 16 to 64, and a refused `play` (an invalid handle) counts as a failure.
+  - A voice that won't unpause no longer stalls the others.
+  - Drift hand-overs wait while paused and are re-applied on resume.
+  - Swiping the app away stops Sounds playing on their own (`AppLifecycleListener.onDetach`). Phone check pending.
+  - A refused `hold` is retried rather than trusted.
+
+**Open for Burooj**
+
+1. Listen on the phone: loop seams, the noise floor of *Quiet house*, café murmur, and the fire level. Then check screen-off playback over 10 minutes with the Sounds sheet closed, and Sounds under a Dharma Seed practice.
+2. Freesound picks that need your account (all CC0 unless noted) are listed in `soundscape-sources.md`. Their originals would replace or extend the BigSoundBank set; add them to `sources.json` and rerun the script.
+3. Should Practice be on by default with *Rain on the forest*, or on with nothing chosen until you pick? Decision 8 says on; the choice of sound is mine.
+
+**Customize and the mixer (after merging slice 6)**
+
+- **The mixer is the single source of truth for on/off and volume.** Slice 6 stored `backgroundEnabled` and `backgroundVolume` per kind in `CueSettings`; the mixer stores `SoundscapeSessionDefault` (`enabled`, `selection`, `volume`) per kind. They disagreed, so the mixer wins: Customize's Background sound row reads and writes the mixer's kind default (Off, the current mix, a preset or one library sound, by shelf, plus the kind's volume), and the Sounds sheet's "Play under practice/talks" switches show the same state. Practice stays on and Talks off by default.
+- **`CueSettings.soundscape` is a selection only** (`''`, `none`, `mix`, `preset:<id>`, `sound:<id>`), for a course override: empty means "the kind's default in the mixer", and a course without its own settings inherits that, as other fields do. A course's choice replaces the kind's on/off and selection for its sessions but never its volume; a change to the kind default mid-session keeps it. Format version stays 1: older stored values lack the key and read as empty, and so does anything outside the grammar (a damaged value, or a kind a newer version adds), so an unknown value never turns sound on. Slice 6's background switch is not migrated: it never played anything (the catalogue was empty) and #14 never shipped in a release, so following the mixer's default is the least surprising reading.
+- The legacy `backgroundEnabled`/`backgroundSoundId`/`backgroundVolume` fields and `applyCueSettings` stay for the legacy ambient layer, whose catalogue is empty; Customize no longer shows them.
+- The player passes the scope's selection when the session starts and again when it changes during the session.
+
+**After the second review (2026-10-20)**
+
+- **Bells live in Customize only.** The Sounds sheet's old Session bells switch is gone: once the sheet opened from the player, it would have rung the legacy bells over the cue scheduler's.
+- **The mixer fades instead of stopping dead.** Pausing (the voice's end, an autoplay interlude, a pause) fades the whole mix out over 1.2 s before the voices pause, and resuming fades it back in. A session that ends lets that fade finish. Following the last 10 s, as the legacy ambient layer did, is not built.
+- **Idle limits.** Sounds paused on their own for 10 minutes stop and release their service and notification. An idle mixer deinitialises SoLoud, because flutter_soloud keeps the Android output stream running through a pause. The pause limit counts any cause, including a long call or another app holding focus: after 10 minutes the mix ends rather than hold a notification. The service is taken as soon as the first layer plays (not after the last has loaded, which could outlast Android's start window with the screen off), and a release that arrives before `startForeground` is deferred until after it.
+- **Missing selections play the current mix.** A deleted preset or a sound a later library dropped plays the current mix under sessions rather than silence; deleting a preset rewrites a default that used it.
+- **Explicit starts retry failed sounds; a stale load pass stands down.** Play, a preset, or a new session clears the "failed this run" marks, so a transient device failure recovers. A pass that is still loading layers when the user stops or pauses, or the mix changes, leaves the rest to the queued pass.
+- **Overtaken work is dropped, not recorded.** Every state change bumps a counter; a reconciliation pass that finds it moved stops loading, records no failures, and leaves the rest to the queued pass. A `play()` begun under one session does not land in the next. The Kotlin service counts pending holds and applies a deferred release only after the last has reached `startForeground`.
+- **Pressing Play during a call plays over it.** After a transient focus loss the service keeps its focus request and Android returns focus when the call ends; an explicit Play is the listener's choice, so it does not ask again.
+- **A sound the library dropped leaves the saved mix** when the library loads, so it cannot hold a layer slot with no row to remove it.
+- **A refused service hold is retried on the next change only.** If the screen is locked in the moment before the first layer plays, Android can refuse the start; the mix then plays without the service until the next change. The window is the first layer's load time. Not retried on lifecycle: unverified on the phone, and a stalled screen-off mix is the thing to look for there.
+- **The six-layer cap stays; the memory cost is the measured one above** (about 22 MiB a minute of decoded stereo). A byte budget instead of a layer count is a possible follow-up if a low-memory phone shows kills.
+- **A cleared mix still plays the first starter under Practice.** "The current mix" with nothing in it would make Practice's default silent without saying so; the Sounds sheet keeps the empty mix, and Customize's `None` is the way to ask for silence.
+- **The mix's session ends when the voice completes, not at the end screen's frame** (none comes with the screen locked), and a completed voice pauses the mix even where the platform keeps saying `playing` (iOS).
+- **No wake lock for standalone Sounds (unverified on the phone).** The foreground service keeps the process alive and the open AAudio output stream holds the audio path awake; the layers are decoded in memory, so no thread needs the CPU between callbacks. If screen-off playback stalls on the S23, add a partial wake lock held with the service.
+- **A session reads its play state from the player's events.** A new session assumes it is playing and the player's `isPlaying` changes correct it (a refused audio focus at the very start is the one gap); seeding from `isPlaying` at that instant would start every session paused, because the native state lags `play()` and iOS reports through `setSessionPaused`.
+- **Known product question:** a Timer session is Practice, so it plays the Practice default (the current mix) under the timer. Kept as is; should a timer be silent by default?

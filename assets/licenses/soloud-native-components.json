@@ -1,0 +1,151 @@
+{
+  "package": "flutter_soloud 4.1.7",
+  "note": "Native code compiled into libflutter_soloud_plugin.so or shipped beside it by flutter_soloud 4.1.7 (the Sounds mixer). flutter_soloud itself (MIT) is listed from its pub package. Inventory read from the package source and the prebuilt Android libraries on 2026-10-19.",
+  "components": [
+    {
+      "id": "soloud",
+      "title": "SoLoud",
+      "coordinates": [
+        "flutter_soloud 4.1.7: src/soloud"
+      ],
+      "copyright": "Copyright (c) 2013-2018 Jari Komppa",
+      "licenseName": "Zlib",
+      "licenseUrl": "https://zlib.net/zlib_license.html",
+      "sourceUrl": "https://github.com/alnitak/flutter_soloud/tree/v4.1.7/src/soloud",
+      "note": "Modified by the flutter_soloud authors.",
+      "texts": [
+        "zlib-SoLoud.txt"
+      ]
+    },
+    {
+      "id": "miniaudio",
+      "title": "miniaudio",
+      "coordinates": [
+        "flutter_soloud 4.1.7: src/soloud/src/backend/miniaudio"
+      ],
+      "copyright": "David Reid",
+      "licenseName": "Unlicense OR MIT-0",
+      "licenseUrl": "https://github.com/mackron/miniaudio/blob/master/LICENSE",
+      "sourceUrl": "https://github.com/mackron/miniaudio",
+      "texts": [
+        "PD-or-MIT-0-miniaudio.txt"
+      ]
+    },
+    {
+      "id": "dr_libs",
+      "title": "dr_libs (dr_wav, dr_mp3, dr_flac)",
+      "coordinates": [
+        "flutter_soloud 4.1.7: src/soloud/src/audiosource/wav"
+      ],
+      "copyright": "David Reid",
+      "licenseName": "Unlicense OR MIT-0",
+      "licenseUrl": "https://github.com/mackron/dr_libs",
+      "sourceUrl": "https://github.com/mackron/dr_libs",
+      "texts": [
+        "PD-or-MIT-0-dr_libs.txt"
+      ]
+    },
+    {
+      "id": "pffft",
+      "title": "PFFFT",
+      "coordinates": [
+        "flutter_soloud 4.1.7: src/pffft"
+      ],
+      "copyright": "Copyright (c) 2013 Julien Pommier; FFTPACK Copyright (c) 2004 UCAR",
+      "licenseName": "BSD-like (FFTPACKv5)",
+      "licenseUrl": "https://bitbucket.org/jpommier/pffft",
+      "sourceUrl": "https://github.com/alnitak/flutter_soloud/tree/v4.1.7/src/pffft",
+      "texts": [
+        "BSD-like-pffft.txt"
+      ]
+    },
+    {
+      "id": "signalsmith-stretch",
+      "title": "Signalsmith Stretch",
+      "coordinates": [
+        "flutter_soloud 4.1.7: src/filters/signalsmith-stretch"
+      ],
+      "copyright": "Copyright (c) 2022 Geraint Luff / Signalsmith Audio Ltd.",
+      "licenseName": "MIT",
+      "licenseUrl": "https://opensource.org/license/mit",
+      "sourceUrl": "https://github.com/Signalsmith-Audio/signalsmith-stretch",
+      "texts": [
+        "MIT-signalsmith-stretch.txt"
+      ]
+    },
+    {
+      "id": "signalsmith-linear",
+      "title": "Signalsmith Linear",
+      "coordinates": [
+        "flutter_soloud 4.1.7: src/filters/signalsmith-linear"
+      ],
+      "copyright": "Signalsmith Audio Ltd.",
+      "licenseName": "MIT",
+      "licenseUrl": "https://opensource.org/license/mit",
+      "sourceUrl": "https://github.com/Signalsmith-Audio/linear",
+      "texts": [
+        "MIT-signalsmith-linear.txt"
+      ]
+    },
+    {
+      "id": "libogg",
+      "title": "libogg",
+      "coordinates": [
+        "flutter_soloud 4.1.7: android/libs/*/libogg.so"
+      ],
+      "copyright": "Copyright (c) 2002, Xiph.org Foundation",
+      "licenseName": "BSD-3-Clause",
+      "licenseUrl": "https://opensource.org/license/bsd-3-clause",
+      "sourceUrl": "https://github.com/xiph/ogg",
+      "note": "Prebuilt by flutter_soloud; licence text from the upstream COPYING.",
+      "texts": [
+        "BSD-3-Clause-libogg.txt"
+      ]
+    },
+    {
+      "id": "libvorbis",
+      "title": "libvorbis",
+      "coordinates": [
+        "flutter_soloud 4.1.7: android/libs/*/libvorbis*.so (1.3.7)"
+      ],
+      "copyright": "Copyright (c) 2002-2020 Xiph.org Foundation",
+      "licenseName": "BSD-3-Clause",
+      "licenseUrl": "https://opensource.org/license/bsd-3-clause",
+      "sourceUrl": "https://github.com/xiph/vorbis",
+      "note": "Prebuilt by flutter_soloud; licence text from the upstream COPYING.",
+      "texts": [
+        "BSD-3-Clause-libvorbis.txt"
+      ]
+    },
+    {
+      "id": "libopus",
+      "title": "libopus",
+      "coordinates": [
+        "flutter_soloud 4.1.7: android/libs/*/libopus.so (1.5.2-73-gc79a9bd1)"
+      ],
+      "copyright": "Copyright 2001-2023 Xiph.Org, Skype Limited, Octasic, Jean-Marc Valin, Timothy B. Terriberry, CSIRO, Gregory Maxwell, Mark Borgerding, Erik de Castro Lopo, Mozilla, Amazon",
+      "licenseName": "BSD-3-Clause",
+      "licenseUrl": "https://opensource.org/license/bsd-3-clause",
+      "sourceUrl": "https://github.com/xiph/opus",
+      "note": "Prebuilt by flutter_soloud; licence text from the upstream COPYING. Opus is covered by royalty-free patent licences described at https://opus-codec.org/license/.",
+      "texts": [
+        "BSD-3-Clause-libopus.txt"
+      ]
+    },
+    {
+      "id": "libflac",
+      "title": "libFLAC",
+      "coordinates": [
+        "flutter_soloud 4.1.7: android/libs/*/libFLAC.so (1.5.0)"
+      ],
+      "copyright": "Copyright (C) 2000-2009 Josh Coalson; 2011-2025 Xiph.Org Foundation",
+      "licenseName": "BSD-3-Clause",
+      "licenseUrl": "https://opensource.org/license/bsd-3-clause",
+      "sourceUrl": "https://github.com/xiph/flac",
+      "note": "Prebuilt by flutter_soloud; licence text from the upstream COPYING.Xiph.",
+      "texts": [
+        "BSD-3-Clause-libFLAC.txt"
+      ]
+    }
+  ]
+}
