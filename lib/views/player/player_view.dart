@@ -278,6 +278,7 @@ class _PlayerViewState extends ConsumerState<PlayerView>
       if (mounted && !_isClosing) unawaited(_initializePlayer());
     } catch (e, st) {
       AppLogger.e('PLAYER', 'Failed to start playback', e, st);
+      _countdownExpected = false;
       if (mounted) {
         setState(() => _startError = e is AppError ? e : const UnknownError());
       }
@@ -658,7 +659,12 @@ class _PlayerViewState extends ConsumerState<PlayerView>
     if (!_playRequested) return;
     _playRequested = false;
     // Leaving during an autoplay interlude: the native hold goes now.
-    if (_autoplayPending) _releaseInterlude();
+    if (_autoplayPending) {
+      // Back skips _handleClose, so nothing else marks this as left: the
+      // released interlude must not go on to start the next session.
+      _cancelAutoplay = true;
+      _releaseInterlude();
+    }
     ref.read(playerProvider.notifier).stop();
     ref.read(backgroundSoundsNotifierProvider.notifier).stopBackgroundSound();
   }

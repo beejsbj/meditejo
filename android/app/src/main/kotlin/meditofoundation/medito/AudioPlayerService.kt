@@ -1022,6 +1022,13 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             // Apply current repeat mode
             configurePrimaryPlaylist(buildPrimaryMediaItem(audioData), currentRepeatMode)
 
+            // stop() keeps playWhenReady, and an ended or playing session left it
+            // true: the new voice would start on READY by itself, under the
+            // countdown. startPlayback below decides when it plays. Cleared
+            // before the focus request so the player does not drop that focus
+            // again while the source buffers.
+            primaryPlayer.playWhenReady = false
+
             // Request audio focus before preparing (but don't stop background sound)
             val audioFocusGranted = requestAudioFocus()
             
@@ -1034,11 +1041,6 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             // Ensure MediaSession is ready (important for Android 16+)
             ensureMediaSession()
             
-            // stop() keeps playWhenReady, and an ended or playing session left it
-            // true: the new voice would start on READY by itself, under the
-            // countdown. startPlayback below decides when it plays.
-            primaryPlayer.playWhenReady = false
-
             // Prepare the player
             primaryPlayer.prepare()
             

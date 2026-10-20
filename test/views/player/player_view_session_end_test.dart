@@ -135,6 +135,7 @@ Widget _player({
   SessionBellPreview? bell,
   bool legacyBells = false,
   List<dynamic> overrides = const [],
+  Widget child = const PlayerView(skipCustomize: true),
 }) => PreviewShell(
   prefs: prefs,
   overrides: [
@@ -148,7 +149,7 @@ Widget _player({
     if (bell != null) sessionBellPreviewProvider.overrideWithValue(bell),
     ...overrides,
   ],
-  child: const PlayerView(skipCustomize: true),
+  child: child,
 );
 
 const _first = PlaybackRequest(
@@ -390,6 +391,57 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 4));
+  });
+
+  testWidgets('going back during the interlude does not start the next '
+      'session', (tester) async {
+    final player = _FakePlayer(_first);
+    await tester.pumpWidget(
+      _player(
+        player: player,
+        prefs: _prefsWith(_autoplay),
+        overrides: _courseOverrides,
+        child: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const PlayerView(skipCustomize: true),
+              ),
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    final audio = ProviderScope.containerOf(
+      tester.element(find.byType(PlayerView)),
+    ).read(audioStateProvider.notifier);
+    audio.updatePlaybackState(
+      _state(
+        completed: false,
+        positionMs: 1000,
+        durationMs: 60000,
+        playing: true,
+      ),
+    );
+    await tester.pump();
+    audio.updatePlaybackState(
+      _state(completed: true, positionMs: 60000, durationMs: 60000),
+    );
+    await tester.pump(const Duration(seconds: 1));
+
+    // Back, with the interlude still running.
+    Navigator.of(tester.element(find.byType(PlayerView))).pop();
+    await tester.pump(const Duration(seconds: 10));
+    await tester.pumpAndSettle();
+
+    expect(
+      player.played,
+      hasLength(1),
+      reason: 'the next session must not start',
+    );
   });
 
   testWidgets('autoplay after the last session of a course opens the end '
