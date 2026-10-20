@@ -177,6 +177,12 @@ class SoundscapeController extends Notifier<SoundscapeState> {
 
   /// What the engine is playing, by sound id.
   final _applied = <String, SoundLayer>{};
+
+  /// Settings a generated layer failed to retune to (the old ones still
+  /// play), so later passes don't try them again on every change (a noise
+  /// regeneration takes about 1 s). Cleared when the layer stops or other
+  /// settings play.
+  final _unplayable = <String, Map<String, Object?>>{};
   Future<void> _sync = Future.value();
   bool _held = false;
   bool? _enginePaused;
@@ -749,6 +755,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     ];
     for (final id in stopping) {
       _applied.remove(id);
+      _unplayable.remove(id);
     }
     final fades = [for (final id in stopping) _engine.stop(id)];
 
@@ -780,20 +787,41 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         } else {
           failed.add(layer.soundId);
         }
-      } else if (!SoundLayer.paramsEqual(current.params, layer.params)) {
+      } else if (!SoundLayer.paramsEqual(current.params, layer.params) &&
+          !_failedBefore(layer)) {
         final ok = await _engine.retune(
           layer.soundId,
           _sourceFor(layer, library),
           gain: layerGain(layer.volume),
           motion: motion,
         );
-        // On failure the old settings keep playing; don't retry (a noise
-        // regeneration) on every later pass.
-        _applied[layer.soundId] = layer;
-        if (!ok) AppLogger.w('SOUNDSCAPE', 'Kept ${layer.soundId} as it was');
-      } else if (current != layer) {
-        _engine.setGain(layer.soundId, layerGain(layer.volume), motion: motion);
-        _applied[layer.soundId] = layer;
+        if (ok) {
+          _applied[layer.soundId] = layer;
+          _unplayable.remove(layer.soundId);
+        } else {
+          // The old settings keep playing, and are recorded as what plays;
+          // the rest of the change (volume, drift) still applies.
+          AppLogger.w('SOUNDSCAPE', 'Kept ${layer.soundId} as it was');
+          _unplayable[layer.soundId] = layer.params;
+          final playing = layer.copyWith(params: current.params);
+          _engine.setGain(
+            layer.soundId,
+            layerGain(playing.volume),
+            motion: motion,
+          );
+          _applied[layer.soundId] = playing;
+        }
+      } else {
+        // Same settings, or ones that failed before: only the level moves.
+        final playing = layer.copyWith(params: current.params);
+        if (current != playing) {
+          _engine.setGain(
+            layer.soundId,
+            layerGain(playing.volume),
+            motion: motion,
+          );
+          _applied[layer.soundId] = playing;
+        }
       }
     }
     stale = stale || superseded();
@@ -820,6 +848,11 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     if (ref.mounted && !s.active && _applied.isEmpty && !state.active) {
       await _engine.shutdown();
     }
+  }
+
+  bool _failedBefore(SoundLayer layer) {
+    final failed = _unplayable[layer.soundId];
+    return failed != null && SoundLayer.paramsEqual(failed, layer.params);
   }
 
   Future<void> _holdKeepAlive(bool hold) async {

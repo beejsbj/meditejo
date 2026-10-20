@@ -45,6 +45,10 @@ class _Engine implements SoundscapeEngine {
   final retuned = <String, LayerSource>{};
   final sources = <String, LayerSource>{};
 
+  /// Retunes that fail (the voice limit), counted as tried.
+  final retuneFails = <String>{};
+  int retunes = 0;
+
   @override
   Future<bool> retune(
     String key,
@@ -52,6 +56,8 @@ class _Engine implements SoundscapeEngine {
     required double gain,
     LayerMotion? motion,
   }) async {
+    retunes++;
+    if (retuneFails.contains(key)) return false;
     retuned[key] = source;
     sources[key] = source;
     playing[key] = gain;
@@ -852,6 +858,40 @@ void main() {
       await settle();
       expect(st().underSession, isTrue);
       expect(engine.playing.keys, {kSynthNoiseId, kSynthDroneId});
+    });
+
+    test('a failed retune keeps the old settings as what plays', () async {
+      ctl().clearMix();
+      ctl().toggleSound(kSynthDroneId);
+      await settle();
+      engine.retuneFails.add(kSynthDroneId);
+      // New settings and a new volume in one pass; the settings fail (the
+      // voice limit), but the volume still reaches the engine.
+      const bright = DroneParams(timbre: DroneTimbre.bright);
+      ctl().setLayerParams(kSynthDroneId, bright.toJson());
+      ctl().setLayerVolume(kSynthDroneId, 0.9);
+      await settle();
+      expect(engine.retunes, 1);
+      expect(engine.playing[kSynthDroneId], closeTo(layerGain(0.9), 1e-9));
+      // Later passes (a volume drag) don't regenerate the failed settings.
+      ctl().setLayerVolume(kSynthDroneId, 0.3);
+      await settle();
+      ctl().setLayerVolume(kSynthDroneId, 0.4);
+      await settle();
+      expect(engine.retunes, 1);
+      expect(engine.playing[kSynthDroneId], closeTo(layerGain(0.4), 1e-9));
+      // Other settings, or the same ones chosen again after them, are tried.
+      engine.retuneFails.clear();
+      ctl().setLayerParams(
+        kSynthDroneId,
+        const DroneParams(timbre: DroneTimbre.pure).toJson(),
+      );
+      await settle();
+      ctl().setLayerParams(kSynthDroneId, bright.toJson());
+      await settle();
+      expect(engine.retunes, 3);
+      final played = engine.retuned[kSynthDroneId] as OscillatorSource;
+      expect(played.partials, bright.partials());
     });
 
     test('a preset keeps generated settings', () async {
