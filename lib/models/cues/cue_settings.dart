@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:medito/models/soundscape/sound_mix.dart';
+
 /// Playback preferences are independent of a source's audio metadata.
 enum CueKind { practice, talks }
 
@@ -35,6 +37,7 @@ class CueSettings {
     this.backgroundEnabled = true,
     this.backgroundSoundId = '',
     this.backgroundVolume = 50,
+    this.soundscape = '',
     this.autoplay = false,
     this.interludeSeconds = 0,
     this.hideBeforePractice = false,
@@ -56,6 +59,17 @@ class CueSettings {
   final bool backgroundEnabled, autoplay, hideBeforePractice;
   final String backgroundSoundId;
   final double backgroundVolume;
+
+  /// What the soundscape mixer plays under this scope's sessions, in
+  /// [SoundscapeSelection]'s grammar (`mix`, `preset:<id>`, `sound:<id>`,
+  /// `none`). Empty: whatever the mixer's own default for the kind says
+  /// ("Play under practice/talks" and its selection). A selection only: the
+  /// mixer owns the on/off default and the volume.
+  final String soundscape;
+
+  /// [soundscape] as a selection, or null to follow the mixer's default.
+  SoundscapeSelection? get soundscapeSelection =>
+      soundscape.isEmpty ? null : SoundscapeSelection.parse(soundscape);
   final int interludeSeconds;
 
   CueSettings copyWith({
@@ -76,6 +90,7 @@ class CueSettings {
     bool? backgroundEnabled,
     String? backgroundSoundId,
     double? backgroundVolume,
+    String? soundscape,
     bool? autoplay,
     int? interludeSeconds,
     bool? hideBeforePractice,
@@ -98,6 +113,7 @@ class CueSettings {
     'backgroundEnabled': backgroundEnabled ?? this.backgroundEnabled,
     'backgroundSoundId': backgroundSoundId ?? this.backgroundSoundId,
     'backgroundVolume': backgroundVolume ?? this.backgroundVolume,
+    'soundscape': soundscape ?? this.soundscape,
     'autoplay': autoplay ?? this.autoplay,
     'interludeSeconds': interludeSeconds ?? this.interludeSeconds,
     'hideBeforePractice': hideBeforePractice ?? this.hideBeforePractice,
@@ -122,6 +138,7 @@ class CueSettings {
     'backgroundEnabled': backgroundEnabled,
     'backgroundSoundId': backgroundSoundId,
     'backgroundVolume': backgroundVolume,
+    'soundscape': soundscape,
     'autoplay': autoplay,
     'interludeSeconds': interludeSeconds,
     'hideBeforePractice': hideBeforePractice,
@@ -152,6 +169,25 @@ class CueSettings {
       return value is String && allowed.containsValue(value) ? value : fallback;
     }
 
+    // Written before the soundscape selection existed: an ambient switch
+    // the user turned away from the kind's default is kept as an explicit
+    // choice (on: the current mix; off: silence). Otherwise follow the mixer.
+    String soundscape() {
+      final value = json['soundscape'];
+      if (value is String) {
+        return value.trim().isEmpty
+            ? ''
+            : SoundscapeSelection.parse(value).encode();
+      }
+      final enabled = json['backgroundEnabled'];
+      if (enabled is bool && enabled != defaults.backgroundEnabled) {
+        return enabled
+            ? SoundscapeSelection.currentMix.encode()
+            : SoundscapeSelection.none.encode();
+      }
+      return '';
+    }
+
     final countdown = integer('countdownSeconds', 0, 0, 10);
     final interlude = integer('interludeSeconds', 0, 0, 30);
     return CueSettings(
@@ -178,6 +214,7 @@ class CueSettings {
           ? json['backgroundSoundId'] as String
           : '',
       backgroundVolume: number('backgroundVolume', 50, 0, 100),
+      soundscape: soundscape(),
       autoplay: flag('autoplay', false),
       interludeSeconds: [0, 5, 10, 30].contains(interlude) ? interlude : 0,
       hideBeforePractice: flag('hideBeforePractice', false),

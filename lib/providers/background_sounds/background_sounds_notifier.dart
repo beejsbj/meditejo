@@ -214,10 +214,18 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
   void setTimerScope(bool isTimer) => _timerScope = isTimer;
 
   /// Practice or Talks: which soundscape default the session plays under
-  /// (decision 8). Set before [playBackgroundSoundFromPref].
+  /// (decision 8), and the session scope's own Customize choice, if any.
+  /// Set before [playBackgroundSoundFromPref].
   SoundscapeSessionKind _sessionKind = SoundscapeSessionKind.practice;
+  SoundscapeSelection? _sessionSelection;
 
-  void setSessionKind(SoundscapeSessionKind kind) => _sessionKind = kind;
+  void setSessionKind(
+    SoundscapeSessionKind kind, {
+    SoundscapeSelection? selection,
+  }) {
+    _sessionKind = kind;
+    _sessionSelection = selection;
+  }
 
   @override
   BackgroundSoundsState build() {
@@ -575,7 +583,11 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
   /// legacy ambient layer follows Customize through [applyCueSettings] and the
   /// cue scheduler owns the bells, so neither is started here.
   void playBackgroundSoundFromPref() {
-    unawaited(ref.read(soundscapeProvider.notifier).startSession(_sessionKind));
+    unawaited(
+      ref
+          .read(soundscapeProvider.notifier)
+          .startSession(_sessionKind, selection: _sessionSelection),
+    );
   }
 
   void getVolumeFromPref() {

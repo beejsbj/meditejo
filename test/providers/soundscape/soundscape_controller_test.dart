@@ -344,6 +344,49 @@ void main() {
       });
     });
 
+    test(
+      'a Customize selection replaces the default but keeps its volume',
+      () async {
+        await ctl().startSession(
+          SoundscapeSessionKind.talks,
+          selection: const SoundscapeSelection.sound('river'),
+        );
+        await settle();
+        expect(engine.playing.keys, [
+          'river',
+        ], reason: 'talks are off by default');
+        expect(st().volume, 0.35, reason: 'the talks level');
+
+        // Changing the kind's default mid-session keeps the scope's choice.
+        ctl().setSessionDefault(
+          SoundscapeSessionKind.talks,
+          const SoundscapeSessionDefault(enabled: false, volume: 0.2),
+        );
+        await settle();
+        expect(engine.playing.keys, ['river']);
+        expect(st().volume, 0.2);
+
+        ctl().endSession();
+        await ctl().startSession(
+          SoundscapeSessionKind.practice,
+          selection: SoundscapeSelection.none,
+        );
+        await settle();
+        expect(st().active, isFalse, reason: 'none silences an enabled kind');
+        expect(engine.playing, isEmpty);
+      },
+    );
+
+    test('a kind volume set outside its session waits for it', () async {
+      await ctl().startSession(SoundscapeSessionKind.practice);
+      await settle();
+      ctl().setSessionVolume(SoundscapeSessionKind.talks, 0.1);
+      expect(st().volume, 0.5, reason: 'not the running kind');
+      expect(st().sessionDefault(SoundscapeSessionKind.talks).volume, 0.1);
+      ctl().setSessionVolume(SoundscapeSessionKind.practice, 0.8);
+      expect(st().volume, 0.8);
+    });
+
     test('the session player pausing pauses the mix', () async {
       await ctl().startSession(SoundscapeSessionKind.practice);
       await settle();

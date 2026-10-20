@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -113,6 +114,52 @@ void main() {
       ).extendMinutes,
       7,
     );
+  });
+
+  test('the soundscape selection is a compatible, inherited field', () async {
+    // Default: follow the mixer's own default for the kind.
+    expect(const CueSettings().soundscape, '');
+    expect(const CueSettings().soundscapeSelection, isNull);
+    for (final kind in CueKind.values) {
+      expect(CueSettings.defaults(kind).soundscape, '');
+    }
+    // Round trip, normalised to the selection grammar.
+    const chosen = CueSettings(soundscape: 'preset:starter-night');
+    expect(
+      CueSettings.decode(jsonEncode(chosen.toJson()), CueKind.talks).soundscape,
+      'preset:starter-night',
+    );
+    expect(
+      chosen.soundscapeSelection,
+      const SoundscapeSelection.preset('starter-night'),
+    );
+    expect(CueSettings.fromJson({'soundscape': ' '}).soundscape, '');
+    expect(CueSettings.fromJson({'soundscape': 'nonsense'}).soundscape, 'mix');
+    expect(
+      const CueSettings().copyWith(soundscape: 'none').soundscapeSelection,
+      SoundscapeSelection.none,
+    );
+
+    // Values saved before the field existed: a background switch left at
+    // the kind's default follows the mixer; one turned away is kept.
+    String old(CueKind kind, bool enabled) => CueSettings.decode(
+      jsonEncode({'version': 1, 'backgroundEnabled': enabled}),
+      kind,
+    ).soundscape;
+    expect(old(CueKind.practice, true), '');
+    expect(old(CueKind.practice, false), 'none');
+    expect(old(CueKind.talks, false), '');
+    expect(old(CueKind.talks, true), 'mix');
+
+    // A course inherits its kind's choice until it overrides it.
+    final store = CueSettingsStore(await SharedPreferences.getInstance());
+    const base = CueScope(CueKind.talks);
+    const course = CueScope(CueKind.talks, courseId: 'ds-retreat-1');
+    await store.save(base, const CueSettings(soundscape: 'sound:river'));
+    expect(store.read(course).soundscape, 'sound:river');
+    await store.save(course, const CueSettings(soundscape: 'none'));
+    expect(store.read(course).soundscape, 'none');
+    expect(store.read(base).soundscape, 'sound:river');
   });
 
   test('native timer configuration omits extension and off assets', () {

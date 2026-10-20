@@ -4,20 +4,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
-import 'package:medito/models/background_sounds/background_sounds_model.dart';
+import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/player/playback_request.dart';
+import 'package:medito/models/soundscape/sound_library.dart';
+import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/timer/timer_session.dart';
-import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/player/audio_state_provider.dart';
-
-/// The ambient sounds the Customize sheet can offer: the live list when it
-/// loads, otherwise whatever is cached on the device. Overridable in tests.
-final customizeBackgroundSoundsProvider =
-    Provider.autoDispose<List<BackgroundSoundsModel>>(
-      (ref) => ref.watch(backgroundSoundCatalogProvider).sounds,
-    );
+import 'package:medito/providers/soundscape/soundscape_provider.dart';
+import 'package:medito/views/soundscape/sounds_panel.dart';
 
 /// When a session started or running now will end. While playing
 /// ([positionMs] > 0) the countdown has already been spent, and a timer's
@@ -591,46 +587,106 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     ],
   );
 
+  SoundscapeSessionKind get _soundscapeKind => _scope.kind == CueKind.practice
+      ? SoundscapeSessionKind.practice
+      : SoundscapeSessionKind.talks;
+
+  /// What plays under this scope's sessions: its own choice, or the mixer's
+  /// default for the kind (Off while that is switched off).
+  SoundscapeSelection _soundscapeChoice(CueSettings s, SoundscapeState mixer) {
+    final setting = SoundscapeController.sessionSetting(
+      mixer.sessionDefault(_soundscapeKind),
+      s.soundscapeSelection,
+    );
+    return setting.enabled ? setting.selection : SoundscapeSelection.none;
+  }
+
+  /// A course override keeps its choice in its own cue settings. Otherwise
+  /// the choice is the kind's, and the mixer holds it (with the on/off and
+  /// the volume), so the Sounds sheet's switches show the same thing.
+  void _chooseSoundscape(CueSettings s, SoundscapeSelection choice) {
+    if (_courseOverride) {
+      _edit(s.copyWith(soundscape: choice.encode()));
+      return;
+    }
+    final mixer = ref.read(soundscapeProvider.notifier);
+    final current = mixer.sessionDefault(_soundscapeKind);
+    final off = choice.kind == SoundscapeSelectionKind.none;
+    mixer.setSessionDefault(
+      _soundscapeKind,
+      current.copyWith(
+        enabled: !off,
+        selection: off ? current.selection : choice,
+      ),
+    );
+    // A choice carried over from before the mixer existed gives way.
+    if (s.soundscape.isNotEmpty) _edit(s.copyWith(soundscape: ''));
+  }
+
   Widget _backgroundBody(CueSettings s, void Function(CueSettings) change) {
     return Consumer(
       builder: (context, ref, _) {
-        final sounds = ref.watch(customizeBackgroundSoundsProvider);
+        final l10n = AppLocalizations.of(context);
+        final mixer = ref.watch(soundscapeProvider);
+        final library =
+            ref.watch(soundLibraryProvider).value ?? SoundLibrary.empty;
+        final selected = _soundscapeChoice(s, mixer).encode();
+        void pick(String value) =>
+            _chooseSoundscape(s, SoundscapeSelection.parse(value));
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Play a background sound'),
-              subtitle: Text(
-                _scope.kind == CueKind.practice
-                    ? 'On by default for practice'
-                    : 'Off by default for talks',
-              ),
-              value: s.backgroundEnabled,
-              onChanged: (v) => change(s.copyWith(backgroundEnabled: v)),
+            _Caption(
+              _scope.kind == CueKind.practice
+                  ? 'On by default for practice'
+                  : 'Off by default for talks',
             ),
-            if (s.backgroundEnabled) ...[
-              if (sounds.isEmpty)
-                const _Caption(
-                  'No ambient sounds are bundled yet. Your choice is kept and a sound library is coming.',
-                )
-              else
-                _ChoiceWrap<String>(
-                  options: {for (final b in sounds) b.id: b.title},
-                  selected: s.backgroundSoundId,
-                  onSelected: (v) => change(s.copyWith(backgroundSoundId: v)),
-                ),
+            _ChoiceWrap<String>(
+              options: {
+                SoundscapeSelection.none.encode(): 'Off',
+                SoundscapeSelection.currentMix.encode(): 'Current mix',
+              },
+              selected: selected,
+              onSelected: pick,
+            ),
+            _SectionLabel(l10n?.soundsPresets ?? 'Presets'),
+            _ChoiceWrap<String>(
+              options: {
+                for (final p in mixer.presets)
+                  SoundscapeSelection.preset(p.id).encode(): l10n == null
+                      ? p.name
+                      : soundPresetLabel(l10n, p),
+              },
+              selected: selected,
+              onSelected: pick,
+            ),
+            for (final category in library.categories) ...[
+              _SectionLabel(
+                l10n == null
+                    ? category.name
+                    : soundCategoryLabel(l10n, category),
+              ),
+              _ChoiceWrap<String>(
+                options: {
+                  for (final e in library.inCategory(category))
+                    SoundscapeSelection.sound(e.id).encode(): e.title,
+                },
+                selected: selected,
+                onSelected: pick,
+              ),
+            ],
+            if (selected != SoundscapeSelection.none.encode())
               _SliderTile(
                 label: 'Volume',
-                value: s.backgroundVolume,
+                value: mixer.sessionDefault(_soundscapeKind).volume * 100,
                 min: 0,
                 max: 100,
                 divisions: 20,
                 format: (v) => '${v.round()}%',
-                onChanged: (v) =>
-                    change(s.copyWith(backgroundVolume: v.roundToDouble())),
+                onChanged: (v) => ref
+                    .read(soundscapeProvider.notifier)
+                    .setSessionVolume(_soundscapeKind, v / 100),
               ),
-            ],
           ],
         );
       },
@@ -664,12 +720,24 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   }
 
   String _backgroundValue(CueSettings s) {
-    if (!s.backgroundEnabled) return 'Off';
-    final sounds = ref.watch(customizeBackgroundSoundsProvider);
-    for (final b in sounds) {
-      if (b.id == s.backgroundSoundId) return b.title;
+    final choice = _soundscapeChoice(s, ref.watch(soundscapeProvider));
+    switch (choice.kind) {
+      case SoundscapeSelectionKind.none:
+        return 'Off';
+      case SoundscapeSelectionKind.mix:
+        return 'Current mix';
+      case SoundscapeSelectionKind.preset:
+        final l10n = AppLocalizations.of(context);
+        for (final p in ref.read(soundscapeProvider).presets) {
+          if (p.id == choice.id) {
+            return l10n == null ? p.name : soundPresetLabel(l10n, p);
+          }
+        }
+        return 'Preset';
+      case SoundscapeSelectionKind.sound:
+        return ref.watch(soundLibraryProvider).value?[choice.id]?.title ??
+            'Sound';
     }
-    return 'On';
   }
 }
 
@@ -778,6 +846,25 @@ class _Caption extends StatelessWidget {
         style: theme.textTheme.bodyMedium?.copyWith(
           color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
           height: 1.4,
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, bottom: 2),
+      child: Text(
+        text,
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
         ),
       ),
     );

@@ -385,7 +385,8 @@ build or edit a mix.
 
 ```dart
 // What to play, as a string the cue settings can store:
-//   'mix' or ''      the current mix (as left on the Sounds sheet)
+//   'mix' or ''      the current mix (as left on the Sounds sheet;
+//                    CueSettings.soundscape keeps '' for "kind default")
 //   'preset:<id>'    a preset (state.presets: starters + the user's)
 //   'sound:<id>'     one library sound
 //   'none'           silence
@@ -397,23 +398,29 @@ state.sessionDefault(SoundscapeSessionKind.practice | .talks)
 ref.watch(soundLibraryProvider)                // FutureProvider<SoundLibrary>
 
 final mixer = ref.read(soundscapeProvider.notifier);
-mixer.startSession(kind, {SoundscapeSessionDefault? override}); // session starts
+mixer.startSession(kind, {SoundscapeSelection? selection,   // session starts
+                           SoundscapeSessionDefault? override});
 mixer.setSessionPaused(bool) / mixer.endSession();             // follows session
 mixer.play(SoundscapeSelection, {double? volume});             // play now
 mixer.togglePlay() / pause() / resume() / stop();
 mixer.setVolume(double);          // under a session: that kind's level
 mixer.sessionDefault(kind) / mixer.setSessionDefault(kind, value);
+mixer.setSessionVolume(kind, double);  // that kind's level, live if it runs
 ```
 
 `SoundscapeSessionDefault` is `{enabled, selection, volume}`; the initial values
-follow decision 8 (Practice on, Talks off). A caller that keeps its own setting
-(CueSettings' `backgroundEnabled` / `backgroundSoundId` / `backgroundVolume`)
-passes it as `override:` (volume as 0–1) instead of writing the defaults here;
-writing through `setSessionDefault` keeps a single source of truth, which is
-preferred.
+follow decision 8 (Practice on, Talks off). It is the single source of truth
+for a kind's on/off, selection and volume: Customize's Background sound row
+writes kind-wide choices through `setSessionDefault` and `setSessionVolume`.
+A course override keeps only a selection, in `CueSettings.soundscape` (empty:
+the kind's default); the player passes it to `startSession(kind, selection:)`,
+which uses it for on/off and what plays but keeps the kind's volume.
+`override:` replaces the whole default and is kept for callers with their own
+setting.
 
 **Session wiring today.** `PlayerView` sets the kind
-(`BackgroundSoundsNotifier.setSessionKind`, from the session's cue scope, so a
+(`BackgroundSoundsNotifier.setSessionKind`, with the scope's Customize
+selection, from the session's cue scope, so a
 course's Practice/Talks classification wins over the recording's
 `hasBackgroundSound`) and calls `playBackgroundSoundFromPref()`, which starts
 the soundscape session; `stopBackgroundSound()` ends it, and a session that
@@ -531,7 +538,8 @@ fixed/random intervals, integrated pulse ramps and silent extension.
 
 `CustomizeSheet` is used by `TimerView` as its setup screen and by the player's
 sliders action. `PlayerView` optionally shows it before starting; edits update
-the active native configuration and the existing ambient player. The timer
+the active native configuration and the existing ambient player; the
+Background sound row drives the soundscape mixer (Sounds and the mixer). The timer
 continues to use a sparse local WAV as its primary audio.
 
 `NativeCueController` sends plain configuration over `meditejo/cues`.

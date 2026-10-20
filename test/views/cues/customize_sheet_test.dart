@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medito/models/background_sounds/background_sounds_model.dart';
+import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
+import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers/soundscape_fakes.dart';
 
 Future<ProviderContainer> _pump(
   WidgetTester tester, {
   CueScope scope = const CueScope(CueKind.practice),
   bool isTimer = false,
   VoidCallback? onStart,
-  List<BackgroundSoundsModel> sounds = const [],
   int positionMs = 0,
   Size? size,
   double textScale = 1,
@@ -28,7 +31,7 @@ Future<ProviderContainer> _pump(
   final container = ProviderContainer(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
-      customizeBackgroundSoundsProvider.overrideWithValue(sounds),
+      ...soundscapeTestOverrides(FakeSoundscapeEngine()),
     ],
   );
   addTearDown(container.dispose);
@@ -36,6 +39,8 @@ Future<ProviderContainer> _pump(
     UncontrolledProviderScope(
       container: container,
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         builder: (context, child) => MediaQuery(
           data: MediaQuery.of(
             context,
@@ -146,11 +151,100 @@ void main() {
     await _unmount(tester);
   });
 
-  testWidgets('empty catalog explains itself', (tester) async {
-    await _pump(tester);
+  Future<void> tapChip(WidgetTester tester, String label) async {
+    final chip = find.widgetWithText(ChoiceChip, label);
+    await tester.ensureVisible(chip);
+    await tester.tap(chip);
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('background sound chooses from the library for the kind', (
+    tester,
+  ) async {
+    final container = await _pump(tester);
+    SoundscapeSessionDefault practice() => container
+        .read(soundscapeProvider)
+        .sessionDefault(SoundscapeSessionKind.practice);
+    // Practice is on by default with the current mix.
+    expect(find.text('Current mix'), findsOneWidget);
+    await tester.ensureVisible(find.text('Background sound'));
     await tester.tap(find.text('Background sound'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('No ambient sounds'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, 'Off'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, 'Rain on the forest'), findsOne);
+    // The library, grouped by shelf.
+    expect(find.text('Rain'), findsOneWidget);
+    final river = bundledSoundLibrary['river']!;
+    expect(find.widgetWithText(ChoiceChip, river.title), findsOneWidget);
+
+    // A kind-wide pick is the mixer's default, not a second copy.
+    await tapChip(tester, 'Night');
+    expect(practice().enabled, isTrue);
+    expect(
+      practice().selection,
+      const SoundscapeSelection.preset('starter-night'),
+    );
+    expect(_read(container).soundscape, '');
+    await tapChip(tester, river.title);
+    expect(practice().selection, const SoundscapeSelection.sound('river'));
+
+    // The volume is the mixer's level for the kind.
+    await _drag(tester, 'Volume', 80);
+    expect(practice().volume, closeTo(0.8, 1e-9));
+
+    await tapChip(tester, 'Off');
+    expect(practice().enabled, isFalse);
+    expect(find.text('Volume'), findsNothing);
+    await _closeSub(tester);
+    expect(find.text('Off'), findsWidgets);
+    await _unmount(tester);
+  });
+
+  testWidgets('talks are off, and a course keeps its own choice', (
+    tester,
+  ) async {
+    const course = CueScope(CueKind.talks, courseId: 'c1');
+    const kind = CueScope(CueKind.talks);
+    final container = await _pump(tester, scope: course);
+    final store = container.read(cueSettingsStoreProvider);
+    final row = find.text('Background sound');
+    final toggle = find.widgetWithText(
+      SwitchListTile,
+      'Use these only for this course',
+    );
+    expect(
+      find.descendant(
+        of: find.ancestor(of: row, matching: find.byType(Row)),
+        matching: find.text('Off'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(row);
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+    await tapChip(tester, 'Shore');
+    await _closeSub(tester);
+    expect(store.read(course).soundscape, 'preset:starter-shore');
+    expect(store.read(kind).soundscape, '');
+    expect(
+      container
+          .read(soundscapeProvider)
+          .sessionDefault(SoundscapeSessionKind.talks)
+          .enabled,
+      isFalse,
+      reason: 'the talks default is untouched',
+    );
+    expect(find.text('Shore'), findsOneWidget);
+
+    // Back to the kind's settings: the course inherits Off again.
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(_read(container, course).soundscape, '');
     await _unmount(tester);
   });
 

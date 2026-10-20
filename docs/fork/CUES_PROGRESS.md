@@ -33,8 +33,9 @@ Branch `fork/cues`, PR https://github.com/beejsbj/meditejo/pull/14.
 - No local Gradle, phone operation or release publication was performed.
 - iOS remains unbuilt. Native deadline maths does not prove acoustic latency;
   a real screen-off sit and speaker/Bluetooth timing remain device checks.
-- The existing ambient catalogue is empty. Practice defaults enabled, Talks
-  disabled; the next soundscape slice supplies playable presets.
+- Background sound now chooses from the slice 7 sound library through the
+  mixer (DECISIONS, slice 7, "Customize and the mixer"). Practice defaults
+  enabled, Talks disabled.
 - New Customize labels are English, retaining the current Medito styling.
 
 Implementation choices and the runtime seams are recorded in DECISIONS.md

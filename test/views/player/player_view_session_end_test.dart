@@ -9,6 +9,7 @@ import 'package:medito/models/background_sounds/background_sounds_model.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/pack/pack_model.dart';
+import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/models/track/track.dart';
@@ -107,8 +108,23 @@ class _SilentBackgroundSounds extends BackgroundSoundsNotifier {
   @override
   void stopBackgroundSound() {}
 
+  SoundscapeSessionKind? _kind;
+  SoundscapeSelection? _selection;
+
+  /// Each soundscape start: its kind and the scope's Customize choice.
+  final starts = <(SoundscapeSessionKind?, SoundscapeSelection?)>[];
+
   @override
-  void playBackgroundSoundFromPref() {}
+  void setSessionKind(
+    SoundscapeSessionKind kind, {
+    SoundscapeSelection? selection,
+  }) {
+    _kind = kind;
+    _selection = selection;
+  }
+
+  @override
+  void playBackgroundSoundFromPref() => starts.add((_kind, _selection));
 }
 
 class _Stats extends StatsNotifier {
@@ -134,6 +150,7 @@ Widget _player({
   required Map<String, Object> prefs,
   SessionBellPreview? bell,
   bool legacyBells = false,
+  _SilentBackgroundSounds? sounds,
   List<dynamic> overrides = const [],
   Widget child = const PlayerView(skipCustomize: true),
 }) => PreviewShell(
@@ -142,7 +159,7 @@ Widget _player({
     playerProvider.overrideWith(() => player),
     audioStateProvider.overrideWith(AudioStateNotifier.new),
     backgroundSoundsNotifierProvider.overrideWith(
-      () => _SilentBackgroundSounds(legacyBells: legacyBells),
+      () => sounds ?? _SilentBackgroundSounds(legacyBells: legacyBells),
     ),
     statsProvider.overrideWith(_Stats.new),
     reviewServiceProvider.overrideWithValue(_Review()),
@@ -298,6 +315,49 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 1));
   }
+
+  testWidgets("the session's soundscape follows its scope's Customize choice", (
+    tester,
+  ) async {
+    final sounds = _SilentBackgroundSounds();
+    await tester.pumpWidget(
+      _player(
+        player: _FakePlayer(_timer),
+        prefs: _prefsWith(
+          const CueSettings(soundscape: 'preset:starter-night'),
+        ),
+        sounds: sounds,
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(sounds.starts, [
+      (
+        SoundscapeSessionKind.practice,
+        const SoundscapeSelection.preset('starter-night'),
+      ),
+    ]);
+
+    // A new choice mid-session plays at once; other edits do not restart.
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlayerView)),
+    );
+    const scope = CueScope(CueKind.practice);
+    final notifier = container.read(cueSettingsProvider(scope).notifier);
+    await notifier.update(
+      container.read(cueSettingsProvider(scope)).copyWith(soundscape: 'none'),
+    );
+    await tester.pump();
+    await notifier.update(
+      container.read(cueSettingsProvider(scope)).copyWith(bellVolume: 0.1),
+    );
+    await tester.pump();
+    expect(sounds.starts.length, 2);
+    expect(sounds.starts.last.$2, SoundscapeSelection.none);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 4));
+  });
 
   testWidgets(
     'ending a timer early rings the Customize end cue at the bell volume',

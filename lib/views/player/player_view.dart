@@ -254,7 +254,7 @@ class _PlayerViewState extends ConsumerState<PlayerView>
       });
       _cueSubscription?.close();
       _cueSubscription = ref.listenManual(cueSettingsProvider(_cueScope!), (
-        _,
+        previous,
         settings,
       ) {
         unawaited(
@@ -268,6 +268,13 @@ class _PlayerViewState extends ConsumerState<PlayerView>
         ref
             .read(backgroundSoundsNotifierProvider.notifier)
             .applyCueSettings(settings);
+        // A new Background sound choice for this scope plays at once.
+        if (previous?.soundscape != settings.soundscape) {
+          _playSessionSounds(
+            _cueScope?.kind != CueKind.talks,
+            settings.soundscapeSelection,
+          );
+        }
       });
       _countdownPoll?.cancel();
       _countdownPoll = null;
@@ -359,7 +366,12 @@ class _PlayerViewState extends ConsumerState<PlayerView>
                 ? CueKind.practice
                 : CueKind.talks)) ==
         CueKind.practice;
-    _playSessionSounds(practice);
+    _playSessionSounds(
+      practice,
+      scope == null
+          ? null
+          : ref.read(cueSettingsProvider(scope)).soundscapeSelection,
+    );
 
     // Only enable DND if permission is already granted and toggle is on
     if (Platform.isAndroid) {
@@ -624,12 +636,14 @@ class _PlayerViewState extends ConsumerState<PlayerView>
     );
   }
 
-  /// Practice (a track that allows background sound) or Talks: each plays
-  /// its own soundscape default (decision 8: on for Practice, off for Talks).
-  void _playSessionSounds(bool practice) {
+  /// Practice or Talks: each plays its own soundscape default (decision 8:
+  /// on for Practice, off for Talks), unless Customize chose a [selection]
+  /// for the session's scope.
+  void _playSessionSounds(bool practice, SoundscapeSelection? selection) {
     ref.read(backgroundSoundsNotifierProvider.notifier)
       ..setSessionKind(
         practice ? SoundscapeSessionKind.practice : SoundscapeSessionKind.talks,
+        selection: selection,
       )
       ..playBackgroundSoundFromPref();
   }

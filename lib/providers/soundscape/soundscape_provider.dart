@@ -254,19 +254,31 @@ class SoundscapeController extends Notifier<SoundscapeState> {
 
   /// Master volume. Under a session it is that session kind's level.
   void setVolume(double volume) {
-    final v = volume.clamp(0.0, 1.0);
     final kind = state.sessionKind;
     if (kind != null) {
-      final defaults = {
-        ...state.sessionDefaults,
-        kind: state.sessionDefault(kind).copyWith(volume: v),
-      };
-      _store.writeSessionDefaults(defaults);
-      _update(state.copyWith(volume: v, sessionDefaults: defaults));
+      setSessionVolume(kind, volume);
     } else {
+      final v = volume.clamp(0.0, 1.0);
       _store.writeVolume(v);
       _update(state.copyWith(volume: v));
     }
+  }
+
+  /// The level sounds play at under sessions of [kind] (the one volume for
+  /// that kind, whoever sets it). Applies at once if such a session runs.
+  void setSessionVolume(SoundscapeSessionKind kind, double volume) {
+    final v = volume.clamp(0.0, 1.0);
+    final defaults = {
+      ...state.sessionDefaults,
+      kind: state.sessionDefault(kind).copyWith(volume: v),
+    };
+    _store.writeSessionDefaults(defaults);
+    _update(
+      state.copyWith(
+        volume: state.sessionKind == kind ? v : null,
+        sessionDefaults: defaults,
+      ),
+    );
   }
 
   /// Play or pause. Starting from silence plays the current mix on its own.
@@ -370,6 +382,20 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   // ---------------------------------------------------------------------------
   // Sessions (decision 8): on for Practice, off for Talks by default.
 
+  /// What a session plays: the kind's [kindDefault], unless the session's
+  /// scope chose its own [selection] (`none` for silence).
+  static SoundscapeSessionDefault sessionSetting(
+    SoundscapeSessionDefault kindDefault,
+    SoundscapeSelection? selection,
+  ) => selection == null
+      ? kindDefault
+      : kindDefault.copyWith(
+          enabled: selection.kind != SoundscapeSelectionKind.none,
+          selection: selection.kind == SoundscapeSelectionKind.none
+              ? kindDefault.selection
+              : selection,
+        );
+
   SoundscapeSessionDefault sessionDefault(SoundscapeSessionKind kind) =>
       state.sessionDefault(kind);
 
@@ -380,17 +406,27 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     final defaults = {...state.sessionDefaults, kind: value};
     _store.writeSessionDefaults(defaults);
     _update(state.copyWith(sessionDefaults: defaults));
-    if (state.sessionKind == kind) unawaited(startSession(kind));
+    if (state.sessionKind == kind) {
+      unawaited(startSession(kind, selection: _sessionSelection));
+    }
   }
 
-  /// A session of [kind] is starting: play what its default says (or
-  /// [override], for a caller that keeps its own setting), at its volume.
+  /// The running session's own choice (a course's Customize selection),
+  /// kept so a change to the kind's default does not override it.
+  SoundscapeSelection? _sessionSelection;
+
+  /// A session of [kind] is starting: play what its default says, at its
+  /// volume. [selection] (the Customize sheet's choice for the session's
+  /// scope) replaces the default's on/off and selection but not its volume;
+  /// [override], for a caller that keeps its own setting, replaces all of it.
   /// Takes over anything playing on its own.
   Future<void> startSession(
     SoundscapeSessionKind kind, {
     SoundscapeSessionDefault? override,
+    SoundscapeSelection? selection,
   }) async {
     final token = ++_sessionToken;
+    _sessionSelection = selection;
     // Restarting within a running session (its setting changed) keeps the
     // player's play state; a new session starts as playing.
     if (state.sessionKind == null) _sessionPlaying = true;
@@ -399,7 +435,8 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     if (state.sessionKind != kind) {
       _update(state.copyWith(sessionKind: kind));
     }
-    final setting = override ?? state.sessionDefault(kind);
+    final setting =
+        override ?? sessionSetting(state.sessionDefault(kind), selection);
     final mix = setting.enabled
         ? await _resolve(setting.selection)
         : SoundMix.empty;
@@ -431,6 +468,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   void endSession() {
     if (!state.inSession) return;
     _sessionToken++;
+    _sessionSelection = null;
     _update(
       state.copyWith(
         playing: false,

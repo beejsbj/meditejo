@@ -10,6 +10,7 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/background_sounds/background_sounds_model.dart';
 import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/home/home_provider.dart';
+import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/player/ios_audio_handler.dart';
 import 'package:medito/providers/player/player_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
@@ -159,8 +160,9 @@ Future<void> _fileIO(
 
 Future<ProviderContainer> _home(
   WidgetTester tester,
-  SharedPreferences prefs,
-) async {
+  SharedPreferences prefs, {
+  bool ownAudioState = false,
+}) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(390, 844);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -172,6 +174,12 @@ Future<ProviderContainer> _home(
         sharedPreferencesProvider.overrideWithValue(prefs),
         // The library is a separate database; Home's timer link needs none.
         continueItemsProvider.overrideWith((ref) async => []),
+        // The app's audio state notifier is one global instance, which only
+        // one container may own: a test that plays nothing (but whose
+        // Customize sheet reads the Sounds mixer, which follows the audio
+        // state) uses its own, leaving the global one to the playing test.
+        if (ownAudioState)
+          audioStateProvider.overrideWith(AudioStateNotifier.new),
       ],
       child: MaterialApp(
         theme: ThemeData.dark(useMaterial3: true),
@@ -238,7 +246,7 @@ void main() {
   testWidgets('an empty local catalogue still exposes the home timer', (
     tester,
   ) async {
-    final container = await _home(tester, prefs);
+    final container = await _home(tester, prefs, ownAudioState: true);
     expect(container.read(playerProvider), isNull);
 
     await _openTimer(tester);
