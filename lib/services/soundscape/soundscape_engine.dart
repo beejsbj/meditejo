@@ -420,7 +420,7 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
       switch (source) {
         case AssetLoopSource(:final asset, :final channels):
           final audio = await _soloud.loadAsset(asset, mode: LoadMode.memory);
-          voices.add(_loopVoice(audio, at?.call(), stereo: channels == 2));
+          voices.add(_loopVoice(audio, at, stereo: channels == 2));
         case NoiseLoopSource(:final spec):
           final wav = await compute(generateNoiseWav, spec);
           final audio = await _soloud.loadMem(
@@ -428,7 +428,7 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
             wav,
             mode: LoadMode.memory,
           );
-          voices.add(_loopVoice(audio, at?.call(), stereo: true));
+          voices.add(_loopVoice(audio, at, stereo: true));
         case OscillatorSource(:final partials):
           for (final p in partials) {
             final audio = await _soloud.loadWaveform(
@@ -439,13 +439,19 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
               1,
               0,
             );
-            _soloud.setWaveformFreq(audio, p.hz);
-            final handle = _soloud.play(
-              audio,
-              volume: 0,
-              pan: p.pan,
-              paused: _paused,
-            );
+            final SoundHandle handle;
+            try {
+              _soloud.setWaveformFreq(audio, p.hz);
+              handle = _soloud.play(
+                audio,
+                volume: 0,
+                pan: p.pan,
+                paused: _paused,
+              );
+            } catch (_) {
+              unawaited(_quietly(() => _soloud.disposeSource(audio)));
+              rethrow;
+            }
             final voice = _Voice(
               audio,
               handle,
@@ -477,31 +483,44 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
     }
   }
 
-  _Voice _loopVoice(AudioSource audio, Duration? at, {required bool stereo}) {
-    final handle = _soloud.play(
-      audio,
-      volume: 0,
-      looping: true,
-      paused: _paused,
-    );
-    final voice = _Voice(audio, handle);
-    if (!_soloud.getIsValidVoiceHandle(handle)) {
-      unawaited(_soloud.disposeSource(audio));
-      throw StateError('SoLoud refused to play a loop');
-    }
-    if (stereo) _soloud.setPanAbsolute(handle, 1, 1);
-    // Start somewhere in the loop, so a sound doesn't always open the same
-    // way (or, retuning, near where the old loop was).
-    final length = _soloud.getLength(audio);
-    if (at != null) {
-      _soloud.seek(handle, at < length ? at : Duration.zero);
-    } else if (length > const Duration(seconds: 2)) {
-      _soloud.seek(
-        handle,
-        Duration(milliseconds: _random.nextInt(length.inMilliseconds - 1000)),
+  /// Plays [audio] as a silent loop. Anything that fails once it is loaded
+  /// (a refused voice, reading the old loop's position, a seek) disposes of
+  /// it, so a failed start or retune holds no memory.
+  _Voice _loopVoice(
+    AudioSource audio,
+    Duration Function()? at, {
+    required bool stereo,
+  }) {
+    try {
+      final handle = _soloud.play(
+        audio,
+        volume: 0,
+        looping: true,
+        paused: _paused,
       );
+      if (!_soloud.getIsValidVoiceHandle(handle)) {
+        throw StateError('SoLoud refused to play a loop');
+      }
+      if (stereo) _soloud.setPanAbsolute(handle, 1, 1);
+      // Start somewhere in the loop, so a sound doesn't always open the
+      // same way (or, retuning, near where the old loop was: read now, as
+      // late as possible).
+      final length = _soloud.getLength(audio);
+      final position = at?.call();
+      if (position != null) {
+        _soloud.seek(handle, position < length ? position : Duration.zero);
+      } else if (length > const Duration(seconds: 2)) {
+        _soloud.seek(
+          handle,
+          Duration(milliseconds: _random.nextInt(length.inMilliseconds - 1000)),
+        );
+      }
+      return _Voice(audio, handle);
+    } catch (_) {
+      // Disposing of the source stops its voice too.
+      unawaited(_quietly(() => _soloud.disposeSource(audio)));
+      rethrow;
     }
-    return voice;
   }
 
   @override
@@ -679,25 +698,36 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
   }
 
   Future<void> _fadeAndDispose(List<_Voice> voices, Duration fade) async {
-    try {
-      if (fade > Duration.zero && !_paused) {
-        for (final v in voices) {
-          v.timer?.cancel();
-          _soloud.fadeVolume(v.handle, 0, fade);
-        }
-        await Future<void>.delayed(fade);
-      } else if (voices.isNotEmpty && fade > Duration.zero && _paused) {
-        // Pausing fades the whole mix out (the session ended, or paused):
-        // let that fade finish rather than cut it.
-        await _pause.settled;
-      }
+    for (final v in voices) {
+      v.timer?.cancel();
+      v.timer = null;
+    }
+    if (fade > Duration.zero && !_paused) {
       for (final v in voices) {
-        v.timer?.cancel();
-        await _soloud.stop(v.handle);
-        await _soloud.disposeSource(v.source);
+        await _quietly(() => _soloud.fadeVolume(v.handle, 0, fade));
       }
+      await Future<void>.delayed(fade);
+    } else if (voices.isNotEmpty && fade > Duration.zero && _paused) {
+      // Pausing fades the whole mix out (the session ended, or paused):
+      // let that fade finish rather than cut it.
+      await _pause.settled;
+    }
+    // Every voice stops at once, then the sources go; one that fails does
+    // not keep the others playing or loaded.
+    await Future.wait([
+      for (final v in voices) _quietly(() => _soloud.stop(v.handle)),
+    ]);
+    await Future.wait([
+      for (final v in voices) _quietly(() => _soloud.disposeSource(v.source)),
+    ]);
+  }
+
+  /// Runs one release step, logging rather than throwing.
+  Future<void> _quietly(FutureOr<void> Function() run) async {
+    try {
+      await run();
     } catch (error, stack) {
-      AppLogger.e('SOUNDSCAPE', 'Could not release voices', error, stack);
+      AppLogger.e('SOUNDSCAPE', 'Could not release a voice', error, stack);
     }
   }
 
