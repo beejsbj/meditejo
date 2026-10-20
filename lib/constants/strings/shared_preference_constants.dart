@@ -29,6 +29,12 @@ class SharedPreferenceConstants {
   static const String upNextPackId = 'up_next_pack_id';
   static const String upNextReturnPackId = 'up_next_return_pack_id';
   static const String lastMainTabIndex = 'last_main_tab_index';
+
+  /// Which tab bar wrote [lastMainTabIndex]: absent for Home · Explore ·
+  /// Search · Settings, 2 for Home · Explore · Library · Settings.
+  static const String mainTabLayout = 'main_tab_layout';
+  static const String homeWidgetHidden = 'homeWidgetHidden';
+  static const String pinnedCourseIds = 'pinned_course_ids';
   static const String installedVersionHistory = 'installed_version_history';
   static const String onboardingExperienceLevel = 'onboarding_experience_level';
   static const String timerMinutes = 'timer_minutes';

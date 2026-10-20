@@ -1,15 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/scaffold_messenger_key.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/models/timer/timer_session.dart';
+import 'package:medito/scaffold_messenger_key.dart';
+import 'package:medito/views/background_sound/background_sound_view.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_download_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_speed_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/bg_sound_widget.dart';
+import 'package:medito/views/cues/customize_sheet.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/speed_sheet.dart';
-
-import 'package:medito/views/background_sound/background_sound_view.dart';
 
 import 'bottom_action_bar.dart';
 
@@ -32,7 +34,8 @@ class PlayerActionBar extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     // A timer is local silence: nothing to download, and speed would only
-    // change how long the session takes. Keep close and the sound picker.
+    // change how long the session takes. Keep close, the Sounds sheet and
+    // Customize.
     if (request.isTimer) {
       return BottomActionBar(
         leftItem: BottomActionBarItem(
@@ -40,12 +43,17 @@ class PlayerActionBar extends StatelessWidget {
           onTap: onClosePressed,
           semanticLabel: l10n.close,
         ),
-        rightItem: BottomActionBarItem(
+        rightCenterItem: BottomActionBarItem(
           child: _buildBackgroundSoundWidget(),
           onTap: () {
             showBackgroundSoundSheet(context);
           },
           semanticLabel: l10n.backgroundSounds,
+        ),
+        rightItem: BottomActionBarItem(
+          child: _customizeIcon,
+          onTap: () => _customize(context),
+          semanticLabel: _customizeLabel,
         ),
       );
     }
@@ -64,7 +72,7 @@ class PlayerActionBar extends StatelessWidget {
             ? AudioDownloadWidget(request: request)
             : const SizedBox(width: 48, height: 48),
       ),
-      rightCenterItem: BottomActionBarItem(
+      centerItem: BottomActionBarItem(
         child: _buildBackgroundSoundWidget(),
         onTap: request.hasBackgroundSound
             ? () {
@@ -72,6 +80,11 @@ class PlayerActionBar extends StatelessWidget {
               }
             : () => _showBackgroundSoundDisabledMessage(context),
         semanticLabel: l10n.backgroundSounds,
+      ),
+      rightCenterItem: BottomActionBarItem(
+        child: _customizeIcon,
+        onTap: () => _customize(context),
+        semanticLabel: _customizeLabel,
       ),
       rightItem: BottomActionBarItem(
         child: const AudioSpeedWidget(),
@@ -98,5 +111,15 @@ class PlayerActionBar extends StatelessWidget {
         content: Text(AppLocalizations.of(context)!.backgroundSoundsDisabled),
       ),
     );
+  }
+
+  static const _customizeLabel = 'Customize';
+  static const _customizeIcon = Icon(
+    Icons.tune_rounded,
+    color: ColorConstants.white,
+  );
+
+  void _customize(BuildContext context) {
+    unawaited(showCustomizeSheet(context, request: request));
   }
 }

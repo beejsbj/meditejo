@@ -1,10 +1,5 @@
-import 'package:medito/providers/home/up_next_provider.dart';
-import 'package:medito/views/home/widgets/home_gradient_border.dart';
-import 'package:medito/views/home/widgets/quote/quote_share_sheet.dart';
-import 'package:medito/models/home/home_model.dart';
 
 import 'package:medito/views/explore/widgets/explore_view.dart';
-import 'package:medito/views/search/search_view.dart';
 import 'package:medito/views/teacher/teacher_view.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/models/explore/session_length.dart';
@@ -29,7 +24,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/models/player/playback_request.dart';
@@ -37,9 +31,10 @@ import 'package:medito/providers/providers.dart';
 import 'package:medito/src/audio_pigeon.g.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/timer/timer_view.dart';
-import 'package:medito/views/home/previews/home_previews.dart';
-import 'package:medito/views/home/widgets/shortcuts/shortcuts_items_widget.dart';
-import 'package:medito/views/home/widgets/up_next/up_next_widget.dart';
+import 'package:medito/views/home/previews/stats_fixtures.dart';
+import 'package:medito/providers/home/continue_provider.dart';
+import 'package:medito/services/home/continue_rules.dart';
+import 'package:medito/services/library/library_models.dart';
 import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/player/widgets/artist_title_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/player_action_bar.dart';
@@ -191,147 +186,56 @@ void main() {
     }
   });
 
-  testWidgets('Your Path replaces session text without an outgoing overlap', (
-    tester,
-  ) async {
-    var data = previewUpNext;
-    await tester.pumpWidget(
-      wrapHomeDark(
-        ProviderScope(
-          overrides: [upNextProvider.overrideWith((ref) => AsyncData(data))],
-          child: const Scaffold(body: UpNextWidget(style: UpNextStyle.hero)),
-        ),
-      ),
-    );
-    await tester.pump(const Duration(seconds: 1));
-    final oldTitle = data.nextSession!.title;
-    expect(find.text(oldTitle), findsOneWidget);
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(UpNextWidget)),
-    );
-    data = UpNextData(
-      pack: previewPack,
-      nextSession: previewPack.items[4],
-      completedCount: 4,
-      totalCount: previewPack.items.length,
-    );
-    container.invalidate(upNextProvider);
-    await tester.pump();
-    for (final elapsed in [0, 50, 100, 200]) {
-      await tester.pump(Duration(milliseconds: elapsed));
-      expect(find.text(oldTitle), findsNothing);
-      expect(find.text(data.nextSession!.title), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    }
-  });
-
-  testWidgets('Your Path loading does not flash a card surface', (
-    tester,
-  ) async {
-    for (final style in UpNextStyle.values) {
-      await tester.pumpWidget(
-        wrapHomeDark(
-          ProviderScope(
-            overrides: [
-              upNextProvider.overrideWith((ref) => const AsyncLoading()),
-            ],
-            child: Scaffold(body: UpNextWidget(style: style)),
-          ),
-        ),
-      );
-      await tester.pump(const Duration(seconds: 1));
-      expect(
-        find.descendant(
-          of: find.byType(UpNextWidget),
-          matching: find.byType(HomeGradientBorder),
-        ),
-        findsNothing,
-      );
-      expect(tester.takeException(), isNull);
-    }
-  });
-
   testWidgets('Home fits tablet and foldable widths', (tester) async {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    // Only the image data is a fixture. CachedNetworkImage and every Home
-    // component still render through their production implementations.
-    final bytes = await rootBundle.load('assets/images/open_awareness.png');
-    final codec = await tester.runAsync(
-      () => ui.instantiateImageCodec(bytes.buffer.asUint8List()),
+    final item = ContinueItem(
+      trackId: 'track-4',
+      path: '/tracks/track-4',
+      title: 'Noting Thoughts',
+      group: LibraryGroup.practice,
+      lastPlayed: DateTime(2026, 10, 19),
+      courseId: previewPack.id,
+      courseTitle: previewPack.title,
+      sessionNumber: 4,
+      sessionTotal: 7,
     );
-    final frame = await tester.runAsync(() => codec!.getNextFrame());
-    for (final url in {
-      previewPack.coverUrl,
-      ...previewHome.carousel.map((item) => item.coverUrl),
-    }) {
-      PaintingBinding.instance.imageCache.putIfAbsent(
-        CachedNetworkImageProvider(url!),
-        () => OneFrameImageStreamCompleter(
-          Future.value(ImageInfo(image: frame!.image.clone())),
-        ),
-      );
-    }
-    for (final size in [const Size(1200, 900), const Size(820, 900)]) {
-      tester.view.physicalSize = size;
-      await tester.pumpWidget(
-        wrapHomeDark(
-          ProviderScope(
-            child: Scaffold(
-              body: Row(
-                children: [
-                  MeditoSidebar(
-                    extended: size.width >= 1100,
-                    items: destinations,
-                    selectedIndex: 0,
-                    onSelected: (_) {},
-                  ),
-                  const Expanded(child: AdaptiveContent(child: HomeView())),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 3));
-      expect(find.byType(ShortcutsItemsWidget), findsOneWidget);
-      expect(find.byType(UpNextWidget), findsOneWidget);
-      final play = find.descendant(
-        of: find.byType(UpNextWidget),
-        matching: find.byIcon(Icons.play_arrow_rounded),
-      );
-      expect(tester.getCenter(play).dx, lessThan(size.width));
-
-      expect(tester.takeException(), isNull);
-    }
-    await tester.pumpWidget(const SizedBox());
-    frame!.image.dispose();
-    codec!.dispose();
-  });
-
-  testWidgets('empty local home keeps the timer reachable', (tester) async {
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-    for (final size in [const Size(360, 640), const Size(820, 900)]) {
+    for (final size in [
+      const Size(360, 640),
+      const Size(1200, 900),
+      const Size(820, 900),
+    ]) {
       tester.view.physicalSize = size;
       await tester.pumpWidget(
         PreviewShell(
           prefs: prefsDark,
           overrides: [
-            fetchHomeProvider.overrideWith((ref) async => const HomeModel()),
-            upNextProvider.overrideWith(
-              (ref) => const AsyncData(UpNextData.empty()),
-            ),
+            continueItemsProvider.overrideWith((ref) async => [item]),
             statsProvider.overrideWith(_OnboardingStats.new),
           ],
-          child: const HomeView(),
+          child: size.width >= 700
+              ? Scaffold(
+                  body: Row(
+                    children: [
+                      MeditoSidebar(
+                        extended: size.width >= 1100,
+                        items: destinations,
+                        selectedIndex: 0,
+                        onSelected: (_) {},
+                      ),
+                      const Expanded(
+                        child: AdaptiveContent(child: HomeView()),
+                      ),
+                    ],
+                  ),
+                )
+              : const HomeView(),
         ),
       );
       await tester.pumpAndSettle();
-      final timer = find.widgetWithText(FilledButton, 'Open timer');
+      expect(find.byKey(const ValueKey('continue_track-4')), findsOneWidget);
+      final timer = find.byKey(const ValueKey('quick_timer'));
       expect(timer.hitTestable(), findsOneWidget);
       await tester.tap(timer);
       await tester.pumpAndSettle();
@@ -771,7 +675,6 @@ void main() {
         tester.view.physicalSize = size;
         for (final name in [
           'explore',
-          'search',
           'pack',
           'course',
           'teacher',
@@ -780,14 +683,13 @@ void main() {
         ]) {
           Widget page = switch (name) {
             'explore' => const ExploreView(),
-            'search' => const SearchView(),
             'pack' => PackView(id: previewPack.id),
             'course' => PackView(id: coursePack.id),
             'teacher' => const TeacherView(teacherId: 'ds-teacher-1'),
             'track' => const TrackView(trackId: 'preview'),
             _ => const EndScreenView(request: request),
           };
-          if (name == 'explore' || name == 'search') {
+          if (name == 'explore') {
             page = Scaffold(
               body: Row(
                 children: [
@@ -795,7 +697,7 @@ void main() {
                     MeditoSidebar(
                       extended: size.width >= 1100,
                       items: destinations,
-                      selectedIndex: name == 'explore' ? 1 : 2,
+                      selectedIndex: 1,
                       onSelected: (_) {},
                     ),
                   Expanded(child: AdaptiveContent(child: page)),
@@ -1015,41 +917,4 @@ void main() {
       }
     },
   );
-
-  testWidgets('quote card stays square and share control scrolls into view', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-    for (final size in [const Size(820, 900), const Size(1024, 500)]) {
-      tester.view.physicalSize = size;
-      await tester.pumpWidget(
-        const PreviewShell(
-          prefs: prefsDark,
-          child: QuoteShareScreen(
-            data: HomeQuoteModel(
-              id: 'layout-test',
-              quote:
-                  'The present moment is filled with joy and happiness. If you are attentive, you will see it.',
-              author: 'Thich Nhat Hanh',
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      final card = find.descendant(
-        of: find.byType(QuoteShareScreen),
-        matching: find.byType(AspectRatio),
-      );
-      expect(tester.getSize(card).width, tester.getSize(card).height);
-      expect(tester.getSize(card).width, lessThanOrEqualTo(440));
-      final share = find.widgetWithText(FilledButton, 'Share');
-      await tester.ensureVisible(share);
-      await tester.pumpAndSettle();
-      expect(share.hitTestable(), findsOneWidget);
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox());
-    }
-  });
 }

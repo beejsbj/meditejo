@@ -22,6 +22,12 @@ class TypeConstants {
   static const String appIcon = 'app_icon';
   static const String addWidget = 'add_widget';
 
+  /// Deep links that select a tab: `meditejo://library` and so on.
+  static const String tabHome = 'home';
+  static const String tabExplore = 'explore';
+  static const String tabSearch = 'search';
+  static const String tabLibrary = 'library';
+
   // New constants for path view
   static const String article = 'article';
   static const String session = 'session';

@@ -31,6 +31,9 @@ class BottomActionBarItem {
 class BottomActionBar extends StatelessWidget {
   final BottomActionBarItem? leftItem;
   final BottomActionBarItem? leftCenterItem;
+
+  /// An optional fifth slot between the centre items ([edgeAligned] only).
+  final BottomActionBarItem? centerItem;
   final BottomActionBarItem? rightCenterItem;
   final BottomActionBarItem? rightItem;
   final BottomActionBarLayout layout;
@@ -39,6 +42,7 @@ class BottomActionBar extends StatelessWidget {
     super.key,
     this.leftItem,
     this.leftCenterItem,
+    this.centerItem,
     this.rightCenterItem,
     this.rightItem,
     this.layout = BottomActionBarLayout.compactRight,
@@ -92,6 +96,7 @@ class BottomActionBar extends StatelessWidget {
           const Spacer(),
           _buildItem(leftCenterItem),
           const Spacer(),
+          if (centerItem != null) ...[_buildItem(centerItem), const Spacer()],
           _buildItem(rightCenterItem),
           const Spacer(),
           _buildItem(rightItem),

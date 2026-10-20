@@ -1,6 +1,15 @@
+import 'package:medito/providers/cues/cue_runtime_provider.dart';
+import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/providers/cues/cue_settings_provider.dart';
+import 'package:medito/services/audio/native_cue_controller.dart';
+import 'package:medito/views/cues/customize_sheet.dart';
+import 'package:medito/providers/meditation/track_provider.dart';
+import 'package:medito/services/content/content_source.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:medito/models/soundscape/sound_mix.dart';
+
 import 'dart:async';
 
 import 'package:medito/widgets/adaptive/adaptive_player_layout.dart';
@@ -36,16 +45,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../providers/background_sounds/background_sounds_notifier.dart';
+import '../../providers/soundscape/soundscape_provider.dart';
 import '../../widgets/errors/medito_error_widget.dart';
 
 class PlayerView extends ConsumerStatefulWidget {
-  const PlayerView({super.key});
+  const PlayerView({super.key, this.skipCustomize = false});
+
+  final bool skipCustomize;
 
   @override
   ConsumerState<PlayerView> createState() => _PlayerViewState();
 }
 
-class _PlayerViewState extends ConsumerState<PlayerView> {
+class _PlayerViewState extends ConsumerState<PlayerView>
+    with WidgetsBindingObserver {
   bool _endScreenOpened = false;
   bool _isClosing = false;
   // Set when play() throws (e.g. offline, native audio failed to start). The
@@ -60,6 +73,18 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
   /// play → spinner → pause on open.
   bool _playbackStarted = false;
   Timer? _playbackStartFallback;
+  Timer? _countdownPoll;
+  int _countdownMs = 0;
+  bool _foreground = true;
+  bool _cueStateFailed = false;
+  bool _countdownExpected = false;
+  CueScope? _cueScope;
+  ProviderSubscription<CueSettings>? _cueSubscription;
+  bool _customized = false;
+  bool _playRequested = false;
+  bool _autoplayPending = false;
+  bool _finishing = false;
+  bool _cancelAutoplay = false;
 
   /// Keeps a previous session's completed state from opening the end screen.
   final _completionGate = SessionCompletionGate();
@@ -74,6 +99,9 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
   void initState() {
     super.initState();
     PendingEndScreen.playerMounted();
+    WidgetsBinding.instance.addObserver(this);
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    _foreground = lifecycle == null || lifecycle == AppLifecycleState.resumed;
     _prefs = ref.read(sharedPreferencesProvider);
     _statsAtSessionStart = ref.read(statsProvider).value;
     // Bells are remembered per scope (on by default for a timer, off under
@@ -83,13 +111,90 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
         .setTimerScope(ref.read(playerProvider)?.isTimer ?? false);
     // A listener rather than build(): build only sees the latest value, and a
     // not-completed reading between two completed ones must still arm the gate.
+    ref.listenManual(audioStateProvider.select((s) => s.isCompleted), (
+      _,
+      isCompleted,
+    ) {
+      _completionGate.completionChanged(isCompleted);
+      // Here, not in build(): with the screen locked no frame is built, and
+      // the end of a session must still start autoplay.
+      if (!_finishing &&
+          _completionGate.isSessionComplete(ref.read(audioStateProvider))) {
+        unawaited(_finishOrAutoplay());
+      }
+    });
+    // The voice reaching its end is when an extension may begin.
     ref.listenManual(
-      audioStateProvider.select((s) => s.isCompleted),
-      (_, isCompleted) => _completionGate.completionChanged(isCompleted),
+      audioStateProvider.select(
+        (s) => s.duration > 0 && s.position >= s.duration - 1000,
+      ),
+      (_, _) => _syncCuePoll(),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startPlayback();
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _foreground = state == AppLifecycleState.resumed;
+    // Back on screen: read once, in case a hold began or ended meanwhile.
+    if (_foreground && _playRequested && !_cueStateFailed) {
+      if (Platform.isAndroid || Platform.isIOS) unawaited(_pollCueState());
+    }
+    _syncCuePoll();
+  }
+
+  /// Polls the native cue state only while this screen is in the foreground
+  /// and a countdown or extension runs or may begin; nothing else shows it.
+  void _syncCuePoll() {
+    final audio = ref.read(audioStateProvider);
+    final wanted =
+        (Platform.isAndroid || Platform.isIOS) &&
+        mounted &&
+        _playRequested &&
+        !_cueStateFailed &&
+        shouldPollCueState(
+          foreground: _foreground,
+          phase: ref.read(cueRuntimeProvider).phase,
+          countdownExpected: _countdownExpected,
+          voiceAtEnd:
+              audio.duration > 0 && audio.position >= audio.duration - 1000,
+        );
+    if (!wanted) {
+      _countdownPoll?.cancel();
+      _countdownPoll = null;
+    } else {
+      _countdownPoll ??= Timer.periodic(
+        const Duration(milliseconds: 200),
+        (_) => unawaited(_pollCueState()),
+      );
+    }
+  }
+
+  Future<void> _pollCueState() async {
+    try {
+      final cueState = await NativeCueController.state();
+      if (!mounted) return;
+      ref.read(cueRuntimeProvider.notifier).updateFromMap(cueState);
+      // Seen, or the voice is already playing (no countdown after all): the
+      // phase itself decides from here, however long the source buffered.
+      final phase = cueState['phase'];
+      if (phase == 'countdown' ||
+          (phase == 'playing' && ref.read(audioStateProvider).isPlaying)) {
+        _countdownExpected = false;
+      }
+      final remaining =
+          (cueState['countdownRemainingMs'] as num?)?.toInt() ?? 0;
+      if (remaining != _countdownMs) {
+        setState(() => _countdownMs = remaining);
+      }
+      _syncCuePoll();
+    } catch (e) {
+      AppLogger.e('CUES', 'Countdown state unavailable: $e');
+      _cueStateFailed = true;
+      if (mounted) _syncCuePoll();
+    }
   }
 
   /// Starts playback for the request the caller prepared. Runs here (rather
@@ -101,12 +206,41 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
     final request = ref.read(playerProvider);
     if (request == null) return;
     _completionGate.reset();
+    ref.read(cueRuntimeProvider.notifier).reset();
+    try {
+      _cueScope = await ref.read(cueScopeForRequestProvider(request).future);
+      if (!mounted || _isClosing) return;
+      final settings = ref.read(cueSettingsProvider(_cueScope!));
+      if (!_customized &&
+          !widget.skipCustomize &&
+          !request.isTimer &&
+          !settings.hideBeforePractice) {
+        _customized = true;
+        final start = await showCustomizeSheet(
+          context,
+          request: request,
+          beforeStart: true,
+        );
+        if (!mounted || _isClosing) return;
+        if (!start) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) Navigator.of(context).pop();
+          });
+          return;
+        }
+      }
+    } catch (e, st) {
+      AppLogger.e('CUES', 'Could not load customization', e, st);
+      if (mounted) setState(() => _startError = const UnknownError());
+      return;
+    }
     // So the end screen can be rebuilt if the app is killed before this
     // session's completion gets to open it.
     unawaited(PendingEndScreen.start(_prefs, request, _statsAtSessionStart));
     try {
+      _playRequested = true;
       await ref.read(playerProvider.notifier).play(request);
-      if (!mounted) return;
+      if (!mounted || _isClosing) return;
       _completionGate.trackLoaded(
         isCompleted: ref.read(audioStateProvider).isCompleted,
       );
@@ -118,10 +252,36 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
           setState(() => _playbackStarted = true);
         }
       });
+      _cueSubscription?.close();
+      _cueSubscription = ref.listenManual(cueSettingsProvider(_cueScope!), (
+        _,
+        settings,
+      ) {
+        unawaited(
+          ref
+              .read(playerProvider.notifier)
+              .updateCueSettings(settings)
+              .catchError((Object e) {
+                AppLogger.e('CUES', 'Could not update cues: $e');
+              }),
+        );
+        ref
+            .read(backgroundSoundsNotifierProvider.notifier)
+            .applyCueSettings(settings);
+      });
+      _countdownPoll?.cancel();
+      _countdownPoll = null;
+      _cueStateFailed = false;
+      // The countdown starts once the voice is ready, however long that takes:
+      // keep looking until it is seen.
+      _countdownExpected =
+          ref.read(cueSettingsProvider(_cueScope!)).countdownSeconds > 0;
+      _syncCuePoll();
       // The native service must be ready before restoring background audio.
       if (mounted && !_isClosing) unawaited(_initializePlayer());
     } catch (e, st) {
       AppLogger.e('PLAYER', 'Failed to start playback', e, st);
+      _countdownExpected = false;
       if (mounted) {
         setState(() => _startError = e is AppError ? e : const UnknownError());
       }
@@ -147,8 +307,12 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
     // Gone with this screen either way: the end screen opened, or the
     // session was closed before it finished.
     PendingEndScreen.playerUnmounted();
+    WidgetsBinding.instance.removeObserver(this);
     unawaited(PendingEndScreen.clear(_prefs));
     _playbackStartFallback?.cancel();
+    _countdownPoll?.cancel();
+    _cueSubscription?.close();
+    _cancelAutoplay = true;
     super.dispose();
   }
 
@@ -181,8 +345,21 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
   }
 
   Future<void> _initializePlayer() async {
-    final currentlyPlayingTrack = ref.watch(playerProvider);
-    _playSessionSounds(currentlyPlayingTrack?.hasBackgroundSound ?? false);
+    final scope = _cueScope;
+    if (scope != null) {
+      ref
+          .read(backgroundSoundsNotifierProvider.notifier)
+          .applyCueSettings(ref.read(cueSettingsProvider(scope)));
+    }
+    // The session's soundscape follows the same Practice/Talks scope as its
+    // cues (a course's classification wins over the recording's label).
+    final practice =
+        (scope?.kind ??
+            (ref.read(playerProvider)?.hasBackgroundSound ?? false
+                ? CueKind.practice
+                : CueKind.talks)) ==
+        CueKind.practice;
+    _playSessionSounds(practice);
 
     // Only enable DND if permission is already granted and toggle is on
     if (Platform.isAndroid) {
@@ -196,26 +373,12 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
 
   @override
   Widget build(BuildContext context) {
-    // Rebuild on completion; the gate decides whether it is this session's.
-    ref.watch(audioStateProvider.select((s) => s.isCompleted));
-    if (_completionGate.isSessionComplete(ref.read(audioStateProvider))) {
-      _openEndScreen();
-    }
-
     final currentlyPlayingTrack = ref.watch(playerProvider);
 
     ref.listen(playerProvider.select((p) => p?.coverUrl), (_, next) {
       if (next != null) {
         _precacheImage(next);
       }
-    });
-
-    // Listen for track changes and handle background sounds
-    ref.listen(playerProvider.select((p) => p?.hasBackgroundSound), (
-      previous,
-      next,
-    ) {
-      if (next != null) _playSessionSounds(next);
     });
 
     if (currentlyPlayingTrack == null) {
@@ -255,18 +418,157 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
           _stopAudio();
         }
       },
-      child: PlayerScreenLayout(
-        currentlyPlayingTrack: currentlyPlayingTrack,
-        isPlaying: isPlaying,
-        isAudioLoading: isAudioLoading,
-        isBackgroundSoundSelected: _isBackgroundSoundSelected(),
-        onPlayPausePressed: onPlayPausePressed,
-        onSpeedChanged: (speed) =>
-            ref.read(playerProvider.notifier).setSpeed(speed),
-        onClosePressed: () => _handleClose(),
-        onEndSession: _endTimerSession,
+      child: Stack(
+        children: [
+          PlayerScreenLayout(
+            currentlyPlayingTrack: currentlyPlayingTrack,
+            isPlaying: isPlaying,
+            isAudioLoading: isAudioLoading,
+            isBackgroundSoundSelected: _isBackgroundSoundSelected(),
+            onPlayPausePressed: onPlayPausePressed,
+            onSpeedChanged: (speed) =>
+                ref.read(playerProvider.notifier).setSpeed(speed),
+            onClosePressed: () => _handleClose(),
+            onEndSession: _endTimerSession,
+          ),
+          if (_countdownMs > 0)
+            Positioned.fill(
+              child: Material(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: SafeArea(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${(_countdownMs / 1000).ceil()}',
+                          style: Theme.of(context).textTheme.displayLarge,
+                        ),
+                        const SizedBox(height: 24),
+                        TextButton(
+                          onPressed: () =>
+                              unawaited(NativeCueController.skipCountdown()),
+                          child: const Text('Skip countdown'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (_autoplayPending)
+            Positioned.fill(
+              child: Material(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('Next session'),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: () {
+                          _cancelAutoplay = true;
+                          _stopAudio();
+                          _openEndScreen();
+                        },
+                        child: const Text('End session'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
+  }
+
+  Future<void> _finishOrAutoplay() async {
+    _finishing = true;
+    final request = ref.read(playerProvider);
+    final scope = _cueScope;
+    final settings = scope == null
+        ? null
+        : ref.read(cueSettingsProvider(scope));
+    if (request == null ||
+        request.isTimer ||
+        settings?.autoplay != true ||
+        scope?.courseId == null) {
+      _releaseInterlude();
+      _openEndScreen();
+      return;
+    }
+    _autoplayPending = true;
+    if (mounted) setState(() {});
+    try {
+      final router = ContentRouter(sources: ref.read(contentSourcesProvider));
+      final pack = await router.pack(scope!.courseId!);
+      // The listener may have left, or started another session, meanwhile:
+      // a late interlude must not hold that one.
+      if (!mounted || _cancelAutoplay || _isClosing) return;
+      final items = pack.items
+          .where((item) => item.type == TypeConstants.track)
+          .toList();
+      final index = items.indexWhere((item) => item.id == request.trackId);
+      if (index < 0 || index + 1 >= items.length) {
+        _releaseInterlude();
+        _openEndScreen();
+        return;
+      }
+      if (Platform.isAndroid) {
+        await NativeCueController.holdInterlude(settings!.interludeSeconds);
+      } else if (Platform.isIOS) {
+        await iosAudioHandler.waitForInterlude(settings!.interludeSeconds);
+      } else {
+        await Future<void>.delayed(
+          Duration(seconds: settings!.interludeSeconds),
+        );
+      }
+      if (!mounted || _cancelAutoplay || _isClosing) return;
+      final track = await ref.read(
+        tracksProvider(trackId: items[index + 1].id).future,
+      );
+      if (!mounted || _cancelAutoplay || _isClosing) return;
+      final voice = track.voices.first;
+      final next = PlaybackRequest.fromTrack(
+        track,
+        voice,
+        voice.audioFiles.first,
+      );
+      // Start it now rather than from a new route's first frame: with the
+      // screen locked none is built until the user returns, and the native
+      // interlude hold is bounded. This screen carries on with the next
+      // session; _startPlayback restarts its gate and per-session state.
+      _statsAtSessionStart = ref.read(statsProvider).value;
+      _customized = true;
+      _playbackStarted = false;
+      _autoplayPending = false;
+      _finishing = false;
+      ref.read(playerProvider.notifier).prepare(next);
+      if (mounted) setState(() {});
+      await _startPlayback();
+    } catch (e, st) {
+      AppLogger.e('CUES', 'Autoplay could not start next session', e, st);
+      if (mounted && !_cancelAutoplay) {
+        _releaseInterlude();
+        _openEndScreen();
+      }
+    }
+  }
+
+  /// No autoplay after all: the native side stops holding the interlude it
+  /// began at the session end (a no-op when autoplay was off).
+  void _releaseInterlude() {
+    if (Platform.isAndroid) {
+      unawaited(
+        NativeCueController.endInterlude().catchError((Object e) {
+          AppLogger.e('CUES', 'Could not end the interlude: $e');
+        }),
+      );
+    } else if (Platform.isIOS) {
+      unawaited(iosAudioHandler.endInterlude());
+    }
   }
 
   /// End session on a timer: records the time sat so far as a session (a
@@ -302,24 +604,23 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
       }),
     );
 
-    // A countdown that runs out rings its closing bell before the end; ending
-    // early (or finishing a stopwatch) rings it as the end screen opens.
-    final bgSounds = ref.read(backgroundSoundsNotifierProvider.notifier);
-    final bellsOn = ref.read(backgroundSoundsNotifierProvider).bellsEnabled;
-    final volume = bgSounds.scaledVolume(
-      ref.read(backgroundSoundsNotifierProvider).volume,
+    // A countdown that runs out rings its end cue natively; ending early (or
+    // finishing a stopwatch) rings the same Customize end cue, at the bell
+    // volume, as the end screen opens.
+    final cues = ref.read(
+      cueSettingsProvider(_cueScope ?? const CueScope(CueKind.practice)),
     );
     final bell = ref.read(sessionBellPreviewProvider);
     _openEndScreen(
       // Rung just after the player has stopped: on iOS stop() releases the
       // audio session asynchronously, which would clip a bell started in the
       // same frame. The bell's own player reactivates the session.
-      afterStop: bellsOn
-          ? () => Future.delayed(
+      afterStop: cues.endSound.isEmpty
+          ? null
+          : () => Future.delayed(
               const Duration(milliseconds: 400),
-              () => bell.play(volume),
-            )
-          : null,
+              () => bell.play(cues.bellVolume, asset: cues.endSound),
+            ),
     );
   }
 
@@ -377,12 +678,22 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
   }
 
   void _stopAudio() {
+    if (!_playRequested) return;
+    _playRequested = false;
+    // Leaving during an autoplay interlude: the native hold goes now.
+    if (_autoplayPending) {
+      // Back skips _handleClose, so nothing else marks this as left: the
+      // released interlude must not go on to start the next session.
+      _cancelAutoplay = true;
+      _releaseInterlude();
+    }
     ref.read(playerProvider.notifier).stop();
     ref.read(backgroundSoundsNotifierProvider.notifier).stopBackgroundSound();
   }
 
   void _resetState() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       ref.read(audioStateProvider.notifier).resetState();
     });
   }
@@ -390,8 +701,15 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
   void _openEndScreen({VoidCallback? afterStop}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_endScreenOpened && mounted) {
+        final endedNatively = ref.read(audioStateProvider).isCompleted;
         _resetState();
-        _stopAudio();
+        // Native teardown owns the end bell tail; stopping here cuts it off.
+        // The soundscape is not part of that teardown: it fades out here.
+        if (!endedNatively) {
+          _stopAudio();
+        } else if (ref.exists(soundscapeProvider)) {
+          ref.read(soundscapeProvider.notifier).endSession();
+        }
         afterStop?.call();
         final currentlyPlayingTrack = ref.read(playerProvider);
         if (currentlyPlayingTrack == null) return;

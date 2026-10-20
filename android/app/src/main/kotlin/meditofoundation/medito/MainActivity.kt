@@ -96,6 +96,7 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
 
         ApkUpdaterBridge(this, activityScope).attach(flutterEngine.dartExecutor.binaryMessenger)
         SoundscapeBridge.attach(this, flutterEngine.dartExecutor.binaryMessenger)
+        CueChannel.attach(flutterEngine.dartExecutor.binaryMessenger)
 
         youtubeBridge?.dispose()
         youtubeBridge = YoutubeExtractorBridge.create().also {

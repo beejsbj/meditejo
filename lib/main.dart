@@ -38,6 +38,7 @@ import 'package:medito/services/deep_link_service.dart';
 // ignore: depend_on_referenced_packages
 import 'package:device_preview/device_preview.dart';
 import 'package:medito/config/debug_options.dart';
+
 import 'scaffold_messenger_key.dart';
 
 // Completer used as both the guard and the barrier for duplicate main() calls.
@@ -78,6 +79,11 @@ void main() async {
   // SoLoud, miniaudio, the Xiph codecs and the rest of flutter_soloud's
   // native code (the Sounds mixer); see soloud-native-components.json.
   registerBundledLicenses(manifestPath: audioEngineLicensesManifest);
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(const [
+      'Meditejo cue sounds',
+    ], await rootBundle.loadString('assets/audio/NOTICE'));
+  });
 
   var prefs = await initializeSharedPreferences();
 
