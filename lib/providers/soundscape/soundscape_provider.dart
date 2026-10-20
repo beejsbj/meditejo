@@ -558,7 +558,9 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         _pausedByFocus = _pausedByFocus || state.playing;
         pause();
       case SoundscapeCommand.lost:
-        // Another app took over playback: stay paused.
+      case SoundscapeCommand.noisy:
+        // Another app took over playback, or the headphones came out: stay
+        // paused (never resume on the speaker by itself).
         _pausedByFocus = false;
         pause();
       case SoundscapeCommand.resume:

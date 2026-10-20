@@ -5,8 +5,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
@@ -34,6 +36,18 @@ class SoundscapeService : Service() {
 
     private var audioManager: AudioManager? = null
     private var focusRequest: AudioFocusRequest? = null
+
+    // Headphones unplugged (or a Bluetooth route dropped): Android would move
+    // the sound to the speaker. ExoPlayer does this for sessions; the mixer
+    // on its own needs its own receiver. Dart pauses and stays paused.
+    private var noisyRegistered = false
+    private val noisyReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
+                SoundscapeBridge.send("noisy")
+            }
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -64,6 +78,7 @@ class SoundscapeService : Service() {
                         startForeground(NOTIFICATION_ID, notification)
                     }
                     requestFocus()
+                    registerNoisy()
                 } catch (e: Exception) {
                     // Most likely ForegroundServiceStartNotAllowedException: the
                     // app was not in the foreground. Sounds still play while
@@ -84,14 +99,47 @@ class SoundscapeService : Service() {
 
     override fun onDestroy() {
         abandonFocus()
+        unregisterNoisy()
         if (current === this) current = null
         super.onDestroy()
     }
 
     private fun finish() {
         abandonFocus()
+        unregisterNoisy()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
+    }
+
+    /**
+     * Idempotent, on every hold: a hold that reaches a service already told
+     * to stop (Stop, then Play again) keeps the same instance, so onCreate
+     * alone would miss it.
+     */
+    private fun registerNoisy() {
+        if (noisyRegistered) return
+        try {
+            ContextCompat.registerReceiver(
+                this,
+                noisyReceiver,
+                IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),
+                ContextCompat.RECEIVER_NOT_EXPORTED,
+            )
+            noisyRegistered = true
+        } catch (e: Exception) {
+            Log.w(TAG, "No unplug receiver: ${e.message}")
+        }
+    }
+
+    /** Idempotent; every path out (Stop, swipe away, release, a refused
+     * foreground start) reaches it through finish() or onDestroy(). */
+    private fun unregisterNoisy() {
+        if (!noisyRegistered) return
+        noisyRegistered = false
+        try {
+            unregisterReceiver(noisyReceiver)
+        } catch (_: Exception) {
+        }
     }
 
     /**
@@ -197,8 +245,9 @@ class SoundscapeService : Service() {
 /**
  * `meditejo/soundscape`: Dart calls `hold`, `focus` and `release`; the
  * service sends `command` with `stop` (the notification's Stop), `pause` and
- * `resume` (a transient focus loss and its end) or `lost` (focus gone for
- * good, or refused when asked for).
+ * `resume` (a transient focus loss and its end), `lost` (focus gone for
+ * good, or refused when asked for) or `noisy` (the audio route became
+ * noisy: headphones unplugged).
  */
 object SoundscapeBridge {
     const val CHANNEL = "meditejo/soundscape"

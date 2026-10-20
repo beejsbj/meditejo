@@ -521,6 +521,24 @@ void main() {
       expect(st().playing, isFalse);
     });
 
+    test(
+      'unplugging headphones pauses, and a call ending does not resume',
+      () async {
+        ctl().resume();
+        await settle();
+        keepAlive.send(SoundscapeCommand.pause);
+        await settle();
+        keepAlive.send(SoundscapeCommand.noisy);
+        keepAlive.send(SoundscapeCommand.resume);
+        await settle();
+        expect(st().playing, isFalse, reason: 'not on to the speaker');
+        expect(keepAlive.held, isTrue, reason: 'paused, not stopped');
+        ctl().resume();
+        await settle();
+        expect(st().playing, isTrue);
+      },
+    );
+
     test('after another app takes focus, resuming asks for it again', () async {
       ctl().resume();
       await settle();
