@@ -248,6 +248,29 @@ void main() {
     await _unmount(tester);
   });
 
+  testWidgets('a deleted preset shows as the current mix it plays', (
+    tester,
+  ) async {
+    const course = CueScope(CueKind.talks, courseId: 'c1');
+    final container = await _pump(tester, scope: course);
+    await container
+        .read(cueSettingsProvider(course).notifier)
+        .update(
+          const CueSettings(soundscape: 'preset:user-deleted'),
+          courseOverride: true,
+        );
+    await tester.pumpAndSettle();
+    final row = find.ancestor(
+      of: find.text('Background sound'),
+      matching: find.byType(Row),
+    );
+    expect(
+      find.descendant(of: row, matching: find.text('Current mix')),
+      findsOneWidget,
+    );
+    await _unmount(tester);
+  });
+
   testWidgets('course scope offers an override and the timer hides autoplay', (
     tester,
   ) async {

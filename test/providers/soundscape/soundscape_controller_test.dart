@@ -484,6 +484,48 @@ void main() {
       expect(SoundscapeStore(prefs).readMix(), mine);
     });
 
+    test('a deleted preset or a dropped sound plays the current mix', () async {
+      final evening = ctl().savePreset('Evening')!;
+      ctl().setSessionDefault(
+        SoundscapeSessionKind.practice,
+        SoundscapeSessionDefault(
+          enabled: true,
+          selection: SoundscapeSelection.preset(evening.id),
+        ),
+      );
+      ctl().deletePreset(evening.id);
+      expect(
+        st().sessionDefault(SoundscapeSessionKind.practice).selection,
+        SoundscapeSelection.currentMix,
+        reason: 'the default says what will play',
+      );
+      expect(
+        SoundscapeStore(
+          prefs,
+        ).readSessionDefaults()[SoundscapeSessionKind.practice]?.selection,
+        SoundscapeSelection.currentMix,
+      );
+
+      // A course's own choice of a preset or sound that no longer exists.
+      for (final gone in const [
+        SoundscapeSelection.preset('user-gone'),
+        SoundscapeSelection.sound('not-in-the-library'),
+      ]) {
+        await ctl().startSession(SoundscapeSessionKind.talks, selection: gone);
+        await settle();
+        expect(engine.playing.keys.toSet(), {
+          for (final l in st().mix.layers) l.soundId,
+        });
+        expect(engine.playing, isNotEmpty, reason: '$gone is not silence');
+        ctl().endSession();
+        await settle();
+      }
+      expect(
+        st().playable(const SoundscapeSelection.preset('user-gone'), null),
+        SoundscapeSelection.currentMix,
+      );
+    });
+
     test('the session player pausing pauses the mix', () async {
       await ctl().startSession(SoundscapeSessionKind.practice);
       await settle();

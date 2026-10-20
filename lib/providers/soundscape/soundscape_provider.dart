@@ -111,6 +111,22 @@ class SoundscapeState {
   SoundscapeSessionDefault sessionDefault(SoundscapeSessionKind kind) =>
       sessionDefaults[kind] ?? SoundscapeSessionDefault.initial(kind);
 
+  /// [selection] as it will play: a preset that was deleted, or a sound a
+  /// later library dropped, means the current mix rather than silence.
+  /// [library] null (still loading) takes sounds on trust.
+  SoundscapeSelection playable(
+    SoundscapeSelection selection,
+    SoundLibrary? library,
+  ) => switch (selection.kind) {
+    SoundscapeSelectionKind.preset
+        when !presets.any((p) => p.id == selection.id) =>
+      SoundscapeSelection.currentMix,
+    SoundscapeSelectionKind.sound
+        when library != null && !library.contains(selection.id) =>
+      SoundscapeSelection.currentMix,
+    _ => selection,
+  };
+
   SoundscapeState copyWith({
     SoundMix? mix,
     double? volume,
@@ -335,7 +351,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   /// Plays [selection] now. Outside a session it plays on its own; under a
   /// session it replaces what the session plays.
   Future<void> play(SoundscapeSelection selection, {double? volume}) async {
-    final mix = await _resolve(selection);
+    final mix = await _resolve(selection, orCurrentMix: false);
     if (mix.isEmpty) {
       if (state.underSession) {
         _update(state.copyWith(playing: false));
@@ -384,7 +400,17 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         if (p.id != presetId) p,
     ];
     _store.writePresets(presets);
-    _update(state.copyWith(userPresets: presets));
+    // A kind that played the deleted preset plays the current mix instead
+    // (and says so). A course's own choice resolves the same way on play.
+    final deleted = SoundscapeSelection.preset(presetId);
+    final defaults = {
+      for (final MapEntry(:key, :value) in state.sessionDefaults.entries)
+        key: value.selection == deleted
+            ? value.copyWith(selection: SoundscapeSelection.currentMix)
+            : value,
+    };
+    _store.writeSessionDefaults(defaults);
+    _update(state.copyWith(userPresets: presets, sessionDefaults: defaults));
   }
 
   // ---------------------------------------------------------------------------
@@ -497,8 +523,17 @@ class SoundscapeController extends Notifier<SoundscapeState> {
 
   // ---------------------------------------------------------------------------
 
-  Future<SoundMix> _resolve(SoundscapeSelection selection) async {
+  /// [requested] as a mix. A stored default (a session) plays the current
+  /// mix in place of a preset or sound that no longer exists; an explicit
+  /// [play] of one plays nothing.
+  Future<SoundMix> _resolve(
+    SoundscapeSelection requested, {
+    bool orCurrentMix = true,
+  }) async {
     final library = await ref.read(soundLibraryProvider.future);
+    final selection = orCurrentMix
+        ? state.playable(requested, library)
+        : requested;
     final SoundMix mix = switch (selection.kind) {
       SoundscapeSelectionKind.none => SoundMix.empty,
       SoundscapeSelectionKind.mix => switch (_currentMix()) {

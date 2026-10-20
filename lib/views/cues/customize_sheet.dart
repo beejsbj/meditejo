@@ -598,7 +598,17 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
       mixer.sessionDefault(_soundscapeKind),
       s.soundscapeSelection,
     );
-    return setting.enabled ? setting.selection : SoundscapeSelection.none;
+    if (!setting.enabled) return SoundscapeSelection.none;
+    // Shown as it will play: a deleted preset or a dropped sound is the
+    // current mix.
+    final selection = setting.selection;
+    return mixer.playable(
+      selection,
+      // Only a single sound needs the library (loaded on demand).
+      selection.kind == SoundscapeSelectionKind.sound
+          ? ref.read(soundLibraryProvider).value
+          : null,
+    );
   }
 
   /// A course override keeps its choice in its own cue settings. Otherwise
