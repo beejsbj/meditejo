@@ -9,7 +9,7 @@ import '../../utils/logger.dart';
 /// audio focus moving to another app and back.
 ///
 /// `pause` and `resume` are a transient loss (a call) and its end; `lost` is
-/// another app taking over playback for good.
+/// another app taking over playback for good, or focus refused outright.
 enum SoundscapeCommand { stop, pause, lost, resume }
 
 /// Holds the app in the foreground while Sounds play outside a session

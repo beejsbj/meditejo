@@ -94,7 +94,11 @@ class SoundscapeService : Service() {
         stopSelf()
     }
 
-    /** Idempotent: does nothing while focus is held. */
+    /**
+     * Idempotent: does nothing while focus is held. A refused request (a call
+     * holds focus) is not kept, so the next request (a resume from the
+     * Sounds screen) asks again.
+     */
     fun requestFocus() {
         if (focusRequest != null) return
         val manager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -109,8 +113,15 @@ class SoundscapeService : Service() {
             .setOnAudioFocusChangeListener({ change -> onFocusChange(change) }, Handler(Looper.getMainLooper()))
             .build()
         audioManager = manager
-        focusRequest = request
-        manager.requestAudioFocus(request)
+        if (manager.requestAudioFocus(request) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            focusRequest = request
+        } else {
+            // No delayed gain was asked for, so this is a plain refusal: do
+            // not play over the focus owner. Dart pauses and stays paused, as
+            // after a lasting loss, until the user resumes.
+            Log.w(TAG, "Audio focus refused")
+            SoundscapeBridge.send("lost")
+        }
     }
 
     // Dart decides what to do: it resumes after a transient loss only if it
@@ -187,7 +198,7 @@ class SoundscapeService : Service() {
  * `meditejo/soundscape`: Dart calls `hold`, `focus` and `release`; the
  * service sends `command` with `stop` (the notification's Stop), `pause` and
  * `resume` (a transient focus loss and its end) or `lost` (focus gone for
- * good).
+ * good, or refused when asked for).
  */
 object SoundscapeBridge {
     const val CHANNEL = "meditejo/soundscape"
