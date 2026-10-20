@@ -107,8 +107,10 @@ double worstChannelPeak(List<OscillatorPartial> partials) {
 }
 
 /// Peak bound for one generated layer at full volume, every voice in
-/// phase: −12 dBFS. The loudest case, a bright A1 drone, peaks at about
-/// 0.15 (−16 dBFS); binaural beats at about 0.065 an ear.
+/// phase: −12 dBFS. Among the editor's roots the loudest, a bright A1
+/// drone, peaks at about 0.15 (−16 dBFS); a bright 40 Hz drone, the lowest
+/// root saved params can hold, at about 0.185; binaural beats at about
+/// 0.065 an ear.
 const kLayerPeakBound = 0.25;
 
 /// Power between [lo] and [hi] Hz, from a forward DFT (via the inverse:
@@ -285,7 +287,9 @@ void main() {
     }
 
     test('every root stays under the peak bound', () {
-      for (final hz in DroneParams.roots.values) {
+      // The editor's roots, and the ends of the range saved params may hold
+      // (40–440 Hz; a bright 40 Hz drone peaks at about 0.185).
+      for (final hz in [40.0, ...DroneParams.roots.values, 440.0]) {
         for (final timbre in DroneTimbre.values) {
           final partials = DroneParams(rootHz: hz, timbre: timbre).partials();
           expect(worstChannelPeak(partials), lessThan(kLayerPeakBound));
