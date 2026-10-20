@@ -424,6 +424,9 @@ final class CueScheduler {
     func skipCountdown() { if phase == .countdown { finishCountdown() } }
 
     func holdInterlude(seconds: Int, ready: @escaping () -> Void) {
+        // Only a session that has just ended has an interlude: a late call
+        // must not hold the app for a session started since.
+        guard phase == .ended else { ready(); return }
         // Already counting since the session end: wait only for what is left.
         let full = Double(min(max(seconds, 0), 30)) * 1000
         var delayMs = full
@@ -453,10 +456,11 @@ final class CueScheduler {
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(Int(delayMs)), execute: work)
     }
 
-    /// Dart will not autoplay after all: drop the interlude begun at the
-    /// session end and let only the end bell ring out.
+    /// Dart will not autoplay after all, or the listener left: drop the
+    /// interlude (begun at the session end or by holdInterlude) and let only
+    /// the end bell ring out.
     func endInterlude() {
-        guard phase == .ended, interludeEndsAtMs != nil else { return }
+        guard phase == .ended else { return }
         cancelInterlude()
         let left = max(tailEndsAtMs - CueScheduler.uptimeMs(), 0)
         let generation = interludeGeneration

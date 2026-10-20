@@ -168,12 +168,15 @@ internal class CueEngine(
     }
 
     /**
-     * Dart will not autoplay after all: drop the interlude begun at the
-     * session end and keep only the end bell's tail. False when none runs.
+     * Dart will not autoplay after all, or the listener left: drop the
+     * interlude (begun at the session end or by [holdInterlude]) and keep only
+     * the end bell's tail. False when no session has just ended.
      */
     fun endInterlude(): Boolean {
-        if (interludeEndsAt == 0L) return false
+        if (phase != Phase.ENDED) return false
         interludeEndsAt = 0L
+        interludeReady?.let { handler.removeCallbacks(it); it.run() }
+        interludeReady = null
         val tail = tailRemainingMs()
         handler.removeCallbacks(cleanup)
         acquireWake(tail + WAKE_SLACK_MS)

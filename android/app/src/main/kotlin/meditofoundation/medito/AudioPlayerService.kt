@@ -1606,6 +1606,9 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     }
 
     fun holdInterlude(seconds: Int, ready: () -> Unit) {
+        // Only a session that has just ended has an interlude: a late call
+        // must not hold, and later finish, a session started since.
+        if (!::cues.isInitialized || cues.phase != CueEngine.Phase.ENDED) { ready(); return }
         handler.removeCallbacks(pendingFinish)
         cues.holdInterlude(seconds, ready)
         // Keep the foreground service alive while Dart resolves the next source.

@@ -488,6 +488,9 @@ class _PlayerViewState extends ConsumerState<PlayerView>
     try {
       final router = ContentRouter(sources: ref.read(contentSourcesProvider));
       final pack = await router.pack(scope!.courseId!);
+      // The listener may have left, or started another session, meanwhile:
+      // a late interlude must not hold that one.
+      if (!mounted || _cancelAutoplay || _isClosing) return;
       final items = pack.items
           .where((item) => item.type == TypeConstants.track)
           .toList();
@@ -651,6 +654,8 @@ class _PlayerViewState extends ConsumerState<PlayerView>
   void _stopAudio() {
     if (!_playRequested) return;
     _playRequested = false;
+    // Leaving during an autoplay interlude: the native hold goes now.
+    if (_autoplayPending) _releaseInterlude();
     ref.read(playerProvider.notifier).stop();
     ref.read(backgroundSoundsNotifierProvider.notifier).stopBackgroundSound();
   }
