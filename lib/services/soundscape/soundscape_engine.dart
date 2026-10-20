@@ -80,6 +80,71 @@ abstract interface class SoundscapeEngine {
   Future<void> stopAll({Duration fade});
 }
 
+/// Pausing fades the whole mixer out before the voices pause, and resuming
+/// unpauses them and fades back in, so a session's end, a pause or an
+/// autoplay interlude never cuts the sound dead. Kept apart from SoLoud so
+/// its timing can be tested.
+class PauseFade {
+  PauseFade({
+    required this.fadeMaster,
+    required this.pauseVoices,
+    this.fadeOut = const Duration(milliseconds: 1200),
+    this.fadeIn = const Duration(milliseconds: 1200),
+  });
+
+  /// Fades the master level to a gain over a time.
+  final void Function(double gain, Duration over) fadeMaster;
+
+  /// Pauses (true) or unpauses every voice.
+  final void Function(bool paused) pauseVoices;
+  final Duration fadeOut;
+  final Duration fadeIn;
+
+  bool _paused = false;
+  Timer? _timer;
+  Completer<void>? _fading;
+
+  bool get paused => _paused;
+
+  /// Completes when a fade-out under way has finished (at once otherwise),
+  /// so a layer stopped meanwhile is not cut before the fade ends.
+  Future<void> get settled => _fading?.future ?? Future.value();
+
+  void pause() {
+    if (_paused) return;
+    _paused = true;
+    fadeMaster(0, fadeOut);
+    final fading = _fading = Completer<void>();
+    _timer = Timer(fadeOut, () {
+      _timer = null;
+      pauseVoices(true);
+      if (identical(_fading, fading)) _fading = null;
+      fading.complete();
+    });
+  }
+
+  /// Resumes at [master], from wherever a fade-out had got to.
+  void resume(double master) {
+    if (!_paused) return;
+    _paused = false;
+    _timer?.cancel();
+    _timer = null;
+    final fading = _fading;
+    _fading = null;
+    fading?.complete();
+    pauseVoices(false);
+    fadeMaster(master, fadeIn);
+  }
+
+  void cancel() {
+    _timer?.cancel();
+    _timer = null;
+    final fading = _fading;
+    _fading = null;
+    fading?.complete();
+  }
+}
+
 /// [SoundscapeEngine] on flutter_soloud (SoLoud + miniaudio), 4.1.7.
 ///
 /// Recordings load with [LoadMode.memory]: decoded once into RAM, they loop
@@ -106,8 +171,13 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
   final _motionTimers = <String, Timer>{};
   final _levels = <String, (double, LayerMotion?)>{};
   Future<void>? _ready;
-  bool _paused = false;
+  late final _pause = PauseFade(
+    fadeMaster: _fadeMaster,
+    pauseVoices: _pauseVoices,
+  );
   double _master = 1;
+
+  bool get _paused => _pause.paused;
 
   SoLoud get _soloud => SoLoud.instance;
 
@@ -138,7 +208,7 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
     // SoLoud refuses new voices past 16 by default, counting paused and
     // fading ones too.
     _soloud.setMaxActiveVoiceCount(64);
-    _soloud.setGlobalVolume(_master);
+    _soloud.setGlobalVolume(_paused ? 0 : _master);
   }();
 
   @override
@@ -237,6 +307,10 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
       if (handle != null && fade > Duration.zero && !_paused) {
         _soloud.fadeVolume(handle, 0, fade);
         await Future<void>.delayed(fade);
+      } else if (handle != null && fade > Duration.zero && _paused) {
+        // Pausing fades the whole mix out (the session ended, or paused):
+        // let that fade finish rather than cut it.
+        await _pause.settled;
       }
       if (handle != null) await _soloud.stop(handle);
       if (source != null) await _soloud.disposeSource(source);
@@ -249,8 +323,9 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
   void setMaster(double gain, {Duration fade = _retune}) {
     _master = gain;
     // Before the first layer starts there is no engine yet; [_ensureReady]
-    // applies it.
-    if (!_available || !_soloud.isInitialized) return;
+    // applies it. While paused the master stays faded out; resuming fades
+    // in to it.
+    if (_paused || !_available || !_soloud.isInitialized) return;
     if (fade == Duration.zero) {
       _soloud.setGlobalVolume(gain);
     } else {
@@ -261,8 +336,28 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
   @override
   void setPaused(bool paused) {
     if (_paused == paused) return;
-    _paused = paused;
-    if (!_available) return;
+    if (paused) {
+      _pause.pause();
+      return;
+    }
+    _pause.resume(_master);
+    // Drift hand-overs were held while paused.
+    for (final MapEntry(:key, value: level) in [..._levels.entries]) {
+      if (level.$2 != null) _apply(key, level.$1, level.$2, fade: _retune);
+    }
+  }
+
+  void _fadeMaster(double gain, Duration over) {
+    if (!_available || !_soloud.isInitialized) return;
+    try {
+      _soloud.fadeGlobalVolume(gain, over);
+    } catch (error) {
+      AppLogger.e('SOUNDSCAPE', 'Could not fade the mix', error);
+    }
+  }
+
+  void _pauseVoices(bool paused) {
+    if (!_available || !_soloud.isInitialized) return;
     for (final MapEntry(:key, value: handle) in [..._handles.entries]) {
       try {
         _soloud.setPause(handle, paused);
@@ -270,12 +365,6 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
         // One bad voice (or a device that fails to restart) must not keep
         // the others paused or stop the controller's pass.
         AppLogger.e('SOUNDSCAPE', 'Could not (un)pause $key', error);
-      }
-    }
-    if (!paused) {
-      // Drift hand-overs were held while paused.
-      for (final MapEntry(:key, value: level) in [..._levels.entries]) {
-        if (level.$2 != null) _apply(key, level.$1, level.$2, fade: _retune);
       }
     }
   }

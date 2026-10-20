@@ -734,7 +734,9 @@ class _PlayerViewState extends ConsumerState<PlayerView>
         final endedNatively = ref.read(audioStateProvider).isCompleted;
         _resetState();
         // Native teardown owns the end bell tail; stopping here cuts it off.
-        // The soundscape is not part of that teardown: it fades out here.
+        // The soundscape is not part of that teardown. It began fading out
+        // when the voice stopped (the mixer fades before it pauses); ending
+        // its session here lets that fade finish, then stops it.
         if (!endedNatively) {
           _stopAudio();
         } else if (ref.exists(soundscapeProvider)) {
