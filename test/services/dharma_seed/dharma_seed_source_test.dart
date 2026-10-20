@@ -158,7 +158,32 @@ void main() {
     test('a talk Dharma Seed withdrew is unavailable', () async {
       await expectLater(
         source.track('ds-talk-1'),
-        throwsA(isA<CatalogueEntryUnavailable>()),
+        throwsA(
+          isA<CatalogueEntryUnavailable>().having(
+            (e) => e is CatalogueEntryUnreachable,
+            'could not be asked',
+            isFalse,
+          ),
+        ),
+      );
+    });
+
+    test('an unsynced talk is only unreachable while offline', () async {
+      final offline = DharmaSeedSource(
+        db: db,
+        sync: DharmaSeedSync(
+          db: db,
+          client: DharmaSeedClient(
+            httpClient: FakeDharmaSeedApi(
+              fail: (_, _) => http.Response('', 503),
+            ).httpClient,
+            maxAttempts: 1,
+          ),
+        ),
+      );
+      await expectLater(
+        offline.track('ds-talk-95073'),
+        throwsA(isA<CatalogueEntryUnreachable>()),
       );
     });
   });

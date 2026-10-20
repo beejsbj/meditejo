@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/providers/providers.dart';
+import 'package:medito/views/my_courses/my_course_actions.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/favorites/favorite_item.dart';
@@ -198,6 +199,21 @@ class _PackViewBottomBarState extends ConsumerState<PackViewBottomBar> {
             ? () => _showBottomSheet(context)
             : () => _sharePack(context),
         semanticLabel: l10n.share,
+      ),
+      // Add to course…, Make my own copy; Edit and Delete for the user's own.
+      leftCenterItem: BottomActionBarItem(
+        child: Icon(
+          Icons.more_vert_rounded,
+          key: const ValueKey('pack_actions'),
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+        onTap: () => showContentActionsSheet(
+          context,
+          ref,
+          id: widget.packId,
+          title: widget.packName,
+        ),
+        semanticLabel: l10n.myCourseMore,
       ),
       rightItem: BottomActionBarItem(
         child: AnimatedFavouriteIcon(

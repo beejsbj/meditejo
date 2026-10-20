@@ -4,8 +4,8 @@ import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/services/audio/native_cue_controller.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
 import 'package:medito/providers/meditation/track_provider.dart';
-import 'package:medito/services/content/content_source.dart';
-import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
+import 'package:medito/models/pack/pack_model.dart';
+import 'package:medito/providers/library/library_providers.dart';
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:medito/models/soundscape/sound_mix.dart';
@@ -217,6 +217,9 @@ class _PlayerViewState extends ConsumerState<PlayerView>
     _completionGate.reset();
     ref.read(cueRuntimeProvider.notifier).reset();
     try {
+      // Resolved afresh for each start: the course a session was opened from
+      // can change between two plays of the same request.
+      ref.invalidate(cueScopeForRequestProvider(request));
       _cueScope = await ref.read(cueScopeForRequestProvider(request).future);
       if (!mounted || _isClosing) return;
       final settings = ref.read(cueSettingsProvider(_cueScope!));
@@ -523,14 +526,15 @@ class _PlayerViewState extends ConsumerState<PlayerView>
     _autoplayPending = true;
     if (mounted) setState(() {});
     try {
-      final router = ContentRouter(sources: ref.read(contentSourcesProvider));
-      final pack = await router.pack(scope!.courseId!);
+      // The course as its page shows it (kept until its sources change), so a
+      // personal course does not re-read every session from its source here.
+      final courseId = scope!.courseId!;
+      final pack = await ref.read(packDataProvider(packId: courseId).future);
       // The listener may have left, or started another session, meanwhile:
       // a late interlude must not hold that one.
       if (!mounted || _cancelAutoplay || _isClosing) return;
-      final items = pack.items
-          .where((item) => item.type == TypeConstants.track)
-          .toList();
+      // A session its source no longer has is skipped, as on the course page.
+      final items = pack.playableTracks;
       final index = items.indexWhere((item) => item.id == request.trackId);
       if (index < 0 || index + 1 >= items.length) {
         _releaseInterlude();
@@ -550,6 +554,16 @@ class _PlayerViewState extends ConsumerState<PlayerView>
       final track = await ref.read(
         tracksProvider(trackId: items[index + 1].id).future,
       );
+      if (!mounted || _cancelAutoplay || _isClosing) return;
+      // The next session belongs to this course too, for its cue scope and
+      // for Continue.
+      try {
+        await ref
+            .read(libraryStoreProvider)
+            .noteSessionContext(track.id, courseId);
+      } catch (e, st) {
+        AppLogger.e('CUES', 'Could not note the next session\'s course', e, st);
+      }
       if (!mounted || _cancelAutoplay || _isClosing) return;
       final voice = track.voices.first;
       final next = PlaybackRequest.fromTrack(

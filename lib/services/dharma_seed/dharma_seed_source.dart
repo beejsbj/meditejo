@@ -89,8 +89,9 @@ class DharmaSeedSource
     if (talkId == null) throw CatalogueEntryUnavailable('track', id);
     var talk = await db.talkById(talkId);
     if (talk == null) {
-      await _fetch(() => sync?.ensureTalk(talkId));
+      final asked = await _fetch(() => sync?.ensureTalk(talkId));
       talk = await db.talkById(talkId);
+      if (talk == null && !asked) throw CatalogueEntryUnreachable('track', id);
     }
     if (talk == null) throw CatalogueEntryUnavailable('track', id);
     final teacher = talk.teacherId == null
@@ -388,11 +389,14 @@ class DharmaSeedSource
   }, orElse: const []);
 
   /// Waits for an on-demand fetch, but never fails the read because of it.
-  Future<void> _fetch(Future<Object?>? Function() fetch) async {
+  /// False when the fetch failed, so the source was not heard from.
+  Future<bool> _fetch(Future<Object?>? Function() fetch) async {
     try {
       await fetch()?.timeout(fetchTimeout);
+      return true;
     } catch (e) {
       AppLogger.w('DHARMA_SEED', 'Using stored data: $e');
+      return false;
     }
   }
 

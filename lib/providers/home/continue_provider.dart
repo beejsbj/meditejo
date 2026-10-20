@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
@@ -40,9 +39,18 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
     }
   }
 
-  PackItemsModel? nextIn(PackModel pack) => pack.items
-      .where((i) => i.type == TypeConstants.track && !checked.contains(i.id))
-      .firstOrNull;
+  // Sessions a personal course lists but their source has lost are not
+  // counted or offered (`playableTracks`).
+  PackItemsModel? nextIn(PackModel pack) =>
+      pack.playableTracks.where((i) => !checked.contains(i.id)).firstOrNull;
+
+  int? numberIn(PackModel? pack, String trackId) {
+    final index = pack?.playableTracks.indexWhere((i) => i.id == trackId) ?? -1;
+    return index < 0 ? null : index + 1;
+  }
+
+  int doneIn(PackModel pack) =>
+      pack.playableTracks.where((i) => checked.contains(i.id)).length;
 
   ContinueItem fromItem(
     PackModel pack,
@@ -51,7 +59,6 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
     ResumePoint? resume,
     DateTime? lastPlayed,
   }) {
-    final index = pack.items.indexWhere((i) => i.id == item.id);
     return ContinueItem(
       trackId: item.id,
       path: item.path,
@@ -67,13 +74,9 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
       courseTitle: entry?.displayTitle ?? pack.title,
       coverUrl: item.coverUrl ?? pack.coverUrl ?? '',
       resume: resume,
-      sessionNumber: index < 0 ? null : index + 1,
-      sessionTotal: pack.items
-          .where((i) => i.type == TypeConstants.track)
-          .length,
-      completedSessions: pack.items
-          .where((i) => i.type == TypeConstants.track && checked.contains(i.id))
-          .length,
+      sessionNumber: numberIn(pack, item.id),
+      sessionTotal: pack.playableTracks.length,
+      completedSessions: doneIn(pack),
     );
   }
 
@@ -85,17 +88,26 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
     if (checked.contains(place.trackId)) continue;
     try {
       final track = await router.track(place.trackId);
-      final parentId = await router.parentOf(place.trackId);
+      // A session in several courses counts towards the one it was opened
+      // from, while that course still lists it; else its source's course.
+      final opened = await store.sessionContext(place.trackId);
+      final openedPack = opened == null ? null : await packOf(opened);
+      final inOpened =
+          openedPack?.items.any((i) => i.id == place.trackId) ?? false;
+      final parentId = inOpened ? opened : await router.parentOf(place.trackId);
       final parent = parentId == null ? null : entryById[parentId];
       final own = entryById[place.trackId];
+      // The course it is shown under ranks it, as its cues are scoped.
       final group =
+          (inOpened ? parent?.group : null) ??
           own?.group ??
           parent?.group ??
           (track.hasBackgroundSound
               ? LibraryGroup.practice
               : LibraryGroup.talks);
-      final pack = parentId == null ? null : await packOf(parentId);
-      final index = pack?.items.indexWhere((i) => i.id == place.trackId) ?? -1;
+      final pack = inOpened
+          ? openedPack
+          : (parentId == null ? null : await packOf(parentId));
       if (parentId != null) coursesWithPlace.add(parentId);
       candidates.add(
         ContinueItem(
@@ -111,18 +123,9 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
               ? track.coverUrl
               : (pack?.coverUrl ?? ''),
           resume: place.point,
-          sessionNumber: index < 0 ? null : index + 1,
-          sessionTotal: pack?.items
-              .where((i) => i.type == TypeConstants.track)
-              .length,
-          completedSessions:
-              pack?.items
-                  .where(
-                    (i) =>
-                        i.type == TypeConstants.track && checked.contains(i.id),
-                  )
-                  .length ??
-              0,
+          sessionNumber: numberIn(pack, place.trackId),
+          sessionTotal: pack?.playableTracks.length,
+          completedSessions: pack == null ? 0 : doneIn(pack),
         ),
       );
     } catch (e) {
@@ -137,10 +140,8 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
   for (final entry in started) {
     final pack = await packOf(entry.sourceId);
     if (pack == null) continue;
-    final tracks = pack.items.where((i) => i.type == TypeConstants.track);
-    final done = tracks.where((i) => checked.contains(i.id)).length;
     final next = nextIn(pack);
-    if (done == 0 || next == null) continue;
+    if (doneIn(pack) == 0 || next == null) continue;
     candidates.add(fromItem(pack, next, entry));
   }
 

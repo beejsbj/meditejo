@@ -65,6 +65,29 @@ void main() {
     expect(find.text('Pinned courses'), findsNothing);
   });
 
+  testWidgets('starting from Continue notes the course it is shown under', (
+    tester,
+  ) async {
+    final app = await LibraryTestApp.create(tester);
+    await app.pump(
+      tester,
+      const HomeView(),
+      overrides: [
+        continueItemsProvider.overrideWith(
+          (ref) async => [_item('t2', resume: false)],
+        ),
+      ],
+    );
+
+    await tester.tap(find.byKey(const ValueKey('continue_t2')));
+    await settle(tester);
+
+    expect(
+      await tester.runAsync(() => app.harness.store.sessionContext('t2')),
+      'lib-course-a',
+    );
+  });
+
   testWidgets('an unavailable pin can be removed to free its slot', (
     tester,
   ) async {
@@ -159,6 +182,14 @@ void main() {
           title: 'Two',
           path: '/tracks/lib-track-2',
           isCompleted: false,
+        ),
+        // A session its source has lost is not one of the course's.
+        PackItemsModel(
+          type: 'track',
+          id: 'lib-track-3',
+          title: 'Three',
+          path: '/tracks/lib-track-3',
+          unavailable: true,
         ),
       ],
     );

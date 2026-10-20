@@ -5,6 +5,7 @@ import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
+import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/widgets/add_to_library_icon.dart';
 import 'package:medito/widgets/network_image_widget.dart';
 
@@ -91,6 +92,7 @@ class CourseRowsSliver extends ConsumerWidget {
                       child: PackCompleteBadge(),
                     ),
                   AddToLibraryIcon(id: course.id),
+                  ContentActionsButton(id: course.id, title: course.title),
                 ],
               ),
             ),

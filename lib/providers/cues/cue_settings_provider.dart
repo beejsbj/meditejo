@@ -4,6 +4,7 @@ import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/services/content/content_source.dart';
 import 'package:medito/services/library/library_models.dart';
+import 'package:medito/services/my_courses/my_course_models.dart';
 
 import 'dart:convert';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
@@ -72,13 +73,25 @@ class CueSettingsNotifier extends Notifier<CueSettings> {
 
 /// Resolved once at session start so a library refresh cannot switch defaults
 /// halfway through a sit. A course classification overrides recording labels.
+///
+/// The course is the personal course the session was opened from, while that
+/// course still lists it (a session can sit in several, and in none at its
+/// source, like an imported file); else the course its source names.
 final cueScopeForRequestProvider =
     FutureProvider.family<CueScope, PlaybackRequest>((ref, request) async {
       if (request.isTimer) return const CueScope(CueKind.practice);
       final sources = ref.read(contentSourcesProvider);
       final router = ContentRouter(sources: sources);
-      final parent = await router.parentOf(request.trackId);
       final store = ref.read(libraryStoreProvider);
+      final opened = await store.sessionContext(request.trackId);
+      final inOpened =
+          opened != null &&
+          isMyCourseId(opened) &&
+          (await ref
+                  .read(myCourseSourceProvider)
+                  .coursesHolding(request.trackId))
+              .contains(opened);
+      final parent = inOpened ? opened : await router.parentOf(request.trackId);
       final group =
           (parent == null ? null : await store.groupOf(parent)) ??
           await store.groupOf(request.trackId);

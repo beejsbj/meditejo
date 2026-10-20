@@ -10,6 +10,8 @@ import '../../../../models/favorites/favorite_item.dart';
 import '../../../../models/track/track.dart';
 import '../../../../providers/favorites/favorites_provider.dart';
 import '../../../../providers/meditation/track_provider.dart';
+import '../../../../services/my_courses/my_course_models.dart';
+import '../../../../views/my_courses/my_course_actions.dart';
 import '../../../../widgets/add_to_siri_util.dart';
 import '../../../../widgets/medito_icon.dart';
 import '../../../../scaffold_messenger_key.dart';
@@ -214,6 +216,20 @@ class _TrackViewBottomBarState extends ConsumerState<TrackViewBottomBar> {
             ? () => _showBottomSheet(context)
             : () => _shareTrack(context),
         semanticLabel: l10n.shareTrack,
+      ),
+      leftCenterItem: BottomActionBarItem(
+        child: Icon(
+          Icons.playlist_add_rounded,
+          key: const ValueKey('track_add_to_course'),
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+        onTap: () => showAddToCourse(
+          context,
+          ref,
+          id: widget.trackId,
+          fallback: MyItemDraft.fromTrack(track),
+        ),
+        semanticLabel: l10n.myCourseAddTo,
       ),
       rightItem: isDailyMeditation
           ? null

@@ -2376,4 +2376,171 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get soundPresetStillness => 'Stille';
+
+  @override
+  String get myCourseNew => 'Neuer Kurs';
+
+  @override
+  String get myCourseNameHint => 'Name des Kurses';
+
+  @override
+  String get myCourseCreate => 'Erstellen';
+
+  @override
+  String get myCourseDefaultTitle => 'Mein Kurs';
+
+  @override
+  String get myCourseAddTo => 'Zu Kurs hinzufügen…';
+
+  @override
+  String get myCourseAddToTitle => 'Zu Kurs hinzufügen';
+
+  @override
+  String myCourseAddedSnack(String title) {
+    return 'Zu $title hinzugefügt';
+  }
+
+  @override
+  String myCourseAddedCountSnack(int count, String title) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Sitzungen zu $title hinzugefügt',
+      one: '1 Sitzung zu $title hinzugefügt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myCourseAlreadyIn(String title) {
+    return 'Schon in $title';
+  }
+
+  @override
+  String get myCourseNothingToAdd => 'Es gibt keine Sitzungen zum Hinzufügen.';
+
+  @override
+  String get myCourseAddFailed => 'Konnte nicht zum Kurs hinzugefügt werden.';
+
+  @override
+  String get myCourseNoneYet =>
+      'Du hast noch keinen Kurs erstellt. Beginne hier einen.';
+
+  @override
+  String get myCourseDuplicate => 'Eigene Kopie erstellen';
+
+  @override
+  String myCourseCopyTitle(String title) {
+    return '$title (meine Kopie)';
+  }
+
+  @override
+  String get myCourseDuplicateFailed =>
+      'Dieser Kurs konnte nicht kopiert werden.';
+
+  @override
+  String get myCourseSaveFailed => 'Der Kurs konnte nicht gespeichert werden.';
+
+  @override
+  String get myCourseEdit => 'Kurs bearbeiten';
+
+  @override
+  String get myCourseSave => 'Speichern';
+
+  @override
+  String get myCourseTitleLabel => 'Titel';
+
+  @override
+  String get myCourseDescriptionLabel => 'Beschreibung (optional)';
+
+  @override
+  String get myCourseKindLabel => 'Art';
+
+  @override
+  String get myCourseCoverLabel => 'Cover';
+
+  @override
+  String get myCourseCoverGenerated => 'Erzeugtes Cover';
+
+  @override
+  String myCourseCoverChoice(int index) {
+    return 'Cover $index';
+  }
+
+  @override
+  String get myCourseSessionsLabel => 'Sitzungen';
+
+  @override
+  String get myCourseAddHeading => 'Überschrift hinzufügen';
+
+  @override
+  String get myCourseHeadingHint => 'Überschrift, z. B. Tag 1';
+
+  @override
+  String get myCourseRemoveRow => 'Aus dem Kurs entfernen';
+
+  @override
+  String get myCourseDragHandle => 'Zum Umordnen ziehen';
+
+  @override
+  String get myCourseEditEmpty =>
+      'Noch keine Sitzungen. Nutze „Zu Kurs hinzufügen…“ im Menü einer Sitzung.';
+
+  @override
+  String get myCourseDiscardTitle => 'Änderungen verwerfen?';
+
+  @override
+  String get myCourseDiscard => 'Verwerfen';
+
+  @override
+  String get myCourseKeepEditing => 'Weiter bearbeiten';
+
+  @override
+  String get myCourseDelete => 'Kurs löschen';
+
+  @override
+  String get myCourseDeleteTitle => 'Diesen Kurs löschen?';
+
+  @override
+  String get myCourseDeleteBody =>
+      'Nur der Kurs wird gelöscht. Seine Sitzungen bleiben in deiner Bibliothek, mit Downloads und Fortschritt.';
+
+  @override
+  String get myCourseDeletedSnack => 'Kurs gelöscht';
+
+  @override
+  String get myCourseEmptyTitle => 'Noch keine Sitzungen';
+
+  @override
+  String get myCourseEmptyBody =>
+      'Füge Sitzungen von überall hinzu: einen Dharma-Seed-Vortrag, ein YouTube-Video, eine Folge oder eine Datei. Öffne ihr Menü und wähle „Zu Kurs hinzufügen…“.';
+
+  @override
+  String get myCourseUnavailable => 'Nicht verfügbar';
+
+  @override
+  String get myCourseUnavailableSnack =>
+      'Diese Sitzung ist bei ihrer Quelle nicht mehr verfügbar.';
+
+  @override
+  String myCourseRemoveWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Sie ist auch in $count deiner Kurse und wird dort als nicht verfügbar angezeigt.',
+      one:
+          'Sie ist auch in einem deiner Kurse und wird dort als nicht verfügbar angezeigt.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get myCourseMore => 'Weitere Optionen';
+
+  @override
+  String get myCourseRemovedSnack => 'Aus dem Kurs entfernt';
+
+  @override
+  String get myCourseEditAction => 'Bearbeiten';
 }

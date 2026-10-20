@@ -4191,6 +4191,276 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stillness'**
   String get soundPresetStillness;
+
+  /// Action that makes a personal course
+  ///
+  /// In en, this message translates to:
+  /// **'New course'**
+  String get myCourseNew;
+
+  /// Hint in the new course name field
+  ///
+  /// In en, this message translates to:
+  /// **'Course name'**
+  String get myCourseNameHint;
+
+  /// Confirms making a new course
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get myCourseCreate;
+
+  /// Title of a new course left unnamed
+  ///
+  /// In en, this message translates to:
+  /// **'My course'**
+  String get myCourseDefaultTitle;
+
+  /// Menu entry that adds a session or course to a personal course
+  ///
+  /// In en, this message translates to:
+  /// **'Add to course…'**
+  String get myCourseAddTo;
+
+  /// Title of the sheet listing personal courses
+  ///
+  /// In en, this message translates to:
+  /// **'Add to course'**
+  String get myCourseAddToTitle;
+
+  /// Snackbar after adding to a personal course
+  ///
+  /// In en, this message translates to:
+  /// **'Added to {title}'**
+  String myCourseAddedSnack(String title);
+
+  /// Snackbar after adding a course's sessions
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 session added to {title}} other{{count} sessions added to {title}}}'**
+  String myCourseAddedCountSnack(int count, String title);
+
+  /// Snackbar when the course already holds it
+  ///
+  /// In en, this message translates to:
+  /// **'Already in {title}'**
+  String myCourseAlreadyIn(String title);
+
+  /// Snackbar when a course has nothing addable
+  ///
+  /// In en, this message translates to:
+  /// **'There are no sessions to add.'**
+  String get myCourseNothingToAdd;
+
+  /// Snackbar when adding fails
+  ///
+  /// In en, this message translates to:
+  /// **'Could not add it to the course.'**
+  String get myCourseAddFailed;
+
+  /// Shown in the add-to-course sheet with no courses
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t made a course yet. Start one here.'**
+  String get myCourseNoneYet;
+
+  /// Copies a course into a personal one
+  ///
+  /// In en, this message translates to:
+  /// **'Make my own copy'**
+  String get myCourseDuplicate;
+
+  /// Title of a duplicated course
+  ///
+  /// In en, this message translates to:
+  /// **'{title} (my copy)'**
+  String myCourseCopyTitle(String title);
+
+  /// Snackbar when duplicating fails
+  ///
+  /// In en, this message translates to:
+  /// **'Could not copy this course.'**
+  String get myCourseDuplicateFailed;
+
+  /// Snackbar when saving a course fails
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the course.'**
+  String get myCourseSaveFailed;
+
+  /// Opens the course edit screen; also its title
+  ///
+  /// In en, this message translates to:
+  /// **'Edit course'**
+  String get myCourseEdit;
+
+  /// Saves the course edit
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get myCourseSave;
+
+  /// Course title field
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get myCourseTitleLabel;
+
+  /// Course description field
+  ///
+  /// In en, this message translates to:
+  /// **'Description (optional)'**
+  String get myCourseDescriptionLabel;
+
+  /// Practice or Talks selector label
+  ///
+  /// In en, this message translates to:
+  /// **'Kind'**
+  String get myCourseKindLabel;
+
+  /// Cover picker label
+  ///
+  /// In en, this message translates to:
+  /// **'Cover'**
+  String get myCourseCoverLabel;
+
+  /// Semantics label for the generated cover choice
+  ///
+  /// In en, this message translates to:
+  /// **'Generated cover'**
+  String get myCourseCoverGenerated;
+
+  /// Semantics label for an artwork cover choice
+  ///
+  /// In en, this message translates to:
+  /// **'Cover {index}'**
+  String myCourseCoverChoice(int index);
+
+  /// Header above the course rows on the edit screen
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions'**
+  String get myCourseSessionsLabel;
+
+  /// Adds a section heading such as Day 1
+  ///
+  /// In en, this message translates to:
+  /// **'Add heading'**
+  String get myCourseAddHeading;
+
+  /// Hint in a section heading field
+  ///
+  /// In en, this message translates to:
+  /// **'Heading, e.g. Day 1'**
+  String get myCourseHeadingHint;
+
+  /// Removes a row from the course
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from course'**
+  String get myCourseRemoveRow;
+
+  /// Semantics label of a row's drag handle
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder'**
+  String get myCourseDragHandle;
+
+  /// Edit screen with no rows
+  ///
+  /// In en, this message translates to:
+  /// **'No sessions yet. Use Add to course… in any session\'s menu.'**
+  String get myCourseEditEmpty;
+
+  /// Leaving the edit screen with unsaved changes
+  ///
+  /// In en, this message translates to:
+  /// **'Discard your changes?'**
+  String get myCourseDiscardTitle;
+
+  /// Discards unsaved changes
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get myCourseDiscard;
+
+  /// Returns to the edit screen
+  ///
+  /// In en, this message translates to:
+  /// **'Keep editing'**
+  String get myCourseKeepEditing;
+
+  /// Deletes a personal course
+  ///
+  /// In en, this message translates to:
+  /// **'Delete course'**
+  String get myCourseDelete;
+
+  /// Delete confirmation title
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this course?'**
+  String get myCourseDeleteTitle;
+
+  /// Delete confirmation body
+  ///
+  /// In en, this message translates to:
+  /// **'Only the course goes. Its sessions stay in your library, with their downloads and progress.'**
+  String get myCourseDeleteBody;
+
+  /// Snackbar after deleting a course
+  ///
+  /// In en, this message translates to:
+  /// **'Course deleted'**
+  String get myCourseDeletedSnack;
+
+  /// Empty personal course page title
+  ///
+  /// In en, this message translates to:
+  /// **'No sessions yet'**
+  String get myCourseEmptyTitle;
+
+  /// Empty personal course page body
+  ///
+  /// In en, this message translates to:
+  /// **'Add sessions from anywhere: a Dharma Seed talk, a YouTube video, an episode or a file. Open its menu and choose Add to course…'**
+  String get myCourseEmptyBody;
+
+  /// Label on a session its source no longer has
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get myCourseUnavailable;
+
+  /// Tapping an unavailable session
+  ///
+  /// In en, this message translates to:
+  /// **'This session is no longer available from its source.'**
+  String get myCourseUnavailableSnack;
+
+  /// Extra line when removing an import that personal courses list
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{It is also in one of your courses, where it will show as unavailable.} other{It is also in {count} of your courses, where it will show as unavailable.}}'**
+  String myCourseRemoveWarning(int count);
+
+  /// Tooltip of a row's overflow menu
+  ///
+  /// In en, this message translates to:
+  /// **'More options'**
+  String get myCourseMore;
+
+  /// After taking a session out of a personal course
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from the course'**
+  String get myCourseRemovedSnack;
+
+  /// Button on a personal course page that opens its edit screen
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get myCourseEditAction;
 }
 
 class _AppLocalizationsDelegate

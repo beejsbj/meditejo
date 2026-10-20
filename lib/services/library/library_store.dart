@@ -245,6 +245,21 @@ class LibraryStore {
     positionsRevision.value++;
   }
 
+  // ------------------------------------------------------- session context
+
+  /// Remembers that [trackId] was opened from the course [courseId], so the
+  /// session counts towards that course when it sits in several.
+  Future<void> noteSessionContext(String trackId, String courseId) async {
+    await _ready();
+    await db.saveSessionContext(trackId, courseId);
+  }
+
+  /// The course [trackId] was last opened from, if any.
+  Future<String?> sessionContext(String trackId) async {
+    await _ready();
+    return (await db.sessionContextOf(trackId))?.courseId;
+  }
+
   void dispose() {
     revision.dispose();
     positionsRevision.dispose();

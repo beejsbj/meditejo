@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
+import 'package:medito/constants/types/type_constants.dart';
 
 part 'pack_model.freezed.dart';
 part 'pack_model.g.dart';
@@ -46,6 +47,14 @@ abstract class PackItemsModel with _$PackItemsModel {
 
     /// Recording date as `yyyy-MM-dd`, for grouping a long course by day.
     String? date,
+
+    /// The heading this session sits under ("Day 1"), in a course whose
+    /// maker grouped it. Consecutive items with the same section form a group.
+    String? section,
+
+    /// True when the session's source no longer has it (a removed video, a
+    /// withdrawn talk). The row stays, greyed, and is skipped when playing.
+    bool? unavailable,
   }) = _PackItemsModel;
 
   factory PackItemsModel.fromJson(Map<String, dynamic> json) =>
@@ -66,4 +75,14 @@ abstract class PackTeacher with _$PackTeacher {
 
   factory PackTeacher.fromJson(Map<String, dynamic> json) =>
       _$PackTeacherFromJson(json);
+}
+
+extension PackPlayableTracks on PackModel {
+  /// The sessions that can be played, in order: not sub-packs or links, and
+  /// not sessions a personal course lists whose source has lost them.
+  /// Progress ("3 of 7") and the play button count these.
+  List<PackItemsModel> get playableTracks => [
+    for (final item in items)
+      if (item.type == TypeConstants.track && item.unavailable != true) item,
+  ];
 }
