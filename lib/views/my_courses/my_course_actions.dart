@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/services/library/library_models.dart';
@@ -147,8 +150,10 @@ Future<void> duplicateAsMyCourse(
         .read(myCourseSourceProvider)
         .duplicate(packId, title: l10n.myCourseCopyTitle(title));
     if (!context.mounted) return;
-    await openCourse(context, ref, id);
-    if (context.mounted) await openMyCourseEditor(context, id);
+    // The page opens under the editor, so Back from the editor lands on the
+    // copy. Awaiting the page would hold the editor until it was closed.
+    unawaited(openCourse(context, ref, id));
+    await openMyCourseEditor(context, id);
   } catch (e, st) {
     AppLogger.e('MY_COURSES', 'Could not copy $packId', e, st);
     if (context.mounted) showSnackBar(context, l10n.myCourseDuplicateFailed);
@@ -182,6 +187,7 @@ Future<bool> deleteMyCourse(
   );
   if (confirmed != true) return false;
   await ref.read(myCourseSourceProvider).delete(id);
+  await ref.read(pinnedCoursesProvider.notifier).unpin(id);
   if (context.mounted) showSnackBar(context, l10n.myCourseDeletedSnack);
   return true;
 }
