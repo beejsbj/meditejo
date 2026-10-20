@@ -764,6 +764,9 @@ class IosAudioHandler extends BaseAudioHandler {
     Track trackData,
   ) async {
     await ensureInitialized();
+    // just_audio stays "playing" after a completion; the next source would
+    // start on load, under the countdown. play() decides when it starts.
+    await _player.pause();
 
     _nativeCues = false;
     _cueGeneration++;

@@ -998,6 +998,11 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             // Ensure MediaSession is ready (important for Android 16+)
             ensureMediaSession()
             
+            // stop() keeps playWhenReady, and an ended or playing session left it
+            // true: the new voice would start on READY by itself, under the
+            // countdown. startPlayback below decides when it plays.
+            primaryPlayer.playWhenReady = false
+
             // Prepare the player
             primaryPlayer.prepare()
             

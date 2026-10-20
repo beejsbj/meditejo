@@ -370,6 +370,7 @@ void main() {
         () => player.setFilePath(path),
       ).thenAnswer((_) async => const Duration(minutes: 5));
       when(() => player.setLoopMode(LoopMode.off)).thenAnswer((_) async {});
+      when(() => player.pause()).thenAnswer((_) async {});
       final handler = _Handler(player);
       const request = PlaybackRequest(
         trackId: 'lib-track',
@@ -392,7 +393,9 @@ void main() {
 
       await handler.setUrl(path, request, track);
 
-      verify(() => player.setFilePath(path)).called(1);
+      // Paused first: a previous session left just_audio "playing", and the
+      // new source must not start under a countdown.
+      verifyInOrder([() => player.pause(), () => player.setFilePath(path)]);
       verifyNever(() => player.setAsset(any()));
       expect(handler.trackState, same(track));
     },
