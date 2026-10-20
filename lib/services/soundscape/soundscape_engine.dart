@@ -240,6 +240,32 @@ class PauseFade {
   }
 }
 
+/// The voices a layer is crossfading out: one set at most. A new crossfade
+/// takes over the voices it replaces and hands back the set it overtook,
+/// to be released on a short fade, so rapid changes (timbre taps) never
+/// hold more than two sets of a layer's voices: the new and the old.
+class OutgoingVoices<T> {
+  List<T> _set = const [];
+
+  /// The set fading out now, if any.
+  List<T> get current => _set;
+
+  /// A crossfade from [replaced] begins; returns the set it overtakes.
+  List<T> begin(List<T> replaced) {
+    final overtaken = _set;
+    _set = replaced;
+    return overtaken;
+  }
+
+  /// The crossfade finished or the layer stopped; returns the set to
+  /// release.
+  List<T> take() {
+    final set = _set;
+    _set = const [];
+    return set;
+  }
+}
+
 /// A fade in [steps] equal steps of [stepTime], one one-shot timer at a
 /// time. Paused, it arms no timer at all (a pause can last ten minutes with
 /// the screen off), and resuming runs the steps left. Kept apart from
@@ -620,13 +646,15 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
   ///
   /// The old voices belong to the layer until the crossfade ends, so a stop
   /// meanwhile takes them with it (through the pause fade, before
-  /// [shutdown]), and a second retune folds them into its own outgoing side.
+  /// [shutdown]). A second retune releases the set the first was still
+  /// fading out, on a short fade, and crossfades from the voices it
+  /// replaces: a layer holds at most two sets, whatever the rate of change.
   void _crossfadeIn(_Layer layer, List<_Voice> replaced) {
     const steps = 6;
     final stepTime = _crossfade ~/ steps;
     layer.crossfade?.cancel();
-    final outgoing = [...layer.outgoing, ...replaced];
-    layer.outgoing = outgoing;
+    unawaited(_release(layer.outgoing.begin(replaced), stepTime));
+    final outgoing = replaced;
     final from = [for (final v in outgoing) _soloud.getVolume(v.handle)];
     for (final v in outgoing) {
       v.timer?.cancel();
@@ -652,11 +680,9 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
       },
       onDone: () {
         if (!identical(layer.crossfade, fade)) return;
-        layer
-          ..crossfade = null
-          ..outgoing = const [];
+        layer.crossfade = null;
         _applyLayer(layer, fade: _retune);
-        unawaited(_release(outgoing, stepTime));
+        unawaited(_release(layer.outgoing.take(), stepTime));
       },
     );
     layer.crossfade = fade;
@@ -753,8 +779,7 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
     layer.crossfade?.cancel();
     layer.crossfade = null;
     _cancelSwells(layer);
-    final voices = [...layer.voices, ...layer.outgoing];
-    layer.outgoing = const [];
+    final voices = [...layer.voices, ...layer.outgoing.take()];
     await _release(voices, fade);
   }
 
@@ -818,7 +843,7 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
     for (final voice in [
       for (final layer in _layers.values) ...[
         ...layer.voices,
-        ...layer.outgoing,
+        ...layer.outgoing.current,
       ],
       ..._fading,
     ]) {
@@ -878,7 +903,7 @@ class _Layer {
 
   /// A noise retune's crossfade under way, and the voices it fades out.
   SteppedFade? crossfade;
-  List<_Voice> outgoing = const [];
+  final outgoing = OutgoingVoices<_Voice>();
 }
 
 class _Voice {
