@@ -155,6 +155,13 @@ android {
             minifyEnabled true
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // Flutter's --target-platform only picks the engine; AARs such as
+            // sqlite3 and jni still bring armeabi-v7a and x86_64 libraries.
+            // The phone is arm64. Split APKs (F-Droid) set split-per-abi,
+            // which conflicts with abiFilters, so leave them to the splits.
+            if (!project.hasProperty('split-per-abi')) {
+                ndk { abiFilters 'arm64-v8a' }
+            }
         }
     }
 

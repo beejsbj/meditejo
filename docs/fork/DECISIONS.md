@@ -240,3 +240,10 @@ Measured on bjslab the same day: a full first sync of Dharma Seed is 125 request
 - **Pinning.** Up to three, from the library row menu and the course page; a fourth is refused with a message instead of replacing one (a silent swap would be a hidden trade-off). Playing a course no longer pins it (the old behaviour replaced the single pin and showed a snackbar). The old single pin becomes the first of the three.
 - **Stats.** The consistency score and streak are off Home (the pill and its "show on Home" preference are removed); the stats screen opens with one line, "These numbers are feedback, not a score." The consistency-score explanation is unchanged.
 - **Strings** added in en, de and es (de/es are my translations, for Burooj to check).
+
+## 2026-10-20 (release APK: arm64 only)
+
+- **The release APK carries arm64 native libraries only.** 0.1.2 was built with `--target-platform android-arm64` (the APK workflow and `tools/meditejo/build_apk.sh` already did this), yet the 61.9 MB APK still held `armeabi-v7a` and `x86_64` copies of `libsqlite3`, `libdartjni`, `libandroidx.graphics.path` and `libdatastore_shared_counter` (about 3.3 MB uncompressed): Flutter's flag chooses the engine, not the AARs' bundled ABIs. The release build type now sets `ndk { abiFilters 'arm64-v8a' }`; the legacy root `build_apk.sh` also passes the flag. Debug builds are untouched, so emulators still work.
+- **Why arm64 only:** Burooj's phone is arm64, and the APK had grown by about 11 MB across slices, part of it multi-ABI libraries. The rest of the growth is the bundled Dharma Seed catalogue (13.7 MB gzip) and Flutter's arm64 engine, which are the app's own content.
+- **Later: F-Droid split APKs.** F-Droid can build per-ABI APKs. The filter is skipped when Gradle gets `-Psplit-per-abi` (Flutter's `--split-per-abi`), because AGP rejects `abiFilters` together with ABI splits. Nothing else needs to change then.
+- **Unverified here:** no Gradle ran on bjslab. The APK workflow's next run should show `lib/` with `arm64-v8a` alone (`unzip -l`).
