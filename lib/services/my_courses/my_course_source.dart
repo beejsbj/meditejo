@@ -405,7 +405,11 @@ class MyCourseSource implements ContentSource {
         : await _router.pack(packId);
     final lines = <MyCourseLine>[];
     String? section;
-    for (final item in pack.items) {
+    // A personal course's own rows keep every heading, even one with no
+    // session after it, which the pack's items cannot show.
+    final own = isMyCourseId(packId) ? await edit(packId) : null;
+    if (own != null) lines.addAll(own.lines);
+    for (final item in own != null ? const <PackItemsModel>[] : pack.items) {
       if (item.type != TypeConstants.track) continue;
       if (item.section != null && item.section != section) {
         lines.add(MyCourseLine.heading(item.section!));
@@ -496,13 +500,21 @@ class MyCourseSource implements ContentSource {
   /// source, the library and any other course.
   Future<void> removeItem(String courseId, String itemId) async {
     await db.transaction(() async {
+      final removed =
+          await (db.select(db.myCourseItems)..where(
+                (r) => r.courseId.equals(courseId) & r.itemId.equals(itemId),
+              ))
+              .get();
       await (db.delete(db.myCourseItems)..where(
             (r) => r.courseId.equals(courseId) & r.itemId.equals(itemId),
           ))
           .go();
-      // The artwork of the session just removed is no longer a choice.
+      // The artwork of the session just removed is no longer a choice. A
+      // cover that came from elsewhere (a copied retreat's photo) stays.
       final course = await _course(courseId);
-      if (course != null && course.coverUrl.isNotEmpty) {
+      if (course != null &&
+          course.coverUrl.isNotEmpty &&
+          removed.any((r) => r.coverUrl == course.coverUrl)) {
         final left = await (db.select(
           db.myCourseItems,
         )..where((r) => r.courseId.equals(courseId))).get();

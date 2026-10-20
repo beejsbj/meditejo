@@ -301,6 +301,41 @@ void main() {
       expect([for (final i in (await source.pack(b)).items) i.id], ['x-1']);
     });
 
+    test('a cover from elsewhere stays when a session is removed', () async {
+      final id = await source.create(
+        title: 'A',
+        coverUrl: 'https://img.test/retreat.jpg',
+        lines: [
+          MyCourseLine.session(draft('x-1')),
+          MyCourseLine.session(draft('x-2')),
+        ],
+      );
+      await source.removeItem(id, 'x-1');
+      expect((await source.edit(id))!.coverUrl, 'https://img.test/retreat.jpg');
+    });
+
+    test(
+      'a copy keeps every heading, even one with no session after it',
+      () async {
+        final id = await source.create(
+          title: 'A',
+          lines: [
+            const MyCourseLine.heading('One'),
+            const MyCourseLine.heading('Two'),
+            MyCourseLine.session(draft('x-1')),
+            const MyCourseLine.heading('Last'),
+          ],
+        );
+        final copy = await source.duplicate(id, title: 'A copy');
+        expect(ids((await source.edit(copy))!.lines), [
+          '# One',
+          '# Two',
+          'x-1',
+          '# Last',
+        ]);
+      },
+    );
+
     test('removing the session that supplied the cover resets it', () async {
       final id = await source.create(
         title: 'A',
