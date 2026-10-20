@@ -459,7 +459,8 @@ recording's duration.
 
 Listening completion is independent of terminal playback state. Rendered
 ranges are merged so repeated sections count once; a seek rebases the cursor.
-A 90% receipt records progress while playback continues. A timer or finished
-extension may also qualify; the terminal state opens the end screen only at
-the true end. Existing resume positions continue to be saved by the library's
+A 90% receipt records progress while playback continues. A timer qualifies at
+its end; a finished extension never stands in for listening. The terminal
+state is sent at every true end, earned or not, and opens the end screen only
+then. Existing resume positions continue to be saved by the library's
 position tracker.

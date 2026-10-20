@@ -229,13 +229,12 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         )
     }
 
-    // 90% of the track really heard, a finished timer or a finished extension
-    // earn the completion. Reaching the end by seeking does not.
-    private fun completionEarned(extensionFinished: Boolean): Boolean {
-        if (completionSent || extensionFinished) return true
-        if (::cues.isInitialized && cues.isTimer) return true
-        return listening.completed(currentDurationMs())
-    }
+    // 90% of the track really heard, or a timer at its end, earns the
+    // completion. Seeking to the end does not, even past a finished extension.
+    private fun completionEarned(): Boolean = completionSent || CueMath.earnsCompletion(
+        isTimer = ::cues.isInitialized && cues.isTimer,
+        heardEnough = listening.completed(currentDurationMs()),
+    )
 
     private fun currentDurationMs(): Long {
         val fromPlayer = if (::primaryPlayer.isInitialized) primaryPlayer.duration else C.TIME_UNSET
@@ -246,11 +245,11 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     // Records one finished play-through. The first one that earns it is the
     // session; each later one only adds its listening time. A pass whose
     // completion went out mid-play (at 90%) is not counted again at its end.
-    private fun recordPlaythroughFromPlayer(extensionFinished: Boolean = false) {
+    private fun recordPlaythroughFromPlayer() {
         completedPlaythroughs++
         val completionData = createCompletionDataFromPlayer()
         if (!completionSent) {
-            if (completionEarned(extensionFinished)) {
+            if (completionEarned()) {
                 completionSent = true
                 completionPlaythroughIndex = completedPlaythroughs - 1
                 saveAndSendCompletionData(completionData, finish = false)
@@ -302,10 +301,10 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
 
     // The session reached its true end: the voice, plus the extension if there
     // was one. The end bell is already ringing; the service lives until it is done.
-    private fun finalizeSession(extensionFinished: Boolean, tailMs: Long) {
+    private fun finalizeSession(tailMs: Long) {
         stopPositionUpdates()
         listening.sample(currentDurationMs(), true)
-        recordPlaythroughFromPlayer(extensionFinished)
+        recordPlaythroughFromPlayer()
         persistListening(force = true)
         // The true end is always terminal for the player, whether or not the
         // session earned its stats above: the end screen and autoplay need it.
@@ -531,7 +530,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
 
                 override fun onSessionEnded(extensionFinished: Boolean, tailMs: Long) {
                     isCompletionHandled = true
-                    finalizeSession(extensionFinished, tailMs)
+                    finalizeSession(tailMs)
                 }
             })
             instance = this
@@ -659,7 +658,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
                 // STATE_ENDED, and PlayerView opens the end screen off that flag.
                 sessionBells.disable()
                 if (cues.isEngaged) cues.onPrimaryEnded()
-                else finalizeSession(extensionFinished = false, tailMs = 0)
+                else finalizeSession(tailMs = 0)
             }
             return
         }

@@ -105,6 +105,23 @@ void main() {
   );
 
   test(
+    'a finished extension after a seek to the end does not earn the stats',
+    () async {
+      _mockSwift({'sampleListening': false});
+      final handler = _NativeHandler(_endedPlayer());
+      await handler.configureCues(const CueSettings(extendMinutes: 1), _guided);
+
+      await _fromSwift('sessionEnded', {
+        'extensionFinished': true,
+        'tailMs': 0,
+      });
+
+      expect(handler.completionEarned, isFalse);
+      expect(handler.sessionCompleted, isTrue);
+    },
+  );
+
+  test(
     'downloaded audio loads from its filesystem path, not the asset bundle',
     () async {
       final player = _Player();

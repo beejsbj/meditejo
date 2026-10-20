@@ -276,6 +276,10 @@ class IosAudioHandler extends BaseAudioHandler {
   @visibleForTesting
   bool get sessionCompleted => _sessionCompleted.value;
 
+  /// Whether this session counts in the stats.
+  @visibleForTesting
+  bool get completionEarned => _nativeCompletionEarned;
+
   final _trackStateSubject = BehaviorSubject<Track>();
 
   Track get trackState => _trackStateSubject.value;
@@ -563,7 +567,6 @@ class IosAudioHandler extends BaseAudioHandler {
       } else if (call.method == 'sessionEnded') {
         final args = Map<Object?, Object?>.from(call.arguments as Map);
         await _finishNativeSession(
-          extensionFinished: args['extensionFinished'] == true,
           tailMs: (args['tailMs'] as num?)?.toInt() ?? 0,
         );
       }
@@ -615,14 +618,12 @@ class IosAudioHandler extends BaseAudioHandler {
     await NativeCueController.holdInterlude(seconds);
   }
 
-  Future<void> _finishNativeSession({
-    required bool extensionFinished,
-    required int tailMs,
-  }) async {
+  Future<void> _finishNativeSession({required int tailMs}) async {
     _nativeExtending = false;
     _nativeCountdown = false;
-    _nativeCompletionEarned =
-        _nativeCompletionEarned || _isTimer || extensionFinished;
+    // A timer counts at its end; a recording only once 90% was really heard
+    // (sampled above). A finished extension after a seek to the end does not.
+    _nativeCompletionEarned = _nativeCompletionEarned || _isTimer;
     _cancelPauseDeactivationTimer();
     await iosBackgroundPlayer.pause();
     await _recordPlaythrough();

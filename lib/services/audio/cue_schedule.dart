@@ -200,12 +200,8 @@ class ListeningCoverage {
       ..addAll(next);
   }
 
-  bool completed(
-    int durationMs, {
-    bool isTimer = false,
-    bool ended = false,
-    bool extended = false,
-  }) =>
-      durationMs > 0 &&
-      (isTimer ? ended : (extended && ended) || heardMs * 10 >= durationMs * 9);
+  /// A timer counts at its end; a recording only when 90% was heard. A
+  /// finished extension never stands in for listening.
+  bool completed(int durationMs, {bool isTimer = false, bool ended = false}) =>
+      durationMs > 0 && (isTimer ? ended : heardMs * 10 >= durationMs * 9);
 }

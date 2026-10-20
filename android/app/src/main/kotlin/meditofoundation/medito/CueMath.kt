@@ -207,6 +207,14 @@ internal object CueMath {
         deltaPositionMs < -50 || deltaPositionMs > realElapsedMs * max(speed, 0.05) + 1500
 
     fun shouldRingStart(positionMs: Long): Boolean = positionMs < 2000
+
+    /**
+     * Whether a session that reached its end counts in the stats. A timer
+     * counts at its natural end. A recording counts only when 90% of it was
+     * really heard: opening or seeking never completes a session, so a
+     * finished extension does not either.
+     */
+    fun earnsCompletion(isTimer: Boolean, heardEnough: Boolean): Boolean = isTimer || heardEnough
 }
 
 /**

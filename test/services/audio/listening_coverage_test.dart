@@ -46,18 +46,27 @@ void main() {
     expect(next.heardMs, 90000);
     expect(next.completed(100000), isTrue);
   });
-  test('timer and extended session complete only when ended', () {
+  test('a timer completes only when ended', () {
     final heard = ListeningCoverage()
       ..restore([
         [0, 90000],
       ]);
     expect(heard.completed(100000, isTimer: true), isFalse);
     expect(heard.completed(100000, isTimer: true, ended: true), isTrue);
-    expect(
-      ListeningCoverage().completed(100000, extended: true, ended: true),
-      isTrue,
-    );
     expect(heard.completed(0, ended: true), isFalse);
+  });
+  test('a finished extension never stands in for listening', () {
+    // Opened, seeked to the end, and sat through the whole extension.
+    final skipped = ListeningCoverage()
+      ..restore([
+        [0, 60000],
+      ]);
+    expect(skipped.completed(3600000, ended: true), isFalse);
+    final heard = ListeningCoverage()
+      ..restore([
+        [0, 3240000],
+      ]);
+    expect(heard.completed(3600000, ended: true), isTrue);
   });
   test('speed and explicit seek discontinuities do not invent coverage', () {
     final heard = ListeningCoverage();

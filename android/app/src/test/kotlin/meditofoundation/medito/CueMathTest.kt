@@ -239,6 +239,20 @@ class CueMathTest {
         for (position in 81_000L..90_000L step 1000L) resumed.sample(position, true)
         assertTrue(resumed.completed(100_000L))
     }
+    @Test fun onlyHeardRecordingsAndFinishedTimersEarnCompletion() {
+        // A recording opened and seeked to the end, then sat through its whole
+        // extension: the extension does not stand in for listening.
+        val t = ListeningTracker()
+        play(t, 0, 60_000)
+        t.rebase(3_600_000)
+        assertFalse(CueMath.earnsCompletion(isTimer = false, heardEnough = t.completed(3_600_000)))
+        // 90% really heard counts, with or without an extension after it.
+        play(t, 60_000, 3_240_000)
+        assertTrue(CueMath.earnsCompletion(isTimer = false, heardEnough = t.completed(3_600_000)))
+        // A timer's silent file counts at its natural end.
+        assertTrue(CueMath.earnsCompletion(isTimer = true, heardEnough = false))
+    }
+
     @Test fun malformedPersistedRangesCannotInventListening() {
         val tracker = ListeningTracker()
         tracker.restore(listOf(emptyList(), listOf(-1L, 100_000L), listOf(10L, 5L)))
