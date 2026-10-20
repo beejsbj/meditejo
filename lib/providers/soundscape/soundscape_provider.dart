@@ -368,6 +368,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
           playing: _sessionPlaying,
           owner: SoundscapeOwner.session,
           volume: volume ?? state.sessionDefault(state.sessionKind!).volume,
+          failed: const {},
         ),
       );
     } else {
@@ -486,6 +487,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         playing: _sessionPlaying,
         owner: SoundscapeOwner.session,
         volume: setting.volume,
+        failed: const {},
       ),
     );
   }
@@ -574,6 +576,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         playing: _sessionPlaying,
         owner: SoundscapeOwner.session,
         volume: volume ?? state.sessionDefault(kind).volume,
+        failed: const {},
       ),
     );
   }
@@ -586,6 +589,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         owner: SoundscapeOwner.standalone,
         sessionKind: null,
         volume: _store.readVolume(),
+        failed: const {},
       ),
     );
   }
@@ -684,7 +688,18 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     final fades = [for (final id in stopping) _engine.stop(id)];
 
     final failed = <String>{};
+    var stale = false;
     for (final layer in desired.values) {
+      // Loading is slow. If the user stopped or paused, or the mix or its
+      // owner changed, meanwhile, leave the rest to the queued pass.
+      if (!ref.mounted ||
+          state.active != s.active ||
+          state.playing != s.playing ||
+          state.owner != s.owner ||
+          state.mix != s.mix) {
+        stale = true;
+        break;
+      }
       final motion = layer.animate ? LayerMotion.forSound(layer.soundId) : null;
       final current = _applied[layer.soundId];
       if (current == null) {
@@ -712,8 +727,9 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     if (failed.isNotEmpty && ref.mounted) {
       state = state.copyWith(failed: {...state.failed, ...failed});
     }
-    if (standalone && _applied.isNotEmpty) await _holdKeepAlive(true);
     await Future.wait(fades);
+    if (stale) return;
+    if (standalone && _applied.isNotEmpty) await _holdKeepAlive(true);
     // Nothing in the mix could play (every layer failed, or none is in the
     // library): stop, rather than hold the foreground service and its
     // notification over silence. Only if the mix is still the one this

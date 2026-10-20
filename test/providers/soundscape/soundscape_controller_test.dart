@@ -261,6 +261,34 @@ void main() {
     },
   );
 
+  test('Stop while layers are still loading starts no further layer', () async {
+    engine.gates['waves'] = Completer<void>();
+    ctl().clearMix();
+    ctl().toggleSound('waves');
+    ctl().toggleSound('cafe');
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    ctl().stop();
+    engine.gates['waves']!.complete();
+    await settle();
+    expect(engine.starts, ['waves']);
+    expect(engine.playing, isEmpty);
+    expect(keepAlive.held, isFalse);
+  });
+
+  test('Play after a failure tries the failed sounds again', () async {
+    engine.failOn.add('cafe');
+    ctl().clearMix();
+    ctl().toggleSound('cafe');
+    await settle();
+    expect(st().failed, {'cafe'});
+    expect(st().active, isFalse);
+    engine.failOn.clear();
+    ctl().resume();
+    await settle();
+    expect(st().failed, isEmpty);
+    expect(engine.playing.keys, ['cafe']);
+  });
+
   test(
     'Sounds paused on their own stop after a while and close the engine',
     () async {
