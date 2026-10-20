@@ -275,6 +275,28 @@ void main() {
     expect(keepAlive.held, isFalse);
   });
 
+  test('a play that resolves after its session ended does not start', () async {
+    await ctl().startSession(SoundscapeSessionKind.practice);
+    await settle();
+    final played = ctl().play(SoundscapeSelection.currentMix);
+    ctl().endSession();
+    await played;
+    await settle();
+    expect(st().active, isFalse);
+    expect(engine.playing, isEmpty);
+  });
+
+  test(
+    'a level set while a session resolves is the one it starts at',
+    () async {
+      final started = ctl().startSession(SoundscapeSessionKind.practice);
+      ctl().setSessionVolume(SoundscapeSessionKind.practice, 0.3);
+      await started;
+      await settle();
+      expect(st().volume, 0.3);
+    },
+  );
+
   test('Play after a failure tries the failed sounds again', () async {
     engine.failOn.add('cafe');
     ctl().clearMix();

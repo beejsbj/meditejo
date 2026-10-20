@@ -351,7 +351,10 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   /// Plays [selection] now. Outside a session it plays on its own; under a
   /// session it replaces what the session plays.
   Future<void> play(SoundscapeSelection selection, {double? volume}) async {
+    final inSession = state.inSession;
     final mix = await _resolve(selection, orCurrentMix: false);
+    // The session ended while this resolved: do not start on its own.
+    if (inSession && !state.inSession) return;
     if (mix.isEmpty) {
       if (state.underSession) {
         _update(state.copyWith(playing: false));
@@ -486,7 +489,10 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         mix: mix,
         playing: _sessionPlaying,
         owner: SoundscapeOwner.session,
-        volume: setting.volume,
+        // A level set while the mix resolved wins over the one read before.
+        volume: override == null
+            ? state.sessionDefault(kind).volume
+            : setting.volume,
         failed: const {},
       ),
     );
