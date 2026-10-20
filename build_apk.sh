@@ -10,7 +10,7 @@ flutter clean
 VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
 echo "📱 Building APK for version $VERSION..."
 
-flutter build apk --flavor prod --release
+flutter build apk --flavor prod --release --target-platform android-arm64
 
 # Define source and destination paths
 SOURCE_APK="build/app/outputs/apk/prod/release/app-prod-release.apk"
