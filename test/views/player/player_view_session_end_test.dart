@@ -92,6 +92,15 @@ class _Bell extends SessionBellPreview {
 }
 
 class _SilentBackgroundSounds extends BackgroundSoundsNotifier {
+  _SilentBackgroundSounds({this.legacyBells = false});
+
+  /// The legacy Home-sheet bells switch, which the cues must ignore.
+  final bool legacyBells;
+
+  @override
+  BackgroundSoundsState build() =>
+      BackgroundSoundsState(bellsEnabled: legacyBells);
+
   @override
   void applyCueSettings(CueSettings settings) {}
 
@@ -124,13 +133,16 @@ Widget _player({
   required PlayerProvider player,
   required Map<String, Object> prefs,
   SessionBellPreview? bell,
+  bool legacyBells = false,
   List<dynamic> overrides = const [],
 }) => PreviewShell(
   prefs: prefs,
   overrides: [
     playerProvider.overrideWith(() => player),
     audioStateProvider.overrideWith(AudioStateNotifier.new),
-    backgroundSoundsNotifierProvider.overrideWith(_SilentBackgroundSounds.new),
+    backgroundSoundsNotifierProvider.overrideWith(
+      () => _SilentBackgroundSounds(legacyBells: legacyBells),
+    ),
     statsProvider.overrideWith(_Stats.new),
     reviewServiceProvider.overrideWithValue(_Review()),
     if (bell != null) sessionBellPreviewProvider.overrideWithValue(bell),
@@ -249,10 +261,16 @@ void main() {
     WidgetTester tester, {
     required CueSettings practice,
     required _Bell bell,
+    bool legacyBells = false,
   }) async {
     final player = _FakePlayer(_timer);
     await tester.pumpWidget(
-      _player(player: player, prefs: _prefsWith(practice), bell: bell),
+      _player(
+        player: player,
+        prefs: _prefsWith(practice),
+        bell: bell,
+        legacyBells: legacyBells,
+      ),
     );
     await tester.pump();
     await tester.pump();
@@ -284,12 +302,28 @@ void main() {
     'ending a timer early rings the Customize end cue at the bell volume',
     (tester) async {
       final bell = _Bell();
+      // The legacy bells switch is off: the old path would ring nothing.
       await endTimerEarly(
         tester,
         practice: const CueSettings(bellVolume: 0.8),
         bell: bell,
       );
+      // Bowl is the only end sound besides Off; the volume is Customize's.
       expect(bell.rung, [(0.8, kSessionBellAsset)]);
+    },
+  );
+
+  testWidgets(
+    'the legacy bells switch cannot ring an end cue Customize turned off',
+    (tester) async {
+      final bell = _Bell();
+      await endTimerEarly(
+        tester,
+        practice: const CueSettings(endSound: ''),
+        bell: bell,
+        legacyBells: true,
+      );
+      expect(bell.rung, isEmpty);
     },
   );
 

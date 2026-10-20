@@ -6,7 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/player/playback_request.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
+import 'package:medito/providers/player/player_provider.dart'
+    show iosAudioHandler;
 import 'package:medito/providers/player/ios_audio_handler.dart';
 import 'package:medito/services/audio/ios_session_bells.dart';
 import 'package:medito/src/audio_pigeon.g.dart' as pigeon;
@@ -247,12 +250,23 @@ void main() {
       await handler.ensureInitialized();
       await handler.configureCues(const CueSettings(extendMinutes: 1), _guided);
       final remaining = handler.extensionRemainingStream.first;
+      // The ambient notifier follows this handler's fade, as on an iPhone.
+      iosAudioHandler = handler;
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final ambient = container.read(backgroundSoundsNotifierProvider.notifier);
+      ambient.followIosFade();
+      await iosBackgroundPlayer.setVolume(ambient.scaledVolume(50));
 
       streams.processing.add(ProcessingState.completed);
       expect(await remaining, 8000);
+      await _settle();
       expect(handler.extending, isTrue);
-      // Eight seconds from the end: the ambient is fading, not at full volume.
-      expect(ambientFadeVolume(50, 8000), 40);
+      // Eight seconds from the true end, past the voice's end: fading, at 40%.
+      expect(
+        iosBackgroundPlayer.volume,
+        closeTo(ambient.scaledVolume(40), 1e-9),
+      );
 
       await _fromSwift('sessionEnded', {
         'extensionFinished': true,

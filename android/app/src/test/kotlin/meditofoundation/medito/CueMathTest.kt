@@ -249,12 +249,14 @@ class CueMathTest {
         val t = ListeningTracker()
         play(t, 0, 60_000)
         t.rebase(3_600_000)
-        assertFalse(CueMath.earnsCompletion(isTimer = false, heardEnough = t.completed(3_600_000)))
+        assertFalse(CueMath.earnsCompletion(isTimer = false, heardEnough = t.completed(3_600_000), extensionFinished = true))
+        assertFalse(CueMath.earnsCompletion(isTimer = false, heardEnough = t.completed(3_600_000), extensionFinished = false))
         // 90% really heard counts, with or without an extension after it.
         play(t, 60_000, 3_240_000)
-        assertTrue(CueMath.earnsCompletion(isTimer = false, heardEnough = t.completed(3_600_000)))
+        assertTrue(CueMath.earnsCompletion(isTimer = false, heardEnough = t.completed(3_600_000), extensionFinished = true))
+        assertTrue(CueMath.earnsCompletion(isTimer = false, heardEnough = t.completed(3_600_000), extensionFinished = false))
         // A timer's silent file counts at its natural end.
-        assertTrue(CueMath.earnsCompletion(isTimer = true, heardEnough = false))
+        assertTrue(CueMath.earnsCompletion(isTimer = true, heardEnough = false, extensionFinished = false))
     }
 
     @Test fun onlyRecentListeningReceiptsAreKept() {

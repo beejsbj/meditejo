@@ -218,9 +218,12 @@ internal object CueMath {
      * Whether a session that reached its end counts in the stats. A timer
      * counts at its natural end. A recording counts only when 90% of it was
      * really heard: opening or seeking never completes a session, so a
-     * finished extension does not either.
+     * finished extension does not either: [extensionFinished] is taken so the
+     * rule visibly ignores it.
      */
-    fun earnsCompletion(isTimer: Boolean, heardEnough: Boolean): Boolean = isTimer || heardEnough
+    @Suppress("UNUSED_PARAMETER")
+    fun earnsCompletion(isTimer: Boolean, heardEnough: Boolean, extensionFinished: Boolean): Boolean =
+        isTimer || heardEnough
 }
 
 /**

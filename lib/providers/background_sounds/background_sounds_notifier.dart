@@ -3,6 +3,8 @@ import '../../services/audio/session_bell_preview.dart';
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -455,7 +457,7 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
         iosBackgroundPlayer.setVolume(scaledVolume(state.volume));
         iosAmbientActive = true;
         unawaited(iosBackgroundPlayer.play());
-        _handleFadeAtEndForIos();
+        followIosFade();
 
         return true;
       } catch (e, s) {
@@ -569,7 +571,9 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
     handleOnChangeVolume(value);
   }
 
-  void _handleFadeAtEndForIos() {
+  /// Fades the iOS ambient sound into the session's true end.
+  @visibleForTesting
+  void followIosFade() {
     _fadeSubscription?.cancel();
     _fadeSubscription = null;
     _extensionFadeSubscription?.cancel();
