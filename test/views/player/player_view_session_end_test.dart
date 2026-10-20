@@ -16,6 +16,7 @@ import 'package:medito/models/track/track.dart';
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/review_service_provider.dart';
@@ -23,6 +24,10 @@ import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
 import 'package:medito/services/content/content_source.dart';
+import 'package:medito/services/library/library_database.dart';
+import 'package:medito/services/library/library_store.dart';
+import 'package:medito/services/my_courses/my_course_models.dart';
+import 'package:medito/services/my_courses/my_course_source.dart';
 import 'package:medito/services/review_service.dart';
 import 'package:medito/src/audio_pigeon.g.dart' hide Track;
 import 'package:medito/src/audio_pigeon.g.dart' as pigeon show Track;
@@ -33,6 +38,8 @@ import 'package:medito/views/player/widgets/bottom_actions/widgets/bg_sound_widg
 import 'package:medito/views/previews/preview_support.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../helpers/fake_session_source.dart';
+import '../../helpers/library_fixtures.dart';
 import '../../helpers/soundscape_fakes.dart';
 
 PlaybackState _state({
@@ -259,7 +266,23 @@ final _courseOverrides = [
   ),
   contentSourcesProvider.overrideWithValue([_Course()]),
   tracksProvider(trackId: 'fake-b').overrideWith(_NextTrack.new),
+  libraryStoreProvider.overrideWith((ref) {
+    final db = memoryLibraryDb();
+    final store = LibraryStore(db);
+    ref.onDispose(() {
+      store.dispose();
+      db.close();
+    });
+    return store;
+  }),
 ];
+
+/// The session after x-1 in a personal course: x-3.
+class _LocalNextTrack extends Tracks {
+  @override
+  Future<Track> build({required String trackId}) async =>
+      FakeSessionSource.session('x-3');
+}
 
 const _autoplay = CueSettings(autoplay: true, interludeSeconds: 5);
 
@@ -466,6 +489,78 @@ void main() {
     await tester.pump();
     expect(find.text('Session B'), findsWidgets);
     expect(find.byType(EndScreenView), findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 4));
+  });
+
+  testWidgets('autoplay follows the personal course the session was opened '
+      'from, past a session its source lost', (tester) async {
+    // Local sessions, like imported files: their source names no course.
+    final local = FakeSessionSource()..gone.add('x-2');
+    late LibraryDatabase db;
+    late LibraryStore store;
+    late MyCourseSource mine;
+    final courseId = (await tester.runAsync(() async {
+      db = memoryLibraryDb();
+      store = LibraryStore(db);
+      mine = MyCourseSource(db: db, library: store, sources: () => [local]);
+      final id = await mine.create(
+        title: 'Mine',
+        lines: [
+          for (final id in ['x-1', 'x-2', 'x-3'])
+            MyCourseLine.session(MyItemDraft(id: id, title: 'Session $id')),
+        ],
+      );
+      await store.noteSessionContext('x-1', id);
+      return id;
+    }))!;
+    addTearDown(() async {
+      mine.dispose();
+      store.dispose();
+      await db.close();
+    });
+
+    final first = _first.copyWith(trackId: 'x-1', title: 'Session x-1');
+    final player = _FakePlayer(first);
+    await tester.pumpWidget(
+      _player(
+        player: player,
+        prefs: _prefsWith(_autoplay),
+        overrides: [
+          libraryStoreProvider.overrideWithValue(store),
+          myCourseSourceProvider.overrideWithValue(mine),
+          contentSourcesProvider.overrideWithValue([local, mine]),
+          tracksProvider(trackId: 'x-3').overrideWith(_LocalNextTrack.new),
+        ],
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    final audio = ProviderScope.containerOf(
+      tester.element(find.byType(PlayerView)),
+    ).read(audioStateProvider.notifier);
+    audio.updatePlaybackState(
+      _state(
+        completed: false,
+        positionMs: 1000,
+        durationMs: 60000,
+        playing: true,
+      ),
+    );
+    await tester.pump();
+    audio.updatePlaybackState(
+      _state(completed: true, positionMs: 60000, durationMs: 60000),
+    );
+    for (var i = 0; i < 8; i++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+
+    // x-2 is gone at its source, so x-3 is next.
+    expect(player.played.map((r) => r.trackId), ['x-1', 'x-3']);
+    expect(find.byType(EndScreenView), findsNothing);
+    // The next session counts towards the same course.
+    expect(await tester.runAsync(() => store.sessionContext('x-3')), courseId);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 4));

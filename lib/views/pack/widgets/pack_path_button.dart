@@ -225,10 +225,10 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
     if (_starting) return;
     setState(() => _starting = true);
     try {
-      // A session several courses list counts towards this one.
-      unawaited(
-        ref.read(libraryStoreProvider).noteSessionContext(next.id, pack.id),
-      );
+      // A session several courses list counts towards this one. Written
+      // before the session starts, which reads it for its cue scope.
+      await ref.read(libraryStoreProvider).noteSessionContext(next.id, pack.id);
+      if (!context.mounted) return;
       await widget.onStartSession(
         context,
         ref,
