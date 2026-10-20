@@ -240,6 +240,75 @@ class PauseFade {
   }
 }
 
+/// A fade in [steps] equal steps of [stepTime], one one-shot timer at a
+/// time. Paused, it arms no timer at all (a pause can last ten minutes with
+/// the screen off), and resuming runs the steps left. Kept apart from
+/// SoLoud so its timing can be tested.
+class SteppedFade {
+  SteppedFade({
+    required this.steps,
+    required this.stepTime,
+    required this.onStep,
+    required this.onDone,
+  });
+
+  final int steps;
+  final Duration stepTime;
+
+  /// Called after each step with the progress, 1/steps … 1.
+  final void Function(double t) onStep;
+  final void Function() onDone;
+
+  int _step = 0;
+  Timer? _timer;
+  bool _paused = false;
+  bool _over = false;
+
+  /// Whether a timer is armed (for tests: none while paused).
+  bool get ticking => _timer != null;
+
+  bool get done => _over;
+
+  /// Starts stepping, unless [pause]d first.
+  void start() {
+    if (!_paused) _arm();
+  }
+
+  void pause() {
+    _paused = true;
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  void resume() {
+    if (!_paused) return;
+    _paused = false;
+    _arm();
+  }
+
+  void cancel() {
+    _over = true;
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  void _arm() {
+    if (_over || _timer != null) return;
+    _timer = Timer(stepTime, () {
+      _timer = null;
+      if (_over) return;
+      _step++;
+      onStep(_step / steps);
+      if (_step >= steps) {
+        _over = true;
+        onDone();
+      } else if (!_paused) {
+        _arm();
+      }
+    });
+  }
+}
+
 /// [SoundscapeEngine] on flutter_soloud (SoLoud + miniaudio), 4.1.7.
 ///
 /// Recordings load with [LoadMode.memory]: decoded once into RAM, they loop
@@ -328,7 +397,7 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
     try {
       await _ensureReady();
       await stop(key, fade: Duration.zero);
-      final layer = _Layer(key, source, await _open(source), gain, motion);
+      final layer = _Layer(source, await _open(source), gain, motion);
       _layers[key] = layer;
       _applyLayer(layer, fade: _fadeIn);
       return true;
@@ -544,32 +613,37 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
       v.timer?.cancel();
       v.timer = null;
     }
-    var step = 0;
-    layer.crossfade = Timer.periodic(stepTime, (timer) {
-      if (_paused) return; // the voices' clocks are stopped too
-      if (!identical(_layers[layer.key], layer)) {
-        timer.cancel(); // stopped: stop() took the old voices
-        return;
-      }
-      step++;
-      final t = step / steps;
-      final fadeIn = math.sin(t * math.pi / 2);
-      final fadeOut = math.cos(t * math.pi / 2);
-      for (var i = 0; i < outgoing.length; i++) {
-        _soloud.fadeVolume(outgoing[i].handle, from[i] * fadeOut, stepTime);
-      }
-      for (final v in layer.voices) {
-        _soloud.fadeVolume(v.handle, layer.gain * v.weight * fadeIn, stepTime);
-      }
-      if (step >= steps) {
-        timer.cancel();
+    late final SteppedFade fade;
+    fade = SteppedFade(
+      steps: steps,
+      stepTime: stepTime,
+      onStep: (t) {
+        final fadeIn = math.sin(t * math.pi / 2);
+        final fadeOut = math.cos(t * math.pi / 2);
+        for (var i = 0; i < outgoing.length; i++) {
+          _soloud.fadeVolume(outgoing[i].handle, from[i] * fadeOut, stepTime);
+        }
+        for (final v in layer.voices) {
+          _soloud.fadeVolume(
+            v.handle,
+            layer.gain * v.weight * fadeIn,
+            stepTime,
+          );
+        }
+      },
+      onDone: () {
+        if (!identical(layer.crossfade, fade)) return;
         layer
           ..crossfade = null
           ..outgoing = const [];
         _applyLayer(layer, fade: _retune);
         unawaited(_release(outgoing, stepTime));
-      }
-    });
+      },
+    );
+    layer.crossfade = fade;
+    // The voices' clocks stop while paused, and so do the steps.
+    if (_paused) fade.pause();
+    fade.start();
   }
 
   void _applyLayer(_Layer layer, {required Duration fade}) {
@@ -678,13 +752,23 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
           _available &&
           _soloud.isInitialized;
       _pause.pause(fade: audible);
+      // No crossfade step (no timer) runs while paused.
+      for (final layer in _layers.values) {
+        layer.crossfade?.pause();
+      }
       return;
     }
     _pause.resume(_master);
     // Drift and swell hand-overs were held while paused. A layer still
-    // crossfading takes them up when its crossfade ends.
+    // crossfading carries on with its remaining steps, and takes them up
+    // when its crossfade ends.
     for (final layer in [..._layers.values]) {
-      if (layer.crossfade == null) _applyLayer(layer, fade: _retune);
+      final crossfade = layer.crossfade;
+      if (crossfade == null) {
+        _applyLayer(layer, fade: _retune);
+      } else {
+        crossfade.resume();
+      }
     }
   }
 
@@ -755,16 +839,15 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
 }
 
 class _Layer {
-  _Layer(this.key, this.source, this.voices, this.gain, this.motion);
+  _Layer(this.source, this.voices, this.gain, this.motion);
 
-  final String key;
   LayerSource source;
   List<_Voice> voices;
   double gain;
   LayerMotion? motion;
 
   /// A noise retune's crossfade under way, and the voices it fades out.
-  Timer? crossfade;
+  SteppedFade? crossfade;
   List<_Voice> outgoing = const [];
 }
 
