@@ -140,6 +140,12 @@
             </intent-filter>
         </service>
 
+        <!-- Keeps the Sounds mixer alive with the screen off outside a session. -->
+        <service
+            android:name="meditofoundation.medito.SoundscapeService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="false" />
+
         <service
             android:name="com.dexterous.flutterlocalnotifications.ForegroundService"
             android:exported="false"

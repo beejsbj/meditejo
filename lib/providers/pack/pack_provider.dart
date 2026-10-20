@@ -1,5 +1,7 @@
 import 'package:medito/constants/constants.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/library/library_providers.dart';
+import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/repositories/repositories.dart';
@@ -55,6 +57,8 @@ Set<String> completedPackIds(Ref ref) {
 Future<PackModel> packData(Ref ref, {required String packId}) {
   if (packId.startsWith('yt-playlist-')) {
     ref.watch(youtubeContentRevisionProvider);
+  } else if (packId.startsWith(dharmaSeedPrefix)) {
+    ref.watch(dharmaSeedRevisionProvider);
   }
   if (packId.startsWith(myPrefix)) ref.watch(myCoursesRevisionProvider);
   return ref.read(packRepositoryProvider).fetchPacks(packId);

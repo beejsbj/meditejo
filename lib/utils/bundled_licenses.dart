@@ -7,6 +7,12 @@ const bundledLicensesDir = 'assets/licenses';
 const bundledLicensesManifest =
     '$bundledLicensesDir/newpipe-runtime-dependencies.json';
 
+/// Native code inside flutter_soloud (the Sounds mixer): SoLoud, miniaudio,
+/// the Xiph codecs and the rest. Kept apart from the NewPipe manifest, whose
+/// inventory CI checks against the extractor's POM closure.
+const audioEngineLicensesManifest =
+    '$bundledLicensesDir/soloud-native-components.json';
+
 /// One third-party component whose licence notice ships with the app.
 class BundledLicense {
   const BundledLicense({
@@ -58,9 +64,10 @@ class BundledLicense {
 }
 
 Future<List<BundledLicense>> loadBundledLicenses(
-  Future<String> Function(String path) load,
-) async {
-  final manifest = jsonDecode(await load(bundledLicensesManifest));
+  Future<String> Function(String path) load, {
+  String manifestPath = bundledLicensesManifest,
+}) async {
+  final manifest = jsonDecode(await load(manifestPath));
   return [
     for (final c in (manifest as Map<String, dynamic>)['components'] as List)
       BundledLicense.fromJson(c as Map<String, dynamic>),
@@ -69,10 +76,16 @@ Future<List<BundledLicense>> loadBundledLicenses(
 
 /// Adds the licence of every bundled NewPipeExtractor runtime dependency to
 /// the in-app licences page (Flutter's [LicenseRegistry]).
-void registerBundledLicenses({Future<String> Function(String path)? load}) {
+void registerBundledLicenses({
+  Future<String> Function(String path)? load,
+  String manifestPath = bundledLicensesManifest,
+}) {
   final loader = load ?? rootBundle.loadString;
   LicenseRegistry.addLicense(() async* {
-    for (final license in await loadBundledLicenses(loader)) {
+    for (final license in await loadBundledLicenses(
+      loader,
+      manifestPath: manifestPath,
+    )) {
       final body = StringBuffer(license.header());
       for (final text in license.texts) {
         body

@@ -2167,6 +2167,217 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Zahlen sind Rückmeldung, keine Bewertung.';
 
   @override
+  String get soundsYourMix => 'Dein Mix';
+
+  @override
+  String get soundsEmptyMix =>
+      'Tippe unten auf ein Geräusch, um einen Mix zu beginnen.';
+
+  @override
+  String soundsLayerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Geräusche',
+      one: '1 Geräusch',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get soundsPlay => 'Abspielen';
+
+  @override
+  String get soundsPause => 'Pausieren';
+
+  @override
+  String get soundsStop => 'Stopp';
+
+  @override
+  String soundsRemove(String sound) {
+    return '$sound entfernen';
+  }
+
+  @override
+  String get soundsDrift => 'Wandern';
+
+  @override
+  String get soundsDriftHint =>
+      'Die Lautstärke langsam an- und abschwellen lassen';
+
+  @override
+  String get soundsPresets => 'Voreinstellungen';
+
+  @override
+  String get soundsSavePreset => 'Mix speichern';
+
+  @override
+  String get soundsPresetName => 'Name der Voreinstellung';
+
+  @override
+  String soundsPresetSaved(String name) {
+    return '„$name“ gespeichert';
+  }
+
+  @override
+  String soundsDeletePreset(String name) {
+    return '„$name“ löschen?';
+  }
+
+  @override
+  String get soundsDelete => 'Löschen';
+
+  @override
+  String get soundsCancel => 'Abbrechen';
+
+  @override
+  String get soundsSave => 'Speichern';
+
+  @override
+  String soundsLayerLimit(int count) {
+    return 'Ein Mix fasst bis zu $count Geräusche';
+  }
+
+  @override
+  String get soundsCouldNotPlay =>
+      'Dieses Geräusch konnte nicht abgespielt werden';
+
+  @override
+  String get soundsUnderSessions => 'Während Sitzungen';
+
+  @override
+  String get soundsUnderPractice => 'Bei Übungen abspielen';
+
+  @override
+  String get soundsUnderTalks => 'Bei Vorträgen abspielen';
+
+  @override
+  String get soundsUnderSessionsHint =>
+      'Dein Mix läuft unter der Sitzung, mit eigener Lautstärke';
+
+  @override
+  String get soundsCredits => 'Geräusch-Nachweise';
+
+  @override
+  String get soundsNotificationText => 'Dein Mix läuft';
+
+  @override
+  String get soundCategoryRain => 'Regen';
+
+  @override
+  String get soundCategoryWater => 'Wasser';
+
+  @override
+  String get soundCategoryWind => 'Wind';
+
+  @override
+  String get soundCategoryForest => 'Wald und Vögel';
+
+  @override
+  String get soundCategoryFire => 'Feuer';
+
+  @override
+  String get soundCategoryRoom => 'Räume und Stadt';
+
+  @override
+  String get soundCategoryNight => 'Nacht';
+
+  @override
+  String get soundPresetRainForest => 'Regen im Wald';
+
+  @override
+  String get soundPresetNight => 'Nacht';
+
+  @override
+  String get soundPresetHearth => 'Kamin';
+
+  @override
+  String get soundPresetShore => 'Ufer';
+
+  @override
+  String get soundCreditsIntro =>
+      'Diese Aufnahmen werden von ihren Urhebern unter eigenen Lizenzen geteilt, nicht unter der AGPL der App. Jede wurde für Meditejo zu einer Schleife geschnitten, überblendet, angeglichen und neu kodiert.';
+
+  @override
+  String soundCreditsBy(String original, String author) {
+    return '„$original“ von $author';
+  }
+
+  @override
+  String soundCreditsChanges(String changes) {
+    return 'Änderungen: $changes';
+  }
+
+  @override
+  String get soundCreditsAttributionRequired => 'Namensnennung erforderlich';
+
+  @override
+  String get soundCategoryGenerated => 'Erzeugt';
+
+  @override
+  String get synthNoise => 'Rauschen';
+
+  @override
+  String get synthDrone => 'Drone';
+
+  @override
+  String get synthBinaural => 'Binaurale Beats';
+
+  @override
+  String synthAdjust(String sound) {
+    return '$sound anpassen';
+  }
+
+  @override
+  String get noiseColour => 'Farbe';
+
+  @override
+  String get noiseWhite => 'Weiß';
+
+  @override
+  String get noisePink => 'Rosa';
+
+  @override
+  String get noiseBrown => 'Braun';
+
+  @override
+  String get noiseBands => 'Bänder';
+
+  @override
+  String get noiseReset => 'Bänder zurücksetzen';
+
+  @override
+  String get droneRoot => 'Grundton';
+
+  @override
+  String get droneTimbre => 'Klangfarbe';
+
+  @override
+  String get dronePure => 'Rein';
+
+  @override
+  String get droneWarm => 'Warm';
+
+  @override
+  String get droneBright => 'Hell';
+
+  @override
+  String get droneMovement => 'Bewegung';
+
+  @override
+  String get binauralCarrier => 'Ton';
+
+  @override
+  String get binauralBeat => 'Schwebung';
+
+  @override
+  String get binauralHeadphones =>
+      'Binaurale Beats brauchen Kopfhörer: Jedes Ohr hört seinen eigenen Ton.';
+
+  @override
+  String get soundPresetStillness => 'Stille';
+
+  @override
   String get myCourseNew => 'Neuer Kurs';
 
   @override

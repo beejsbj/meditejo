@@ -6,7 +6,10 @@ import IntentsUI
 
 @main
 class AppDelegate: FlutterAppDelegate {
-    
+
+    /// `meditejo/cues`: the cue scheduler and listening tracker (CueScheduler.swift).
+    private var cueChannel: CueChannel?
+
     override func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -59,6 +62,8 @@ class AppDelegate: FlutterAppDelegate {
     /// Called from SceneDelegate once the scene (and its FlutterViewController) is attached,
     /// because `self.window` is nil on the AppDelegate when using a UIScene lifecycle.
     func registerMethodChannels(with controller: FlutterViewController) {
+        cueChannel = CueChannel(messenger: controller.binaryMessenger)
+
         // Siri channel
         let siriChannel = FlutterMethodChannel(
             name: "com.medito.app/siri",

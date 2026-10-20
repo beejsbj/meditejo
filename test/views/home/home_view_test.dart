@@ -203,31 +203,36 @@ void main() {
   testWidgets(
     'desktop Customize toggles and reorders without overlapping controls',
     (tester) async {
+      // Reset inside the body: addTearDown runs after Flutter's invariant
+      // check, which fails the test if the override is still set.
       debugDefaultTargetPlatformOverride = TargetPlatform.linux;
-      addTearDown(() => debugDefaultTargetPlatformOverride = null);
-      final app = await LibraryTestApp.create(tester);
-      await app.pump(tester, const CustomiseHomeLayoutScreen());
-      final toggle = find.byKey(const ValueKey('home_section_quickLinks'));
-      await tester.tap(toggle);
-      await settle(tester);
-      expect(tester.widget<Switch>(toggle).value, isFalse);
-      final handle = find.byType(ReorderableDragStartListener).first;
-      final destination = tester.getCenter(
-        find.byKey(const ValueKey('pinned')),
-      );
-      final gesture = await tester.startGesture(tester.getCenter(handle));
-      await gesture.moveBy(const Offset(0, 10));
-      await tester.pump(const Duration(milliseconds: 200));
-      await gesture.moveTo(destination + const Offset(0, 90));
-      await tester.pump(const Duration(milliseconds: 200));
-      await gesture.up();
-      await settle(tester);
-      expect(
-        app.prefs
-            .getStringList(SharedPreferenceConstants.homeWidgetOrder)
-            ?.last,
-        'upNext',
-      );
+      try {
+        final app = await LibraryTestApp.create(tester);
+        await app.pump(tester, const CustomiseHomeLayoutScreen());
+        final toggle = find.byKey(const ValueKey('home_section_quickLinks'));
+        await tester.tap(toggle);
+        await settle(tester);
+        expect(tester.widget<Switch>(toggle).value, isFalse);
+        final handle = find.byType(ReorderableDragStartListener).first;
+        final destination = tester.getCenter(
+          find.byKey(const ValueKey('pinned')),
+        );
+        final gesture = await tester.startGesture(tester.getCenter(handle));
+        await gesture.moveBy(const Offset(0, 10));
+        await tester.pump(const Duration(milliseconds: 200));
+        await gesture.moveTo(destination + const Offset(0, 90));
+        await tester.pump(const Duration(milliseconds: 200));
+        await gesture.up();
+        await settle(tester);
+        expect(
+          app.prefs
+              .getStringList(SharedPreferenceConstants.homeWidgetOrder)
+              ?.last,
+          'upNext',
+        );
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
     },
   );
 

@@ -63,6 +63,7 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
       trackId: item.id,
       path: item.path,
       title: item.title,
+      subtitle: item.subtitle ?? '',
       group: entry?.group ?? LibraryGroup.practice,
       lastPlayed:
           lastPlayed ??
@@ -111,6 +112,7 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
           trackId: place.trackId,
           path: '/tracks/${place.trackId}',
           title: own?.displayTitle ?? track.title,
+          subtitle: track.subtitle ?? '',
           group: group,
           lastPlayed: place.updatedAt,
           courseId: parentId,

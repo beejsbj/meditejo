@@ -15,7 +15,7 @@ publish_to: none
 # Just build Android APK (used by the script above):
 # ./build_apk.sh
 
-version: 0.1.1+26101901
+version: 0.1.2+26101902
 
 environment:
   sdk: "^3.8.0"
@@ -71,6 +71,7 @@ dependencies:
   file_picker: ^11.0.3
   path: ^1.9.1
   sqlite3: ^2.9.4
+  flutter_soloud: 4.1.7
 
 dev_dependencies:
   flutter_test:
@@ -94,6 +95,7 @@ flutter:
   assets:
     - assets/licenses/
     - assets/audio/
+    - assets/sounds/
     - assets/dharma_seed/
     - assets/
     - assets/images/

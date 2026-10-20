@@ -3826,6 +3826,372 @@ abstract class AppLocalizations {
   /// **'These numbers are feedback, not a score.'**
   String get statsFeedbackNote;
 
+  /// Sounds screen: soundsYourMix
+  ///
+  /// In en, this message translates to:
+  /// **'Your mix'**
+  String get soundsYourMix;
+
+  /// Sounds screen: soundsEmptyMix
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a sound below to start a mix.'**
+  String get soundsEmptyMix;
+
+  /// Sounds screen: soundsLayerCount
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 sound} other{{count} sounds}}'**
+  String soundsLayerCount(int count);
+
+  /// Sounds screen: soundsPlay
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get soundsPlay;
+
+  /// Sounds screen: soundsPause
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get soundsPause;
+
+  /// Sounds screen: soundsStop
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get soundsStop;
+
+  /// Sounds screen: soundsRemove
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {sound}'**
+  String soundsRemove(String sound);
+
+  /// Sounds screen: soundsDrift
+  ///
+  /// In en, this message translates to:
+  /// **'Drift'**
+  String get soundsDrift;
+
+  /// Sounds screen: soundsDriftHint
+  ///
+  /// In en, this message translates to:
+  /// **'Let the level rise and fall slowly'**
+  String get soundsDriftHint;
+
+  /// Sounds screen: soundsPresets
+  ///
+  /// In en, this message translates to:
+  /// **'Presets'**
+  String get soundsPresets;
+
+  /// Sounds screen: soundsSavePreset
+  ///
+  /// In en, this message translates to:
+  /// **'Save mix'**
+  String get soundsSavePreset;
+
+  /// Sounds screen: soundsPresetName
+  ///
+  /// In en, this message translates to:
+  /// **'Preset name'**
+  String get soundsPresetName;
+
+  /// Sounds screen: soundsPresetSaved
+  ///
+  /// In en, this message translates to:
+  /// **'Saved “{name}”'**
+  String soundsPresetSaved(String name);
+
+  /// Sounds screen: soundsDeletePreset
+  ///
+  /// In en, this message translates to:
+  /// **'Delete “{name}”?'**
+  String soundsDeletePreset(String name);
+
+  /// Sounds screen: soundsDelete
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get soundsDelete;
+
+  /// Sounds screen: soundsCancel
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get soundsCancel;
+
+  /// Sounds screen: soundsSave
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get soundsSave;
+
+  /// Sounds screen: soundsLayerLimit
+  ///
+  /// In en, this message translates to:
+  /// **'A mix holds up to {count} sounds'**
+  String soundsLayerLimit(int count);
+
+  /// Sounds screen: soundsCouldNotPlay
+  ///
+  /// In en, this message translates to:
+  /// **'This sound could not be played'**
+  String get soundsCouldNotPlay;
+
+  /// Sounds screen: soundsUnderSessions
+  ///
+  /// In en, this message translates to:
+  /// **'Under sessions'**
+  String get soundsUnderSessions;
+
+  /// Sounds screen: soundsUnderPractice
+  ///
+  /// In en, this message translates to:
+  /// **'Play under practice'**
+  String get soundsUnderPractice;
+
+  /// Sounds screen: soundsUnderTalks
+  ///
+  /// In en, this message translates to:
+  /// **'Play under talks'**
+  String get soundsUnderTalks;
+
+  /// Sounds screen: soundsUnderSessionsHint
+  ///
+  /// In en, this message translates to:
+  /// **'Your mix plays beneath the session, at its own volume'**
+  String get soundsUnderSessionsHint;
+
+  /// Sounds screen: soundsCredits
+  ///
+  /// In en, this message translates to:
+  /// **'Sound credits'**
+  String get soundsCredits;
+
+  /// Sounds screen: soundsNotificationText
+  ///
+  /// In en, this message translates to:
+  /// **'Playing your mix'**
+  String get soundsNotificationText;
+
+  /// Sounds screen: soundCategoryRain
+  ///
+  /// In en, this message translates to:
+  /// **'Rain'**
+  String get soundCategoryRain;
+
+  /// Sounds screen: soundCategoryWater
+  ///
+  /// In en, this message translates to:
+  /// **'Water'**
+  String get soundCategoryWater;
+
+  /// Sounds screen: soundCategoryWind
+  ///
+  /// In en, this message translates to:
+  /// **'Wind'**
+  String get soundCategoryWind;
+
+  /// Sounds screen: soundCategoryForest
+  ///
+  /// In en, this message translates to:
+  /// **'Forest and birds'**
+  String get soundCategoryForest;
+
+  /// Sounds screen: soundCategoryFire
+  ///
+  /// In en, this message translates to:
+  /// **'Fire'**
+  String get soundCategoryFire;
+
+  /// Sounds screen: soundCategoryRoom
+  ///
+  /// In en, this message translates to:
+  /// **'Rooms and city'**
+  String get soundCategoryRoom;
+
+  /// Sounds screen: soundCategoryNight
+  ///
+  /// In en, this message translates to:
+  /// **'Night'**
+  String get soundCategoryNight;
+
+  /// Sounds screen: soundPresetRainForest
+  ///
+  /// In en, this message translates to:
+  /// **'Rain on the forest'**
+  String get soundPresetRainForest;
+
+  /// Sounds screen: soundPresetNight
+  ///
+  /// In en, this message translates to:
+  /// **'Night'**
+  String get soundPresetNight;
+
+  /// Sounds screen: soundPresetHearth
+  ///
+  /// In en, this message translates to:
+  /// **'Hearth'**
+  String get soundPresetHearth;
+
+  /// Sounds screen: soundPresetShore
+  ///
+  /// In en, this message translates to:
+  /// **'Shore'**
+  String get soundPresetShore;
+
+  /// Sounds screen: soundCreditsIntro
+  ///
+  /// In en, this message translates to:
+  /// **'These recordings are shared by their authors under their own licences, not the app’s AGPL. Each was cut to a loop, crossfaded, levelled and re-encoded for Meditejo.'**
+  String get soundCreditsIntro;
+
+  /// Sounds screen: soundCreditsBy
+  ///
+  /// In en, this message translates to:
+  /// **'“{original}” by {author}'**
+  String soundCreditsBy(String original, String author);
+
+  /// Sounds screen: soundCreditsChanges
+  ///
+  /// In en, this message translates to:
+  /// **'Changes: {changes}'**
+  String soundCreditsChanges(String changes);
+
+  /// Sounds screen: soundCreditsAttributionRequired
+  ///
+  /// In en, this message translates to:
+  /// **'Attribution required'**
+  String get soundCreditsAttributionRequired;
+
+  /// Sounds screen, generated layers: soundCategoryGenerated
+  ///
+  /// In en, this message translates to:
+  /// **'Generated'**
+  String get soundCategoryGenerated;
+
+  /// Sounds screen, generated layers: synthNoise
+  ///
+  /// In en, this message translates to:
+  /// **'Noise'**
+  String get synthNoise;
+
+  /// Sounds screen, generated layers: synthDrone
+  ///
+  /// In en, this message translates to:
+  /// **'Drone'**
+  String get synthDrone;
+
+  /// Sounds screen, generated layers: synthBinaural
+  ///
+  /// In en, this message translates to:
+  /// **'Binaural beats'**
+  String get synthBinaural;
+
+  /// Sounds screen, generated layers: synthAdjust
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust {sound}'**
+  String synthAdjust(String sound);
+
+  /// Sounds screen, generated layers: noiseColour
+  ///
+  /// In en, this message translates to:
+  /// **'Colour'**
+  String get noiseColour;
+
+  /// Sounds screen, generated layers: noiseWhite
+  ///
+  /// In en, this message translates to:
+  /// **'White'**
+  String get noiseWhite;
+
+  /// Sounds screen, generated layers: noisePink
+  ///
+  /// In en, this message translates to:
+  /// **'Pink'**
+  String get noisePink;
+
+  /// Sounds screen, generated layers: noiseBrown
+  ///
+  /// In en, this message translates to:
+  /// **'Brown'**
+  String get noiseBrown;
+
+  /// Sounds screen, generated layers: noiseBands
+  ///
+  /// In en, this message translates to:
+  /// **'Bands'**
+  String get noiseBands;
+
+  /// Sounds screen, generated layers: noiseReset
+  ///
+  /// In en, this message translates to:
+  /// **'Reset bands'**
+  String get noiseReset;
+
+  /// Sounds screen, generated layers: droneRoot
+  ///
+  /// In en, this message translates to:
+  /// **'Root'**
+  String get droneRoot;
+
+  /// Sounds screen, generated layers: droneTimbre
+  ///
+  /// In en, this message translates to:
+  /// **'Timbre'**
+  String get droneTimbre;
+
+  /// Sounds screen, generated layers: dronePure
+  ///
+  /// In en, this message translates to:
+  /// **'Pure'**
+  String get dronePure;
+
+  /// Sounds screen, generated layers: droneWarm
+  ///
+  /// In en, this message translates to:
+  /// **'Warm'**
+  String get droneWarm;
+
+  /// Sounds screen, generated layers: droneBright
+  ///
+  /// In en, this message translates to:
+  /// **'Bright'**
+  String get droneBright;
+
+  /// Sounds screen, generated layers: droneMovement
+  ///
+  /// In en, this message translates to:
+  /// **'Movement'**
+  String get droneMovement;
+
+  /// Sounds screen, generated layers: binauralCarrier
+  ///
+  /// In en, this message translates to:
+  /// **'Tone'**
+  String get binauralCarrier;
+
+  /// Sounds screen, generated layers: binauralBeat
+  ///
+  /// In en, this message translates to:
+  /// **'Beat'**
+  String get binauralBeat;
+
+  /// Sounds screen, generated layers: binauralHeadphones
+  ///
+  /// In en, this message translates to:
+  /// **'Binaural beats need headphones: each ear hears its own tone.'**
+  String get binauralHeadphones;
+
+  /// Sounds screen, generated layers: soundPresetStillness
+  ///
+  /// In en, this message translates to:
+  /// **'Stillness'**
+  String get soundPresetStillness;
+
   /// Action that makes a personal course
   ///
   /// In en, this message translates to:
