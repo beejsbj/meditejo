@@ -24,7 +24,6 @@ import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
 import 'package:medito/services/content/content_source.dart';
-import 'package:medito/services/library/library_store.dart';
 import 'package:medito/services/review_service.dart';
 import 'package:medito/src/audio_pigeon.g.dart' hide Track;
 import 'package:medito/src/audio_pigeon.g.dart' as pigeon show Track;
@@ -35,6 +34,7 @@ import 'package:medito/views/player/widgets/bottom_actions/widgets/bg_sound_widg
 import 'package:medito/views/previews/preview_support.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../helpers/memory_session_store.dart';
 import '../../helpers/soundscape_fakes.dart';
 
 PlaybackState _state({
@@ -267,24 +267,8 @@ final _courseOverrides = [
   ),
   contentSourcesProvider.overrideWithValue([_Course()]),
   tracksProvider(trackId: 'fake-b').overrideWith(_NextTrack.new),
-  libraryStoreProvider.overrideWithValue(_MemoryStore()),
+  libraryStoreProvider.overrideWithValue(MemorySessionStore()),
 ];
-
-/// The session contexts a player writes, kept in memory: a real database
-/// would never answer inside the test's fake-async zone.
-class _MemoryStore implements LibraryStore {
-  final contexts = <String, String>{};
-
-  @override
-  Future<void> noteSessionContext(String trackId, String courseId) async =>
-      contexts[trackId] = courseId;
-
-  @override
-  Future<String?> sessionContext(String trackId) async => contexts[trackId];
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
 
 const _autoplay = CueSettings(autoplay: true, interludeSeconds: 5);
 
@@ -498,7 +482,7 @@ void main() {
 
   testWidgets('autoplay follows the personal course the session was opened '
       'from, past a session its source lost', (tester) async {
-    final store = _MemoryStore();
+    final store = MemorySessionStore();
     final player = _FakePlayer(_first);
     await tester.pumpWidget(
       _player(

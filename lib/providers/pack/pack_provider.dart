@@ -62,9 +62,10 @@ Future<PackModel> packData(Ref ref, {required String packId}) {
   }
   if (packId.startsWith(myPrefix)) {
     // A personal course lists sessions of every source: one removed from the
-    // library, or gone from its feed, must not stay playable here.
+    // library, or gone from its feed, must not stay playable here. Library
+    // entries by identity: playing a session must not re-read every course.
     ref.watch(myCoursesRevisionProvider);
-    ref.watch(libraryRevisionProvider);
+    ref.watch(libraryEntryIdsProvider);
     ref.watch(youtubeContentRevisionProvider);
     ref.watch(dharmaSeedRevisionProvider);
   }

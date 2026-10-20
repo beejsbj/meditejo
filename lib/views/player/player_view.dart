@@ -526,8 +526,8 @@ class _PlayerViewState extends ConsumerState<PlayerView>
     _autoplayPending = true;
     if (mounted) setState(() {});
     try {
-      // The course as its page shows it (read once and kept), so a personal
-      // course does not re-read every session from its source here.
+      // The course as its page shows it (kept until its sources change), so a
+      // personal course does not re-read every session from its source here.
       final courseId = scope!.courseId!;
       final pack = await ref.read(packDataProvider(packId: courseId).future);
       // The listener may have left, or started another session, meanwhile:

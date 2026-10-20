@@ -1,5 +1,6 @@
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/exceptions/app_error.dart';
+import 'package:medito/utils/logger.dart';
 import 'package:medito/utils/youtube_error_message.dart';
 import 'package:medito/views/pack/widgets/youtube_playlist_empty.dart';
 
@@ -685,9 +686,8 @@ class _PackViewState extends ConsumerState<PackView>
   }
 
   Widget _markAllButton(PackModel pack) {
-    final trackItems = pack.items
-        .where((item) => item.type == TypeConstants.track)
-        .toList();
+    // What Mark all changes: a session its source lost is not one of them.
+    final trackItems = pack.playableTracks;
     if (trackItems.isEmpty) return const SizedBox.shrink();
 
     final l10n = AppLocalizations.of(context)!;
@@ -725,13 +725,22 @@ class _PackViewState extends ConsumerState<PackView>
     );
   }
 
-  void _onListItemTap(String id, String type, BuildContext context) {
+  Future<void> _onListItemTap(
+    String id,
+    String type,
+    BuildContext context,
+  ) async {
     if (type == TypeConstants.track) {
       // A session several courses list counts towards the one it was opened
-      // from.
-      ref.read(libraryStoreProvider).noteSessionContext(id, widget.id);
+      // from. Written first: the player reads it for its cue scope.
+      try {
+        await ref.read(libraryStoreProvider).noteSessionContext(id, widget.id);
+      } catch (e, st) {
+        AppLogger.e('PACK', 'Could not note the course of a session', e, st);
+      }
+      if (!context.mounted) return;
     }
-    handleNavigation(type, [id], context, ref: ref);
+    await handleNavigation(type, [id], context, ref: ref);
   }
 
   @override

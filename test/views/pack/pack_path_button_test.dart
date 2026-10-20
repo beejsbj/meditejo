@@ -5,11 +5,14 @@ import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/scaffold_messenger_key.dart';
 import 'package:medito/views/pack/widgets/pack_path_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers/memory_session_store.dart';
 
 class _FakePack extends Pack {
   _FakePack(this.model);
@@ -40,6 +43,7 @@ void main() {
   late SharedPreferences prefs;
   late AppLocalizations l10n;
   late List<String> started;
+  late MemorySessionStore store;
 
   final sleep = _pack('sleep', 'Sleep', tracks: 7, done: 3);
 
@@ -48,6 +52,7 @@ void main() {
     prefs = await SharedPreferences.getInstance();
     l10n = await AppLocalizations.delegate.load(const Locale('en'));
     started = [];
+    store = MemorySessionStore();
   });
 
   Future<void> fakeStart(
@@ -67,6 +72,7 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          libraryStoreProvider.overrideWithValue(store),
           for (final p in packs)
             packProvider(packId: p.id).overrideWith(() => _FakePack(p)),
         ],
@@ -116,8 +122,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(started, ['sleep-3']);
+    // The session counts towards the course it was started from, written
+    // before it starts.
+    expect(store.contexts, {'sleep-3': 'sleep'});
     // Home follows what is played; pinning is its own, deliberate action.
-    expect(prefs.getStringList(SharedPreferenceConstants.pinnedCourseIds), isNull);
+    expect(
+      prefs.getStringList(SharedPreferenceConstants.pinnedCourseIds),
+      isNull,
+    );
     expect(find.byType(SnackBar), findsNothing);
   });
 

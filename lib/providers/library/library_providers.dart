@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
+import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/services/library/feed_refresher.dart';
 import 'package:medito/services/library/import_http.dart';
 import 'package:medito/services/library/import_service.dart';
@@ -192,6 +193,13 @@ final playbackPositionsRevisionProvider =
       ),
     );
 
+/// Which entries the library holds, and nothing about them: it changes when
+/// one is added or removed, not when one is played or renamed.
+final libraryEntryIdsProvider = Provider.autoDispose<String>((ref) {
+  final entries = ref.watch(libraryEntriesProvider).value ?? const [];
+  return ([for (final e in entries) e.sourceId]..sort()).join('\n');
+});
+
 /// Everything in the library, most recently added or played first.
 final libraryEntriesProvider = FutureProvider.autoDispose<List<LibraryEntry>>((
   ref,
@@ -297,10 +305,17 @@ final playbackPositionTrackerProvider = Provider<PlaybackPositionTracker>((
   final store = ref.watch(libraryStoreProvider);
   return PlaybackPositionTracker(
     store,
-    // The course the session was opened from, and the one its source names.
-    parentsOf: (trackId) async => {
-      ?await store.sessionContext(trackId),
-      ?await router.parentOf(trackId),
+    // The personal course the session was opened from, while it still lists
+    // it; else the course its source names.
+    parentsOf: (trackId) async {
+      final opened = await store.sessionContext(trackId);
+      if (opened != null &&
+          isMyCourseId(opened) &&
+          (await ref.read(myCourseSourceProvider).coursesHolding(trackId))
+              .contains(opened)) {
+        return {opened};
+      }
+      return {?await router.parentOf(trackId)};
     },
     ignore: (id) => id == kLegacyTimerTrackId || isTimerSessionId(id),
   );

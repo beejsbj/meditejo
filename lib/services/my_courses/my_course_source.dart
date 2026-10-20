@@ -484,6 +484,17 @@ class MyCourseSource implements ContentSource {
             (r) => r.courseId.equals(courseId) & r.itemId.equals(itemId),
           ))
           .go();
+      // The artwork of the session just removed is no longer a choice.
+      final course = await _course(courseId);
+      if (course != null && course.coverUrl.isNotEmpty) {
+        final left = await (db.select(
+          db.myCourseItems,
+        )..where((r) => r.courseId.equals(courseId))).get();
+        if (!left.any((r) => r.coverUrl == course.coverUrl)) {
+          await (db.update(db.myCourses)..where((c) => c.id.equals(courseId)))
+              .write(const MyCoursesCompanion(coverUrl: Value('')));
+        }
+      }
       await _touch(courseId);
     });
     await _syncEntry(courseId);

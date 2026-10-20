@@ -6,6 +6,7 @@ import 'package:medito/constants/colors/color_constants.dart';
 import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
+import 'package:medito/utils/logger.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/views/player/start_session.dart';
 
@@ -227,7 +228,13 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
     try {
       // A session several courses list counts towards this one. Written
       // before the session starts, which reads it for its cue scope.
-      await ref.read(libraryStoreProvider).noteSessionContext(next.id, pack.id);
+      try {
+        await ref
+            .read(libraryStoreProvider)
+            .noteSessionContext(next.id, pack.id);
+      } catch (e, st) {
+        AppLogger.e('PACK', 'Could not note the course of a session', e, st);
+      }
       if (!context.mounted) return;
       await widget.onStartSession(
         context,

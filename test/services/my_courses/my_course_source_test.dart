@@ -301,6 +301,27 @@ void main() {
       expect([for (final i in (await source.pack(b)).items) i.id], ['x-1']);
     });
 
+    test('removing the session that supplied the cover resets it', () async {
+      final id = await source.create(
+        title: 'A',
+        lines: [
+          MyCourseLine.session(draft('x-1')),
+          MyCourseLine.session(draft('x-2')),
+        ],
+      );
+      final edit = (await source.edit(id))!;
+      await source.save(
+        id,
+        edit.copyWith(coverUrl: 'https://img.test/x-2.jpg'),
+      );
+
+      await source.removeItem(id, 'x-1');
+      expect((await source.edit(id))!.coverUrl, 'https://img.test/x-2.jpg');
+      await source.removeItem(id, 'x-2');
+      expect((await source.edit(id))!.coverUrl, isEmpty);
+      expect((await store.entry(id))!.coverUrl, isNot(contains('x-2')));
+    });
+
     test('renaming changes the course\'s own title', () async {
       final id = await source.create(title: 'Old');
       await source.rename(id, 'New');
