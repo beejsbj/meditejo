@@ -697,6 +697,10 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         );
         if (ok) {
           _applied[layer.soundId] = layer;
+          // As soon as the first layer plays, not after the last has loaded:
+          // loading can outlast the few seconds Android allows to start a
+          // foreground service once the screen is off.
+          if (standalone) await _holdKeepAlive(true);
         } else {
           failed.add(layer.soundId);
         }

@@ -18,6 +18,7 @@ class _Engine implements SoundscapeEngine {
   final motion = <String, LayerMotion?>{};
   final starts = <String>[];
   final failOn = <String>{};
+  final gates = <String, Completer<void>>{};
   double master = 1;
   bool paused = false;
 
@@ -29,6 +30,7 @@ class _Engine implements SoundscapeEngine {
     LayerMotion? motion,
   }) async {
     starts.add(key);
+    await gates[key]?.future;
     if (failOn.contains(key)) return false;
     playing[key] = gain;
     this.motion[key] = motion;
@@ -233,13 +235,29 @@ void main() {
       expect(st().active, isFalse);
       expect(st().playing, isFalse);
       expect(keepAlive.held, isFalse, reason: 'no notification over silence');
-    expect(keepAlive.holds, 0, reason: 'the service never started');
+      expect(keepAlive.holds, 0, reason: 'the service never started');
       // Picking a sound that plays starts again.
       ctl().toggleSound('waves');
       await settle();
       expect(st().active, isTrue);
       expect(engine.playing.keys, ['waves']);
       expect(keepAlive.held, isTrue);
+    },
+  );
+
+  test(
+    'the service is taken when the first layer plays, not the last',
+    () async {
+      engine.gates['cafe'] = Completer<void>();
+      ctl().clearMix();
+      ctl().toggleSound('waves');
+      ctl().toggleSound('cafe');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(engine.playing.keys, ['waves']);
+      expect(keepAlive.held, isTrue, reason: 'held while cafe still loads');
+      engine.gates['cafe']!.complete();
+      await settle();
+      expect(engine.playing.keys, containsAll(['waves', 'cafe']));
     },
   );
 
