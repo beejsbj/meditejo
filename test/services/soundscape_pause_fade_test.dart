@@ -41,4 +41,10 @@ void main() {
     expect(pause.paused, isFalse);
     await pause.settled;
   });
+
+  test('with nothing audible the voices pause at once', () {
+    pause.pause(fade: false);
+    expect(calls, ['pause']);
+    expect(pause.paused, isTrue);
+  });
 }

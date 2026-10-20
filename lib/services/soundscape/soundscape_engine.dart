@@ -140,9 +140,14 @@ class PauseFade {
   /// so a layer stopped meanwhile is not cut before the fade ends.
   Future<void> get settled => _fading?.future ?? Future.value();
 
-  void pause() {
+  /// With [fade] false (nothing is audible) the voices pause at once.
+  void pause({bool fade = true}) {
     if (_paused) return;
     _paused = true;
+    if (!fade) {
+      pauseVoices(true);
+      return;
+    }
     fadeMaster(0, fadeOut);
     final fading = _fading = Completer<void>();
     _timer = Timer(fadeOut, () {
@@ -369,7 +374,10 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
   void setPaused(bool paused) {
     if (_paused == paused) return;
     if (paused) {
-      _pause.pause();
+      // Nothing loaded or no engine: nothing to fade, so no timer either.
+      final audible =
+          _handles.isNotEmpty && _available && _soloud.isInitialized;
+      _pause.pause(fade: audible);
       return;
     }
     _pause.resume(_master);
