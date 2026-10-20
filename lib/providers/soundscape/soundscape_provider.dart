@@ -254,7 +254,9 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   /// library is known.
   Future<void> _dropVanishedSounds() async {
     final library = await ref.read(soundLibraryProvider.future);
-    if (!ref.mounted) return;
+    // An empty library is a failed read, not a catalogue that lost
+    // everything: keep the mix for the next launch.
+    if (!ref.mounted || library.sounds.isEmpty) return;
     final kept = state.mix.where(library.contains);
     if (kept.layers.length != state.mix.layers.length) _editMix(kept);
   }

@@ -360,6 +360,44 @@ void main() {
     expect(mix.layers.single.volume, SoundLayer.kDefaultLayerVolume);
   });
 
+  test('damaged session defaults fall back to the kind default', () {
+    final d = SoundscapeSessionDefault.fromJson({
+      'selection': 7,
+      'volume': 'loud',
+    }, SoundscapeSessionKind.practice);
+    expect(
+      d.volume,
+      SoundscapeSessionDefault.initial(SoundscapeSessionKind.practice).volume,
+    );
+    expect(d.selection, SoundscapeSelection.currentMix);
+  });
+
+  test('an unreadable library leaves the saved mix alone', () async {
+    container.dispose();
+    SharedPreferences.setMockInitialValues({
+      SoundscapeStore.mixKey: jsonEncode([
+        {'soundId': 'waves'},
+      ]),
+    });
+    prefs = await SharedPreferences.getInstance();
+    engine = _Engine();
+    keepAlive = _KeepAlive();
+    container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        soundLibraryProvider.overrideWith((ref) async => SoundLibrary.empty),
+        soundscapeEngineProvider.overrideWithValue(engine),
+        soundscapeKeepAliveProvider.overrideWithValue(keepAlive),
+        audioStateProvider.overrideWith(_Audio.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    ctl();
+    await settle();
+    expect(st().mix.layers.map((l) => l.soundId), ['waves']);
+    expect(prefs.getString(SoundscapeStore.mixKey), contains('waves'));
+  });
+
   test('a play begun in one session does not land in the next', () async {
     await ctl().startSession(SoundscapeSessionKind.practice);
     await settle();

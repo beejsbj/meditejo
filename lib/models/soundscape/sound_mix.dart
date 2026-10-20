@@ -325,11 +325,14 @@ class SoundscapeSessionDefault {
       enabled: json['enabled'] is bool
           ? json['enabled'] as bool
           : fallback.enabled,
-      selection: SoundscapeSelection.parse(json['selection'] as String?),
-      volume: ((json['volume'] as num?)?.toDouble() ?? fallback.volume).clamp(
-        0.0,
-        1.0,
+      selection: SoundscapeSelection.parse(
+        json['selection'] is String ? json['selection'] as String : null,
       ),
+      volume:
+          (json['volume'] is num
+                  ? (json['volume'] as num).toDouble()
+                  : fallback.volume)
+              .clamp(0.0, 1.0),
     );
   }
 
