@@ -1,4 +1,8 @@
+import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/services/audio/native_cue_controller.dart';
 import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart' show protected, visibleForTesting;
 import '../../services/audio/ios_session_bells.dart';
 import 'package:medito/models/models.dart' show PlaybackRequest;
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
@@ -21,6 +25,21 @@ class IosAudioHandler extends BaseAudioHandler {
   bool _isInitialized = false;
   RepeatMode _currentRepeatMode = RepeatMode.none;
   bool _hasReplayedOnce = false;
+  bool _nativeCues = false;
+  int _cueGeneration = 0;
+  bool _nativeNeedsBegin = false;
+  bool _nativeCountdown = false;
+  bool _nativeExtending = false;
+  bool _nativeHoldPaused = false;
+  // A hold paused by an interruption, to resume when it ends.
+  bool _interruptedHold = false;
+  bool _nativeCompletionEarned = false;
+  // Whether this session's completion was recorded, and how many passes had
+  // finished when it was: later passes count as repeats (as on Android).
+  bool _thresholdRecorded = false;
+  int _completionPlaythroughIndex = 0;
+  bool _isTimer = false;
+  Timer? _nativeTailRelease;
 
   /// Full play-throughs of the current track, counting repeats. The first is
   /// recorded as the session; each later one only adds its listening time.
@@ -42,36 +61,8 @@ class IosAudioHandler extends BaseAudioHandler {
       final session = await AudioSession.instance;
 
       // Configure interruption handling
-      session.interruptionEventStream.listen((event) {
-        if (event.begin) {
-          switch (event.type) {
-            case AudioInterruptionType.duck:
-              _player.setVolume(_player.volume * 0.5);
-              break;
-            case AudioInterruptionType.pause:
-            case AudioInterruptionType.unknown:
-              _player.pause();
-              break;
-          }
-        } else {
-          switch (event.type) {
-            case AudioInterruptionType.duck:
-              _player.setVolume(_player.volume * 2.0);
-              break;
-            case AudioInterruptionType.pause:
-              if (_player.playing) {
-                _player.play();
-              }
-              break;
-            case AudioInterruptionType.unknown:
-              break;
-          }
-        }
-      });
-
-      session.becomingNoisyEventStream.listen((_) {
-        _player.pause();
-      });
+      session.interruptionEventStream.listen(handleInterruption);
+      session.becomingNoisyEventStream.listen((_) => handleBecomingNoisy());
 
       await session.configure(
         const AudioSessionConfiguration(
@@ -89,6 +80,58 @@ class IosAudioHandler extends BaseAudioHandler {
     } catch (e) {
       AppLogger.e('IOS', 'Failed to initialize audio session: $e');
       rethrow;
+    }
+  }
+
+  /// A call or another app takes the audio. The countdown and the extension
+  /// have no voice to pause, so they are held like a pause and resumed only
+  /// when the interruption ends and iOS says to resume.
+  @visibleForTesting
+  void handleInterruption(AudioInterruptionEvent event) {
+    if (event.begin) {
+      switch (event.type) {
+        case AudioInterruptionType.duck:
+          _player.setVolume(_player.volume * 0.5);
+          break;
+        case AudioInterruptionType.pause:
+        case AudioInterruptionType.unknown:
+          if (nativeHold) {
+            _interruptedHold = !_nativeHoldPaused;
+            unawaited(pause());
+          } else {
+            _player.pause();
+          }
+          break;
+      }
+    } else {
+      switch (event.type) {
+        case AudioInterruptionType.duck:
+          _player.setVolume(_player.volume * 2.0);
+          break;
+        case AudioInterruptionType.pause:
+          if (_interruptedHold) {
+            _interruptedHold = false;
+            if (nativeHold) unawaited(play());
+          } else if (_player.playing) {
+            _player.play();
+          }
+          break;
+        case AudioInterruptionType.unknown:
+          _interruptedHold = false;
+          break;
+      }
+    }
+  }
+
+  /// Headphones unplugged: pause, holding the countdown or extension too, so
+  /// the end bell never rings out of the speaker.
+  @visibleForTesting
+  void handleBecomingNoisy() {
+    if (nativeHold) {
+      _interruptedHold = false;
+      unawaited(pause());
+    } else {
+      _player.pause();
     }
   }
 
@@ -117,6 +160,16 @@ class IosAudioHandler extends BaseAudioHandler {
   }
 
   void _setupEventListeners() {
+    // Swift's cue clock runs on its own: it needs the voice's state changes,
+    // seeks and speed, not every position tick. Listening is sampled about
+    // once a second as well, within its step bounds.
+    _player.positionStream.listen(
+      (_) => unawaited(_reportNativeTransport(transport: false)),
+    );
+    _player.playerStateStream.listen(
+      (_) => unawaited(_reportNativeTransport()),
+    );
+
     iosStateStream.listen((event) {
       mediaItem.add(
         MediaItem(
@@ -156,6 +209,15 @@ class IosAudioHandler extends BaseAudioHandler {
           return;
         }
 
+        if (_nativeCues) {
+          await _reportNativeTransport();
+          _nativeExtending = true;
+          _nativeHoldPaused = false;
+          _sessionCompleted.add(false);
+          await NativeCueController.channel.invokeMethod<void>('voiceEnded');
+          unawaited(_followExtension());
+          return;
+        }
         _sessionCompleted.add(true);
 
         // Playback has finished and is not repeating. Release the audio
@@ -192,6 +254,16 @@ class IosAudioHandler extends BaseAudioHandler {
           prev.duration != null &&
           prev.duration == curr.duration;
       if (isLoop) unawaited(_recordPlaythrough());
+      if (_nativeCues &&
+          discontinuity.reason == PositionDiscontinuityReason.seek) {
+        // A seek during the extension brings the voice back; Swift leaves
+        // its hold on this report, so the hold is over here too.
+        if (_nativeExtending) {
+          _nativeExtending = false;
+          _nativeHoldPaused = false;
+        }
+        unawaited(_reportNativeTransport(seek: true));
+      }
     });
 
     _player.playbackEventStream.listen((event) {
@@ -230,10 +302,28 @@ class IosAudioHandler extends BaseAudioHandler {
 
   Duration get position => _player.position;
 
-  bool get playing => _player.playerState.playing;
+  bool get playing => (_nativeCountdown || _nativeExtending)
+      ? !_nativeHoldPaused
+      : _player.playerState.playing;
 
   bool get isComplete =>
       _player.playerState.processingState == ProcessingState.completed;
+
+  /// Whether cues run in Swift; tests stand in for the iOS platform.
+  @visibleForTesting
+  bool get usesNativeCues => Platform.isIOS;
+
+  /// The terminal state the player screen reads, separate from stats.
+  @visibleForTesting
+  bool get sessionCompleted => _sessionCompleted.value;
+
+  /// Whether this session counts in the stats.
+  @visibleForTesting
+  bool get completionEarned => _nativeCompletionEarned;
+
+  /// Whether the Swift countdown or extension owns play and pause.
+  @visibleForTesting
+  bool get nativeHold => _nativeCountdown || _nativeExtending;
 
   final _trackStateSubject = BehaviorSubject<Track>();
 
@@ -266,7 +356,10 @@ class IosAudioHandler extends BaseAudioHandler {
         (speed, state, track, position, bufferedPosition, duration, completed) {
           return IosStateData(
             speed,
-            state.processingState == ProcessingState.completed && !completed
+            (_nativeCountdown || _nativeExtending)
+                ? PlayerState(!_nativeHoldPaused, ProcessingState.ready)
+                : state.processingState == ProcessingState.completed &&
+                      !completed
                 ? PlayerState(false, ProcessingState.ready)
                 : state,
             track,
@@ -277,13 +370,32 @@ class IosAudioHandler extends BaseAudioHandler {
         },
       );
 
+  /// Records one finished play-through. With cues, the first pass that
+  /// earns it is the session (a timer at its end; a recording once 90% was
+  /// heard, usually already recorded mid-play), and only passes after that
+  /// one count as repeats, as on Android.
   Future<void> _recordPlaythrough() {
     _completedPlaythroughs++;
-    if (_completedPlaythroughs == 1) return _storeTrackCompletion();
-    return _storeRepeatPlaythrough();
+    if (!_nativeCues) {
+      return _completedPlaythroughs == 1
+          ? recordSessionCompletion()
+          : recordRepeatPlaythrough();
+    }
+    if (!_thresholdRecorded) {
+      if (!_nativeCompletionEarned) return Future<void>.value();
+      _thresholdRecorded = true;
+      _completionPlaythroughIndex = _completedPlaythroughs - 1;
+      return recordSessionCompletion();
+    }
+    if (_completedPlaythroughs > _completionPlaythroughIndex + 1) {
+      return recordRepeatPlaythrough();
+    }
+    return Future<void>.value();
   }
 
-  Future<void> _storeRepeatPlaythrough() async {
+  @visibleForTesting
+  @protected
+  Future<void> recordRepeatPlaythrough() async {
     try {
       if (duration == null) return;
       await handleRepeatPlaythrough({
@@ -298,7 +410,9 @@ class IosAudioHandler extends BaseAudioHandler {
     }
   }
 
-  Future<void> _storeTrackCompletion() async {
+  @visibleForTesting
+  @protected
+  Future<void> recordSessionCompletion() async {
     try {
       if (duration == null) return;
 
@@ -365,8 +479,9 @@ class IosAudioHandler extends BaseAudioHandler {
   }
 
   @override
-  Future<void> setSpeed(double speed) {
-    return _player.setSpeed(speed);
+  Future<void> setSpeed(double speed) async {
+    await _player.setSpeed(speed);
+    unawaited(_reportNativeTransport());
   }
 
   Future<void> setCustomRepeatMode(RepeatMode mode) async {
@@ -389,10 +504,28 @@ class IosAudioHandler extends BaseAudioHandler {
   @override
   Future<void> play() async {
     _cancelPauseDeactivationTimer();
+    if (_nativeCues && (_nativeCountdown || _nativeExtending)) {
+      _nativeHoldPaused = false;
+      await NativeCueController.channel.invokeMethod<void>('setHeld', {
+        'held': false,
+      });
+      _sessionCompleted.add(false);
+      if (iosAmbientActive) unawaited(iosBackgroundPlayer.play());
+      return;
+    }
 
     final session = await AudioSession.instance;
     await session.setActive(true);
 
+    if (_nativeCues && _nativeNeedsBegin) {
+      _nativeNeedsBegin = false;
+      final countdown =
+          await NativeCueController.channel.invokeMethod<int>('begin') ?? 0;
+      if (countdown > 0) {
+        _nativeCountdown = true;
+        return;
+      }
+    }
     unawaited(_player.play());
     // Bells follow _player on their own; resume the ambient sound if any.
     if (iosAmbientActive) unawaited(iosBackgroundPlayer.play());
@@ -400,6 +533,13 @@ class IosAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> pause() async {
+    if (_nativeCues && (_nativeCountdown || _nativeExtending)) {
+      _nativeHoldPaused = true;
+      await NativeCueController.channel.invokeMethod<void>('setHeld', {
+        'held': true,
+      });
+      _sessionCompleted.add(false);
+    }
     unawaited(_player.pause());
     unawaited(iosBackgroundPlayer.pause());
 
@@ -411,6 +551,12 @@ class IosAudioHandler extends BaseAudioHandler {
   @override
   Future<void> stop() async {
     _cancelPauseDeactivationTimer();
+    _nativeTailRelease?.cancel();
+    if (_nativeCues) await NativeCueController.stop();
+    _nativeCues = false;
+    _cueGeneration++;
+    _nativeCountdown = false;
+    _nativeExtending = false;
     await sessionBells.disable();
     // Await the players so their audio I/O has actually stopped before we
     // deactivate; iOS rejects deactivation while the shared session is busy.
@@ -426,7 +572,8 @@ class IosAudioHandler extends BaseAudioHandler {
   void _schedulePauseDeactivation() {
     _pauseDeactivationTimer?.cancel();
     _pauseDeactivationTimer = Timer(_pauseGracePeriod, () {
-      if (!_player.playing) {
+      if ((!_player.playing ||
+          _player.processingState == ProcessingState.completed)) {
         unawaited(_deactivateSession());
       }
     });
@@ -456,13 +603,195 @@ class IosAudioHandler extends BaseAudioHandler {
     }
   }
 
+  /// iOS owns the cue clock in Swift. Dart forwards transport changes, not
+  /// individual beat deadlines, and keeps terminal state separate from 90%.
+  Future<void> configureCues(
+    CueSettings settings,
+    PlaybackRequest request,
+  ) async {
+    _cueGeneration++;
+    _nativeCues = usesNativeCues;
+    if (!_nativeCues) return;
+    _nativeTailRelease?.cancel();
+    _nativeNeedsBegin = true;
+    _nativeCountdown = false;
+    _nativeExtending = false;
+    _nativeHoldPaused = false;
+    _nativeCompletionEarned = false;
+    _thresholdRecorded = false;
+    _completionPlaythroughIndex = 0;
+    _isTimer = request.trackId.startsWith('timer-');
+    NativeCueController.channel.setMethodCallHandler((call) async {
+      if (!_nativeCues) return;
+      if (call.method == 'countdownFinished') {
+        _nativeCountdown = false;
+        unawaited(_player.play());
+        if (iosAmbientActive) unawaited(iosBackgroundPlayer.play());
+      } else if (call.method == 'sessionEnded') {
+        final args = Map<Object?, Object?>.from(call.arguments as Map);
+        await _finishNativeSession(
+          tailMs: (args['tailMs'] as num?)?.toInt() ?? 0,
+          interlude: args['interlude'] == true,
+        );
+      }
+    });
+    await NativeCueController.configure(settings, request);
+    await NativeCueController.channel.invokeMethod<void>('resetListening', {
+      'trackId': request.trackId,
+      'fileId': request.fileId,
+    });
+  }
+
+  final _reportClock = Stopwatch()..start();
+  int _lastReportMs = -1000000;
+
+  /// Reports the voice to Swift. [transport] false is a listening sample
+  /// only, sent at most about once a second.
+  Future<void> _reportNativeTransport({
+    bool seek = false,
+    bool transport = true,
+  }) async {
+    if (!_nativeCues || _nativeNeedsBegin) return;
+    final now = _reportClock.elapsedMilliseconds;
+    if (!transport && now - _lastReportMs < 1000) return;
+    _lastReportMs = now;
+    final generation = _cueGeneration;
+    try {
+      final audible =
+          _player.playing && _player.processingState == ProcessingState.ready;
+      final args = <String, Object?>{
+        'positionMs': _player.position.inMilliseconds,
+        'durationMs': _player.duration?.inMilliseconds ?? 0,
+        'playing': audible,
+        'speed': _player.speed,
+        'endless': _currentRepeatMode == RepeatMode.infinite,
+        'itemsAfterCurrent':
+            _currentRepeatMode == RepeatMode.once && !_hasReplayedOnce ? 1 : 0,
+        'seek': seek,
+      };
+      if (transport) {
+        await NativeCueController.channel.invokeMethod<void>('transport', args);
+        if (generation != _cueGeneration || !_nativeCues) return;
+      }
+      final earned =
+          await NativeCueController.channel.invokeMethod<bool>(
+            'sampleListening',
+            args,
+          ) ??
+          false;
+      if (generation != _cueGeneration || !_nativeCues) return;
+      if (earned && !_thresholdRecorded && !_isTimer) {
+        _nativeCompletionEarned = true;
+        _thresholdRecorded = true;
+        _completionPlaythroughIndex = _completedPlaythroughs;
+        await recordSessionCompletion();
+      }
+    } catch (e) {
+      AppLogger.e('CUES', 'Could not report iOS transport: $e');
+    }
+  }
+
+  final _extensionRemaining = StreamController<int>.broadcast();
+
+  /// Milliseconds left in the silent extension while it runs, from the Swift
+  /// clock: the voice's position stops at its end, so the ambient fade
+  /// follows this instead.
+  Stream<int> get extensionRemainingStream => _extensionRemaining.stream;
+
+  /// Whether the silent extension is under way.
+  bool get extending => _nativeExtending;
+
+  /// Reads the extension clock rarely while far from the end and every
+  /// 200 ms in its last ten seconds; stops with the extension.
+  Future<void> _followExtension() async {
+    final generation = _cueGeneration;
+    while (_nativeExtending && generation == _cueGeneration) {
+      final int remaining;
+      try {
+        final state = await NativeCueController.state();
+        remaining = (state['extensionRemainingMs'] as num?)?.toInt() ?? 0;
+      } catch (e) {
+        AppLogger.e('CUES', 'Extension clock unavailable: $e');
+        return;
+      }
+      if (!_nativeExtending || generation != _cueGeneration) return;
+      _extensionRemaining.add(remaining);
+      final waitMs = _nativeHoldPaused
+          ? 1000
+          : remaining > 15000
+          ? 5000
+          : remaining > 10200
+          ? remaining - 10000
+          : 200;
+      await Future<void>.delayed(Duration(milliseconds: waitMs));
+    }
+  }
+
+  Future<void> waitForInterlude(int seconds) async {
+    _nativeTailRelease?.cancel();
+    await NativeCueController.holdInterlude(seconds);
+  }
+
+  /// No autoplay after all: Swift drops the interlude it began at the end,
+  /// and the session is released once the end bell has rung out.
+  Future<void> endInterlude() async {
+    if (!_nativeCues) return;
+    try {
+      await NativeCueController.endInterlude();
+    } catch (e) {
+      AppLogger.e('CUES', 'Could not end the interlude: $e');
+    }
+    _releaseAfterTail(_nativeTailMs);
+  }
+
+  int _nativeTailMs = 0;
+
+  Future<void> _finishNativeSession({
+    required int tailMs,
+    bool interlude = false,
+  }) async {
+    _nativeExtending = false;
+    _nativeCountdown = false;
+    // A timer counts at its end; a recording only once 90% was really heard
+    // (sampled above). A finished extension after a seek to the end does not.
+    _nativeCompletionEarned = _nativeCompletionEarned || _isTimer;
+    _cancelPauseDeactivationTimer();
+    await iosBackgroundPlayer.pause();
+    await _recordPlaythrough();
+    // The true end is terminal whether or not it earned the stats above.
+    _sessionCompleted.add(true);
+    _nativeTailMs = tailMs;
+    // With autoplay Swift holds the session through the interlude; the next
+    // session or endInterlude releases it.
+    if (!interlude) _releaseAfterTail(tailMs);
+  }
+
+  /// The Swift bell and silent keep-alive must finish before deactivation.
+  void _releaseAfterTail(int tailMs) {
+    _nativeTailRelease?.cancel();
+    _nativeTailRelease = Timer(Duration(milliseconds: tailMs + 350), () {
+      if (_nativeCues &&
+          !_nativeExtending &&
+          (!_player.playing ||
+              _player.processingState == ProcessingState.completed)) {
+        unawaited(_deactivateSession());
+      }
+    });
+  }
+
   Future<void> setUrl(
     String? downloadPath,
     PlaybackRequest request,
     Track trackData,
   ) async {
     await ensureInitialized();
+    // just_audio stays "playing" after a completion; the next source would
+    // start on load, under the countdown. play() decides when it starts.
+    await _player.pause();
 
+    _nativeCues = false;
+    _cueGeneration++;
+    _nativeTailRelease?.cancel();
     _hasReplayedOnce = false;
     _completedPlaythroughs = 0;
     _sessionCompleted.add(false);

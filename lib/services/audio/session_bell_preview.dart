@@ -14,10 +14,10 @@ class SessionBellPreview {
   AudioPlayer? _player;
   int _generation = 0;
 
-  Future<void> play(double volume) async {
+  Future<void> play(double volume, {String asset = kSessionBellAsset}) async {
     final generation = ++_generation;
     final player = _player ??= AudioPlayer();
-    await player.setAsset(kSessionBellAsset);
+    await player.setAsset(asset);
     if (generation != _generation) return;
     await player.setVolume(volume);
     if (generation != _generation) return;
