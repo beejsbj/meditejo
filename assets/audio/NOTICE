@@ -8,5 +8,7 @@ sounds to the public domain under CC0 1.0 Universal (CC0-1.0):
 https://creativecommons.org/publicdomain/zero/1.0/
 
 session_bell_v2.wav
-Existing Meditejo synthesised bell, shipped with the project under AGPL-3.0.
-No third-party recording is used by the cue scheduler.
+Medito's session bell, from the upstream Medito app (Medito Foundation),
+inherited by this fork. Synthesised without recorded samples by
+tools/generate_session_bell.py; distributed under the project's AGPL-3.0
+licence. No third-party recording is used by the cue scheduler.

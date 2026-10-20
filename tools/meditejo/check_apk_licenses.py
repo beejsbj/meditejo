@@ -8,7 +8,9 @@ import zipfile
 root = Path(__file__).resolve().parents[2]
 manifest = root / 'assets/licenses/newpipe-runtime-dependencies.json'
 components = json.loads(manifest.read_text())['components']
-paths = {manifest, *(root / 'assets/licenses' / text for c in components for text in c['texts'])}
+# The cue sounds' notice (pulse CC0 dedication, bell attribution) ships too.
+cue_notice = root / 'assets/audio/NOTICE'
+paths = {manifest, cue_notice, *(root / 'assets/licenses' / text for c in components for text in c['texts'])}
 with zipfile.ZipFile(sys.argv[1]) as apk:
     for path in sorted(paths):
         asset = 'assets/flutter_assets/' + path.relative_to(root).as_posix()
