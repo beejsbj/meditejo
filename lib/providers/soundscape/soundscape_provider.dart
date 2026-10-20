@@ -235,12 +235,23 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         _update(state.copyWith(playing: playing));
       }
     });
+    unawaited(_dropVanishedSounds());
     return SoundscapeState(
       mix: _currentMix(),
       volume: _store.readVolume(),
       userPresets: _store.readPresets(),
       sessionDefaults: _store.readSessionDefaults(),
     );
+  }
+
+  /// A sound a later version dropped or renamed would still fill a layer
+  /// slot with no row to remove it: take it out of the saved mix once the
+  /// library is known.
+  Future<void> _dropVanishedSounds() async {
+    final library = await ref.read(soundLibraryProvider.future);
+    if (!ref.mounted) return;
+    final kept = state.mix.where(library.contains);
+    if (kept.layers.length != state.mix.layers.length) _editMix(kept);
   }
 
   // ---------------------------------------------------------------------------

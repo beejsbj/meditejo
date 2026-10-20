@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -330,6 +331,19 @@ void main() {
     await settle();
     expect(st().active, isTrue);
     expect(engine.playing.keys, ['cafe']);
+  });
+
+  test('a sound the library no longer has leaves the saved mix', () async {
+    container.dispose();
+    container = await make({
+      SoundscapeStore.mixKey: jsonEncode([
+        {'soundId': 'waves'},
+        {'soundId': 'gone-sound'},
+      ]),
+    });
+    ctl();
+    await settle();
+    expect(st().mix.layers.map((l) => l.soundId), ['waves']);
   });
 
   test('a play begun in one session does not land in the next', () async {

@@ -111,7 +111,8 @@ class SoundMix {
   static const empty = SoundMix();
 
   /// How many layers can play at once. Each recording is decoded into
-  /// memory (about 10 MB a minute of stereo), so this bounds memory too.
+  /// memory (about 22 MiB a minute of 48 kHz stereo; DECISIONS has the
+  /// worst case), so this bounds memory too.
   static const kMaxLayers = 6;
 
   final List<SoundLayer> layers;
