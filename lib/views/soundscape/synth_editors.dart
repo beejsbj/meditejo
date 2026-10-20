@@ -19,7 +19,10 @@ Future<void> showSynthEditor(BuildContext context, String id) =>
       showDragHandle: true,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (context) => Padding(
+      // Scrolls in landscape or at large text sizes. It only takes drags
+      // when the editor overflows, so the vertical band sliders are not
+      // contested otherwise.
+      builder: (context) => SingleChildScrollView(
         padding: EdgeInsets.only(
           bottom: MediaQuery.paddingOf(context).bottom + padding16,
         ),

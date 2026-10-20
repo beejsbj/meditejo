@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +11,7 @@ import 'package:medito/providers/shared_preference/shared_preference_provider.da
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/views/background_sound/background_sound_view.dart';
 import 'package:medito/views/soundscape/sound_credits_view.dart';
+import 'package:medito/views/soundscape/synth_editors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/soundscape_fakes.dart';
@@ -199,6 +202,48 @@ void main() {
     expect(params.colour, NoiseColour.brown);
     expect(params.bands, NoiseParams.flat);
     expect(engine.retuned.containsKey(kSynthNoiseId), isTrue);
+  });
+
+  testWidgets('the editors scroll on a short screen at large text', (
+    tester,
+  ) async {
+    // A phone in landscape, with the text at 160 %.
+    tester.view
+      ..physicalSize = const Size(800, 360)
+      ..devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 1.6;
+    addTearDown(tester.view.reset);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await pump(tester);
+    final controller = container.read(soundscapeProvider.notifier)..clearMix();
+    for (final id in kSynthIds) {
+      controller.toggleSound(id);
+    }
+    await tester.pumpAndSettle();
+    final context = tester.element(find.byType(BackgroundSoundView));
+    for (final (id, last) in [
+      (kSynthNoiseId, 'noise_band_9'),
+      (kSynthDroneId, 'drone_movement'),
+      (kSynthBinauralId, 'binaural_beat'),
+    ]) {
+      unawaited(showSynthEditor(context, id));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: '$id overflows');
+      // Its last control can be reached.
+      await tester.scrollUntilVisible(
+        find.byKey(ValueKey(last)),
+        100,
+        scrollable: find
+            .descendant(
+              of: find.byType(BottomSheet),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      expect(find.byKey(ValueKey(last)).hitTestable(), findsOneWidget);
+      Navigator.of(context).pop();
+      await tester.pumpAndSettle();
+    }
   });
 
   testWidgets('is localised', (tester) async {
