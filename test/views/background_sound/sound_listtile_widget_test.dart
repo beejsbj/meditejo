@@ -7,6 +7,10 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
 import 'package:medito/views/background_sound/widgets/sound_listtile_widget.dart';
+import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers/soundscape_fakes.dart';
 
 const _rain = BackgroundSoundsModel(
   id: '12',
@@ -173,13 +177,15 @@ void main() {
     expect(find.text('Campanas de sesión'), findsOneWidget);
   });
 
-  testWidgets('bundled bells stay switchable when remote sounds fail', (
-    tester,
-  ) async {
+  testWidgets('the Sounds sheet offers no legacy bells switch', (tester) async {
     final notifier = _FakeNotifier(const BackgroundSoundsState());
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          ...soundscapeTestOverrides(FakeSoundscapeEngine()),
           backgroundSoundsNotifierProvider.overrideWith(() => notifier),
           backgroundSoundsProvider.overrideWith(
             (ref) async => throw const ServerError(),
@@ -193,13 +199,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Session bells'), findsOneWidget);
-    await tester.tap(find.text('Session bells'));
-    await tester.pump();
-    // A switch now, not a sound: no ambient change, bells on.
-    expect(notifier.changed, isEmpty);
-    expect(notifier.bells, [true]);
-    expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
+    // Customize's cue scheduler owns bells; a switch here (reachable from
+    // the player) would ring a second set over the cues.
+    final end = find.text('Sound credits');
+    await tester.scrollUntilVisible(end, 200);
+    expect(end, findsOneWidget);
+    expect(find.text('Session bells'), findsNothing);
+    expect(find.byType(Switch), findsNWidgets(2), reason: 'practice, talks');
+    expect(notifier.bells, isEmpty);
     expect(tester.takeException(), isNull);
   });
 }

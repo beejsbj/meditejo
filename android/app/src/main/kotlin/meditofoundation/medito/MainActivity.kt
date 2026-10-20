@@ -95,6 +95,8 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
         MeditoAppIconManager.setUp(flutterEngine.dartExecutor.binaryMessenger, AppIconManagerImpl(this))
 
         ApkUpdaterBridge(this, activityScope).attach(flutterEngine.dartExecutor.binaryMessenger)
+        SoundscapeBridge.attach(this, flutterEngine.dartExecutor.binaryMessenger)
+        CueChannel.attach(flutterEngine.dartExecutor.binaryMessenger)
 
         youtubeBridge?.dispose()
         youtubeBridge = YoutubeExtractorBridge.create().also {
@@ -306,6 +308,7 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
     override fun onDestroy() {
         youtubeBridge?.dispose()
         youtubeBridge = null
+        SoundscapeBridge.detach()
         super.onDestroy()
         activityJob.cancel()
     }

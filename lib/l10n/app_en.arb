@@ -2207,5 +2207,292 @@
   "unpinCourse": "Unpin from Home",
   "pinnedLimitReached": "Home holds up to three pinned courses. Unpin one first.",
   "pinnedCourseAdded": "Pinned to Home",
-  "statsFeedbackNote": "These numbers are feedback, not a score."
+  "statsFeedbackNote": "These numbers are feedback, not a score.",
+  "soundsYourMix": "Your mix",
+  "@soundsYourMix": {
+    "description": "Sounds screen: soundsYourMix"
+  },
+  "soundsEmptyMix": "Tap a sound below to start a mix.",
+  "@soundsEmptyMix": {
+    "description": "Sounds screen: soundsEmptyMix"
+  },
+  "soundsLayerCount": "{count, plural, =1{1 sound} other{{count} sounds}}",
+  "@soundsLayerCount": {
+    "description": "Sounds screen: soundsLayerCount",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "soundsPlay": "Play",
+  "@soundsPlay": {
+    "description": "Sounds screen: soundsPlay"
+  },
+  "soundsPause": "Pause",
+  "@soundsPause": {
+    "description": "Sounds screen: soundsPause"
+  },
+  "soundsStop": "Stop",
+  "@soundsStop": {
+    "description": "Sounds screen: soundsStop"
+  },
+  "soundsRemove": "Remove {sound}",
+  "@soundsRemove": {
+    "description": "Sounds screen: soundsRemove",
+    "placeholders": {
+      "sound": {
+        "type": "String"
+      }
+    }
+  },
+  "soundsDrift": "Drift",
+  "@soundsDrift": {
+    "description": "Sounds screen: soundsDrift"
+  },
+  "soundsDriftHint": "Let the level rise and fall slowly",
+  "@soundsDriftHint": {
+    "description": "Sounds screen: soundsDriftHint"
+  },
+  "soundsPresets": "Presets",
+  "@soundsPresets": {
+    "description": "Sounds screen: soundsPresets"
+  },
+  "soundsSavePreset": "Save mix",
+  "@soundsSavePreset": {
+    "description": "Sounds screen: soundsSavePreset"
+  },
+  "soundsPresetName": "Preset name",
+  "@soundsPresetName": {
+    "description": "Sounds screen: soundsPresetName"
+  },
+  "soundsPresetSaved": "Saved “{name}”",
+  "@soundsPresetSaved": {
+    "description": "Sounds screen: soundsPresetSaved",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "soundsDeletePreset": "Delete “{name}”?",
+  "@soundsDeletePreset": {
+    "description": "Sounds screen: soundsDeletePreset",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "soundsDelete": "Delete",
+  "@soundsDelete": {
+    "description": "Sounds screen: soundsDelete"
+  },
+  "soundsCancel": "Cancel",
+  "@soundsCancel": {
+    "description": "Sounds screen: soundsCancel"
+  },
+  "soundsSave": "Save",
+  "@soundsSave": {
+    "description": "Sounds screen: soundsSave"
+  },
+  "soundsLayerLimit": "A mix holds up to {count} sounds",
+  "@soundsLayerLimit": {
+    "description": "Sounds screen: soundsLayerLimit",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "soundsCouldNotPlay": "This sound could not be played",
+  "@soundsCouldNotPlay": {
+    "description": "Sounds screen: soundsCouldNotPlay"
+  },
+  "soundsUnderSessions": "Under sessions",
+  "@soundsUnderSessions": {
+    "description": "Sounds screen: soundsUnderSessions"
+  },
+  "soundsUnderPractice": "Play under practice",
+  "@soundsUnderPractice": {
+    "description": "Sounds screen: soundsUnderPractice"
+  },
+  "soundsUnderTalks": "Play under talks",
+  "@soundsUnderTalks": {
+    "description": "Sounds screen: soundsUnderTalks"
+  },
+  "soundsUnderSessionsHint": "Your mix plays beneath the session, at its own volume",
+  "@soundsUnderSessionsHint": {
+    "description": "Sounds screen: soundsUnderSessionsHint"
+  },
+  "soundsCredits": "Sound credits",
+  "@soundsCredits": {
+    "description": "Sounds screen: soundsCredits"
+  },
+  "soundsNotificationText": "Playing your mix",
+  "@soundsNotificationText": {
+    "description": "Sounds screen: soundsNotificationText"
+  },
+  "soundCategoryRain": "Rain",
+  "@soundCategoryRain": {
+    "description": "Sounds screen: soundCategoryRain"
+  },
+  "soundCategoryWater": "Water",
+  "@soundCategoryWater": {
+    "description": "Sounds screen: soundCategoryWater"
+  },
+  "soundCategoryWind": "Wind",
+  "@soundCategoryWind": {
+    "description": "Sounds screen: soundCategoryWind"
+  },
+  "soundCategoryForest": "Forest and birds",
+  "@soundCategoryForest": {
+    "description": "Sounds screen: soundCategoryForest"
+  },
+  "soundCategoryFire": "Fire",
+  "@soundCategoryFire": {
+    "description": "Sounds screen: soundCategoryFire"
+  },
+  "soundCategoryRoom": "Rooms and city",
+  "@soundCategoryRoom": {
+    "description": "Sounds screen: soundCategoryRoom"
+  },
+  "soundCategoryNight": "Night",
+  "@soundCategoryNight": {
+    "description": "Sounds screen: soundCategoryNight"
+  },
+  "soundPresetRainForest": "Rain on the forest",
+  "@soundPresetRainForest": {
+    "description": "Sounds screen: soundPresetRainForest"
+  },
+  "soundPresetNight": "Night",
+  "@soundPresetNight": {
+    "description": "Sounds screen: soundPresetNight"
+  },
+  "soundPresetHearth": "Hearth",
+  "@soundPresetHearth": {
+    "description": "Sounds screen: soundPresetHearth"
+  },
+  "soundPresetShore": "Shore",
+  "@soundPresetShore": {
+    "description": "Sounds screen: soundPresetShore"
+  },
+  "soundCreditsIntro": "These recordings are shared by their authors under their own licences, not the app’s AGPL. Each was cut to a loop, crossfaded, levelled and re-encoded for Meditejo.",
+  "@soundCreditsIntro": {
+    "description": "Sounds screen: soundCreditsIntro"
+  },
+  "soundCreditsBy": "“{original}” by {author}",
+  "@soundCreditsBy": {
+    "description": "Sounds screen: soundCreditsBy",
+    "placeholders": {
+      "original": {
+        "type": "String"
+      },
+      "author": {
+        "type": "String"
+      }
+    }
+  },
+  "soundCreditsChanges": "Changes: {changes}",
+  "@soundCreditsChanges": {
+    "description": "Sounds screen: soundCreditsChanges",
+    "placeholders": {
+      "changes": {
+        "type": "String"
+      }
+    }
+  },
+  "soundCreditsAttributionRequired": "Attribution required",
+  "@soundCreditsAttributionRequired": {
+    "description": "Sounds screen: soundCreditsAttributionRequired"
+  },
+  "soundCategoryGenerated": "Generated",
+  "@soundCategoryGenerated": {
+    "description": "Sounds screen, generated layers: soundCategoryGenerated"
+  },
+  "synthNoise": "Noise",
+  "@synthNoise": {
+    "description": "Sounds screen, generated layers: synthNoise"
+  },
+  "synthDrone": "Drone",
+  "@synthDrone": {
+    "description": "Sounds screen, generated layers: synthDrone"
+  },
+  "synthBinaural": "Binaural beats",
+  "@synthBinaural": {
+    "description": "Sounds screen, generated layers: synthBinaural"
+  },
+  "synthAdjust": "Adjust {sound}",
+  "@synthAdjust": {
+    "description": "Sounds screen, generated layers: synthAdjust",
+    "placeholders": {
+      "sound": {
+        "type": "String"
+      }
+    }
+  },
+  "noiseColour": "Colour",
+  "@noiseColour": {
+    "description": "Sounds screen, generated layers: noiseColour"
+  },
+  "noiseWhite": "White",
+  "@noiseWhite": {
+    "description": "Sounds screen, generated layers: noiseWhite"
+  },
+  "noisePink": "Pink",
+  "@noisePink": {
+    "description": "Sounds screen, generated layers: noisePink"
+  },
+  "noiseBrown": "Brown",
+  "@noiseBrown": {
+    "description": "Sounds screen, generated layers: noiseBrown"
+  },
+  "noiseBands": "Bands",
+  "@noiseBands": {
+    "description": "Sounds screen, generated layers: noiseBands"
+  },
+  "noiseReset": "Reset bands",
+  "@noiseReset": {
+    "description": "Sounds screen, generated layers: noiseReset"
+  },
+  "droneRoot": "Root",
+  "@droneRoot": {
+    "description": "Sounds screen, generated layers: droneRoot"
+  },
+  "droneTimbre": "Timbre",
+  "@droneTimbre": {
+    "description": "Sounds screen, generated layers: droneTimbre"
+  },
+  "dronePure": "Pure",
+  "@dronePure": {
+    "description": "Sounds screen, generated layers: dronePure"
+  },
+  "droneWarm": "Warm",
+  "@droneWarm": {
+    "description": "Sounds screen, generated layers: droneWarm"
+  },
+  "droneBright": "Bright",
+  "@droneBright": {
+    "description": "Sounds screen, generated layers: droneBright"
+  },
+  "droneMovement": "Movement",
+  "@droneMovement": {
+    "description": "Sounds screen, generated layers: droneMovement"
+  },
+  "binauralCarrier": "Tone",
+  "@binauralCarrier": {
+    "description": "Sounds screen, generated layers: binauralCarrier"
+  },
+  "binauralBeat": "Beat",
+  "@binauralBeat": {
+    "description": "Sounds screen, generated layers: binauralBeat"
+  },
+  "binauralHeadphones": "Binaural beats need headphones: each ear hears its own tone.",
+  "@binauralHeadphones": {
+    "description": "Sounds screen, generated layers: binauralHeadphones"
+  },
+  "soundPresetStillness": "Stillness",
+  "@soundPresetStillness": {
+    "description": "Sounds screen, generated layers: soundPresetStillness"
+  }
 }

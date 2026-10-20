@@ -1,0 +1,998 @@
+{
+  "version": 1,
+  "targetLufs": -27.0,
+  "generatedBy": "tools/meditejo/sounds/process_sounds.py",
+  "totalBytes": 8892924,
+  "sounds": [
+    {
+      "id": "rain-terrace",
+      "title": "Rain on a terrace",
+      "category": "rain",
+      "asset": "assets/sounds/rain-terrace.opus",
+      "durationMs": 45006,
+      "channels": 2,
+      "bytes": 325240,
+      "originalTitle": "Summer Rain on Terrace",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/summer-rain-on-terrace-s1019.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/summer-rain-on-terrace-s1019.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 45 s from 4.5 s; looped with a 4 s crossfade; gain +0.5 dB, peaks limited by up to 2.1 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "b702cdfd7cec24204c86f66249d2071a7b91308b603d2d74b9b3546014aac060",
+        "start": 4.5,
+        "loop": 45,
+        "crossfade": 4,
+        "filters": "",
+        "gainDb": 0.51,
+        "limiterDb": 2.15,
+        "measuredBefore": {
+          "lufs": -27.51,
+          "truePeak": -0.36,
+          "lra": 3.7
+        },
+        "measuredAfter": {
+          "lufs": -26.98,
+          "truePeak": -2.35,
+          "lra": 3.7
+        },
+        "seamRank": 49.2,
+        "bitrateKbps": 64,
+        "bytes": 325240,
+        "durationMs": 45006
+      }
+    },
+    {
+      "id": "rain-umbrella",
+      "title": "Rain on an umbrella",
+      "category": "rain",
+      "asset": "assets/sounds/rain-umbrella.opus",
+      "durationMs": 28006,
+      "channels": 2,
+      "bytes": 237676,
+      "originalTitle": "Rain Under an Umbrella",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/rain-under-an-umbrella-s2679.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/rain-under-an-umbrella-s2679.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 28 s from 1 s; looped with a 4 s crossfade; gain -0.7 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "eeba2771edc3aa735237bbca9cfef0359a80d748fa7399058eeca9a8ec5075e4",
+        "start": 1.0,
+        "loop": 28,
+        "crossfade": 4,
+        "filters": "",
+        "gainDb": -0.74,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -26.26,
+          "truePeak": -2.11,
+          "lra": 3.3
+        },
+        "measuredAfter": {
+          "lufs": -26.97,
+          "truePeak": -2.32,
+          "lra": 3.3
+        },
+        "seamRank": 77.8,
+        "bitrateKbps": 64,
+        "bytes": 237676,
+        "durationMs": 28006
+      }
+    },
+    {
+      "id": "rain-window",
+      "title": "Rain at the window",
+      "category": "rain",
+      "asset": "assets/sounds/rain-window.opus",
+      "durationMs": 40006,
+      "channels": 2,
+      "bytes": 278178,
+      "originalTitle": "Rain (loopable)",
+      "author": "Ylmir",
+      "authorUrl": null,
+      "sourceUrl": "https://opengameart.org/content/rain-loopable",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://opengameart.org/content/rain-loopable",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "took 3.ogg from the \"Rain OGG\" archive; excerpt of 40 s from 0 s; looped with a 4 s crossfade; gain -4.8 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "e68f3e1c77493cf43bec84cebff5043bff6be9ce16d59b24caa988cd460aa75b",
+        "start": 0.0,
+        "loop": 40,
+        "crossfade": 4,
+        "filters": "",
+        "gainDb": -4.78,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -22.22,
+          "truePeak": -7.22,
+          "lra": 1.3
+        },
+        "measuredAfter": {
+          "lufs": -26.97,
+          "truePeak": -12.32,
+          "lra": 1.2
+        },
+        "seamRank": 25.3,
+        "bitrateKbps": 64,
+        "bytes": 278178,
+        "durationMs": 40006
+      }
+    },
+    {
+      "id": "rain-car",
+      "title": "Rain on a car roof",
+      "category": "rain",
+      "asset": "assets/sounds/rain-car.opus",
+      "durationMs": 40006,
+      "channels": 1,
+      "bytes": 180815,
+      "originalTitle": "Rain on car roof",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/rain-on-car-roof-s1293.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/rain-on-car-roof-s1293.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 40 s from 10 s; looped with a 4 s crossfade; gain -7.0 dB (to about -28 LUFS); mono Opus 40 kbps",
+      "processing": {
+        "sourceSha256": "3812c40321d37f3965f8193b07eff8b3ecbd1cec9b24bb00981cd5045c28c943",
+        "start": 10.0,
+        "loop": 40,
+        "crossfade": 4,
+        "filters": "",
+        "gainDb": -6.97,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -20.03,
+          "truePeak": -3.81,
+          "lra": 0.6
+        },
+        "measuredAfter": {
+          "lufs": -27.98,
+          "truePeak": -11.02,
+          "lra": 0.7
+        },
+        "seamRank": 53.8,
+        "bitrateKbps": 40,
+        "bytes": 180815,
+        "durationMs": 40006
+      }
+    },
+    {
+      "id": "stream",
+      "title": "Mountain stream",
+      "category": "water",
+      "asset": "assets/sounds/stream.opus",
+      "durationMs": 45006,
+      "channels": 2,
+      "bytes": 270552,
+      "originalTitle": "Mountain stream #1",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/mountain-stream-1-s2754.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/mountain-stream-1-s2754.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 45 s from 175.5 s; looped with a 4 s crossfade; gain -7.0 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "78b3987f950a844bf6f5c723669861d1cb7f4df09f379ba944655f95aeaaff07",
+        "start": 175.5,
+        "loop": 45,
+        "crossfade": 4,
+        "filters": "",
+        "gainDb": -7.0,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -20.0,
+          "truePeak": -5.43,
+          "lra": 0.2
+        },
+        "measuredAfter": {
+          "lufs": -26.94,
+          "truePeak": -12.08,
+          "lra": 0.2
+        },
+        "seamRank": 54.4,
+        "bitrateKbps": 64,
+        "bytes": 270552,
+        "durationMs": 45006
+      }
+    },
+    {
+      "id": "river",
+      "title": "River",
+      "category": "water",
+      "asset": "assets/sounds/river.opus",
+      "durationMs": 40006,
+      "channels": 1,
+      "bytes": 224264,
+      "originalTitle": "Watercourse 5.1",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/watercourse-5-1-s3136.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/watercourse-5-1-s3136.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 40 s from 16.5 s; looped with a 4 s crossfade; gain +5.8 dB, peaks limited by up to 6.0 dB (to about -32 LUFS); mono Opus 40 kbps",
+      "processing": {
+        "sourceSha256": "6ab05c1d7a0313f546d9221eab9a724817e9b23bc497a895221c46f9559487dc",
+        "start": 16.5,
+        "loop": 40,
+        "crossfade": 4,
+        "filters": "",
+        "gainDb": 5.77,
+        "limiterDb": 6.0,
+        "measuredBefore": {
+          "lufs": -36.76,
+          "truePeak": -1.77,
+          "lra": 4.2
+        },
+        "measuredAfter": {
+          "lufs": -31.77,
+          "truePeak": -0.88,
+          "lra": 3.6
+        },
+        "seamRank": 52.2,
+        "bitrateKbps": 40,
+        "bytes": 224264,
+        "durationMs": 40006
+      }
+    },
+    {
+      "id": "waves",
+      "title": "Small waves",
+      "category": "water",
+      "asset": "assets/sounds/waves.opus",
+      "durationMs": 60006,
+      "channels": 2,
+      "bytes": 417743,
+      "originalTitle": "Small waves and beach #1",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/small-waves-and-beach-1-s1446.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/small-waves-and-beach-1-s1446.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 60 s from 61.5 s; looped with a 6 s crossfade; gain -11.1 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "846e683d39ae3d850074f37388ef14f51492bb01e6566bc0adbe5f16454581cc",
+        "start": 61.5,
+        "loop": 60,
+        "crossfade": 6,
+        "filters": "",
+        "gainDb": -11.05,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -15.95,
+          "truePeak": 0.12,
+          "lra": 4.0
+        },
+        "measuredAfter": {
+          "lufs": -26.97,
+          "truePeak": -11.42,
+          "lra": 4.0
+        },
+        "seamRank": 56.7,
+        "bitrateKbps": 64,
+        "bytes": 417743,
+        "durationMs": 60006
+      }
+    },
+    {
+      "id": "sea",
+      "title": "Beach at Dellec",
+      "category": "water",
+      "asset": "assets/sounds/sea.opus",
+      "durationMs": 60006,
+      "channels": 2,
+      "bytes": 430123,
+      "originalTitle": "Sea of the Beach of Dellec #2",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/sea-of-the-beach-of-dellec-2-s2565.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/sea-of-the-beach-of-dellec-2-s2565.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 60 s from 35.5 s; looped with a 6 s crossfade; gain -4.3 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "fae4df2405d454fe996c37de1672392e91f31ccf4e5bdbae50aed9f468f1d3e0",
+        "start": 35.5,
+        "loop": 60,
+        "crossfade": 6,
+        "filters": "",
+        "gainDb": -4.27,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -22.73,
+          "truePeak": 0.06,
+          "lra": 8.1
+        },
+        "measuredAfter": {
+          "lufs": -26.96,
+          "truePeak": -4.22,
+          "lra": 8.0
+        },
+        "seamRank": 44.1,
+        "bitrateKbps": 64,
+        "bytes": 430123,
+        "durationMs": 60006
+      }
+    },
+    {
+      "id": "wind-trees",
+      "title": "Wind in the trees",
+      "category": "wind",
+      "asset": "assets/sounds/wind-trees.opus",
+      "durationMs": 50006,
+      "channels": 2,
+      "bytes": 340943,
+      "originalTitle": "Wind in the Trees",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/forest-wind-in-the-trees-s0904.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/forest-wind-in-the-trees-s0904.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 50 s from 56.5 s; looped with a 4 s crossfade; gain +16.4 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "0977950ade4efe3c1a975c4c7c983b1487bfeb4adb456895e4d0b637ba81373b",
+        "start": 56.5,
+        "loop": 50,
+        "crossfade": 4,
+        "filters": "",
+        "gainDb": 16.44,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -43.44,
+          "truePeak": -27.91,
+          "lra": 1.9
+        },
+        "measuredAfter": {
+          "lufs": -27.01,
+          "truePeak": -11.58,
+          "lra": 2.0
+        },
+        "seamRank": 29.8,
+        "bitrateKbps": 64,
+        "bytes": 340943,
+        "durationMs": 50006
+      }
+    },
+    {
+      "id": "wind-grass",
+      "title": "Wind in tall grass",
+      "category": "wind",
+      "asset": "assets/sounds/wind-grass.opus",
+      "durationMs": 45006,
+      "channels": 2,
+      "bytes": 309507,
+      "originalTitle": "Wind in Tall Grass",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/wind-in-tall-grass-s0908.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/wind-in-tall-grass-s0908.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 45 s from 35 s; looped with a 4 s crossfade; gain +10.6 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "e45986e15436ea41af289fb929524df889c1f3204e263fd6b1231d4140b11da1",
+        "start": 35.0,
+        "loop": 45,
+        "crossfade": 4,
+        "filters": "",
+        "gainDb": 10.61,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -37.61,
+          "truePeak": -12.94,
+          "lra": 5.3
+        },
+        "measuredAfter": {
+          "lufs": -27.04,
+          "truePeak": -1.78,
+          "lra": 5.4
+        },
+        "seamRank": 56.1,
+        "bitrateKbps": 64,
+        "bytes": 309507,
+        "durationMs": 45006
+      }
+    },
+    {
+      "id": "forest-birds",
+      "title": "Forest birds",
+      "category": "forest",
+      "asset": "assets/sounds/forest-birds.opus",
+      "durationMs": 75006,
+      "channels": 2,
+      "bytes": 589412,
+      "originalTitle": "Forest #4",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/forest-4-s2749.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/forest-4-s2749.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 75 s from 99 s; looped with a 6 s crossfade; gain -4.7 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "70b5603f38344d614f9543e697bc41f9745c9b8fc5bf04b7f596408a061450ea",
+        "start": 99.0,
+        "loop": 75,
+        "crossfade": 6,
+        "filters": "",
+        "gainDb": -4.7,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -22.3,
+          "truePeak": -7.2,
+          "lra": 6.3
+        },
+        "measuredAfter": {
+          "lufs": -26.98,
+          "truePeak": -11.15,
+          "lra": 6.2
+        },
+        "seamRank": 98.4,
+        "bitrateKbps": 64,
+        "bytes": 589412,
+        "durationMs": 75006
+      }
+    },
+    {
+      "id": "dawn-chorus",
+      "title": "Dawn chorus",
+      "category": "forest",
+      "asset": "assets/sounds/dawn-chorus.opus",
+      "durationMs": 75006,
+      "channels": 2,
+      "bytes": 683952,
+      "originalTitle": "Birds Waking #4",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/birds-waking-4-s1906.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/birds-waking-4-s1906.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 75 s from 286.5 s; looped with a 6 s crossfade; gain -7.2 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "a07e0c7a52c19c99a742299303a7d2567c561ba572bfd4e0ab60ddbd6e98235f",
+        "start": 286.5,
+        "loop": 75,
+        "crossfade": 6,
+        "filters": "",
+        "gainDb": -7.16,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -19.84,
+          "truePeak": -1.67,
+          "lra": 11.2
+        },
+        "measuredAfter": {
+          "lufs": -26.98,
+          "truePeak": -7.71,
+          "lra": 11.2
+        },
+        "seamRank": 75.4,
+        "bitrateKbps": 64,
+        "bytes": 683952,
+        "durationMs": 75006
+      }
+    },
+    {
+      "id": "evening-birds",
+      "title": "Evening birds",
+      "category": "forest",
+      "asset": "assets/sounds/evening-birds.opus",
+      "durationMs": 75006,
+      "channels": 2,
+      "bytes": 554098,
+      "originalTitle": "Evening Birds",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/evening-birds-s1859.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/evening-birds-s1859.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 75 s from 115 s; looped with a 6 s crossfade; gain +1.9 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "0b6170eec581996c300445d1c4d2a5ce9be12a55945b2a84f92c2144aac6d7a1",
+        "start": 115.0,
+        "loop": 75,
+        "crossfade": 6,
+        "filters": "",
+        "gainDb": 1.92,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -28.92,
+          "truePeak": -6.68,
+          "lra": 11.0
+        },
+        "measuredAfter": {
+          "lufs": -26.95,
+          "truePeak": -5.33,
+          "lra": 11.1
+        },
+        "seamRank": 97.0,
+        "bitrateKbps": 64,
+        "bytes": 554098,
+        "durationMs": 75006
+      }
+    },
+    {
+      "id": "forest-brook",
+      "title": "Forest brook",
+      "category": "forest",
+      "asset": "assets/sounds/forest-brook.opus",
+      "durationMs": 60006,
+      "channels": 2,
+      "bytes": 617464,
+      "originalTitle": "Forest and Stream #3",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/forest-and-stream-3-s2716.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/forest-and-stream-3-s2716.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 60 s from 14.5 s; looped with a 6 s crossfade; gain +0.6 dB, peaks limited by up to 0.6 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "71020e5803e96325615cb48b0307a4bf89a9079f1784a7bd72fc638b52ffd7a7",
+        "start": 14.5,
+        "loop": 60,
+        "crossfade": 6,
+        "filters": "",
+        "gainDb": 0.6,
+        "limiterDb": 0.63,
+        "measuredBefore": {
+          "lufs": -27.6,
+          "truePeak": -1.97,
+          "lra": 2.7
+        },
+        "measuredAfter": {
+          "lufs": -27.0,
+          "truePeak": -2.46,
+          "lra": 2.7
+        },
+        "seamRank": 4.2,
+        "bitrateKbps": 64,
+        "bytes": 617464,
+        "durationMs": 60006
+      }
+    },
+    {
+      "id": "fire-crackle",
+      "title": "Crackling fire",
+      "category": "fire",
+      "asset": "assets/sounds/fire-crackle.opus",
+      "durationMs": 40006,
+      "channels": 2,
+      "bytes": 343962,
+      "originalTitle": "Fireplace #4",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/fireplace-4-s2856.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/fireplace-4-s2856.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 40 s from 13.5 s; looped with a 4 s crossfade; gain +3.9 dB, peaks limited by up to 6.0 dB (to about -36 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "4a9f1fa51cae224cd359f9e66ab552c0ba3593b263a515536e32f55579356092",
+        "start": 13.5,
+        "loop": 40,
+        "crossfade": 4,
+        "filters": "",
+        "gainDb": 3.87,
+        "limiterDb": 6.0,
+        "measuredBefore": {
+          "lufs": -38.54,
+          "truePeak": 0.13,
+          "lra": 10.0
+        },
+        "measuredAfter": {
+          "lufs": -36.08,
+          "truePeak": -1.3,
+          "lra": 5.8
+        },
+        "seamRank": 10.1,
+        "bitrateKbps": 64,
+        "bytes": 343962,
+        "durationMs": 40006
+      }
+    },
+    {
+      "id": "fire-stove",
+      "title": "Wood stove",
+      "category": "fire",
+      "asset": "assets/sounds/fire-stove.opus",
+      "durationMs": 45006,
+      "channels": 1,
+      "bytes": 199833,
+      "originalTitle": "Log wood boiler #1",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/log-wood-boiler-s1120.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/log-wood-boiler-s1120.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 45 s from 12.5 s; looped with a 4 s crossfade; gain +3.5 dB, peaks limited by up to 5.5 dB (to about -28 LUFS); mono Opus 40 kbps",
+      "processing": {
+        "sourceSha256": "ba98eeb4ecd1395d88703e49b116b70934033317d8f7cd3ef668d11cc7805ead",
+        "start": 12.5,
+        "loop": 45,
+        "crossfade": 4,
+        "filters": "",
+        "gainDb": 3.5,
+        "limiterDb": 5.53,
+        "measuredBefore": {
+          "lufs": -30.5,
+          "truePeak": 0.03,
+          "lra": 2.4
+        },
+        "measuredAfter": {
+          "lufs": -27.55,
+          "truePeak": -2.61,
+          "lra": 1.8
+        },
+        "seamRank": 39.5,
+        "bitrateKbps": 40,
+        "bytes": 199833,
+        "durationMs": 45006
+      }
+    },
+    {
+      "id": "room-house",
+      "title": "Quiet house",
+      "category": "room",
+      "asset": "assets/sounds/room-house.opus",
+      "durationMs": 40006,
+      "channels": 2,
+      "bytes": 280222,
+      "originalTitle": "Sound Atmosphere in a House",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/sound-atmosphere-in-a-house-s2458.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/sound-atmosphere-in-a-house-s2458.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 40 s from 51 s; looped with a 4 s crossfade; gain +2.0 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "0b8a298b6d147d96953f87a630f99521c2c0fbb0a36ca1805d45b1f64693b390",
+        "start": 51.0,
+        "loop": 40,
+        "crossfade": 4,
+        "filters": "",
+        "gainDb": 2.05,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -29.05,
+          "truePeak": -16.53,
+          "lra": 0.9
+        },
+        "measuredAfter": {
+          "lufs": -27.02,
+          "truePeak": -15.15,
+          "lra": 0.8
+        },
+        "seamRank": 90.6,
+        "bitrateKbps": 64,
+        "bytes": 280222,
+        "durationMs": 40006
+      }
+    },
+    {
+      "id": "cafe",
+      "title": "Café",
+      "category": "room",
+      "asset": "assets/sounds/cafe.opus",
+      "durationMs": 50006,
+      "channels": 2,
+      "bytes": 305993,
+      "originalTitle": "Atmosphere Bar #2",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/atmosphere-bar-2-s0480.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/atmosphere-bar-2-s0480.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 50 s from 9.5 s; looped with a 4 s crossfade; gain +1.7 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "bc66a41bf05e54b580e858b2689e425e88e863607ea6a3ea94a7216e82ca2d99",
+        "start": 9.5,
+        "loop": 50,
+        "crossfade": 4,
+        "filters": "",
+        "gainDb": 1.69,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -28.69,
+          "truePeak": -6.93,
+          "lra": 5.5
+        },
+        "measuredAfter": {
+          "lufs": -26.92,
+          "truePeak": -5.26,
+          "lra": 5.4
+        },
+        "seamRank": 32.6,
+        "bitrateKbps": 64,
+        "bytes": 305993,
+        "durationMs": 50006
+      }
+    },
+    {
+      "id": "train",
+      "title": "Metro carriage",
+      "category": "room",
+      "asset": "assets/sounds/train.opus",
+      "durationMs": 45006,
+      "channels": 2,
+      "bytes": 325154,
+      "originalTitle": "Recent metro, interior",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/recent-metro-interior-s3042.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/recent-metro-interior-s3042.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 45 s from 58 s; looped with a 4 s crossfade; gain -10.8 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "6edc0dfd68b68081a4323676d59cede5b05633728ffa552038b8be402235b615",
+        "start": 58.0,
+        "loop": 45,
+        "crossfade": 4,
+        "filters": "",
+        "gainDb": -10.85,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -16.15,
+          "truePeak": -2.81,
+          "lra": 2.7
+        },
+        "measuredAfter": {
+          "lufs": -26.99,
+          "truePeak": -13.69,
+          "lra": 2.8
+        },
+        "seamRank": 67.3,
+        "bitrateKbps": 64,
+        "bytes": 325154,
+        "durationMs": 45006
+      }
+    },
+    {
+      "id": "night-meadow",
+      "title": "Meadow at night",
+      "category": "night",
+      "asset": "assets/sounds/night-meadow.opus",
+      "durationMs": 75006,
+      "channels": 2,
+      "bytes": 953651,
+      "originalTitle": "Campaign at Night #4",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/campaign-at-night-4-s1880.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/campaign-at-night-4-s1880.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 75 s from 87.5 s; looped with a 6 s crossfade; gain -7.1 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "419db33fb042a5c152913d9d9166148d1081cedc794cd19558052c53fbe8f844",
+        "start": 87.5,
+        "loop": 75,
+        "crossfade": 6,
+        "filters": "",
+        "gainDb": -7.12,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -19.88,
+          "truePeak": -5.88,
+          "lra": 2.6
+        },
+        "measuredAfter": {
+          "lufs": -26.99,
+          "truePeak": -13.02,
+          "lra": 2.7
+        },
+        "seamRank": 19.8,
+        "bitrateKbps": 64,
+        "bytes": 953651,
+        "durationMs": 75006
+      }
+    },
+    {
+      "id": "night-insects",
+      "title": "Night insects",
+      "category": "night",
+      "asset": "assets/sounds/night-insects.opus",
+      "durationMs": 60006,
+      "channels": 2,
+      "bytes": 723733,
+      "originalTitle": "Nocturnal Insects #4",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/nocturnal-insects-4-s1470.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/nocturnal-insects-4-s1470.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 60 s from 9 s; looped with a 6 s crossfade; gain -13.6 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "14a1ace94074b73a5ce02e3584d72a1c7fdc208be1e4891d390592e6b482d7fb",
+        "start": 9.0,
+        "loop": 60,
+        "crossfade": 6,
+        "filters": "",
+        "gainDb": -13.62,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -13.38,
+          "truePeak": -0.12,
+          "lra": 1.3
+        },
+        "measuredAfter": {
+          "lufs": -27.0,
+          "truePeak": -13.11,
+          "lra": 1.3
+        },
+        "seamRank": 73.6,
+        "bitrateKbps": 64,
+        "bytes": 723733,
+        "durationMs": 60006
+      }
+    },
+    {
+      "id": "night-frogs",
+      "title": "Frogs by a pond",
+      "category": "night",
+      "asset": "assets/sounds/night-frogs.opus",
+      "durationMs": 60006,
+      "channels": 1,
+      "bytes": 300409,
+      "originalTitle": "Frogs #2",
+      "author": "Joseph Sardin",
+      "authorUrl": "https://bigsoundbank.com/",
+      "sourceUrl": "https://bigsoundbank.com/frogs-2-s0998.html",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://bigsoundbank.com/frogs-2-s0998.html",
+      "licenseCheckedAt": "2026-10-19",
+      "assurance": "high",
+      "modifications": "excerpt of 60 s from 67 s; looped with a 6 s crossfade; gain -6.0 dB (to about -27 LUFS); mono Opus 40 kbps",
+      "processing": {
+        "sourceSha256": "b7d93f545cf600893136569b92a1447365ec8f00f2bff72470ec0cea4db44dd0",
+        "start": 67.0,
+        "loop": 60,
+        "crossfade": 6,
+        "filters": "",
+        "gainDb": -6.03,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -20.97,
+          "truePeak": -2.82,
+          "lra": 2.4
+        },
+        "measuredAfter": {
+          "lufs": -27.01,
+          "truePeak": -8.96,
+          "lra": 2.4
+        },
+        "seamRank": 85.4,
+        "bitrateKbps": 40,
+        "bytes": 300409,
+        "durationMs": 60006
+      }
+    }
+  ]
+}
