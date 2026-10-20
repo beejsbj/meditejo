@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
@@ -79,6 +81,40 @@ void main() {
       isFalse,
     );
   });
+  test('non-finite numbers and newer formats fall back to defaults', () {
+    // Valid JSON that is not a finite int must not throw.
+    expect(
+      CueSettings.decode(
+        '{"durationMinutes": 1e999}',
+        CueKind.practice,
+      ).durationMinutes,
+      10,
+    );
+    expect(
+      CueSettings.decode(
+        '{"intervalMinutes": 1e999, "extendMinutes": 5}',
+        CueKind.practice,
+      ).extendMinutes,
+      5,
+    );
+    expect(CueSettings.decode('1e999', CueKind.talks).backgroundEnabled, false);
+    // A value from a newer app is not guessed at; an unversioned one is v1.
+    final newer = jsonEncode({
+      ...const CueSettings(extendMinutes: 7).toJson(),
+      'version': CueSettings.formatVersion + 1,
+    });
+    expect(CueSettings.decode(newer, CueKind.practice).extendMinutes, 0);
+    final current = jsonEncode(const CueSettings(extendMinutes: 7).toJson());
+    expect(CueSettings.decode(current, CueKind.practice).extendMinutes, 7);
+    expect(
+      CueSettings.decode(
+        '{"extendMinutes": 7}',
+        CueKind.practice,
+      ).extendMinutes,
+      7,
+    );
+  });
+
   test('native timer configuration omits extension and off assets', () {
     final map = const CueSettings(
       extendMinutes: 20,

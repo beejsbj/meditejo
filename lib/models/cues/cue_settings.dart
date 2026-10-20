@@ -40,6 +40,10 @@ class CueSettings {
     this.hideBeforePractice = false,
   });
 
+  /// The stored format. Unversioned values are read as version 1; a value
+  /// written by a newer app is not guessed at and reads as the defaults.
+  static const formatVersion = 1;
+
   factory CueSettings.defaults(CueKind kind) =>
       CueSettings(backgroundEnabled: kind == CueKind.practice);
 
@@ -100,7 +104,7 @@ class CueSettings {
   });
 
   Map<String, Object?> toJson() => {
-    'version': 1,
+    'version': formatVersion,
     'durationMinutes': durationMinutes,
     'extendMinutes': extendMinutes,
     'countdownSeconds': countdownSeconds,
@@ -128,11 +132,14 @@ class CueSettings {
     CueKind kind = CueKind.practice,
   }) {
     final defaults = CueSettings.defaults(kind);
-    int integer(String key, int fallback, int min, int max) =>
-        (json[key] is num ? (json[key] as num).toInt() : fallback).clamp(
-          min,
-          max,
-        );
+    int integer(String key, int fallback, int min, int max) {
+      final value = json[key];
+      return (value is num && value.isFinite ? value.toInt() : fallback).clamp(
+        min,
+        max,
+      );
+    }
+
     double number(String key, double fallback, double min, double max) {
       final value = json[key] is num ? (json[key] as num).toDouble() : fallback;
       return value.isFinite ? value.clamp(min, max) : fallback;
@@ -180,10 +187,14 @@ class CueSettings {
   static CueSettings decode(String? value, CueKind kind) {
     try {
       final decoded = value == null ? null : jsonDecode(value);
-      return decoded is Map<String, dynamic>
-          ? CueSettings.fromJson(decoded, kind: kind)
-          : CueSettings.defaults(kind);
-    } on FormatException {
+      if (decoded is! Map<String, dynamic>) return CueSettings.defaults(kind);
+      final version = decoded['version'];
+      if (version is num && version > formatVersion) {
+        return CueSettings.defaults(kind);
+      }
+      return CueSettings.fromJson(decoded, kind: kind);
+    } catch (_) {
+      // Whatever is stored, a bad value never stops a session from starting.
       return CueSettings.defaults(kind);
     }
   }

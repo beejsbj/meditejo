@@ -257,6 +257,17 @@ class CueMathTest {
         assertTrue(CueMath.earnsCompletion(isTimer = true, heardEnough = false))
     }
 
+    @Test fun onlyRecentListeningReceiptsAreKept() {
+        val day = 24 * 60 * 60 * 1000L
+        val now = 1000 * day
+        val saved = mapOf("recent" to now - day, "old" to now - 181 * day, "unknown" to 0L)
+        assertEquals(setOf("old", "unknown"), ListeningReceipts.stale(saved, now))
+        // Past the count, the oldest go first.
+        val many = (1..5).associate { "t$it" to now - it * day }
+        assertEquals(setOf("t4", "t5"), ListeningReceipts.stale(many, now, maxCount = 3))
+        assertTrue(ListeningReceipts.stale(emptyMap(), now).isEmpty())
+    }
+
     @Test fun malformedPersistedRangesCannotInventListening() {
         val tracker = ListeningTracker()
         tracker.restore(listOf(emptyList(), listOf(-1L, 100_000L), listOf(10L, 5L)))

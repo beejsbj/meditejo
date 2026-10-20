@@ -94,4 +94,18 @@ class CueSchedulerTests: XCTestCase {
         XCTAssertEqual(tracker.heardMs, 0)
     }
 
+    func testOnlyRecentListeningReceiptsAreKept() {
+        let day = 24.0 * 60 * 60
+        let now = 1000 * day
+        let saved = ["recent": now - day, "old": now - 181 * day, "unknown": 0.0]
+        XCTAssertEqual(ListeningTracker.staleReceipts(saved, now: now,
+                                                      maxAgeSeconds: ListeningTracker.receiptMaxAgeSeconds,
+                                                      maxCount: ListeningTracker.receiptMaxCount),
+                       ["old", "unknown"])
+        var many: [String: Double] = [:]
+        for i in 1...5 { many["t\(i)"] = now - Double(i) * day }
+        XCTAssertEqual(ListeningTracker.staleReceipts(many, now: now, maxAgeSeconds: ListeningTracker.receiptMaxAgeSeconds,
+                                                      maxCount: 3),
+                       ["t4", "t5"])
+    }
 }

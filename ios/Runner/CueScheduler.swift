@@ -234,6 +234,20 @@ final class ListeningTracker {
     func completed(durationMs: Int64) -> Bool {
         durationMs > 0 && Double(heardMs) >= (Double(durationMs) * CueMath.listeningThreshold).rounded(.up)
     }
+
+    /// Unfinished tracks leave a receipt (a finished one is removed); only
+    /// recent ones are kept. Same rule as ListeningReceipts in CueMath.kt.
+    static let receiptMaxAgeSeconds: Double = 180 * 24 * 60 * 60
+    static let receiptMaxCount = 200
+
+    /// Receipts to drop, from each one's last save time (0: unknown, so dropped).
+    static func staleReceipts(_ savedAt: [String: Double], now: Double,
+                              maxAgeSeconds: Double, maxCount: Int) -> Set<String> {
+        var stale = Set(savedAt.filter { now - $0.value > maxAgeSeconds }.map { $0.key })
+        let newestFirst = savedAt.sorted { $0.value > $1.value }
+        for entry in newestFirst.dropFirst(maxCount) { stale.insert(entry.key) }
+        return stale
+    }
 }
 
 // MARK: - Sounds
@@ -776,6 +790,7 @@ final class CueScheduler {
 /// `voiceEnded`. Calls back into Dart with `countdownFinished` and `sessionEnded`.
 final class CueChannel {
     static let name = "meditejo/cues"
+    static let listeningPrefix = "meditejo.cue.listening."
 
     private let channel: FlutterMethodChannel
     private let scheduler = CueScheduler()
@@ -791,19 +806,42 @@ final class CueChannel {
         if !force && !listeningCompleted && now - lastListeningSaveMs < 5000 { return }
         lastListeningSaveMs = now
         if listeningCompleted { UserDefaults.standard.removeObject(forKey: key) }
-        else { UserDefaults.standard.set(listening.snapshot(), forKey: key) }
+        else {
+            let receipt: [String: Any] = ["at": Date().timeIntervalSince1970, "ranges": listening.snapshot()]
+            UserDefaults.standard.set(receipt, forKey: key)
+        }
+    }
+
+    /// Drops receipts of tracks left unfinished long ago (or beyond the most
+    /// recent ones), so they cannot pile up for ever.
+    private func pruneListening() {
+        let defaults = UserDefaults.standard
+        var savedAt: [String: Double] = [:]
+        for (key, value) in defaults.dictionaryRepresentation() {
+            guard key.hasPrefix(CueChannel.listeningPrefix), key != listeningKey else { continue }
+            let receipt = value as? [String: Any]
+            savedAt[key] = (receipt?["at"] as? NSNumber)?.doubleValue ?? 0
+        }
+        let stale = ListeningTracker.staleReceipts(
+            savedAt, now: Date().timeIntervalSince1970,
+            maxAgeSeconds: ListeningTracker.receiptMaxAgeSeconds, maxCount: ListeningTracker.receiptMaxCount)
+        for key in stale { defaults.removeObject(forKey: key) }
     }
 
     private func restoreListening(_ args: [String: Any]) {
         persistListening(force: true)
         let parts = [args["trackId"] as? String ?? "", args["fileId"] as? String ?? ""]
         let data = try? JSONSerialization.data(withJSONObject: parts)
-        listeningKey = "meditejo.cue.listening." + (data.flatMap { String(data: $0, encoding: .utf8) } ?? "")
+        listeningKey = CueChannel.listeningPrefix + (data.flatMap { String(data: $0, encoding: .utf8) } ?? "")
         listeningCompleted = false
         lastListeningReportMs = nil
-        let saved = UserDefaults.standard.array(forKey: listeningKey!) as? [[NSNumber]] ?? []
+        // ["at": savedAt, "ranges": [[start, end], ...]]; a bare array is read too.
+        var stored = UserDefaults.standard.object(forKey: listeningKey!)
+        if let receipt = stored as? [String: Any] { stored = receipt["ranges"] }
+        let saved = stored as? [[NSNumber]] ?? []
         listening.restore(saved.map { $0.map { $0.int64Value } })
         lastListeningSaveMs = ProcessInfo.processInfo.systemUptime * 1000
+        pruneListening()
     }
 
     init(messenger: FlutterBinaryMessenger) {

@@ -11,6 +11,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import org.json.JSONArray
+import org.json.JSONObject
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.AudioAttributes
@@ -282,14 +283,39 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         if (!force && !completionSent && now - lastListeningSaveMs < 5000L) return
         lastListeningSaveMs = now
         if (completionSent) listeningPrefs.edit().remove(key).apply()
-        else listeningPrefs.edit().putString(key, JSONArray(listening.snapshot()).toString()).apply()
+        else listeningPrefs.edit().putString(
+            key,
+            JSONObject()
+                .put("at", System.currentTimeMillis())
+                .put("ranges", JSONArray(listening.snapshot()))
+                .toString(),
+        ).apply()
+    }
+
+    // Drops listening receipts of tracks left unfinished long ago (or beyond
+    // the most recent ones), so they cannot pile up for ever.
+    private fun pruneListening() {
+        val savedAt = listeningPrefs.all
+            .filterKeys { it != listeningKey }
+            .mapValues { (_, value) ->
+                try { JSONObject(value as String).optLong("at", 0L) } catch (_: Exception) { 0L }
+            }
+        val stale = ListeningReceipts.stale(savedAt, System.currentTimeMillis())
+        if (stale.isEmpty()) return
+        val edit = listeningPrefs.edit()
+        stale.forEach { edit.remove(it) }
+        edit.apply()
     }
 
     private fun restoreListening(trackId: String, fileId: String) {
         listeningKey = JSONArray(listOf(trackId, fileId)).toString()
         listening.reset()
         try {
-            val array = JSONArray(listeningPrefs.getString(listeningKey, "[]"))
+            // {"at": savedAtMs, "ranges": [[start, end], ...]}; a bare array is read too.
+            val raw = listeningPrefs.getString(listeningKey, null) ?: "[]"
+            val array = if (raw.trimStart().startsWith("{")) {
+                JSONObject(raw).optJSONArray("ranges") ?: JSONArray()
+            } else JSONArray(raw)
             val saved = (0 until array.length()).mapNotNull { i ->
                 val range = array.optJSONArray(i)
                 if (range != null && range.length() == 2) listOf(range.getLong(0), range.getLong(1)) else null
@@ -297,6 +323,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             listening.restore(saved)
         } catch (_: Exception) { /* A corrupt resume receipt is ignored. */ }
         lastListeningSaveMs = SystemClock.elapsedRealtime()
+        try { pruneListening() } catch (e: Exception) { Log.w(TAG, "Could not prune listening receipts: ${e.message}") }
     }
 
     // The session reached its true end: the voice, plus the extension if there

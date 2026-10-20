@@ -437,6 +437,8 @@ when due, and the course's pull to refresh forces a check.
 
 `lib/models/cues/cue_settings.dart` describes the shared cue settings;
 `CueSettingsStore` persists defaults by Practice/Talks and optional course ID.
+The stored JSON carries `version` 1 (unversioned reads as 1); a newer version,
+or anything that fails to decode, reads as the kind's defaults.
 `cueScopeForRequestProvider` resolves a course's effective library group before
 playback. `CueSchedule` is the pure reference for countdown, start/end bells,
 fixed/random intervals, integrated pulse ramps and silent extension.
@@ -459,6 +461,8 @@ recording's duration.
 
 Listening completion is independent of terminal playback state. Rendered
 ranges are merged so repeated sections count once; a seek rebases the cursor.
+An unfinished track's ranges persist with their save time; receipts older than
+180 days, or beyond the 200 most recent, are pruned when a session starts.
 A 90% receipt records progress while playback continues. A timer qualifies at
 its end; a finished extension never stands in for listening. The terminal
 state is sent at every true end, earned or not, and opens the end screen only
