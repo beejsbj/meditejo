@@ -207,6 +207,7 @@ class IosAudioHandler extends BaseAudioHandler {
           _nativeHoldPaused = false;
           _sessionCompleted.add(false);
           await NativeCueController.channel.invokeMethod<void>('voiceEnded');
+          unawaited(_followExtension());
           return;
         }
         _sessionCompleted.add(true);
@@ -647,6 +648,42 @@ class IosAudioHandler extends BaseAudioHandler {
       }
     } catch (e) {
       AppLogger.e('CUES', 'Could not report iOS transport: $e');
+    }
+  }
+
+  final _extensionRemaining = StreamController<int>.broadcast();
+
+  /// Milliseconds left in the silent extension while it runs, from the Swift
+  /// clock: the voice's position stops at its end, so the ambient fade
+  /// follows this instead.
+  Stream<int> get extensionRemainingStream => _extensionRemaining.stream;
+
+  /// Whether the silent extension is under way.
+  bool get extending => _nativeExtending;
+
+  /// Reads the extension clock rarely while far from the end and every
+  /// 200 ms in its last ten seconds; stops with the extension.
+  Future<void> _followExtension() async {
+    final generation = _cueGeneration;
+    while (_nativeExtending && generation == _cueGeneration) {
+      final int remaining;
+      try {
+        final state = await NativeCueController.state();
+        remaining = (state['extensionRemainingMs'] as num?)?.toInt() ?? 0;
+      } catch (e) {
+        AppLogger.e('CUES', 'Extension clock unavailable: $e');
+        return;
+      }
+      if (!_nativeExtending || generation != _cueGeneration) return;
+      _extensionRemaining.add(remaining);
+      final waitMs = _nativeHoldPaused
+          ? 1000
+          : remaining > 15000
+          ? 5000
+          : remaining > 10200
+          ? remaining - 10000
+          : 200;
+      await Future<void>.delayed(Duration(milliseconds: waitMs));
     }
   }
 

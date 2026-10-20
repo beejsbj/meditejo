@@ -24,6 +24,15 @@ final iosBackgroundPlayer = AudioPlayer()..setLoopMode(LoopMode.all);
 /// longer implied by "bells are off".
 bool iosAmbientActive = false;
 
+/// The ambient volume [remainingMs] before the session's true end: full until
+/// the last ten seconds, then linear to silence, and silent at or past it.
+double ambientFadeVolume(double volume, int remainingMs) {
+  const fadeMs = 10000;
+  if (remainingMs <= 0) return 0;
+  if (remainingMs <= fadeMs) return volume * remainingMs / fadeMs;
+  return volume;
+}
+
 @riverpod
 Future<List<BackgroundSoundsModel>> backgroundSounds(Ref ref) {
   final backgroundSoundsRepository = ref.watch(
@@ -188,6 +197,7 @@ final backgroundSoundsNotifierProvider =
 
 class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
   StreamSubscription<Duration>? _fadeSubscription;
+  StreamSubscription<int>? _extensionFadeSubscription;
 
   /// True while a home Timer session owns the player. The ambient sound is
   /// one shared choice; only the bells switch is remembered per scope (on by
@@ -201,6 +211,7 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
   BackgroundSoundsState build() {
     ref.onDispose(() {
       _fadeSubscription?.cancel();
+      _extensionFadeSubscription?.cancel();
     });
     return const BackgroundSoundsState();
   }
@@ -501,6 +512,8 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
     iosAmbientActive = false;
     _fadeSubscription?.cancel();
     _fadeSubscription = null;
+    _extensionFadeSubscription?.cancel();
+    _extensionFadeSubscription = null;
     if (Platform.isAndroid) {
       _api.setBackgroundSound(null);
       _api.stopBackgroundSound();
@@ -559,8 +572,11 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
   void _handleFadeAtEndForIos() {
     _fadeSubscription?.cancel();
     _fadeSubscription = null;
-
-    var durationFromEnd = const Duration(seconds: 10).inMilliseconds;
+    _extensionFadeSubscription?.cancel();
+    // Past the voice's end its position stands still: the Swift extension
+    // clock carries the fade on to the true end.
+    _extensionFadeSubscription = iosAudioHandler.extensionRemainingStream
+        .listen(_fadeIosAmbient);
 
     _fadeSubscription = iosAudioHandler.positionStream.listen((
       currentPosition,
@@ -570,22 +586,20 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
         iosBackgroundPlayer.setVolume(scaledVolume(state.volume));
         return;
       }
+      if (iosAudioHandler.extending) return;
 
-      var remainingTime =
-          duration - currentPosition.inMilliseconds + _extensionMinutes * 60000;
-
-      if (remainingTime <= 0) {
-        // At or past the end: stay silent. Without this the fade would snap
-        // back to full volume on the final position update, causing an
-        // audible blip right before playback completes.
-        iosBackgroundPlayer.setVolume(0);
-      } else if (remainingTime <= durationFromEnd) {
-        var newVolume = state.volume * remainingTime / durationFromEnd;
-        iosBackgroundPlayer.setVolume(scaledVolume(newVolume));
-      } else {
-        iosBackgroundPlayer.setVolume(scaledVolume(state.volume));
-      }
+      // At or past the end it stays silent: snapping back to full volume on
+      // the final position update would blip right before completion.
+      _fadeIosAmbient(
+        duration - currentPosition.inMilliseconds + _extensionMinutes * 60000,
+      );
     });
+  }
+
+  void _fadeIosAmbient(int remainingMs) {
+    iosBackgroundPlayer.setVolume(
+      scaledVolume(ambientFadeVolume(state.volume, remainingMs)),
+    );
   }
 
   double scaledVolume(double vol) {

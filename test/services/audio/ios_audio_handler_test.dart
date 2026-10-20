@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/player/playback_request.dart';
+import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
 import 'package:medito/providers/player/ios_audio_handler.dart';
 import 'package:medito/services/audio/ios_session_bells.dart';
 import 'package:medito/src/audio_pigeon.g.dart' as pigeon;
@@ -163,6 +164,12 @@ void main() {
       calls.clear();
     });
 
+    // Ends the extension so its clock reader stops with the test.
+    tearDown(
+      () =>
+          _fromSwift('sessionEnded', {'extensionFinished': false, 'tailMs': 0}),
+    );
+
     List<Object?> held() => [
       for (final call in calls)
         if (call.method == 'setHeld') (call.arguments as Map)['held'],
@@ -203,6 +210,47 @@ void main() {
       await _settle();
       expect(held(), [true]);
     });
+  });
+
+  test(
+    'the extension clock carries the ambient fade to the true end',
+    () async {
+      final calls = _mockSwift({
+        'state': {'phase': 'extension', 'extensionRemainingMs': 8000},
+      });
+      final streams = _Streams();
+      final handler = _WiredHandler(streams.player());
+      await handler.ensureInitialized();
+      await handler.configureCues(const CueSettings(extendMinutes: 1), _guided);
+      final remaining = handler.extensionRemainingStream.first;
+
+      streams.processing.add(ProcessingState.completed);
+      expect(await remaining, 8000);
+      expect(handler.extending, isTrue);
+      // Eight seconds from the end: the ambient is fading, not at full volume.
+      expect(ambientFadeVolume(50, 8000), 40);
+
+      await _fromSwift('sessionEnded', {
+        'extensionFinished': true,
+        'tailMs': 0,
+      });
+      expect(handler.extending, isFalse);
+      final polls = calls.where((c) => c.method == 'state').length;
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      expect(
+        calls.where((c) => c.method == 'state').length,
+        polls,
+        reason: 'the clock is read only while the extension runs',
+      );
+    },
+  );
+
+  test('the ambient fade is full until the last ten seconds', () {
+    expect(ambientFadeVolume(50, 600000), 50);
+    expect(ambientFadeVolume(50, 10000), 50);
+    expect(ambientFadeVolume(50, 5000), 25);
+    expect(ambientFadeVolume(50, 0), 0);
+    expect(ambientFadeVolume(50, -300), 0);
   });
 
   test('seeking back during the extension ends the Swift hold', () async {
