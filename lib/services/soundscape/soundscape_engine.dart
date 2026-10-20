@@ -89,6 +89,15 @@ class LayerMotion {
     return LayerMotion(period: Duration(seconds: 40 + seed % 51));
   }
 
+  /// A voice's own swell (a drone partial) with the layer's Drift on top.
+  /// The voice keeps its own period, so the voices never swell in step, and
+  /// Drift deepens the swell: the floors multiply. Either alone is itself.
+  static LayerMotion? combine(LayerMotion? swell, LayerMotion? drift) {
+    if (swell == null) return drift;
+    if (drift == null) return swell;
+    return LayerMotion(period: swell.period, floor: swell.floor * drift.floor);
+  }
+
   @override
   bool operator ==(Object other) =>
       other is LayerMotion && other.period == period && other.floor == floor;
@@ -567,7 +576,7 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
     _cancelSwells(layer);
     for (final voice in layer.voices) {
       final target = layer.gain * voice.weight;
-      final motion = voice.swell ?? layer.motion;
+      final motion = LayerMotion.combine(voice.swell, layer.motion);
       if (motion == null) {
         _soloud.fadeVolume(voice.handle, target, fade);
         continue;
@@ -766,7 +775,8 @@ class _Voice {
   final SoundHandle handle;
   double weight;
 
-  /// The voice's own swell (drone partials), over the layer's drift.
+  /// The voice's own swell (drone partials), deepened by the layer's drift
+  /// ([LayerMotion.combine]).
   LayerMotion? swell;
   Timer? timer;
 }
