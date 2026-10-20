@@ -20,6 +20,7 @@ class _Engine implements SoundscapeEngine {
   final failOn = <String>{};
   final failOnce = <String>{};
   final gates = <String, Completer<void>>{};
+  final stopGates = <String, Completer<void>>{};
   double master = 1;
   bool paused = false;
 
@@ -46,6 +47,7 @@ class _Engine implements SoundscapeEngine {
 
   @override
   Future<void> stop(String key, {Duration fade = Duration.zero}) async {
+    await stopGates[key]?.future;
     playing.remove(key);
     motion.remove(key);
   }
@@ -314,6 +316,21 @@ void main() {
       expect(engine.playing.keys, ['cafe']);
     },
   );
+
+  test('a pass overtaken while a fade ends does not stop the mix', () async {
+    ctl().clearMix();
+    ctl().toggleSound('waves');
+    await settle();
+    engine.stopGates['waves'] = Completer<void>();
+    engine.failOnce.add('cafe');
+    await ctl().play(SoundscapeSelection.sound('cafe'));
+    await settle();
+    await ctl().play(SoundscapeSelection.sound('cafe'));
+    engine.stopGates['waves']!.complete();
+    await settle();
+    expect(st().active, isTrue);
+    expect(engine.playing.keys, ['cafe']);
+  });
 
   test('a play begun in one session does not land in the next', () async {
     await ctl().startSession(SoundscapeSessionKind.practice);

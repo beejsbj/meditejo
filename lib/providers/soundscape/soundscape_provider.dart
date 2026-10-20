@@ -724,7 +724,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
           // As soon as the first layer plays, not after the last has loaded:
           // loading can outlast the few seconds Android allows to start a
           // foreground service once the screen is off.
-          if (standalone) await _holdKeepAlive(true);
+          if (standalone && !superseded()) await _holdKeepAlive(true);
         } else {
           failed.add(layer.soundId);
         }
@@ -740,13 +740,13 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       state = state.copyWith(failed: {...state.failed, ...failed});
     }
     await Future.wait(fades);
-    if (stale) return;
+    if (stale || superseded()) return;
     if (standalone && _applied.isNotEmpty) await _holdKeepAlive(true);
     // Nothing in the mix could play (every layer failed, or none is in the
     // library): stop, rather than hold the foreground service and its
     // notification over silence. Only if the mix is still the one this
     // pass tried; a newer edit gets its own pass.
-    if (ref.mounted &&
+    if (!superseded() &&
         s.active &&
         _applied.isEmpty &&
         state.active &&
