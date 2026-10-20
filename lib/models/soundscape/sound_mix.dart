@@ -224,7 +224,13 @@ class SoundscapeSelection {
   final SoundscapeSelectionKind kind;
   final String id;
 
-  static SoundscapeSelection parse(String? value) {
+  static SoundscapeSelection parse(String? value) =>
+      tryParse(value) ?? currentMix;
+
+  /// [value] in the grammar above, or null when it is not one (a damaged
+  /// value, or a kind a newer version added): the caller picks the
+  /// fallback. Empty is `mix`.
+  static SoundscapeSelection? tryParse(String? value) {
     final v = value?.trim() ?? '';
     if (v.isEmpty || v == 'mix') return currentMix;
     if (v == 'none') return none;
@@ -234,7 +240,7 @@ class SoundscapeSelection {
     if (v.startsWith('sound:') && v.length > 6) {
       return SoundscapeSelection.sound(v.substring(6));
     }
-    return currentMix;
+    return null;
   }
 
   String encode() => switch (kind) {

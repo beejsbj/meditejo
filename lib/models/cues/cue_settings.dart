@@ -169,23 +169,12 @@ class CueSettings {
       return value is String && allowed.containsValue(value) ? value : fallback;
     }
 
-    // Written before the soundscape selection existed: an ambient switch
-    // the user turned away from the kind's default is kept as an explicit
-    // choice (on: the current mix; off: silence). Otherwise follow the mixer.
+    // Anything but a selection in the mixer's grammar (a damaged value, or a
+    // kind a newer version added) follows the kind's default.
     String soundscape() {
       final value = json['soundscape'];
-      if (value is String) {
-        return value.trim().isEmpty
-            ? ''
-            : SoundscapeSelection.parse(value).encode();
-      }
-      final enabled = json['backgroundEnabled'];
-      if (enabled is bool && enabled != defaults.backgroundEnabled) {
-        return enabled
-            ? SoundscapeSelection.currentMix.encode()
-            : SoundscapeSelection.none.encode();
-      }
-      return '';
+      if (value is! String || value.trim().isEmpty) return '';
+      return SoundscapeSelection.tryParse(value)?.encode() ?? '';
     }
 
     final countdown = integer('countdownSeconds', 0, 0, 10);

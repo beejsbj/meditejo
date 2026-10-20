@@ -629,7 +629,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         selection: off ? current.selection : choice,
       ),
     );
-    // A choice carried over from before the mixer existed gives way.
+    // A kind-wide choice lives in the mixer only; clear any stored here.
     if (s.soundscape.isNotEmpty) _edit(s.copyWith(soundscape: ''));
   }
 

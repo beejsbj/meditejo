@@ -134,22 +134,25 @@ void main() {
       const SoundscapeSelection.preset('starter-night'),
     );
     expect(CueSettings.fromJson({'soundscape': ' '}).soundscape, '');
-    expect(CueSettings.fromJson({'soundscape': 'nonsense'}).soundscape, 'mix');
+    // An unknown value follows the default rather than turning sound on.
+    expect(CueSettings.fromJson({'soundscape': 'nonsense'}).soundscape, '');
+    expect(CueSettings.fromJson({'soundscape': 'drone:low'}).soundscape, '');
+    expect(CueSettings.fromJson({'soundscape': 7}).soundscape, '');
     expect(
       const CueSettings().copyWith(soundscape: 'none').soundscapeSelection,
       SoundscapeSelection.none,
     );
 
-    // Values saved before the field existed: a background switch left at
-    // the kind's default follows the mixer; one turned away is kept.
+    // Slice 6's background switch never played anything and never shipped:
+    // values saved before this field follow the mixer, whatever it said.
     String old(CueKind kind, bool enabled) => CueSettings.decode(
       jsonEncode({'version': 1, 'backgroundEnabled': enabled}),
       kind,
     ).soundscape;
-    expect(old(CueKind.practice, true), '');
-    expect(old(CueKind.practice, false), 'none');
-    expect(old(CueKind.talks, false), '');
-    expect(old(CueKind.talks, true), 'mix');
+    for (final kind in CueKind.values) {
+      expect(old(kind, true), '');
+      expect(old(kind, false), '');
+    }
 
     // A course inherits its kind's choice until it overrides it.
     final store = CueSettingsStore(await SharedPreferences.getInstance());
