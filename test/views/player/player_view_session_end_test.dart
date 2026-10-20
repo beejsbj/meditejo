@@ -19,6 +19,7 @@ import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/review_service_provider.dart';
+import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
 import 'package:medito/services/content/content_source.dart';
@@ -28,8 +29,11 @@ import 'package:medito/src/audio_pigeon.g.dart' as pigeon show Track;
 import 'package:medito/views/end_screen/end_screen_view.dart';
 import 'package:medito/views/home/previews/stats_fixtures.dart';
 import 'package:medito/views/player/player_view.dart';
+import 'package:medito/views/player/widgets/bottom_actions/widgets/bg_sound_widget.dart';
 import 'package:medito/views/previews/preview_support.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers/soundscape_fakes.dart';
 
 PlaybackState _state({
   required bool completed,
@@ -127,6 +131,20 @@ class _SilentBackgroundSounds extends BackgroundSoundsNotifier {
   void playBackgroundSoundFromPref() => starts.add((_kind, _selection));
 }
 
+/// The real soundscape wiring (setSessionKind, playBackgroundSoundFromPref)
+/// with the legacy native layers left out.
+class _MixerBackgroundSounds extends BackgroundSoundsNotifier {
+  @override
+  BackgroundSoundsState build() => const BackgroundSoundsState();
+
+  @override
+  void applyCueSettings(CueSettings settings) {}
+
+  @override
+  void stopBackgroundSound() =>
+      ref.read(soundscapeProvider.notifier).endSession();
+}
+
 class _Stats extends StatsNotifier {
   @override
   Future<LocalAllStats> build() async => previewStats;
@@ -150,7 +168,7 @@ Widget _player({
   required Map<String, Object> prefs,
   SessionBellPreview? bell,
   bool legacyBells = false,
-  _SilentBackgroundSounds? sounds,
+  BackgroundSoundsNotifier? sounds,
   List<dynamic> overrides = const [],
   Widget child = const PlayerView(skipCustomize: true),
 }) => PreviewShell(
@@ -451,6 +469,88 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 4));
+  });
+
+  testWidgets('the real mixer carries across autoplay and ends with the '
+      'course, and the sound button follows it', (tester) async {
+    final engine = FakeSoundscapeEngine();
+    final player = _FakePlayer(_first);
+    await tester.pumpWidget(
+      _player(
+        player: player,
+        prefs: _prefsWith(_autoplay),
+        sounds: _MixerBackgroundSounds(),
+        overrides: [..._courseOverrides, ...soundscapeTestOverrides(engine)],
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlayerView)),
+    );
+    final audio = container.read(audioStateProvider.notifier);
+    SoundscapeState mixer() => container.read(soundscapeProvider);
+    bool button() => tester
+        .widget<BgSoundWidget>(find.byType(BgSoundWidget))
+        .isBackgroundSoundSelected;
+
+    Future<void> playing(int positionMs) async {
+      audio.updatePlaybackState(
+        _state(
+          completed: false,
+          positionMs: positionMs,
+          durationMs: 60000,
+          playing: true,
+        ),
+      );
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+    }
+
+    // Practice plays the current mix under the session.
+    await playing(1000);
+    expect(mixer().underSession, isTrue);
+    expect(mixer().playing, isTrue);
+    expect(engine.playing, isNotEmpty);
+    expect(button(), isTrue, reason: 'the button shows the mixer playing');
+
+    // The voice ends: the mixer pauses (fading) through the interlude, but
+    // the session goes on.
+    audio.updatePlaybackState(
+      _state(completed: true, positionMs: 60000, durationMs: 60000),
+    );
+    await tester.pump(const Duration(seconds: 1));
+    expect(mixer().inSession, isTrue);
+    expect(mixer().playing, isFalse);
+    expect(engine.paused, isTrue);
+    expect(button(), isFalse);
+
+    // The next session starts on the same screen; the mix resumes.
+    await tester.pump(const Duration(seconds: 5));
+    expect(player.played.map((r) => r.trackId), ['fake-a', 'fake-b']);
+    await playing(1000);
+    expect(mixer().underSession, isTrue);
+    expect(mixer().playing, isTrue);
+    expect(engine.paused, isFalse);
+    expect(engine.playing, isNotEmpty);
+
+    // The last session ends naturally: the end screen opens and the mixer's
+    // session ends with it.
+    audio.updatePlaybackState(
+      _state(completed: true, positionMs: 60000, durationMs: 60000),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byType(EndScreenView), findsOneWidget);
+    expect(mixer().inSession, isFalse);
+    expect(mixer().active, isFalse);
+    expect(engine.playing, isEmpty);
+
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
   });
 
   testWidgets('going back during the interlude does not start the next '
