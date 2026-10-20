@@ -1625,6 +1625,9 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
 
     fun configureCues(args: Map<*, *>) {
         if (!::cues.isInitialized) throw IllegalStateException("Service not fully initialized")
+        // A Customize edit after the session ended changes nothing now: it must
+        // not cut the autoplay interlude or its hold short.
+        if (args["update"] == true && cues.phase == CueEngine.Phase.ENDED) return
         sessionBells.disable()
         cues.configure(CueConfig.fromMap(args))
     }

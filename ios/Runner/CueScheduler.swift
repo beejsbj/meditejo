@@ -869,6 +869,12 @@ final class CueChannel {
         let args = call.arguments as? [String: Any] ?? [:]
         switch call.method {
         case "configure":
+            // A Customize edit after the session ended changes nothing now: it
+            // must not cut the autoplay interlude or its hold short.
+            if (args["update"] as? Bool) == true && scheduler.phase == .ended {
+                result(nil)
+                return
+            }
             scheduler.configure(CueConfig(map: args))
             result(nil)
         case "begin":
