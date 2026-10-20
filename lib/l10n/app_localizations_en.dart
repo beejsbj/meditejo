@@ -2338,4 +2338,170 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get soundPresetStillness => 'Stillness';
+
+  @override
+  String get myCourseNew => 'New course';
+
+  @override
+  String get myCourseNameHint => 'Course name';
+
+  @override
+  String get myCourseCreate => 'Create';
+
+  @override
+  String get myCourseDefaultTitle => 'My course';
+
+  @override
+  String get myCourseAddTo => 'Add to course…';
+
+  @override
+  String get myCourseAddToTitle => 'Add to course';
+
+  @override
+  String myCourseAddedSnack(String title) {
+    return 'Added to $title';
+  }
+
+  @override
+  String myCourseAddedCountSnack(int count, String title) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sessions added to $title',
+      one: '1 session added to $title',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myCourseAlreadyIn(String title) {
+    return 'Already in $title';
+  }
+
+  @override
+  String get myCourseNothingToAdd => 'There are no sessions to add.';
+
+  @override
+  String get myCourseAddFailed => 'Could not add it to the course.';
+
+  @override
+  String get myCourseNoneYet =>
+      'You haven\'t made a course yet. Start one here.';
+
+  @override
+  String get myCourseDuplicate => 'Make my own copy';
+
+  @override
+  String myCourseCopyTitle(String title) {
+    return '$title (my copy)';
+  }
+
+  @override
+  String get myCourseDuplicateFailed => 'Could not copy this course.';
+
+  @override
+  String get myCourseSaveFailed => 'Could not save the course.';
+
+  @override
+  String get myCourseEdit => 'Edit course';
+
+  @override
+  String get myCourseSave => 'Save';
+
+  @override
+  String get myCourseTitleLabel => 'Title';
+
+  @override
+  String get myCourseDescriptionLabel => 'Description (optional)';
+
+  @override
+  String get myCourseKindLabel => 'Kind';
+
+  @override
+  String get myCourseCoverLabel => 'Cover';
+
+  @override
+  String get myCourseCoverGenerated => 'Generated cover';
+
+  @override
+  String myCourseCoverChoice(int index) {
+    return 'Cover $index';
+  }
+
+  @override
+  String get myCourseSessionsLabel => 'Sessions';
+
+  @override
+  String get myCourseAddHeading => 'Add heading';
+
+  @override
+  String get myCourseHeadingHint => 'Heading, e.g. Day 1';
+
+  @override
+  String get myCourseRemoveRow => 'Remove from course';
+
+  @override
+  String get myCourseDragHandle => 'Drag to reorder';
+
+  @override
+  String get myCourseEditEmpty =>
+      'No sessions yet. Use Add to course… in any session\'s menu.';
+
+  @override
+  String get myCourseDiscardTitle => 'Discard your changes?';
+
+  @override
+  String get myCourseDiscard => 'Discard';
+
+  @override
+  String get myCourseKeepEditing => 'Keep editing';
+
+  @override
+  String get myCourseDelete => 'Delete course';
+
+  @override
+  String get myCourseDeleteTitle => 'Delete this course?';
+
+  @override
+  String get myCourseDeleteBody =>
+      'Only the course goes. Its sessions stay in your library, with their downloads and progress.';
+
+  @override
+  String get myCourseDeletedSnack => 'Course deleted';
+
+  @override
+  String get myCourseEmptyTitle => 'No sessions yet';
+
+  @override
+  String get myCourseEmptyBody =>
+      'Add sessions from anywhere: a Dharma Seed talk, a YouTube video, an episode or a file. Open its menu and choose Add to course…';
+
+  @override
+  String get myCourseUnavailable => 'Unavailable';
+
+  @override
+  String get myCourseUnavailableSnack =>
+      'This session is no longer available from its source.';
+
+  @override
+  String myCourseRemoveWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'It is also in $count of your courses, where it will show as unavailable.',
+      one:
+          'It is also in one of your courses, where it will show as unavailable.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get myCourseMore => 'More options';
+
+  @override
+  String get myCourseRemovedSnack => 'Removed from the course';
+
+  @override
+  String get myCourseEditAction => 'Edit';
 }

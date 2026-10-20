@@ -39,3 +39,9 @@ class CatalogueEntryUnavailable implements Exception {
   @override
   String toString() => 'This $kind is not available in the local catalogue.';
 }
+
+/// Not stored here, and the source could not be asked (offline, timed out):
+/// unavailable for now, which says nothing about whether the source has it.
+class CatalogueEntryUnreachable extends CatalogueEntryUnavailable {
+  const CatalogueEntryUnreachable(super.kind, super.id);
+}

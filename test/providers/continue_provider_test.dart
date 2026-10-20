@@ -351,6 +351,116 @@ void main() {
     expect(items.first.trackId, 'x-practice-1');
   });
 
+  group('a session in several courses', () {
+    PackModel mine(String id, List<String> sessions) => PackModel(
+      id: id,
+      title: 'Mine $id',
+      items: [
+        for (final s in sessions)
+          PackItemsModel(
+            type: TypeConstants.track,
+            id: s,
+            title: 'Session $s',
+            path: '/tracks/$s',
+          ),
+      ],
+    );
+
+    test('continues in the course it was opened from', () async {
+      await addCourse('a', played: true);
+      await leftAt('x-a-2', DateTime(2026, 10, 18));
+      await store.noteSessionContext('x-a-2', 'my-course-1');
+
+      final items = await read(
+        packs: [
+          _course('a'),
+          mine('my-course-1', ['x-b-1', 'x-a-2']),
+        ],
+      );
+
+      expect(items.single.courseId, 'my-course-1');
+      expect(items.single.courseTitle, 'Mine my-course-1');
+      expect(items.single.sessionNumber, 2);
+      expect(items.single.sessionTotal, 2);
+    });
+
+    test(
+      'ranks as the course it is shown under, not as its own entry',
+      () async {
+        await addCourse('a', played: true);
+        // Saved on its own as a talk, resumed from a Practice course.
+        await store.add(
+          const LibraryDraft(
+            sourceId: 'x-a-2',
+            kind: LibraryKind.single,
+            title: 'Session x-a-2',
+            group: LibraryGroup.talks,
+          ),
+        );
+        await store.add(
+          const LibraryDraft(
+            sourceId: 'my-course-1',
+            kind: LibraryKind.course,
+            title: 'Mine my-course-1',
+            group: LibraryGroup.practice,
+          ),
+        );
+        await leftAt('x-a-2', DateTime(2026, 10, 18));
+        await store.noteSessionContext('x-a-2', 'my-course-1');
+
+        final items = await read(
+          packs: [
+            _course('a'),
+            mine('my-course-1', ['x-b-1', 'x-a-2']),
+          ],
+        );
+
+        expect(items.first.courseId, 'my-course-1');
+        expect(items.first.group, LibraryGroup.practice);
+      },
+    );
+
+    test('falls back to its own course once that course drops it', () async {
+      await addCourse('a', played: true);
+      await leftAt('x-a-2', DateTime(2026, 10, 18));
+      await store.noteSessionContext('x-a-2', 'my-course-1');
+
+      final items = await read(
+        packs: [
+          _course('a'),
+          mine('my-course-1', ['x-b-1']),
+        ],
+      );
+
+      expect(items.single.courseId, 'x-course-a');
+      expect(items.single.sessionNumber, 2);
+    });
+
+    test('a gone session is never the next one', () async {
+      await store.add(
+        const LibraryDraft(
+          sourceId: 'my-course-1',
+          kind: LibraryKind.course,
+          title: 'Mine',
+          group: LibraryGroup.practice,
+        ),
+      );
+      await store.touchPlayed(['my-course-1']);
+      final pack = mine('my-course-1', ['x-a-1', 'x-a-2', 'x-a-3']);
+      final withGone = pack.copyWith(
+        items: [
+          pack.items[0],
+          pack.items[1].copyWith(unavailable: true),
+          pack.items[2],
+        ],
+      );
+
+      final items = await read(checked: ['x-a-1'], packs: [withGone]);
+
+      expect(items.single.trackId, 'x-a-3');
+    });
+  });
+
   test('a session from outside the library still counts', () async {
     await leftAt('x-loose', DateTime(2026, 10, 18));
 

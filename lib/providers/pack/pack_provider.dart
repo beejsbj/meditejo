@@ -5,6 +5,7 @@ import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/repositories/repositories.dart';
+import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'pack_provider.g.dart';
@@ -57,6 +58,15 @@ Future<PackModel> packData(Ref ref, {required String packId}) {
   if (packId.startsWith('yt-playlist-')) {
     ref.watch(youtubeContentRevisionProvider);
   } else if (packId.startsWith(dharmaSeedPrefix)) {
+    ref.watch(dharmaSeedRevisionProvider);
+  }
+  if (packId.startsWith(myPrefix)) {
+    // A personal course lists sessions of every source: one removed from the
+    // library, or gone from its feed, must not stay playable here. Library
+    // entries by identity: playing a session must not re-read every course.
+    ref.watch(myCoursesRevisionProvider);
+    ref.watch(libraryEntryIdsProvider);
+    ref.watch(youtubeContentRevisionProvider);
     ref.watch(dharmaSeedRevisionProvider);
   }
   return ref.read(packRepositoryProvider).fetchPacks(packId);
@@ -140,10 +150,7 @@ class Pack extends _$Pack {
     final pack = state.value;
     if (pack == null) return;
 
-    final trackIds = pack.items
-        .where((item) => item.type == TypeConstants.track)
-        .map((item) => item.id)
-        .toList();
+    final trackIds = [for (final item in pack.playableTracks) item.id];
     if (trackIds.isEmpty) return;
 
     final statsManager = ref.read(statsManagerProvider);

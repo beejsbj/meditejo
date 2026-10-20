@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
+import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/services/library/feed_refresher.dart';
 import 'package:medito/services/library/import_http.dart';
 import 'package:medito/services/library/import_service.dart';
@@ -19,6 +20,7 @@ import 'package:medito/services/library/library_migration.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
 import 'package:medito/services/library/playback_position_tracker.dart';
+import 'package:medito/services/my_courses/my_course_source.dart';
 import 'package:medito/services/content/content_source.dart';
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/utils/logger.dart';
@@ -59,6 +61,31 @@ final libSourceProvider = Provider<LibSource>(
     library: ref.watch(libraryStoreProvider),
   ),
 );
+
+/// Courses the user made from sessions anywhere, served as a content source.
+/// It reads their sessions through the other sources.
+final Provider<MyCourseSource> myCourseSourceProvider = Provider((ref) {
+  final source = MyCourseSource(
+    db: ref.watch(libraryDatabaseProvider),
+    library: ref.watch(libraryStoreProvider),
+    sources: () => ref.read(contentSourcesProvider),
+  );
+  void changed() => ref.invalidate(packTrackIdsProvider);
+  source.revision.addListener(changed);
+  ref.onDispose(() {
+    source.revision.removeListener(changed);
+    source.dispose();
+  });
+  return source;
+});
+
+/// Changes when a personal course or its sessions do.
+final myCoursesRevisionProvider =
+    NotifierProvider<ValueListenableNotifier<int>, int>(
+      () => ValueListenableNotifier(
+        (ref) => ref.watch(myCourseSourceProvider).revision,
+      ),
+    );
 
 final youtubeAvailableProvider = Provider<bool>(
   (ref) => youtubeBridgeAvailable,
@@ -166,6 +193,13 @@ final playbackPositionsRevisionProvider =
       ),
     );
 
+/// Which entries the library holds, and nothing about them: it changes when
+/// one is added or removed, not when one is played or renamed.
+final libraryEntryIdsProvider = Provider.autoDispose<String>((ref) {
+  final entries = ref.watch(libraryEntriesProvider).value ?? const [];
+  return ([for (final e in entries) e.sourceId]..sort()).join('\n');
+});
+
 /// Everything in the library, most recently added or played first.
 final libraryEntriesProvider = FutureProvider.autoDispose<List<LibraryEntry>>((
   ref,
@@ -268,11 +302,20 @@ final playbackPositionTrackerProvider = Provider<PlaybackPositionTracker>((
   ref,
 ) {
   final router = ref.watch(libraryContentRouterProvider);
+  final store = ref.watch(libraryStoreProvider);
   return PlaybackPositionTracker(
-    ref.watch(libraryStoreProvider),
+    store,
+    // The personal course the session was opened from, while it still lists
+    // it; else the course its source names.
     parentsOf: (trackId) async {
-      final parent = await router.parentOf(trackId);
-      return parent == null ? const [] : [parent];
+      final opened = await store.sessionContext(trackId);
+      if (opened != null &&
+          isMyCourseId(opened) &&
+          (await ref.read(myCourseSourceProvider).coursesHolding(trackId))
+              .contains(opened)) {
+        return {opened};
+      }
+      return {?await router.parentOf(trackId)};
     },
     ignore: (id) => id == kLegacyTimerTrackId || isTimerSessionId(id),
   );

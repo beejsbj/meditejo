@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/colors/color_constants.dart';
 import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
+import 'package:medito/utils/logger.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/views/player/start_session.dart';
 
@@ -46,7 +49,7 @@ class PackPathButton extends StatelessWidget {
   /// Whether [pack] gets a play button at all.
   static bool isPlayable(PackModel pack) {
     final tracks = pack.items.where((i) => i.type == TypeConstants.track);
-    return tracks.isNotEmpty &&
+    return pack.playableTracks.isNotEmpty &&
         tracks.length == pack.items.length &&
         pack.id != PackPlayButton._favoritesPackId;
   }
@@ -58,9 +61,8 @@ class PackPathButton extends StatelessWidget {
       return ColoredBox(color: cardColor, child: child);
     }
 
-    final completed = pack.items
-        .where((item) => item.isCompleted == true)
-        .length;
+    final tracks = pack.playableTracks;
+    final completed = tracks.where((item) => item.isCompleted == true).length;
     const half = buttonSize / 2;
 
     return Stack(
@@ -73,7 +75,7 @@ class PackPathButton extends StatelessWidget {
             // The button's top half overlaps the last line of the header;
             // the header content keeps [endReserve] clear there.
             ColoredBox(color: cardColor, child: child),
-            _progressEdge(context, completed, pack.items.length),
+            _progressEdge(context, completed, tracks.length),
             // The button's lower half hangs over the list background; this
             // keeps it inside the Stack so the whole circle takes taps.
             const SizedBox(height: half - _progressHeight),
@@ -150,13 +152,10 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
 
   @override
   Widget build(BuildContext context) {
-    final completed = pack.items
-        .where((item) => item.isCompleted == true)
-        .length;
-    final next = pack.items
-        .where((item) => item.isCompleted != true)
-        .firstOrNull;
-    return _playButton(context, next, completed, pack.items.length);
+    final tracks = pack.playableTracks;
+    final completed = tracks.where((item) => item.isCompleted == true).length;
+    final next = tracks.where((item) => item.isCompleted != true).firstOrNull;
+    return _playButton(context, next, completed, tracks.length);
   }
 
   Widget _playButton(
@@ -227,6 +226,16 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
     if (_starting) return;
     setState(() => _starting = true);
     try {
+      // A session several courses list counts towards this one. Written
+      // before the session starts, which reads it for its cue scope.
+      try {
+        await ref
+            .read(libraryStoreProvider)
+            .noteSessionContext(next.id, pack.id);
+      } catch (e, st) {
+        AppLogger.e('PACK', 'Could not note the course of a session', e, st);
+      }
+      if (!context.mounted) return;
       await widget.onStartSession(
         context,
         ref,

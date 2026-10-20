@@ -48,6 +48,8 @@ void main() {
       expect(container.read(contentSourcesProvider).map((s) => s.prefix), [
         'ds-',
         'lib-',
+        // Personal courses: present on every platform, no YouTube needed.
+        'my-',
       ]);
       await seedStarterSet(db, ds, includeYoutube: false);
       final entries = await db.allEntries();

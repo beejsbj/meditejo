@@ -5,6 +5,7 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/views/library/import_view.dart';
 import 'package:medito/views/library/library_widgets.dart';
+import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 import 'package:medito/widgets/section_header.dart';
 
@@ -22,6 +23,12 @@ class LibraryView extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.libraryTitle),
         actions: [
+          IconButton(
+            key: const ValueKey('library_new_course'),
+            tooltip: l10n.myCourseNew,
+            onPressed: () => newMyCourse(context, ref),
+            icon: const Icon(Icons.playlist_add_rounded),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: FilledButton.tonalIcon(

@@ -4,6 +4,8 @@ import 'package:medito/constants/constants.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/views/pack/widgets/pack_item_widget.dart';
+import 'package:medito/services/my_courses/my_course_models.dart';
+import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/widgets/add_to_library_icon.dart';
 
 /// Single sessions as the same rows a course page uses: kind, title, teacher
@@ -51,7 +53,10 @@ class SessionRowsSliver extends ConsumerWidget {
                   ),
                 ),
                 AddToLibraryIcon(id: item.id),
-                const SizedBox(width: 4),
+                ContentActionsButton(
+                  id: item.id,
+                  fallback: MyItemDraft.fromPackItem(item),
+                ),
               ],
             ),
             if (index < items.length - 1)

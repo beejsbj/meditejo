@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/home/continue_provider.dart';
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/services/home/continue_rules.dart';
+import 'package:medito/utils/logger.dart';
 import 'package:medito/views/library/library_format.dart';
 import 'package:medito/views/player/start_session.dart';
 import 'package:medito/widgets/network_image_widget.dart';
@@ -66,8 +68,22 @@ class ContinueTile extends ConsumerWidget {
         ? l10n.homeContinueResume
         : l10n.homeContinueStart;
     final subtitle = _subtitle(l10n);
-    void start() =>
-        startSession(context, ref, trackId: item.trackId, path: item.path);
+    Future<void> start() async {
+      // The course Continue shows it under, for its cue scope and for where
+      // it counts: written before the session starts, which reads it.
+      final courseId = item.courseId;
+      if (courseId != null) {
+        try {
+          await ref
+              .read(libraryStoreProvider)
+              .noteSessionContext(item.trackId, courseId);
+        } catch (e, st) {
+          AppLogger.e('HOME', 'Could not note the course of a session', e, st);
+        }
+      }
+      if (!context.mounted) return;
+      await startSession(context, ref, trackId: item.trackId, path: item.path);
+    }
 
     return Semantics(
       button: true,

@@ -16,6 +16,7 @@ import 'package:medito/models/track/track.dart';
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/review_service_provider.dart';
@@ -33,6 +34,7 @@ import 'package:medito/views/player/widgets/bottom_actions/widgets/bg_sound_widg
 import 'package:medito/views/previews/preview_support.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../helpers/memory_session_store.dart';
 import '../../helpers/soundscape_fakes.dart';
 
 PlaybackState _state({
@@ -247,6 +249,12 @@ class _Course implements ContentSource {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _LaterTrack extends Tracks {
+  @override
+  Future<Track> build({required String trackId}) async =>
+      _nextTrack.copyWith(id: 'fake-c', title: 'Session C');
+}
+
 class _NextTrack extends Tracks {
   @override
   Future<Track> build({required String trackId}) async => _nextTrack;
@@ -259,6 +267,7 @@ final _courseOverrides = [
   ),
   contentSourcesProvider.overrideWithValue([_Course()]),
   tracksProvider(trackId: 'fake-b').overrideWith(_NextTrack.new),
+  libraryStoreProvider.overrideWithValue(MemorySessionStore()),
 ];
 
 const _autoplay = CueSettings(autoplay: true, interludeSeconds: 5);
@@ -466,6 +475,82 @@ void main() {
     await tester.pump();
     expect(find.text('Session B'), findsWidgets);
     expect(find.byType(EndScreenView), findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 4));
+  });
+
+  testWidgets('autoplay follows the personal course the session was opened '
+      'from, past a session its source lost', (tester) async {
+    final store = MemorySessionStore();
+    final player = _FakePlayer(_first);
+    await tester.pumpWidget(
+      _player(
+        player: player,
+        prefs: _prefsWith(_autoplay),
+        overrides: [
+          cueScopeForRequestProvider.overrideWith(
+            (ref, request) async =>
+                const CueScope(CueKind.practice, courseId: 'my-course-1'),
+          ),
+          libraryStoreProvider.overrideWithValue(store),
+          // The course lists fake-b, which its source has lost, then fake-c.
+          packDataProvider(packId: 'my-course-1').overrideWith(
+            (ref) async => const PackModel(
+              id: 'my-course-1',
+              title: 'Mine',
+              items: [
+                PackItemsModel(
+                  type: TypeConstants.track,
+                  id: 'fake-a',
+                  title: 'Session A',
+                  path: '',
+                ),
+                PackItemsModel(
+                  type: TypeConstants.track,
+                  id: 'fake-b',
+                  title: 'Session B',
+                  path: '',
+                  unavailable: true,
+                ),
+                PackItemsModel(
+                  type: TypeConstants.track,
+                  id: 'fake-c',
+                  title: 'Session C',
+                  path: '',
+                ),
+              ],
+            ),
+          ),
+          tracksProvider(trackId: 'fake-c').overrideWith(_LaterTrack.new),
+        ],
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    final audio = ProviderScope.containerOf(
+      tester.element(find.byType(PlayerView)),
+    ).read(audioStateProvider.notifier);
+    audio.updatePlaybackState(
+      _state(
+        completed: false,
+        positionMs: 1000,
+        durationMs: 60000,
+        playing: true,
+      ),
+    );
+    await tester.pump();
+    audio.updatePlaybackState(
+      _state(completed: true, positionMs: 60000, durationMs: 60000),
+    );
+    for (var i = 0; i < 8; i++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+
+    expect(player.played.map((r) => r.trackId), ['fake-a', 'fake-c']);
+    expect(find.byType(EndScreenView), findsNothing);
+    // The next session counts towards the same course.
+    expect(store.contexts['fake-c'], 'my-course-1');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 4));
