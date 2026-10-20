@@ -729,6 +729,14 @@ class _PlayerViewState extends ConsumerState<PlayerView>
   }
 
   void _openEndScreen({VoidCallback? afterStop}) {
+    // The end screen waits for a frame, and none comes while the screen is
+    // locked. The mix must not wait with it: end its session now, so it
+    // finishes its fade and releases the audio output.
+    if (mounted &&
+        ref.read(audioStateProvider).isCompleted &&
+        ref.exists(soundscapeProvider)) {
+      ref.read(soundscapeProvider.notifier).endSession();
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_endScreenOpened && mounted) {
         final endedNatively = ref.read(audioStateProvider).isCompleted;

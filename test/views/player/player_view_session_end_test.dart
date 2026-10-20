@@ -540,6 +540,10 @@ void main() {
     audio.updatePlaybackState(
       _state(completed: true, positionMs: 60000, durationMs: 60000),
     );
+    // Before the frame the end screen waits for (none comes while the
+    // screen is locked): the mix's session is already over.
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    expect(mixer().inSession, isFalse);
     await tester.pump();
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));

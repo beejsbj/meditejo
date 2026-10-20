@@ -228,13 +228,18 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       unawaited(_engine.stopAll(fade: Duration.zero));
     });
     // Under a session, follow the session player (pauses, phone calls).
-    ref.listen(audioStateProvider.select((s) => s.isPlaying), (_, playing) {
-      if (!state.inSession) return;
-      _sessionPlaying = playing;
-      if (state.underSession && state.playing != playing) {
-        _update(state.copyWith(playing: playing));
-      }
-    });
+    // A completed voice is not playing, though iOS keeps reporting
+    // `playing` for a player that has finished.
+    ref.listen(
+      audioStateProvider.select((s) => s.isPlaying && !s.isCompleted),
+      (_, playing) {
+        if (!state.inSession) return;
+        _sessionPlaying = playing;
+        if (state.underSession && state.playing != playing) {
+          _update(state.copyWith(playing: playing));
+        }
+      },
+    );
     unawaited(_dropVanishedSounds());
     return SoundscapeState(
       mix: _currentMix(),

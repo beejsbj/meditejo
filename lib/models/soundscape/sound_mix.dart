@@ -46,13 +46,18 @@ class SoundLayer {
     if (json is! Map) return null;
     final id = json['soundId'];
     if (id is! String || id.isEmpty) return null;
-    final volume = (json['volume'] as num?)?.toDouble() ?? kDefaultLayerVolume;
+    final rawVolume = json['volume'];
+    final volume = rawVolume is num
+        ? rawVolume.toDouble()
+        : kDefaultLayerVolume;
     final params = json['params'];
     return SoundLayer(
       soundId: id,
       volume: volume.clamp(0.0, 1.0),
       animate: json['animate'] == true,
-      params: params is Map ? params.cast<String, Object?>() : const {},
+      params: params is Map && params.keys.every((k) => k is String)
+          ? Map<String, Object?>.from(params)
+          : const {},
     );
   }
 

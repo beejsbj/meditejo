@@ -100,6 +100,8 @@ class _KeepAlive implements SoundscapeKeepAlive {
 
 class _Audio extends AudioStateNotifier {
   void setPlaying(bool playing) => state = state.copyWith(isPlaying: playing);
+  void setCompleted() =>
+      state = state.copyWith(isPlaying: true, isCompleted: true);
 }
 
 SoundEntry _sound(String id, SoundCategory category) => SoundEntry(
@@ -344,6 +346,18 @@ void main() {
     ctl();
     await settle();
     expect(st().mix.layers.map((l) => l.soundId), ['waves']);
+  });
+
+  test('a saved layer with a damaged volume or params still loads', () {
+    final mix = SoundMix.fromJson([
+      {
+        'soundId': 'waves',
+        'volume': 'loud',
+        'params': {1: 2},
+      },
+    ]);
+    expect(mix.layers.single.soundId, 'waves');
+    expect(mix.layers.single.volume, SoundLayer.kDefaultLayerVolume);
   });
 
   test('a play begun in one session does not land in the next', () async {
@@ -666,6 +680,21 @@ void main() {
       await settle();
       expect(engine.paused, isFalse);
     });
+
+    test(
+      'a completed voice pauses the mix though the player says playing',
+      () async {
+        await ctl().startSession(SoundscapeSessionKind.practice);
+        await settle();
+        final audio = container.read(audioStateProvider.notifier) as _Audio;
+        audio.setPlaying(true);
+        await settle();
+        expect(engine.paused, isFalse);
+        audio.setCompleted();
+        await settle();
+        expect(engine.paused, isTrue);
+      },
+    );
 
     test('defaults persist', () async {
       ctl().setSessionDefault(
