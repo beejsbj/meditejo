@@ -313,15 +313,26 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     // Drops listening receipts of tracks left unfinished long ago (or beyond
     // the most recent ones), so they cannot pile up for ever.
     private fun pruneListening() {
-        val savedAt = listeningPrefs.all
-            .filterKeys { it != listeningKey }
-            .mapValues { (_, value) ->
-                try { JSONObject(value as String).optLong("at", 0L) } catch (_: Exception) { 0L }
-            }
-        val stale = ListeningReceipts.stale(savedAt, System.currentTimeMillis())
-        if (stale.isEmpty()) return
+        val stored = listeningPrefs.all.filterKeys { it != listeningKey }
+        val savedAt = stored.mapValues { (_, value) ->
+            try { JSONObject(value as String).optLong("at", 0L) } catch (_: Exception) { 0L }
+        }
+        val now = System.currentTimeMillis()
+        val stale = ListeningReceipts.stale(savedAt, now)
+        val unstamped = savedAt.filter { it.value <= 0L && it.key !in stale }.keys
+        if (stale.isEmpty() && unstamped.isEmpty()) return
         val edit = listeningPrefs.edit()
         stale.forEach { edit.remove(it) }
+        // A receipt saved before save times were kept is stamped now, so it is
+        // kept and can still age out.
+        unstamped.forEach { key ->
+            val stamped = try {
+                val text = stored[key] as String
+                if (text.trimStart().startsWith("{")) JSONObject(text).put("at", now)
+                else JSONObject().put("at", now).put("ranges", JSONArray(text))
+            } catch (_: Exception) { null }
+            if (stamped != null) edit.putString(key, stamped.toString()) else edit.remove(key)
+        }
         edit.apply()
     }
 

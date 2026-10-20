@@ -261,7 +261,9 @@ class CueMathTest {
         val day = 24 * 60 * 60 * 1000L
         val now = 1000 * day
         val saved = mapOf("recent" to now - day, "old" to now - 181 * day, "unknown" to 0L)
-        assertEquals(setOf("old", "unknown"), ListeningReceipts.stale(saved, now))
+        // A receipt with no save time (older format) is kept, as if saved now.
+        assertEquals(setOf("old"), ListeningReceipts.stale(saved, now))
+        assertEquals(setOf("t3"), ListeningReceipts.stale(mapOf("t1" to 0L, "t2" to now - day, "t3" to now - 2 * day), now, maxCount = 2))
         // Past the count, the oldest go first.
         val many = (1..5).associate { "t$it" to now - it * day }
         assertEquals(setOf("t4", "t5"), ListeningReceipts.stale(many, now, maxCount = 3))

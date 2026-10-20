@@ -240,11 +240,12 @@ final class ListeningTracker {
     static let receiptMaxAgeSeconds: Double = 180 * 24 * 60 * 60
     static let receiptMaxCount = 200
 
-    /// Receipts to drop, from each one's last save time (0: unknown, so dropped).
+    /// Receipts to drop, from each one's last save time; an unknown time (0) counts as now.
     static func staleReceipts(_ savedAt: [String: Double], now: Double,
                               maxAgeSeconds: Double, maxCount: Int) -> Set<String> {
-        var stale = Set(savedAt.filter { now - $0.value > maxAgeSeconds }.map { $0.key })
-        let newestFirst = savedAt.sorted { $0.value > $1.value }
+        let known = savedAt.mapValues { $0 > 0 ? $0 : now }
+        var stale = Set(known.filter { now - $0.value > maxAgeSeconds }.map { $0.key })
+        let newestFirst = known.sorted { $0.value > $1.value }
         for entry in newestFirst.dropFirst(maxCount) { stale.insert(entry.key) }
         return stale
     }
@@ -821,15 +822,26 @@ final class CueChannel {
     private func pruneListening() {
         let defaults = UserDefaults.standard
         var savedAt: [String: Double] = [:]
+        var unstamped: [String: Any] = [:]
         for (key, value) in defaults.dictionaryRepresentation() {
             guard key.hasPrefix(CueChannel.listeningPrefix), key != listeningKey else { continue }
             let receipt = value as? [String: Any]
-            savedAt[key] = (receipt?["at"] as? NSNumber)?.doubleValue ?? 0
+            let at = (receipt?["at"] as? NSNumber)?.doubleValue ?? 0
+            savedAt[key] = at
+            if at <= 0 { unstamped[key] = value }
         }
+        let now = Date().timeIntervalSince1970
         let stale = ListeningTracker.staleReceipts(
-            savedAt, now: Date().timeIntervalSince1970,
+            savedAt, now: now,
             maxAgeSeconds: ListeningTracker.receiptMaxAgeSeconds, maxCount: ListeningTracker.receiptMaxCount)
         for key in stale { defaults.removeObject(forKey: key) }
+        // A receipt saved before save times were kept is stamped now, so it is
+        // kept and can still age out.
+        for (key, value) in unstamped where !stale.contains(key) {
+            var receipt = value as? [String: Any] ?? ["ranges": value]
+            receipt["at"] = now
+            defaults.set(receipt, forKey: key)
+        }
     }
 
     private func restoreListening(_ args: [String: Any]) {

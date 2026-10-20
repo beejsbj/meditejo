@@ -101,7 +101,7 @@ class CueSchedulerTests: XCTestCase {
         XCTAssertEqual(ListeningTracker.staleReceipts(saved, now: now,
                                                       maxAgeSeconds: ListeningTracker.receiptMaxAgeSeconds,
                                                       maxCount: ListeningTracker.receiptMaxCount),
-                       ["old", "unknown"])
+                       ["old"])
         var many: [String: Double] = [:]
         for i in 1...5 { many["t\(i)"] = now - Double(i) * day }
         XCTAssertEqual(ListeningTracker.staleReceipts(many, now: now, maxAgeSeconds: ListeningTracker.receiptMaxAgeSeconds,

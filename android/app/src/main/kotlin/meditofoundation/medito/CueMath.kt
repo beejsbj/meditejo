@@ -289,10 +289,11 @@ internal object ListeningReceipts {
     const val MAX_AGE_MS = 180L * 24 * 60 * 60 * 1000
     const val MAX_COUNT = 200
 
-    /** Receipts to drop, from each one's last save time (0: unknown, so dropped). */
+    /** Receipts to drop, from each one's last save time; an unknown time (0) counts as now. */
     fun stale(savedAt: Map<String, Long>, nowMs: Long, maxAgeMs: Long = MAX_AGE_MS, maxCount: Int = MAX_COUNT): Set<String> {
-        val old = savedAt.filterValues { nowMs - it > maxAgeMs }.keys
-        val excess = savedAt.entries.sortedByDescending { it.value }.drop(maxCount).map { it.key }
+        val known = savedAt.mapValues { if (it.value > 0L) it.value else nowMs }
+        val old = known.filterValues { nowMs - it > maxAgeMs }.keys
+        val excess = known.entries.sortedByDescending { it.value }.drop(maxCount).map { it.key }
         return old + excess
     }
 }
