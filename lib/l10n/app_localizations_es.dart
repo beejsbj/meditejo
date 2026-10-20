@@ -2313,4 +2313,70 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get soundCreditsAttributionRequired => 'Atribución obligatoria';
+
+  @override
+  String get soundCategoryGenerated => 'Generados';
+
+  @override
+  String get synthNoise => 'Ruido';
+
+  @override
+  String get synthDrone => 'Bordón';
+
+  @override
+  String get synthBinaural => 'Pulsos binaurales';
+
+  @override
+  String synthAdjust(String sound) {
+    return 'Ajustar $sound';
+  }
+
+  @override
+  String get noiseColour => 'Color';
+
+  @override
+  String get noiseWhite => 'Blanco';
+
+  @override
+  String get noisePink => 'Rosa';
+
+  @override
+  String get noiseBrown => 'Marrón';
+
+  @override
+  String get noiseBands => 'Bandas';
+
+  @override
+  String get noiseReset => 'Restablecer bandas';
+
+  @override
+  String get droneRoot => 'Tónica';
+
+  @override
+  String get droneTimbre => 'Timbre';
+
+  @override
+  String get dronePure => 'Puro';
+
+  @override
+  String get droneWarm => 'Cálido';
+
+  @override
+  String get droneBright => 'Brillante';
+
+  @override
+  String get droneMovement => 'Movimiento';
+
+  @override
+  String get binauralCarrier => 'Tono';
+
+  @override
+  String get binauralBeat => 'Pulso';
+
+  @override
+  String get binauralHeadphones =>
+      'Los pulsos binaurales necesitan auriculares: cada oído oye su propio tono.';
+
+  @override
+  String get soundPresetStillness => 'Quietud';
 }

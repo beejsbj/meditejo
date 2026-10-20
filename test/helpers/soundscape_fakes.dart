@@ -25,6 +25,20 @@ class FakeSoundscapeEngine implements SoundscapeEngine {
     return true;
   }
 
+  final retuned = <String, LayerSource>{};
+
+  @override
+  Future<bool> retune(
+    String key,
+    LayerSource source, {
+    required double gain,
+    LayerMotion? motion,
+  }) async {
+    retuned[key] = source;
+    playing[key] = gain;
+    return true;
+  }
+
   @override
   void setGain(String key, double gain, {LayerMotion? motion}) =>
       playing[key] = gain;

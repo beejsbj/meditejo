@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/models/soundscape/sound_library.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/starter_presets.dart';
+import 'package:medito/models/soundscape/synth.dart';
 import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
@@ -33,8 +34,32 @@ class _Engine implements SoundscapeEngine {
     LayerMotion? motion,
   }) async {
     starts.add(key);
+    sources[key] = source;
     await gates[key]?.future;
     if (failOnce.remove(key) || failOn.contains(key)) return false;
+    playing[key] = gain;
+    this.motion[key] = motion;
+    return true;
+  }
+
+  final retuned = <String, LayerSource>{};
+  final sources = <String, LayerSource>{};
+
+  /// Retunes that fail (the voice limit), counted as tried.
+  final retuneFails = <String>{};
+  int retunes = 0;
+
+  @override
+  Future<bool> retune(
+    String key,
+    LayerSource source, {
+    required double gain,
+    LayerMotion? motion,
+  }) async {
+    retunes++;
+    if (retuneFails.contains(key)) return false;
+    retuned[key] = source;
+    sources[key] = source;
     playing[key] = gain;
     this.motion[key] = motion;
     return true;
@@ -117,7 +142,8 @@ SoundEntry _sound(String id, SoundCategory category) => SoundEntry(
 final _library = SoundLibrary([
   for (final preset in kStarterPresets)
     for (final layer in preset.mix.layers)
-      _sound(layer.soundId, SoundCategory.rain),
+      // Generated layers are not library sounds.
+      if (!isSynthId(layer.soundId)) _sound(layer.soundId, SoundCategory.rain),
   _sound('cafe', SoundCategory.room),
   _sound('river', SoundCategory.water),
   for (var i = 0; i < 8; i++) _sound('extra-$i', SoundCategory.night),
@@ -753,6 +779,143 @@ void main() {
         state.sessionDefault(SoundscapeSessionKind.talks).enabled,
         isFalse,
       );
+    });
+  });
+
+  group('generated layers', () {
+    test('noise starts as a generated loop with default settings', () async {
+      ctl().clearMix();
+      ctl().toggleSound(kSynthNoiseId);
+      await settle();
+      final layer = st().mix.layer(kSynthNoiseId)!;
+      expect(layer.params, const NoiseParams().toJson());
+      final source = engine.sources[kSynthNoiseId] as NoiseLoopSource;
+      expect(source.spec.params.colour, NoiseColour.pink);
+    });
+
+    test('changing settings retunes in place instead of restarting', () async {
+      ctl().clearMix();
+      ctl().toggleSound(kSynthNoiseId);
+      ctl().toggleSound(kSynthBinauralId);
+      await settle();
+      final starts = engine.starts.length;
+      ctl().setLayerParams(
+        kSynthNoiseId,
+        const NoiseParams(colour: NoiseColour.brown).toJson(),
+      );
+      ctl().setLayerParams(
+        kSynthBinauralId,
+        const BinauralParams(carrierHz: 150, beatHz: 10).toJson(),
+      );
+      await settle();
+      expect(engine.starts.length, starts);
+      final noise = engine.retuned[kSynthNoiseId] as NoiseLoopSource;
+      expect(noise.spec.params.colour, NoiseColour.brown);
+      final beats = engine.retuned[kSynthBinauralId] as OscillatorSource;
+      expect(beats.partials.map((p) => p.hz), [145, 155]);
+      // A volume change alone does not retune.
+      engine.retuned.clear();
+      ctl().setLayerVolume(kSynthNoiseId, 0.3);
+      await settle();
+      expect(engine.retuned, isEmpty);
+    });
+
+    test('generated layers stay in the saved mix and play', () async {
+      container.dispose();
+      container = await make({
+        SoundscapeStore.mixKey: jsonEncode([
+          {'soundId': 'waves'},
+          {'soundId': kSynthNoiseId, 'params': const NoiseParams().toJson()},
+          {'soundId': kSynthDroneId},
+          {'soundId': 'gone-sound'},
+        ]),
+      });
+      ctl();
+      await settle();
+      // Only the sound the library dropped leaves.
+      expect(st().mix.layers.map((l) => l.soundId), [
+        'waves',
+        kSynthNoiseId,
+        kSynthDroneId,
+      ]);
+      ctl().resume();
+      await settle();
+      expect(engine.playing.keys, {'waves', kSynthNoiseId, kSynthDroneId});
+      expect(engine.sources[kSynthDroneId], isA<OscillatorSource>());
+      // Nor does a session treat one as a sound the library dropped.
+      final noise = SoundscapeSelection.sound(kSynthNoiseId);
+      expect(st().playable(noise, _library), noise);
+    });
+
+    test('the Stillness preset plays its generated layers', () async {
+      await ctl().play(SoundscapeSelection.preset('starter-stillness'));
+      await settle();
+      expect(engine.playing.keys, {kSynthNoiseId, kSynthDroneId});
+      await ctl().startSession(
+        SoundscapeSessionKind.practice,
+        selection: SoundscapeSelection.preset('starter-stillness'),
+      );
+      await settle();
+      expect(st().underSession, isTrue);
+      expect(engine.playing.keys, {kSynthNoiseId, kSynthDroneId});
+    });
+
+    test('a failed retune keeps the old settings as what plays', () async {
+      ctl().clearMix();
+      ctl().toggleSound(kSynthDroneId);
+      await settle();
+      engine.retuneFails.add(kSynthDroneId);
+      // New settings and a new volume in one pass; the settings fail (the
+      // voice limit), but the volume still reaches the engine.
+      const bright = DroneParams(timbre: DroneTimbre.bright);
+      ctl().setLayerParams(kSynthDroneId, bright.toJson());
+      ctl().setLayerVolume(kSynthDroneId, 0.9);
+      await settle();
+      expect(engine.retunes, 1);
+      expect(engine.playing[kSynthDroneId], closeTo(layerGain(0.9), 1e-9));
+      // Later passes (a volume drag) don't regenerate the failed settings.
+      ctl().setLayerVolume(kSynthDroneId, 0.3);
+      await settle();
+      ctl().setLayerVolume(kSynthDroneId, 0.4);
+      await settle();
+      expect(engine.retunes, 1);
+      expect(engine.playing[kSynthDroneId], closeTo(layerGain(0.4), 1e-9));
+      // Other settings, or the same ones chosen again after them, are tried.
+      engine.retuneFails.clear();
+      ctl().setLayerParams(
+        kSynthDroneId,
+        const DroneParams(timbre: DroneTimbre.pure).toJson(),
+      );
+      await settle();
+      ctl().setLayerParams(kSynthDroneId, bright.toJson());
+      await settle();
+      expect(engine.retunes, 3);
+      final played = engine.retuned[kSynthDroneId] as OscillatorSource;
+      expect(played.partials, bright.partials());
+    });
+
+    test('a preset keeps generated settings', () async {
+      ctl().clearMix();
+      ctl().toggleSound(kSynthDroneId);
+      ctl().setLayerParams(
+        kSynthDroneId,
+        const DroneParams(rootHz: 73.42, timbre: DroneTimbre.pure).toJson(),
+      );
+      final saved = ctl().savePreset('Low drone')!;
+      final again = await make({
+        SoundscapeStore.presetsKey: prefs.getString(
+          SoundscapeStore.presetsKey,
+        )!,
+      });
+      final preset = again
+          .read(soundscapeProvider)
+          .presets
+          .firstWhere((p) => p.id == saved.id);
+      final drone = DroneParams.fromJson(
+        preset.mix.layer(kSynthDroneId)!.params,
+      );
+      expect(drone.rootHz, 73.42);
+      expect(drone.timbre, DroneTimbre.pure);
     });
   });
 

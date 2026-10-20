@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/models/soundscape/sound_library.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/starter_presets.dart';
+import 'package:medito/models/soundscape/synth.dart';
 
 /// Checks the bundled library as shipped: what the processing script wrote
 /// into assets/sounds/ is what the app can read, credit and play.
@@ -69,12 +70,12 @@ void main() {
   });
 
   test('every starter preset plays only sounds in the library', () {
-    expect(kStarterPresets.length, inInclusiveRange(3, 4));
+    expect(kStarterPresets.length, inInclusiveRange(3, 5));
     for (final preset in kStarterPresets) {
       expect(preset.builtIn, isTrue);
       for (final layer in preset.mix.layers) {
         expect(
-          library.contains(layer.soundId),
+          library.contains(layer.soundId) || isSynthId(layer.soundId),
           isTrue,
           reason: '${preset.id}: ${layer.soundId}',
         );

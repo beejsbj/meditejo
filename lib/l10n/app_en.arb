@@ -2405,5 +2405,94 @@
   "soundCreditsAttributionRequired": "Attribution required",
   "@soundCreditsAttributionRequired": {
     "description": "Sounds screen: soundCreditsAttributionRequired"
+  },
+  "soundCategoryGenerated": "Generated",
+  "@soundCategoryGenerated": {
+    "description": "Sounds screen, generated layers: soundCategoryGenerated"
+  },
+  "synthNoise": "Noise",
+  "@synthNoise": {
+    "description": "Sounds screen, generated layers: synthNoise"
+  },
+  "synthDrone": "Drone",
+  "@synthDrone": {
+    "description": "Sounds screen, generated layers: synthDrone"
+  },
+  "synthBinaural": "Binaural beats",
+  "@synthBinaural": {
+    "description": "Sounds screen, generated layers: synthBinaural"
+  },
+  "synthAdjust": "Adjust {sound}",
+  "@synthAdjust": {
+    "description": "Sounds screen, generated layers: synthAdjust",
+    "placeholders": {
+      "sound": {
+        "type": "String"
+      }
+    }
+  },
+  "noiseColour": "Colour",
+  "@noiseColour": {
+    "description": "Sounds screen, generated layers: noiseColour"
+  },
+  "noiseWhite": "White",
+  "@noiseWhite": {
+    "description": "Sounds screen, generated layers: noiseWhite"
+  },
+  "noisePink": "Pink",
+  "@noisePink": {
+    "description": "Sounds screen, generated layers: noisePink"
+  },
+  "noiseBrown": "Brown",
+  "@noiseBrown": {
+    "description": "Sounds screen, generated layers: noiseBrown"
+  },
+  "noiseBands": "Bands",
+  "@noiseBands": {
+    "description": "Sounds screen, generated layers: noiseBands"
+  },
+  "noiseReset": "Reset bands",
+  "@noiseReset": {
+    "description": "Sounds screen, generated layers: noiseReset"
+  },
+  "droneRoot": "Root",
+  "@droneRoot": {
+    "description": "Sounds screen, generated layers: droneRoot"
+  },
+  "droneTimbre": "Timbre",
+  "@droneTimbre": {
+    "description": "Sounds screen, generated layers: droneTimbre"
+  },
+  "dronePure": "Pure",
+  "@dronePure": {
+    "description": "Sounds screen, generated layers: dronePure"
+  },
+  "droneWarm": "Warm",
+  "@droneWarm": {
+    "description": "Sounds screen, generated layers: droneWarm"
+  },
+  "droneBright": "Bright",
+  "@droneBright": {
+    "description": "Sounds screen, generated layers: droneBright"
+  },
+  "droneMovement": "Movement",
+  "@droneMovement": {
+    "description": "Sounds screen, generated layers: droneMovement"
+  },
+  "binauralCarrier": "Tone",
+  "@binauralCarrier": {
+    "description": "Sounds screen, generated layers: binauralCarrier"
+  },
+  "binauralBeat": "Beat",
+  "@binauralBeat": {
+    "description": "Sounds screen, generated layers: binauralBeat"
+  },
+  "binauralHeadphones": "Binaural beats need headphones: each ear hears its own tone.",
+  "@binauralHeadphones": {
+    "description": "Sounds screen, generated layers: binauralHeadphones"
+  },
+  "soundPresetStillness": "Stillness",
+  "@soundPresetStillness": {
+    "description": "Sounds screen, generated layers: soundPresetStillness"
   }
 }

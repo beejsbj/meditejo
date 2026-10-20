@@ -2272,4 +2272,70 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get soundCreditsAttributionRequired => 'Attribution required';
+
+  @override
+  String get soundCategoryGenerated => 'Generated';
+
+  @override
+  String get synthNoise => 'Noise';
+
+  @override
+  String get synthDrone => 'Drone';
+
+  @override
+  String get synthBinaural => 'Binaural beats';
+
+  @override
+  String synthAdjust(String sound) {
+    return 'Adjust $sound';
+  }
+
+  @override
+  String get noiseColour => 'Colour';
+
+  @override
+  String get noiseWhite => 'White';
+
+  @override
+  String get noisePink => 'Pink';
+
+  @override
+  String get noiseBrown => 'Brown';
+
+  @override
+  String get noiseBands => 'Bands';
+
+  @override
+  String get noiseReset => 'Reset bands';
+
+  @override
+  String get droneRoot => 'Root';
+
+  @override
+  String get droneTimbre => 'Timbre';
+
+  @override
+  String get dronePure => 'Pure';
+
+  @override
+  String get droneWarm => 'Warm';
+
+  @override
+  String get droneBright => 'Bright';
+
+  @override
+  String get droneMovement => 'Movement';
+
+  @override
+  String get binauralCarrier => 'Tone';
+
+  @override
+  String get binauralBeat => 'Beat';
+
+  @override
+  String get binauralHeadphones =>
+      'Binaural beats need headphones: each ear hears its own tone.';
+
+  @override
+  String get soundPresetStillness => 'Stillness';
 }

@@ -2310,4 +2310,70 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get soundCreditsAttributionRequired => 'Namensnennung erforderlich';
+
+  @override
+  String get soundCategoryGenerated => 'Erzeugt';
+
+  @override
+  String get synthNoise => 'Rauschen';
+
+  @override
+  String get synthDrone => 'Drone';
+
+  @override
+  String get synthBinaural => 'Binaurale Beats';
+
+  @override
+  String synthAdjust(String sound) {
+    return '$sound anpassen';
+  }
+
+  @override
+  String get noiseColour => 'Farbe';
+
+  @override
+  String get noiseWhite => 'Weiß';
+
+  @override
+  String get noisePink => 'Rosa';
+
+  @override
+  String get noiseBrown => 'Braun';
+
+  @override
+  String get noiseBands => 'Bänder';
+
+  @override
+  String get noiseReset => 'Bänder zurücksetzen';
+
+  @override
+  String get droneRoot => 'Grundton';
+
+  @override
+  String get droneTimbre => 'Klangfarbe';
+
+  @override
+  String get dronePure => 'Rein';
+
+  @override
+  String get droneWarm => 'Warm';
+
+  @override
+  String get droneBright => 'Hell';
+
+  @override
+  String get droneMovement => 'Bewegung';
+
+  @override
+  String get binauralCarrier => 'Ton';
+
+  @override
+  String get binauralBeat => 'Schwebung';
+
+  @override
+  String get binauralHeadphones =>
+      'Binaurale Beats brauchen Kopfhörer: Jedes Ohr hört seinen eigenen Ton.';
+
+  @override
+  String get soundPresetStillness => 'Stille';
 }

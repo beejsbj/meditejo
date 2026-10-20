@@ -343,6 +343,28 @@ Background soundscapes are a bundled **library** of looped recordings played
 by a **mixer** of layers. Synthesised layers (noise colours, drone, binaural)
 arrive through the same mixer in slice 7's second PR.
 
+**Generated layers** (`lib/models/soundscape/synth.dart`) use the ids
+`synth-noise`, `synth-drone` and `synth-binaural`, with their settings as JSON in
+`SoundLayer.params`, so presets and the Customize sheet carry them like any
+other layer.
+
+* **Noise** (`lib/services/soundscape/synth/noise_generator.dart`): a colour
+  (white, pink or brown: power falls 0, 3 or 6 dB an octave) and ten octave
+  bands, 31 Hz to 16 kHz, interpolated in dB. It is built as a spectrum with
+  seeded random phases and an inverse FFT of 2^20 samples, a 21.8 s stereo
+  loop that is periodic and therefore seamless. Its BS.1770 loudness is
+  computed from the spectrum through the K-weighting response and set to
+  −27 LUFS. It is generated in a `compute` isolate and loaded as an in-memory
+  WAV. A settings change regenerates it and crossfades it in near the old
+  loop's position, with equal power.
+* **Drone**: SoLoud sine oscillators for a chord on the root: the root, a
+  0.15% detuned twin, the octave and the fifth, plus upper partials for warm
+  and bright. Each voice swells on its own incommensurate period, scaled by
+  `movement`.
+* **Binaural beats**: two sines, `carrier ± beat/2`, panned absolutely, one
+  per ear. They need headphones, and every view of them says so.
+  Oscillators retune in place, phase-continuously.
+
 **Library.** `assets/sounds/*.opus` (Ogg Opus loops) and
 `assets/sounds/sounds.json`, the licence-as-data the app reads
 (`SoundLibrary`, `lib/models/soundscape/sound_library.dart`). Each entry has its
@@ -363,7 +385,10 @@ slice 7). Recordings are decoded into memory and loop sample-accurately; every
 change fades; *drift* is SoLoud's LFO on the layer volume; the master volume is
 SoLoud's global volume. SoLoud plays its own output stream beside the session
 player's ExoPlayer; Android mixes them. Without the native library (a test
-host) the engine plays nothing rather than throwing.
+host) the engine plays nothing rather than throwing. A layer is one or more
+voices (one per oscillator for a drone or binaural beats); every voice,
+including the old loop of a noise crossfade, goes through the same pause fade,
+stop and idle shutdown as a recording's.
 
 **Keep-alive.** Sounds playing *on their own* hold `SoundscapeService`
 (`android/.../SoundscapeService.kt`, a `mediaPlayback` foreground service with a

@@ -8,9 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/soundscape/sound_library.dart';
 import '../../models/soundscape/sound_mix.dart';
 import '../../models/soundscape/starter_presets.dart';
+import '../../models/soundscape/synth.dart';
 import '../../services/soundscape/soundscape_engine.dart';
 import '../../services/soundscape/soundscape_keep_alive.dart';
 import '../../services/soundscape/soundscape_store.dart';
+import '../../services/soundscape/synth/noise_generator.dart';
 import '../../utils/logger.dart';
 import '../player/audio_state_provider.dart';
 import '../shared_preference/shared_preference_provider.dart';
@@ -113,7 +115,8 @@ class SoundscapeState {
 
   /// [selection] as it will play: a preset that was deleted, or a sound a
   /// later library dropped, means the current mix rather than silence.
-  /// [library] null (still loading) takes sounds on trust.
+  /// [library] null (still loading) takes sounds on trust; generated layers
+  /// are never in it and never dropped.
   SoundscapeSelection playable(
     SoundscapeSelection selection,
     SoundLibrary? library,
@@ -122,7 +125,9 @@ class SoundscapeState {
         when !presets.any((p) => p.id == selection.id) =>
       SoundscapeSelection.currentMix,
     SoundscapeSelectionKind.sound
-        when library != null && !library.contains(selection.id) =>
+        when library != null &&
+            !library.contains(selection.id) &&
+            !isSynthId(selection.id) =>
       SoundscapeSelection.currentMix,
     _ => selection,
   };
@@ -172,6 +177,12 @@ class SoundscapeController extends Notifier<SoundscapeState> {
 
   /// What the engine is playing, by sound id.
   final _applied = <String, SoundLayer>{};
+
+  /// Settings a generated layer failed to retune to (the old ones still
+  /// play), so later passes don't try them again on every change (a noise
+  /// regeneration takes about 1 s). Cleared when the layer stops or other
+  /// settings play.
+  final _unplayable = <String, Map<String, Object?>>{};
   Future<void> _sync = Future.value();
   bool _held = false;
   bool? _enginePaused;
@@ -251,13 +262,13 @@ class SoundscapeController extends Notifier<SoundscapeState> {
 
   /// A sound a later version dropped or renamed would still fill a layer
   /// slot with no row to remove it: take it out of the saved mix once the
-  /// library is known.
+  /// library is known. Generated layers are not in the library and stay.
   Future<void> _dropVanishedSounds() async {
     final library = await ref.read(soundLibraryProvider.future);
     // An empty library is a failed read, not a catalogue that lost
     // everything: keep the mix for the next launch.
     if (!ref.mounted || library.sounds.isEmpty) return;
-    final kept = state.mix.where(library.contains);
+    final kept = state.mix.where((id) => _isKnown(id, library));
     if (kept.layers.length != state.mix.layers.length) _editMix(kept);
   }
 
@@ -275,7 +286,9 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     if (mix.layers.length >= SoundMix.kMaxLayers) return;
     final failed = {...state.failed}..remove(soundId);
     _editMix(
-      mix.put(SoundLayer(soundId: soundId)),
+      mix.put(
+        SoundLayer(soundId: soundId, params: defaultSynthParams(soundId)),
+      ),
       failed: failed,
       start: true,
     );
@@ -293,6 +306,14 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     final layer = state.mix.layer(soundId);
     if (layer == null) return;
     _editMix(state.mix.put(layer.copyWith(animate: animate)));
+  }
+
+  /// A generated layer's settings (noise bands, drone root, beat …), as
+  /// JSON (see `synth.dart`). The engine retunes it without a gap.
+  void setLayerParams(String soundId, Map<String, Object?> params) {
+    final layer = state.mix.layer(soundId);
+    if (layer == null) return;
+    _editMix(state.mix.put(layer.copyWith(params: params)));
   }
 
   void clearMix() => _editMix(SoundMix.empty);
@@ -577,8 +598,28 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         SoundLayer(soundId: selection.id, volume: 0.8),
       ]),
     };
-    return mix.where(library.contains);
+    return mix.where((id) => _isKnown(id, library));
   }
+
+  static bool _isKnown(String id, SoundLibrary library) =>
+      library.contains(id) || isSynthId(id);
+
+  static LayerSource _sourceFor(SoundLayer layer, SoundLibrary library) =>
+      switch (layer.soundId) {
+        kSynthNoiseId => NoiseLoopSource(
+          NoiseSpec(params: NoiseParams.fromJson(layer.params)),
+        ),
+        kSynthDroneId => OscillatorSource(
+          DroneParams.fromJson(layer.params).partials(),
+        ),
+        kSynthBinauralId => OscillatorSource(
+          BinauralParams.fromJson(layer.params).partials(),
+        ),
+        _ => AssetLoopSource(
+          library[layer.soundId]!.asset,
+          channels: library[layer.soundId]!.channels,
+        ),
+      };
 
   void _editMix(SoundMix mix, {Set<String>? failed, bool start = false}) {
     _store.writeMix(mix);
@@ -688,7 +729,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     final desired = <String, SoundLayer>{
       if (s.active)
         for (final l in s.mix.layers)
-          if (library.contains(l.soundId) && !s.failed.contains(l.soundId))
+          if (_isKnown(l.soundId, library) && !s.failed.contains(l.soundId))
             l.soundId: l,
     };
 
@@ -714,6 +755,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     ];
     for (final id in stopping) {
       _applied.remove(id);
+      _unplayable.remove(id);
     }
     final fades = [for (final id in stopping) _engine.stop(id)];
 
@@ -730,10 +772,9 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       final motion = layer.animate ? LayerMotion.forSound(layer.soundId) : null;
       final current = _applied[layer.soundId];
       if (current == null) {
-        final entry = library[layer.soundId]!;
         final ok = await _engine.start(
           layer.soundId,
-          AssetLoopSource(entry.asset, channels: entry.channels),
+          _sourceFor(layer, library),
           gain: layerGain(layer.volume),
           motion: motion,
         );
@@ -746,9 +787,45 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         } else {
           failed.add(layer.soundId);
         }
-      } else if (current != layer) {
-        _engine.setGain(layer.soundId, layerGain(layer.volume), motion: motion);
-        _applied[layer.soundId] = layer;
+      } else if (!SoundLayer.paramsEqual(current.params, layer.params) &&
+          !_failedBefore(layer)) {
+        final ok = await _engine.retune(
+          layer.soundId,
+          _sourceFor(layer, library),
+          gain: layerGain(layer.volume),
+          motion: motion,
+        );
+        if (ok) {
+          _applied[layer.soundId] = layer;
+          _unplayable.remove(layer.soundId);
+        } else {
+          // The old settings keep playing, and are recorded as what plays;
+          // the rest of the change (volume, drift) still applies.
+          AppLogger.w('SOUNDSCAPE', 'Kept ${layer.soundId} as it was');
+          _unplayable[layer.soundId] = layer.params;
+          final playing = layer.copyWith(params: current.params);
+          _engine.setGain(
+            layer.soundId,
+            layerGain(playing.volume),
+            motion: motion,
+          );
+          _applied[layer.soundId] = playing;
+        }
+      } else {
+        // Same settings, or ones that failed before: only the level moves.
+        // Back at what plays means a failed try is forgotten.
+        if (SoundLayer.paramsEqual(current.params, layer.params)) {
+          _unplayable.remove(layer.soundId);
+        }
+        final playing = layer.copyWith(params: current.params);
+        if (current != playing) {
+          _engine.setGain(
+            layer.soundId,
+            layerGain(playing.volume),
+            motion: motion,
+          );
+          _applied[layer.soundId] = playing;
+        }
       }
     }
     stale = stale || superseded();
@@ -775,6 +852,11 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     if (ref.mounted && !s.active && _applied.isEmpty && !state.active) {
       await _engine.shutdown();
     }
+  }
+
+  bool _failedBefore(SoundLayer layer) {
+    final failed = _unplayable[layer.soundId];
+    return failed != null && SoundLayer.paramsEqual(failed, layer.params);
   }
 
   Future<void> _holdKeepAlive(bool hold) async {

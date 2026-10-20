@@ -1,4 +1,5 @@
 import 'sound_mix.dart';
+import 'synth.dart';
 
 /// Presets that ship with the app. The first is the mix a fresh install
 /// plays under practice (decision 8) until the user makes their own.
@@ -42,6 +43,26 @@ const kStarterPresets = <SoundPreset>[
     mix: SoundMix([
       SoundLayer(soundId: 'waves', volume: 0.7, animate: true),
       SoundLayer(soundId: 'wind-grass', volume: 0.3),
+    ]),
+  ),
+  SoundPreset(
+    id: 'starter-stillness',
+    name: 'Stillness',
+    builtIn: true,
+    mix: SoundMix([
+      SoundLayer(
+        soundId: kSynthNoiseId,
+        volume: 0.55,
+        params: {
+          'colour': 'brown',
+          'bands': [1.0, 1.0, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3],
+        },
+      ),
+      SoundLayer(
+        soundId: kSynthDroneId,
+        volume: 0.35,
+        params: {'rootHz': 110.0, 'timbre': 'pure', 'movement': 0.4},
+      ),
     ]),
   ),
 ];

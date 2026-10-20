@@ -4065,6 +4065,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Attribution required'**
   String get soundCreditsAttributionRequired;
+
+  /// Sounds screen, generated layers: soundCategoryGenerated
+  ///
+  /// In en, this message translates to:
+  /// **'Generated'**
+  String get soundCategoryGenerated;
+
+  /// Sounds screen, generated layers: synthNoise
+  ///
+  /// In en, this message translates to:
+  /// **'Noise'**
+  String get synthNoise;
+
+  /// Sounds screen, generated layers: synthDrone
+  ///
+  /// In en, this message translates to:
+  /// **'Drone'**
+  String get synthDrone;
+
+  /// Sounds screen, generated layers: synthBinaural
+  ///
+  /// In en, this message translates to:
+  /// **'Binaural beats'**
+  String get synthBinaural;
+
+  /// Sounds screen, generated layers: synthAdjust
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust {sound}'**
+  String synthAdjust(String sound);
+
+  /// Sounds screen, generated layers: noiseColour
+  ///
+  /// In en, this message translates to:
+  /// **'Colour'**
+  String get noiseColour;
+
+  /// Sounds screen, generated layers: noiseWhite
+  ///
+  /// In en, this message translates to:
+  /// **'White'**
+  String get noiseWhite;
+
+  /// Sounds screen, generated layers: noisePink
+  ///
+  /// In en, this message translates to:
+  /// **'Pink'**
+  String get noisePink;
+
+  /// Sounds screen, generated layers: noiseBrown
+  ///
+  /// In en, this message translates to:
+  /// **'Brown'**
+  String get noiseBrown;
+
+  /// Sounds screen, generated layers: noiseBands
+  ///
+  /// In en, this message translates to:
+  /// **'Bands'**
+  String get noiseBands;
+
+  /// Sounds screen, generated layers: noiseReset
+  ///
+  /// In en, this message translates to:
+  /// **'Reset bands'**
+  String get noiseReset;
+
+  /// Sounds screen, generated layers: droneRoot
+  ///
+  /// In en, this message translates to:
+  /// **'Root'**
+  String get droneRoot;
+
+  /// Sounds screen, generated layers: droneTimbre
+  ///
+  /// In en, this message translates to:
+  /// **'Timbre'**
+  String get droneTimbre;
+
+  /// Sounds screen, generated layers: dronePure
+  ///
+  /// In en, this message translates to:
+  /// **'Pure'**
+  String get dronePure;
+
+  /// Sounds screen, generated layers: droneWarm
+  ///
+  /// In en, this message translates to:
+  /// **'Warm'**
+  String get droneWarm;
+
+  /// Sounds screen, generated layers: droneBright
+  ///
+  /// In en, this message translates to:
+  /// **'Bright'**
+  String get droneBright;
+
+  /// Sounds screen, generated layers: droneMovement
+  ///
+  /// In en, this message translates to:
+  /// **'Movement'**
+  String get droneMovement;
+
+  /// Sounds screen, generated layers: binauralCarrier
+  ///
+  /// In en, this message translates to:
+  /// **'Tone'**
+  String get binauralCarrier;
+
+  /// Sounds screen, generated layers: binauralBeat
+  ///
+  /// In en, this message translates to:
+  /// **'Beat'**
+  String get binauralBeat;
+
+  /// Sounds screen, generated layers: binauralHeadphones
+  ///
+  /// In en, this message translates to:
+  /// **'Binaural beats need headphones: each ear hears its own tone.'**
+  String get binauralHeadphones;
+
+  /// Sounds screen, generated layers: soundPresetStillness
+  ///
+  /// In en, this message translates to:
+  /// **'Stillness'**
+  String get soundPresetStillness;
 }
 
 class _AppLocalizationsDelegate
