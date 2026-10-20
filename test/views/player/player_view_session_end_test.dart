@@ -24,10 +24,7 @@ import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
 import 'package:medito/services/content/content_source.dart';
-import 'package:medito/services/library/library_database.dart';
 import 'package:medito/services/library/library_store.dart';
-import 'package:medito/services/my_courses/my_course_models.dart';
-import 'package:medito/services/my_courses/my_course_source.dart';
 import 'package:medito/services/review_service.dart';
 import 'package:medito/src/audio_pigeon.g.dart' hide Track;
 import 'package:medito/src/audio_pigeon.g.dart' as pigeon show Track;
@@ -38,8 +35,6 @@ import 'package:medito/views/player/widgets/bottom_actions/widgets/bg_sound_widg
 import 'package:medito/views/previews/preview_support.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../helpers/fake_session_source.dart';
-import '../../helpers/library_fixtures.dart';
 import '../../helpers/soundscape_fakes.dart';
 
 PlaybackState _state({
@@ -254,6 +249,12 @@ class _Course implements ContentSource {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _LaterTrack extends Tracks {
+  @override
+  Future<Track> build({required String trackId}) async =>
+      _nextTrack.copyWith(id: 'fake-c', title: 'Session C');
+}
+
 class _NextTrack extends Tracks {
   @override
   Future<Track> build({required String trackId}) async => _nextTrack;
@@ -266,22 +267,23 @@ final _courseOverrides = [
   ),
   contentSourcesProvider.overrideWithValue([_Course()]),
   tracksProvider(trackId: 'fake-b').overrideWith(_NextTrack.new),
-  libraryStoreProvider.overrideWith((ref) {
-    final db = memoryLibraryDb();
-    final store = LibraryStore(db);
-    ref.onDispose(() {
-      store.dispose();
-      db.close();
-    });
-    return store;
-  }),
+  libraryStoreProvider.overrideWithValue(_MemoryStore()),
 ];
 
-/// The session after x-1 in a personal course: x-3.
-class _LocalNextTrack extends Tracks {
+/// The session contexts a player writes, kept in memory: a real database
+/// would never answer inside the test's fake-async zone.
+class _MemoryStore implements LibraryStore {
+  final contexts = <String, String>{};
+
   @override
-  Future<Track> build({required String trackId}) async =>
-      FakeSessionSource.session('x-3');
+  Future<void> noteSessionContext(String trackId, String courseId) async =>
+      contexts[trackId] = courseId;
+
+  @override
+  Future<String?> sessionContext(String trackId) async => contexts[trackId];
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 const _autoplay = CueSettings(autoplay: true, interludeSeconds: 5);
@@ -496,42 +498,47 @@ void main() {
 
   testWidgets('autoplay follows the personal course the session was opened '
       'from, past a session its source lost', (tester) async {
-    // Local sessions, like imported files: their source names no course.
-    final local = FakeSessionSource()..gone.add('x-2');
-    late LibraryDatabase db;
-    late LibraryStore store;
-    late MyCourseSource mine;
-    final courseId = (await tester.runAsync(() async {
-      db = memoryLibraryDb();
-      store = LibraryStore(db);
-      mine = MyCourseSource(db: db, library: store, sources: () => [local]);
-      final id = await mine.create(
-        title: 'Mine',
-        lines: [
-          for (final id in ['x-1', 'x-2', 'x-3'])
-            MyCourseLine.session(MyItemDraft(id: id, title: 'Session $id')),
-        ],
-      );
-      await store.noteSessionContext('x-1', id);
-      return id;
-    }))!;
-    addTearDown(() async {
-      mine.dispose();
-      store.dispose();
-      await db.close();
-    });
-
-    final first = _first.copyWith(trackId: 'x-1', title: 'Session x-1');
-    final player = _FakePlayer(first);
+    final store = _MemoryStore();
+    final player = _FakePlayer(_first);
     await tester.pumpWidget(
       _player(
         player: player,
         prefs: _prefsWith(_autoplay),
         overrides: [
+          cueScopeForRequestProvider.overrideWith(
+            (ref, request) async =>
+                const CueScope(CueKind.practice, courseId: 'my-course-1'),
+          ),
           libraryStoreProvider.overrideWithValue(store),
-          myCourseSourceProvider.overrideWithValue(mine),
-          contentSourcesProvider.overrideWithValue([local, mine]),
-          tracksProvider(trackId: 'x-3').overrideWith(_LocalNextTrack.new),
+          // The course lists fake-b, which its source has lost, then fake-c.
+          packDataProvider(packId: 'my-course-1').overrideWith(
+            (ref) async => const PackModel(
+              id: 'my-course-1',
+              title: 'Mine',
+              items: [
+                PackItemsModel(
+                  type: TypeConstants.track,
+                  id: 'fake-a',
+                  title: 'Session A',
+                  path: '',
+                ),
+                PackItemsModel(
+                  type: TypeConstants.track,
+                  id: 'fake-b',
+                  title: 'Session B',
+                  path: '',
+                  unavailable: true,
+                ),
+                PackItemsModel(
+                  type: TypeConstants.track,
+                  id: 'fake-c',
+                  title: 'Session C',
+                  path: '',
+                ),
+              ],
+            ),
+          ),
+          tracksProvider(trackId: 'fake-c').overrideWith(_LaterTrack.new),
         ],
       ),
     );
@@ -556,11 +563,10 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
     }
 
-    // x-2 is gone at its source, so x-3 is next.
-    expect(player.played.map((r) => r.trackId), ['x-1', 'x-3']);
+    expect(player.played.map((r) => r.trackId), ['fake-a', 'fake-c']);
     expect(find.byType(EndScreenView), findsNothing);
     // The next session counts towards the same course.
-    expect(await tester.runAsync(() => store.sessionContext('x-3')), courseId);
+    expect(store.contexts['fake-c'], 'my-course-1');
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 4));
