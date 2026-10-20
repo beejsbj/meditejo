@@ -2578,6 +2578,10 @@
   "@myCourseDuplicateFailed": {
     "description": "Snackbar when duplicating fails"
   },
+  "myCourseSaveFailed": "Could not save the course.",
+  "@myCourseSaveFailed": {
+    "description": "Snackbar when saving a course fails"
+  },
   "myCourseEdit": "Edit course",
   "@myCourseEdit": {
     "description": "Opens the course edit screen; also its title"

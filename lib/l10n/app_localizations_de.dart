@@ -2439,6 +2439,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Kurs konnte nicht kopiert werden.';
 
   @override
+  String get myCourseSaveFailed => 'Der Kurs konnte nicht gespeichert werden.';
+
+  @override
   String get myCourseEdit => 'Kurs bearbeiten';
 
   @override

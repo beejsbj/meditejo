@@ -133,6 +133,11 @@ Future<int> _personalCoursesListing(WidgetRef ref, LibraryEntry entry) async {
               item.id,
           ]
         : [entry.sourceId];
+    // A session inside an imported course stays when it is removed on its own.
+    if (isLibTrackId(entry.sourceId) &&
+        await ref.read(libSourceProvider).parentOf(entry.sourceId) != null) {
+      return 0;
+    }
     final source = ref.read(myCourseSourceProvider);
     return <String>{
       for (final id in ids) ...await source.coursesHolding(id),
@@ -155,7 +160,11 @@ Future<void> renameLibraryEntry(
   if (name == null) return;
   // A personal course's title is its own, not an override.
   if (isMyCourseId(entry.sourceId)) {
-    return ref.read(myCourseSourceProvider).rename(entry.sourceId, name);
+    if (!context.mounted) return;
+    final blank = AppLocalizations.of(context)!.myCourseDefaultTitle;
+    return ref
+        .read(myCourseSourceProvider)
+        .rename(entry.sourceId, name.trim().isEmpty ? blank : name);
   }
   // Back to the source's own title when the new name is the same or blank.
   await ref

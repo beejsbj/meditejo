@@ -1267,6 +1267,7 @@
   "myCourseDuplicate": "Eigene Kopie erstellen",
   "myCourseCopyTitle": "{title} (meine Kopie)",
   "myCourseDuplicateFailed": "Dieser Kurs konnte nicht kopiert werden.",
+  "myCourseSaveFailed": "Der Kurs konnte nicht gespeichert werden.",
   "myCourseEdit": "Kurs bearbeiten",
   "myCourseSave": "Speichern",
   "myCourseTitleLabel": "Titel",

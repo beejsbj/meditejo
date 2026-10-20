@@ -2400,6 +2400,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCourseDuplicateFailed => 'Could not copy this course.';
 
   @override
+  String get myCourseSaveFailed => 'Could not save the course.';
+
+  @override
   String get myCourseEdit => 'Edit course';
 
   @override

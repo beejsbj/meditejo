@@ -591,7 +591,7 @@ state is sent at every true end, earned or not, and opens the end screen only
 then. Existing resume positions continue to be saved by the library's
 position tracker.
 
-### Personal courses (`my-`)
+## Personal courses (`my-`)
 
 A course the user makes from sessions anywhere: a Dharma Seed talk, a YouTube
 video, a podcast episode, a local file. A course and a playlist are the same

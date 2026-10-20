@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/widgets/snackbar_widget.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/utils/logger.dart';
@@ -111,12 +112,21 @@ class _MyCourseEditViewState extends ConsumerState<MyCourseEditView> {
     if (_saving) return;
     setState(() => _saving = true);
     try {
-      await ref.read(myCourseSourceProvider).save(widget.courseId, _current);
+      final l10n = AppLocalizations.of(context)!;
+      var edit = _current;
+      // Blank is named in the user's language, not the source's.
+      if (edit.title.trim().isEmpty) {
+        edit = edit.copyWith(title: l10n.myCourseDefaultTitle);
+      }
+      await ref.read(myCourseSourceProvider).save(widget.courseId, edit);
       _initial = _current;
       if (mounted) Navigator.of(context).pop();
     } catch (e, st) {
       AppLogger.e('MY_COURSES', 'Could not save ${widget.courseId}', e, st);
-      if (mounted) setState(() => _saving = false);
+      if (mounted) {
+        setState(() => _saving = false);
+        showSnackBar(context, AppLocalizations.of(context)!.myCourseSaveFailed);
+      }
     }
   }
 

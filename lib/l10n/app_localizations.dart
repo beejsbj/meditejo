@@ -4282,6 +4282,12 @@ abstract class AppLocalizations {
   /// **'Could not copy this course.'**
   String get myCourseDuplicateFailed;
 
+  /// Snackbar when saving a course fails
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the course.'**
+  String get myCourseSaveFailed;
+
   /// Opens the course edit screen; also its title
   ///
   /// In en, this message translates to:
