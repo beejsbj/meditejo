@@ -2,7 +2,7 @@ import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/services/audio/native_cue_controller.dart';
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/foundation.dart' show protected, visibleForTesting;
 import '../../services/audio/ios_session_bells.dart';
 import 'package:medito/models/models.dart' show PlaybackRequest;
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
@@ -34,7 +34,10 @@ class IosAudioHandler extends BaseAudioHandler {
   // A hold paused by an interruption, to resume when it ends.
   bool _interruptedHold = false;
   bool _nativeCompletionEarned = false;
+  // Whether this session's completion was recorded, and how many passes had
+  // finished when it was: later passes count as repeats (as on Android).
   bool _thresholdRecorded = false;
+  int _completionPlaythroughIndex = 0;
   bool _isTimer = false;
   Timer? _nativeTailRelease;
 
@@ -367,18 +370,32 @@ class IosAudioHandler extends BaseAudioHandler {
         },
       );
 
+  /// Records one finished play-through. With cues, the first pass that
+  /// earns it is the session (a timer at its end; a recording once 90% was
+  /// heard, usually already recorded mid-play), and only passes after that
+  /// one count as repeats, as on Android.
   Future<void> _recordPlaythrough() {
     _completedPlaythroughs++;
-    if (_completedPlaythroughs == 1) {
-      if (_nativeCues && (!_nativeCompletionEarned || _thresholdRecorded)) {
-        return Future<void>.value();
-      }
-      return _storeTrackCompletion();
+    if (!_nativeCues) {
+      return _completedPlaythroughs == 1
+          ? recordSessionCompletion()
+          : recordRepeatPlaythrough();
     }
-    return _storeRepeatPlaythrough();
+    if (!_thresholdRecorded) {
+      if (!_nativeCompletionEarned) return Future<void>.value();
+      _thresholdRecorded = true;
+      _completionPlaythroughIndex = _completedPlaythroughs - 1;
+      return recordSessionCompletion();
+    }
+    if (_completedPlaythroughs > _completionPlaythroughIndex + 1) {
+      return recordRepeatPlaythrough();
+    }
+    return Future<void>.value();
   }
 
-  Future<void> _storeRepeatPlaythrough() async {
+  @visibleForTesting
+  @protected
+  Future<void> recordRepeatPlaythrough() async {
     try {
       if (duration == null) return;
       await handleRepeatPlaythrough({
@@ -393,7 +410,9 @@ class IosAudioHandler extends BaseAudioHandler {
     }
   }
 
-  Future<void> _storeTrackCompletion() async {
+  @visibleForTesting
+  @protected
+  Future<void> recordSessionCompletion() async {
     try {
       if (duration == null) return;
 
@@ -600,6 +619,7 @@ class IosAudioHandler extends BaseAudioHandler {
     _nativeHoldPaused = false;
     _nativeCompletionEarned = false;
     _thresholdRecorded = false;
+    _completionPlaythroughIndex = 0;
     _isTimer = request.trackId.startsWith('timer-');
     NativeCueController.channel.setMethodCallHandler((call) async {
       if (!_nativeCues) return;
@@ -663,7 +683,8 @@ class IosAudioHandler extends BaseAudioHandler {
       if (earned && !_thresholdRecorded && !_isTimer) {
         _nativeCompletionEarned = true;
         _thresholdRecorded = true;
-        await _storeTrackCompletion();
+        _completionPlaythroughIndex = _completedPlaythroughs;
+        await recordSessionCompletion();
       }
     } catch (e) {
       AppLogger.e('CUES', 'Could not report iOS transport: $e');

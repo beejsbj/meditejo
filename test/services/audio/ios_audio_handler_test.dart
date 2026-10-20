@@ -99,6 +99,15 @@ class _WiredHandler extends IosAudioHandler {
 
   @override
   bool get usesNativeCues => true;
+
+  int sessions = 0;
+  int repeats = 0;
+
+  @override
+  Future<void> recordSessionCompletion() async => sessions++;
+
+  @override
+  Future<void> recordRepeatPlaythrough() async => repeats++;
 }
 
 class _Streams {
@@ -133,6 +142,21 @@ class _Streams {
     when(() => player.pause()).thenAnswer((_) async {});
     when(() => player.play()).thenAnswer((_) async {});
     return player;
+  }
+
+  /// Repeat forever wrapping back to the start of the same item.
+  void loop() {
+    final event = PlaybackEvent(
+      processingState: ProcessingState.ready,
+      duration: const Duration(hours: 1),
+    );
+    discontinuity.add(
+      PositionDiscontinuity(
+        PositionDiscontinuityReason.autoAdvance,
+        event,
+        event,
+      ),
+    );
   }
 
   void seek() => discontinuity.add(
@@ -274,6 +298,81 @@ void main() {
     await handler.setSpeed(1.5);
     await _settle();
     expect(count('transport'), 3);
+  });
+
+  group('repeat play-throughs follow the 90% rule', () {
+    late Map<String, Object?> swift;
+    late _Streams streams;
+    late _WiredHandler handler;
+
+    setUp(() async {
+      swift = {'sampleListening': false};
+      _mockSwift(swift);
+      streams = _Streams();
+      final player = streams.player();
+      for (final mode in LoopMode.values) {
+        when(() => player.setLoopMode(mode)).thenAnswer((_) async {});
+      }
+      when(() => player.seek(Duration.zero)).thenAnswer((_) async {});
+      handler = _WiredHandler(player);
+      await handler.ensureInitialized();
+      await handler.configureCues(const CueSettings(), _guided);
+      await handler.play();
+      await _settle();
+    });
+
+    Future<void> heardNinetyPercent() async {
+      swift['sampleListening'] = true;
+      streams.playerState.add(PlayerState(true, ProcessingState.ready));
+      await _settle();
+    }
+
+    test(
+      'repeat once: a session earned in pass two is not also a repeat',
+      () async {
+        await handler.setCustomRepeatMode(pigeon.RepeatMode.once);
+        // Pass one: seeked to the middle, then heard to its end (50%).
+        streams.processing.add(ProcessingState.completed);
+        await _settle();
+        expect((handler.sessions, handler.repeats), (0, 0));
+
+        // Pass two: 90% is reached part-way and recorded as the session.
+        await heardNinetyPercent();
+        expect((handler.sessions, handler.repeats), (1, 0));
+
+        // Its end is the session's own end, not another repeat.
+        streams.processing.add(ProcessingState.completed);
+        await _settle();
+        await _fromSwift('sessionEnded', {
+          'extensionFinished': false,
+          'tailMs': 0,
+        });
+        expect((handler.sessions, handler.repeats), (1, 0));
+      },
+    );
+
+    test(
+      'repeat forever: wraps count only after the session was earned',
+      () async {
+        await handler.setCustomRepeatMode(pigeon.RepeatMode.infinite);
+        // Seeked near the end twice: nothing heard, nothing counted.
+        streams.loop();
+        streams.loop();
+        await _settle();
+        expect((handler.sessions, handler.repeats), (0, 0));
+
+        // The third pass is heard: the session, once.
+        await heardNinetyPercent();
+        streams.loop();
+        await _settle();
+        expect((handler.sessions, handler.repeats), (1, 0));
+
+        // Only a further full pass is a repeat.
+        streams.loop();
+        await _settle();
+        expect((handler.sessions, handler.repeats), (1, 1));
+      },
+    );
   });
 
   test('the ambient fade is full until the last ten seconds', () {
