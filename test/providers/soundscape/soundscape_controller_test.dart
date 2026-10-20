@@ -216,6 +216,27 @@ void main() {
     expect(ctl().canAddLayer, isFalse);
   });
 
+  test(
+    'a mix where every sound fails stops and lets go of the service',
+    () async {
+      engine.failOn.addAll({'cafe', 'river'});
+      ctl().clearMix();
+      ctl().toggleSound('cafe');
+      ctl().toggleSound('river');
+      await settle();
+      expect(st().failed, {'cafe', 'river'});
+      expect(st().active, isFalse);
+      expect(st().playing, isFalse);
+      expect(keepAlive.held, isFalse, reason: 'no notification over silence');
+      // Picking a sound that plays starts again.
+      ctl().toggleSound('waves');
+      await settle();
+      expect(st().active, isTrue);
+      expect(engine.playing.keys, ['waves']);
+      expect(keepAlive.held, isTrue);
+    },
+  );
+
   test('a sound that fails to load is marked and skipped', () async {
     engine.failOn.add('cafe');
     ctl().clearMix();

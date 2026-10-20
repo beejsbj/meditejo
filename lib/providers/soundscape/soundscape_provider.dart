@@ -645,6 +645,17 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       state = state.copyWith(failed: {...state.failed, ...failed});
     }
     await Future.wait(fades);
+    // Nothing in the mix could play (every layer failed, or none is in the
+    // library): stop, rather than hold the foreground service and its
+    // notification over silence. Only if the mix is still the one this
+    // pass tried; a newer edit gets its own pass.
+    if (ref.mounted &&
+        s.active &&
+        _applied.isEmpty &&
+        state.active &&
+        state.mix == s.mix) {
+      stop();
+    }
   }
 
   Future<void> _holdKeepAlive(bool hold) async {
