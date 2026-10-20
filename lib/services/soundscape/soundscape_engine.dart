@@ -84,6 +84,32 @@ abstract interface class SoundscapeEngine {
   Future<void> shutdown();
 }
 
+/// A start-up that runs once and is shared, unless it fails: a failed one
+/// is forgotten, so the next call tries again rather than rethrowing the
+/// old failure for the rest of the app's life.
+class RetryableOnce {
+  RetryableOnce(this._run);
+
+  final Future<void> Function() _run;
+  Future<void>? _pending;
+
+  /// The start-up under way or done, if any.
+  Future<void>? get current => _pending;
+
+  Future<void> call() {
+    final existing = _pending;
+    if (existing != null) return existing;
+    final run = _pending = _run();
+    run.catchError((Object _) {
+      if (identical(_pending, run)) _pending = null;
+    });
+    return run;
+  }
+
+  /// Forget a finished start-up (the engine was shut down).
+  void reset() => _pending = null;
+}
+
 /// Pausing fades the whole mixer out before the voices pause, and resuming
 /// unpauses them and fades back in, so a session's end, a pause or an
 /// autoplay interlude never cuts the sound dead. Kept apart from SoLoud so
@@ -174,7 +200,7 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
   final _handles = <String, SoundHandle>{};
   final _motionTimers = <String, Timer>{};
   final _levels = <String, (double, LayerMotion?)>{};
-  Future<void>? _ready;
+  late final _ready = RetryableOnce(_initialise);
   late final _pause = PauseFade(
     fadeMaster: _fadeMaster,
     pauseVoices: _pauseVoices,
@@ -197,7 +223,9 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
     }
   }();
 
-  Future<void> _ensureReady() => _ready ??= () async {
+  Future<void> _ensureReady() => _ready();
+
+  Future<void> _initialise() async {
     if (!_soloud.isInitialized) {
       // 48 kHz: the rate of every bundled loop and of the phone's output,
       // so nothing is resampled. Ambience needs no low latency: the
@@ -213,7 +241,7 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
     // fading ones too.
     _soloud.setMaxActiveVoiceCount(64);
     _soloud.setGlobalVolume(_paused ? 0 : _master);
-  }();
+  }
 
   @override
   Future<bool> start(
@@ -383,19 +411,17 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
   @override
   Future<void> shutdown() async {
     if (!_available || _handles.isNotEmpty || _sources.isNotEmpty) return;
-    final ready = _ready;
+    final ready = _ready.current;
     if (ready == null) return;
-    _ready = null;
     try {
       await ready;
     } catch (_) {
       return; // Never opened: nothing to close.
     }
-    // A layer may have started while this waited.
-    if (_handles.isNotEmpty || _sources.isNotEmpty) {
-      _ready = ready;
-      return;
-    }
+    // The controller's passes are serialised, so no layer starts meanwhile;
+    // check anyway.
+    if (_handles.isNotEmpty || _sources.isNotEmpty) return;
+    _ready.reset();
     try {
       // flutter_soloud keeps the Android output stream running through a
       // pause; only deinit closes it.
