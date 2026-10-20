@@ -74,7 +74,7 @@ class _PlayerViewState extends ConsumerState<PlayerView>
   int _countdownMs = 0;
   bool _foreground = true;
   bool _cueStateFailed = false;
-  DateTime? _countdownExpectedUntil;
+  bool _countdownExpected = false;
   CueScope? _cueScope;
   ProviderSubscription<CueSettings>? _cueSubscription;
   bool _customized = false;
@@ -146,7 +146,6 @@ class _PlayerViewState extends ConsumerState<PlayerView>
   /// and a countdown or extension runs or may begin; nothing else shows it.
   void _syncCuePoll() {
     final audio = ref.read(audioStateProvider);
-    final until = _countdownExpectedUntil;
     final wanted =
         (Platform.isAndroid || Platform.isIOS) &&
         mounted &&
@@ -155,7 +154,7 @@ class _PlayerViewState extends ConsumerState<PlayerView>
         shouldPollCueState(
           foreground: _foreground,
           phase: ref.read(cueRuntimeProvider).phase,
-          countdownExpected: until != null && DateTime.now().isBefore(until),
+          countdownExpected: _countdownExpected,
           voiceAtEnd:
               audio.duration > 0 && audio.position >= audio.duration - 1000,
         );
@@ -175,7 +174,13 @@ class _PlayerViewState extends ConsumerState<PlayerView>
       final cueState = await NativeCueController.state();
       if (!mounted) return;
       ref.read(cueRuntimeProvider.notifier).updateFromMap(cueState);
-      if (cueState['phase'] == 'countdown') _countdownExpectedUntil = null;
+      // Seen, or the voice is already playing (no countdown after all): the
+      // phase itself decides from here, however long the source buffered.
+      final phase = cueState['phase'];
+      if (phase == 'countdown' ||
+          (phase == 'playing' && ref.read(audioStateProvider).isPlaying)) {
+        _countdownExpected = false;
+      }
       final remaining =
           (cueState['countdownRemainingMs'] as num?)?.toInt() ?? 0;
       if (remaining != _countdownMs) {
@@ -185,7 +190,7 @@ class _PlayerViewState extends ConsumerState<PlayerView>
     } catch (e) {
       AppLogger.e('CUES', 'Countdown state unavailable: $e');
       _cueStateFailed = true;
-      _syncCuePoll();
+      if (mounted) _syncCuePoll();
     }
   }
 
@@ -264,12 +269,10 @@ class _PlayerViewState extends ConsumerState<PlayerView>
       _countdownPoll?.cancel();
       _countdownPoll = null;
       _cueStateFailed = false;
-      // The countdown starts once the voice is ready; until it is seen, keep
-      // looking for a while.
-      _countdownExpectedUntil =
-          ref.read(cueSettingsProvider(_cueScope!)).countdownSeconds > 0
-          ? DateTime.now().add(const Duration(seconds: 20))
-          : null;
+      // The countdown starts once the voice is ready, however long that takes:
+      // keep looking until it is seen.
+      _countdownExpected =
+          ref.read(cueSettingsProvider(_cueScope!)).countdownSeconds > 0;
       _syncCuePoll();
       // The native service must be ready before restoring background audio.
       if (mounted && !_isClosing) unawaited(_initializePlayer());
