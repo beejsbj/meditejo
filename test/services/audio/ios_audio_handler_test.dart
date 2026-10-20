@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:just_audio/just_audio.dart';
@@ -84,8 +86,90 @@ _Player _endedPlayer() {
   return player;
 }
 
+/// A handler with its real listeners, on a player whose streams the test drives.
+class _WiredHandler extends IosAudioHandler {
+  _WiredHandler(AudioPlayer player) : super(player: player);
+
+  final IosSessionBells _bells = _Bells();
+
+  @override
+  IosSessionBells get sessionBells => _bells;
+
+  @override
+  bool get usesNativeCues => true;
+}
+
+class _Streams {
+  final position = StreamController<Duration>.broadcast();
+  final playerState = StreamController<PlayerState>.broadcast();
+  final processing = StreamController<ProcessingState>.broadcast();
+  final discontinuity = StreamController<PositionDiscontinuity>.broadcast();
+
+  _Player player() {
+    final player = _endedPlayer();
+    when(() => player.positionStream).thenAnswer((_) => position.stream);
+    when(() => player.playerStateStream).thenAnswer((_) => playerState.stream);
+    when(
+      () => player.processingStateStream,
+    ).thenAnswer((_) => processing.stream);
+    when(
+      () => player.positionDiscontinuityStream,
+    ).thenAnswer((_) => discontinuity.stream);
+    when(
+      () => player.playbackEventStream,
+    ).thenAnswer((_) => const Stream.empty());
+    when(() => player.speedStream).thenAnswer((_) => const Stream.empty());
+    when(
+      () => player.bufferedPositionStream,
+    ).thenAnswer((_) => const Stream.empty());
+    when(() => player.durationStream).thenAnswer((_) => const Stream.empty());
+    when(() => player.position).thenReturn(const Duration(hours: 1));
+    when(() => player.speed).thenReturn(1);
+    when(
+      () => player.playerState,
+    ).thenReturn(PlayerState(true, ProcessingState.completed));
+    when(() => player.pause()).thenAnswer((_) async {});
+    when(() => player.play()).thenAnswer((_) async {});
+    return player;
+  }
+
+  void seek() => discontinuity.add(
+    PositionDiscontinuity(
+      PositionDiscontinuityReason.seek,
+      PlaybackEvent(),
+      PlaybackEvent(),
+    ),
+  );
+}
+
+Future<void> _settle() => Future<void>.delayed(Duration.zero);
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('seeking back during the extension ends the Swift hold', () async {
+    final calls = _mockSwift();
+    final streams = _Streams();
+    final handler = _WiredHandler(streams.player());
+    await handler.ensureInitialized();
+    await handler.configureCues(const CueSettings(extendMinutes: 5), _guided);
+
+    // The voice reaches its end: the silent extension begins in Swift.
+    streams.processing.add(ProcessingState.completed);
+    await _settle();
+    expect(calls.map((c) => c.method), contains('voiceEnded'));
+    expect(handler.nativeHold, isTrue);
+
+    // Scrub back two minutes: the narration plays again.
+    streams.seek();
+    await _settle();
+    expect(handler.nativeHold, isFalse);
+
+    // Pause now pauses the voice, not a hold that no longer runs.
+    calls.clear();
+    await handler.pause();
+    expect(calls.map((c) => c.method), isNot(contains('setHeld')));
+  });
 
   test(
     'the true end is terminal even when the session did not earn its stats',

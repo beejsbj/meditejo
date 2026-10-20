@@ -221,6 +221,12 @@ class IosAudioHandler extends BaseAudioHandler {
       if (isLoop) unawaited(_recordPlaythrough());
       if (_nativeCues &&
           discontinuity.reason == PositionDiscontinuityReason.seek) {
+        // A seek during the extension brings the voice back; Swift leaves
+        // its hold on this report, so the hold is over here too.
+        if (_nativeExtending) {
+          _nativeExtending = false;
+          _nativeHoldPaused = false;
+        }
         unawaited(_reportNativeTransport(seek: true));
       }
     });
@@ -279,6 +285,10 @@ class IosAudioHandler extends BaseAudioHandler {
   /// Whether this session counts in the stats.
   @visibleForTesting
   bool get completionEarned => _nativeCompletionEarned;
+
+  /// Whether the Swift countdown or extension owns play and pause.
+  @visibleForTesting
+  bool get nativeHold => _nativeCountdown || _nativeExtending;
 
   final _trackStateSubject = BehaviorSubject<Track>();
 

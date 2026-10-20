@@ -406,6 +406,8 @@ internal class CueEngine(
             Phase.EXTENSION -> {
                 // The listener moved the voice back during the extension: it is playing again.
                 if (reason == Player.DISCONTINUITY_REASON_SEEK) {
+                    // A paused extension stays paused: the voice waits for play.
+                    if (holdAnchor == 0L) primary.pause()
                     stopTimers()
                     phase = Phase.PLAYING
                     lastPositionMs = newPosition.positionMs

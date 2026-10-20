@@ -483,6 +483,21 @@ final class CueScheduler {
     /// seek, speed). `playing` means audibly advancing, not merely requested.
     func transport(positionMs: Double, durationMs: Double, playing nowPlaying: Bool, speed newSpeed: Double,
                    endless: Bool, itemsAfterCurrent: Int, seeking: Bool = false) {
+        if phase == .extending && seeking {
+            // The listener moved the voice back during the extension: it is
+            // playing again, from the session time reached so far (as Android).
+            let t = sessionNow()
+            cancelTimer()
+            holdAnchorMs = nil
+            holdRemainingMs = 0
+            bank.stopKeepAlive()
+            phase = .playing
+            started = true
+            playing = false
+            sessionAnchorMs = t
+            anchorUptimeMs = CueScheduler.uptimeMs()
+            lastPositionMs = positionMs
+        }
         guard let cfg = config, phase == .playing else { return }
         let now = CueScheduler.uptimeMs()
         self.durationMs = durationMs > 0 ? durationMs : Double(cfg.durationMs)
