@@ -184,6 +184,9 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   /// after resolving its mix was overtaken and does nothing.
   int _sessionToken = 0;
 
+  /// Counts state changes, so a pass can tell it has been overtaken.
+  int _updates = 0;
+
   /// Paused for another app's transient audio (a call); resumed with it.
   bool _pausedByFocus = false;
 
@@ -351,10 +354,11 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   /// Plays [selection] now. Outside a session it plays on its own; under a
   /// session it replaces what the session plays.
   Future<void> play(SoundscapeSelection selection, {double? volume}) async {
-    final inSession = state.inSession;
+    final token = _sessionToken;
     final mix = await _resolve(selection, orCurrentMix: false);
-    // The session ended while this resolved: do not start on its own.
-    if (inSession && !state.inSession) return;
+    // A session started, changed or ended while this resolved: that
+    // context is gone.
+    if (token != _sessionToken) return;
     if (mix.isEmpty) {
       if (state.underSession) {
         _update(state.copyWith(playing: false));
@@ -631,6 +635,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   void _update(SoundscapeState next) {
     if (!ref.mounted) return;
     state = next;
+    _updates++;
     _syncIdleTimer();
     _sync = _sync.then((_) => _apply()).catchError((
       Object error,
@@ -661,6 +666,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     final library = await ref.read(soundLibraryProvider.future);
     if (!ref.mounted) return;
     final s = state;
+    final updates = _updates;
     final desired = <String, SoundLayer>{
       if (s.active)
         for (final l in s.mix.layers)
@@ -694,15 +700,12 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     final fades = [for (final id in stopping) _engine.stop(id)];
 
     final failed = <String>{};
+    // Loading is slow. If anything changed meanwhile (stop, pause, the mix,
+    // its owner), leave the rest to the queued pass.
+    bool superseded() => !ref.mounted || _updates != updates;
     var stale = false;
     for (final layer in desired.values) {
-      // Loading is slow. If the user stopped or paused, or the mix or its
-      // owner changed, meanwhile, leave the rest to the queued pass.
-      if (!ref.mounted ||
-          state.active != s.active ||
-          state.playing != s.playing ||
-          state.owner != s.owner ||
-          state.mix != s.mix) {
+      if (superseded()) {
         stale = true;
         break;
       }
@@ -730,7 +733,10 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         _applied[layer.soundId] = layer;
       }
     }
-    if (failed.isNotEmpty && ref.mounted) {
+    stale = stale || superseded();
+    // A failure of a pass that was overtaken is not recorded: the queued
+    // pass tries the sound again (it may be the one the user just re-added).
+    if (failed.isNotEmpty && !stale) {
       state = state.copyWith(failed: {...state.failed, ...failed});
     }
     await Future.wait(fades);

@@ -18,6 +18,7 @@ class _Engine implements SoundscapeEngine {
   final motion = <String, LayerMotion?>{};
   final starts = <String>[];
   final failOn = <String>{};
+  final failOnce = <String>{};
   final gates = <String, Completer<void>>{};
   double master = 1;
   bool paused = false;
@@ -31,7 +32,7 @@ class _Engine implements SoundscapeEngine {
   }) async {
     starts.add(key);
     await gates[key]?.future;
-    if (failOn.contains(key)) return false;
+    if (failOnce.remove(key) || failOn.contains(key)) return false;
     playing[key] = gain;
     this.motion[key] = motion;
     return true;
@@ -296,6 +297,33 @@ void main() {
       expect(st().volume, 0.3);
     },
   );
+
+  test(
+    'a failure of an overtaken pass is not held against the sound',
+    () async {
+      engine.failOnce.add('cafe');
+      engine.gates['cafe'] = Completer<void>();
+      ctl().clearMix();
+      ctl().toggleSound('cafe');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      ctl().toggleSound('cafe');
+      ctl().toggleSound('cafe');
+      engine.gates['cafe']!.complete();
+      await settle();
+      expect(st().failed, isEmpty);
+      expect(engine.playing.keys, ['cafe']);
+    },
+  );
+
+  test('a play begun in one session does not land in the next', () async {
+    await ctl().startSession(SoundscapeSessionKind.practice);
+    await settle();
+    final played = ctl().play(SoundscapeSelection.sound('river'));
+    unawaited(ctl().startSession(SoundscapeSessionKind.talks));
+    await played;
+    await settle();
+    expect(engine.playing.containsKey('river'), isFalse);
+  });
 
   test('Play after a failure tries the failed sounds again', () async {
     engine.failOn.add('cafe');
