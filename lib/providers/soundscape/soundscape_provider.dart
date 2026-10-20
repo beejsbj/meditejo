@@ -658,7 +658,11 @@ class SoundscapeController extends Notifier<SoundscapeState> {
             l.soundId: l,
     };
 
-    await _holdKeepAlive(s.owner == SoundscapeOwner.standalone && s.active);
+    final standalone = s.owner == SoundscapeOwner.standalone && s.active;
+    // Let go first when nothing should hold; take the service only once a
+    // layer really plays (below), so a mix that cannot play never starts
+    // it and then stops it before Android saw startForeground().
+    if (!standalone) await _holdKeepAlive(false);
 
     final gain = layerGain(s.volume);
     if (_engineVolume != gain) {
@@ -704,6 +708,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     if (failed.isNotEmpty && ref.mounted) {
       state = state.copyWith(failed: {...state.failed, ...failed});
     }
+    if (standalone && _applied.isNotEmpty) await _holdKeepAlive(true);
     await Future.wait(fades);
     // Nothing in the mix could play (every layer failed, or none is in the
     // library): stop, rather than hold the foreground service and its

@@ -86,6 +86,13 @@ class SoundscapeService : Service() {
                     Log.w(TAG, "Could not hold the foreground: ${e.message}")
                     stopSelf()
                 }
+                // A release that arrived before this hold reached the
+                // foreground was deferred to here (see SoundscapeBridge).
+                SoundscapeBridge.holdPending = false
+                if (SoundscapeBridge.releaseDeferred) {
+                    SoundscapeBridge.releaseDeferred = false
+                    finish()
+                }
             }
         }
         return START_NOT_STICKY
@@ -255,6 +262,14 @@ object SoundscapeBridge {
     private var channel: MethodChannel? = null
     private val main = Handler(Looper.getMainLooper())
 
+    // A hold was sent and its onStartCommand (startForeground) has not run
+    // yet. Stopping the service in that window makes Android 9+ crash the
+    // app ("did not then call startForeground"), so a release then is
+    // deferred to the service's onStartCommand. Main thread only, like the
+    // channel handler and onStartCommand.
+    internal var holdPending = false
+    internal var releaseDeferred = false
+
     fun attach(context: Context, messenger: BinaryMessenger) {
         val appContext = context.applicationContext
         channel = MethodChannel(messenger, CHANNEL).also { ch ->
@@ -268,6 +283,8 @@ object SoundscapeBridge {
                             .putExtra(SoundscapeService.EXTRA_STOP_LABEL, call.argument<String>("stopLabel"))
                         try {
                             ContextCompat.startForegroundService(appContext, intent)
+                            holdPending = true
+                            releaseDeferred = false
                             result.success(true)
                         } catch (e: Exception) {
                             Log.w("SoundscapeBridge", "Could not start the service: ${e.message}")
@@ -279,7 +296,11 @@ object SoundscapeBridge {
                         result.success(null)
                     }
                     "release" -> {
-                        appContext.stopService(Intent(appContext, SoundscapeService::class.java))
+                        if (holdPending) {
+                            releaseDeferred = true
+                        } else {
+                            appContext.stopService(Intent(appContext, SoundscapeService::class.java))
+                        }
                         result.success(null)
                     }
                     else -> result.notImplemented()

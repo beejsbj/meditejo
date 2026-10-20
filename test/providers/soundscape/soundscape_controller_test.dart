@@ -233,6 +233,7 @@ void main() {
       expect(st().active, isFalse);
       expect(st().playing, isFalse);
       expect(keepAlive.held, isFalse, reason: 'no notification over silence');
+    expect(keepAlive.holds, 0, reason: 'the service never started');
       // Picking a sound that plays starts again.
       ctl().toggleSound('waves');
       await settle();
