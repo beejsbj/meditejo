@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
+import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/routes/routes.dart';
@@ -45,8 +46,10 @@ class PinnedCourseTile extends ConsumerWidget {
     // consume the three slots forever.
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final total = pack?.items.length ?? 0;
-    final done = pack?.items.where((i) => i.isCompleted == true).length ?? 0;
+    // As the course page counts: a session its source has lost is not one.
+    final playable = pack?.playableTracks ?? const [];
+    final total = playable.length;
+    final done = playable.where((i) => i.isCompleted == true).length;
 
     return InkWell(
       onTap: () => handleNavigation(
