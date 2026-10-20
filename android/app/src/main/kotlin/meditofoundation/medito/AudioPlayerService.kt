@@ -14,6 +14,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -42,6 +43,8 @@ import kotlinx.coroutines.SupervisorJob
 import android.media.AudioManager
 import android.media.AudioFocusRequest
 import android.content.Context
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
 import android.os.Binder
 import android.os.IBinder
 import android.content.pm.ServiceInfo
@@ -77,6 +80,21 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     private var lastListeningSaveMs = 0L
     private var completionSent = false
     private val pendingFinish = Runnable { finishPlayback() }
+
+    // Headphones unplugged during the countdown or extension: hold their
+    // clock like a pause, so no cue or voice rings from the speaker. ExoPlayer
+    // reports an unplug only as a playWhenReady change, which the countdown
+    // never has, so the service listens for it itself.
+    private var noisyReceiverRegistered = false
+    private val noisyReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != AudioManager.ACTION_AUDIO_BECOMING_NOISY) return
+            if (!::cues.isInitialized || !cues.isHoldRunning()) return
+            cues.toggleHold()
+            if (::backgroundMusicPlayer.isInitialized) backgroundMusicPlayer.pause()
+            updateNotification()
+        }
+    }
     private var completionPlaythroughIndex = 0
     private var primaryMediaSession: MediaSession? = null
     private var meditoAudioApi: MeditoAudioServiceCallbackApi? = null
@@ -526,15 +544,6 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
                                 )
                                 abandonAudioFocus()
 
-                                // Headphones unplugged in the countdown or extension: hold
-                                // their clock like a pause, so no cue rings from the speaker.
-                                if (reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY &&
-                                    ::cues.isInitialized && cues.isHoldRunning()
-                                ) {
-                                    cues.toggleHold()
-                                    updateNotification()
-                                }
-
                                 // 👉 Sync background to pause
                                 if (backgroundMusicPlayer.isPlaying) {
                                     Log.d(
@@ -574,6 +583,17 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             })
             instance = this
             primaryPlayer.addListener(this)
+            try {
+                ContextCompat.registerReceiver(
+                    this,
+                    noisyReceiver,
+                    IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),
+                    ContextCompat.RECEIVER_NOT_EXPORTED,
+                )
+                noisyReceiverRegistered = true
+            } catch (e: Exception) {
+                Log.w(TAG, "No unplug receiver: ${e.message}")
+            }
 
             primaryMediaSession = createMediaSession()
             Log.d(TAG, "🔊 Media session created successfully")
@@ -616,6 +636,10 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         }
 
         if (instance === this) instance = null
+        if (noisyReceiverRegistered) {
+            try { unregisterReceiver(noisyReceiver) } catch (_: Exception) {}
+            noisyReceiverRegistered = false
+        }
 
         // Cancel any pending coroutines
         serviceJob.cancel()
