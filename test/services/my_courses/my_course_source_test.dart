@@ -402,6 +402,17 @@ void main() {
       expect(item.title, 'Session x-1');
     });
 
+    test('a session the source could not be asked about is not gone', () async {
+      final id = await source.create(
+        title: 'C',
+        lines: [MyCourseLine.session(draft('x-1'))],
+      );
+      upstream.unreachable = true;
+      final item = (await source.pack(id)).items.single;
+      expect(item.unavailable, isNull);
+      expect((await source.edit(id))!.lines.single.unavailable, isNot(true));
+    });
+
     test('a session that comes back is available again', () async {
       final id = await source.create(
         title: 'C',

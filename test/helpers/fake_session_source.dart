@@ -13,6 +13,10 @@ class FakeSessionSource implements ContentSource, ParentedContentSource {
   final Set<String> gone = {};
   bool offline = false;
 
+  /// Sessions are not stored and the source cannot be asked, the way
+  /// Dharma Seed answers a talk it has not synced while offline.
+  bool unreachable = false;
+
   /// Sessions' own titles, when a test renames one upstream.
   final Map<String, String> titles = {};
 
@@ -64,6 +68,7 @@ class FakeSessionSource implements ContentSource, ParentedContentSource {
   @override
   Future<Track> track(String id) async {
     if (offline) throw Exception('Failed host lookup');
+    if (unreachable) throw CatalogueEntryUnreachable('track', id);
     if (gone.contains(id) || id.startsWith('x-course-')) {
       throw CatalogueEntryUnavailable('track', id);
     }

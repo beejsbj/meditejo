@@ -154,6 +154,10 @@ class MyCourseSource implements ContentSource {
         durationMs: draft.durationMs > 0 ? draft.durationMs : row.durationMs,
         unavailable: false,
       );
+    } on CatalogueEntryUnreachable catch (e) {
+      // Offline, not gone: the row stays as it was.
+      AppLogger.d('MY_COURSES', 'Showing ${row.itemId} as stored: $e');
+      return row;
     } on CatalogueEntryUnavailable {
       next = row.copyWith(unavailable: true);
     } catch (e) {
