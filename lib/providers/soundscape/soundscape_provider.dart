@@ -813,6 +813,10 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         }
       } else {
         // Same settings, or ones that failed before: only the level moves.
+        // Back at what plays means a failed try is forgotten.
+        if (SoundLayer.paramsEqual(current.params, layer.params)) {
+          _unplayable.remove(layer.soundId);
+        }
         final playing = layer.copyWith(params: current.params);
         if (current != playing) {
           _engine.setGain(
