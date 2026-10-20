@@ -177,9 +177,7 @@ void main() {
     expect(find.text('Campanas de sesión'), findsOneWidget);
   });
 
-  testWidgets('bundled bells stay switchable when remote sounds fail', (
-    tester,
-  ) async {
+  testWidgets('the Sounds sheet offers no legacy bells switch', (tester) async {
     final notifier = _FakeNotifier(const BackgroundSoundsState());
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
@@ -201,18 +199,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    final bells = find.text('Session bells');
-    await tester.scrollUntilVisible(bells, 200);
-    await tester.tap(bells);
-    await tester.pump();
-    // A switch now, not a sound: no ambient change, bells on.
-    expect(notifier.changed, isEmpty);
-    expect(notifier.bells, [true]);
-    final bellsSwitch = find.descendant(
-      of: find.ancestor(of: bells, matching: find.byType(InkWell)).first,
-      matching: find.byType(Switch),
-    );
-    expect(tester.widget<Switch>(bellsSwitch).value, isTrue);
+    // Customize's cue scheduler owns bells; a switch here (reachable from
+    // the player) would ring a second set over the cues.
+    final end = find.text('Sound credits');
+    await tester.scrollUntilVisible(end, 200);
+    expect(end, findsOneWidget);
+    expect(find.text('Session bells'), findsNothing);
+    expect(find.byType(Switch), findsNWidgets(2), reason: 'practice, talks');
+    expect(notifier.bells, isEmpty);
     expect(tester.takeException(), isNull);
   });
 }

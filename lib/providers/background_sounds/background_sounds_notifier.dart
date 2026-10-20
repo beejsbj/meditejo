@@ -157,12 +157,10 @@ class BackgroundSoundsState {
     this.bellsEnabled = false,
   });
 
-  /// Whether anything plays over the session (lights the player's sound
-  /// button).
+  /// Whether the legacy ambient layer plays (lights the player's sound
+  /// button). Not the legacy bells: the cue scheduler owns bells.
   bool get hasAnySound =>
-      bellsEnabled ||
-      (selectedBgSound != null &&
-          selectedBgSound!.id != kNoneBackgroundSoundId);
+      selectedBgSound != null && selectedBgSound!.id != kNoneBackgroundSoundId;
 
   BackgroundSoundsState copyWith({
     bool? bellsEnabled,
@@ -272,9 +270,10 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
       return;
     }
 
-    // Bells used to be one of the background sounds; they are a switch now.
+    // Bells used to be one of the background sounds. A stale selection of
+    // them is no sound, and never turns the legacy bells on: the cue
+    // scheduler owns bells.
     if (sound.id == kSessionBellsId) {
-      setSessionBells(true, preview: preview);
       handleOnChangeSound(_noneSound, preview: preview);
       return;
     }
