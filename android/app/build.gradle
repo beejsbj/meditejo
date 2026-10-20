@@ -86,6 +86,18 @@ android {
         ]
         
         resValue "string", "app_name_override", "Meditejo"
+
+        // Flutter's plugin sets abiFilters to all three ABIs whatever
+        // --target-platform says (that flag only picks the engine), so AARs
+        // such as sqlite3 and jni shipped armeabi-v7a and x86_64 libraries
+        // too. The phone is arm64. Split APKs (F-Droid) set split-per-abi,
+        // which AGP rejects together with abiFilters, so leave them to the splits.
+        if (!project.hasProperty('split-per-abi')) {
+            ndk {
+                abiFilters.clear()
+                abiFilters.add('arm64-v8a')
+            }
+        }
     }
 
     buildFeatures {
@@ -155,13 +167,6 @@ android {
             minifyEnabled true
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            // Flutter's --target-platform only picks the engine; AARs such as
-            // sqlite3 and jni still bring armeabi-v7a and x86_64 libraries.
-            // The phone is arm64. Split APKs (F-Droid) set split-per-abi,
-            // which conflicts with abiFilters, so leave them to the splits.
-            if (!project.hasProperty('split-per-abi')) {
-                ndk { abiFilters 'arm64-v8a' }
-            }
         }
     }
 
