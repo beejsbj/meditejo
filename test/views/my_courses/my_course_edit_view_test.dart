@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:medito/models/favorites/favorite_item.dart';
+import 'package:medito/providers/favorites/favorites_provider.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/views/pack/pack_view.dart';
@@ -212,9 +214,7 @@ void main() {
   });
 
   group('deleting and copying', () {
-    testWidgets('a deleted course leaves Home, freeing its pin', (
-      tester,
-    ) async {
+    testWidgets('a deleted course leaves Home and Favorites', (tester) async {
       await setUpApp(tester);
       final id = await course(tester, 'Pinned', [
         MyCourseLine.session(draft('x-1')),
@@ -225,6 +225,20 @@ void main() {
       );
       await container.read(pinnedCoursesProvider.notifier).pin(id);
       expect(container.read(pinnedCoursesProvider), [id]);
+      await container.read(favoritesNotifierProvider.future);
+      await container
+          .read(favoritesNotifierProvider.notifier)
+          .addToFavorites(
+            FavoriteItem(
+              id: id,
+              title: 'Pinned',
+              coverUrl: '',
+              subtitle: '',
+              type: FavoriteItemType.pack,
+              timestamp: 1,
+            ),
+          );
+      expect(container.read(favoritesNotifierProvider).value, hasLength(1));
 
       await tester.ensureVisible(
         find.byKey(const ValueKey('my_course_delete')),
@@ -235,6 +249,7 @@ void main() {
       await settle(tester);
 
       expect(container.read(pinnedCoursesProvider), isEmpty);
+      expect(container.read(favoritesNotifierProvider).value, isEmpty);
     });
 
     testWidgets('a copy opens its editor at once, over the copy', (
@@ -247,7 +262,9 @@ void main() {
       await pump(
         tester,
         Scaffold(
-          body: Center(child: ContentActionsButton(id: id, title: 'Original')),
+          body: Center(
+            child: ContentActionsButton(id: id, title: 'Original'),
+          ),
         ),
       );
 

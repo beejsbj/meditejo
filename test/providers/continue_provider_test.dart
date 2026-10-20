@@ -384,6 +384,42 @@ void main() {
       expect(items.single.sessionTotal, 2);
     });
 
+    test(
+      'ranks as the course it is shown under, not as its own entry',
+      () async {
+        await addCourse('a', played: true);
+        // Saved on its own as a talk, resumed from a Practice course.
+        await store.add(
+          const LibraryDraft(
+            sourceId: 'x-a-2',
+            kind: LibraryKind.single,
+            title: 'Session x-a-2',
+            group: LibraryGroup.talks,
+          ),
+        );
+        await store.add(
+          const LibraryDraft(
+            sourceId: 'my-course-1',
+            kind: LibraryKind.course,
+            title: 'Mine my-course-1',
+            group: LibraryGroup.practice,
+          ),
+        );
+        await leftAt('x-a-2', DateTime(2026, 10, 18));
+        await store.noteSessionContext('x-a-2', 'my-course-1');
+
+        final items = await read(
+          packs: [
+            _course('a'),
+            mine('my-course-1', ['x-b-1', 'x-a-2']),
+          ],
+        );
+
+        expect(items.first.courseId, 'my-course-1');
+        expect(items.first.group, LibraryGroup.practice);
+      },
+    );
+
     test('falls back to its own course once that course drops it', () async {
       await addCourse('a', played: true);
       await leftAt('x-a-2', DateTime(2026, 10, 18));

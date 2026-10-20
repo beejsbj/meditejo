@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/providers/favorites/favorites_provider.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/routes/routes.dart';
@@ -188,6 +189,11 @@ Future<bool> deleteMyCourse(
   if (confirmed != true) return false;
   await ref.read(myCourseSourceProvider).delete(id);
   await ref.read(pinnedCoursesProvider.notifier).unpin(id);
+  try {
+    await ref.read(favoritesNotifierProvider.notifier).removeFromFavorites(id);
+  } catch (e, st) {
+    AppLogger.e('MY_COURSES', 'Could not unfavourite $id', e, st);
+  }
   if (context.mounted) showSnackBar(context, l10n.myCourseDeletedSnack);
   return true;
 }

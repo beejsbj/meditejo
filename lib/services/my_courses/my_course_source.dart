@@ -47,6 +47,9 @@ class MyCourseSource implements ContentSource {
   /// How long one session's source may take before its snapshot is shown.
   final Duration resolveTimeout;
 
+  /// How many sessions are re-read from their sources at once.
+  static const refreshBatch = 4;
+
   /// Changes whenever a course or its sessions do; course pages and
   /// completion ticks re-read on it.
   final ValueNotifier<int> revision = ValueNotifier(0);
@@ -80,14 +83,27 @@ class MyCourseSource implements ContentSource {
     final items = <PackItemsModel>[];
     var section = '';
     var availabilityChanged = false;
+    // A slow source costs one timeout per batch of sessions, not per session.
+    final fresh = <int, MyCourseItemRow>{};
+    final sessions = [
+      for (final row in rows)
+        if (row.itemId.isNotEmpty) row,
+    ];
+    for (var i = 0; i < sessions.length; i += refreshBatch) {
+      final batch = sessions.skip(i).take(refreshBatch).toList();
+      final done = await Future.wait(batch.map(_refresh));
+      for (var j = 0; j < batch.length; j++) {
+        fresh[batch[j].rowId] = done[j];
+      }
+    }
     for (final row in rows) {
       if (row.itemId.isEmpty) {
         section = row.heading;
         continue;
       }
-      final fresh = await _refresh(row);
-      if (fresh.unavailable != row.unavailable) availabilityChanged = true;
-      items.add(_item(fresh, section.isEmpty ? null : section));
+      final next = fresh[row.rowId]!;
+      if (next.unavailable != row.unavailable) availabilityChanged = true;
+      items.add(_item(next, section.isEmpty ? null : section));
     }
     // Availability feeds completion ticks (an unavailable session cannot be
     // finished), so they re-read; this pack is read again and finds nothing

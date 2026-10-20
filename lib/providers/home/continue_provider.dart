@@ -97,7 +97,9 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
       final parentId = inOpened ? opened : await router.parentOf(place.trackId);
       final parent = parentId == null ? null : entryById[parentId];
       final own = entryById[place.trackId];
+      // The course it is shown under ranks it, as its cues are scoped.
       final group =
+          (inOpened ? parent?.group : null) ??
           own?.group ??
           parent?.group ??
           (track.hasBackgroundSound
