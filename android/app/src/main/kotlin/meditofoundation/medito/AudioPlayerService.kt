@@ -191,7 +191,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     // native STATE_ENDED handler on the main thread, before finishPlayback()
     // cancels the position poll — the poll would otherwise be the only sender of
     // isCompleted and it never gets to run once the track ends.
-    private fun pushCompletedStateToDart(completed: Boolean = true) {
+    private fun pushCompletedStateToDart() {
         if (!::primaryPlayer.isInitialized) return
         val api = meditoAudioApi ?: return
 
@@ -207,7 +207,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             isBuffering = false,
             duration = duration,
             isSeeking = false,
-            isCompleted = completed,
+            isCompleted = true,
             track = trackFromCurrentMediaItem()
         )
 
@@ -307,7 +307,9 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         listening.sample(currentDurationMs(), true)
         recordPlaythroughFromPlayer(extensionFinished)
         persistListening(force = true)
-        pushCompletedStateToDart(completed = completionSent)
+        // The true end is always terminal for the player, whether or not the
+        // session earned its stats above: the end screen and autoplay need it.
+        pushCompletedStateToDart()
         if (::backgroundMusicPlayer.isInitialized) backgroundMusicPlayer.stop()
         if (tailMs > 0) handler.postDelayed(pendingFinish, tailMs) else finishPlayback()
     }

@@ -2,6 +2,7 @@ import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/services/audio/native_cue_controller.dart';
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import '../../services/audio/ios_session_bells.dart';
 import 'package:medito/models/models.dart' show PlaybackRequest;
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
@@ -266,6 +267,14 @@ class IosAudioHandler extends BaseAudioHandler {
 
   bool get isComplete =>
       _player.playerState.processingState == ProcessingState.completed;
+
+  /// Whether cues run in Swift; tests stand in for the iOS platform.
+  @visibleForTesting
+  bool get usesNativeCues => Platform.isIOS;
+
+  /// The terminal state the player screen reads, separate from stats.
+  @visibleForTesting
+  bool get sessionCompleted => _sessionCompleted.value;
 
   final _trackStateSubject = BehaviorSubject<Track>();
 
@@ -535,7 +544,7 @@ class IosAudioHandler extends BaseAudioHandler {
     PlaybackRequest request,
   ) async {
     _cueGeneration++;
-    _nativeCues = Platform.isIOS;
+    _nativeCues = usesNativeCues;
     if (!_nativeCues) return;
     _nativeTailRelease?.cancel();
     _nativeNeedsBegin = true;
@@ -617,7 +626,8 @@ class IosAudioHandler extends BaseAudioHandler {
     _cancelPauseDeactivationTimer();
     await iosBackgroundPlayer.pause();
     await _recordPlaythrough();
-    _sessionCompleted.add(_nativeCompletionEarned);
+    // The true end is terminal whether or not it earned the stats above.
+    _sessionCompleted.add(true);
     // The Swift bell and silent keep-alive must finish before deactivation.
     _nativeTailRelease = Timer(Duration(milliseconds: tailMs + 350), () {
       if (_nativeCues &&
