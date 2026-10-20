@@ -48,6 +48,15 @@ import '../../providers/background_sounds/background_sounds_notifier.dart';
 import '../../providers/soundscape/soundscape_provider.dart';
 import '../../widgets/errors/medito_error_widget.dart';
 
+/// Whether the player's sound button shows sound playing: the Sounds mixer
+/// (which follows the session's play/pause itself), or the legacy ambient
+/// layer while the session plays.
+bool isPlayerSoundActive({
+  required bool sessionPlaying,
+  required bool legacyAmbient,
+  required bool mixerPlaying,
+}) => mixerPlaying || (sessionPlaying && legacyAmbient);
+
 class PlayerView extends ConsumerStatefulWidget {
   const PlayerView({super.key, this.skipCustomize = false});
 
@@ -666,8 +675,15 @@ class _PlayerViewState extends ConsumerState<PlayerView>
   bool _isBackgroundSoundSelected() {
     final bgSoundNotifier = ref.watch(backgroundSoundsNotifierProvider);
     final isPlaying = ref.watch(audioStateProvider.select((s) => s.isPlaying));
+    final mixerPlaying = ref.watch(
+      soundscapeProvider.select((s) => s.active && s.playing),
+    );
 
-    return isPlaying && bgSoundNotifier.hasAnySound;
+    return isPlayerSoundActive(
+      sessionPlaying: isPlaying,
+      legacyAmbient: bgSoundNotifier.hasAnySound,
+      mixerPlaying: mixerPlaying,
+    );
   }
 
   void _handleClose({bool shouldPop = true}) {

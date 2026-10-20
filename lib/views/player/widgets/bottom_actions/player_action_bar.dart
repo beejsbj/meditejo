@@ -5,7 +5,6 @@ import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/models/timer/timer_session.dart';
-import 'package:medito/scaffold_messenger_key.dart';
 import 'package:medito/views/background_sound/background_sound_view.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_download_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_speed_widget.dart';
@@ -72,13 +71,14 @@ class PlayerActionBar extends StatelessWidget {
             ? AudioDownloadWidget(request: request)
             : const SizedBox(width: 48, height: 48),
       ),
+      // Open for every session: the Sounds mixer can play under a talk too
+      // (its Talks default or a Customize choice), so it must be reachable
+      // here to adjust or stop it.
       centerItem: BottomActionBarItem(
         child: _buildBackgroundSoundWidget(),
-        onTap: request.hasBackgroundSound
-            ? () {
-                showBackgroundSoundSheet(context);
-              }
-            : () => _showBackgroundSoundDisabledMessage(context),
+        onTap: () {
+          showBackgroundSoundSheet(context);
+        },
         semanticLabel: l10n.backgroundSounds,
       ),
       rightCenterItem: BottomActionBarItem(
@@ -99,19 +99,8 @@ class PlayerActionBar extends StatelessWidget {
     );
   }
 
-  Widget _buildBackgroundSoundWidget() {
-    return request.hasBackgroundSound
-        ? BgSoundWidget(isBackgroundSoundSelected: isBackgroundSoundSelected)
-        : const Icon(Icons.music_off, color: ColorConstants.white);
-  }
-
-  void _showBackgroundSoundDisabledMessage(BuildContext context) {
-    scaffoldMessengerKey.currentState?.showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context)!.backgroundSoundsDisabled),
-      ),
-    );
-  }
+  Widget _buildBackgroundSoundWidget() =>
+      BgSoundWidget(isBackgroundSoundSelected: isBackgroundSoundSelected);
 
   static const _customizeLabel = 'Customize';
   static const _customizeIcon = Icon(
