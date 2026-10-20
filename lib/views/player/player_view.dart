@@ -500,24 +500,23 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
       }),
     );
 
-    // A countdown that runs out rings its closing bell before the end; ending
-    // early (or finishing a stopwatch) rings it as the end screen opens.
-    final bgSounds = ref.read(backgroundSoundsNotifierProvider.notifier);
-    final bellsOn = ref.read(backgroundSoundsNotifierProvider).bellsEnabled;
-    final volume = bgSounds.scaledVolume(
-      ref.read(backgroundSoundsNotifierProvider).volume,
+    // A countdown that runs out rings its end cue natively; ending early (or
+    // finishing a stopwatch) rings the same Customize end cue, at the bell
+    // volume, as the end screen opens.
+    final cues = ref.read(
+      cueSettingsProvider(_cueScope ?? const CueScope(CueKind.practice)),
     );
     final bell = ref.read(sessionBellPreviewProvider);
     _openEndScreen(
       // Rung just after the player has stopped: on iOS stop() releases the
       // audio session asynchronously, which would clip a bell started in the
       // same frame. The bell's own player reactivates the session.
-      afterStop: bellsOn
-          ? () => Future.delayed(
+      afterStop: cues.endSound.isEmpty
+          ? null
+          : () => Future.delayed(
               const Duration(milliseconds: 400),
-              () => bell.play(volume),
-            )
-          : null,
+              () => bell.play(cues.bellVolume, asset: cues.endSound),
+            ),
     );
   }
 
