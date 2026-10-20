@@ -387,6 +387,44 @@ void main() {
       expect(st().volume, 0.8);
     });
 
+    test('a session-only preset leaves the current mix alone', () async {
+      ctl().clearMix();
+      ctl().toggleSound('cafe');
+      ctl().stop();
+      await settle();
+      const mine = SoundMix([SoundLayer(soundId: 'cafe')]);
+      expect(st().mix, mine);
+
+      await ctl().startSession(
+        SoundscapeSessionKind.practice,
+        selection: const SoundscapeSelection.preset('starter-night'),
+      );
+      await settle();
+      expect(
+        st().mix,
+        kStarterPresets[1].mix,
+        reason: 'what the session plays',
+      );
+
+      // Switching the session to the current mix plays the user's mix, not
+      // the preset the session had put in its place.
+      await ctl().startSession(
+        SoundscapeSessionKind.practice,
+        selection: SoundscapeSelection.currentMix,
+      );
+      await settle();
+      expect(engine.playing.keys, ['cafe']);
+
+      await ctl().startSession(
+        SoundscapeSessionKind.practice,
+        selection: const SoundscapeSelection.sound('river'),
+      );
+      ctl().endSession();
+      await settle();
+      expect(st().mix, mine);
+      expect(SoundscapeStore(prefs).readMix(), mine);
+    });
+
     test('the session player pausing pauses the mix', () async {
       await ctl().startSession(SoundscapeSessionKind.practice);
       await settle();

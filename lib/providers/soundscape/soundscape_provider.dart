@@ -209,7 +209,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       }
     });
     return SoundscapeState(
-      mix: _store.readMix() ?? kStarterPresets.first.mix,
+      mix: _currentMix(),
       volume: _store.readVolume(),
       userPresets: _store.readPresets(),
       sessionDefaults: _store.readSessionDefaults(),
@@ -471,6 +471,9 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     _sessionSelection = null;
     _update(
       state.copyWith(
+        // A session may have played a preset or a single sound in place of
+        // the current mix; the Sounds sheet gets the user's mix back.
+        mix: _currentMix(),
         playing: false,
         owner: SoundscapeOwner.none,
         sessionKind: null,
@@ -479,14 +482,21 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     );
   }
 
+  /// The user's current mix: the one last saved from the Sounds sheet (or
+  /// played from it), never one a session chose for itself, which only
+  /// lives in [state] while that session runs.
+  SoundMix _currentMix() => _store.readMix() ?? kStarterPresets.first.mix;
+
   // ---------------------------------------------------------------------------
 
   Future<SoundMix> _resolve(SoundscapeSelection selection) async {
     final library = await ref.read(soundLibraryProvider.future);
     final SoundMix mix = switch (selection.kind) {
       SoundscapeSelectionKind.none => SoundMix.empty,
-      SoundscapeSelectionKind.mix =>
-        state.mix.isEmpty ? kStarterPresets.first.mix : state.mix,
+      SoundscapeSelectionKind.mix => switch (_currentMix()) {
+        final current when current.isEmpty => kStarterPresets.first.mix,
+        final current => current,
+      },
       SoundscapeSelectionKind.preset =>
         state.presets.where((p) => p.id == selection.id).firstOrNull?.mix ??
             SoundMix.empty,
