@@ -282,6 +282,22 @@ void main() {
     },
   );
 
+  test('the session subtitle travels with the offered session', () async {
+    await addCourse('a', played: true);
+    final pack = _course('a');
+    final withSubtitle = pack.copyWith(
+      items: [
+        for (final i in pack.items)
+          i.copyWith(subtitle: i.id == 'x-a-2' ? 'Teacher · 20 min' : null),
+      ],
+    );
+
+    final items = await read(checked: ['x-a-1'], packs: [withSubtitle]);
+
+    expect(items.single.trackId, 'x-a-2');
+    expect(items.single.subtitle, 'Teacher · 20 min');
+  });
+
   test('a finished course is not in progress', () async {
     await addCourse('a', played: true);
     // Nothing in progress, so Home falls back; but not to a finished course.
@@ -367,6 +383,17 @@ void main() {
 
       expect(items.single.trackId, 'x-practice-1');
       expect(items.single.resume, isNull);
+    });
+
+    test('an explicit pin outranks Practice, even a pinned Talk', () async {
+      await addCourse('practice');
+      await addCourse('talks', group: LibraryGroup.talks);
+      await prefs.setStringList('pinned_course_ids', ['x-course-talks']);
+
+      final items = await read(packs: [_course('practice'), _course('talks')]);
+
+      expect(items.single.trackId, 'x-talks-1');
+      expect(items.single.group, LibraryGroup.talks);
     });
 
     test('an empty library has nothing to offer', () async {

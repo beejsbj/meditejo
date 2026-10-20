@@ -18,6 +18,7 @@ class ContinueItem {
     this.sessionNumber,
     this.sessionTotal,
     this.completedSessions = 0,
+    this.subtitle = '',
   });
 
   final String trackId;
@@ -40,6 +41,9 @@ class ContinueItem {
 
   /// Actual completions, independent of the offered session's ordinal.
   final int completedSessions;
+
+  /// The session's own detail line (teacher, duration), if its source has one.
+  final String subtitle;
 }
 
 /// How many Continue items Home shows.
