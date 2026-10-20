@@ -249,13 +249,10 @@ clipboard reader and share intake as providers, so tests need no platform.
 
 ### Library screens
 
-- **Home** starts with `HomeLibrarySection`: "Your library", See all and Add, and
-  a rail of the library, practice first, then talks. Empty, it says how to start.
-- **Library screen** (`lib/views/library/library_view.dart`): Practice, Talks,
-  Teachers; a row menu to move between Practice and Talks, rename (library only)
-  or remove (an import asks first, since its audio is deleted). It is a pushed
-  screen reached from Home, not a fifth tab; the tab bar and its saved-index
-  logic are untouched.
+- **Library tab** (`lib/views/library/library_view.dart`): Practice, Talks,
+  Teachers; a row menu to move between Practice and Talks, rename (library only),
+  pin a course to Home, or remove (an import asks first, since its audio is
+  deleted). It is the third of four tabs (below), where Home used to link to it.
 - **Add** (`import_view.dart`): a link field with Paste and Preview, a clipboard
   suggestion, Choose files / Choose a folder, then the preview and one primary
   action, Add to library. Course/Single appears where both make sense (a feed:
@@ -271,16 +268,34 @@ clipboard reader and share intake as providers, so tests need no platform.
 
 ### Screens
 
-- **Explore** (`lib/views/explore/`): Practice and Talks chips
-  (`ExploreKindChips`), then the library's courses ("In your library", under
-  any chip: a filter never hides what the user kept), courses
+- **Tabs** (`lib/views/bottom_navigation/`): **Home · Explore · Library ·
+  Settings**. `MainTab` and `mainTabProvider` (`lib/providers/main_tab_provider.dart`)
+  hold the selected tab, so any screen or link can move it; the main screen
+  listens, drops the keyboard, and on Explore loads its lists and runs the
+  Dharma Seed catch-up. Android back from any other tab returns Home. The
+  saved tab (`last_main_tab_index`, with `main_tab_layout` = 2 saying which bar
+  wrote it) restores Home, Explore or Library, never Settings. The first bar
+  (Home · Explore · Search · Settings) only ever saved 0 or 1, which mean the
+  same now; any other value opens Home, and the first launch rewrites the pair.
+  `meditejo://home`, `explore`, `library` and `search` (Explore with the cursor
+  in its field, via `exploreFocusRequestProvider`) select a tab and close what
+  is open above it (`tabForLink` in `lib/routes/routes.dart`). Track and pack
+  links, the Up Next widget and the share target push pages as before.
+- **Explore** (`lib/views/explore/`) is find-something-to-add, with a **search
+  field at the top**. Nothing typed: Practice and Talks chips and the starter
+  suggestions (`searchSuggestions`), then the library's courses ("In your
+  library", under any chip: a filter never hides what the user kept), courses
   (`PackGridSliver`), saved teachers and teachers (`TeacherStrip`), and, with a
-  chip chosen, the latest sessions (`SessionRowsSliver`). Courses and talks in
-  lists carry an `AddToLibraryIcon`. `LibraryStateCard` explains the first
-  sync. Pull to refresh runs an incremental sync.
-- **Search** (`lib/views/search/`): Teachers, Courses, Talks, with the length
-  pills over the talks. Query debounce is 400 ms and the query is not
-  ASCII-filtered.
+  chip chosen, the latest sessions (`SessionRowsSliver`). `LibraryStateCard`
+  explains the first sync. Pull to refresh runs an incremental sync. Typing
+  (400 ms debounce, not ASCII-filtered) replaces that with `SearchResults`
+  (`lib/views/search/`): Teachers, Courses, Talks, with the length pills over
+  the talks, and the usual `AddToLibraryIcon` on courses and talks.
+  `exploreSearchProvider` (`lib/providers/explore/`) merges the library into
+  Dharma Seed's result: courses and talks from the other sources (imports,
+  YouTube) first, then anything else already in the library, then the rest of
+  Dharma Seed, each item once; followed teachers lead. Library imports carry no
+  length, so the length filter leaves them out while it is on.
 - **Course page** is `PackView` (`lib/views/pack/`). A pack with a teacher, an
   attribution or session kinds is a course: progress line, next session, Save
   course, Sessions / Summary / Teacher tabs, day headings for long retreats
@@ -364,13 +379,35 @@ state.
 
 ## Home composition
 
-`HomeLibrarySection` sits at the very top, under the hero image and above the
-reorderable sections. `HomeWidgetType` and `lib/providers/home/widget_order_provider.dart` define the
-saved section order. Defaults: **upNext → shortcuts → carousel → quote**. Stats
-and the header sit outside that reorderable list. Removed/unknown saved section
-names are ignored. The timer shortcut works with an empty catalogue. A future
-“Continue your practice” section belongs in `upNext`; populate it from a pinned
-source course plus the same local pack-completion data.
+Home is a launchpad (BRIEF decision 14), not a catalogue. `HomeWidgetType`
+(`lib/constants/enums/home_widget_type.dart`) names its sections, which the
+user can switch on or off and reorder in Customize (the Organize Home Layout
+screen, from the button beside the title). `homeWidgetOrderProvider` keeps the
+order (`homeWidgetOrder`) and `homeHiddenWidgetsProvider` the sections switched
+off (`homeWidgetHidden`). Defaults, all on: **upNext → quickLinks → pinned**.
+`upNext` keeps its old saved name for what is now **Continue**. Sections an
+earlier version saved (shortcuts, carousel, quote) are ignored. The consistency
+score and streak are not on Home; they live on the stats screen (reached from
+Settings), whose copy says the numbers are feedback, not a score.
+
+- **Continue** (`continueItemsProvider`, `lib/services/home/continue_rules.dart`
+  for the ordering). Up to three items, from any source:
+  (1) a session left partway (a saved place in the library database; it resumes
+  there), and (2) a library course with some sessions done and some not, with
+  no session left partway (its next session). A course shows once. Order:
+  Practice before Talks (the entry's group, else the course's, else whether the
+  session allows background sound), then most recently played. One tap runs
+  `startSession`, which resumes. With nothing in progress it offers the next
+  unfinished session of the first pinned course, else of the first course in the
+  library (the starter set leads a fresh install), so Home is not empty. The
+  first item also feeds the Android Up Next widget.
+- **Quick links**: Timer (Medito's timer), Sounds (the background-sound
+  picker) and Add (import).
+- **Pinned courses** (`pinnedCoursesProvider`, `pinned_course_ids`): at most
+  three, each with its progress, opening the course. Pinned from a library
+  row's menu or a course page; a fourth is refused with a message. The course
+  that used to be Home's single "Up Next" pin becomes the first pin.
+- Playing a course no longer pins it; Continue follows what is played.
 
 ### YouTube (`yt-`)
 

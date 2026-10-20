@@ -2072,4 +2072,62 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get youtubePlaylistEmpty =>
       'Sessions aren\'t stored on this device yet. We\'ll try again shortly';
+
+  @override
+  String get navLibrary => 'Library';
+
+  @override
+  String get exploreSearchHint => 'Search your library and Dharma Seed';
+
+  @override
+  String get homeQuickLinksTitle => 'Quick links';
+
+  @override
+  String get homePinnedTitle => 'Pinned courses';
+
+  @override
+  String get homeCustomize => 'Customize';
+
+  @override
+  String get homeCustomizeHint =>
+      'Switch sections on or off, and drag to put them in your order.';
+
+  @override
+  String get homeContinueEmpty =>
+      'Nothing in progress. Add something to your library, or open Explore.';
+
+  @override
+  String get homeContinueResume => 'Resume';
+
+  @override
+  String get homeContinueStart => 'Start';
+
+  @override
+  String homeContinueSessionOf(int number, int total) {
+    return 'Session $number of $total';
+  }
+
+  @override
+  String homeContinueTimeLeft(String time) {
+    return '$time left';
+  }
+
+  @override
+  String get homeQuickAdd => 'Add';
+
+  @override
+  String get pinCourse => 'Pin to Home';
+
+  @override
+  String get unpinCourse => 'Unpin from Home';
+
+  @override
+  String get pinnedLimitReached =>
+      'Home holds up to three pinned courses. Unpin one first.';
+
+  @override
+  String get pinnedCourseAdded => 'Pinned to Home';
+
+  @override
+  String get statsFeedbackNote => 'These numbers are feedback, not a score.';
 }

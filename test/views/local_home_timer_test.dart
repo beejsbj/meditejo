@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/background_sounds/background_sounds_model.dart';
+import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/home/home_provider.dart';
 import 'package:medito/providers/player/ios_audio_handler.dart';
 import 'package:medito/providers/player/player_provider.dart';
@@ -167,7 +168,11 @@ Future<ProviderContainer> _home(
   await tester.pumpWidget(
     ProviderScope(
       // No catalogue, content, stats or playback provider fixtures.
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        // The library is a separate database; Home's timer link needs none.
+        continueItemsProvider.overrideWith((ref) async => []),
+      ],
       child: MaterialApp(
         theme: ThemeData.dark(useMaterial3: true),
         locale: const Locale('en'),
@@ -202,7 +207,7 @@ Future<ProviderContainer> _home(
 }
 
 Future<void> _openTimer(WidgetTester tester) async {
-  final open = find.widgetWithText(FilledButton, 'Open timer');
+  final open = find.byKey(const ValueKey('quick_timer'));
   expect(open, findsOneWidget);
   await tester.ensureVisible(open);
   await tester.tap(open);

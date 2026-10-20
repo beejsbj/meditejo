@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/services/library/lib_ids.dart';
@@ -168,5 +169,23 @@ class _RenameDialogState extends State<_RenameDialog> {
         ),
       ],
     );
+  }
+}
+
+/// Pins a course to Home, or takes it off. Home holds three: a fourth says so
+/// instead of silently replacing one.
+Future<void> togglePinnedCourse(
+  BuildContext context,
+  WidgetRef ref,
+  String courseId,
+) async {
+  final l10n = AppLocalizations.of(context)!;
+  final pins = ref.read(pinnedCoursesProvider.notifier);
+  if (pins.isPinned(courseId)) {
+    await pins.unpin(courseId);
+  } else if (await pins.pin(courseId)) {
+    if (context.mounted) showSnackBar(context, l10n.pinnedCourseAdded);
+  } else if (context.mounted) {
+    showSnackBar(context, l10n.pinnedLimitReached);
   }
 }

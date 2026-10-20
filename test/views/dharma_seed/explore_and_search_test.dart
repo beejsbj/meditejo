@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:medito/providers/main_tab_provider.dart';
+import 'package:medito/services/library/library_models.dart';
 import 'package:medito/views/explore/widgets/explore_view.dart';
-import 'package:medito/views/search/search_view.dart';
+import 'package:medito/services/library/library_database.dart';
 
 import '../../helpers/dharma_seed_app.dart';
 
@@ -19,7 +22,8 @@ void main() {
       expect(find.text('Mixed Weekend'), findsOneWidget);
       expect(find.text('Jhana Retreat'), findsOneWidget);
       expect(find.text('Teachers'), findsOneWidget);
-      expect(find.text('Rob Burbea'), findsOneWidget);
+      // The name is also a search suggestion beside the field.
+      expect(find.text('Rob Burbea'), findsNWidgets(2));
       expect(find.text('Latest talks'), findsNothing);
       expect(find.text('Latest guided practice'), findsNothing);
     });
@@ -28,6 +32,8 @@ void main() {
         'tap', (tester) async {
       final app = await DharmaSeedTestApp.create(tester);
       await app.pump(tester, const ExploreView());
+      // The search field and suggestions take room the lists used to have.
+      tester.view.physicalSize = const Size(430, 2400);
 
       await tester.tap(find.byKey(const ValueKey('explore_chip_practice')));
       await DharmaSeedTestApp.settle(tester);
@@ -102,14 +108,135 @@ void main() {
     });
   });
 
-  group('Search', () {
+  group('Search (in Explore)', () {
+    testWidgets('consumes a search focus request made before mount', (
+      tester,
+    ) async {
+      final app = await DharmaSeedTestApp.create(tester);
+      await app.pump(tester, const SizedBox.shrink());
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaterialApp)),
+      );
+      container.read(exploreFocusRequestProvider.notifier).request();
+      await app.pump(tester, const ExploreView());
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.focusNode!.hasFocus, isTrue);
+      expect(container.read(exploreFocusRequestProvider), 0);
+      // A consumed request must not reopen the keyboard on a later mount.
+      await app.pump(tester, const SizedBox.shrink());
+      await app.pump(tester, const ExploreView());
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).focusNode!.hasFocus,
+        isFalse,
+      );
+    });
+
+    testWidgets('nothing typed browses; typing swaps in grouped results, '
+        'debounced; clearing browses again', (tester) async {
+      final app = await DharmaSeedTestApp.create(tester);
+      await app.pump(tester, const ExploreView());
+
+      expect(
+        find.byKey(const ValueKey('explore_search_field')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('explore_chip_practice')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('suggestion_metta')), findsOneWidget);
+      expect(find.text('Mixed Weekend'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'jhana');
+      await tester.pump(const Duration(milliseconds: 100));
+      // Still browsing: the 400 ms pause has not passed.
+      expect(
+        find.byKey(const ValueKey('explore_chip_practice')),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(milliseconds: 400));
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.byKey(const ValueKey('explore_chip_practice')), findsNothing);
+      expect(find.text('Talks'), findsOneWidget);
+      expect(find.text('Jhana basics'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Clear search'));
+      await DharmaSeedTestApp.settle(tester);
+      expect(
+        find.byKey(const ValueKey('explore_chip_practice')),
+        findsOneWidget,
+      );
+      expect(find.text('Mixed Weekend'), findsOneWidget);
+    });
+
+    testWidgets('the library\'s own items come before Dharma Seed', (
+      tester,
+    ) async {
+      final app = await DharmaSeedTestApp.create(tester);
+      await tester.runAsync(
+        () => app.libraryDb.upsertCourse(
+          LibCoursesCompanion.insert(
+            id: 'lib-course-zzz',
+            origin: 'feed',
+            title: 'Zebra jhana notes',
+            createdAt: DateTime(2026, 10, 1),
+          ),
+        ),
+      );
+      await app.pump(tester, const ExploreView());
+      await tester.enterText(find.byType(TextField), 'jhana');
+      await tester.pump(const Duration(milliseconds: 450));
+      await DharmaSeedTestApp.settle(tester);
+
+      final own = tester.getTopLeft(find.text('Zebra jhana notes')).dy;
+      final catalogue = tester.getTopLeft(find.text('Jhana Retreat')).dy;
+      expect(own, lessThan(catalogue));
+    });
+
+    testWidgets('renamed library titles match and replace source titles', (
+      tester,
+    ) async {
+      final app = await DharmaSeedTestApp.create(tester);
+      await tester.runAsync(() async {
+        await app.source.setSaved('ds-retreat-200', saved: true);
+        await app.library.setTitle('ds-retreat-200', 'My custom course');
+        await app.library.add(
+          const LibraryDraft(
+            sourceId: 'lib-track-renamed',
+            kind: LibraryKind.single,
+            title: 'Original recording',
+          ),
+        );
+        await app.library.setTitle('lib-track-renamed', 'My custom recording');
+      });
+      await app.pump(tester, const ExploreView());
+      await tester.enterText(find.byType(TextField), 'custom');
+      await tester.pump(const Duration(milliseconds: 450));
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.text('My custom course'), findsOneWidget);
+      expect(find.text('My custom recording'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'winter');
+      await tester.pump(const Duration(milliseconds: 450));
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.text('My custom course'), findsOneWidget);
+      expect(find.text('Dharma Talks Winter'), findsNothing);
+    });
+
+    testWidgets('suggestions run the search when tapped', (tester) async {
+      final app = await DharmaSeedTestApp.create(tester);
+      await app.pump(tester, const ExploreView());
+      await tester.tap(find.byKey(const ValueKey('suggestion_jhana')));
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.widgetWithText(TextField, 'jhana'), findsOneWidget);
+      expect(find.text('Jhana basics'), findsOneWidget);
+    });
+
     testWidgets('opens on suggestions that run the search when tapped', (
       tester,
     ) async {
       final app = await DharmaSeedTestApp.create(tester);
-      await app.pump(tester, const Scaffold(body: SearchView()));
+      await app.pump(tester, const ExploreView());
 
-      expect(find.text('Try a teacher, a theme or a retreat'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('suggestion_Rob Burbea')));
       await DharmaSeedTestApp.settle(tester);
 
@@ -130,7 +257,7 @@ void main() {
           7: {'name': 'Jhana Teacher', 'bio': '', 'photo': ''},
         }),
       );
-      await app.pump(tester, const Scaffold(body: SearchView()));
+      await app.pump(tester, const ExploreView());
 
       await tester.enterText(find.byType(TextField), 'jhana');
       await tester.pump(const Duration(milliseconds: 450));
@@ -148,7 +275,7 @@ void main() {
 
     testWidgets('the length filter narrows talks only', (tester) async {
       final app = await DharmaSeedTestApp.create(tester);
-      await app.pump(tester, const Scaffold(body: SearchView()));
+      await app.pump(tester, const ExploreView());
       await tester.enterText(find.byType(TextField), 'jhana');
       await tester.pump(const Duration(milliseconds: 450));
       await DharmaSeedTestApp.settle(tester);
@@ -215,7 +342,7 @@ void main() {
 
     testWidgets('a new query resets the length filter to Any', (tester) async {
       final app = await DharmaSeedTestApp.create(tester);
-      await app.pump(tester, const Scaffold(body: SearchView()));
+      await app.pump(tester, const ExploreView());
       await tester.enterText(find.byType(TextField), 'jhana');
       await tester.pump(const Duration(milliseconds: 450));
       await DharmaSeedTestApp.settle(tester);
@@ -240,7 +367,7 @@ void main() {
           8: {'name': 'Ñāṇavīra Thera', 'bio': '', 'photo': ''},
         }),
       );
-      await app.pump(tester, const Scaffold(body: SearchView()));
+      await app.pump(tester, const ExploreView());
 
       await tester.enterText(find.byType(TextField), 'Ñāṇavīra');
       await tester.pump(const Duration(milliseconds: 450));
@@ -251,7 +378,7 @@ void main() {
 
     testWidgets('nothing found says so', (tester) async {
       final app = await DharmaSeedTestApp.create(tester);
-      await app.pump(tester, const Scaffold(body: SearchView()));
+      await app.pump(tester, const ExploreView());
       await tester.enterText(find.byType(TextField), 'zzzz');
       await tester.pump(const Duration(milliseconds: 450));
       await DharmaSeedTestApp.settle(tester);

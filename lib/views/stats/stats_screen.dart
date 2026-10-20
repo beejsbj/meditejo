@@ -7,7 +7,6 @@ import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/providers/stats_provider.dart';
-import 'package:medito/providers/streak_circle_display_provider.dart';
 import 'package:medito/widgets/dialogs/medito_dialog.dart';
 import 'package:medito/widgets/dialogs/medito_dialog_buttons.dart';
 import 'package:medito/widgets/medito_icon.dart';
@@ -252,6 +251,14 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
       mainAxisSize: MainAxisSize.min,
       children: [
         const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            AppLocalizations.of(context)!.statsFeedbackNote,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
         Container(
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
@@ -325,92 +332,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
             ),
           ),
         ),
-        _buildStreakCircleDisplayPreference(context, ref),
       ],
-    );
-  }
-
-  Widget _buildStreakCircleDisplayPreference(
-    BuildContext context,
-    WidgetRef ref,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 8, 0, 8),
-      child: Consumer(
-        builder: (context, ref, _) {
-          final displayTypeAsync = ref.watch(streakCircleDisplayProvider);
-
-          return displayTypeAsync.when(
-            loading: () => const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            error: (_, _) => const SizedBox.shrink(),
-            data: (displayType) {
-              final isStreakSelected =
-                  displayType == StreakCircleDisplayType.currentStreak;
-
-              void handleToggle() {
-                final newType = !isStreakSelected
-                    ? StreakCircleDisplayType.currentStreak
-                    : StreakCircleDisplayType.consistencyScore;
-                ref
-                    .read(streakCircleDisplayProvider.notifier)
-                    .setDisplayType(newType);
-              }
-
-              return MergeSemantics(
-                child: InkWell(
-                  onTap: handleToggle,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: Checkbox(
-                            value: isStreakSelected,
-                            onChanged: (_) => handleToggle(),
-                            activeColor: context.brandAccent,
-                            checkColor: Theme.of(context).colorScheme.onPrimary,
-                            side: BorderSide(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacityValue(0.6),
-                              width: 1.5,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            AppLocalizations.of(
-                              context,
-                            )!.alwaysShowStreakOnHomepage,
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  fontSize: 14,
-                                  fontFamily: googleSans,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
     );
   }
 }
