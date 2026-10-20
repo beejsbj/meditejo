@@ -54,7 +54,8 @@ class PlayerView extends ConsumerStatefulWidget {
   ConsumerState<PlayerView> createState() => _PlayerViewState();
 }
 
-class _PlayerViewState extends ConsumerState<PlayerView> {
+class _PlayerViewState extends ConsumerState<PlayerView>
+    with WidgetsBindingObserver {
   bool _endScreenOpened = false;
   bool _isClosing = false;
   // Set when play() throws (e.g. offline, native audio failed to start). The
@@ -71,6 +72,9 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
   Timer? _playbackStartFallback;
   Timer? _countdownPoll;
   int _countdownMs = 0;
+  bool _foreground = true;
+  bool _cueStateFailed = false;
+  DateTime? _countdownExpectedUntil;
   CueScope? _cueScope;
   ProviderSubscription<CueSettings>? _cueSubscription;
   bool _customized = false;
@@ -92,6 +96,9 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
   void initState() {
     super.initState();
     PendingEndScreen.playerMounted();
+    WidgetsBinding.instance.addObserver(this);
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    _foreground = lifecycle == null || lifecycle == AppLifecycleState.resumed;
     _prefs = ref.read(sharedPreferencesProvider);
     _statsAtSessionStart = ref.read(statsProvider).value;
     // Bells are remembered per scope (on by default for a timer, off under
@@ -113,9 +120,73 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
         unawaited(_finishOrAutoplay());
       }
     });
+    // The voice reaching its end is when an extension may begin.
+    ref.listenManual(
+      audioStateProvider.select(
+        (s) => s.duration > 0 && s.position >= s.duration - 1000,
+      ),
+      (_, _) => _syncCuePoll(),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startPlayback();
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _foreground = state == AppLifecycleState.resumed;
+    // Back on screen: read once, in case a hold began or ended meanwhile.
+    if (_foreground && _playRequested && !_cueStateFailed) {
+      if (Platform.isAndroid || Platform.isIOS) unawaited(_pollCueState());
+    }
+    _syncCuePoll();
+  }
+
+  /// Polls the native cue state only while this screen is in the foreground
+  /// and a countdown or extension runs or may begin; nothing else shows it.
+  void _syncCuePoll() {
+    final audio = ref.read(audioStateProvider);
+    final until = _countdownExpectedUntil;
+    final wanted =
+        (Platform.isAndroid || Platform.isIOS) &&
+        mounted &&
+        _playRequested &&
+        !_cueStateFailed &&
+        shouldPollCueState(
+          foreground: _foreground,
+          phase: ref.read(cueRuntimeProvider).phase,
+          countdownExpected: until != null && DateTime.now().isBefore(until),
+          voiceAtEnd:
+              audio.duration > 0 && audio.position >= audio.duration - 1000,
+        );
+    if (!wanted) {
+      _countdownPoll?.cancel();
+      _countdownPoll = null;
+    } else {
+      _countdownPoll ??= Timer.periodic(
+        const Duration(milliseconds: 200),
+        (_) => unawaited(_pollCueState()),
+      );
+    }
+  }
+
+  Future<void> _pollCueState() async {
+    try {
+      final cueState = await NativeCueController.state();
+      if (!mounted) return;
+      ref.read(cueRuntimeProvider.notifier).updateFromMap(cueState);
+      if (cueState['phase'] == 'countdown') _countdownExpectedUntil = null;
+      final remaining =
+          (cueState['countdownRemainingMs'] as num?)?.toInt() ?? 0;
+      if (remaining != _countdownMs) {
+        setState(() => _countdownMs = remaining);
+      }
+      _syncCuePoll();
+    } catch (e) {
+      AppLogger.e('CUES', 'Countdown state unavailable: $e');
+      _cueStateFailed = true;
+      _syncCuePoll();
+    }
   }
 
   /// Starts playback for the request the caller prepared. Runs here (rather
@@ -191,25 +262,15 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
             .applyCueSettings(settings);
       });
       _countdownPoll?.cancel();
-      if (Platform.isAndroid || Platform.isIOS) {
-        _countdownPoll = Timer.periodic(const Duration(milliseconds: 200), (
-          _,
-        ) async {
-          try {
-            final cueState = await NativeCueController.state();
-            if (!mounted) return;
-            ref.read(cueRuntimeProvider.notifier).updateFromMap(cueState);
-            final remaining =
-                (cueState['countdownRemainingMs'] as num?)?.toInt() ?? 0;
-            if (mounted && remaining != _countdownMs) {
-              setState(() => _countdownMs = remaining);
-            }
-          } catch (e) {
-            AppLogger.e('CUES', 'Countdown state unavailable: $e');
-            _countdownPoll?.cancel();
-          }
-        });
-      }
+      _countdownPoll = null;
+      _cueStateFailed = false;
+      // The countdown starts once the voice is ready; until it is seen, keep
+      // looking for a while.
+      _countdownExpectedUntil =
+          ref.read(cueSettingsProvider(_cueScope!)).countdownSeconds > 0
+          ? DateTime.now().add(const Duration(seconds: 20))
+          : null;
+      _syncCuePoll();
       // The native service must be ready before restoring background audio.
       if (mounted && !_isClosing) unawaited(_initializePlayer());
     } catch (e, st) {
@@ -239,6 +300,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
     // Gone with this screen either way: the end screen opened, or the
     // session was closed before it finished.
     PendingEndScreen.playerUnmounted();
+    WidgetsBinding.instance.removeObserver(this);
     unawaited(PendingEndScreen.clear(_prefs));
     _playbackStartFallback?.cancel();
     _countdownPoll?.cancel();

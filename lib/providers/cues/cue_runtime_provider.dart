@@ -32,3 +32,18 @@ class CueRuntimeNotifier extends Notifier<CueRuntimeState> {
 
   void reset() => state = const CueRuntimeState();
 }
+
+/// Whether the player screen should read the native cue state: only in the
+/// foreground, while a countdown or extension runs or may be about to (a
+/// countdown at the start, an extension once the voice reaches its end).
+bool shouldPollCueState({
+  required bool foreground,
+  required String phase,
+  required bool countdownExpected,
+  required bool voiceAtEnd,
+}) =>
+    foreground &&
+    (phase == 'countdown' ||
+        phase == 'extension' ||
+        countdownExpected ||
+        (voiceAtEnd && phase != 'ended'));

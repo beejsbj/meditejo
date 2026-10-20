@@ -245,6 +245,37 @@ void main() {
     },
   );
 
+  test('Swift hears of state changes, not every position tick', () async {
+    final calls = _mockSwift({'sampleListening': false});
+    final streams = _Streams();
+    final player = streams.player();
+    when(() => player.setSpeed(any())).thenAnswer((_) async {});
+    final handler = _WiredHandler(player);
+    await handler.ensureInitialized();
+    await handler.configureCues(const CueSettings(), _guided);
+    await handler.play();
+    await _settle();
+    calls.clear();
+    int count(String method) => calls.where((c) => c.method == method).length;
+
+    // Five position ticks within a second: one listening sample, no transport.
+    for (var i = 1; i <= 5; i++) {
+      streams.position.add(Duration(milliseconds: 200 * i));
+      await _settle();
+    }
+    expect(count('transport'), 0);
+    expect(count('sampleListening'), 1);
+
+    // A state change, a seek and a speed change each go to Swift.
+    streams.playerState.add(PlayerState(false, ProcessingState.ready));
+    await _settle();
+    streams.seek();
+    await _settle();
+    await handler.setSpeed(1.5);
+    await _settle();
+    expect(count('transport'), 3);
+  });
+
   test('the ambient fade is full until the last ten seconds', () {
     expect(ambientFadeVolume(50, 600000), 50);
     expect(ambientFadeVolume(50, 10000), 50);

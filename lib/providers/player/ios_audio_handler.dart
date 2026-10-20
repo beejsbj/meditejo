@@ -157,7 +157,12 @@ class IosAudioHandler extends BaseAudioHandler {
   }
 
   void _setupEventListeners() {
-    _player.positionStream.listen((_) => unawaited(_reportNativeTransport()));
+    // Swift's cue clock runs on its own: it needs the voice's state changes,
+    // seeks and speed, not every position tick. Listening is sampled about
+    // once a second as well, within its step bounds.
+    _player.positionStream.listen(
+      (_) => unawaited(_reportNativeTransport(transport: false)),
+    );
     _player.playerStateStream.listen(
       (_) => unawaited(_reportNativeTransport()),
     );
@@ -455,8 +460,9 @@ class IosAudioHandler extends BaseAudioHandler {
   }
 
   @override
-  Future<void> setSpeed(double speed) {
-    return _player.setSpeed(speed);
+  Future<void> setSpeed(double speed) async {
+    await _player.setSpeed(speed);
+    unawaited(_reportNativeTransport());
   }
 
   Future<void> setCustomRepeatMode(RepeatMode mode) async {
@@ -616,8 +622,19 @@ class IosAudioHandler extends BaseAudioHandler {
     });
   }
 
-  Future<void> _reportNativeTransport({bool seek = false}) async {
+  final _reportClock = Stopwatch()..start();
+  int _lastReportMs = -1000000;
+
+  /// Reports the voice to Swift. [transport] false is a listening sample
+  /// only, sent at most about once a second.
+  Future<void> _reportNativeTransport({
+    bool seek = false,
+    bool transport = true,
+  }) async {
     if (!_nativeCues || _nativeNeedsBegin) return;
+    final now = _reportClock.elapsedMilliseconds;
+    if (!transport && now - _lastReportMs < 1000) return;
+    _lastReportMs = now;
     final generation = _cueGeneration;
     try {
       final audible =
@@ -632,8 +649,10 @@ class IosAudioHandler extends BaseAudioHandler {
             _currentRepeatMode == RepeatMode.once && !_hasReplayedOnce ? 1 : 0,
         'seek': seek,
       };
-      await NativeCueController.channel.invokeMethod<void>('transport', args);
-      if (generation != _cueGeneration || !_nativeCues) return;
+      if (transport) {
+        await NativeCueController.channel.invokeMethod<void>('transport', args);
+        if (generation != _cueGeneration || !_nativeCues) return;
+      }
       final earned =
           await NativeCueController.channel.invokeMethod<bool>(
             'sampleListening',
