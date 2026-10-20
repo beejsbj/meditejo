@@ -83,7 +83,11 @@ internal class CueEngine(
         if (phase == Phase.EXTENSION) {
             val elapsed = (config?.extensionMs ?: 0L) - heldRemaining()
             holdRemainingMs = (cfg.extensionMs - elapsed).coerceAtLeast(0L)
-            if (holdAnchor != 0L) holdAnchor = SystemClock.elapsedRealtime()
+            if (holdAnchor != 0L) {
+                holdAnchor = SystemClock.elapsedRealtime()
+                // The lock was sized for the old length: re-time it to the new one.
+                acquireWake(holdRemainingMs + WAKE_SLACK_MS)
+            }
         }
         config = cfg
         val sounds = bank ?: CueSoundBank(context).also { bank = it }
