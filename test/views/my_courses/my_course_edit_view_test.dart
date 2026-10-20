@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
+import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/services/my_courses/my_course_source.dart';
@@ -205,6 +208,61 @@ void main() {
       expect(find.text('root'), findsOneWidget);
       expect(await tester.runAsync(() => source.edit(id)), isNull);
       expect(await tester.runAsync(() => app.harness.store.entry(id)), isNull);
+    });
+  });
+
+  group('deleting and copying', () {
+    testWidgets('a deleted course leaves Home, freeing its pin', (
+      tester,
+    ) async {
+      await setUpApp(tester);
+      final id = await course(tester, 'Pinned', [
+        MyCourseLine.session(draft('x-1')),
+      ]);
+      await pump(tester, MyCourseEditView(courseId: id));
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MyCourseEditView)),
+      );
+      await container.read(pinnedCoursesProvider.notifier).pin(id);
+      expect(container.read(pinnedCoursesProvider), [id]);
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('my_course_delete')),
+      );
+      await tester.tap(find.byKey(const ValueKey('my_course_delete')));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('my_course_delete_confirm')));
+      await settle(tester);
+
+      expect(container.read(pinnedCoursesProvider), isEmpty);
+    });
+
+    testWidgets('a copy opens its editor at once, over the copy', (
+      tester,
+    ) async {
+      await setUpApp(tester);
+      final id = await course(tester, 'Original', [
+        MyCourseLine.session(draft('x-1')),
+      ]);
+      await pump(
+        tester,
+        Scaffold(
+          body: Center(child: ContentActionsButton(id: id, title: 'Original')),
+        ),
+      );
+
+      await tester.tap(find.byKey(ValueKey('content_actions_$id')));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('content_action_duplicate')));
+      await settle(tester);
+
+      // The editor is on top without the copy's page having been closed.
+      expect(find.byType(MyCourseEditView), findsOneWidget);
+      // Back from the editor lands on the copy.
+      await tester.pageBack();
+      await settle(tester);
+      expect(find.byType(MyCourseEditView), findsNothing);
+      expect(find.byType(PackView), findsOneWidget);
     });
   });
 
