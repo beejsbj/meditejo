@@ -35,6 +35,7 @@ class WheelPicker<T> extends StatefulWidget {
     required this.onChanged,
     this.parseEntry,
     this.entryHint,
+    this.entryText,
     this.visibleItems = 5,
     this.itemExtent = 40,
   }) : assert(visibleItems >= 3 && visibleItems % 2 == 1);
@@ -51,6 +52,15 @@ class WheelPicker<T> extends StatefulWidget {
 
   /// Shown under the typing field, e.g. "1 to 299 minutes".
   final String? entryHint;
+
+  /// The typing field's starting text for a value. Default: a whole number
+  /// value as it is (never digits scraped from a label such as "1 h 35 min",
+  /// which would read as 135), and nothing for a negative one (a sentinel
+  /// such as Halfway).
+  final String Function(T value)? entryText;
+
+  static String _defaultEntryText(Object? value) =>
+      value is num && value >= 0 ? value.round().toString() : '';
 
   /// Rows on show, the centred one included.
   final int visibleItems;
@@ -142,10 +152,9 @@ class WheelPickerState<T> extends State<WheelPicker<T>> {
       builder: (_) => _EntryDialog<T>(
         label: widget.label,
         hint: widget.entryHint,
-        initial: widget.options[_selected].label.replaceAll(
-          RegExp(r'[^0-9]'),
-          '',
-        ),
+        initial:
+            widget.entryText?.call(widget.options[_selected].value) ??
+            WheelPicker._defaultEntryText(widget.options[_selected].value),
         parse: parse,
       ),
     );

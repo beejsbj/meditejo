@@ -264,7 +264,11 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
               showLabel: false,
               options: [
                 for (var m = 1; m <= _maxDurationMinutes; m++)
-                  WheelOption(m, _minutes(m), semanticsLabel: '$m minutes'),
+                  WheelOption(
+                    m,
+                    _minutes(m),
+                    semanticsLabel: _spokenMinutes(m),
+                  ),
               ],
               value: s.durationMinutes.clamp(1, _maxDurationMinutes),
               parse: _range(1, _maxDurationMinutes),
@@ -290,7 +294,11 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
                   options: [
                     const WheelOption(0, 'Off'),
                     for (var m = 1; m <= 60; m++)
-                      WheelOption(m, '+$m min', semanticsLabel: '$m minutes'),
+                      WheelOption(
+                        m,
+                        '+$m min',
+                        semanticsLabel: _spokenMinutes(m),
+                      ),
                   ],
                   value: s.extendMinutes,
                   parse: _range(0, 60),
@@ -613,7 +621,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
               semanticsLabel: 'Halfway, one bell at the midpoint',
             ),
             for (var m = 1; m <= 60; m++)
-              WheelOption(m, '$m min', semanticsLabel: '$m minutes'),
+              WheelOption(m, '$m min', semanticsLabel: _spokenMinutes(m)),
           ],
           value: every,
           parse: _range(1, 60),
@@ -640,7 +648,11 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
                 options: [
                   const WheelOption(0, 'Exact'),
                   for (var m = 1; m <= s.intervalMinutes; m++)
-                    WheelOption(m, '± $m min', semanticsLabel: '$m minutes'),
+                    WheelOption(
+                      m,
+                      '± $m min',
+                      semanticsLabel: _spokenMinutes(m),
+                    ),
                 ],
                 value: s.randomWindowMinutes.clamp(0, s.intervalMinutes),
                 parse: _range(0, s.intervalMinutes),
@@ -690,7 +702,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
               options: [
                 const WheelOption(0, 'Off'),
                 for (var m = 1; m <= 60; m++)
-                  WheelOption(m, '$m min', semanticsLabel: '$m minutes'),
+                  WheelOption(m, '$m min', semanticsLabel: _spokenMinutes(m)),
               ],
               value: s.pulseRampMinutes,
               parse: _range(0, 60),
@@ -872,6 +884,9 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     final rest = m % 60;
     return rest == 0 ? '$h h' : '$h h $rest min';
   }
+
+  /// "1 minute", "6 minutes": what a screen reader says for a wheel row.
+  static String _spokenMinutes(int m) => m == 1 ? '1 minute' : '$m minutes';
 
   static String _percent(double v) => '${(v * 100).round()}%';
 

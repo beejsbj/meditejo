@@ -470,6 +470,40 @@ void main() {
     await _unmount(tester);
   });
 
+  testWidgets('typing starts from the value, not the label\'s digits', (
+    tester,
+  ) async {
+    // "1 h 35 min" must open as 95, not 135: pressing OK unchanged keeps it.
+    final container = await _pump(tester, isTimer: true, onStart: () {});
+    await _row(tester, 'Duration');
+    await _type(tester, 'Duration', '95');
+    await tester.tap(
+      find.descendant(
+        of: _wheel('Duration'),
+        matching: find.text('1 h 35 min'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final field = find.byKey(const ValueKey('wheel_picker_entry'));
+    expect(tester.widget<TextField>(field).controller!.text, '95');
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect(_read(container).durationMinutes, 95);
+
+    // Halfway has no number to start from.
+    await _row(tester, 'Interval bell');
+    await _turn(tester, 'Every', 'Halfway');
+    await tester.tap(
+      find.descendant(of: _wheel('Every'), matching: find.text('Halfway')),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(field).controller!.text, '');
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(_read(container).intervalHalfway, isTrue);
+    await _unmount(tester);
+  });
+
   testWidgets('background sound chooses from the library for the kind', (
     tester,
   ) async {

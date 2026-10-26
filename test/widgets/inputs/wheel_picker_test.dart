@@ -7,7 +7,11 @@ import 'package:medito/widgets/inputs/wheel_picker.dart';
 final _minutes = [
   const WheelOption(0, 'Off'),
   for (var m = 1; m <= 60; m++)
-    WheelOption(m, '$m min', semanticsLabel: '$m minutes'),
+    WheelOption(
+      m,
+      '$m min',
+      semanticsLabel: m == 1 ? '1 minute' : '$m minutes',
+    ),
 ];
 
 int? _parse(String text) {
@@ -168,7 +172,7 @@ void main() {
       matchesSemantics(
         label: 'Interval',
         value: 'Off',
-        increasedValue: '1 minutes',
+        increasedValue: '1 minute',
         hasIncreaseAction: true,
       ),
     );
