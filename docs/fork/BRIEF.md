@@ -121,6 +121,20 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
       - There is no logo or app icon yet.
       - A dedicated identity pass comes next: a seeded generator that builds many marks (gesture-on-form in the spirit of Claude's "Duet" icon, plus atmospheric ones), palettes, and an app icon. Burooj picks before anything is ported into the app.
     - **"Quick links" is the wrong name.** Its tiles can also be guided practices (a session, possibly with a sound preset), not only Timer presets.
+20. **Identity and layout feedback** (Burooj, 2026-10-26):
+    - **Bells:** all ten synthesised bells approved. Designing your own bell is a future issue (BJS-587).
+    - **Home has no section headings under the mark.** The tiles and cards sit straight under it.
+    - **The Sounds tab shows three cards per row.**
+    - **The mark breathes.**
+      - It is inspired by Claude's Duet icon but must not copy it. The Duet-like loop may turn up in the random pool but is not featured.
+      - Imperfect circles breathe between perfect and imperfect.
+      - Marks should evoke the name: Meditejo, "place of meditation".
+      - The gesture and minimal families are liked. The atmospheric family needs another iteration.
+    - **Daily variety:** the mark changes each day, and so can the palette. The user can also pin a mark or palette, since the palette themes the whole app.
+    - **Generated art everywhere there's no curated artwork,** "less digital" than today's covers:
+      - the Sounds and preset cards get atmospheres driven by their sounds;
+      - courses, playlists, teachers and singles get seeded covers.
+    - **Categories:** curating practices by category (Metta, Vipassanā, Sankalpa, Jhāna, TMI…) is a future issue (BJS-586).
 
 ## Build and run
 
