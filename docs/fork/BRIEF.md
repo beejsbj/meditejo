@@ -109,7 +109,11 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
       - Single means picking one episode, with the latest preselected;
       - folder import must work on Android.
     - **Saved teachers** stay in the Library as a Teachers filter. "New from teachers you follow" can come later.
-    - **AudioDharma:** build from what its robots.txt allows (the feed, plus permitted pages at the 10-second crawl delay). If the back catalogue can't be reached within those limits, skip it.
+    - **AudioDharma is skipped** (superseded the same day, 2026-10-26). Users can still import its feed themselves.
+    - **Permissions:**
+      - Hermes Amāra was asked by email (sent 2026-10-26 to info@hermesamara.org).
+      - QRI and Plum Village are not being asked. QRI's YouTube playlists stay in the starter set, at the same accepted risk as Vervaeke's.
+      - Plum Village's own terms forbid sharing, so it is not built in.
 
 ## Build and run
 
