@@ -30,6 +30,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Build
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -41,6 +42,7 @@ import meditofoundation.medito.widget.MeditationWidget
 import meditofoundation.medito.widget.MeditationWidgetReceiver
 import meditofoundation.medito.widget.ConsistencyWidget
 import meditofoundation.medito.widget.ConsistencyWidgetReceiver
+import meditofoundation.medito.folder.FolderImportBridge
 import meditofoundation.medito.youtube.YoutubeExtractorBridge
 
 @UnstableApi
@@ -59,6 +61,15 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
     // Resolves YouTube links through NewPipeExtractor; owns worker threads that
     // end with the activity.
     private var youtubeBridge: YoutubeExtractorBridge? = null
+
+    // Folder import: the user grants one folder through the system picker and
+    // its audio is copied into the cache (see FolderImportBridge).
+    private val folderImportBridge by lazy { FolderImportBridge(this, activityScope) }
+    private val folderPickerLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        folderImportBridge.onTreePicked(uri)
+    }
 
     private val healthConnectBridge by lazy { HealthConnectBridge(this, activityScope) }
     private val healthConnectPermissionLauncher = registerForActivityResult(
@@ -97,6 +108,7 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
         ApkUpdaterBridge(this, activityScope).attach(flutterEngine.dartExecutor.binaryMessenger)
         SoundscapeBridge.attach(this, flutterEngine.dartExecutor.binaryMessenger)
         CueChannel.attach(flutterEngine.dartExecutor.binaryMessenger)
+        folderImportBridge.attach(flutterEngine.dartExecutor.binaryMessenger, folderPickerLauncher)
 
         youtubeBridge?.dispose()
         youtubeBridge = YoutubeExtractorBridge.create().also {
@@ -308,6 +320,7 @@ class MainActivity : FlutterFragmentActivity(), MeditoAndroidAudioServiceManager
     override fun onDestroy() {
         youtubeBridge?.dispose()
         youtubeBridge = null
+        folderImportBridge.dispose()
         SoundscapeBridge.detach()
         super.onDestroy()
         activityJob.cancel()
