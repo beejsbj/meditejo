@@ -38,6 +38,7 @@ Future<ProviderContainer> _pump(
   int positionMs = 0,
   Size? size,
   double textScale = 1,
+  bool reduceMotion = false,
   SessionBellPreview? preview,
 }) async {
   if (size != null) {
@@ -63,9 +64,10 @@ Future<ProviderContainer> _pump(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: TextScaler.linear(textScale)),
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(textScale),
+            disableAnimations: reduceMotion,
+          ),
           child: child!,
         ),
         home: Scaffold(
@@ -667,6 +669,18 @@ void main() {
     // The play buttons are their own controls, named by their tooltip.
     expect(find.byTooltip('Play Swell bell'), findsNWidgets(2));
     semantics.dispose();
+    await _unmount(tester);
+  });
+
+  testWidgets('with reduced motion a row opens in one step', (tester) async {
+    final container = await _pump(tester, reduceMotion: true);
+    await _row(tester, 'Countdown');
+    expect(_wheel('Countdown'), findsOneWidget);
+    await _turn(tester, 'Countdown', '5 sec');
+    expect(_read(container).countdownSeconds, 5);
+    await _row(tester, 'Countdown');
+    expect(_wheel('Countdown'), findsNothing);
+    expect(tester.takeException(), isNull);
     await _unmount(tester);
   });
 
