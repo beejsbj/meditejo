@@ -500,7 +500,9 @@ state.
 
 ## Home composition
 
-Home is a launchpad (BRIEF decision 14), not a catalogue. `HomeWidgetType`
+Home is a launchpad (BRIEF decision 14), not a catalogue. It opens with the
+Meditejo mark (`lib/widgets/branding/`, geometry in `mark_geometry.dart`),
+which moves only while it can be seen; the sections follow. `HomeWidgetType`
 (`lib/constants/enums/home_widget_type.dart`) names its sections, which the
 user can switch on or off and reorder in Customize (the Organize Home Layout
 screen, from the button beside the title). `homeWidgetOrderProvider` keeps the
@@ -523,7 +525,12 @@ Settings), whose copy says the numbers are feedback, not a score.
   library (the starter set leads a fresh install), so Home is not empty. The
   first item also feeds the Android Up Next widget.
 - **Quick links**: Timer (Medito's timer), Sounds (the background-sound
-  picker) and Add (import).
+  picker), up to two **sound presets** (`homeSoundPresetsProvider`: the
+  user's own, newest first, then the built-ins) and Add (import). A preset
+  tile starts the timer at once (`startTimerSession`,
+  `lib/views/timer/start_timer.dart`) with the preset as that session's
+  background: `PlaybackRequest.soundscape`, which the player prefers over the
+  scope's Customize choice, so the user's saved choices are untouched.
 - **Pinned courses** (`pinnedCoursesProvider`, `pinned_course_ids`): at most
   three, each with its progress, opening the course. Pinned from a library
   row's menu or a course page; a fourth is refused with a message. The course
@@ -660,3 +667,18 @@ the session ("Session 2 of 6", the course's title and progress) to that course
 while it still lists it, and otherwise to the session's own source course
 (`ParentedContentSource`). Playing it brings both courses to the front of the
 library.
+
+## Theme and design tokens
+
+Material 3 Expressive (BRIEF decision 16). Tokens (seed colour and scheme
+variant, corner scale, spring motion schemes, the M3 type scale with
+Expressive's emphasized styles) live in `lib/constants/theme/tokens.dart`;
+`meditejoTheme(brightness)` in `app_theme.dart` builds `ThemeData` from them.
+The M3 type scale is the `ExpressiveTypography` theme extension
+(`context.typography`); `ThemeData.textTheme` still carries Medito's text-role
+sizes for screens not yet redesigned (`text_theme.dart`), coloured from the
+scheme. Redesigned screens use `context.typography`, `MeditejoShapes` and
+`MeditejoMotion` rather than literals. The tab bar and sidebar are Material's
+`NavigationBar` and `NavigationRail`; a tab is a `MainTab` value plus an arm
+in each of `BottomNavigationBarView`'s `_page` and `_navItem` switches.
+
