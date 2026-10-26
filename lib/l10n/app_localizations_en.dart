@@ -1925,7 +1925,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get importCaptionLatest => 'Just the latest episode';
+  String get importCaptionLatest =>
+      'Just one episode: the latest, or one you pick';
 
   @override
   String get importCaptionFilesCourse => 'One course, in the order shown';
@@ -2019,6 +2020,65 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importFailAdd => 'Couldn\'t add that. Please try again.';
+
+  @override
+  String get importEpisodeLabel => 'Episode';
+
+  @override
+  String get importEpisodeChange => 'Change';
+
+  @override
+  String get importEpisodePickerTitle => 'Choose an episode';
+
+  @override
+  String get importEpisodeSearch => 'Search episodes';
+
+  @override
+  String get importEpisodeNone => 'No episode matches that.';
+
+  @override
+  String get importEpisodeLatest => 'Latest';
+
+  @override
+  String get importFolderLooking => 'Looking in the folder…';
+
+  @override
+  String importFolderCopying(int done, int total) {
+    return 'Copying $done of $total…';
+  }
+
+  @override
+  String get importFolderCancel => 'Cancel';
+
+  @override
+  String importUnreadable(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items couldn\'t be read and were left out',
+      one: '1 item couldn\'t be read and was left out',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailFolderEmpty => 'That folder is empty.';
+
+  @override
+  String get importFailFolderTooLarge =>
+      'That folder holds more than 1,000 audio files. Choose a smaller one.';
+
+  @override
+  String get importFailFolderNoSpace =>
+      'There isn\'t enough free space on this phone to copy that folder.';
+
+  @override
+  String get importFailFolderUnreadable =>
+      'That folder couldn\'t be read. Try choosing it again, or choose files instead.';
+
+  @override
+  String get importFailFolderUnavailable =>
+      'This device has no folder picker. Choose files instead.';
 
   @override
   String get shareArrived => 'Shared with Meditejo';

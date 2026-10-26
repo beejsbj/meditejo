@@ -7,6 +7,7 @@ import 'package:medito/services/youtube/youtube_source.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
 import 'package:medito/services/library/feed_parser.dart';
+import 'package:medito/services/library/import_defaults.dart';
 import 'package:medito/services/library/import_http.dart';
 import 'package:medito/services/library/import_models.dart';
 import 'package:medito/services/library/lib_ids.dart';
@@ -15,6 +16,7 @@ import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
 import 'package:medito/services/library/link_classifier.dart';
 import 'package:medito/services/local_catalogue.dart';
+import 'package:medito/services/youtube/youtube_ids.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:path/path.dart' as p;
 
@@ -60,6 +62,35 @@ class ImportService {
   final DateTime Function() _clock;
 
   static const _previewItems = 5;
+
+  /// The library ID that adding [preview] as [kind] would give, with
+  /// [episodeId] picked for a Single from a list. It is how the preview knows
+  /// whether the thing chosen is already kept.
+  static String selectedId(
+    ImportPreview preview,
+    LibraryKind kind, {
+    String? episodeId,
+  }) {
+    final picked = episodeId ?? preview.defaultEpisodeId;
+    switch (preview.origin) {
+      case ImportOrigin.youtube:
+        if (kind == LibraryKind.single) {
+          return ytVideoId(picked ?? preview.youtubeVideo!.videoId);
+        }
+        return preview.youtubePlaylistId != null
+            ? ytPlaylistId(preview.youtubePlaylistId!)
+            : ytSingleCourseId(preview.youtubeVideo!.videoId);
+      case ImportOrigin.feed:
+        if (kind == LibraryKind.single && picked != null) {
+          return libEpisodeId(preview.feedUrl!, picked);
+        }
+        return preview.entryId;
+      case ImportOrigin.dharmaSeed:
+      case ImportOrigin.audioUrl:
+      case ImportOrigin.localFiles:
+        return preview.entryId;
+    }
+  }
 
   // ---------------------------------------------------------------- resolve
 
@@ -118,8 +149,8 @@ class ImportService {
           return ImportPreview(
             origin: ImportOrigin.dharmaSeed,
             entryId: id,
-            kind: LibraryKind.course,
-            allowedKinds: const {LibraryKind.course},
+            kind: ImportShape.dharmaSeedRetreat.defaultKind,
+            allowedKinds: ImportShape.dharmaSeedRetreat.allowedKinds,
             group: draft.group,
             title: draft.title,
             subtitle: draft.subtitle,
@@ -141,8 +172,8 @@ class ImportService {
           return ImportPreview(
             origin: ImportOrigin.dharmaSeed,
             entryId: id,
-            kind: LibraryKind.single,
-            allowedKinds: const {LibraryKind.single},
+            kind: ImportShape.dharmaSeedTalk.defaultKind,
+            allowedKinds: ImportShape.dharmaSeedTalk.allowedKinds,
             group: draft.group,
             title: draft.title,
             subtitle: draft.subtitle,
@@ -226,8 +257,8 @@ class ImportService {
     return ImportPreview(
       origin: ImportOrigin.audioUrl,
       entryId: id,
-      kind: LibraryKind.single,
-      allowedKinds: const {LibraryKind.single},
+      kind: ImportShape.audioUrl.defaultKind,
+      allowedKinds: ImportShape.audioUrl.allowedKinds,
       group: isKnownTalkHost(host) ? LibraryGroup.talks : LibraryGroup.practice,
       title: title,
       subtitle: host,
@@ -349,8 +380,8 @@ class ImportService {
     return ImportPreview(
       origin: ImportOrigin.feed,
       entryId: courseId,
-      kind: LibraryKind.course,
-      allowedKinds: const {LibraryKind.course, LibraryKind.single},
+      kind: ImportShape.feed.defaultKind,
+      allowedKinds: ImportShape.feed.allowedKinds,
       group: talks ? LibraryGroup.talks : LibraryGroup.practice,
       title: feed.title,
       subtitle: feed.author,
@@ -381,6 +412,18 @@ class ImportService {
       feedUrl: feedUrl,
       etag: response.etag,
       lastModified: response.lastModified,
+      // Newest first, with the latest ready to be picked.
+      episodes: [
+        for (final e in feed.episodes.reversed)
+          ImportEpisode(
+            id: e.guid,
+            title: e.title,
+            durationMs: e.durationMs,
+            publishedAt: e.publishedAt,
+            subtitle: e.author,
+          ),
+      ],
+      defaultEpisodeId: feed.episodes.last.guid,
     );
   }
 
@@ -428,13 +471,17 @@ class ImportService {
     files.sort(
       (a, b) => _naturalCompare(p.basename(a.path), p.basename(b.path)),
     );
-    return resolveFiles(files, suggestedTitle: p.basename(path));
+    return resolveFiles(files, suggestedTitle: p.basename(path), folder: true);
   }
 
   /// Files picked or shared: one is a single, several a course (or singles).
+  /// [folder] says they came from one folder, [unreadable] how many items in
+  /// it were left out for not being readable.
   Future<ImportPreview> resolveFiles(
     List<PickedFile> files, {
     String? suggestedTitle,
+    bool folder = false,
+    int unreadable = 0,
   }) async {
     if (files.isEmpty) {
       throw const ImportFailure(ImportFailureReason.noAudioFiles);
@@ -464,15 +511,16 @@ class ImportService {
       );
     }
     final multiple = audio.length > 1;
+    final shape = !multiple
+        ? ImportShape.localFile
+        : (folder ? ImportShape.localFolder : ImportShape.localFiles);
     final known = durations.whereType<int>().fold(0, (a, b) => a + b);
     final titles = [for (final f in audio) titleFromFileName(f.name ?? f.path)];
     return ImportPreview(
       origin: ImportOrigin.localFiles,
       entryId: '',
-      kind: multiple ? LibraryKind.course : LibraryKind.single,
-      allowedKinds: multiple
-          ? const {LibraryKind.course, LibraryKind.single}
-          : const {LibraryKind.single},
+      kind: shape.defaultKind,
+      allowedKinds: shape.allowedKinds,
       group: LibraryGroup.practice,
       title: multiple ? (suggestedTitle ?? '') : titles.first,
       subtitle: '',
@@ -488,6 +536,7 @@ class ImportService {
       ],
       files: audio,
       fileDurationsMs: durations,
+      unreadableItems: unreadable,
     );
   }
 
@@ -518,7 +567,7 @@ class ImportService {
       case ImportOrigin.feed:
         return kind == LibraryKind.course
             ? _addFeedCourse(preview, choice)
-            : _addFeedLatest(preview, choice);
+            : _addFeedEpisode(preview, choice);
       case ImportOrigin.audioUrl:
         return _addAudioUrl(preview, choice);
       case ImportOrigin.localFiles:
@@ -603,13 +652,37 @@ class ImportService {
     return _finish(preview.entryId, LibraryKind.course, choice, preview);
   }
 
-  Future<ImportResult> _addFeedLatest(
+  /// One episode of a feed as a single: the one picked, else the latest. Its
+  /// ID is the same one it has inside the whole course, so adding it again,
+  /// alone or from the course, finds this one.
+  Future<ImportResult> _addFeedEpisode(
     ImportPreview preview,
     ImportChoice choice,
   ) async {
-    final latest = preview.feed!.episodes.last;
+    final feed = preview.feed!;
+    final wanted = choice.episodeId ?? preview.defaultEpisodeId;
+    final picked = feed.episodes.firstWhere(
+      (e) => e.guid == wanted,
+      orElse: () => feed.episodes.last,
+    );
+    // Alone, an episode has no course to take its credit from, so it carries
+    // the feed's author and page itself.
+    final episode = ParsedEpisode(
+      guid: picked.guid,
+      title: picked.title,
+      audioUrl: picked.audioUrl,
+      ordinal: picked.ordinal,
+      description: picked.description,
+      mimeType: picked.mimeType,
+      lengthBytes: picked.lengthBytes,
+      durationMs: picked.durationMs,
+      publishedAt: picked.publishedAt,
+      imageUrl: picked.imageUrl,
+      pageUrl: picked.pageUrl.isNotEmpty ? picked.pageUrl : feed.siteUrl,
+      author: picked.author.isNotEmpty ? picked.author : feed.author,
+    );
     final id = await lib.storeEpisode(
-      latest,
+      episode,
       feedUrl: preview.feedUrl!,
       now: _clock(),
     );
@@ -642,12 +715,14 @@ class ImportService {
     required bool asCourse,
   }) async {
     final copied = <String>[];
+    final moved = <String, String>{};
     try {
       final result = await _storeFiles(
         preview,
         choice,
         asCourse: asCourse,
         copied: copied,
+        moved: moved,
       );
       for (final file in preview.files) {
         await _discardTemporary(file.path);
@@ -656,7 +731,13 @@ class ImportService {
     } catch (_) {
       for (final path in copied) {
         try {
-          await File(path).delete();
+          final origin = moved[path];
+          if (origin != null) {
+            // Put a moved file back, so the same preview can be added again.
+            await File(path).rename(origin);
+          } else {
+            await File(path).delete();
+          }
         } catch (e) {
           AppLogger.w('LIBRARY', 'Could not remove a partial import: $e');
         }
@@ -670,6 +751,7 @@ class ImportService {
     ImportChoice choice, {
     required bool asCourse,
     required List<String> copied,
+    required Map<String, String> moved,
   }) async {
     final stored = <StoredFile>[];
     for (var i = 0; i < preview.files.length; i++) {
@@ -679,6 +761,7 @@ class ImportService {
         file.path,
         id,
         mimeType: file.mimeType,
+        moved: moved,
       );
       copied.add(path);
       stored.add(
@@ -743,12 +826,15 @@ class ImportService {
     );
   }
 
-  /// Copies a file into app storage. The original stays until the import is
-  /// recorded; see [_discardTemporary].
+  /// Puts a file into app storage. The user's own file is copied and stays;
+  /// a temporary copy (the picker's, the share target's, a folder import's)
+  /// is moved when it can be, so a big folder is never on disk twice. A move
+  /// is noted in [moved] so a failed import can put it back.
   Future<String> _copyIntoStorage(
     String source,
     String id, {
     String? mimeType,
+    required Map<String, String> moved,
   }) async {
     final directory = await storageDirectory();
     final folder = Directory(p.join(directory.path, 'library'));
@@ -758,6 +844,16 @@ class ImportService {
       extension = _extensionFor(mimeType) ?? '.audio';
     }
     final target = p.join(folder.path, '$id$extension');
+    final roots = await temporaryDirectories?.call() ?? const <String>[];
+    if (roots.any((root) => p.isWithin(root, source))) {
+      try {
+        await File(source).rename(target);
+        moved[target] = source;
+        return target;
+      } on FileSystemException {
+        // Another volume: fall through to a copy.
+      }
+    }
     try {
       await File(source).copy(target);
     } catch (_) {
@@ -775,6 +871,8 @@ class ImportService {
     final roots = await temporaryDirectories?.call() ?? const <String>[];
     if (!roots.any((root) => p.isWithin(root, source))) return;
     try {
+      // Already moved into storage.
+      if (!await File(source).exists()) return;
       await File(source).delete();
     } catch (e) {
       AppLogger.w('LIBRARY', 'Could not remove the temporary copy: $e');
