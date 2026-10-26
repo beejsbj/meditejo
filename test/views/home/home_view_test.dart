@@ -386,9 +386,9 @@ void main() {
         overrides: [continueItemsProvider.overrideWith((ref) async => [])],
       );
       expect(mark(tester).isRunning, isFalse);
-      expect(mark(tester).phase, 0);
+      expect(mark(tester).isStill, isTrue);
       await tester.pump(const Duration(seconds: 3));
-      expect(mark(tester).phase, 0);
+      expect(mark(tester).seconds, 0);
     });
 
     testWidgets('the mark rests once Home is scrolled past it', (tester) async {
@@ -409,9 +409,9 @@ void main() {
       await tester.drag(find.byType(CustomScrollView), const Offset(0, -300));
       await tester.pump();
       expect(mark(tester).isRunning, isFalse);
-      final phase = mark(tester).phase;
+      final held = mark(tester).seconds;
       await tester.pump(const Duration(seconds: 2));
-      expect(mark(tester).phase, phase);
+      expect(mark(tester).seconds, held);
 
       await tester.drag(find.byType(CustomScrollView), const Offset(0, 600));
       await tester.pump();

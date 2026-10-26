@@ -1132,5 +1132,17 @@
   "statsSourceOther": "Otros",
   "statsStreakTitle": "Racha y constancia",
   "statsLast30Days": "Practicaste {count} de los últimos 30 días.",
-  "statsConsistency": "Constancia"
+  "statsConsistency": "Constancia",
+  "homeMarkTitle": "Símbolo de Inicio",
+  "homeMarkToday": "Símbolo del día",
+  "homeMarkPinned": "Fijado",
+  "homeMarkTodayBody": "Cada día llega un símbolo nuevo. Fija este para conservarlo en Inicio.",
+  "homeMarkPinnedBody": "Este símbolo se queda en Inicio hasta que vuelvas al símbolo del día.",
+  "homeMarkPin": "Fijar este símbolo",
+  "homeMarkUnpin": "Volver al símbolo del día",
+  "homeMarkPinHint": "fijar o soltar",
+  "paletteTitle": "Paleta",
+  "paletteDaily": "Diaria",
+  "paletteDailyBody": "Una paleta distinta cada día",
+  "paletteDailyToday": "Diaria · hoy {name}"
 }

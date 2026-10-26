@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/painting.dart';
+import 'package:medito/services/identity/mark_outline.dart';
 import 'package:medito/services/identity/mark_spec.dart';
 import 'package:medito/services/identity/palettes.dart';
 import 'package:medito/services/identity/seeded_random.dart';
@@ -163,8 +164,7 @@ class MarkRenderer {
     canvas.drawRect(r, Paint()..color = _a(color, color.a * alpha));
   }
 
-  /// A pebble's outline (`core.js` `blobPath`): [imperf] 0 is a true
-  /// circle, 1 its full organic shape.
+  /// A pebble's outline as a path (see [blobOutline]).
   static Path blobPath(
     MarkBlob b, {
     double grow = 1,
@@ -176,29 +176,18 @@ class MarkRenderer {
     Path? into,
   }) {
     final path = into ?? Path();
-    final asp = lerp(1, b.asp, imperf);
-    const m = 128;
-    final c = math.cos(b.rot), s = math.sin(b.rot);
-    for (var i = 0; i <= m; i++) {
-      final th = i / m * tau;
-      var r = 1.0;
-      for (var k = 0; k < 3; k++) {
-        r += imperf * b.a[k] * math.sin((k + 2) * th + b.p[k]);
-      }
-      if (b.cut != 0) {
-        r +=
-            b.cut *
-            (0.6 * math.sin(b.ck[0] * th + b.cp[0]) +
-                0.4 * math.sin(b.ck[1] * th + b.cp[1]));
-      }
-      r *= b.r * grow;
-      final ux = r * math.cos(th) * asp * sx, uy = r * math.sin(th) * sy;
-      final px = b.cx + dx + ux * c - uy * s, py = b.cy + dy + ux * s + uy * c;
-      if (i == 0) {
-        path.moveTo(px, py);
-      } else {
-        path.lineTo(px, py);
-      }
+    final pts = blobOutline(
+      b,
+      grow: grow,
+      imperf: imperf,
+      dx: dx,
+      dy: dy,
+      sx: sx,
+      sy: sy,
+    );
+    path.moveTo(pts.first.$1, pts.first.$2);
+    for (var i = 1; i < pts.length; i++) {
+      path.lineTo(pts[i].$1, pts[i].$2);
     }
     return path..close();
   }
@@ -518,17 +507,18 @@ class MarkRenderer {
 
   /// The minimal shelter's roof, [open] of the way spread (1 when settled).
   static Path shelterRoof(MinimalMark m, [double open = 1]) {
-    const ax = 0.5;
-    final ay = m['ay'], ey = m['ey'];
-    final w = m['w'] * (0.85 + 0.15 * open);
-    return Path()
-      ..moveTo(ax - w, ey)
-      ..quadraticBezierTo(ax - w * 0.35, ay + 0.04, ax, ay)
-      ..quadraticBezierTo(ax + w * 0.35, ay + 0.04, ax + w, ey)
-      ..lineTo(ax + w - 0.05, ey)
-      ..quadraticBezierTo(ax + w * 0.3, ay + 0.1, ax, ay + 0.07)
-      ..quadraticBezierTo(ax - w * 0.3, ay + 0.1, ax - w + 0.05, ey)
-      ..close();
+    final path = Path();
+    for (final (op, v) in shelterRoofCommands(m, open)) {
+      switch (op) {
+        case 'M':
+          path.moveTo(v[0], v[1]);
+        case 'L':
+          path.lineTo(v[0], v[1]);
+        case 'Q':
+          path.quadraticBezierTo(v[0], v[1], v[2], v[3]);
+      }
+    }
+    return path..close();
   }
 
   // ---------- atmospheric ----------

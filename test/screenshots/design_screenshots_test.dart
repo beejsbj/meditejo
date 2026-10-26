@@ -28,6 +28,9 @@ import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/library/library_view.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:medito/views/timer/timer_view.dart';
+import 'package:medito/constants/theme/palette_theme.dart';
+import 'package:medito/services/identity/daily_mark.dart';
+import 'package:medito/services/identity/mark_generator.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
 
 import 'package:medito/providers/stats/practice_summary_provider.dart';
@@ -507,11 +510,16 @@ void main() {
   }
 
   testWidgets('the mark, frame by frame', (tester) async {
-    // 40 frames over one breath (10 s, a sixth of the loop) for the GIF;
-    // every fifth also goes into a strip.
+    // Today's mark (2026-10-26) drawing in, then one breath (10 s): 40
+    // frames for the GIF, every fifth also for a strip.
     const frames = 40;
+    final mark = MarkGenerator.build(
+      DailyMark.forDay(DateTime(2026, 10, 26)).seed,
+    );
     for (final brightness in Brightness.values) {
-      final scheme = meditejoColorScheme(brightness);
+      final theme = meditejoTheme(brightness);
+      final scheme = theme.colorScheme;
+      final colors = theme.extension<MeditejoPalette>()!.markColors(scheme);
       for (var i = 0; i < frames; i++) {
         await tester.pumpWidget(
           RepaintBoundary(
@@ -521,9 +529,12 @@ void main() {
               child: Center(
                 child: CustomPaint(
                   size: const Size.square(240),
-                  painter: MeditejoMarkPainter.forScheme(
-                    AlwaysStoppedAnimation(i / frames / 6),
-                    scheme,
+                  painter: MarkPainter(
+                    mark: mark,
+                    colors: colors,
+                    time: ValueNotifier(
+                      i < 10 ? i * 0.35 : 3.5 + (i - 10) / 30 * 10,
+                    ),
                   ),
                 ),
               ),

@@ -15,12 +15,16 @@ import 'package:medito/views/home/widgets/pinned/pinned_section.dart';
 import 'package:medito/views/home/widgets/quick_links/quick_links_section.dart';
 import 'package:medito/views/home/widgets/update_notice.dart';
 import 'package:medito/widgets/adaptive/adaptive_home_sections.dart';
+import 'package:medito/providers/identity/identity_providers.dart';
+import 'package:medito/widgets/branding/home_mark_sheet.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
 
 /// Home is a launchpad: the Meditejo mark, then what is in progress, a few
 /// one-tap starts, and the courses the user pinned. Browsing lives in
 /// Explore and everything added in Library. The user chooses which sections
-/// show and in what order; the mark always leads.
+/// show and in what order; the mark always leads. The mark is today's (a
+/// new one each day) unless the user pinned one; a long-press on it opens
+/// [HomeMarkSheet] to pin or unpin it.
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({super.key});
 
@@ -56,12 +60,7 @@ class _HomeViewState extends ConsumerState<HomeView>
                     children: [
                       Padding(
                         padding: const EdgeInsets.only(top: 28, bottom: 12),
-                        child: Center(
-                          child: MeditejoMark(
-                            size: kHomeMarkSize,
-                            animate: _markInView,
-                          ),
-                        ),
+                        child: Center(child: _HomeMark(animate: _markInView)),
                       ),
                       Positioned(
                         top: 4,
@@ -153,4 +152,48 @@ class _HomeViewState extends ConsumerState<HomeView>
 
   @override
   bool get wantKeepAlive => true;
+}
+
+/// Today's (or the pinned) mark. A long-press opens the pin sheet; a pinned
+/// mark carries a small pin, the one hint on Home that it won't change.
+class _HomeMark extends ConsumerWidget {
+  const _HomeMark({required this.animate});
+
+  final bool animate;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final pinned = ref.watch(pinnedMarkProvider) != null;
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      key: const ValueKey('home_mark'),
+      label: pinned ? l10n.homeMarkPinned : l10n.homeMarkToday,
+      onLongPressHint: l10n.homeMarkPinHint,
+      child: GestureDetector(
+        onLongPress: () => showHomeMarkSheet(context),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            MeditejoMark(
+              mark: ref.watch(homeMarkProvider),
+              size: kHomeMarkSize,
+              animate: animate,
+            ),
+            if (pinned)
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Icon(
+                  Icons.push_pin_rounded,
+                  key: const ValueKey('home_mark_pinned'),
+                  size: 16,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }

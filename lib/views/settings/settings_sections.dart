@@ -26,6 +26,7 @@ import 'package:medito/views/settings/widgets/add_widget_sheet.dart';
 import 'package:medito/views/settings/widgets/app_icon_tile.dart';
 import 'package:medito/views/settings/widgets/dharma_seed_sync_tile.dart';
 import 'package:medito/views/settings/widgets/dnd_setting_tile.dart';
+import 'package:medito/views/settings/widgets/identity_tiles.dart';
 import 'package:medito/views/settings/widgets/practice_default_tiles.dart';
 import 'package:medito/views/settings/widgets/reminder_tile.dart';
 import 'package:medito/views/settings/widgets/theme_tile.dart';
@@ -171,6 +172,8 @@ class SettingsSections extends ConsumerWidget {
             title: l10n.themeTitle,
             hasUnderline: !last,
           ),
+          (last) => PaletteTile(hasUnderline: !last),
+          (last) => HomeMarkTile(hasUnderline: !last),
           (last) => AppIconTile(
             icon: _AppIconGlyph(color: onSurface),
             title: l10n.appIconTitle,

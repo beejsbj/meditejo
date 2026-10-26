@@ -4917,6 +4917,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Consistency'**
   String get statsConsistency;
+
+  /// Settings row and sheet: the mark at the top of Home
+  ///
+  /// In en, this message translates to:
+  /// **'Home mark'**
+  String get homeMarkTitle;
+
+  /// The Home mark when it changes daily
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s mark'**
+  String get homeMarkToday;
+
+  /// The Home mark when the user pinned it
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get homeMarkPinned;
+
+  /// Home mark sheet, daily
+  ///
+  /// In en, this message translates to:
+  /// **'A new mark arrives each day. Pin this one to keep it on Home.'**
+  String get homeMarkTodayBody;
+
+  /// Home mark sheet, pinned
+  ///
+  /// In en, this message translates to:
+  /// **'This mark stays on Home until you go back to the daily mark.'**
+  String get homeMarkPinnedBody;
+
+  /// Button: keep today's mark on Home
+  ///
+  /// In en, this message translates to:
+  /// **'Pin this mark'**
+  String get homeMarkPin;
+
+  /// Button: unpin the Home mark
+  ///
+  /// In en, this message translates to:
+  /// **'Back to the daily mark'**
+  String get homeMarkUnpin;
+
+  /// Screen reader hint for long-pressing Home's mark
+  ///
+  /// In en, this message translates to:
+  /// **'pin or unpin'**
+  String get homeMarkPinHint;
+
+  /// Settings row and screen: the app's colour palette
+  ///
+  /// In en, this message translates to:
+  /// **'Palette'**
+  String get paletteTitle;
+
+  /// Palette option: a different palette each day
+  ///
+  /// In en, this message translates to:
+  /// **'Daily'**
+  String get paletteDaily;
+
+  /// Palette picker: the Daily option's description
+  ///
+  /// In en, this message translates to:
+  /// **'A different palette each day'**
+  String get paletteDailyBody;
+
+  /// Settings subtitle when the palette is daily; name is today's palette
+  ///
+  /// In en, this message translates to:
+  /// **'Daily · {name} today'**
+  String paletteDailyToday(String name);
 }
 
 class _AppLocalizationsDelegate

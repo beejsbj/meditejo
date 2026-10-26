@@ -2773,4 +2773,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get statsConsistency => 'Consistency';
+
+  @override
+  String get homeMarkTitle => 'Home mark';
+
+  @override
+  String get homeMarkToday => 'Today\'s mark';
+
+  @override
+  String get homeMarkPinned => 'Pinned';
+
+  @override
+  String get homeMarkTodayBody =>
+      'A new mark arrives each day. Pin this one to keep it on Home.';
+
+  @override
+  String get homeMarkPinnedBody =>
+      'This mark stays on Home until you go back to the daily mark.';
+
+  @override
+  String get homeMarkPin => 'Pin this mark';
+
+  @override
+  String get homeMarkUnpin => 'Back to the daily mark';
+
+  @override
+  String get homeMarkPinHint => 'pin or unpin';
+
+  @override
+  String get paletteTitle => 'Palette';
+
+  @override
+  String get paletteDaily => 'Daily';
+
+  @override
+  String get paletteDailyBody => 'A different palette each day';
+
+  @override
+  String paletteDailyToday(String name) {
+    return 'Daily · $name today';
+  }
 }

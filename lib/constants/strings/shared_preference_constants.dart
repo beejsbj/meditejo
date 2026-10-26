@@ -17,6 +17,13 @@ class SharedPreferenceConstants {
   static const String dndEnabled = 'dnd_enabled';
   static const String localePreference = 'locale_preference';
   static const String themePreference = 'theme_preference';
+
+  /// The identity palette: `daily`, or a palette's id. Unset is Tidewater.
+  static const String identityPalette = 'identity_palette';
+
+  /// A pinned Home mark, as frozen geometry (`MarkSpec` JSON). Unset is the
+  /// daily mark.
+  static const String identityPinnedMark = 'identity_pinned_mark';
   static const String dailyReminderEnabled = 'daily_reminder_enabled';
   static const String reminderPromptDismissedForever =
       'reminder_prompt_dismissed_forever';

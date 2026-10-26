@@ -2818,4 +2818,44 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get statsConsistency => 'Beständigkeit';
+
+  @override
+  String get homeMarkTitle => 'Zeichen auf der Startseite';
+
+  @override
+  String get homeMarkToday => 'Zeichen des Tages';
+
+  @override
+  String get homeMarkPinned => 'Angeheftet';
+
+  @override
+  String get homeMarkTodayBody =>
+      'Jeden Tag kommt ein neues Zeichen. Hefte dieses an, um es auf der Startseite zu behalten.';
+
+  @override
+  String get homeMarkPinnedBody =>
+      'Dieses Zeichen bleibt auf der Startseite, bis du zum Zeichen des Tages zurückkehrst.';
+
+  @override
+  String get homeMarkPin => 'Dieses Zeichen anheften';
+
+  @override
+  String get homeMarkUnpin => 'Zurück zum Zeichen des Tages';
+
+  @override
+  String get homeMarkPinHint => 'anheften oder lösen';
+
+  @override
+  String get paletteTitle => 'Farbpalette';
+
+  @override
+  String get paletteDaily => 'Täglich';
+
+  @override
+  String get paletteDailyBody => 'Jeden Tag eine andere Palette';
+
+  @override
+  String paletteDailyToday(String name) {
+    return 'Täglich · heute $name';
+  }
 }

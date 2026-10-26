@@ -72,8 +72,4 @@ abstract final class DailyMark {
     }
     return s;
   }
-
-  /// The next local midnight after [now], when today's pick changes.
-  static DateTime nextMidnight(DateTime now) =>
-      DateTime(now.year, now.month, now.day + 1);
 }

@@ -70,21 +70,14 @@ void main() {
 
   test('the pick changes at local midnight', () {
     final before = DateTime(2026, 10, 26, 23, 59, 59, 999);
-    final midnight = DailyMark.nextMidnight(before);
-    expect(midnight, DateTime(2026, 10, 27));
-    expect(DailyMark.forDay(midnight).seed, 'g-2026-10-27');
-    expect(
-      DailyMark.forDay(before).seed,
-      isNot(DailyMark.forDay(midnight).seed),
-    );
+    final after = DateTime(2026, 10, 27);
+    expect(DailyMark.forDay(before).seed, 'm-2026-10-26');
+    expect(DailyMark.forDay(after).seed, 'g-2026-10-27');
     // Across a month and a year end.
+    expect(DailyMark.dayKey(DateTime(2026, 11, 1)), '2026-11-01');
     expect(
-      DailyMark.nextMidnight(DateTime(2026, 10, 31, 12)),
-      DateTime(2026, 11, 1),
-    );
-    expect(
-      DailyMark.nextMidnight(DateTime(2026, 12, 31, 23)),
-      DateTime(2027, 1, 1),
+      DailyMark.forDay(DateTime(2027, 1, 1)).key,
+      isNot(DailyMark.forDay(DateTime(2026, 12, 31, 23, 59)).key),
     );
   });
 

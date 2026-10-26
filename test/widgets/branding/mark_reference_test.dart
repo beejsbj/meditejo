@@ -19,10 +19,9 @@ import 'package:medito/widgets/branding/mark_textures.dart';
 const _dir = 'test/widgets/branding/reference';
 const _px = 256;
 
-Future<Uint8List> _rgba(ui.Image image) async =>
-    (await image.toByteData(format: ui.ImageByteFormat.rawStraightRgba))!
-        .buffer
-        .asUint8List();
+Future<Uint8List> _rgba(ui.Image image) async => (await image.toByteData(
+  format: ui.ImageByteFormat.rawStraightRgba,
+))!.buffer.asUint8List();
 
 Future<ui.Image> _decode(String path) async {
   final codec = await ui.instantiateImageCodec(File(path).readAsBytesSync());
@@ -69,8 +68,8 @@ Future<void> _writeDiff(String name, Uint8List dart, Uint8List page) async {
       height: _px,
       pixelFormat: ui.PixelFormat.rgba8888,
     );
-    final image = (await (await descriptor.instantiateCodec()).getNextFrame())
-        .image;
+    final image =
+        (await (await descriptor.instantiateCodec()).getNextFrame()).image;
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     File('$dir/$file').writeAsBytesSync(bytes!.buffer.asUint8List());
   }
@@ -134,8 +133,10 @@ void main() {
         await _writeDiff(name, dart, page);
         final r = _compare(dart, page);
         // ignore: avoid_print
-        print('$name: mean ${r.mean.toStringAsFixed(3)}, '
-            '${(r.off * 100).toStringAsFixed(3)}% off');
+        print(
+          '$name: mean ${r.mean.toStringAsFixed(3)}, '
+          '${(r.off * 100).toStringAsFixed(3)}% off',
+        );
         expect(
           r.mean,
           lessThan(1.0),

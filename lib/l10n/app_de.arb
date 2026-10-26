@@ -1372,5 +1372,17 @@
   "statsSourceOther": "Andere",
   "statsStreakTitle": "Serie und Beständigkeit",
   "statsLast30Days": "Du hast an {count} der letzten 30 Tage geübt.",
-  "statsConsistency": "Beständigkeit"
+  "statsConsistency": "Beständigkeit",
+  "homeMarkTitle": "Zeichen auf der Startseite",
+  "homeMarkToday": "Zeichen des Tages",
+  "homeMarkPinned": "Angeheftet",
+  "homeMarkTodayBody": "Jeden Tag kommt ein neues Zeichen. Hefte dieses an, um es auf der Startseite zu behalten.",
+  "homeMarkPinnedBody": "Dieses Zeichen bleibt auf der Startseite, bis du zum Zeichen des Tages zurückkehrst.",
+  "homeMarkPin": "Dieses Zeichen anheften",
+  "homeMarkUnpin": "Zurück zum Zeichen des Tages",
+  "homeMarkPinHint": "anheften oder lösen",
+  "paletteTitle": "Farbpalette",
+  "paletteDaily": "Täglich",
+  "paletteDailyBody": "Jeden Tag eine andere Palette",
+  "paletteDailyToday": "Täglich · heute {name}"
 }
