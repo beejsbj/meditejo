@@ -184,12 +184,221 @@ void main() {
     }
   }
 
+  /// Practice plays a sound only once the user has chosen one (decision 17);
+  /// the session tests choose the current mix, as Customize's chip does.
+  void practiceOn() => ctl().setSessionDefault(
+    SoundscapeSessionKind.practice,
+    const SoundscapeSessionDefault(enabled: true),
+  );
+
   setUp(() async => container = await make());
 
   test('a fresh install starts from the first starter preset, silent', () {
     expect(st().mix, kStarterPresets.first.mix);
     expect(st().active, isFalse);
     expect(engine.playing, isEmpty);
+  });
+
+  group('practice starts with nothing chosen (decision 17)', () {
+    // The factory value before decision 17: on, the current mix, level 0.5.
+    String oldFactory({Map<String, Object?> practice = const {}}) =>
+        jsonEncode({
+          'practice': {
+            'enabled': true,
+            'selection': 'mix',
+            'volume': 0.5,
+            ...practice,
+          },
+          'talks': {'enabled': false, 'selection': 'mix', 'volume': 0.35},
+        });
+
+    String mixWith(String soundId) =>
+        jsonEncode(SoundMix([SoundLayer(soundId: soundId)]).toJson());
+
+    Future<SoundscapeSessionDefault> practiceAfter(
+      Map<String, Object> stored,
+    ) async {
+      final c = await make(stored);
+      return c
+          .read(soundscapeProvider)
+          .sessionDefault(SoundscapeSessionKind.practice);
+    }
+
+    test('a fresh install plays nothing under Practice or Talks', () async {
+      expect(
+        st().sessionDefault(SoundscapeSessionKind.practice).enabled,
+        isFalse,
+      );
+      expect(st().sessionDefault(SoundscapeSessionKind.talks).enabled, isFalse);
+      await ctl().startSession(SoundscapeSessionKind.practice);
+      await settle();
+      expect(st().active, isFalse);
+      expect(st().owner, SoundscapeOwner.none);
+      expect(engine.playing, isEmpty);
+      expect(keepAlive.holds, 0);
+    });
+
+    test('a pick plays, and the pick survives a relaunch', () async {
+      ctl().setSessionDefault(
+        SoundscapeSessionKind.practice,
+        const SoundscapeSessionDefault(
+          enabled: true,
+          selection: SoundscapeSelection.sound('river'),
+        ),
+      );
+      await ctl().startSession(SoundscapeSessionKind.practice);
+      await settle();
+      expect(st().owner, SoundscapeOwner.session);
+      expect(engine.playing.keys, ['river']);
+
+      final again = await make({
+        SoundscapeStore.sessionDefaultsKey: prefs.getString(
+          SoundscapeStore.sessionDefaultsKey,
+        )!,
+        SoundscapeStore.sessionDefaultsVersionKey: prefs.getInt(
+          SoundscapeStore.sessionDefaultsVersionKey,
+        )!,
+      });
+      final kept = again
+          .read(soundscapeProvider)
+          .sessionDefault(SoundscapeSessionKind.practice);
+      expect(kept.enabled, isTrue);
+      expect(kept.selection, const SoundscapeSelection.sound('river'));
+    });
+
+    test(
+      'an install that never touched the setting moves to nothing',
+      () async {
+        // Nothing stored at all: the common case.
+        final fresh = await practiceAfter({});
+        expect(fresh.enabled, isFalse);
+        expect(prefs.getInt(SoundscapeStore.sessionDefaultsVersionKey), 2);
+
+        // Both kinds written as a side effect (a Talks level, a deleted
+        // preset), Practice still at the old factory value, no mix ever built.
+        final rewritten = await practiceAfter({
+          SoundscapeStore.sessionDefaultsKey: oldFactory(),
+        });
+        expect(rewritten.enabled, isFalse);
+        expect(rewritten.selection, SoundscapeSelection.currentMix);
+        expect(rewritten.volume, 0.5);
+        // Talks is untouched, and the stored value now says so.
+        final stored =
+            jsonDecode(prefs.getString(SoundscapeStore.sessionDefaultsKey)!)
+                as Map;
+        expect((stored['practice'] as Map)['enabled'], isFalse);
+        expect((stored['talks'] as Map)['volume'], 0.35);
+      },
+    );
+
+    test('an emptied mix is not a chosen sound', () async {
+      final d = await practiceAfter({
+        SoundscapeStore.sessionDefaultsKey: oldFactory(),
+        SoundscapeStore.mixKey: jsonEncode(SoundMix.empty.toJson()),
+      });
+      expect(d.enabled, isFalse);
+    });
+
+    test('anyone who chose a sound keeps it', () async {
+      // A sound put in the mixer: Practice follows "the current mix".
+      final mixer = await practiceAfter({
+        SoundscapeStore.sessionDefaultsKey: oldFactory(),
+        SoundscapeStore.mixKey: mixWith('river'),
+      });
+      expect(mixer.enabled, isTrue);
+      expect(mixer.selection, SoundscapeSelection.currentMix);
+
+      // A preset or a single sound picked for Practice.
+      final preset = await practiceAfter({
+        SoundscapeStore.sessionDefaultsKey: oldFactory(
+          practice: {'selection': 'preset:starter-night'},
+        ),
+      });
+      expect(preset.enabled, isTrue);
+      expect(
+        preset.selection,
+        const SoundscapeSelection.preset('starter-night'),
+      );
+      final single = await practiceAfter({
+        SoundscapeStore.sessionDefaultsKey: oldFactory(
+          practice: {'selection': 'sound:river'},
+        ),
+      });
+      expect(single.enabled, isTrue);
+      expect(single.selection, const SoundscapeSelection.sound('river'));
+
+      // A level the user set means they used the setting.
+      final louder = await practiceAfter({
+        SoundscapeStore.sessionDefaultsKey: oldFactory(
+          practice: {'volume': 0.8},
+        ),
+      });
+      expect(louder.enabled, isTrue);
+      expect(louder.volume, 0.8);
+    });
+
+    test('an explicit off stays off', () async {
+      final d = await practiceAfter({
+        SoundscapeStore.sessionDefaultsKey: oldFactory(
+          practice: {'enabled': false, 'selection': 'sound:river'},
+        ),
+      });
+      expect(d.enabled, isFalse);
+      expect(d.selection, const SoundscapeSelection.sound('river'));
+    });
+
+    test(
+      'a damaged stored value does not throw and starts with nothing',
+      () async {
+        for (final junk in ['not json', '[]', '{"practice": 7}', '{}']) {
+          final d = await practiceAfter({
+            SoundscapeStore.sessionDefaultsKey: junk,
+          });
+          expect(d.enabled, isFalse, reason: junk);
+        }
+      },
+    );
+
+    test(
+      'the move happens once: a later choice of the same value stays',
+      () async {
+        // Moved on first launch ...
+        final first = await make({
+          SoundscapeStore.sessionDefaultsKey: oldFactory(),
+        });
+        expect(
+          first
+              .read(soundscapeProvider)
+              .sessionDefault(SoundscapeSessionKind.practice)
+              .enabled,
+          isFalse,
+        );
+        // ... then the user turns Practice on with the current mix, which is
+        // the very value the migration looks for ...
+        first
+            .read(soundscapeProvider.notifier)
+            .setSessionDefault(
+              SoundscapeSessionKind.practice,
+              const SoundscapeSessionDefault(enabled: true),
+            );
+        // ... and a relaunch must not undo it.
+        final second = await make({
+          SoundscapeStore.sessionDefaultsKey: prefs.getString(
+            SoundscapeStore.sessionDefaultsKey,
+          )!,
+          SoundscapeStore.sessionDefaultsVersionKey: prefs.getInt(
+            SoundscapeStore.sessionDefaultsVersionKey,
+          )!,
+        });
+        expect(
+          second
+              .read(soundscapeProvider)
+              .sessionDefault(SoundscapeSessionKind.practice)
+              .enabled,
+          isTrue,
+        );
+      },
+    );
   });
 
   test('adding a sound to a silent mixer plays it on its own', () async {
@@ -546,6 +755,7 @@ void main() {
 
   group('sessions', () {
     test('practice plays the current mix at its own volume', () async {
+      practiceOn();
       ctl().setVolume(0.9);
       await ctl().startSession(SoundscapeSessionKind.practice);
       await settle();
@@ -643,6 +853,7 @@ void main() {
     );
 
     test('a kind volume set outside its session waits for it', () async {
+      practiceOn();
       await ctl().startSession(SoundscapeSessionKind.practice);
       await settle();
       ctl().setSessionVolume(SoundscapeSessionKind.talks, 0.1);
@@ -733,6 +944,7 @@ void main() {
     });
 
     test('the session player pausing pauses the mix', () async {
+      practiceOn();
       await ctl().startSession(SoundscapeSessionKind.practice);
       await settle();
       final audio = container.read(audioStateProvider.notifier) as _Audio;
@@ -748,6 +960,7 @@ void main() {
     test(
       'a completed voice pauses the mix though the player says playing',
       () async {
+        practiceOn();
         await ctl().startSession(SoundscapeSessionKind.practice);
         await settle();
         final audio = container.read(audioStateProvider.notifier) as _Audio;
@@ -761,19 +974,19 @@ void main() {
     );
 
     test('defaults persist', () async {
-      ctl().setSessionDefault(
-        SoundscapeSessionKind.practice,
-        const SoundscapeSessionDefault(enabled: false),
-      );
+      practiceOn();
       final again = await make({
         SoundscapeStore.sessionDefaultsKey: prefs.getString(
           SoundscapeStore.sessionDefaultsKey,
+        )!,
+        SoundscapeStore.sessionDefaultsVersionKey: prefs.getInt(
+          SoundscapeStore.sessionDefaultsVersionKey,
         )!,
       });
       final state = again.read(soundscapeProvider);
       expect(
         state.sessionDefault(SoundscapeSessionKind.practice).enabled,
-        isFalse,
+        isTrue,
       );
       expect(
         state.sessionDefault(SoundscapeSessionKind.talks).enabled,

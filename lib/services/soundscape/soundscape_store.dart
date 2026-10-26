@@ -15,6 +15,9 @@ class SoundscapeStore {
   static const presetsKey = 'soundscape_presets';
   static const volumeKey = 'soundscape_volume';
   static const sessionDefaultsKey = 'soundscape_session_defaults';
+  static const sessionDefaultsVersionKey =
+      'soundscape_session_defaults_version';
+  static const _sessionDefaultsVersion = 2;
 
   final SharedPreferences _prefs;
 
@@ -47,6 +50,57 @@ class SoundscapeStore {
 
   void writeVolume(double volume) =>
       unawaited(_prefs.setDouble(volumeKey, volume));
+
+  /// Practice used to start on with the current mix (decision 8) and now
+  /// starts with nothing chosen (decision 17). A device that never touched the
+  /// setting must follow, but the stored value cannot always say so: changing
+  /// Talks' level, switching Talks, or deleting a preset rewrites both kinds,
+  /// Practice's included, at its old factory value.
+  ///
+  /// So Practice moves to "nothing" only when it is *exactly* that old factory
+  /// value (on, the current mix, level 0.5) and no sound was ever put in the
+  /// mixer. Any other stored Practice (a different level, a preset or a single
+  /// sound, an explicit off) or a mix the user built stays as it was: a sound
+  /// someone may have chosen is never taken away. The one case the data cannot
+  /// separate is a user who switched Practice on with the starter mix, left
+  /// every level alone and never opened the mixer; they move too, and one tap
+  /// in Customize puts the sound back.
+  ///
+  /// Runs once: the version key stops it from undoing a later explicit choice.
+  void migrateSessionDefaults() {
+    if ((_prefs.getInt(sessionDefaultsVersionKey) ?? 1) >=
+        _sessionDefaultsVersion) {
+      return;
+    }
+    unawaited(
+      _prefs.setInt(sessionDefaultsVersionKey, _sessionDefaultsVersion),
+    );
+    final raw = _decode(sessionDefaultsKey);
+    if (raw is! Map) return;
+    final stored = raw[SoundscapeSessionKind.practice.name];
+    if (stored is! Map) return;
+    final mix = readMix();
+    final untouched =
+        stored['enabled'] == true &&
+        SoundscapeSelection.parse(
+              stored['selection'] is String
+                  ? stored['selection'] as String
+                  : null,
+            ) ==
+            SoundscapeSelection.currentMix &&
+        (stored['volume'] ?? 0.5) == 0.5 &&
+        (mix == null || mix.isEmpty);
+    if (!untouched) return;
+    unawaited(
+      _prefs.setString(
+        sessionDefaultsKey,
+        jsonEncode({
+          ...raw,
+          SoundscapeSessionKind.practice.name: {...stored, 'enabled': false},
+        }),
+      ),
+    );
+  }
 
   Map<SoundscapeSessionKind, SoundscapeSessionDefault> readSessionDefaults() {
     final raw = _decode(sessionDefaultsKey);

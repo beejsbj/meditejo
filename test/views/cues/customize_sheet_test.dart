@@ -165,12 +165,21 @@ void main() {
     SoundscapeSessionDefault practice() => container
         .read(soundscapeProvider)
         .sessionDefault(SoundscapeSessionKind.practice);
-    // Practice is on by default with the current mix.
-    expect(find.text('Current mix'), findsOneWidget);
+    // Practice starts with nothing chosen (decision 17): the row says Off and
+    // nothing is selected until a sound is picked.
+    expect(practice().enabled, isFalse);
+    expect(find.text('Current mix'), findsNothing);
     await tester.ensureVisible(find.text('Background sound'));
     await tester.tap(find.text('Background sound'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(ChoiceChip, 'Off'), findsOneWidget);
+    expect(
+      tester
+          .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Off'))
+          .selected,
+      isTrue,
+    );
+    expect(find.text('Volume'), findsNothing);
     expect(find.widgetWithText(ChoiceChip, 'Rain on the forest'), findsOne);
     // The library, grouped by shelf.
     expect(find.text('Rain'), findsOneWidget);

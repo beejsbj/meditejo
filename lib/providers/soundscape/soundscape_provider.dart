@@ -252,6 +252,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       },
     );
     unawaited(_dropVanishedSounds());
+    _store.migrateSessionDefaults();
     return SoundscapeState(
       mix: _currentMix(),
       volume: _store.readVolume(),
@@ -461,7 +462,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   }
 
   // ---------------------------------------------------------------------------
-  // Sessions (decision 8): on for Practice, off for Talks by default.
+  // Sessions: nothing chosen for either kind by default (decision 17).
 
   /// What a session plays: the kind's [kindDefault], unless the session's
   /// scope chose its own [selection] (`none` for silence).
