@@ -77,24 +77,30 @@
 
 **Gaps:** I found no verified CC0 thunder or gong. Fire and forest were checked less thoroughly than the rest. I did not audition any of these by ear.
 
-## What shipped (slice 7, 2026-10-19)
+## What shipped
 
-The bundled library is 22 CC0 loops: 21 from BigSoundBank (Joseph Sardin) and one from OpenGameArt (Ylmir). The full record per sound, including its licence evidence, source hash, cut, gain and measured loudness, is `tools/meditejo/sounds/sources.json` and `assets/sounds/sounds.json`. Blanket's files were not used: they are lossy Vorbis edits, and BigSoundBank's lossless originals cover the same ground.
+**Slice 7 (2026-10-19)** bundled 22 CC0 loops: 21 from BigSoundBank (Joseph Sardin) and one from OpenGameArt (Ylmir). Blanket's files were not used: they are lossy Vorbis edits, and BigSoundBank's lossless originals cover the same ground.
 
-### Freesound originals that need Burooj's account
+**Freesound originals (2026-10-26)** added eleven picks from the table below once Burooj had authorised Meditejo's Freesound app, taking the library to 30 loops. The full record per sound, including its licence evidence, source hash, cut, gain, loudness and seam metrics, is `tools/meditejo/sounds/sources.json` and `assets/sounds/sounds.json`; the files come from `meditejo-freesound-fetch` (see the `process_sounds.py` docstring for how a `"freesound": <id>` source works and fails).
 
-Freesound requires a login to download originals, and no account was created. Each page's licence was read on 2026-10-19. To add one, download the original, put its direct URL or a local path in `sources.json`, and rerun `process_sounds.py --pin`.
+Seam columns are the change across the loop point compared with the loop's own 95th percentile elsewhere (in brackets): level change in dB over half a second each side, and the RMS difference across third-octave bands in dB. A seam at or under its bracket is as ordinary as the rest of the loop. The ocean is the source's own seamless loop, used without a crossfade.
 
-| Sound | Page | Licence | Why |
-|---|---|---|---|
-| Rain from indoors, "perfect loop" (samesamesame) | https://freesound.org/people/samesamesame/sounds/242889/ | CC0 | Indoor rain, already a loop |
-| Slowly raining loop (unfa) | https://freesound.org/people/unfa/sounds/177479/ | CC0 | Balcony rain; has a distant dog and cars |
-| Gentle ocean waves loop (kkenny101) | https://freesound.org/people/kkenny101/sounds/852826/ | CC0 | Seamless 22 s mono |
-| Wind in a field, Texas (felix.blume) | https://freesound.org/people/felix.blume/sounds/217506/ | CC0 | 3:32 original of Blanket's 15 s wind |
-| Crackling fire (samarobryn) | https://freesound.org/people/samarobryn/sounds/414767/ | CC0 | A denser crackle than BigSoundBank's |
-| Wood thrush, morning forest (kvgarlic) | https://freesound.org/people/kvgarlic/sounds/156826/ | CC0 | Original of Blanket's birds |
-| Crickets by the beach, Mexico (felix.blume) | https://freesound.org/people/felix.blume/sounds/479041/ | CC0 | Night with sea; 289 MB WAV |
-| Wind in pines (sinewave1kHz) | https://freesound.org/people/sinewave1kHz/sounds/202989/ | CC0 | Blankie's forest |
-| Laundry room ambience (moviebuffgavin) | https://freesound.org/people/moviebuffgavin/sounds/411914/ | CC0 | Room tone |
-| Air conditioner fan hum (LilMati) | https://freesound.org/people/LilMati/sounds/515859/ | CC0 | Fan |
-| Trains of the Yamanote Line (SDLx) | https://freesound.org/people/SDLx/sounds/259988/ | CC BY 3.0 | 9:28 train interior; needs a credit |
+| id | Title | Source | Licence | Loop / crossfade | Level step (p95) | Spectral (p95) | LUFS | Size |
+|---|---|---|---|---|---|---|---|---|
+| `rain-indoors` | Rain from indoors | [samesamesame](https://freesound.org/people/samesamesame/sounds/242889/) | CC0 1.0 | 44 s / 4 s | 0.35 (0.85) | 1.26 (2.37) | -27.0 | 319 KiB |
+| `rain-balcony` | Rain on a balcony | [unfa](https://freesound.org/people/unfa/sounds/177479/) | CC0 1.0 | 45 s / 4 s | 0.75 (2.26) | 1.88 (3.48) | -27.0 | 294 KiB |
+| `ocean` | Gentle ocean | [kkenny101](https://freesound.org/people/kkenny101/sounds/852826/) | CC0 1.0 | 21.77 s / none | 1.81 (11.26) | 5.56 (15.76) | -27.8 | 104 KiB |
+| `wind-trees` | Wind in the pines | [sinewave1kHz](https://freesound.org/people/sinewave1kHz/sounds/202989/) | CC0 1.0 | 60 s / 5 s | 0.06 (1.14) | 1.58 (2.11) | -27.0 | 415 KiB |
+| `wind-grass` | Wind in an open field | [felix.blume](https://freesound.org/people/felix.blume/sounds/217506/) | CC0 1.0 | 60 s / 5 s | 0.14 (3.92) | 1.97 (3.78) | -27.0 | 408 KiB |
+| `wood-thrush` | Wood thrush at dawn | [kvgarlic](https://freesound.org/people/kvgarlic/sounds/156826/) | CC0 1.0 | 75 s / 6 s | 0.15 (15.35) | 2.65 (10.84) | -26.9 | 531 KiB |
+| `fire-crackle` | Crackling fire | [samarobryn](https://freesound.org/people/samarobryn/sounds/414767/) | CC0 1.0 | 52 s / 4 s | 0.13 (11.7) | 1.88 (12.59) | -31.5 | 381 KiB |
+| `laundry-room` | Laundry room | [moviebuffgavin](https://freesound.org/people/moviebuffgavin/sounds/411914/) | CC0 1.0 | 24 s / 8 s | 0.23 (2.34) | 3.0 (8.91) | -27.0 | 163 KiB |
+| `fan` | Fan hum | [LilMati](https://freesound.org/people/LilMati/sounds/515859/) | CC0 1.0 | 60 s / 4 s | 0.09 (1.44) | 0.85 (1.4) | -27.0 | 412 KiB |
+| `train-yamanote` | Yamanote Line train | [SDLx](https://freesound.org/people/SDLx/sounds/259988/) | CC BY 3.0 | 33 s / 5 s | 0.16 (0.83) | 1.52 (2.05) | -27.0 | 226 KiB |
+| `night-shore` | Crickets by the sea | [felix.blume](https://freesound.org/people/felix.blume/sounds/479041/) | CC0 1.0 | 60 s / 6 s | 0.23 (1.49) | 1.3 (5.93) | -27.0 | 535 KiB |
+
+Three of these **replace** a BigSoundBank loop under its old id, so saved mixes and the starter presets keep working: `wind-grass`, `wind-trees` and `fire-crackle`. The other eight are new ids on existing shelves. The previous BigSoundBank entries are in git history (`sources.json` before this slice).
+
+`train-yamanote` (SDLx, CC BY 3.0) is the first CC BY loop to ship. Its credit (title, author, source page, licence link and the changes made) is in `assets/sounds/NOTICE` and on the in-app Sound credits screen, where it is marked "attribution required".
+
+Not used from the first scouting list: Sauron974's fire (crickets audible), gluckose's stream (birdsong in it), Blankie's and Moodist's audio (licence unclear), and the Ylmir rain beyond the one already shipped. The build does not audition by ear; the numbers and spectrogram checks are in DECISIONS.md (2026-10-26, Freesound originals). Burooj then listened to all eleven on the phone and approved them.
