@@ -107,8 +107,8 @@ class CustomiseHomeLayoutScreenState
     switch (type) {
       case HomeWidgetType.upNext:
         return l10n.upNextTitle;
-      case HomeWidgetType.quickLinks:
-        return l10n.homeQuickLinksTitle;
+      case HomeWidgetType.homeShortcuts:
+        return l10n.homeShortcutsTitle;
       case HomeWidgetType.pinned:
         return l10n.homePinnedTitle;
     }

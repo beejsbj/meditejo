@@ -533,7 +533,9 @@ which opens the Sounds screen as a page (`openSoundsPage`), beside Customize.
 **The Sounds screen** (`lib/views/soundscape/sounds_view.dart`, BRIEF
 decisions 16 and 18) is presentation over the controller above; it adds no
 mixer state. Presets are a row of `PresetCard`s and the library a grid of
-`SoundCard`s per shelf, both on `GeneratedArtwork` (`sound_cards.dart`); a
+`SoundCard`s per shelf, both on `GeneratedArtwork` (`sound_cards.dart`), three
+cards across a phone (`SoundGridMetrics`: cells at most 140 dp wide, which
+grows past 1.3× text so a phone falls back to two columns); a
 shelf's colour and Material Symbol come from `SoundLook`
 (`sound_labels.dart`, with the localised labels). The current mix
 (`sound_mix_panel.dart`: `SoundsMixHeader`, `SoundsMixBody`,
@@ -641,8 +643,15 @@ which moves only while it can be seen; the sections follow. `HomeWidgetType`
 user can switch on or off and reorder in Customize (the Organize Home Layout
 screen, from the button beside the title). `homeWidgetOrderProvider` keeps the
 order (`homeWidgetOrder`) and `homeHiddenWidgetsProvider` the sections switched
-off (`homeWidgetHidden`). Defaults, all on: **upNext → quickLinks → pinned**.
-`upNext` keeps its old saved name for what is now **Continue**. Sections an
+off (`homeWidgetHidden`). Defaults, all on: **upNext → homeShortcuts → pinned**.
+`upNext` keeps its old saved name for what is now **Continue**, and
+`homeShortcuts` still reads its old saved name `quickLinks`
+(`HomeWidgetType.tryParse`; saving writes the new one). **Home draws no
+section headings** (BRIEF decision 19): spacing and grouping separate the
+sections, and `HomeSectionHeader` (`home_styles.dart`) gives each one an undrawn
+`Semantics(header: true)` label (`upNextTitle`, `homeShortcutsTitle`,
+`homePinnedTitle`) so TalkBack still announces the groups. The same strings
+name the sections in Customize. Sections an
 earlier version saved (shortcuts, carousel, quote) are ignored. The consistency
 score and streak are not on Home; they live on the stats screen (reached from
 the You page), whose copy says the numbers are feedback, not a score.
@@ -658,7 +667,7 @@ the You page), whose copy says the numbers are feedback, not a score.
   unfinished session of the first pinned course, else of the first course in the
   library (the starter set leads a fresh install), so Home is not empty. The
   first item also feeds the Android Up Next widget.
-- **Quick links**: Timer (Medito's timer), Sounds (the background-sound
+- **Shortcuts** (`lib/views/home/widgets/shortcuts/`): Timer (Medito's timer), Sounds (the background-sound
   picker), up to two **sound presets** (`homeSoundPresetsProvider`: the
   user's own, newest first, then the built-ins) and Add (import). A preset
   tile starts the timer at once (`startTimerSession`,

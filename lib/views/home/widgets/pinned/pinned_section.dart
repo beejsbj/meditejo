@@ -24,7 +24,7 @@ class PinnedSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        HomeSectionTitle(l10n.homePinnedTitle),
+        HomeSectionHeader(l10n.homePinnedTitle),
         for (final (i, id) in ids.indexed)
           Padding(
             padding: EdgeInsets.fromLTRB(
