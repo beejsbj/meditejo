@@ -610,7 +610,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
 
-      await tester.drag(find.byType(CustomScrollView), const Offset(0, -1500));
+      await tester.drag(find.byType(ListView), const Offset(0, -1500));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
