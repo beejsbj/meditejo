@@ -55,6 +55,9 @@ abstract final class SessionLabelRegistry {
   static void clear() => _byTrack.clear();
 }
 
+/// How long a completion waits for a course's title from its source.
+const kCourseTitleWait = Duration(seconds: 2);
+
 /// Test seam: replaces [labelSessionCompletion].
 @visibleForTesting
 Future<SessionLabel> Function(String trackId)? sessionLabelOverride;
@@ -97,8 +100,11 @@ Future<SessionLabel> labelSessionCompletion(String trackId) async {
     if (courseId != null) {
       title = (await store.entry(courseId))?.displayTitle;
       if (title == null || title.isEmpty) {
+        // A course the library does not hold (a retreat played from Explore)
+        // may need a network fetch for its title. Recording the session must
+        // not wait on it: a short wait, then the session is saved untitled.
         try {
-          title = (await router.pack(courseId)).title;
+          title = (await router.pack(courseId).timeout(kCourseTitleWait)).title;
         } catch (_) {
           title = null;
         }

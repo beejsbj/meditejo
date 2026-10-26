@@ -68,8 +68,9 @@ class AudioCompletionTracker {
   ///
   /// With [trackId], [duration] is also added to that track's most recent
   /// entry that has a recorded length, so the stats page shows it on the day
-  /// of the session. No such entry (an older history, or a session deleted
-  /// since) leaves only the running total.
+  /// of the session. No such entry (an older history, with no recorded length)
+  /// leaves only the running total. If the session it repeats was deleted,
+  /// the minutes go to the track's latest remaining session instead.
   static LocalAllStats addRepeatListeningTime({
     required LocalAllStats? stats,
     required int duration,

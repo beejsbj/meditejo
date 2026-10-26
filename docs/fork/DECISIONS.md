@@ -613,3 +613,11 @@ Decisions 16 and 18 (Stats page; Check for updates on the main Settings screen) 
 - **Tests that prove it.** `practice_summary_test.dart` (today, week, month, all time, the Practice/Talks split, ranking, day boundary, Monday week, on fixed fixtures), `session_minutes_test.dart` (recording, repeats, deleting), `stats_screen_test.dart`, `settings_reachability_test.dart` (every old setting by its title, the phone-only rows with the platform given, group order) and `updates_in_settings_test.dart` (Check for updates on the main screen, the old About tests moved).
 - **Needs a real phone:** the Android-only rows (Silence phone, Health Connect, the widget pin) with the real platform; the chart's touch and drag on a screen; reading the stats with TalkBack; and a first session recorded on the phone, then its minutes appearing under Practice or Talks with its course.
 - **Known gaps:** the Dharma Seed course of a single talk is named by its retreat only when the source knows its parent; otherwise it is listed under "Dharma Seed talks". A history older than this release shows days without minutes until new sessions are sat.
+- **From the independent review of #40 (Claude Opus 5.5) and the automated reviewers; nothing was P0 or P1.**
+  - **Fixed in this PR:** recording a completion no longer waits on a network fetch for a course's title (a short wait, `kCourseTitleWait` 2 s, then it is saved untitled); the repeat-pass doc comment now says where the minutes go when the repeated session was deleted; `labelSessionCompletion` has tests.
+  - **Follow-ups, not done here:**
+    - **Update notice's View:** it selects the You tab but the page keeps its scroll position, so About (moved to the top while an update waits) can be off-screen. Scroll the page to the top when it turns up.
+    - **Labels differ by path:** live, a track with no library group and no background sound counts as Talks (the cues' guess); replayed after the app was killed it counts as "Other". Make the replay fallback use the same guess.
+    - **Chart summary is read twice by screen readers:** the container label and the live readout both carry it. Keep one.
+    - **The minute tick** recomputes the whole summary every minute while a stats screen is watching it; compare the day first.
+    - **Tests to add:** large-text chart heading beside the 7/30 switch; the iOS rows of Settings.
