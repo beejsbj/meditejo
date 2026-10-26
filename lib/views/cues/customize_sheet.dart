@@ -261,6 +261,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
             value: _minutes(s.durationMinutes),
             editor: () => _WheelField<int>(
               label: 'Duration',
+              showLabel: false,
               options: [
                 for (var m = 1; m <= _maxDurationMinutes; m++)
                   WheelOption(m, _minutes(m), semanticsLabel: '$m minutes'),
@@ -306,6 +307,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
           value: s.countdownSeconds == 0 ? 'Off' : '${s.countdownSeconds} sec',
           editor: () => _WheelField<int>(
             label: 'Countdown',
+            showLabel: false,
             options: const [
               WheelOption(0, 'Off'),
               WheelOption(5, '5 sec', semanticsLabel: '5 seconds'),
@@ -1009,7 +1011,8 @@ class _FinishesPill extends StatelessWidget {
 }
 
 /// A section: its name in the primary colour, its rows on one tonal 28 dp
-/// surface, as on the Settings and You screens.
+/// surface, as on the Settings and You screens. One step up from the sheet
+/// (which is surfaceContainerLow), so the card reads on it.
 class _Section extends StatelessWidget {
   const _Section({this.title, required this.children});
 
@@ -1036,7 +1039,7 @@ class _Section extends StatelessWidget {
             ),
           ),
         Material(
-          color: scheme.surfaceContainerLow,
+          color: scheme.surfaceContainerHigh,
           clipBehavior: Clip.antiAlias,
           shape: MeditejoShapes.rounded(MeditejoShapes.extraLarge),
           child: Column(children: children),
@@ -1247,9 +1250,13 @@ class _WheelField<T> extends StatelessWidget {
     this.parse,
     this.hint,
     this.visibleItems = 5,
+    this.showLabel = true,
   });
 
   final String label;
+
+  /// Off where the row's own title already says it (a lone wheel).
+  final bool showLabel;
   final List<WheelOption<T>> options;
   final T value;
   final ValueChanged<T> onChanged;
@@ -1263,17 +1270,18 @@ class _WheelField<T> extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 4, top: 4),
-          child: ExcludeSemantics(
-            child: Text(
-              label,
-              style: context.typography.baseline.labelLarge?.copyWith(
-                color: scheme.onSurfaceVariant,
+        if (showLabel)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 4, top: 4),
+            child: ExcludeSemantics(
+              child: Text(
+                label,
+                style: context.typography.baseline.labelLarge?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ),
           ),
-        ),
         WheelPicker<T>(
           key: ValueKey('wheel_$label'),
           label: label,
@@ -1372,7 +1380,7 @@ class _BellList extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final type = context.typography;
     return Material(
-      color: scheme.surfaceContainerHigh,
+      color: scheme.surfaceContainerHighest,
       clipBehavior: Clip.antiAlias,
       shape: MeditejoShapes.rounded(MeditejoShapes.largeIncreased),
       child: Column(
