@@ -635,8 +635,9 @@ state.
 ## Home composition
 
 Home is a launchpad (BRIEF decision 14), not a catalogue. It opens with the
-Meditejo mark (`lib/widgets/branding/`, geometry in `mark_geometry.dart`),
-which moves only while it can be seen; the sections follow. `HomeWidgetType`
+Meditejo mark: today's (`homeMarkProvider`, see "Identity: marks and
+palettes"), or the one the user pinned with a long-press. It moves only while
+it can be seen; the sections follow. `HomeWidgetType`
 (`lib/constants/enums/home_widget_type.dart`) names its sections, which the
 user can switch on or off and reorder in Customize (the Organize Home Layout
 screen, from the button beside the title). `homeWidgetOrderProvider` keeps the
@@ -815,10 +816,13 @@ library.
 
 ## Theme and design tokens
 
-Material 3 Expressive (BRIEF decision 16). Tokens (seed colour and scheme
-variant, corner scale, spring motion schemes, the M3 type scale with
+Material 3 Expressive (BRIEF decision 16). Tokens (the default palette and
+scheme variant, corner scale, spring motion schemes, the M3 type scale with
 Expressive's emphasized styles) live in `lib/constants/theme/tokens.dart`;
-`meditejoTheme(brightness)` in `app_theme.dart` builds `ThemeData` from them.
+`meditejoTheme(brightness, [palette])` in `app_theme.dart` builds `ThemeData`
+from them and from the active identity palette (`palette_theme.dart`, below).
+`main.dart` passes `activePaletteProvider`, so changing the palette re-themes
+the whole app, animated over `MeditejoMotion.medium`.
 The M3 type scale is the `ExpressiveTypography` theme extension
 (`context.typography`); `ThemeData.textTheme` still carries Medito's text-role
 sizes for screens not yet redesigned (`text_theme.dart`), coloured from the
@@ -828,3 +832,51 @@ scheme. Redesigned screens use `context.typography`, `MeditejoShapes` and
 in each of `BottomNavigationBarView`'s `_page` and `_navItem` switches, and,
 because the order is saved, a new `MainTab.layout` with its restore rules.
 
+## Identity: marks and palettes
+
+BRIEF decisions 19 to 21. The generator from the identity exploration
+(round 2 on `fork/mark-explore`, d040d58f) is ported to Dart, seed for seed.
+
+- **`lib/services/identity/` (pure Dart, no Flutter):**
+  - `seeded_random.dart`: the page's string hash and mulberry32, in 32-bit
+    arithmetic. The order of calls is part of every mark.
+  - `stroke_engine.dart`, `mark_generator.dart`: the three families (gesture,
+    minimal, atmospheric) build a `MarkSpec` from a seed (`r2:` prefixed).
+  - `mark_spec.dart`: a built mark, everything needed to draw it, with JSON
+    (`v: 1`). **A pin stores this, frozen**, so a later generator never
+    redraws a kept mark. Bump `formatVersion` if the JSON changes shape;
+    an unreadable pin falls back to the daily mark.
+  - `mark_outline.dart`: pebble outlines and settled-frame paths, shared by
+    the painter and the icon tool.
+  - `daily_mark.dart`: the local date picks the family and is the seed
+    (`m-2026-10-26`); the daily palette walks one fixed shuffle. A day whose
+    gesture would draw the retired double loop takes `<seed>-b`.
+  - `palettes.dart`: the nine palettes (four mark roles, light and dark
+    neutrals). Their order is part of the daily shuffle: add at the end.
+- **`lib/widgets/branding/`:** `MarkRenderer` draws a `MarkSpec` at a moment
+  of its life on a unit canvas (a port of the page's draw code, with the
+  print finish from `mark_textures.dart`). `MeditejoMark` drives it with a
+  ticker that runs only while visible (scroll, `Visibility`, `TickerMode`,
+  app lifecycle) and shows the settled frame under reduced motion.
+  `home_mark_sheet.dart` pins and unpins.
+- **`lib/providers/identity/identity_providers.dart`:** `identityDayProvider`
+  (`refresh()` from `main.dart`'s minute tick and on resume; no timer of
+  its own),
+  `paletteChoiceProvider` (`daily` or a palette id; default Tidewater),
+  `activePaletteProvider`, `pinnedMarkProvider` (frozen JSON in
+  `identity_pinned_mark`), `dailyMarkProvider` and `homeMarkProvider`. The
+  mark and the palette are chosen and pinned independently.
+- **Palette → scheme (`lib/constants/theme/palette_theme.dart`):** tonal-spot
+  ramps from the palette's form colour (tertiary from its accent); the
+  palette's neutrals as surfaces and text; text roles held at WCAG AA on
+  every surface (`legibleOn`). `MeditejoPalette` (a theme extension) carries
+  the palette to the mark, which drops its tile on the app's background and
+  takes the text colour for a stroke under 2.2:1.
+- **The launcher icon is fixed** (Android can swap icons only through
+  activity aliases built into the app). Its geometry is frozen in
+  `assets/branding/house_mark.json`; `tools/meditejo/branding/make_icons.py`
+  regenerates every platform's icon from it. No build flavour may override
+  `ic_launcher` (a test checks).
+- **Faithfulness:** `test/widgets/branding/mark_reference_test.dart` compares
+  Dart renders with PNGs drawn by the page's own JS
+  (`tools/meditejo/branding/reference/`, headless Chrome).
