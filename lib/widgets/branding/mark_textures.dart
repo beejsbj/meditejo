@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:medito/services/identity/seeded_random.dart';
+import 'package:medito/utils/logger.dart';
 
 /// The print finish's two textures (`core.js` `paperTex`, `speckleTex`):
 /// paper tooth, laid over the art with overlay, and ink speckle in the
@@ -32,7 +33,7 @@ class MarkTextures extends ChangeNotifier {
     onError: (Object e) {
       // Without paper the marks still draw; try again on the next mark.
       _loading = null;
-      debugPrint('Mark paper texture failed: $e');
+      AppLogger.e('IDENTITY', 'Mark paper texture failed', e);
     },
   );
 
