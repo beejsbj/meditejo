@@ -327,6 +327,16 @@ void main() {
       },
     );
 
+    test('a damaged stored value does not hide a built mix', () async {
+      for (final junk in ['not json', '[]', '{"practice": 7}']) {
+        final d = await practiceAfter({
+          SoundscapeStore.sessionDefaultsKey: junk,
+          SoundscapeStore.mixKey: mixWith('river'),
+        });
+        expect(d.enabled, isTrue, reason: junk);
+      }
+    });
+
     test('an emptied mix is not a chosen sound', () async {
       final d = await practiceAfter({
         SoundscapeStore.sessionDefaultsKey: oldFactory(),
