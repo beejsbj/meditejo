@@ -1073,5 +1073,17 @@
   "myCourseMore": "Más opciones",
   "myCourseRemovedSnack": "Quitada de la lista",
   "myCourseEditAction": "Editar",
+  "navYou": "Tú",
+  "soundsMixEmptyTitle": "Tu mezcla aún está vacía",
+  "soundsMixEmptyHint": "Toca un sonido o un preajuste para empezar una mezcla.",
+  "soundsMute": "Silenciar {sound}",
+  "soundsUnmute": "Activar {sound}",
+  "soundsShowMix": "Mostrar tu mezcla",
+  "soundsHideMix": "Ocultar tu mezcla",
+  "soundsMixVolume": "Volumen de la mezcla",
+  "soundsPlayPreset": "Reproducir {name}",
+  "soundsPresetPlaying": "Sonando",
+  "soundsAdjust": "Ajustar",
+  "soundsEditMix": "Editar tu mezcla en Sonidos",
   "playlistKind": "Lista"
 }

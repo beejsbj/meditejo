@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/constants/theme/tokens.dart';
@@ -8,8 +9,8 @@ import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/home/home_presets_provider.dart';
+import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/providers/timer/timer_settings_provider.dart';
-import 'package:medito/views/background_sound/background_sound_view.dart';
 import 'package:medito/views/home/home_styles.dart';
 import 'package:medito/views/library/import_view.dart';
 import 'package:medito/views/timer/start_timer.dart';
@@ -54,13 +55,11 @@ class QuickLinksSection extends ConsumerWidget {
         key: const ValueKey('quick_sounds'),
         color: scheme.surfaceContainerHigh,
         onColor: scheme.onSurface,
-        icon: (color) => MeditoIcon(
-          assetName: MeditoIcons.musicNote,
-          color: color,
-          size: 24,
-        ),
+        // The Sounds tab's own symbol.
+        icon: (color) =>
+            Icon(Symbols.graphic_eq_rounded, color: color, size: 24),
         label: l10n.backgroundSoundsSection,
-        onTap: () => showBackgroundSoundSheet(context),
+        onTap: () => ref.read(mainTabProvider.notifier).select(MainTab.sounds),
       ),
       for (final preset in presets)
         QuickLinkTile(

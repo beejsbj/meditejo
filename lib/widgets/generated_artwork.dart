@@ -7,10 +7,14 @@ import 'package:flutter/material.dart';
 /// [seed]. The same seed always draws the same tile, so a course keeps its
 /// colour everywhere it appears, and the palette keeps the set consistent.
 class GeneratedArtwork extends StatelessWidget {
-  const GeneratedArtwork({super.key, required this.seed});
+  const GeneratedArtwork({super.key, required this.seed, this.colors});
 
   /// What the tile stands for, usually the title or ID.
   final String seed;
+
+  /// A (light, deep) pair to draw with instead of the one [seed] picks, so a
+  /// family of tiles (one shelf of sounds) can share a colour.
+  final (Color, Color)? colors;
 
   /// Muted, low-contrast pairs (light, deep) that sit well on the dark and
   /// light themes alike.
@@ -42,7 +46,7 @@ class GeneratedArtwork extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final h = hash(seed);
-    final (light, deep) = colorsFor(seed);
+    final (light, deep) = colors ?? colorsFor(seed);
     return ExcludeSemantics(
       child: CustomPaint(
         painter: _ArtworkPainter(

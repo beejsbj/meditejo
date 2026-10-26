@@ -5,11 +5,11 @@ import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/models/timer/timer_session.dart';
-import 'package:medito/views/background_sound/background_sound_view.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_download_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_speed_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/bg_sound_widget.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
+import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/speed_sheet.dart';
 
 import 'bottom_action_bar.dart';
@@ -33,8 +33,7 @@ class PlayerActionBar extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     // A timer is local silence: nothing to download, and speed would only
-    // change how long the session takes. Keep close, the Sounds sheet and
-    // Customize.
+    // change how long the session takes. Keep close, Sounds and Customize.
     if (request.isTimer) {
       return BottomActionBar(
         leftItem: BottomActionBarItem(
@@ -44,9 +43,7 @@ class PlayerActionBar extends StatelessWidget {
         ),
         rightCenterItem: BottomActionBarItem(
           child: _buildBackgroundSoundWidget(),
-          onTap: () {
-            showBackgroundSoundSheet(context);
-          },
+          onTap: () => openSoundsPage(context),
           semanticLabel: l10n.backgroundSounds,
         ),
         rightItem: BottomActionBarItem(
@@ -76,9 +73,7 @@ class PlayerActionBar extends StatelessWidget {
       // here to adjust or stop it.
       centerItem: BottomActionBarItem(
         child: _buildBackgroundSoundWidget(),
-        onTap: () {
-          showBackgroundSoundSheet(context);
-        },
+        onTap: () => openSoundsPage(context),
         semanticLabel: l10n.backgroundSounds,
       ),
       rightCenterItem: BottomActionBarItem(

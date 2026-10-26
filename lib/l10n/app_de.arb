@@ -1313,5 +1313,17 @@
   "myCourseMore": "Weitere Optionen",
   "myCourseRemovedSnack": "Aus der Playlist entfernt",
   "myCourseEditAction": "Bearbeiten",
+  "navYou": "Du",
+  "soundsMixEmptyTitle": "Noch nichts in deinem Mix",
+  "soundsMixEmptyHint": "Tippe auf ein Geräusch oder eine Voreinstellung, um einen Mix zu beginnen.",
+  "soundsMute": "{sound} stummschalten",
+  "soundsUnmute": "{sound} wieder einschalten",
+  "soundsShowMix": "Deinen Mix zeigen",
+  "soundsHideMix": "Deinen Mix ausblenden",
+  "soundsMixVolume": "Lautstärke des Mixes",
+  "soundsPlayPreset": "{name} abspielen",
+  "soundsPresetPlaying": "Läuft",
+  "soundsAdjust": "Anpassen",
+  "soundsEditMix": "Mix in Klänge bearbeiten",
   "playlistKind": "Playlist"
 }

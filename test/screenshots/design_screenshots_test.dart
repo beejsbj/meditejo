@@ -11,12 +11,13 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medito/constants/icons/medito_icons.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
+import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/services/home/continue_rules.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
@@ -25,12 +26,14 @@ import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/bottom_navigation/widgets/medito_nav_bar.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/library/library_view.dart';
+import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:medito/views/timer/timer_view.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
 
 import '../helpers/dharma_seed_app.dart';
 import '../helpers/fake_session_source.dart';
 import '../helpers/library_app.dart';
+import '../helpers/soundscape_fakes.dart';
 
 const _out = 'docs/fork/design';
 final _enabled = Platform.environment['MEDITEJO_SCREENSHOTS'] == '1';
@@ -53,6 +56,16 @@ Future<void> _loadFonts() async {
       ).readAsBytes().then((b) => ByteData.sublistView(b)),
     );
   await icons.load();
+  // The tab bar's and the Sounds screen's Material Symbols.
+  final symbols =
+      FontLoader(
+        'packages/material_symbols_icons/MaterialSymbolsRounded',
+      )..addFont(
+        rootBundle.load(
+          'packages/material_symbols_icons/lib/fonts/MaterialSymbolsRounded.ttf',
+        ),
+      );
+  await symbols.load();
 }
 
 final _boundary = GlobalKey();
@@ -162,11 +175,12 @@ void main() {
     if (_enabled) await _loadFonts();
   });
 
-  final nav = [
-    const MeditoNavItem(icon: MeditoIcons.home, label: 'Home'),
-    const MeditoNavItem(icon: MeditoIcons.search, label: 'Explore'),
-    const MeditoNavItem(icon: MeditoIcons.libraries, label: 'Library'),
-    const MeditoNavItem(icon: MeditoIcons.settings, label: 'Settings'),
+  const nav = [
+    MeditoNavItem(icon: Symbols.home_rounded, label: 'Home'),
+    MeditoNavItem(icon: Symbols.search_rounded, label: 'Explore'),
+    MeditoNavItem(icon: Symbols.graphic_eq_rounded, label: 'Sounds'),
+    MeditoNavItem(icon: Symbols.library_books_rounded, label: 'Library'),
+    MeditoNavItem(icon: Symbols.person_rounded, label: 'You'),
   ];
 
   for (final brightness in Brightness.values) {
@@ -209,16 +223,7 @@ void main() {
             Scaffold(
               body: const SizedBox.expand(),
               bottomNavigationBar: MeditoNavBar(
-                items: [
-                  nav[0],
-                  nav[1],
-                  const MeditoNavItem(
-                    icon: MeditoIcons.musicNote,
-                    label: 'Sounds',
-                  ),
-                  nav[2],
-                  const MeditoNavItem(icon: MeditoIcons.settings, label: 'You'),
-                ],
+                items: nav,
                 selectedIndex: 2,
                 onSelected: (_) {},
               ),
@@ -233,6 +238,61 @@ void main() {
       expect(tester.takeException(), isNull);
       await _capture(tester, 'navbar-five-${brightness.name}');
     }, skip: !_enabled);
+
+    // The Sounds tab: the starter mix (three layers) docked under the
+    // presets and the library; the same mix open; an empty mix (which stays
+    // docked); and a wide window with the panel beside the library.
+    for (final (name, empty, open, wide) in [
+      ('sounds', false, false, false),
+      ('sounds-mix', false, true, false),
+      ('sounds-empty', true, false, false),
+      ('sounds-wide', false, false, true),
+    ]) {
+      testWidgets('$name, ${brightness.name}', (tester) async {
+        final app = await LibraryTestApp.create(tester);
+        await app.pump(
+          tester,
+          _frame(
+            brightness,
+            Scaffold(
+              body: const SoundsView(),
+              bottomNavigationBar: wide
+                  ? null
+                  : MeditoNavBar(
+                      items: nav,
+                      selectedIndex: 2,
+                      onSelected: (_) {},
+                    ),
+            ),
+          ),
+          overrides: soundscapeTestOverrides(FakeSoundscapeEngine()),
+        );
+        if (wide) {
+          // A tablet in landscape.
+          tester.view.devicePixelRatio = 2;
+          tester.view.physicalSize = const Size(2560, 1600);
+          await tester.pump();
+        } else {
+          await _phone(tester);
+        }
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(SoundsView)),
+        );
+        final mixer = container.read(soundscapeProvider.notifier);
+        if (empty) {
+          mixer.clearMix();
+        } else {
+          mixer.togglePlay();
+        }
+        await tester.pump(const Duration(seconds: 1));
+        if (open) {
+          await tester.tap(find.byKey(const ValueKey('sounds_mix_toggle')));
+          await tester.pump(const Duration(seconds: 1));
+        }
+        expect(tester.takeException(), isNull);
+        await _capture(tester, '$name-${brightness.name}');
+      }, skip: !_enabled);
+    }
 
     // Decision 18: what the user makes is a Playlist, what a source gives is
     // a Course. The Library lists both; the add-to sheet offers playlists.

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:medito/widgets/medito_icon.dart';
 import 'medito_nav_bar.dart';
 
 /// The same destinations as the phone bar, as Material's navigation rail,
@@ -34,13 +33,10 @@ class MeditoSidebar extends StatelessWidget {
       destinations: [
         for (final item in items)
           NavigationRailDestination(
-            icon: MeditoIcon(
-              assetName: item.icon,
-              color: scheme.onSurfaceVariant,
-            ),
-            selectedIcon: MeditoIcon(
-              assetName: item.icon,
-              color: scheme.onSecondaryContainer,
+            icon: item.iconFor(scheme.onSurfaceVariant, selected: false),
+            selectedIcon: item.iconFor(
+              scheme.onSecondaryContainer,
+              selected: true,
             ),
             label: Text(item.label),
           ),
