@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medito/constants/icons/medito_icons.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/views/bottom_navigation/widgets/medito_nav_bar.dart';
 
 const _five = [
-  MeditoNavItem(icon: MeditoIcons.home, label: 'Home'),
-  MeditoNavItem(icon: MeditoIcons.search, label: 'Explore'),
-  MeditoNavItem(icon: MeditoIcons.musicNote, label: 'Sounds'),
-  MeditoNavItem(icon: MeditoIcons.libraries, label: 'Library'),
-  MeditoNavItem(icon: MeditoIcons.settings, label: 'You'),
+  MeditoNavItem(icon: Symbols.home_rounded, label: 'Home'),
+  MeditoNavItem(icon: Symbols.search_rounded, label: 'Explore'),
+  MeditoNavItem(icon: Symbols.graphic_eq_rounded, label: 'Sounds'),
+  MeditoNavItem(icon: Symbols.library_books_rounded, label: 'Library'),
+  MeditoNavItem(icon: Symbols.person_rounded, label: 'You'),
 ];
 
 void main() {

@@ -5,13 +5,6 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/soundscape/synth.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 
-String synthTitle(AppLocalizations l10n, String id) => switch (id) {
-  kSynthNoiseId => l10n.synthNoise,
-  kSynthDroneId => l10n.synthDrone,
-  kSynthBinauralId => l10n.synthBinaural,
-  _ => id,
-};
-
 /// Opens the editor for a generated layer in the mix.
 Future<void> showSynthEditor(BuildContext context, String id) =>
     showModalBottomSheet<void>(

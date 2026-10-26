@@ -272,7 +272,7 @@ void main() {
       expect(find.textContaining('is available'), findsNothing);
     });
 
-    testWidgets('View opens Settings, with the update on offer', (
+    testWidgets('View opens You, with the update on offer', (
       tester,
     ) async {
       final h = await UpdateHarness.create(
@@ -289,7 +289,7 @@ void main() {
       await tester.tap(find.text('View'));
       await tester.pumpAndSettle();
 
-      expect(container.read(mainTabProvider), MainTab.settings);
+      expect(container.read(mainTabProvider), MainTab.you);
     });
 
     testWidgets('About leads Settings while an update is waiting', (

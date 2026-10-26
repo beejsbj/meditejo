@@ -12,9 +12,9 @@ import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 /// the full stats page, and below it every setting, grouped by what a person
 /// is trying to do.
 ///
-/// One widget, so a tab can host it as `const YouView()`. [title] defaults to
-/// "You"; the Settings screen that predates the tab shows the same body under
-/// its own name.
+/// One widget, hosted by the You tab as `const YouView()`. [title] defaults to
+/// "You"; [SettingsScreen] (the `settings` link) shows the same body under its
+/// own name.
 class YouView extends ConsumerWidget {
   const YouView({super.key, this.title});
 
@@ -44,7 +44,7 @@ class YouView extends ConsumerWidget {
                   child: Semantics(
                     header: true,
                     child: Text(
-                      title ?? l10n.youTitle,
+                      title ?? l10n.navYou,
                       style: context.typography.emphasized.headlineMedium,
                     ),
                   ),

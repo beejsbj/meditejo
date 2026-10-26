@@ -27,6 +27,11 @@ class TypeConstants {
   static const String tabExplore = 'explore';
   static const String tabSearch = 'search';
   static const String tabLibrary = 'library';
+  static const String tabSounds = 'sounds';
+  static const String tabYou = 'you';
+
+  /// Settings lives under You: `meditejo://settings` opens that tab.
+  static const String tabSettings = 'settings';
 
   // New constants for path view
   static const String article = 'article';
