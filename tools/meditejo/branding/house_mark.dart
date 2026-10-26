@@ -34,11 +34,34 @@ const paletteId = 'tide';
 /// preview did.
 const canvas = 108.0, visible = 72.0, content = 0.9;
 
-(double, double) Function((double, double)) toIcon(double visible) =>
+/// Maps tile units onto the icon: the mark's bounding box is centred (the
+/// shelter's tile composition sits low, which a circle mask exaggerates),
+/// then the tile's side becomes [visible] dp, shrunk to [content].
+(double, double) Function((double, double)) toIcon(
+  double visible,
+  (double, double) centre,
+) =>
     (p) => (
-      canvas / 2 + (p.$1 - 0.5) * visible * content,
-      canvas / 2 + (p.$2 - 0.5) * visible * content,
+      canvas / 2 + (p.$1 - centre.$1) * visible * content,
+      canvas / 2 + (p.$2 - centre.$2) * visible * content,
     );
+
+/// The centre of [mark]'s settled bounding box, in tile units.
+(double, double) boxCentre(MarkSpec mark) {
+  var x0 = double.infinity, y0 = double.infinity;
+  var x1 = -double.infinity, y1 = -double.infinity;
+  settledOutline(
+    mark,
+    map: (p) {
+      x0 = p.$1 < x0 ? p.$1 : x0;
+      x1 = p.$1 > x1 ? p.$1 : x1;
+      y0 = p.$2 < y0 ? p.$2 : y0;
+      y1 = p.$2 > y1 ? p.$2 : y1;
+      return p;
+    },
+  );
+  return ((x0 + x1) / 2, (y0 + y1) / 2);
+}
 
 String hex(int argb) =>
     '#${(argb & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
@@ -52,8 +75,9 @@ void main(List<String> args) {
   }
   final mark = MarkSpec.decode(File(json).readAsStringSync());
   final palette = IdentityPalettes.byId(paletteId);
-  final shapes = settledOutline(mark, map: toIcon(visible));
-  final square = settledOutline(mark, map: toIcon(canvas));
+  final centre = boxCentre(mark);
+  final shapes = settledOutline(mark, map: toIcon(visible, centre));
+  final square = settledOutline(mark, map: toIcon(canvas, centre));
   int fill(String role) => switch (role) {
     'form' => palette.form,
     'stroke' => palette.stroke,
