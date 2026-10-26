@@ -149,3 +149,7 @@ docs/experiments/*
 
 # Local release adoption snapshot
 /docs/RELEASE_ADOPTION.md
+
+# The Dharma Seed catalogue snapshot is a release asset, fetched by
+# tools/meditejo/catalogue.py (docs/fork/ARCHITECTURE.md); catalogue.json pins it.
+assets/dharma_seed/catalogue.sqlite.gz

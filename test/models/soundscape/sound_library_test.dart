@@ -134,13 +134,13 @@ void main() {
     });
   });
 
-  group('session defaults (decision 8)', () {
-    test('on for practice, off for talks', () {
+  group('session defaults (decisions 8 and 17)', () {
+    test('nothing is chosen for practice or talks', () {
       expect(
         SoundscapeSessionDefault.initial(
           SoundscapeSessionKind.practice,
         ).enabled,
-        isTrue,
+        isFalse,
       );
       expect(
         SoundscapeSessionDefault.initial(SoundscapeSessionKind.talks).enabled,

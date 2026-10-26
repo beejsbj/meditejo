@@ -28,6 +28,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Fetch the pinned Dharma Seed catalogue
+        # A release asset, not a file in git; the hash in catalogue.json is
+        # checked, and a missing or different asset fails the build.
+        run: python3 -I tools/meditejo/catalogue.py fetch
       - name: Select build parameters
         env:
           INPUT_FLAVOR: ${{ inputs.flavor }}
@@ -88,6 +92,8 @@ jobs:
             --target-platform android-arm64
       - name: Verify packaged licence texts
         run: python3 -I tools/meditejo/check_apk_licenses.py "build/app/outputs/flutter-apk/app-$FLAVOR-$MODE.apk"
+      - name: Verify the packaged Dharma Seed catalogue
+        run: python3 -I tools/meditejo/catalogue.py verify-apk "build/app/outputs/flutter-apk/app-$FLAVOR-$MODE.apk"
       - name: YouTube native unit tests
         run: |
           cd android

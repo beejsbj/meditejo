@@ -155,7 +155,7 @@ void main() {
   test('a release without a manifest is unavailable', () async {
     final client = _client(
       (_) async => http.Response(
-        jsonEncode({'tag_name': 'v1', 'assets': <Object>[]}),
+        jsonEncode({'tag_name': 'v0.1.1', 'assets': <Object>[]}),
         200,
       ),
     );
@@ -169,6 +169,81 @@ void main() {
         ),
       ),
     );
+  });
+
+  group('catalogue releases are never an update', () {
+    // The bundled Dharma Seed snapshot is an asset on a `catalogue-YYYYMMDD`
+    // prerelease of this same repository (docs/fork/ARCHITECTURE.md). GitHub's
+    // `releases/latest` leaves prereleases out, so the updater never meets
+    // one; these cases hold even if it did.
+    String catalogue({
+      String tag = 'catalogue-20261019',
+      bool prerelease = true,
+      String published = '2026-10-19T12:00:00Z',
+      bool withUpdateManifest = false,
+    }) => jsonEncode({
+      'tag_name': tag,
+      'draft': false,
+      'prerelease': prerelease,
+      'published_at': published,
+      'body': 'Bundled Dharma Seed catalogue snapshot',
+      'assets': [
+        {
+          'name': 'catalogue.sqlite.gz',
+          'browser_download_url':
+              '$kReleaseDownloadPrefix$tag/catalogue.sqlite.gz',
+        },
+        if (withUpdateManifest)
+          {
+            'name': kReleaseManifestName,
+            'browser_download_url':
+                '$kReleaseDownloadPrefix$tag/$kReleaseManifestName',
+          },
+      ],
+    });
+
+    Future<void> expectIgnored(String listing) async {
+      final seen = <Uri>[];
+      final client = _client((request) async {
+        seen.add(request.url);
+        if (request.url.host == 'api.github.com') {
+          return http.Response(listing, 200);
+        }
+        return http.Response(_manifest(), 200);
+      });
+      await expectLater(
+        client.latest(),
+        throwsA(
+          isA<UpdateException>().having(
+            (e) => e.failure,
+            'failure',
+            UpdateFailure.unavailable,
+          ),
+        ),
+      );
+      // Only the `latest` endpoint is read; the release is never listed.
+      expect(seen.single.path, '/repos/beejsbj/meditejo/releases/latest');
+    }
+
+    test('whatever its date, as a prerelease', () async {
+      for (final published in [
+        '2026-10-19T12:00:00Z',
+        '2099-01-01T00:00:00Z',
+      ]) {
+        await expectIgnored(catalogue(published: published));
+      }
+    });
+
+    test('even when published without the prerelease flag', () async {
+      await expectIgnored(catalogue(prerelease: false));
+      await expectIgnored(
+        catalogue(
+          prerelease: false,
+          published: '2099-01-01T00:00:00Z',
+          withUpdateManifest: true,
+        ),
+      );
+    });
   });
 
   test('a malformed manifest is unavailable', () async {

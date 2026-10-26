@@ -1,5 +1,9 @@
 // Builds the Dharma Seed catalogue snapshot that ships inside the app.
-// Not part of CI; `release.sh` runs it before every release.
+// Not part of CI; `release.sh` runs it when the pinned snapshot is stale.
+// The snapshot is a GitHub release asset, not a file in git: this tool starts
+// from the one `python3 -I tools/meditejo/catalogue.py fetch` put in
+// assets/dharma_seed, and `catalogue.py publish` uploads the result and pins
+// it in catalogue.json (docs/fork/ARCHITECTURE.md, "The bundled catalogue").
 // ignore_for_file: avoid_print
 //
 //   timeout 2400 nice -n 10 flutter test tools/meditejo/dharma_seed_snapshot.dart
@@ -63,6 +67,13 @@ void main() {
       final packed = File(
         '${outDir.path}/${DharmaSeedSnapshotWriter.databaseFileName}',
       );
+      if (!packed.existsSync()) {
+        fail(
+          '${packed.path} is missing: run `python3 -I '
+          'tools/meditejo/catalogue.py fetch` first (or DS_FRESH=true for a '
+          'full sync).',
+        );
+      }
       await packed.openRead().transform(gzip.decoder).pipe(work.openWrite());
       print('starting from the snapshot of ${previous.asOf.toIso8601String()}');
     }

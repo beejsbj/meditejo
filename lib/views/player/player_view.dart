@@ -662,8 +662,8 @@ class _PlayerViewState extends ConsumerState<PlayerView>
     );
   }
 
-  /// Practice or Talks: each plays its own soundscape default (decision 8:
-  /// on for Practice, off for Talks), unless Customize chose a [selection]
+  /// Practice or Talks: each plays its own soundscape default (both
+  /// start with nothing chosen: decision 17), unless Customize chose a [selection]
   /// for the session's scope.
   void _playSessionSounds(bool practice, SoundscapeSelection? selection) {
     ref.read(backgroundSoundsNotifierProvider.notifier)

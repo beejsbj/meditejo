@@ -108,6 +108,24 @@ void main() {
       );
     });
 
+    test('refuses a release that is not tagged as an app release', () {
+      // The catalogue snapshot lives on `catalogue-YYYYMMDD` releases.
+      for (final tag in [
+        'catalogue-20261019',
+        'catalogue-20261019-2',
+        'v1',
+        'v0.1',
+        'v0.1.1-rc1',
+        '0.1.1',
+      ]) {
+        expect(
+          () => ReleaseListing.fromApi(_api(extra: {'tag_name': tag})),
+          throwsFormatException,
+          reason: tag,
+        );
+      }
+    });
+
     test('refuses malformed manifests', () {
       for (final bad in <Map<String, Object?>>[
         {'schema': 2},

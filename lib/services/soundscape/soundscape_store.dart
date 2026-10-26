@@ -15,6 +15,9 @@ class SoundscapeStore {
   static const presetsKey = 'soundscape_presets';
   static const volumeKey = 'soundscape_volume';
   static const sessionDefaultsKey = 'soundscape_session_defaults';
+  static const sessionDefaultsVersionKey =
+      'soundscape_session_defaults_version';
+  static const _sessionDefaultsVersion = 2;
 
   final SharedPreferences _prefs;
 
@@ -47,6 +50,77 @@ class SoundscapeStore {
 
   void writeVolume(double volume) =>
       unawaited(_prefs.setDouble(volumeKey, volume));
+
+  /// Practice used to start on with the current mix (decision 8) and now
+  /// starts with nothing chosen (decision 17). A device that never touched the
+  /// setting must follow, but the stored value cannot always say so: changing
+  /// Talks' level, switching Talks, or deleting a preset rewrites both kinds,
+  /// Practice's included, at its old factory value.
+  ///
+  /// So Practice moves to "nothing" only when it is *exactly* that old factory
+  /// value (on, the current mix, level 0.5) and no sound was ever put in the
+  /// mixer. Any other stored Practice (a different level, a preset or a single
+  /// sound, an explicit off) or a mix the user built stays as it was: a sound
+  /// someone may have chosen is never taken away. The one case the data cannot
+  /// separate is a user who switched Practice on with the starter mix, left
+  /// every level alone and never opened the mixer; they move too, and one tap
+  /// in Customize puts the sound back. A user with a built mix but no Practice
+  /// setting stored (nothing ever rewrote it) is pinned to the old default
+  /// explicitly, so the mix keeps playing.
+  ///
+  /// Runs once: the version key stops it from undoing a later explicit choice.
+  void migrateSessionDefaults() {
+    if ((_prefs.getInt(sessionDefaultsVersionKey) ?? 1) >=
+        _sessionDefaultsVersion) {
+      return;
+    }
+    unawaited(
+      _prefs.setInt(sessionDefaultsVersionKey, _sessionDefaultsVersion),
+    );
+    final decoded = _decode(sessionDefaultsKey);
+    final raw = decoded is Map ? decoded : const <Object?, Object?>{};
+    final stored = raw[SoundscapeSessionKind.practice.name];
+    final mix = readMix();
+    if (stored is! Map) {
+      // Nothing stored for Practice, so it followed the old factory default
+      // (on, the current mix). Someone who built a mix has been hearing it
+      // under every session: keep that explicit before the new default (off)
+      // would silently drop it.
+      if (mix != null && !mix.isEmpty) {
+        unawaited(
+          _prefs.setString(
+            sessionDefaultsKey,
+            jsonEncode({
+              ...raw,
+              SoundscapeSessionKind.practice.name:
+                  const SoundscapeSessionDefault(enabled: true).toJson(),
+            }),
+          ),
+        );
+      }
+      return;
+    }
+    final untouched =
+        stored['enabled'] == true &&
+        SoundscapeSelection.parse(
+              stored['selection'] is String
+                  ? stored['selection'] as String
+                  : null,
+            ) ==
+            SoundscapeSelection.currentMix &&
+        (stored['volume'] ?? 0.5) == 0.5 &&
+        (mix == null || mix.isEmpty);
+    if (!untouched) return;
+    unawaited(
+      _prefs.setString(
+        sessionDefaultsKey,
+        jsonEncode({
+          ...raw,
+          SoundscapeSessionKind.practice.name: {...stored, 'enabled': false},
+        }),
+      ),
+    );
+  }
 
   Map<SoundscapeSessionKind, SoundscapeSessionDefault> readSessionDefaults() {
     final raw = _decode(sessionDefaultsKey);
