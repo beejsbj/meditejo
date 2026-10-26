@@ -463,7 +463,20 @@ ignored), author, source page, and its processing record.
 `tools/meditejo/sounds/process_sounds.py` writes the JSON, `assets/sounds/NOTICE`
 and `tools/meditejo/sounds/commands.log` from `tools/meditejo/sounds/sources.json`.
 Never edit the outputs by hand; change the manifest and rerun (see the script's
-docstring for the loop, loudness and encoding steps). The sounds keep their own
+docstring for the loop, loudness and encoding steps). A manifest entry names its
+original by `downloadUrl` (BigSoundBank, OpenGameArt) or by `"freesound": <id>`.
+A Freesound original needs Burooj's authorised app: on a cache miss the script
+asks `meditejo-freesound-fetch info` for the live licence (it stops on anything
+but the licence the manifest declares, CC0 or CC BY), then `get` for the file, a
+few seconds apart. That tool holds the OAuth tokens; the script never sees them.
+The original is cached outside the repo and pinned by SHA-256, so a cached,
+pinned original builds anywhere, and without the tool anything else stops with
+a message. Each entry's `processing.seam` records the loop's seam on the encoded
+file (level step and third-octave spectral distance across the wrap, beside the
+loop's own p95 elsewhere); `python3 -I -m unittest discover -s tools/meditejo -p
+'test_sounds.py'` tests the source kind and the metric with a fake tool. A CC BY
+sound must carry its credit (original title, author, page URL): it is in NOTICE
+and, marked "attribution required", on Sound credits. The sounds keep their own
 licences, outside the AGPL; Settings › licences lists the mixer's native code
 (`assets/licenses/soloud-native-components.json`), and **Sound credits** (the
 Sounds screen's app-bar button and its last row) lists every recording.

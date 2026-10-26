@@ -596,6 +596,25 @@ void main() {
         200,
         scrollable: list,
       );
+      if (sound.license.requiresAttribution) {
+        // CC BY must be credited in the app too: title, author, licence,
+        // source and the changes made.
+        final tile = find.byKey(ValueKey('credit_${sound.id}'));
+        for (final text in [
+          sound.originalTitle,
+          sound.author,
+          sound.license.label,
+          sound.modifications,
+          Uri.parse(sound.sourceUrl).host,
+          'Attribution required',
+        ]) {
+          expect(
+            find.descendant(of: tile, matching: find.textContaining(text)),
+            findsWidgets,
+            reason: '${sound.id}: $text',
+          );
+        }
+      }
     }
     expect(find.text('CC0 1.0'), findsWidgets);
     await tester.pageBack();
