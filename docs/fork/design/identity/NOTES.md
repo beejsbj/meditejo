@@ -223,3 +223,112 @@ Fire is always drawn in warm inks, whatever the palette's form colour.
 - **In the app, ship `curated_art.json` as an asset.** Painters read the frozen params for shipped items and never re-derive them, so later generator changes can't alter what ships. Anything else calls `compose(kind, id)` with the same map.
 - **Painters:** one `CustomPainter` per ground and per figure, plus `CardPainter` (ground, then figure, then the accent with a small offset and `multiply` on light grounds or `screen` on dark ones, then the baked finish).
 - **Lists, motion and cost:** as in round 3. Lists use a raster cache; motion runs only where it's seen, at up to 30 fps, and stops under reduced motion.
+
+## Round 5: places and bells
+
+Round 5 lives in `round5/`; `node round5/build.mjs` builds `identity-round5.html`. It loads round 4's `grounds.js`, `prims.js` and `shipped.js` unchanged, then its own sources:
+
+- `places.js`: the new grounds and figures, the bell figure and the noise colours;
+- `compose.js`: round 4's composition, plus place classes, ground variants and bells;
+- `export.js`: the `curated_art.json` format, now with bells;
+- `bell_params.py` → `bells.json`: each shipped bell's sound, read from the generator;
+- `bellsynth.js`: a browser sketch of the bell sound, for the bell maker.
+
+### New grounds and figures
+
+- **Grounds (5):**
+  - window (rain beads and trickles on the glass, with the room's light behind);
+  - balcony, with a `balcony` or `terrace` variant (a railing, or a tiled floor with puddles, against the city in rain or at dusk);
+  - car (the windscreen's curve, with drops beading and sliding);
+  - metro (a window band with lights streaming past, and a pole; the carriage sways);
+  - room (a wall, a floor and a lamp's warm pool).
+- **Figures (10):** lamp (table or pendant), window (with rain or a moon), cup with steam, washing-machine porthole (turning), fan (turning blades behind a guard), umbrella, railing with drips, droplets, hanging straps (rings or triangles), and a doorway with light.
+- **Weakest:** the room ground is plain on its own. It works as a backdrop for a figure, which is how the map uses it. The car ground reads as rain on dark glass more than as a car.
+
+### Noise in its colour
+
+The texture ground keeps its round 4 parameters, so nothing frozen changes; only its tone and grain are drawn differently:
+
+- white is `#F3F1EC`, with a light multiply grain;
+- pink is `#E6B3AA`, with an overlay grain;
+- brown is `#4F3426`, with a heavier, coarser grain.
+
+Each leans 18% toward the palette (its tile, accent or deep colour). The Stillness preset is mostly brown noise, so it now draws brown too, with its frozen entry unchanged.
+
+### Bells: drawn from their sound
+
+Each shipped bell is a preset of five controls. These are the same five a custom-bell editor (BJS-587) would expose, and the figure draws from them:
+
+| Control | From the generator | Drawn as |
+|---|---|---|
+| pitch | Hz of the loudest mode | size relative to the family's preset; a bowl gets wider and deeper as it goes lower, and chime tubes get longer (a bar's pitch falls with its length squared) |
+| bright | the upper modes' share of ring energy (a²τ) | body tone, rim colour and weight, the sheen down the body, the highlight |
+| ring | the loudest mode's decay τ, in seconds | how long the motion lasts (0.45 + 1.25 τ s); how many ripples open, and how far they spread |
+| strike | the strike's low-pass on a log scale, 300 Hz (soft) to 10 kHz (hard) | how far the mallet swings back and how hard the knock or sway is; how fast the tone blooms; the mallet head (a big felt head when soft, a small bare tip when hard) |
+| shimmer | the loudest mode's beat, in Hz | the rim's flicker, at that very rate, with depth growing with it |
+
+`bell_params.py` imports `tools/meditejo/generate_bells.py` (develop, eda420ae) and swaps its `render()` and `strike()` for recorders. It then runs each sound's build, so the numbers come from the generator itself rather than from a copy of its tables. The Swell bell is Medito's recording, so its modes are measured from `session_bell_v2.wav`. It has no mallet setting; its 1.2 s swell before the peak stands in for a soft strike (0).
+
+| Bell | Family | pitch | bright | ring | strike | shimmer |
+|---|---|---|---|---|---|---|
+| Swell bell | swell | 221 Hz | 4% | 1.23 s | 0 | 0.24 Hz |
+| Singing bowl, small | bowl | 640 | 20% | 1.05 | 0.51 | 0.91 |
+| Singing bowl | bowl | 392 | 20% | 1.45 | 0.51 | 0.61 |
+| Singing bowl, deep | bowl | 196 | 20% | 2.00 | 0.51 | 0.34 |
+| Temple bell | temple | 196 | 50% | 3.20 | 0.24 | 1.30 |
+| Hand bell | hand | 1318 | 21% | 1.20 | 0.85 | 1.10 |
+| Chime | chime | 1568 | 6% | 1.70 | 0.97 | 0.70 |
+| Tingsha | tingsha | 3120 | 12% | 1.60 | 0.97 | 5.50 |
+| Wood block | block | 1180 | 18% | 0.03 | 0.70 | 0 |
+| Wooden fish | fish | 520 | 7% | 0.12 | 0.46 | 0 |
+| Gong | gong | 118 | 65% | 4.20 | 0.12 | 0.80 |
+
+- **The family is the shape:** a swell bell with a halo, a singing bowl on its cushion with a mallet, a bonshō with a hung log, a hand bell, tubular chimes, tingsha (two cymbals face on, on one cord), a wood block, a wooden fish and a gong in its frame.
+- **Each moves once, as its sound does:**
+  - the bowl's rim shimmers as a glint runs round it;
+  - the temple bell and the hand bell sway once;
+  - the chimes swing and settle;
+  - the tingsha meet edge to edge, part, and tremble at their 5.5 Hz beat;
+  - the woods take one knock;
+  - the gong's ripples open across its face and beyond.
+
+  All of it starts at the strike (t = 0) and decays with the ring. At rest the bell is still: in lists, in the picker, and under reduced motion.
+- **The bell maker** (page section 05) is BJS-587's prototype: start from any bell, move the five controls, and the card and the 40 dp icon redraw live; letting go strikes them. Its sound is `bellsynth.js`: the same modal model, starting from the preset's own modes and moved by the controls (pitch scales every frequency; ring scales every decay; shimmer scales every beat; brightness rescales the upper modes until their energy share matches; strike sets the noise burst's low-pass). It leaves out the fish's pitch glide and the gong's noise wash, so it's a sketch, not the shipped sound. What the editor would save is `{from, pitch, bright, ring, strike, shimmer}`.
+
+### The meaning map, round 5
+
+Round 5's place classes list (ground, figure) pairs, because a place only reads when the two belong together. Round 4's rows stay, with the same random draws, so round 4's curated items rebuild identically. Rain, Rooms, Fan and Trains now ship nothing directly: presets still read their layers through round 4's classes (`classOf(id, kind, true)`), so the curated presets don't move.
+
+| Class | Ships as | Ground + figure pairs |
+|---|---|---|
+| Rain on a terrace | Rain on a terrace | balcony:terrace + streaks; balcony:terrace alone |
+| Rain on an umbrella | Rain on an umbrella | rain field + umbrella; mist + umbrella |
+| Rain at the window | Rain at the window | window + droplets; room + window |
+| Rain on a car roof | Rain on a car roof | car + droplets; car + streaks |
+| Rain from indoors | Rain from indoors | room + window; room + lamp; window + droplets |
+| Rain on a balcony | Rain on a balcony | balcony:balcony + streaks; balcony:balcony alone; rain field + railing |
+| Café | Café | room + cup; room bokeh + cup; room + lamp |
+| Quiet house | Quiet house | room + doorway; room + lamp; room bokeh + doorway |
+| Laundry room | Laundry room | room + porthole; paper + porthole |
+| Fan hum | Fan hum | room + fan; paper + fan; mist + fan |
+| Trains | Metro carriage, Yamanote Line train | metro + strap; room bokeh + strap; metro + threads |
+| Bells | the eleven bells' cards | paper, mist, dawn or night + bell (pinned to the bell's controls) |
+| Bell icons | the eleven bells' icons | paper, mist or night + bell, in the icon layout |
+| Noise | White, pink, brown | texture, in the noise's own colour |
+
+All the other rows are as in round 4.
+
+### Curation and port
+
+- **`round5/curated_art.json` supersedes round 4's.** It has 58 items:
+  - 32 untouched items, which `curate.mjs` checks freeze byte-identically to round 4's;
+  - 15 re-curated: the six rain sounds, Café, Quiet house, Laundry room, Fan hum, Metro carriage, Yamanote Line train, and the three noises (pink kept its round 4 candidate, which now draws pink);
+  - 11 bells.
+- **A bell's entry** is `{title, kind: "bell", asset, preset, knobs, pick: {card, icon}, card, icon}`. `card` and `icon` are frozen compositions like any other; `knobs` repeats the five controls the figure draws from.
+- **The picks:** cards on varied grounds; every icon on the night ground, so the picker reads as one set. Changing that is one index per bell in `picks.json`.
+- **In the app:**
+  - `BellPainter` takes the family and the five controls, plus `t` since the strike.
+  - It is still (t = 0, nothing struck) except for one play after a preview or a selection, lasting 0.8 + 3 × (0.45 + 1.25 × ring) s, capped at 16 s.
+  - The icon is the same painter at 40 dp, in a 12 dp-radius rounded square, rasterised once per palette and redrawn only while it plays.
+  - A custom bell (BJS-587) is the same painter fed the user's controls, so its art comes free.
+- **The picker mock** (page section 06) shows the Customize bell list: Off, the eleven bells with their icons, and a "Design your own…" row for BJS-587. Choosing a row strikes its icon once.

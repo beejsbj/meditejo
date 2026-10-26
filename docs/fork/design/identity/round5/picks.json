@@ -1,0 +1,93 @@
+{
+ "rain-terrace": 7,
+ "rain-umbrella": 6,
+ "rain-window": 6,
+ "rain-car": 2,
+ "rain-indoors": 4,
+ "rain-balcony": 4,
+ "stream": 6,
+ "river": 0,
+ "waves": 1,
+ "sea": 4,
+ "ocean": 5,
+ "wind-trees": 5,
+ "wind-grass": 4,
+ "forest-birds": 7,
+ "dawn-chorus": 4,
+ "evening-birds": 1,
+ "forest-brook": 0,
+ "wood-thrush": 0,
+ "fire-crackle": 7,
+ "fire-stove": 0,
+ "room-house": 5,
+ "cafe": 2,
+ "train": 2,
+ "laundry-room": 0,
+ "fan": 6,
+ "train-yamanote": 2,
+ "night-meadow": 2,
+ "night-insects": 3,
+ "night-frogs": 6,
+ "night-shore": 0,
+ "noise-white": 3,
+ "noise-pink": 2,
+ "noise-brown": 0,
+ "drone": 1,
+ "binaural": 5,
+ "starter-rain-forest": 3,
+ "starter-night": 0,
+ "starter-hearth": 2,
+ "starter-shore": 2,
+ "starter-stillness": 6,
+ "ds-retreat-4496": 2,
+ "ds-retreat-1084": 6,
+ "ds-retreat-1183": 0,
+ "ds-retreat-1308": 1,
+ "yt-playlist-PLND1JCRq8VujAHvDA482SXF1cJTQrwlx3": 3,
+ "yt-playlist-PLbmYHvGI-YSvnpbh3ppQqcG72lpw4aQdE": 1,
+ "ds-talk-60864": 3,
+ "bell-swell": {
+  "card": 1,
+  "icon": 2
+ },
+ "bell-bowl-small": {
+  "card": 5,
+  "icon": 1
+ },
+ "bell-bowl-medium": {
+  "card": 7,
+  "icon": 1
+ },
+ "bell-bowl-deep": {
+  "card": 3,
+  "icon": 0
+ },
+ "bell-temple": {
+  "card": 2,
+  "icon": 1
+ },
+ "bell-handbell": {
+  "card": 3,
+  "icon": 0
+ },
+ "bell-chime": {
+  "card": 3,
+  "icon": 0
+ },
+ "bell-tingsha": {
+  "card": 2,
+  "icon": 0
+ },
+ "bell-wood-block": {
+  "card": 1,
+  "icon": 1
+ },
+ "bell-wooden-fish": {
+  "card": 0,
+  "icon": 1
+ },
+ "bell-gong": {
+  "card": 0,
+  "icon": 0
+ }
+}
