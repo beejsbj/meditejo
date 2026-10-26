@@ -41,6 +41,7 @@ class CueSettings {
     this.intervalSound = 'assets/audio/session_bell_v2.wav',
     this.intervalMinutes = 0,
     this.randomWindowMinutes = 0,
+    this.intervalHalfway = false,
     this.pulseSound = '',
     this.pulseBpm = 60,
     this.pulseEndBpm = 40,
@@ -66,6 +67,15 @@ class CueSettings {
   final int durationMinutes, extendMinutes, countdownSeconds;
   final String startSound, endSound, intervalSound;
   final int intervalMinutes, randomWindowMinutes;
+
+  /// The interval bell rings once, at the midpoint of session time, instead
+  /// of every [intervalMinutes] (which is kept, so switching back restores
+  /// it). An older app ignores the key and reads the interval it stored.
+  final bool intervalHalfway;
+
+  /// The interval bell rings at all: halfway, or every N minutes.
+  bool get hasIntervalBell =>
+      intervalSound.isNotEmpty && (intervalHalfway || intervalMinutes > 0);
   final String pulseSound;
   final double pulseBpm, pulseEndBpm, pulseVolume, bellVolume;
   final int pulseRampMinutes;
@@ -94,6 +104,7 @@ class CueSettings {
     String? intervalSound,
     int? intervalMinutes,
     int? randomWindowMinutes,
+    bool? intervalHalfway,
     String? pulseSound,
     double? pulseBpm,
     double? pulseEndBpm,
@@ -117,6 +128,7 @@ class CueSettings {
     'intervalSound': intervalSound ?? this.intervalSound,
     'intervalMinutes': intervalMinutes ?? this.intervalMinutes,
     'randomWindowMinutes': randomWindowMinutes ?? this.randomWindowMinutes,
+    'intervalHalfway': intervalHalfway ?? this.intervalHalfway,
     'pulseSound': pulseSound ?? this.pulseSound,
     'pulseBpm': pulseBpm ?? this.pulseBpm,
     'pulseEndBpm': pulseEndBpm ?? this.pulseEndBpm,
@@ -142,6 +154,7 @@ class CueSettings {
     'intervalSound': intervalSound,
     'intervalMinutes': intervalMinutes,
     'randomWindowMinutes': randomWindowMinutes,
+    'intervalHalfway': intervalHalfway,
     'pulseSound': pulseSound,
     'pulseBpm': pulseBpm,
     'pulseEndBpm': pulseEndBpm,
@@ -205,6 +218,7 @@ class CueSettings {
       ),
       intervalMinutes: integer('intervalMinutes', 0, 0, 60),
       randomWindowMinutes: integer('randomWindowMinutes', 0, 0, 60),
+      intervalHalfway: flag('intervalHalfway', false),
       pulseSound: sound('pulseSound', '', cuePulseSounds),
       pulseBpm: number('pulseBpm', 60, 20, 120),
       pulseEndBpm: number('pulseEndBpm', 40, 20, 120),

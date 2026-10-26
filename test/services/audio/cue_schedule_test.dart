@@ -148,4 +148,79 @@ void main() {
     );
     expect(CueSchedule.gapMs(10, 4, -9, 1), 409580);
   });
+
+  group('halfway', () {
+    const halfway = CueSettings(intervalHalfway: true, intervalMinutes: 5);
+
+    test('one bell at the midpoint of the recording and its extension', () {
+      // (20 min of audio + 10 min extension) / 2, after the countdown. The
+      // stored "every 5 min" is kept but does not ring.
+      final cues = schedule(
+        halfway.copyWith(extendMinutes: 10, countdownSeconds: 10),
+      );
+      expect(cues.intervals().toList(), [
+        const Duration(minutes: 15, seconds: 10),
+      ]);
+      expect(
+        cues.events().where((e) => e.type == CueType.interval).single.at,
+        const Duration(minutes: 15, seconds: 10),
+      );
+    });
+
+    test('a timer rings at half its duration, never adding the extension', () {
+      final cues = schedule(
+        halfway.copyWith(durationMinutes: 25, extendMinutes: 10),
+        timer: true,
+      );
+      expect(cues.intervals().toList(), [
+        const Duration(minutes: 12, seconds: 30),
+      ]);
+    });
+
+    test('an odd length rounds down to the millisecond', () {
+      final cues = CueSchedule(
+        halfway,
+        audioDuration: const Duration(milliseconds: 60001),
+      );
+      expect(cues.halfway, const Duration(milliseconds: 30000));
+    });
+
+    test('the interval bell set to Off rings nothing', () {
+      final cues = schedule(halfway.copyWith(intervalSound: ''));
+      expect(cues.halfway, isNull);
+      expect(cues.intervals(), isEmpty);
+      expect(halfway.copyWith(intervalSound: '').hasIntervalBell, isFalse);
+    });
+
+    test('halfway with no interval minutes still rings', () {
+      const s = CueSettings(intervalHalfway: true);
+      expect(s.hasIntervalBell, isTrue);
+      expect(schedule(s).intervals().single, const Duration(minutes: 10));
+    });
+
+    test('survives storage, and an old value reads as not halfway', () {
+      final stored = CueSettings.decode(
+        '{"version":1,"intervalHalfway":true,"intervalMinutes":7}',
+        CueKind.practice,
+      );
+      expect(stored.intervalHalfway, isTrue);
+      expect(stored.intervalMinutes, 7);
+      expect(CueSettings.fromJson(stored.toJson()).intervalHalfway, isTrue);
+      expect(
+        CueSettings.decode(
+          '{"intervalMinutes":7}',
+          CueKind.practice,
+        ).intervalHalfway,
+        isFalse,
+      );
+      // The native side reads the same key.
+      expect(
+        stored.nativeConfiguration(
+          durationMs: 1,
+          isTimer: false,
+        )['intervalHalfway'],
+        isTrue,
+      );
+    });
+  });
 }

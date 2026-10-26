@@ -73,7 +73,25 @@ class CueSchedule {
     return (low + randomUnit(seed, index) * (high - low)).floor();
   }
 
+  /// Halfway: one bell at the midpoint of session time, so a recording's
+  /// (audio + extension) / 2 and a timer's duration / 2. Native execution
+  /// takes the midpoint of the session end it measures, which also follows
+  /// playback speed; this reference is at 1×.
+  Duration? get halfway {
+    if (!settings.intervalHalfway || settings.intervalSound.isEmpty) {
+      return null;
+    }
+    final length = practiceDuration.inMilliseconds;
+    if (length <= 0) return null;
+    return countdown + Duration(milliseconds: length ~/ 2);
+  }
+
   Iterable<Duration> intervals() sync* {
+    if (settings.intervalHalfway) {
+      final at = halfway;
+      if (at != null) yield at;
+      return;
+    }
     if (settings.intervalMinutes <= 0 || settings.intervalSound.isEmpty) return;
     var elapsedMs = 0;
     for (var index = 1; ; index++) {
