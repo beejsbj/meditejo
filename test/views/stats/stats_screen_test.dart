@@ -214,6 +214,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     var now = DateTime(2026, 10, 21, 23, 59);
+    late WidgetRef ref;
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -223,9 +224,12 @@ void main() {
         ],
         child: MaterialApp(
           home: Consumer(
-            builder: (context, ref, _) => Text(
-              'today ${ref.watch(practiceSummaryProvider)?.today.inMinutes}',
-            ),
+            builder: (context, r, _) {
+              ref = r;
+              return Text(
+                'today ${r.watch(practiceSummaryProvider)?.today.inMinutes}',
+              );
+            },
           ),
         ),
       ),
@@ -233,8 +237,10 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     expect(find.text('today 70'), findsOneWidget);
 
+    // The app ticks once a minute; the clock has passed midnight.
     now = DateTime(2026, 10, 22, 0, 0, 30);
-    await tester.pump(const Duration(minutes: 2));
+    ref.read(practiceTickProvider.notifier).tick();
+    await tester.pump();
     expect(find.text('today 0'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });

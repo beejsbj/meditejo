@@ -346,8 +346,8 @@ clipboard reader and share intake as providers, so tests need no platform.
   names nothing, or an unknown layout, opens Home; the first launch rewrites
   the pair in layout 3's terms. Tab icons are Material Symbols
   (`material_symbols_icons`, rounded, filled when selected); `MeditoNavItem`
-  takes an `IconData`. **You** shows `SettingsScreen` for now, in one line of
-  `_page`, so its own screen can replace it. `meditejo://home`, `explore`,
+  takes an `IconData`. **You** shows `YouView` (the stats summary and the settings
+  groups; see "You and Settings"), in one line of `_page`. `meditejo://home`, `explore`,
   `sounds`, `library`, `you`, `settings` (You) and `search` (Explore with the
   cursor in its field, via `exploreFocusRequestProvider`) select a tab and
   close what is open above it (`tabForLink` in `lib/routes/routes.dart`).

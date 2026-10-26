@@ -43,44 +43,69 @@ void main() {
     l10n = await AppLocalizations.delegate.load(const Locale('en'));
   });
 
-  Future<void> pumpButton(WidgetTester tester, LibraryTestApp app, PackModel pack) =>
-      app.pump(
-        tester,
-        Scaffold(
-          body: PackPathButton(
-            pack: pack,
-            onStartSession: (c, r, {required trackId, required path}) async {},
-            child: const SizedBox(height: 40),
-          ),
-        ),
-        overrides: [packProvider(packId: pack.id).overrideWith(() => _FakePack(pack))],
-      );
+  Future<void> pumpButton(
+    WidgetTester tester,
+    LibraryTestApp app,
+    PackModel pack,
+  ) => app.pump(
+    tester,
+    Scaffold(
+      body: PackPathButton(
+        pack: pack,
+        onStartSession: (c, r, {required trackId, required path}) async {},
+        child: const SizedBox(height: 40),
+      ),
+    ),
+    overrides: [
+      packProvider(packId: pack.id).overrideWith(() => _FakePack(pack)),
+    ],
+  );
 
   group('the course action', () {
     testWidgets('says Start for an untouched course', (tester) async {
       final app = await LibraryTestApp.create(tester);
       await pumpButton(tester, app, _pack());
       final handle = tester.ensureSemantics();
-      expect(find.bySemanticsLabel(RegExp('^${l10n.packStart}: Session 0')), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(RegExp('^${l10n.packStart}: Session 0')),
+        findsOneWidget,
+      );
       handle.dispose();
     });
 
-    testWidgets('says Resume once the first session was left partway', (tester) async {
+    testWidgets('says Resume once the first session was left partway', (
+      tester,
+    ) async {
       final app = await LibraryTestApp.create(tester);
-      await tester.runAsync(() => app.harness.store.savePosition('lib-track-0', 90000, 600000));
+      await tester.runAsync(
+        () => app.harness.store.savePosition('lib-track-0', 90000, 600000),
+      );
       await pumpButton(tester, app, _pack());
       final handle = tester.ensureSemantics();
-      expect(find.bySemanticsLabel(RegExp('^${l10n.packContinue}: Session 0')), findsOneWidget);
-      expect(find.bySemanticsLabel(RegExp('^${l10n.packStart}: ')), findsNothing);
+      expect(
+        find.bySemanticsLabel(RegExp('^${l10n.packContinue}: Session 0')),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel(RegExp('^${l10n.packStart}: ')),
+        findsNothing,
+      );
       handle.dispose();
     });
 
-    testWidgets('a position in some other session does not change the label', (tester) async {
+    testWidgets('a position in some other session does not change the label', (
+      tester,
+    ) async {
       final app = await LibraryTestApp.create(tester);
-      await tester.runAsync(() => app.harness.store.savePosition('lib-track-2', 90000, 600000));
+      await tester.runAsync(
+        () => app.harness.store.savePosition('lib-track-2', 90000, 600000),
+      );
       await pumpButton(tester, app, _pack());
       final handle = tester.ensureSemantics();
-      expect(find.bySemanticsLabel(RegExp('^${l10n.packStart}: Session 0')), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(RegExp('^${l10n.packStart}: Session 0')),
+        findsOneWidget,
+      );
       handle.dispose();
     });
   });
@@ -89,15 +114,25 @@ void main() {
     Future<LibraryTestApp> trackApp(WidgetTester tester) async {
       final app = await LibraryTestApp.create(tester);
       await tester.runAsync(() async {
-        final preview = await app.harness.service.resolve(app.harness.writeAudio('Metta.mp3').path);
-        await app.harness.service.add(preview, const ImportChoice(kind: LibraryKind.single, group: LibraryGroup.practice));
+        final preview = await app.harness.service.resolve(
+          app.harness.writeAudio('Metta.mp3').path,
+        );
+        await app.harness.service.add(
+          preview,
+          const ImportChoice(
+            kind: LibraryKind.single,
+            group: LibraryGroup.practice,
+          ),
+        );
       });
       return app;
     }
 
     testWidgets('plays from the start with just a play icon', (tester) async {
       final app = await trackApp(tester);
-      final id = (await tester.runAsync(app.harness.store.entries))!.single.sourceId;
+      final id = (await tester.runAsync(
+        app.harness.store.entries,
+      ))!.single.sourceId;
       await app.pump(tester, TrackView(trackId: id));
       expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
       expect(find.textContaining('Resume at'), findsNothing);
@@ -106,10 +141,16 @@ void main() {
       expect(find.text('In library'), findsOneWidget);
     });
 
-    testWidgets('reads Resume at the saved place, and can start over', (tester) async {
+    testWidgets('reads Resume at the saved place, and can start over', (
+      tester,
+    ) async {
       final app = await trackApp(tester);
-      final id = (await tester.runAsync(app.harness.store.entries))!.single.sourceId;
-      await tester.runAsync(() => app.harness.store.savePosition(id, 754000, 3600000));
+      final id = (await tester.runAsync(
+        app.harness.store.entries,
+      ))!.single.sourceId;
+      await tester.runAsync(
+        () => app.harness.store.savePosition(id, 754000, 3600000),
+      );
       await app.pump(tester, TrackView(trackId: id));
 
       expect(find.text('Resume at 12:34'), findsOneWidget);
@@ -117,9 +158,13 @@ void main() {
     });
   });
 
-  testWidgets('a request is set to start where the user left off', (tester) async {
+  testWidgets('a request is set to start where the user left off', (
+    tester,
+  ) async {
     final app = await LibraryTestApp.create(tester);
-    await tester.runAsync(() => app.harness.store.savePosition('lib-track-0', 45000, 600000));
+    await tester.runAsync(
+      () => app.harness.store.savePosition('lib-track-0', 45000, 600000),
+    );
     late WidgetRef captured;
     await app.pump(
       tester,
@@ -140,7 +185,9 @@ void main() {
       duration: 600000,
       hasBackgroundSound: true,
     );
-    final resumed = await tester.runAsync(() => withResumePosition(captured, base));
+    final resumed = await tester.runAsync(
+      () => withResumePosition(captured, base),
+    );
     expect(resumed!.startPositionMs, 45000);
     final fresh = await tester.runAsync(
       () => withResumePosition(captured, base.copyWith(trackId: 'lib-track-9')),

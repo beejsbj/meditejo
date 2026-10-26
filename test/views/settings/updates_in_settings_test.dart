@@ -272,9 +272,7 @@ void main() {
       expect(find.textContaining('is available'), findsNothing);
     });
 
-    testWidgets('View opens You, with the update on offer', (
-      tester,
-    ) async {
+    testWidgets('View opens You, with the update on offer', (tester) async {
       final h = await UpdateHarness.create(
         latest: () => LatestFound(testRelease(), null),
       );
