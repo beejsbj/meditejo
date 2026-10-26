@@ -86,6 +86,18 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
       - **Continue** items for whatever is in progress. There can be several ("continue this or that"), practice first, each resuming in one tap.
       - This refines decision 7's single hero into a short list of continues plus quick links. Browsing belongs in Explore, and everything added lives in Library.
 15. **Order after navigation and Home: cues and the Customize sheet first** (Burooj, 2026-10-19). Build the full player Customize sheet and the cue system now, in Medito's current look. The design pass restyles them later. After that come soundscapes and then more catalogues. The design pass follows cues.
+16. **The design pass starts now, in Material 3 Expressive** (Burooj, 2026-10-26, after testing 0.1.3 on the phone). Use Material's Expressive design language largely as it stands; visual taste can be fixed afterwards, so don't wait on Burooj for each choice.
+    - **Home**, from the top: an **animated logo mark**, top centre as in Waking Up (an abstract, minimal SVG-style mark of simple shapes in slow motion, in the spirit of Claude's abstract illustrations); then the **quick links**, which may include saved sound presets that start the Timer; then **pinned**.
+    - **The Customize and Sounds sheets are too cramped** ("suffocating": a drawer full of pills). Sounds should feel first-party, possibly as its own tab. **Explore's cards** need improving.
+    - **A stats page:** time spent practising.
+    - **More bowl and bell sounds,** chosen separately for the start, interval and end cues.
+    - **Labels** such as Metta, Jhāna and Vipassanā on what's kept.
+    - **Practice/Talk:** easy switching while listening ("this is actually a talk"), and possibly markers in the player that split mixed recordings into practice and talk sections.
+17. **Smaller calls** (Burooj, 2026-10-26):
+    - Move the Dharma Seed catalogue snapshot out of git.
+    - Practice's background sound starts with nothing chosen.
+    - Removing an imported course confirms before deleting its audio (the current behaviour).
+    - Ask Hermes Amāra, QRI and Plum Village for permission to stream their recordings. Don't ask AudioDharma for a catalogue export, since slice 8 builds its catalogue anyway.
 
 ## Build and run
 
