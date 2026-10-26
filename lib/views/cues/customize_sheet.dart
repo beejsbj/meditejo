@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/models/soundscape/sound_library.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
@@ -166,6 +167,11 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   late bool _courseOverride;
 
   CueScope get _scope => widget.scope;
+
+  /// What the scope's list is called: a playlist is what the user made, a
+  /// course comes from a source.
+  String get _scopeNoun =>
+      isMyCourseId(_scope.courseId ?? '') ? 'playlist' : 'course';
 
   @override
   void initState() {
@@ -459,10 +465,10 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
       if (_scope.courseId != null)
         SwitchListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-          title: const Text('Use these only for this course'),
+          title: Text('Use these only for this $_scopeNoun'),
           subtitle: Text(
             _courseOverride
-                ? 'Changes apply to this course'
+                ? 'Changes apply to this $_scopeNoun'
                 : 'Changes apply to all ${practice ? 'practice' : 'talks'}',
           ),
           value: _courseOverride,

@@ -24,6 +24,7 @@ import 'package:medito/views/explore/widgets/pack_grid_sliver.dart';
 import 'package:medito/views/home/widgets/header/home_header_widget.dart';
 import 'package:medito/views/tags/widgets/tag_chips.dart';
 import 'package:medito/utils/utils.dart';
+import 'package:medito/views/my_courses/playlist_label.dart';
 import 'package:medito/views/search/search_results.dart';
 import 'package:medito/widgets/filter_pill.dart';
 import 'package:medito/widgets/medito_icon.dart';
@@ -316,7 +317,13 @@ class ExploreViewState extends ConsumerState<ExploreView> {
                   PackItem(
                     id: entry.sourceId,
                     title: entry.displayTitle,
-                    subtitle: entry.subtitle,
+                    subtitle:
+                        playlistAwareDetail(
+                          l10n,
+                          entry.sourceId,
+                          entry.subtitle,
+                        ) ??
+                        '',
                     coverUrl: entry.coverUrl,
                     path: '/packs/${entry.sourceId}',
                   ),

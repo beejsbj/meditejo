@@ -528,3 +528,27 @@ Decision 16. Screenshots, the five-tab check and the mark's motion (GIF and stri
     - **Mark frame rate (taste, Burooj):** the mark draws every frame while Home is visible, up to 120 Hz on the S23+. A lower rate would cost little visually and save battery; judge it with the speed on the phone.
     - **CodeRabbit nit, tile semantics:** assert the fallback screen-reader labels of the Timer and Sounds tiles (`semanticsLabel ?? label`) with `find.bySemanticsLabel`. Trivial test hardening; not done here.
   - **Fixed in this PR from the same review:** quick-link tiles grow with the text size (a fixed 116 dp overflowed past about 1.36×), and `startTimerSession` ignores a second start while one is preparing (a double tap on a preset tile pushed two players).
+
+## 2026-10-26 (BRIEF decision 18: what the user makes is a Playlist)
+
+Screenshots: `docs/fork/design/library-playlists-*.png` (the Library with both kinds) and `add-to-playlist-*.png`; regenerate with `MEDITEJO_SCREENSHOTS=1 flutter test test/screenshots`.
+
+- **User-facing strings only.** Code, tables, providers and `my-course-…` IDs keep their names, so nothing migrates. ARCHITECTURE.md carries the note "my course" in code = "Playlist" in the UI.
+- **Words.** English "Playlist". German "Playlist", plural "Playlists" (an anglicism, as in everyday German). Spanish "lista", plural "listas" (feminine, so "Nueva lista", "Añadir a una lista…"). The de and es are my translations, for Burooj to check.
+- **Copy.** "Make my own copy" is now "Copy as playlist" (de "Als Playlist kopieren", es "Copiar como lista"). The copy keeps the title "<title> (my copy)".
+- **Telling the two apart on one screen.** A playlist's line leads with "Playlist" (the kind) wherever it sits beside courses: Library rows ("Playlist · 5 sessions · 2 of 5"), Explore's "In your library" and search rows. A course keeps its teacher or source. A playlist's own page shows "Playlist" under the title where a course shows its source. The same helper does all three (`playlistAwareDetail`).
+- **Progress is unchanged:** "2 of 5" in the Library and "N of M left" on the page. Only the noun moved.
+- **Home's pinned section is now "Pinned"** (was "Pinned courses"), because it holds playlists too; the limit message says "courses or playlists".
+- **The Customize sheet's scope switch** (hard-coded English, as before) says "playlist" when the scope is a playlist and "course" otherwise.
+- **A blank playlist title** falls back to "My playlist" (was "My course") in the source layer as well as the localized default.
+- **Flagged, for Burooj:**
+  - The Explore search "Courses" heading and the Explore "Courses" grid can contain a playlist (search finds the user's playlists). Each such row says "Playlist" in its detail line; a separate "Playlists" heading in search is a layout call I did not make.
+  - Existing playlists keep their stored library subtitle ("3 sessions"); the "Playlist" word is added when drawing, so it follows the language and needs no data change.
+  - `exploreSavedCourses` is an unused string and was left alone.
+- **Follow-ups from the independent review of #38 (Claude Opus 5.5), not fixed in this PR:**
+  - **"N sessions" is English in German and Spanish rows.** `MyCourseSource.sessionCountText` (and the library snapshot built from it) is hard-coded English, an existing pattern across the library sources, so a playlist row reads "Lista · 3 sessions". The "Playlist" word follows the language; the count does not. Fix by drawing the count from `librarySessions` at draw time rather than storing English.
+  - **Home's pinned tiles do not say Playlist or Course** (title and progress only, as before). Burooj's call whether a pinned tile wants a kind or source line; it is a Home layout decision.
+  - **"Copy as playlist" is offered on a playlist's own row** (it duplicates it). A "Duplicate" label may read better there.
+  - **Spanish "Lista" alone** as the kind label is broad; "lista de reproducción" is the full term. The brief chose "lista"; check on the phone.
+  - **Fixed from the same review:** German "Löse zuerst eins davon" (agrees with Kurs and Playlist), a long test comment, and tests for `playlistAwareDetail` and the search rows. The Explore library grid and the Customize sheet's playlist wording still have no widget test; each is one call to the same helper.
+  - **From CodeRabbit on #38.** Fixed: the Library row's detail wraps to two lines so the "Playlist · " prefix cannot hide progress. Declined, tracked here: localizing the Customize sheet's "Use these only for this playlist/course" sentences. The whole sheet is hard-coded English (its other strings, "Hide these settings before practice" and the interlude options, are too), so translating two sentences would leave it half-localized; localize the sheet as one slice.
