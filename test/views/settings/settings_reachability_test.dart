@@ -167,4 +167,14 @@ void main() {
     expect(_titled('Check for updates'), findsOneWidget);
     expect(_titled('Stats'), findsWidgets);
   });
+
+  testWidgets('the default length can be set from Settings before any track', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await tester.tap(_titled('Default Duration'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Slider), findsOneWidget);
+    expect(find.text('10 min'), findsOneWidget);
+  });
 }

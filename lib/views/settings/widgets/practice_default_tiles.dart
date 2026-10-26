@@ -64,20 +64,16 @@ class DefaultLengthTile extends ConsumerWidget {
           ? l10n.notSet
           : '${duration ~/ 60000} ${l10n.min}',
       hasUnderline: hasUnderline,
-      // With nothing chosen yet there is nothing to adjust: the first track
-      // played sets it.
-      onTap: duration == null
-          ? null
-          : () => showModalBottomSheet<void>(
-              context: context,
-              showDragHandle: true,
-              isScrollControlled: true,
-              useSafeArea: true,
-              backgroundColor: Theme.of(
-                context,
-              ).bottomSheetTheme.backgroundColor,
-              builder: (_) => const DefaultLengthSheet(),
-            ),
+      // Opens at 10 minutes when nothing is chosen yet; nothing is saved
+      // until the slider moves.
+      onTap: () => showModalBottomSheet<void>(
+        context: context,
+        showDragHandle: true,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: Theme.of(context).bottomSheetTheme.backgroundColor,
+        builder: (_) => const DefaultLengthSheet(),
+      ),
     );
   }
 }
