@@ -72,7 +72,7 @@ void main() {
       ]);
       await pump(tester, MyCourseEditView(courseId: id));
 
-      expect(find.text('Edit course'), findsOneWidget);
+      expect(find.text('Edit playlist'), findsOneWidget);
       expect(find.text('My jhāna curriculum'), findsOneWidget);
       expect(find.text('Practice'), findsOneWidget);
       expect(find.text('Day 1'), findsOneWidget);
@@ -203,7 +203,7 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey('my_course_delete')));
       await settle(tester);
-      expect(find.text('Delete this course?'), findsOneWidget);
+      expect(find.text('Delete this playlist?'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('my_course_delete_confirm')));
       await settle(tester);
 
@@ -283,8 +283,8 @@ void main() {
     });
   });
 
-  group('Add to course…', () {
-    testWidgets('adds a session to a course the user picks', (tester) async {
+  group('Add to playlist…', () {
+    testWidgets('adds a session to a playlist the user picks', (tester) async {
       await setUpApp(tester);
       final id = await course(tester, 'Evening sits', const []);
       await pump(
@@ -298,9 +298,9 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('content_actions_x-7')));
       await settle(tester);
-      await tester.tap(find.text('Add to course…'));
+      await tester.tap(find.text('Add to playlist…'));
       await settle(tester);
-      expect(find.text('New course'), findsOneWidget);
+      expect(find.text('New playlist'), findsOneWidget);
       await tester.tap(find.byKey(ValueKey('add_to_$id')));
       await settle(tester);
 
@@ -309,7 +309,7 @@ void main() {
       expect(lineIds(edit), ['x-7']);
     });
 
-    testWidgets('or starts a new course with it', (tester) async {
+    testWidgets('or starts a new playlist with it', (tester) async {
       await setUpApp(tester);
       await pump(
         tester,
@@ -322,7 +322,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('content_actions_x-7')));
       await settle(tester);
-      await tester.tap(find.text('Add to course…'));
+      await tester.tap(find.text('Add to playlist…'));
       await settle(tester);
       await tester.tap(find.byKey(const ValueKey('add_to_new_course')));
       await settle(tester);
@@ -342,7 +342,7 @@ void main() {
       expect(entry!.group, LibraryGroup.practice);
     });
 
-    testWidgets('a course row also offers Make my own copy', (tester) async {
+    testWidgets('a course row also offers Copy as playlist', (tester) async {
       await setUpApp(tester);
       await pump(
         tester,
@@ -356,9 +356,9 @@ void main() {
         find.byKey(const ValueKey('content_actions_ds-retreat-4496')),
       );
       await settle(tester);
-      expect(find.text('Add to course…'), findsOneWidget);
-      expect(find.text('Make my own copy'), findsOneWidget);
-      expect(find.text('Edit course'), findsNothing);
+      expect(find.text('Add to playlist…'), findsOneWidget);
+      expect(find.text('Copy as playlist'), findsOneWidget);
+      expect(find.text('Edit playlist'), findsNothing);
     });
 
     test('a personal course\'s actions include Edit and Delete', () {

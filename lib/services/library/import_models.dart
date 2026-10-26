@@ -26,6 +26,21 @@ enum ImportFailureReason {
   dharmaSeedMissing,
   fileMissing,
   noAudioFiles,
+
+  /// A picked folder with nothing in it.
+  folderEmpty,
+
+  /// A picked folder with more audio than a course should hold.
+  folderTooLarge,
+
+  /// Not enough free space to copy a picked folder.
+  folderNoSpace,
+
+  /// The folder could not be opened or none of its files could be read.
+  folderUnreadable,
+
+  /// No folder picker on this device.
+  folderUnavailable,
 }
 
 class ImportFailure implements Exception {
@@ -57,6 +72,55 @@ class PickedFile {
   final String? name;
   final int? sizeBytes;
   final String? mimeType;
+}
+
+/// A folder the user chose. On Android its audio has already been copied
+/// into the app ([files]); elsewhere only its [path] is known and the
+/// importer lists it.
+@immutable
+class PickedFolder {
+  const PickedFolder.path(String this.path)
+    : name = '',
+      files = const [],
+      unreadable = 0;
+
+  const PickedFolder.copied({
+    required this.name,
+    required this.files,
+    this.unreadable = 0,
+  }) : path = null;
+
+  final String? path;
+
+  /// The folder's own name, the suggested course title.
+  final String name;
+  final List<PickedFile> files;
+
+  /// Files and folders that could not be read and were left out.
+  final int unreadable;
+}
+
+/// One episode of a list that Single can pick from.
+@immutable
+class ImportEpisode {
+  const ImportEpisode({
+    required this.id,
+    required this.title,
+    this.durationMs,
+    this.publishedAt,
+    this.subtitle = '',
+    this.artworkUrl = '',
+  });
+
+  /// The feed's own episode ID, or the YouTube video ID.
+  final String id;
+  final String title;
+  final int? durationMs;
+  final DateTime? publishedAt;
+
+  /// The uploader or author, when it differs from the list's.
+  final String subtitle;
+  final String artworkUrl;
 }
 
 @immutable
@@ -99,6 +163,9 @@ class ImportPreview {
     this.mimeType,
     this.files = const [],
     this.fileDurationsMs = const [],
+    this.unreadableItems = 0,
+    this.episodes = const [],
+    this.defaultEpisodeId,
   });
 
   final ImportOrigin origin;
@@ -150,7 +217,29 @@ class ImportPreview {
   final List<PickedFile> files;
   final List<int?> fileDurationsMs;
 
+  /// Items a folder import could not read and left out.
+  final int unreadableItems;
+
+  /// What Single picks from, newest first for a feed, in list order for a
+  /// playlist. Empty when there is nothing to pick.
+  final List<ImportEpisode> episodes;
+
+  /// The episode Single starts on: the feed's latest, or the video in a
+  /// watch link.
+  final String? defaultEpisodeId;
+
   bool get hasKindChoice => allowedKinds.length > 1;
+
+  /// Whether Single has more than one episode to pick from.
+  bool get hasEpisodeChoice => episodes.length > 1;
+
+  ImportEpisode? episode(String? id) {
+    final wanted = id ?? defaultEpisodeId;
+    for (final e in episodes) {
+      if (e.id == wanted) return e;
+    }
+    return null;
+  }
 }
 
 /// What the user decided in the preview.
@@ -161,6 +250,7 @@ class ImportChoice {
     required this.group,
     this.title,
     this.episodeOrder = 'oldest',
+    this.episodeId,
   });
 
   final LibraryKind kind;
@@ -171,6 +261,10 @@ class ImportChoice {
 
   /// `oldest` (the default) or `newest`, for feeds.
   final String episodeOrder;
+
+  /// For a Single from a list: the episode picked; null takes the preview's
+  /// default.
+  final String? episodeId;
 }
 
 /// Where an import ended up.

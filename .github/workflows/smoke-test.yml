@@ -23,6 +23,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Fetch the pinned Dharma Seed catalogue
+        run: python3 -I tools/meditejo/catalogue.py fetch
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -193,6 +196,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Fetch the pinned Dharma Seed catalogue
+        run: python3 -I tools/meditejo/catalogue.py fetch
 
       # Cache the Flutter SDK ourselves: flutter-action v2.12.0's built-in cache
       # keys on hashFiles('**/pubspec.lock'), which is re-evaluated after the

@@ -104,8 +104,18 @@ app: `assets/dharma_seed/catalogue.sqlite.gz` (a `VACUUM INTO` copy of the
 catalogue database with its FTS indexes merged, gzipped: 13 MiB for 49,007
 talks, 35 MiB unpacked) and `catalogue.json` (the manifest: format and database
 schema versions, `asOf`, the per-kind `edition` cursors, row counts, unpacked
-size and SHA-256). It holds catalogue text only, never audio, and no user data
-(saved rows and the fetch queue are emptied).
+size and SHA-256, and the `asset` pin, below). It holds catalogue text only,
+never audio, and no user data (saved rows and the fetch queue are emptied).
+
+**Only the manifest is in git.** The gzip is a git-ignored file, fetched at
+build time from an asset on a `catalogue-YYYYMMDD` **prerelease** of
+`beejsbj/meditejo`. `catalogue.json`'s `asset` section (`release`, `name`,
+`bytes` and the `sha256` of the gzip) pins exactly which snapshot a commit
+builds with, so a build is reproducible from the commit alone. A prerelease
+because the in-app updater reads `releases/latest`, which never returns one,
+and because the updater also refuses any tag that is not `v<MAJOR.MINOR.PATCH>`
+(`docs/fork/UPDATES.md`). `tools/meditejo/catalogue.py` is the one tool:
+`fetch`, `check`, `publish` and `verify-apk`.
 
 - **Install** (`DharmaSeedSnapshot.installIfNeeded`): `DharmaSeedDatabase.open()`
   runs it inside the lazy opener, so it happens before the database file is
@@ -137,19 +147,33 @@ size and SHA-256). It holds catalogue text only, never audio, and no user data
   touches the database and so triggers the install in the background.
 - **Build** (`tools/meditejo/dharma_seed_snapshot.dart`, a `flutter test` file
   because the sync imports Flutter): runs the app's own polite sync (serial,
-  750 ms apart) starting from the committed snapshot, so a refresh is a delta of
-  a few requests, or from nothing (`DS_FRESH=true`) a full sync. It refuses an
-  unfinished sync, and leaves the files untouched when the sync changed no
-  record. **`release.sh` runs it before the version bump only when the committed
-  snapshot is over 30 days old** (`--refresh-catalogue` forces it,
-  `--skip-snapshot` never runs it), and commits the snapshot when it changed.
-- **Shipping choice**: committed directly, no Git LFS. At 13 MiB it is under the
-  20 MB line, a plain checkout is all CI and `build_apk.sh` need (an LFS pointer
-  in an asset would build an app with no catalogue and no error), and
+  750 ms apart) starting from the snapshot in `assets/dharma_seed` (which
+  `catalogue.py fetch` put there), so a refresh is a delta of a few requests,
+  or from nothing (`DS_FRESH=true`) a full sync. It refuses an unfinished
+  sync, and leaves the files untouched when the sync changed no record.
+  **`release.sh` runs it before the version bump only when the pinned snapshot
+  is over 30 days old** (`--refresh-catalogue` forces it, `--skip-snapshot`
+  never runs it). When the snapshot changed, `catalogue.py publish` uploads it
+  as a new prerelease, checks it by downloading it back, and pins it in
+  `catalogue.json`; the release commit holds the manifest alone.
+- **Fetch.** `catalogue.py fetch` downloads the pinned asset over HTTPS from the
+  public release URL (no token), refuses a size or SHA-256 mismatch, a missing
+  asset or a manifest with no pin, and moves the file into place only once it
+  verifies. It runs in `meditejo-apk.yml`, `ci-develop.yml` and the inherited
+  `release.yml` and `smoke-test.yml` builds, and by hand for local work
+  (`docs/fork/BUILD.md`). After the APK is built, `catalogue.py verify-apk`
+  compares the packaged gzip and manifest with the pin. `build_apk.sh` and
+  `release.sh` check the pin is downloadable before spending a CI run.
+- **Shipping choice**: a release asset fetched in CI, not committed and not
+  Git LFS (BRIEF decision 17, 2026-10-26; before it the 13 MiB gzip was
+  committed, which cost about 13 MiB of history per refresh. The old commits
+  keep their copies; the history was not rewritten). An LFS pointer in an asset
+  would build an app with no catalogue and no error, so every route fails loudly
+  instead: `fetch` and `verify-apk` exit non-zero, and
   `test/services/dharma_seed/dharma_seed_snapshot_test.dart` fails on a missing,
-  pointer-sized or schema-stale snapshot. The cost is about 13 MiB of git history
-  per release that changes it; revisit (LFS, or a release asset fetched in CI)
-  if releases become frequent.
+  pointer-sized, wrong (hash differs from the pin) or schema-stale snapshot. The
+  trade is that a checkout needs one network step before a full test run or
+  build.
 
 `DharmaSeedSource` also carries the Dharma Seed screens' reads, outside the
 interface until a second source shows what is shared: `explore({group})`,
@@ -231,6 +255,12 @@ catalogue database: that one is a replaceable copy of someone else's catalogue
   opening them already does. Failures are `ImportFailure(reason)`, which the
   screen turns into a plain sentence. Files are moved (a picker or share cache
   copy) or copied into `<support>/library/<id>.<ext>`; audio is never changed.
+- `import_defaults.dart`: the one table of what each kind of link or pick
+  arrives as (`importDefaults`, keyed by `ImportShape`): every list is a Course
+  by default, one recording is a Single, and it says which of the two the user
+  may choose between. The resolvers read it; they do not decide.
+- `folder_import.dart`: folder import on Android (below): `FolderImporter`,
+  its `ChannelFolderImporter` over `meditejo/folder`, and `FolderProgress`.
 - `import_http.dart`: the one HTTP client for imports: a Meditejo User-Agent, a
   timeout, an 8 MiB body cap, redirects followed, no body read for audio or a 304.
 - `feed_refresher.dart`: looks for new episodes in kept feeds 10 s after launch,
@@ -257,9 +287,38 @@ clipboard reader and share intake as providers, so tests need no platform.
   opens it.
 - **Add** (`import_view.dart`): a link field with Paste and Preview, a clipboard
   suggestion, Choose files / Choose a folder, then the preview and one primary
-  action, Add to library. Course/Single appears where both make sense (a feed:
-  the whole feed or just its latest episode; several files: a course or separate
+  action, Add to library. Course/Single appears where both make sense (a feed or
+  playlist: the whole list, or one episode; several files: a course or separate
   singles); Practice/Talk defaults to the detected group, Practice when unknown.
+  **Single from a list means picking an episode.** The preview carries the list
+  as `ImportEpisode`s (a feed's newest first, a playlist in its own order) with
+  `defaultEpisodeId` chosen: a feed's latest, the video in a watch link, else a
+  playlist's first. The Episode row names the current pick and *Change* opens
+  `EpisodePickerSheet` (`episode_picker.dart`: title, date, length; a search
+  field above 12 episodes). The pick travels as `ImportChoice.episodeId`, and
+  `ImportService.selectedId` says which library ID the choices would add, so the
+  preview knows whether *that* episode is already kept. A picked episode has the
+  same ID alone or inside its course (`lib_ids.dart` / `youtube_ids.dart`), so
+  adding it again, in either form, finds it.
+- **Folder import (Android)**: since Android 11 an app cannot list a folder by
+  path, so *Choose a folder* goes through the Storage Access Framework.
+  `FolderImportBridge` (`android/.../folder/`, channel `meditejo/folder`) opens
+  `ACTION_OPEN_DOCUMENT_TREE`, and `AudioTreeScanner` walks the granted tree
+  with `DocumentsContract` queries (one per folder, subfolders included,
+  hidden entries skipped, playlists that merely carry an audio MIME type
+  ignored), collecting audio by MIME type and extension in natural name order,
+  folder by folder. `FolderCopier` then copies it off the main thread into
+  `cache/folder_import` as `001-name.ext`, reporting progress, skipping files
+  it cannot read (reported, not hidden) and removing everything if the user
+  cancels or the phone fills. Dart drives the calls in order (`pick`, `scan`,
+  `copy`; `cancel`, `discard`) and gets ordinary `PickedFile`s, so the preview,
+  Course or separate Singles, and Add are the existing path. On Add, files in a
+  temporary directory are **moved** into app storage when they can be (a
+  failure moves them back), so a big folder is never on the disk twice. The
+  permission is temporary and is never persisted; there is no "keep in sync".
+  Limits: 1,000 audio files and 16 folders deep (a sentence, not a crash).
+  Leaving the Add screen calls `discard`. iOS and desktops still list the
+  folder by path (`resolveDirectory`).
 - **Share target**: `AndroidManifest.xml` registers `text/plain`, `audio/*`
   (send and send-multiple) and an audio view filter on `MainActivity`. The
   activity copies shared audio into `cache/shared_audio` off the main thread
@@ -270,19 +329,30 @@ clipboard reader and share intake as providers, so tests need no platform.
 
 ### Screens
 
-- **Tabs** (`lib/views/bottom_navigation/`): **Home · Explore · Library ·
-  Settings**. `MainTab` and `mainTabProvider` (`lib/providers/main_tab_provider.dart`)
-  hold the selected tab, so any screen or link can move it; the main screen
-  listens, drops the keyboard, and on Explore loads its lists and runs the
-  Dharma Seed catch-up. Android back from any other tab returns Home. The
-  saved tab (`last_main_tab_index`, with `main_tab_layout` = 2 saying which bar
-  wrote it) restores Home, Explore or Library, never Settings. The first bar
-  (Home · Explore · Search · Settings) only ever saved 0 or 1, which mean the
-  same now; any other value opens Home, and the first launch rewrites the pair.
-  `meditejo://home`, `explore`, `library` and `search` (Explore with the cursor
-  in its field, via `exploreFocusRequestProvider`) select a tab and close what
-  is open above it (`tabForLink` in `lib/routes/routes.dart`). Track and pack
-  links, the Up Next widget and the share target push pages as before.
+- **Tabs** (`lib/views/bottom_navigation/`): **Home · Explore · Sounds ·
+  Library · You** (BRIEF decision 18). `MainTab` and `mainTabProvider`
+  (`lib/providers/main_tab_provider.dart`) hold the selected tab, so any screen
+  or link can move it; the main screen listens, drops the keyboard, on Explore
+  loads its lists and runs the Dharma Seed catch-up, and on Sounds retries a
+  failed legacy background-sound fetch. Android back from any other tab
+  returns Home, except that on Sounds an open mix panel folds first
+  (`SoundsViewState.collapseMix`, through a `GlobalKey`). **`MainTab`'s order
+  is a saved format** (`last_main_tab_index`, with `main_tab_layout` saying
+  which bar wrote it; now 3). `MainTab.restore` maps a saved index through
+  the bar that wrote it (`_olderLayouts`): the first bar (Home · Explore ·
+  Search · Settings, no layout) saved only 0 or 1; layout 2 (Home · Explore ·
+  Library · Settings) keeps Home, Explore and Library, and its Settings is
+  You. You is never restored or saved (nor Settings before it); an index that
+  names nothing, or an unknown layout, opens Home; the first launch rewrites
+  the pair in layout 3's terms. Tab icons are Material Symbols
+  (`material_symbols_icons`, rounded, filled when selected); `MeditoNavItem`
+  takes an `IconData`. **You** shows `SettingsScreen` for now, in one line of
+  `_page`, so its own screen can replace it. `meditejo://home`, `explore`,
+  `sounds`, `library`, `you`, `settings` (You) and `search` (Explore with the
+  cursor in its field, via `exploreFocusRequestProvider`) select a tab and
+  close what is open above it (`tabForLink` in `lib/routes/routes.dart`).
+  Track and pack links, the Up Next widget and the share target push pages
+  as before.
 - **Explore** (`lib/views/explore/`) is find-something-to-add, with a **search
   field at the top**. Nothing typed: Practice and Talks chips and the starter
   suggestions (`searchSuggestions`), then the library's courses ("In your
@@ -378,8 +448,8 @@ and `tools/meditejo/sounds/commands.log` from `tools/meditejo/sounds/sources.jso
 Never edit the outputs by hand; change the manifest and rerun (see the script's
 docstring for the loop, loudness and encoding steps). The sounds keep their own
 licences, outside the AGPL; Settings › licences lists the mixer's native code
-(`assets/licenses/soloud-native-components.json`), and **Sound credits** (from
-the Sounds sheet) lists every recording.
+(`assets/licenses/soloud-native-components.json`), and **Sound credits** (the
+Sounds screen's app-bar button and its last row) lists every recording.
 
 **Engine.** `SoundscapeEngine` (`lib/services/soundscape/soundscape_engine.dart`)
 is implemented on **flutter_soloud 4.1.7** (pinned; see DECISIONS 2026-10-19,
@@ -407,12 +477,12 @@ preferences `soundscape_mix`, `soundscape_presets`, `soundscape_volume`,
 ### API for the player's Customize sheet
 
 The sheet's **Background sound** row should drive the mixer only through these
-(stable) members; the Sounds sheet (`showBackgroundSoundSheet`) is the place to
-build or edit a mix.
+(stable) members; the Sounds screen (`SoundsView`: the Sounds tab, or
+`openSoundsPage` over anything else) is the place to build or edit a mix.
 
 ```dart
 // What to play, as a string the cue settings can store:
-//   'mix' or ''      the current mix (as left on the Sounds sheet;
+//   'mix' or ''      the current mix (as left on the Sounds screen;
 //                    CueSettings.soundscape keeps '' for "kind default")
 //   'preset:<id>'    a preset (state.presets: starters + the user's)
 //   'sound:<id>'     one library sound
@@ -435,8 +505,11 @@ mixer.sessionDefault(kind) / mixer.setSessionDefault(kind, value);
 mixer.setSessionVolume(kind, double);  // that kind's level, live if it runs
 ```
 
-`SoundscapeSessionDefault` is `{enabled, selection, volume}`; the initial values
-follow decision 8 (Practice on, Talks off). It is the single source of truth
+`SoundscapeSessionDefault` is `{enabled, selection, volume}`; both kinds start
+off, with nothing chosen (BRIEF decision 17; decision 8 had Practice on). A
+one-time migration (`SoundscapeStore.migrateSessionDefaults`, rule in
+DECISIONS.md, 2026-10-26) moves an untouched existing install the same way and
+leaves anyone who chose a sound alone. It is the single source of truth
 for a kind's on/off, selection and volume: Customize's Background sound row
 writes kind-wide choices through `setSessionDefault` and `setSessionVolume`.
 A course override keeps only a selection, in `CueSettings.soundscape` (empty:
@@ -455,7 +528,25 @@ ends natively (the end screen opens without stopping the player, so the end
 bell's tail survives) ends it directly. Bells belong to the cue scheduler
 (Session cues and Customize); the legacy ambient layer follows Customize
 through `applyCueSettings`. The player's bottom row keeps the sound button,
-which opens the Sounds sheet, beside Customize.
+which opens the Sounds screen as a page (`openSoundsPage`), beside Customize.
+
+**The Sounds screen** (`lib/views/soundscape/sounds_view.dart`, BRIEF
+decisions 16 and 18) is presentation over the controller above; it adds no
+mixer state. Presets are a row of `PresetCard`s and the library a grid of
+`SoundCard`s per shelf, both on `GeneratedArtwork` (`sound_cards.dart`); a
+shelf's colour and Material Symbol come from `SoundLook`
+(`sound_labels.dart`, with the localised labels). The current mix
+(`sound_mix_panel.dart`: `SoundsMixHeader`, `SoundsMixBody`,
+`AnimatedMixLayers`) is docked at the foot, opening on
+`MeditejoMotion.expressiveSpatial`; at 840 dp or wider it is a panel beside
+the library. An empty mix stays docked. Layers enter and leave through an
+`AnimatedList` diffed against the mix, whoever changed it. **Mute** is
+`setLayerVolume(id, 0)` plus the old level in `layerUnmuteVolumesProvider`
+(in memory), so a mix or preset saved while muted keeps the layer silent.
+Entry points: Home's Sounds tile selects the tab; the player's sound button
+and Customize's Background sound sub-sheet ("Edit your mix in Sounds") push
+it full height with `openSoundsPage`, where back folds an open mix before
+closing.
 
 ## Completion, stats and favourites
 
@@ -500,7 +591,9 @@ state.
 
 ## Home composition
 
-Home is a launchpad (BRIEF decision 14), not a catalogue. `HomeWidgetType`
+Home is a launchpad (BRIEF decision 14), not a catalogue. It opens with the
+Meditejo mark (`lib/widgets/branding/`, geometry in `mark_geometry.dart`),
+which moves only while it can be seen; the sections follow. `HomeWidgetType`
 (`lib/constants/enums/home_widget_type.dart`) names its sections, which the
 user can switch on or off and reorder in Customize (the Organize Home Layout
 screen, from the button beside the title). `homeWidgetOrderProvider` keeps the
@@ -523,7 +616,12 @@ Settings), whose copy says the numbers are feedback, not a score.
   library (the starter set leads a fresh install), so Home is not empty. The
   first item also feeds the Android Up Next widget.
 - **Quick links**: Timer (Medito's timer), Sounds (the background-sound
-  picker) and Add (import).
+  picker), up to two **sound presets** (`homeSoundPresetsProvider`: the
+  user's own, newest first, then the built-ins) and Add (import). A preset
+  tile starts the timer at once (`startTimerSession`,
+  `lib/views/timer/start_timer.dart`) with the preset as that session's
+  background: `PlaybackRequest.soundscape`, which the player prefers over the
+  scope's Customize choice, so the user's saved choices are untouched.
 - **Pinned courses** (`pinnedCoursesProvider`, `pinned_course_ids`): at most
   three, each with its progress, opening the course. Pinned from a library
   row's menu or a course page; a fourth is refused with a message. The course
@@ -610,6 +708,17 @@ A course the user makes from sessions anywhere: a Dharma Seed talk, a YouTube
 video, a podcast episode, a local file. A course and a playlist are the same
 thing (DECISIONS, 2026-10-19 "My courses").
 
+**Naming: "my course" in code = "Playlist" in the UI** (BRIEF decision 18). What
+the user makes is a Playlist; what comes from a source (a retreat, a YouTube
+playlist, a feed, an imported folder) stays a Course. Class names, tables,
+providers and `my-course-…` IDs keep the old name, so there is no migration, and
+the code and this section below still say "course" for a playlist. Only the
+strings (`myCourse*` keys in `lib/l10n`, plus `playlistKind`) changed. Where
+both kinds share a list (the Library, Explore's "In your library", search),
+`playlistAwareDetail` (`lib/views/my_courses/playlist_label.dart`) leads a
+playlist's line with "Playlist · "; its own page shows "Playlist" where a course
+shows its source.
+
 - **Model** (`lib/services/my_courses/my_course_models.dart`): a course is
   `my-course-<16 random hex>`, an ordered list of rows. A row is a session
   reference (any source's track ID, kept as it is: `ds-talk-…`, `yt-video-…`,
@@ -673,3 +782,19 @@ the session ("Session 2 of 6", the course's title and progress) to that course
 while it still lists it, and otherwise to the session's own source course
 (`ParentedContentSource`). Playing it brings both courses to the front of the
 library.
+
+## Theme and design tokens
+
+Material 3 Expressive (BRIEF decision 16). Tokens (seed colour and scheme
+variant, corner scale, spring motion schemes, the M3 type scale with
+Expressive's emphasized styles) live in `lib/constants/theme/tokens.dart`;
+`meditejoTheme(brightness)` in `app_theme.dart` builds `ThemeData` from them.
+The M3 type scale is the `ExpressiveTypography` theme extension
+(`context.typography`); `ThemeData.textTheme` still carries Medito's text-role
+sizes for screens not yet redesigned (`text_theme.dart`), coloured from the
+scheme. Redesigned screens use `context.typography`, `MeditejoShapes` and
+`MeditejoMotion` rather than literals. The tab bar and sidebar are Material's
+`NavigationBar` and `NavigationRail`; a tab is a `MainTab` value plus an arm
+in each of `BottomNavigationBarView`'s `_page` and `_navItem` switches, and,
+because the order is saved, a new `MainTab.layout` with its restore rules.
+

@@ -252,6 +252,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       },
     );
     unawaited(_dropVanishedSounds());
+    _store.migrateSessionDefaults();
     return SoundscapeState(
       mix: _currentMix(),
       volume: _store.readVolume(),
@@ -461,7 +462,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   }
 
   // ---------------------------------------------------------------------------
-  // Sessions (decision 8): on for Practice, off for Talks by default.
+  // Sessions: nothing chosen for either kind by default (decision 17).
 
   /// What a session plays: the kind's [kindDefault], unless the session's
   /// scope chose its own [selection] (`none` for silence).
@@ -557,7 +558,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     _update(
       state.copyWith(
         // A session may have played a preset or a single sound in place of
-        // the current mix; the Sounds sheet gets the user's mix back.
+        // the current mix; the Sounds screen gets the user's mix back.
         mix: _currentMix(),
         playing: false,
         owner: SoundscapeOwner.none,
@@ -567,7 +568,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     );
   }
 
-  /// The user's current mix: the one last saved from the Sounds sheet (or
+  /// The user's current mix: the one last saved from the Sounds screen (or
   /// played from it), never one a session chose for itself, which only
   /// lives in [state] while that session runs.
   SoundMix _currentMix() => _store.readMix() ?? kStarterPresets.first.mix;

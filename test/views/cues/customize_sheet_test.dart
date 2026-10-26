@@ -10,6 +10,7 @@ import 'package:medito/providers/shared_preference/shared_preference_provider.da
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
+import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/soundscape_fakes.dart';
@@ -183,12 +184,21 @@ void main() {
     SoundscapeSessionDefault practice() => container
         .read(soundscapeProvider)
         .sessionDefault(SoundscapeSessionKind.practice);
-    // Practice is on by default with the current mix.
-    expect(find.text('Current mix'), findsOneWidget);
+    // Practice starts with nothing chosen (decision 17): the row says Off and
+    // nothing is selected until a sound is picked.
+    expect(practice().enabled, isFalse);
+    expect(find.text('Current mix'), findsNothing);
     await tester.ensureVisible(find.text('Background sound'));
     await tester.tap(find.text('Background sound'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(ChoiceChip, 'Off'), findsOneWidget);
+    expect(
+      tester
+          .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Off'))
+          .selected,
+      isTrue,
+    );
+    expect(find.text('Volume'), findsNothing);
     expect(find.widgetWithText(ChoiceChip, 'Rain on the forest'), findsOne);
     // The library, grouped by shelf.
     expect(find.text('Rain'), findsOneWidget);
@@ -215,6 +225,28 @@ void main() {
     expect(find.text('Volume'), findsNothing);
     await _closeSub(tester);
     expect(find.text('Off'), findsWidgets);
+    await _unmount(tester);
+  });
+
+  testWidgets('background sound opens the Sounds screen to edit the mix', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await tester.ensureVisible(find.text('Background sound'));
+    await tester.tap(find.text('Background sound'));
+    await tester.pumpAndSettle();
+    final edit = find.byKey(const ValueKey('customize_open_sounds'));
+    await tester.ensureVisible(edit);
+    await tester.tap(edit);
+    await tester.pumpAndSettle();
+    // Full height, over the sheets, not another drawer.
+    expect(find.byType(SoundsView), findsOneWidget);
+    expect(tester.widget<SoundsView>(find.byType(SoundsView)).standalone, true);
+    // It closes like a full-screen dialog.
+    await tester.tap(find.byType(CloseButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(SoundsView), findsNothing);
+    expect(edit, findsOneWidget, reason: 'back to the choice');
     await _unmount(tester);
   });
 

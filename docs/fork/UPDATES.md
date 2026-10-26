@@ -70,26 +70,41 @@ tools/meditejo/release.sh 0.1.0 --notes notes.md --yes       # publish
 ```
 
 Steps: preflight (clean tree matching origin, `gh` auth, tag unused) → pick the next `versionCode` →
-**refresh the bundled Dharma Seed catalogue only if the committed one is over 30 days old**
-(`tools/meditejo/dharma_seed_snapshot.dart`, a delta from the committed snapshot; a commit only if it
-changed; `--refresh-catalogue` forces it, `--skip-snapshot` never does; each refresh adds about 13 MiB to
-git history and the app's search-time delta covers the gap; see ARCHITECTURE.md) → bump
+**refresh the bundled Dharma Seed catalogue only if the pinned one is over 30 days old**
+(`tools/meditejo/dharma_seed_snapshot.dart`, a delta from the pinned snapshot; if it changed, the new
+snapshot is uploaded as a `catalogue-YYYYMMDD` prerelease and a commit pins it in `catalogue.json`, the
+manifest alone; `--refresh-catalogue` forces it, `--skip-snapshot` never does; the app's search-time delta
+covers the gap; see ARCHITECTURE.md) → bump
 `pubspec.yaml` and commit → push the commit → `build_apk.sh HEAD --flavor prod` (GitHub
 Actions builds unsigned, bjslab aligns and signs with the durable key and checks the pinned
 digest) → independently re-verify the pinned digest on the staged APK → write the `.sha256`
 and `meditejo-release.json` → `gh release create v<version> --repo beejsbj/meditejo`.
 
-If a run fails part-way: after a failed build a local snapshot commit and version-bump commit are left, so
+If a run fails part-way: after a failed build a local manifest commit and version-bump commit are left (an uploaded
+`catalogue-…` prerelease stays; it is harmless and a re-run reuses it), so
 `git reset --hard origin/develop` before trying again; if it fails after the draft release
 exists, `gh release delete v<version> --repo beejsbj/meditejo --yes` first.
 
-`--dry-run` prints every command, changes nothing and contacts nothing except a `git fetch` and read-only
-`gh` lookups for the latest published code (skipped when offline).
+`--dry-run` prints every command, changes nothing and contacts nothing except a `git fetch`, read-only
+`gh` lookups for the latest published code (skipped when offline) and a HEAD request for the pinned catalogue.
 
 Medito's `prepare_release.sh` and its `release` skill drove the App Store / Play pipeline
 (date-based names, `release_notes.txt`, fastlane). The skill is replaced by one that points at
 `release.sh`; `prepare_release.sh` stays untouched, since the iOS fastlane and
 `release.yml` still reference it.
+
+## Catalogue releases are not app releases
+
+The same repository also holds `catalogue-YYYYMMDD` releases, the bundled Dharma Seed snapshot (see
+ARCHITECTURE.md, "The bundled catalogue"). They are **prereleases**, they have no `meditejo-release.json`,
+and the updater never offers them:
+
+- `releases/latest`, the only endpoint the app reads, returns the newest published release that is not a
+  draft or prerelease. Checked 2026-10-26: with `catalogue-20261019` created, it still answered `v0.1.3`.
+- If one were ever published without the flag, `ReleaseListing.fromApi` still refuses it, because only
+  `v<MAJOR.MINOR.PATCH>` tags are app releases. The user would see "unavailable" in About, not an update;
+  fix it by marking the release a prerelease again.
+- Never make a catalogue release "latest" (`gh release create` for it passes `--prerelease --latest=false`).
 
 ## The updater
 

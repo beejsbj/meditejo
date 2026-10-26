@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/models/soundscape/sound_library.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
@@ -15,7 +16,8 @@ import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
-import 'package:medito/views/soundscape/sounds_panel.dart';
+import 'package:medito/views/soundscape/sound_labels.dart';
+import 'package:medito/views/soundscape/sounds_view.dart';
 
 /// When a session started or running now will end. While playing
 /// ([positionMs] > 0) the countdown has already been spent, and a timer's
@@ -168,6 +170,11 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   late bool _courseOverride;
 
   CueScope get _scope => widget.scope;
+
+  /// What the scope's list is called: a playlist is what the user made, a
+  /// course comes from a source.
+  String get _scopeNoun =>
+      isMyCourseId(_scope.courseId ?? '') ? 'playlist' : 'course';
 
   @override
   void initState() {
@@ -462,10 +469,10 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
       if (_scope.courseId != null)
         SwitchListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-          title: const Text('Use these only for this course'),
+          title: Text('Use these only for this $_scopeNoun'),
           subtitle: Text(
             _courseOverride
-                ? 'Changes apply to this course'
+                ? 'Changes apply to this $_scopeNoun'
                 : 'Changes apply to all ${practice ? 'practice' : 'talks'}',
           ),
           value: _courseOverride,
@@ -616,7 +623,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
 
   /// A course override keeps its choice in its own cue settings. Otherwise
   /// the choice is the kind's, and the mixer holds it (with the on/off and
-  /// the volume), so the Sounds sheet's switches show the same thing.
+  /// the volume), so the Sounds screen's switches show the same thing.
   void _chooseSoundscape(CueSettings s, SoundscapeSelection choice) {
     if (_courseOverride) {
       _edit(s.copyWith(soundscape: choice.encode()));
@@ -700,6 +707,20 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
                     .read(soundscapeProvider.notifier)
                     .setSessionVolume(_soundscapeKind, v / 100),
               ),
+            // The mix itself (what "Current mix" plays) is made on the
+            // Sounds screen, full height over the sheet.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: OutlinedButton.icon(
+                key: const ValueKey('customize_open_sounds'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                onPressed: () => openSoundsPage(context),
+                icon: const Icon(Icons.graphic_eq_rounded),
+                label: Text(l10n?.soundsEditMix ?? 'Edit your mix in Sounds'),
+              ),
+            ),
           ],
         );
       },

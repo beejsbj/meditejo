@@ -56,7 +56,7 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
 
      Each row shows its current value and opens a small sub-sheet. Burooj singled out this UX.
    - **Completion:** mark completion on real listening, not when a session is opened. A session counts as completed once **90%** of it has been heard (decided 2026-10-17), so a long talk stopped near the end still counts.
-8. **Background sounds may play over Dharma Seed audio** (decided 2026-10-17). Mixing at playback leaves the original file untouched and distributes nothing, so it is allowed. Default it on for Practice and off for Talks. Never export or share mixed audio.
+8. **Background sounds may play over Dharma Seed audio** (decided 2026-10-17). Mixing at playback leaves the original file untouched and distributes nothing, so it is allowed. Default it on for Practice and off for Talks. *Refined 2026-10-26 (decision 17):* Practice now starts with nothing chosen, like Talks. Never export or share mixed audio.
 9. **Dharma Seed sync is catalogue text only, never audio** (2026-10-17). The app keeps the title, teacher, length and retreat of every talk on the phone, about 38 MB once, because Dharma Seed has no search API. After that it fetches only small updates, on any network. Audio always streams, and downloads only when the user chooses to download a talk.
 10. **Meditejo is the user's library, not a Dharma Seed frontend** (2026-10-17).
     - Easy import from any link is the core of the app: Dharma Seed, YouTube, RSS, audio URLs and files.
@@ -98,6 +98,29 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
     - Practice's background sound starts with nothing chosen.
     - Removing an imported course confirms before deleting its audio (the current behaviour).
     - Ask Hermes Amāra, QRI and Plum Village for permission to stream their recordings. Don't ask AudioDharma for a catalogue export, since slice 8 builds its catalogue anyway.
+18. **Answers after testing cues** (Burooj, 2026-10-26):
+    - **Tabs:** Home · Explore · Sounds · Library · You. Stats and Settings sit under You. This supersedes decision 14's four tabs.
+    - **Settings needs reorganising.** Check for updates belongs on the main Settings screen, not two levels down.
+    - **Naming:** what the user makes is a **Playlist**. What comes from a source (retreats, YouTube playlists, feeds) stays a **Course**.
+    - **Number and time selection** uses a scroll-wheel picker: a centred, highlighted value with its neighbours faded above and below. It replaces sliders and pills for durations and counts.
+    - **Interval bells can be set to "halfway",** a single bell at the session's midpoint.
+    - **Import:**
+      - a pasted feed or playlist defaults to the whole list as a Course;
+      - Single means picking one episode, with the latest preselected;
+      - folder import must work on Android.
+    - **Saved teachers** stay in the Library as a Teachers filter. "New from teachers you follow" can come later.
+    - **AudioDharma is skipped** (superseded the same day, 2026-10-26). Users can still import its feed themselves.
+    - **Permissions:**
+      - Hermes Amāra was asked by email (sent 2026-10-26 to info@hermesamara.org).
+      - QRI and Plum Village are not being asked. QRI's YouTube playlists stay in the starter set, at the same accepted risk as Vervaeke's.
+      - Plum Village's own terms forbid sharing, so it is not built in.
+19. **After seeing design pass 1** (Burooj, 2026-10-26):
+    - **The Timer starts silent by default.** Users set their own defaults. Later the Timer may reuse whatever was used last time.
+    - **Home's hierarchy is right; the visuals are not finished.**
+      - The mark is weak, and so are the colours.
+      - There is no logo or app icon yet.
+      - A dedicated identity pass comes next: a seeded generator that builds many marks (gesture-on-form in the spirit of Claude's "Duet" icon, plus atmospheric ones), palettes, and an app icon. Burooj picks before anything is ported into the app.
+    - **"Quick links" is the wrong name.** Its tiles can also be guided practices (a session, possibly with a sound preset), not only Timer presets.
 
 ## Build and run
 

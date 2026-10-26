@@ -143,7 +143,7 @@ void main() {
 
     test('a blank title falls back to a name', () async {
       final id = await source.create(title: '   ');
-      expect((await source.pack(id)).title, 'My course');
+      expect((await source.pack(id)).title, 'My playlist');
     });
 
     test('its sessions keep their own IDs, in order, under headings', () async {

@@ -89,7 +89,10 @@ void main() {
 
       await tester.tap(find.text('Single'));
       await settle(tester);
-      expect(find.text('Just the latest episode'), findsOneWidget);
+      expect(
+        find.text('Just one episode: the latest, or one you pick'),
+        findsOneWidget,
+      );
       await tester.tap(find.text('Course'));
       await settle(tester);
 

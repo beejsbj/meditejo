@@ -1925,7 +1925,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get importCaptionLatest => 'Just the latest episode';
+  String get importCaptionLatest =>
+      'Just one episode: the latest, or one you pick';
 
   @override
   String get importCaptionFilesCourse => 'One course, in the order shown';
@@ -2021,6 +2022,65 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importFailAdd => 'Couldn\'t add that. Please try again.';
 
   @override
+  String get importEpisodeLabel => 'Episode';
+
+  @override
+  String get importEpisodeChange => 'Change';
+
+  @override
+  String get importEpisodePickerTitle => 'Choose an episode';
+
+  @override
+  String get importEpisodeSearch => 'Search episodes';
+
+  @override
+  String get importEpisodeNone => 'No episode matches that.';
+
+  @override
+  String get importEpisodeLatest => 'Latest';
+
+  @override
+  String get importFolderLooking => 'Looking in the folder…';
+
+  @override
+  String importFolderCopying(int done, int total) {
+    return 'Copying $done of $total…';
+  }
+
+  @override
+  String get importFolderCancel => 'Cancel';
+
+  @override
+  String importUnreadable(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items couldn\'t be read and were left out',
+      one: '1 item couldn\'t be read and was left out',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailFolderEmpty => 'That folder is empty.';
+
+  @override
+  String get importFailFolderTooLarge =>
+      'That folder holds more than 1,000 audio files. Choose a smaller one.';
+
+  @override
+  String get importFailFolderNoSpace =>
+      'There isn\'t enough free space on this phone to copy that folder.';
+
+  @override
+  String get importFailFolderUnreadable =>
+      'That folder couldn\'t be read. Try choosing it again, or choose files instead.';
+
+  @override
+  String get importFailFolderUnavailable =>
+      'This device has no folder picker. Choose files instead.';
+
+  @override
   String get shareArrived => 'Shared with Meditejo';
 
   @override
@@ -2083,7 +2143,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeQuickLinksTitle => 'Quick links';
 
   @override
-  String get homePinnedTitle => 'Pinned courses';
+  String get homePinnedTitle => 'Pinned';
 
   @override
   String get homeCustomize => 'Customize';
@@ -2116,6 +2176,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeQuickAdd => 'Add';
 
   @override
+  String homeQuickPresetTimer(String preset) {
+    return 'Start the timer with $preset';
+  }
+
+  @override
   String get pinCourse => 'Pin to Home';
 
   @override
@@ -2123,7 +2188,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pinnedLimitReached =>
-      'Home holds up to three pinned courses. Unpin one first.';
+      'Home holds up to three pinned courses or playlists. Unpin one first.';
 
   @override
   String get pinnedCourseAdded => 'Pinned to Home';
@@ -2340,22 +2405,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get soundPresetStillness => 'Stillness';
 
   @override
-  String get myCourseNew => 'New course';
+  String get myCourseNew => 'New playlist';
 
   @override
-  String get myCourseNameHint => 'Course name';
+  String get myCourseNameHint => 'Playlist name';
 
   @override
   String get myCourseCreate => 'Create';
 
   @override
-  String get myCourseDefaultTitle => 'My course';
+  String get myCourseDefaultTitle => 'My playlist';
 
   @override
-  String get myCourseAddTo => 'Add to course…';
+  String get myCourseAddTo => 'Add to playlist…';
 
   @override
-  String get myCourseAddToTitle => 'Add to course';
+  String get myCourseAddToTitle => 'Add to playlist';
 
   @override
   String myCourseAddedSnack(String title) {
@@ -2382,14 +2447,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCourseNothingToAdd => 'There are no sessions to add.';
 
   @override
-  String get myCourseAddFailed => 'Could not add it to the course.';
+  String get myCourseAddFailed => 'Could not add it to the playlist.';
 
   @override
   String get myCourseNoneYet =>
-      'You haven\'t made a course yet. Start one here.';
+      'You haven\'t made a playlist yet. Start one here.';
 
   @override
-  String get myCourseDuplicate => 'Make my own copy';
+  String get myCourseDuplicate => 'Copy as playlist';
 
   @override
   String myCourseCopyTitle(String title) {
@@ -2397,13 +2462,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get myCourseDuplicateFailed => 'Could not copy this course.';
+  String get myCourseDuplicateFailed => 'Could not make a playlist from this.';
 
   @override
-  String get myCourseSaveFailed => 'Could not save the course.';
+  String get myCourseSaveFailed => 'Could not save the playlist.';
 
   @override
-  String get myCourseEdit => 'Edit course';
+  String get myCourseEdit => 'Edit playlist';
 
   @override
   String get myCourseSave => 'Save';
@@ -2438,14 +2503,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCourseHeadingHint => 'Heading, e.g. Day 1';
 
   @override
-  String get myCourseRemoveRow => 'Remove from course';
+  String get myCourseRemoveRow => 'Remove from playlist';
 
   @override
   String get myCourseDragHandle => 'Drag to reorder';
 
   @override
   String get myCourseEditEmpty =>
-      'No sessions yet. Use Add to course… in any session\'s menu.';
+      'No sessions yet. Use Add to playlist… in any session\'s menu.';
 
   @override
   String get myCourseDiscardTitle => 'Discard your changes?';
@@ -2457,24 +2522,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCourseKeepEditing => 'Keep editing';
 
   @override
-  String get myCourseDelete => 'Delete course';
+  String get myCourseDelete => 'Delete playlist';
 
   @override
-  String get myCourseDeleteTitle => 'Delete this course?';
+  String get myCourseDeleteTitle => 'Delete this playlist?';
 
   @override
   String get myCourseDeleteBody =>
-      'Only the course goes. Its sessions stay in your library, with their downloads and progress.';
+      'Only the playlist goes. Its sessions stay in your library, with their downloads and progress.';
 
   @override
-  String get myCourseDeletedSnack => 'Course deleted';
+  String get myCourseDeletedSnack => 'Playlist deleted';
 
   @override
   String get myCourseEmptyTitle => 'No sessions yet';
 
   @override
   String get myCourseEmptyBody =>
-      'Add sessions from anywhere: a Dharma Seed talk, a YouTube video, an episode or a file. Open its menu and choose Add to course…';
+      'Add sessions from anywhere: a Dharma Seed talk, a YouTube video, an episode or a file. Open its menu and choose Add to playlist…';
 
   @override
   String get myCourseUnavailable => 'Unavailable';
@@ -2489,9 +2554,9 @@ class AppLocalizationsEn extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'It is also in $count of your courses, where it will show as unavailable.',
+          'It is also in $count of your playlists, where it will show as unavailable.',
       one:
-          'It is also in one of your courses, where it will show as unavailable.',
+          'It is also in one of your playlists, where it will show as unavailable.',
     );
     return '$_temp0';
   }
@@ -2500,8 +2565,53 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCourseMore => 'More options';
 
   @override
-  String get myCourseRemovedSnack => 'Removed from the course';
+  String get myCourseRemovedSnack => 'Removed from the playlist';
 
   @override
   String get myCourseEditAction => 'Edit';
+
+  @override
+  String get navYou => 'You';
+
+  @override
+  String get soundsMixEmptyTitle => 'Nothing in your mix yet';
+
+  @override
+  String get soundsMixEmptyHint => 'Tap a sound or a preset to start a mix.';
+
+  @override
+  String soundsMute(String sound) {
+    return 'Mute $sound';
+  }
+
+  @override
+  String soundsUnmute(String sound) {
+    return 'Unmute $sound';
+  }
+
+  @override
+  String get soundsShowMix => 'Show your mix';
+
+  @override
+  String get soundsHideMix => 'Hide your mix';
+
+  @override
+  String get soundsMixVolume => 'Mix volume';
+
+  @override
+  String soundsPlayPreset(String name) {
+    return 'Play $name';
+  }
+
+  @override
+  String get soundsPresetPlaying => 'Playing';
+
+  @override
+  String get soundsAdjust => 'Adjust';
+
+  @override
+  String get soundsEditMix => 'Edit your mix in Sounds';
+
+  @override
+  String get playlistKind => 'Playlist';
 }

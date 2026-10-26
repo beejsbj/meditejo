@@ -19,6 +19,7 @@ import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/scaffold_messenger_key.dart';
+import 'package:medito/services/library/folder_import.dart';
 import 'package:medito/services/library/import_models.dart';
 import 'package:medito/services/library/import_service.dart';
 import 'package:medito/services/library/share_intake.dart';
@@ -38,16 +39,40 @@ class _Stats extends StatsNotifier {
 }
 
 class FakePickers implements ImportPickers {
-  FakePickers({this.files, this.folder});
+  FakePickers({this.files, this.folder, this.copiedFolder, this.onPickFolder});
 
   List<PickedFile>? files;
+
+  /// A folder read by its path (iOS and desktops).
   String? folder;
+
+  /// A folder already copied into the app (Android).
+  PickedFolder? copiedFolder;
+
+  /// Replaces the answer, to script progress, a wait or a failure.
+  Future<PickedFolder?> Function(void Function(FolderProgress)? onProgress)?
+  onPickFolder;
+
+  int cancelCalls = 0;
+  int discardCalls = 0;
 
   @override
   Future<List<PickedFile>?> pickAudioFiles() async => files;
 
   @override
-  Future<String?> pickFolder() async => folder;
+  Future<PickedFolder?> pickFolder({
+    void Function(FolderProgress)? onProgress,
+  }) async {
+    if (onPickFolder != null) return onPickFolder!(onProgress);
+    if (copiedFolder != null) return copiedFolder;
+    return folder == null ? null : PickedFolder.path(folder!);
+  }
+
+  @override
+  Future<void> cancelFolderImport() async => cancelCalls++;
+
+  @override
+  Future<void> discardFolderImport() async => discardCalls++;
 }
 
 class FakeShareIntake implements ShareIntake {

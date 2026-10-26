@@ -378,11 +378,14 @@ class _PlayerViewState extends ConsumerState<PlayerView>
                 ? CueKind.practice
                 : CueKind.talks)) ==
         CueKind.practice;
+    // A start that named its own background sound (a preset from Home)
+    // plays it; otherwise the scope's Customize choice, else the default.
     _playSessionSounds(
       practice,
-      scope == null
-          ? null
-          : ref.read(cueSettingsProvider(scope)).soundscapeSelection,
+      ref.read(playerProvider)?.soundscapeSelection ??
+          (scope == null
+              ? null
+              : ref.read(cueSettingsProvider(scope)).soundscapeSelection),
     );
 
     // Only enable DND if permission is already granted and toggle is on
@@ -659,8 +662,8 @@ class _PlayerViewState extends ConsumerState<PlayerView>
     );
   }
 
-  /// Practice or Talks: each plays its own soundscape default (decision 8:
-  /// on for Practice, off for Talks), unless Customize chose a [selection]
+  /// Practice or Talks: each plays its own soundscape default (both
+  /// start with nothing chosen: decision 17), unless Customize chose a [selection]
   /// for the session's scope.
   void _playSessionSounds(bool practice, SoundscapeSelection? selection) {
     ref.read(backgroundSoundsNotifierProvider.notifier)

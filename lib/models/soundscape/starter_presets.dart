@@ -1,8 +1,9 @@
 import 'sound_mix.dart';
 import 'synth.dart';
 
-/// Presets that ship with the app. The first is the mix a fresh install
-/// plays under practice (decision 8) until the user makes their own.
+/// Presets that ship with the app. The first is the mix "the current mix"
+/// resolves to until the user makes their own (nothing plays under practice
+/// until they choose it: decision 17).
 ///
 /// Sound ids are those in `assets/sounds/sounds.json`; a layer whose sound is
 /// missing is skipped when the preset plays.

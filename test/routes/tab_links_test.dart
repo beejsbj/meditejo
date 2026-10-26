@@ -49,6 +49,22 @@ void main() {
     expect(container.read(mainTabProvider), MainTab.home);
   });
 
+  testWidgets('meditejo://sounds and you select their tab; settings is You', (
+    tester,
+  ) async {
+    await pump(tester);
+
+    await handleNavigation('sounds', [''], context, ref: widgetRef);
+    expect(container.read(mainTabProvider), MainTab.sounds);
+
+    await handleNavigation('you', [''], context, ref: widgetRef);
+    expect(container.read(mainTabProvider), MainTab.you);
+
+    await handleNavigation('home', [''], context, ref: widgetRef);
+    await handleNavigation('settings', [''], context, ref: widgetRef);
+    expect(container.read(mainTabProvider), MainTab.you);
+  });
+
   testWidgets('search opens Explore and asks for the cursor', (tester) async {
     await pump(tester);
     expect(container.read(exploreFocusRequestProvider), 0);

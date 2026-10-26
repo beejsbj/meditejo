@@ -275,7 +275,14 @@ class _PackViewState extends ConsumerState<PackView>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if ((pack.subtitle ?? '').isNotEmpty)
+          // A course shows its source (teacher or channel); a playlist says
+          // what it is.
+          if (isMyCourseId(pack.id))
+            Text(
+              l10n.playlistKind,
+              style: theme.textTheme.titleMedium?.copyWith(color: muted),
+            )
+          else if ((pack.subtitle ?? '').isNotEmpty)
             Text(
               pack.subtitle!,
               style: theme.textTheme.titleMedium?.copyWith(color: muted),

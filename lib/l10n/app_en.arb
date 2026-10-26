@@ -2029,7 +2029,7 @@
       }
     }
   },
-  "importCaptionLatest": "Just the latest episode",
+  "importCaptionLatest": "Just one episode: the latest, or one you pick",
   "@importCaptionLatest": {
     "description": "Caption under the Single choice for a feed"
   },
@@ -2143,6 +2143,79 @@
   "@importFailAdd": {
     "description": "Calm failure: storing failed"
   },
+  "importEpisodeLabel": "Episode",
+  "@importEpisodeLabel": {
+    "description": "The row naming the episode a Single will add"
+  },
+  "importEpisodeChange": "Change",
+  "@importEpisodeChange": {
+    "description": "Opens the episode picker"
+  },
+  "importEpisodePickerTitle": "Choose an episode",
+  "@importEpisodePickerTitle": {
+    "description": "Title of the episode picker"
+  },
+  "importEpisodeSearch": "Search episodes",
+  "@importEpisodeSearch": {
+    "description": "Hint in the episode picker's search field"
+  },
+  "importEpisodeNone": "No episode matches that.",
+  "@importEpisodeNone": {
+    "description": "Shown when the episode search finds nothing"
+  },
+  "importEpisodeLatest": "Latest",
+  "@importEpisodeLatest": {
+    "description": "Marks a feed's newest episode in the picker"
+  },
+  "importFolderLooking": "Looking in the folder…",
+  "@importFolderLooking": {
+    "description": "Shown while a picked folder is listed"
+  },
+  "importFolderCopying": "Copying {done} of {total}…",
+  "@importFolderCopying": {
+    "description": "Progress while a folder's audio is copied into the app",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "importFolderCancel": "Cancel",
+  "@importFolderCancel": {
+    "description": "Stops copying a folder"
+  },
+  "importUnreadable": "{count, plural, =1{1 item couldn't be read and was left out} other{{count} items couldn't be read and were left out}}",
+  "@importUnreadable": {
+    "description": "Note that some items in a folder could not be read",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importFailFolderEmpty": "That folder is empty.",
+  "@importFailFolderEmpty": {
+    "description": "Calm failure: empty folder"
+  },
+  "importFailFolderTooLarge": "That folder holds more than 1,000 audio files. Choose a smaller one.",
+  "@importFailFolderTooLarge": {
+    "description": "Calm failure: too many files"
+  },
+  "importFailFolderNoSpace": "There isn't enough free space on this phone to copy that folder.",
+  "@importFailFolderNoSpace": {
+    "description": "Calm failure: storage full"
+  },
+  "importFailFolderUnreadable": "That folder couldn't be read. Try choosing it again, or choose files instead.",
+  "@importFailFolderUnreadable": {
+    "description": "Calm failure: folder could not be read"
+  },
+  "importFailFolderUnavailable": "This device has no folder picker. Choose files instead.",
+  "@importFailFolderUnavailable": {
+    "description": "Calm failure: no folder picker"
+  },
   "shareArrived": "Shared with Meditejo",
   "@shareArrived": {
     "description": "Shown when a link or file was shared into the app"
@@ -2177,7 +2250,7 @@
   "navLibrary": "Library",
   "exploreSearchHint": "Search your library and Dharma Seed",
   "homeQuickLinksTitle": "Quick links",
-  "homePinnedTitle": "Pinned courses",
+  "homePinnedTitle": "Pinned",
   "homeCustomize": "Customize",
   "homeCustomizeHint": "Switch sections on or off, and drag to put them in your order.",
   "homeContinueEmpty": "Nothing in progress. Add something to your library, or open Explore.",
@@ -2203,9 +2276,18 @@
     }
   },
   "homeQuickAdd": "Add",
+  "homeQuickPresetTimer": "Start the timer with {preset}",
+  "@homeQuickPresetTimer": {
+    "description": "Screen-reader label of a Home tile that starts the timer with a saved background-sound preset.",
+    "placeholders": {
+      "preset": {
+        "type": "String"
+      }
+    }
+  },
   "pinCourse": "Pin to Home",
   "unpinCourse": "Unpin from Home",
-  "pinnedLimitReached": "Home holds up to three pinned courses. Unpin one first.",
+  "pinnedLimitReached": "Home holds up to three pinned courses or playlists. Unpin one first.",
   "pinnedCourseAdded": "Pinned to Home",
   "statsFeedbackNote": "These numbers are feedback, not a score.",
   "soundsYourMix": "Your mix",
@@ -2495,33 +2577,33 @@
   "@soundPresetStillness": {
     "description": "Sounds screen, generated layers: soundPresetStillness"
   },
-  "myCourseNew": "New course",
+  "myCourseNew": "New playlist",
   "@myCourseNew": {
-    "description": "Action that makes a personal course"
+    "description": "Action that makes a playlist"
   },
-  "myCourseNameHint": "Course name",
+  "myCourseNameHint": "Playlist name",
   "@myCourseNameHint": {
-    "description": "Hint in the new course name field"
+    "description": "Hint in the new playlist name field"
   },
   "myCourseCreate": "Create",
   "@myCourseCreate": {
-    "description": "Confirms making a new course"
+    "description": "Confirms making a new playlist"
   },
-  "myCourseDefaultTitle": "My course",
+  "myCourseDefaultTitle": "My playlist",
   "@myCourseDefaultTitle": {
-    "description": "Title of a new course left unnamed"
+    "description": "Title of a new playlist left unnamed"
   },
-  "myCourseAddTo": "Add to course…",
+  "myCourseAddTo": "Add to playlist…",
   "@myCourseAddTo": {
-    "description": "Menu entry that adds a session or course to a personal course"
+    "description": "Menu entry that adds a session or playlist to a playlist"
   },
-  "myCourseAddToTitle": "Add to course",
+  "myCourseAddToTitle": "Add to playlist",
   "@myCourseAddToTitle": {
-    "description": "Title of the sheet listing personal courses"
+    "description": "Title of the sheet listing playlists"
   },
   "myCourseAddedSnack": "Added to {title}",
   "@myCourseAddedSnack": {
-    "description": "Snackbar after adding to a personal course",
+    "description": "Snackbar after adding to a playlist",
     "placeholders": {
       "title": {
         "type": "String"
@@ -2530,7 +2612,7 @@
   },
   "myCourseAddedCountSnack": "{count, plural, =1{1 session added to {title}} other{{count} sessions added to {title}}}",
   "@myCourseAddedCountSnack": {
-    "description": "Snackbar after adding a course's sessions",
+    "description": "Snackbar after adding a playlist's sessions",
     "placeholders": {
       "count": {
         "type": "int"
@@ -2542,7 +2624,7 @@
   },
   "myCourseAlreadyIn": "Already in {title}",
   "@myCourseAlreadyIn": {
-    "description": "Snackbar when the course already holds it",
+    "description": "Snackbar when the playlist already holds it",
     "placeholders": {
       "title": {
         "type": "String"
@@ -2551,44 +2633,44 @@
   },
   "myCourseNothingToAdd": "There are no sessions to add.",
   "@myCourseNothingToAdd": {
-    "description": "Snackbar when a course has nothing addable"
+    "description": "Snackbar when a playlist has nothing addable"
   },
-  "myCourseAddFailed": "Could not add it to the course.",
+  "myCourseAddFailed": "Could not add it to the playlist.",
   "@myCourseAddFailed": {
     "description": "Snackbar when adding fails"
   },
-  "myCourseNoneYet": "You haven't made a course yet. Start one here.",
+  "myCourseNoneYet": "You haven't made a playlist yet. Start one here.",
   "@myCourseNoneYet": {
-    "description": "Shown in the add-to-course sheet with no courses"
+    "description": "Shown in the add-to-playlist sheet with no playlists"
   },
-  "myCourseDuplicate": "Make my own copy",
+  "myCourseDuplicate": "Copy as playlist",
   "@myCourseDuplicate": {
-    "description": "Copies a course into a personal one"
+    "description": "Copies any course, or another playlist, into a new playlist"
   },
   "myCourseCopyTitle": "{title} (my copy)",
   "@myCourseCopyTitle": {
-    "description": "Title of a duplicated course",
+    "description": "Title of a duplicated playlist",
     "placeholders": {
       "title": {
         "type": "String"
       }
     }
   },
-  "myCourseDuplicateFailed": "Could not copy this course.",
+  "myCourseDuplicateFailed": "Could not make a playlist from this.",
   "@myCourseDuplicateFailed": {
     "description": "Snackbar when duplicating fails"
   },
-  "myCourseSaveFailed": "Could not save the course.",
+  "myCourseSaveFailed": "Could not save the playlist.",
   "@myCourseSaveFailed": {
-    "description": "Snackbar when saving a course fails"
+    "description": "Snackbar when saving a playlist fails"
   },
-  "myCourseEdit": "Edit course",
+  "myCourseEdit": "Edit playlist",
   "@myCourseEdit": {
-    "description": "Opens the course edit screen; also its title"
+    "description": "Opens the playlist edit screen; also its title"
   },
   "myCourseSave": "Save",
   "@myCourseSave": {
-    "description": "Saves the course edit"
+    "description": "Saves the playlist edit"
   },
   "myCourseTitleLabel": "Title",
   "@myCourseTitleLabel": {
@@ -2621,7 +2703,7 @@
   },
   "myCourseSessionsLabel": "Sessions",
   "@myCourseSessionsLabel": {
-    "description": "Header above the course rows on the edit screen"
+    "description": "Header above the playlist rows on the edit screen"
   },
   "myCourseAddHeading": "Add heading",
   "@myCourseAddHeading": {
@@ -2631,15 +2713,15 @@
   "@myCourseHeadingHint": {
     "description": "Hint in a section heading field"
   },
-  "myCourseRemoveRow": "Remove from course",
+  "myCourseRemoveRow": "Remove from playlist",
   "@myCourseRemoveRow": {
-    "description": "Removes a row from the course"
+    "description": "Removes a row from the playlist"
   },
   "myCourseDragHandle": "Drag to reorder",
   "@myCourseDragHandle": {
     "description": "Semantics label of a row's drag handle"
   },
-  "myCourseEditEmpty": "No sessions yet. Use Add to course… in any session's menu.",
+  "myCourseEditEmpty": "No sessions yet. Use Add to playlist… in any session's menu.",
   "@myCourseEditEmpty": {
     "description": "Edit screen with no rows"
   },
@@ -2655,29 +2737,29 @@
   "@myCourseKeepEditing": {
     "description": "Returns to the edit screen"
   },
-  "myCourseDelete": "Delete course",
+  "myCourseDelete": "Delete playlist",
   "@myCourseDelete": {
-    "description": "Deletes a personal course"
+    "description": "Deletes a playlist"
   },
-  "myCourseDeleteTitle": "Delete this course?",
+  "myCourseDeleteTitle": "Delete this playlist?",
   "@myCourseDeleteTitle": {
     "description": "Delete confirmation title"
   },
-  "myCourseDeleteBody": "Only the course goes. Its sessions stay in your library, with their downloads and progress.",
+  "myCourseDeleteBody": "Only the playlist goes. Its sessions stay in your library, with their downloads and progress.",
   "@myCourseDeleteBody": {
     "description": "Delete confirmation body"
   },
-  "myCourseDeletedSnack": "Course deleted",
+  "myCourseDeletedSnack": "Playlist deleted",
   "@myCourseDeletedSnack": {
-    "description": "Snackbar after deleting a course"
+    "description": "Snackbar after deleting a playlist"
   },
   "myCourseEmptyTitle": "No sessions yet",
   "@myCourseEmptyTitle": {
-    "description": "Empty personal course page title"
+    "description": "Empty playlist page title"
   },
-  "myCourseEmptyBody": "Add sessions from anywhere: a Dharma Seed talk, a YouTube video, an episode or a file. Open its menu and choose Add to course…",
+  "myCourseEmptyBody": "Add sessions from anywhere: a Dharma Seed talk, a YouTube video, an episode or a file. Open its menu and choose Add to playlist…",
   "@myCourseEmptyBody": {
-    "description": "Empty personal course page body"
+    "description": "Empty playlist page body"
   },
   "myCourseUnavailable": "Unavailable",
   "@myCourseUnavailable": {
@@ -2687,9 +2769,9 @@
   "@myCourseUnavailableSnack": {
     "description": "Tapping an unavailable session"
   },
-  "myCourseRemoveWarning": "{count, plural, =1{It is also in one of your courses, where it will show as unavailable.} other{It is also in {count} of your courses, where it will show as unavailable.}}",
+  "myCourseRemoveWarning": "{count, plural, =1{It is also in one of your playlists, where it will show as unavailable.} other{It is also in {count} of your playlists, where it will show as unavailable.}}",
   "@myCourseRemoveWarning": {
-    "description": "Extra line when removing an import that personal courses list",
+    "description": "Extra line when removing an import that playlists list",
     "placeholders": {
       "count": {
         "type": "int"
@@ -2700,12 +2782,79 @@
   "@myCourseMore": {
     "description": "Tooltip of a row's overflow menu"
   },
-  "myCourseRemovedSnack": "Removed from the course",
+  "myCourseRemovedSnack": "Removed from the playlist",
   "@myCourseRemovedSnack": {
-    "description": "After taking a session out of a personal course"
+    "description": "After taking a session out of a playlist"
   },
   "myCourseEditAction": "Edit",
   "@myCourseEditAction": {
-    "description": "Button on a personal course page that opens its edit screen"
+    "description": "Button on a playlist page that opens its edit screen"
+  },
+  "navYou": "You",
+  "@navYou": {
+    "description": "The tab bar's last tab: the user's own place (stats and settings)"
+  },
+  "soundsMixEmptyTitle": "Nothing in your mix yet",
+  "@soundsMixEmptyTitle": {
+    "description": "The Sounds tab's mix panel when the mix has no layers"
+  },
+  "soundsMixEmptyHint": "Tap a sound or a preset to start a mix.",
+  "@soundsMixEmptyHint": {
+    "description": "Under the empty mix: how to start one"
+  },
+  "soundsMute": "Mute {sound}",
+  "@soundsMute": {
+    "description": "Button on a layer of the mix that silences it",
+    "placeholders": {
+      "sound": {
+        "type": "String"
+      }
+    }
+  },
+  "soundsUnmute": "Unmute {sound}",
+  "@soundsUnmute": {
+    "description": "Button on a muted layer of the mix that brings its sound back",
+    "placeholders": {
+      "sound": {
+        "type": "String"
+      }
+    }
+  },
+  "soundsShowMix": "Show your mix",
+  "@soundsShowMix": {
+    "description": "Opens the mix panel docked at the bottom of the Sounds tab"
+  },
+  "soundsHideMix": "Hide your mix",
+  "@soundsHideMix": {
+    "description": "Folds the mix panel back down to its bar"
+  },
+  "soundsMixVolume": "Mix volume",
+  "@soundsMixVolume": {
+    "description": "Screen-reader label of the slider for the whole mix's volume"
+  },
+  "soundsPlayPreset": "Play {name}",
+  "@soundsPlayPreset": {
+    "description": "Screen-reader label of a preset card, which starts the preset",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "soundsPresetPlaying": "Playing",
+  "@soundsPresetPlaying": {
+    "description": "Badge on the preset card that is playing now"
+  },
+  "soundsAdjust": "Adjust",
+  "@soundsAdjust": {
+    "description": "Button on a generated layer (noise, drone, binaural beats) that opens its settings"
+  },
+  "soundsEditMix": "Edit your mix in Sounds",
+  "@soundsEditMix": {
+    "description": "In the player's Customize sheet, under Background sound: opens the Sounds screen"
+  },
+  "playlistKind": "Playlist",
+  "@playlistKind": {
+    "description": "Names what the user makes (a Playlist), shown beside a course on Library rows and as the kind on a playlist page. A course comes from a source."
   }
 }

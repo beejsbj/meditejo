@@ -5,10 +5,10 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
-import 'package:medito/views/background_sound/background_sound_view.dart';
 import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/player/widgets/bottom_actions/player_action_bar.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/bg_sound_widget.dart';
+import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/soundscape_fakes.dart';
@@ -55,7 +55,7 @@ void main() {
     );
   });
 
-  testWidgets('a talk keeps the sound button and it opens the Sounds sheet', (
+  testWidgets('a talk keeps the sound button and it opens the Sounds screen', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -86,11 +86,14 @@ void main() {
     expect(find.byIcon(Icons.music_off), findsNothing);
 
     await tester.tap(find.byType(BgSoundWidget));
-    // The spinning record never settles: pump the sheet's opening instead.
+    // The spinning record never settles: pump the page's opening instead.
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
-    expect(find.byType(BackgroundSoundView), findsOneWidget);
+    // Full height, as a page over the player, with a way back to it.
+    expect(find.byType(SoundsView), findsOneWidget);
+    expect(tester.widget<SoundsView>(find.byType(SoundsView)).standalone, true);
+    expect(find.byType(BottomSheet), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 }
