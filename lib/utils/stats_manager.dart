@@ -187,7 +187,18 @@ class StatsManager {
     int duration, {
     bool updateWidget = true,
     String? completionId,
+    String? kind,
+    String? courseId,
+    String? courseTitle,
   }) => _mutate(() async {
+    // The history keeps how long each session ran, and what it was (Practice
+    // or Talks, and which course), for the stats page. Recorded from here on.
+    audioCompleted = audioCompleted.copyWith(
+      durationMs: duration,
+      kind: kind,
+      courseId: courseId,
+      courseTitle: courseTitle,
+    );
     if (AudioCompletionTracker.checkTrackCrossedMidnight(
       endTimestamp: audioCompleted.timestamp,
       duration: duration,
@@ -242,28 +253,32 @@ class StatsManager {
 
   /// Adds the listening time of a repeated play-through without recording a
   /// new session. See [AudioCompletionTracker.addRepeatListeningTime].
-  Future<void> addRepeatListeningTime(int duration, {String? completionId}) =>
-      _mutate(() async {
-        if (completionId != null) {
-          if (_allStats!.completionReceipts.contains(completionId)) return;
-          _allStats = _allStats!.copyWith(
-            completionReceipts: [
-              ..._allStats!.completionReceipts,
-              completionId,
-            ],
-          );
-        }
+  ///
+  /// With [trackId], the repeat's minutes are also added to that track's most
+  /// recent session, so the day it was sat shows them in the stats page.
+  Future<void> addRepeatListeningTime(
+    int duration, {
+    String? completionId,
+    String? trackId,
+  }) => _mutate(() async {
+    if (completionId != null) {
+      if (_allStats!.completionReceipts.contains(completionId)) return;
+      _allStats = _allStats!.copyWith(
+        completionReceipts: [..._allStats!.completionReceipts, completionId],
+      );
+    }
 
-        _allStats = AudioCompletionTracker.addRepeatListeningTime(
-          stats: _allStats,
-          duration: duration,
-        );
-        await _saveLocalAllStatsToSharedPrefs();
+    _allStats = AudioCompletionTracker.addRepeatListeningTime(
+      stats: _allStats,
+      duration: duration,
+      trackId: trackId,
+    );
+    await _saveLocalAllStatsToSharedPrefs();
 
-        HomeWidgetService.updateWidgetFromStats(_allStats!).catchError((e) {
-          // Silently fail - widget updates are not critical
-        });
-      });
+    HomeWidgetService.updateWidgetFromStats(_allStats!).catchError((e) {
+      // Silently fail - widget updates are not critical
+    });
+  });
 
   Future<void> removeAudioCompleted(LocalAudioCompleted session) =>
       _mutate(() async {
@@ -286,8 +301,20 @@ class StatsManager {
           1 << 31,
         );
 
+        // Take back the minutes the entry recorded (an older entry recorded
+        // none, and its minutes stay in the total as they always did).
+        final removed = currentList.firstWhere(
+          (a) => a.id == session.id && a.timestamp == session.timestamp,
+        );
+        final newTotalTime =
+            (_allStats!.totalTimeListened - (removed.durationMs ?? 0)).clamp(
+              0,
+              9007199254740991,
+            );
+
         _allStats = _allStats!.copyWith(
           audioCompleted: updatedList,
+          totalTimeListened: newTotalTime,
           totalTracksCompleted: newTotalTracks,
           updated: _getCurrentDate().millisecondsSinceEpoch,
         );

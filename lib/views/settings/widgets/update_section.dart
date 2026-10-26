@@ -91,19 +91,21 @@ class _UpdateSectionState extends ConsumerState<UpdateSection>
           children
             ..add(_Caption(_errorText(l10n, state.failure), isError: true))
             ..add(
-              _button(
-                label: l10n.updateTryAgain,
-                onPressed: controller.retry,
-              ),
+              _button(label: l10n.updateTryAgain, onPressed: controller.retry),
             );
         } else {
           children.add(
-            _button(label: l10n.updateAction, onPressed: controller.startUpdate),
+            _button(
+              label: l10n.updateAction,
+              onPressed: controller.startUpdate,
+            ),
           );
         }
       case UpdatePhase.downloading:
         children
-          ..add(_Headline(l10n.updateDownloading((state.progress * 100).round())))
+          ..add(
+            _Headline(l10n.updateDownloading((state.progress * 100).round())),
+          )
           ..add(_Progress(value: state.progress));
       case UpdatePhase.verifying:
         children
@@ -116,22 +118,19 @@ class _UpdateSectionState extends ConsumerState<UpdateSection>
     }
 
     final notes = release?.notes ?? '';
-    if (release != null && notes.isNotEmpty && state.phase != UpdatePhase.idle) {
+    if (release != null &&
+        notes.isNotEmpty &&
+        state.phase != UpdatePhase.idle) {
       children
         ..add(const SizedBox(height: padding16))
-        ..add(
-          Text(
-            l10n.updateWhatsNew,
-            style: theme.textTheme.titleSmall,
-          ),
-        )
+        ..add(Text(l10n.updateWhatsNew, style: theme.textTheme.titleSmall))
         ..add(const SizedBox(height: padding8))
         ..add(
           MarkdownBody(
             data: notes,
-            styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-              p: theme.textTheme.bodyMedium,
-            ),
+            styleSheet: MarkdownStyleSheet.fromTheme(
+              theme,
+            ).copyWith(p: theme.textTheme.bodyMedium),
           ),
         );
     }
@@ -163,7 +162,11 @@ class _UpdateSectionState extends ConsumerState<UpdateSection>
   }
 
   Widget _checkButton(AppLocalizations l10n, UpdateController controller) =>
-      _button(label: l10n.updateCheck, onPressed: controller.check, quiet: true);
+      _button(
+        label: l10n.updateCheck,
+        onPressed: controller.check,
+        quiet: true,
+      );
 
   Widget _button({
     required String label,

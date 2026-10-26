@@ -20,7 +20,7 @@ import 'package:medito/views/library/share_intake_host.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/views/library/library_view.dart';
-import 'package:medito/views/settings/settings_screen.dart';
+import 'package:medito/views/you/you_view.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 
 class BottomNavigationBarView extends ConsumerStatefulWidget {
@@ -220,7 +220,7 @@ class _BottomNavigationBarViewState
     MainTab.sounds => SoundsView(key: _soundsViewKey),
     MainTab.library => const LibraryView(),
     // You's own screen (stats and Settings) replaces this line.
-    MainTab.you => const SettingsScreen(),
+    MainTab.you => const YouView(),
   };
 
   static MeditoNavItem _navItem(MainTab tab, AppLocalizations l10n) =>

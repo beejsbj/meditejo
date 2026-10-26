@@ -10,7 +10,6 @@ import 'package:medito/services/reminders/daily_reminders_service.dart';
 import 'package:medito/utils/notification_permission_flow.dart';
 import 'package:medito/utils/permission_handler.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
-import 'package:medito/views/home/widgets/home_gradient_border.dart';
 import 'package:medito/widgets/medito_icon.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -37,7 +36,9 @@ class ReminderChoiceOff extends ReminderChoice {
 /// switch, which silently picked "same time tomorrow"; this offers the same
 /// Morning / Evening / Night / custom choice as the onboarding chips.
 class ReminderTile extends ConsumerStatefulWidget {
-  const ReminderTile({super.key});
+  const ReminderTile({super.key, this.hasUnderline = false});
+
+  final bool hasUnderline;
 
   @override
   ConsumerState<ReminderTile> createState() => _ReminderTileState();
@@ -187,27 +188,16 @@ class _ReminderTileState extends ConsumerState<ReminderTile> {
     final enabled = ref.watch(reminderEnabledProvider);
     final time = ref.watch(reminderTimeProvider);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: HomeGradientBorder(
-        backgroundColor: Theme.of(context).cardColor,
-        borderRadius: 14,
-        borderWidth: 0.5,
-        child: Material(
-          type: MaterialType.transparency,
-          child: RowItemWidget(
-            icon: MeditoIcon(
-              assetName: MeditoIcons.bell,
-              size: 24,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-            title: l10n.reminderTitle,
-            subTitle: _subtitle(l10n, enabled, time),
-            hasUnderline: false,
-            onTap: _busy ? null : _openSheet,
-          ),
-        ),
+    return RowItemWidget(
+      icon: MeditoIcon(
+        assetName: MeditoIcons.bell,
+        size: 24,
+        color: Theme.of(context).colorScheme.onSurface,
       ),
+      title: l10n.reminderTitle,
+      subTitle: _subtitle(l10n, enabled, time),
+      hasUnderline: widget.hasUnderline,
+      onTap: _busy ? null : _openSheet,
     );
   }
 }
