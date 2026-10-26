@@ -11,15 +11,16 @@ import 'package:medito/routes/routes.dart';
 import 'package:medito/services/home_widget_service.dart';
 import 'package:medito/views/home/home_styles.dart';
 import 'package:medito/views/home/widgets/continue/continue_section.dart';
-import 'package:medito/views/home/widgets/header/home_header_widget.dart';
 import 'package:medito/views/home/widgets/pinned/pinned_section.dart';
 import 'package:medito/views/home/widgets/quick_links/quick_links_section.dart';
 import 'package:medito/views/home/widgets/update_notice.dart';
 import 'package:medito/widgets/adaptive/adaptive_home_sections.dart';
+import 'package:medito/widgets/branding/meditejo_mark.dart';
 
-/// Home is a launchpad: what is in progress, a few one-tap starts, and the
-/// courses the user pinned. Browsing lives in Explore and everything added in
-/// Library. The user chooses which sections show and in what order.
+/// Home is a launchpad: the Meditejo mark, then what is in progress, a few
+/// one-tap starts, and the courses the user pinned. Browsing lives in
+/// Explore and everything added in Library. The user chooses which sections
+/// show and in what order; the mark always leads.
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({super.key});
 
@@ -30,6 +31,7 @@ class HomeView extends ConsumerStatefulWidget {
 class _HomeViewState extends ConsumerState<HomeView>
     with AutomaticKeepAliveClientMixin {
   String? _lastWidgetSignature;
+  bool _markInView = true;
 
   @override
   Widget build(BuildContext context) {
@@ -42,63 +44,79 @@ class _HomeViewState extends ConsumerState<HomeView>
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: RefreshIndicator(
-          onRefresh: _onRefresh,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    padding16,
-                    padding16,
-                    padding8,
-                    0,
-                  ),
-                  child: Row(
+        child: NotificationListener<ScrollUpdateNotification>(
+          onNotification: _onScroll,
+          child: RefreshIndicator(
+            onRefresh: _onRefresh,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Stack(
                     children: [
-                      Expanded(child: HomeHeaderWidget(greeting: l10n.home)),
-                      TextButton(
-                        key: const ValueKey('home_customize'),
-                        onPressed: () => handleNavigation(
-                          TypeConstants.route,
-                          [TypeConstants.customiseHomeLayout],
-                          context,
-                          ref: ref,
+                      Padding(
+                        padding: const EdgeInsets.only(top: 28, bottom: 12),
+                        child: Center(
+                          child: MeditejoMark(
+                            size: kHomeMarkSize,
+                            animate: _markInView,
+                          ),
                         ),
-                        child: Text(l10n.homeCustomize),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: IconButton(
+                          key: const ValueKey('home_customize'),
+                          tooltip: l10n.homeCustomize,
+                          icon: const Icon(Icons.tune_rounded),
+                          onPressed: () => handleNavigation(
+                            TypeConstants.route,
+                            [TypeConstants.customiseHomeLayout],
+                            context,
+                            ref: ref,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              const SliverToBoxAdapter(child: UpdateNotice()),
-              SliverToBoxAdapter(
-                child: AdaptiveHomeSections(
-                  children: [
-                    for (final type in order)
-                      if (!hidden.contains(type))
-                        Padding(
-                          key: ValueKey(type),
-                          padding: const EdgeInsets.only(
-                            top: padding16,
-                            bottom: kHomeSectionGap - padding16,
+                const SliverToBoxAdapter(child: UpdateNotice()),
+                SliverToBoxAdapter(
+                  child: AdaptiveHomeSections(
+                    children: [
+                      for (final type in order)
+                        if (!hidden.contains(type))
+                          Padding(
+                            key: ValueKey(type),
+                            padding: const EdgeInsets.only(
+                              top: kHomeSectionGap / 2,
+                              bottom: kHomeSectionGap / 2,
+                            ),
+                            child: _buildSection(type),
                           ),
-                          child: _buildSection(type),
-                        ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              SliverPadding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.paddingOf(context).bottom + padding16,
+                SliverPadding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.paddingOf(context).bottom + padding16,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  /// The mark rests once Home is scrolled past it.
+  bool _onScroll(ScrollUpdateNotification notification) {
+    if (notification.depth != 0) return false;
+    final inView = notification.metrics.pixels < kHomeMarkSize + 40;
+    if (inView != _markInView) setState(() => _markInView = inView);
+    return false;
   }
 
   Widget _buildSection(HomeWidgetType type) => switch (type) {
