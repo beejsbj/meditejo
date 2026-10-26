@@ -32,6 +32,18 @@ rain-car.opus: "Rain on a car roof"
   Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
   Changes: excerpt of 40 s from 10 s; looped with a 4 s crossfade; gain -7.0 dB (to about -28 LUFS); mono Opus 40 kbps
 
+rain-indoors.opus: "Rain from indoors"
+  Original: "Rain from Indoors - Perfect loop" by samesamesame (https://freesound.org/people/samesamesame/)
+  Source: https://freesound.org/people/samesamesame/sounds/242889/
+  Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+  Changes: excerpt of 44 s from 0 s; looped with a 4 s crossfade; gain -3.0 dB (to about -27 LUFS); stereo Opus 64 kbps
+
+rain-balcony.opus: "Rain on a balcony"
+  Original: "Slowly Raining Loop" by unfa (https://freesound.org/people/unfa/)
+  Source: https://freesound.org/people/unfa/sounds/177479/
+  Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+  Changes: excerpt of 45 s from 23.02 s; filtered (highpass=f=50); looped with a 4 s crossfade; gain +25.3 dB (to about -27 LUFS); stereo Opus 64 kbps
+
 stream.opus: "Mountain stream"
   Original: "Mountain stream #1" by Joseph Sardin (https://bigsoundbank.com/)
   Source: https://bigsoundbank.com/mountain-stream-1-s2754.html
@@ -55,6 +67,12 @@ sea.opus: "Beach at Dellec"
   Source: https://bigsoundbank.com/sea-of-the-beach-of-dellec-2-s2565.html
   Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
   Changes: excerpt of 60 s from 35.5 s; looped with a 6 s crossfade; gain -4.3 dB (to about -27 LUFS); stereo Opus 64 kbps
+
+ocean.opus: "Ocean swell"
+  Original: "Gentle Ocean Waves Loop" by kkenny101 (https://freesound.org/people/kkenny101/)
+  Source: https://freesound.org/people/kkenny101/sounds/852826/
+  Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+  Changes: excerpt of 21.7699 s from 0 s; already a seamless loop, used without a crossfade; gain +10.3 dB (to about -28 LUFS); mono Opus 40 kbps
 
 wind-trees.opus: "Wind in the trees"
   Original: "Wind in the Trees" by Joseph Sardin (https://bigsoundbank.com/)
@@ -92,6 +110,12 @@ forest-brook.opus: "Forest brook"
   Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
   Changes: excerpt of 60 s from 14.5 s; looped with a 6 s crossfade; gain +0.6 dB, peaks limited by up to 0.6 dB (to about -27 LUFS); stereo Opus 64 kbps
 
+wood-thrush.opus: "Wood thrush at dawn"
+  Original: "WoodThrushinMorningShawneeForestMay272012.wav" by kvgarlic (https://freesound.org/people/kvgarlic/)
+  Source: https://freesound.org/people/kvgarlic/sounds/156826/
+  Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+  Changes: excerpt of 75 s from 45.5 s; filtered (highpass=f=300); looped with a 6 s crossfade; gain +14.2 dB (to about -27 LUFS); stereo Opus 64 kbps
+
 fire-crackle.opus: "Crackling fire"
   Original: "Fireplace #4" by Joseph Sardin (https://bigsoundbank.com/)
   Source: https://bigsoundbank.com/fireplace-4-s2856.html
@@ -122,6 +146,24 @@ train.opus: "Metro carriage"
   Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
   Changes: excerpt of 45 s from 58 s; looped with a 4 s crossfade; gain -10.8 dB (to about -27 LUFS); stereo Opus 64 kbps
 
+laundry-room.opus: "Laundry room"
+  Original: "Laundry Room Ambience" by moviebuffgavin (https://freesound.org/people/moviebuffgavin/)
+  Source: https://freesound.org/people/moviebuffgavin/sounds/411914/
+  Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+  Changes: excerpt of 24 s from 0.5 s; looped with a 8 s crossfade; gain -1.7 dB (to about -27 LUFS); stereo Opus 64 kbps
+
+fan.opus: "Fan hum"
+  Original: "Air Conditioner Fan Hum.wav" by LilMati (https://freesound.org/people/LilMati/)
+  Source: https://freesound.org/people/LilMati/sounds/515859/
+  Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+  Changes: excerpt of 60 s from 4.03 s; looped with a 4 s crossfade; gain +0.3 dB (to about -27 LUFS); stereo Opus 64 kbps
+
+train-yamanote.opus: "Yamanote Line train"
+  Original: "Trains of the Yamanote Line" by SDLx (https://freesound.org/people/SDLx/)
+  Source: https://freesound.org/people/SDLx/sounds/259988/
+  Licence: CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)
+  Changes: excerpt of 33 s from 100.5 s; filtered (highpass=f=30); looped with a 5 s crossfade; gain +20.6 dB (to about -27 LUFS); stereo Opus 64 kbps
+
 night-meadow.opus: "Meadow at night"
   Original: "Campaign at Night #4" by Joseph Sardin (https://bigsoundbank.com/)
   Source: https://bigsoundbank.com/campaign-at-night-4-s1880.html
@@ -139,3 +181,9 @@ night-frogs.opus: "Frogs by a pond"
   Source: https://bigsoundbank.com/frogs-2-s0998.html
   Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
   Changes: excerpt of 60 s from 67 s; looped with a 6 s crossfade; gain -6.0 dB (to about -27 LUFS); mono Opus 40 kbps
+
+night-shore.opus: "Crickets by the sea"
+  Original: "Crickets during the night, close to the beach in Mexico" by felix.blume (https://freesound.org/people/felix.blume/)
+  Source: https://freesound.org/people/felix.blume/sounds/479041/
+  Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+  Changes: excerpt of 60 s from 292.504 s; looped with a 6 s crossfade; gain -12.6 dB (to about -27 LUFS); stereo Opus 64 kbps

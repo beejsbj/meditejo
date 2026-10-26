@@ -2,7 +2,7 @@
   "version": 1,
   "targetLufs": -27.0,
   "generatedBy": "tools/meditejo/sounds/process_sounds.py",
-  "totalBytes": 8892924,
+  "totalBytes": 11539173,
   "sounds": [
     {
       "id": "rain-terrace",
@@ -185,6 +185,108 @@
       }
     },
     {
+      "id": "rain-indoors",
+      "title": "Rain from indoors",
+      "category": "rain",
+      "asset": "assets/sounds/rain-indoors.opus",
+      "durationMs": 44006,
+      "channels": 2,
+      "bytes": 326835,
+      "originalTitle": "Rain from Indoors - Perfect loop",
+      "author": "samesamesame",
+      "authorUrl": "https://freesound.org/people/samesamesame/",
+      "sourceUrl": "https://freesound.org/people/samesamesame/sounds/242889/",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://freesound.org/people/samesamesame/sounds/242889/",
+      "licenseCheckedAt": "2026-10-26",
+      "assurance": "high",
+      "modifications": "excerpt of 44 s from 0 s; looped with a 4 s crossfade; gain -3.0 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "9e4c2da4151dff114c329531866fc132a9ce1bfe97d863c2ed8ea25f12e33c20",
+        "start": 0,
+        "loop": 44,
+        "crossfade": 4,
+        "filters": "",
+        "gainDb": -2.96,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -24.04,
+          "truePeak": -9.06,
+          "lra": 1.0
+        },
+        "measuredAfter": {
+          "lufs": -26.99,
+          "truePeak": -11.58,
+          "lra": 0.9
+        },
+        "seamRank": 67.5,
+        "seam": {
+          "rmsStepDb": 0.35,
+          "rmsStepP95Db": 0.85,
+          "spectralDb": 1.26,
+          "spectralP95Db": 2.37
+        },
+        "bitrateKbps": 64,
+        "bytes": 326835,
+        "durationMs": 44006
+      }
+    },
+    {
+      "id": "rain-balcony",
+      "title": "Rain on a balcony",
+      "category": "rain",
+      "asset": "assets/sounds/rain-balcony.opus",
+      "durationMs": 45006,
+      "channels": 2,
+      "bytes": 300726,
+      "originalTitle": "Slowly Raining Loop",
+      "author": "unfa",
+      "authorUrl": "https://freesound.org/people/unfa/",
+      "sourceUrl": "https://freesound.org/people/unfa/sounds/177479/",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://freesound.org/people/unfa/sounds/177479/",
+      "licenseCheckedAt": "2026-10-26",
+      "assurance": "high",
+      "modifications": "excerpt of 45 s from 23.02 s; filtered (highpass=f=50); looped with a 4 s crossfade; gain +25.3 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "fdc049ca0d7ebbcb2f0ea5c1130f47aac5814b5814bae93ae9e264bffa9fad82",
+        "start": 23.02,
+        "loop": 45,
+        "crossfade": 4,
+        "filters": "highpass=f=50",
+        "gainDb": 25.34,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -52.34,
+          "truePeak": -28.56,
+          "lra": 2.0
+        },
+        "measuredAfter": {
+          "lufs": -26.98,
+          "truePeak": -4.17,
+          "lra": 2.0
+        },
+        "seamRank": 2.8,
+        "seam": {
+          "rmsStepDb": 0.75,
+          "rmsStepP95Db": 2.26,
+          "spectralDb": 1.88,
+          "spectralP95Db": 3.48
+        },
+        "bitrateKbps": 64,
+        "bytes": 300726,
+        "durationMs": 45006
+      }
+    },
+    {
       "id": "stream",
       "title": "Mountain stream",
       "category": "water",
@@ -362,6 +464,57 @@
         "bitrateKbps": 64,
         "bytes": 430123,
         "durationMs": 60006
+      }
+    },
+    {
+      "id": "ocean",
+      "title": "Ocean swell",
+      "category": "water",
+      "asset": "assets/sounds/ocean.opus",
+      "durationMs": 21776,
+      "channels": 1,
+      "bytes": 106130,
+      "originalTitle": "Gentle Ocean Waves Loop",
+      "author": "kkenny101",
+      "authorUrl": "https://freesound.org/people/kkenny101/",
+      "sourceUrl": "https://freesound.org/people/kkenny101/sounds/852826/",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://freesound.org/people/kkenny101/sounds/852826/",
+      "licenseCheckedAt": "2026-10-26",
+      "assurance": "high",
+      "modifications": "excerpt of 21.7699 s from 0 s; already a seamless loop, used without a crossfade; gain +10.3 dB (to about -28 LUFS); mono Opus 40 kbps",
+      "processing": {
+        "sourceSha256": "f93e9890583f072ac52cf197b8b5942397d3d5e889fbdb9112a0776142f50229",
+        "start": 0,
+        "loop": 21.769917,
+        "crossfade": 0,
+        "filters": "",
+        "gainDb": 10.33,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -37.33,
+          "truePeak": -12.47,
+          "lra": 11.3
+        },
+        "measuredAfter": {
+          "lufs": -27.79,
+          "truePeak": -3.97,
+          "lra": 11.7
+        },
+        "seamRank": 6.3,
+        "seam": {
+          "rmsStepDb": 1.81,
+          "rmsStepP95Db": 11.26,
+          "spectralDb": 5.56,
+          "spectralP95Db": 15.76
+        },
+        "bitrateKbps": 40,
+        "bytes": 106130,
+        "durationMs": 21776
       }
     },
     {
@@ -635,6 +788,57 @@
       }
     },
     {
+      "id": "wood-thrush",
+      "title": "Wood thrush at dawn",
+      "category": "forest",
+      "asset": "assets/sounds/wood-thrush.opus",
+      "durationMs": 75006,
+      "channels": 2,
+      "bytes": 543743,
+      "originalTitle": "WoodThrushinMorningShawneeForestMay272012.wav",
+      "author": "kvgarlic",
+      "authorUrl": "https://freesound.org/people/kvgarlic/",
+      "sourceUrl": "https://freesound.org/people/kvgarlic/sounds/156826/",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://freesound.org/people/kvgarlic/sounds/156826/",
+      "licenseCheckedAt": "2026-10-26",
+      "assurance": "high",
+      "modifications": "excerpt of 75 s from 45.5 s; filtered (highpass=f=300); looped with a 6 s crossfade; gain +14.2 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "9edf0403fe3a1565d1feda3dead491f980e1c840569bfe6b73034e2aa6c534b3",
+        "start": 45.5,
+        "loop": 75,
+        "crossfade": 6,
+        "filters": "highpass=f=300",
+        "gainDb": 14.16,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -41.16,
+          "truePeak": -24.48,
+          "lra": 17.9
+        },
+        "measuredAfter": {
+          "lufs": -26.9,
+          "truePeak": -10.34,
+          "lra": 17.8
+        },
+        "seamRank": 37.8,
+        "seam": {
+          "rmsStepDb": 0.15,
+          "rmsStepP95Db": 15.35,
+          "spectralDb": 2.65,
+          "spectralP95Db": 10.84
+        },
+        "bitrateKbps": 64,
+        "bytes": 543743,
+        "durationMs": 75006
+      }
+    },
+    {
       "id": "fire-crackle",
       "title": "Crackling fire",
       "category": "fire",
@@ -860,6 +1064,159 @@
       }
     },
     {
+      "id": "laundry-room",
+      "title": "Laundry room",
+      "category": "room",
+      "asset": "assets/sounds/laundry-room.opus",
+      "durationMs": 24006,
+      "channels": 2,
+      "bytes": 167114,
+      "originalTitle": "Laundry Room Ambience",
+      "author": "moviebuffgavin",
+      "authorUrl": "https://freesound.org/people/moviebuffgavin/",
+      "sourceUrl": "https://freesound.org/people/moviebuffgavin/sounds/411914/",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://freesound.org/people/moviebuffgavin/sounds/411914/",
+      "licenseCheckedAt": "2026-10-26",
+      "assurance": "high",
+      "modifications": "excerpt of 24 s from 0.5 s; looped with a 8 s crossfade; gain -1.7 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "b3c8b8aab355ad6af1ee91c653dc59bc9c961e7b8493248f13e25d3038c076b6",
+        "start": 0.5,
+        "loop": 24,
+        "crossfade": 8,
+        "filters": "",
+        "gainDb": -1.71,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -25.29,
+          "truePeak": -5.69,
+          "lra": 2.0
+        },
+        "measuredAfter": {
+          "lufs": -26.99,
+          "truePeak": -7.46,
+          "lra": 2.0
+        },
+        "seamRank": 1.2,
+        "seam": {
+          "rmsStepDb": 0.23,
+          "rmsStepP95Db": 2.34,
+          "spectralDb": 3.0,
+          "spectralP95Db": 8.91
+        },
+        "bitrateKbps": 64,
+        "bytes": 167114,
+        "durationMs": 24006
+      }
+    },
+    {
+      "id": "fan",
+      "title": "Fan hum",
+      "category": "room",
+      "asset": "assets/sounds/fan.opus",
+      "durationMs": 60006,
+      "channels": 2,
+      "bytes": 422181,
+      "originalTitle": "Air Conditioner Fan Hum.wav",
+      "author": "LilMati",
+      "authorUrl": "https://freesound.org/people/LilMati/",
+      "sourceUrl": "https://freesound.org/people/LilMati/sounds/515859/",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://freesound.org/people/LilMati/sounds/515859/",
+      "licenseCheckedAt": "2026-10-26",
+      "assurance": "high",
+      "modifications": "excerpt of 60 s from 4.03 s; looped with a 4 s crossfade; gain +0.3 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "1952df459418493f1a3bae67c8d69c3dd552b59e2cd762eaffb66cae5d3fcb28",
+        "start": 4.03,
+        "loop": 60,
+        "crossfade": 4,
+        "filters": "",
+        "gainDb": 0.26,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -27.26,
+          "truePeak": -11.98,
+          "lra": 1.6
+        },
+        "measuredAfter": {
+          "lufs": -26.98,
+          "truePeak": -11.28,
+          "lra": 1.5
+        },
+        "seamRank": 2.5,
+        "seam": {
+          "rmsStepDb": 0.09,
+          "rmsStepP95Db": 1.44,
+          "spectralDb": 0.85,
+          "spectralP95Db": 1.4
+        },
+        "bitrateKbps": 64,
+        "bytes": 422181,
+        "durationMs": 60006
+      }
+    },
+    {
+      "id": "train-yamanote",
+      "title": "Yamanote Line train",
+      "category": "room",
+      "asset": "assets/sounds/train-yamanote.opus",
+      "durationMs": 33006,
+      "channels": 2,
+      "bytes": 231591,
+      "originalTitle": "Trains of the Yamanote Line",
+      "author": "SDLx",
+      "authorUrl": "https://freesound.org/people/SDLx/",
+      "sourceUrl": "https://freesound.org/people/SDLx/sounds/259988/",
+      "license": {
+        "spdx": "CC-BY-3.0",
+        "name": "CC BY 3.0",
+        "url": "https://creativecommons.org/licenses/by/3.0/"
+      },
+      "licenseVerifiedOn": "https://freesound.org/people/SDLx/sounds/259988/",
+      "licenseCheckedAt": "2026-10-26",
+      "assurance": "high",
+      "modifications": "excerpt of 33 s from 100.5 s; filtered (highpass=f=30); looped with a 5 s crossfade; gain +20.6 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "e2962e96787f41d57955ef843984d53e5aa44083c2f1d9af6117161aa4787e36",
+        "start": 100.5,
+        "loop": 33,
+        "crossfade": 5,
+        "filters": "highpass=f=30",
+        "gainDb": 20.64,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -47.64,
+          "truePeak": -31.72,
+          "lra": 3.3
+        },
+        "measuredAfter": {
+          "lufs": -26.99,
+          "truePeak": -11.1,
+          "lra": 3.4
+        },
+        "seamRank": 11.1,
+        "seam": {
+          "rmsStepDb": 0.16,
+          "rmsStepP95Db": 0.83,
+          "spectralDb": 1.52,
+          "spectralP95Db": 2.05
+        },
+        "bitrateKbps": 64,
+        "bytes": 231591,
+        "durationMs": 33006
+      }
+    },
+    {
       "id": "night-meadow",
       "title": "Meadow at night",
       "category": "night",
@@ -991,6 +1348,57 @@
         "seamRank": 85.4,
         "bitrateKbps": 40,
         "bytes": 300409,
+        "durationMs": 60006
+      }
+    },
+    {
+      "id": "night-shore",
+      "title": "Crickets by the sea",
+      "category": "night",
+      "asset": "assets/sounds/night-shore.opus",
+      "durationMs": 60006,
+      "channels": 2,
+      "bytes": 547929,
+      "originalTitle": "Crickets during the night, close to the beach in Mexico",
+      "author": "felix.blume",
+      "authorUrl": "https://freesound.org/people/felix.blume/",
+      "sourceUrl": "https://freesound.org/people/felix.blume/sounds/479041/",
+      "license": {
+        "spdx": "CC0-1.0",
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "licenseVerifiedOn": "https://freesound.org/people/felix.blume/sounds/479041/",
+      "licenseCheckedAt": "2026-10-26",
+      "assurance": "high",
+      "modifications": "excerpt of 60 s from 292.504 s; looped with a 6 s crossfade; gain -12.6 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "processing": {
+        "sourceSha256": "e3b2a1ba193b40b107504733d739b76d1e3a08f2c75f9108245b17462b40a20b",
+        "start": 292.504,
+        "loop": 60,
+        "crossfade": 6,
+        "filters": "",
+        "gainDb": -12.63,
+        "limiterDb": 0.0,
+        "measuredBefore": {
+          "lufs": -14.37,
+          "truePeak": -3.49,
+          "lra": 1.7
+        },
+        "measuredAfter": {
+          "lufs": -26.99,
+          "truePeak": -16.46,
+          "lra": 1.7
+        },
+        "seamRank": 15.4,
+        "seam": {
+          "rmsStepDb": 0.23,
+          "rmsStepP95Db": 1.49,
+          "spectralDb": 1.3,
+          "spectralP95Db": 5.93
+        },
+        "bitrateKbps": 64,
+        "bytes": 547929,
         "durationMs": 60006
       }
     }
