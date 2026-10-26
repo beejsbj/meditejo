@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meditejo · identity, round 2</title>
+<style>
+:root {
+  --bg: #FAF6EF; --surface: #F1E9DD; --raised: #EADFCF; --text: #2A221B; --muted: #7A6B5D; --form: #D2754E;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --pad: clamp(16px, 4vw, 28px);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 var(--sans); transition: background .5s, color .5s; -webkit-text-size-adjust: 100%; }
+main { max-width: 780px; margin: 0 auto; padding: 0 var(--pad) 64px; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 500; letter-spacing: -0.01em; margin: 0; }
+h1 { font-size: clamp(30px, 7vw, 44px); line-height: 1.05; }
+h2 { font-size: clamp(22px, 5vw, 28px); line-height: 1.15; }
+h3 { font-size: 16px; }
+p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+code { font-family: var(--mono); font-size: 12px; }
+.eyebrow { font: 600 11px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+header.top { padding: 34px 0 18px; display: grid; gap: 6px; }
+.lede { color: var(--muted); max-width: 58ch; margin-top: 8px; }
+
+.bar { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  margin: 0 calc(var(--pad) * -1); padding: 10px var(--pad); border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent); display: grid; gap: 8px; }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px 0 8px; border-radius: 99px; border: 1px solid color-mix(in srgb, var(--text) 12%, transparent); background: transparent; font-size: 13px; }
+.chip[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.dots { display: inline-flex; }
+.dots i { width: 12px; height: 12px; border-radius: 50%; margin-right: -4px; box-shadow: 0 0 0 1.5px var(--bg); }
+.chip[aria-pressed="true"] .dots i { box-shadow: 0 0 0 1.5px var(--text); }
+.controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.seed { flex: 1 1 120px; min-width: 0; display: flex; height: 34px; border-radius: 10px; background: var(--surface); overflow: hidden; }
+.seed input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 0 10px; font: 13px var(--mono); outline: none; }
+.seed button { border: 0; background: transparent; padding: 0 12px; font-size: 13px; color: var(--muted); }
+.btn { height: 34px; padding: 0 12px; border-radius: 10px; border: 0; background: var(--surface); font-size: 13px; white-space: nowrap; }
+.btn.primary { background: var(--text); color: var(--bg); }
+.btn:focus-visible, .chip:focus-visible, .seed:focus-within, .tab:focus-visible { outline: 2px solid var(--form); outline-offset: 2px; }
+
+section { padding-top: 44px; }
+.shead { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.shead p { color: var(--muted); font-size: 14px; margin-top: 4px; max-width: 56ch; }
+.link { border: 0; background: none; padding: 4px 0; font-size: 13px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+
+/* today */
+.today { display: grid; grid-template-columns: minmax(0, 260px) 1fr; gap: 22px; align-items: center; }
+.today .art canvas { width: 100%; aspect-ratio: 1; border-radius: 22%; display: block; }
+.facts { display: grid; gap: 8px; }
+.facts .date { font-family: var(--serif); font-size: 22px; }
+.facts .row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.state { font-size: 13px; color: var(--muted); }
+.state b { color: var(--text); font-weight: 600; }
+@media (max-width: 560px) { .today { grid-template-columns: 1fr; } .today .art { max-width: 240px; margin: 0 auto; width: 100%; } }
+.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin-top: 18px; }
+.day { border: 0; background: none; padding: 0; display: grid; gap: 4px; justify-items: center; font-size: 11px; color: var(--muted); }
+.day canvas { width: 100%; aspect-ratio: 1; border-radius: 22%; display: block; }
+.day[aria-pressed="true"] canvas { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--text); }
+.day .pin { font-size: 10px; color: var(--text); }
+
+/* grids */
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 12px; }
+@media (max-width: 600px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.card { margin: 0; display: grid; gap: 6px; }
+.card .art { position: relative; border-radius: 22%; }
+.card canvas { width: 100%; aspect-ratio: 1; display: block; border-radius: 22%; cursor: pointer; }
+.card.sel .art { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text); }
+.card figcaption { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 0 2px; }
+.card figcaption span { display: grid; line-height: 1.25; min-width: 0; }
+.card small { color: var(--muted); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.use { border: 0; background: var(--surface); border-radius: 99px; height: 26px; padding: 0 10px; font-size: 12px; }
+.paused::after { content: "paused"; position: absolute; top: 8px; left: 8px; font: 600 10px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; padding: 4px 6px; border-radius: 6px; background: rgba(0,0,0,.45); color: #fff; pointer-events: none; }
+
+/* sounds */
+.shelf { margin-bottom: 14px; }
+.shelf h3 { font-family: var(--sans); font-size: 13px; font-weight: 600; margin: 0 0 6px; color: var(--muted); }
+.row { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; scrollbar-width: thin; }
+.snd { flex: none; width: clamp(128px, 30%, 168px); scroll-snap-align: start; position: relative; border-radius: 18px; overflow: hidden; }
+.snd canvas { width: 100%; aspect-ratio: 1; display: block; }
+.snd span { position: absolute; left: 12px; right: 10px; bottom: 10px; color: #fff; font-weight: 600; font-size: 13.5px; line-height: 1.2; text-shadow: 0 1px 8px rgba(0,0,0,.35); }
+.snd span small { display: block; font-weight: 400; opacity: .8; font-size: 11px; }
+.snd.wide { width: clamp(220px, 62%, 340px); }
+.snd.wide canvas { aspect-ratio: 2 / 1; }
+
+/* covers */
+.tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.tab { height: 32px; padding: 0 14px; border-radius: 99px; border: 1px solid color-mix(in srgb, var(--text) 12%, transparent); background: transparent; font-size: 13px; }
+.tab[aria-selected="true"] { background: var(--text); color: var(--bg); }
+.covers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 12px; }
+@media (max-width: 600px) { .covers { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 8px; } }
+.cover { margin: 0; display: grid; gap: 6px; font-size: 12.5px; line-height: 1.25; }
+.cover canvas { width: 100%; aspect-ratio: 1; display: block; border-radius: 12px; }
+.cover.round canvas { border-radius: 50%; }
+
+/* palette boards */
+.boards { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+.board { flex: none; width: min(300px, 82vw); scroll-snap-align: start; border-radius: 22px; padding: 14px; text-align: left; border: 1px solid color-mix(in srgb, var(--text) 10%, transparent); display: grid; gap: 10px; }
+.board[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--text); }
+.board header { display: flex; justify-content: space-between; align-items: center; }
+.board .sw { display: flex; gap: 3px; }
+.board .sw i { width: 16px; height: 16px; border-radius: 50%; }
+.board .mood { font-size: 12px; opacity: .7; }
+.board .home { display: grid; grid-template-columns: 76px 1fr; gap: 10px; align-items: center; }
+.board .home canvas { width: 76px; height: 76px; display: block; }
+.board .cont { border-radius: 14px; padding: 8px; display: grid; grid-template-columns: 40px 1fr; gap: 8px; align-items: center; font-size: 12px; line-height: 1.25; }
+.board .cont canvas { width: 40px; height: 40px; border-radius: 8px; display: block; }
+.board .sounds { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.board .sounds div { position: relative; border-radius: 14px; overflow: hidden; }
+.board .sounds canvas { width: 100%; aspect-ratio: 1.3; display: block; }
+.board .sounds span { position: absolute; left: 8px; bottom: 6px; color: #fff; font-size: 12px; font-weight: 600; }
+.board .lib { display: grid; grid-template-columns: 48px 1fr; gap: 10px; align-items: center; font-size: 12.5px; border-radius: 14px; padding: 8px; }
+.board .lib canvas { width: 48px; height: 48px; border-radius: 10px; display: block; }
+.board small { display: block; opacity: .65; font-size: 11px; }
+
+footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent); color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <span class="eyebrow">Meditejo · identity · round 2</span>
+    <h1>A place that breathes</h1>
+    <p class="lede"><em>Meditejo</em>: a place for meditation. The marks now evoke a place (a doorway, a shelter, a cushion, a hearth) and every round shape breathes from imperfect to whole and back, once every ten seconds. A new mark arrives each day; pin one to keep it.</p>
+  </header>
+
+  <div class="bar" role="toolbar" aria-label="Exploration controls">
+    <div class="chips" id="chips"></div>
+    <div class="controls">
+      <form class="seed" id="seedForm"><input id="seedIn" placeholder="seed, e.g. g-2q" aria-label="Seed" autocomplete="off" spellcheck="false"><button type="submit">Show</button></form>
+      <button class="btn primary" id="reroll">Reroll</button>
+      <button class="btn" id="theme">Dark</button>
+      <button class="btn" id="motion">Pause</button>
+    </div>
+  </div>
+
+  <section id="today" style="padding-top:28px">
+    <div class="today">
+      <div class="art"><canvas id="todayCanvas" aria-label="Today's mark"></canvas></div>
+      <div class="facts">
+        <span class="eyebrow" id="todayLabel">Today</span>
+        <div class="date" id="todayDate"></div>
+        <div class="state" id="todayState"></div>
+        <div class="row"><button class="btn primary" id="pin">Pin this mark</button><button class="btn" id="unpin">Back to daily</button><button class="btn" id="replay">Replay</button></div>
+      </div>
+    </div>
+    <div class="week" id="week"></div>
+  </section>
+
+  <section>
+    <div class="shead"><div><span class="eyebrow">01</span><h2>Gesture, placed</h2><p>One hand-drawn line and one pebble make a place together: a sun in a doorway, a sitter under a roof or on a cushion, smoke over a hearth, a path that ends where you rest. The double loop is still in the pool, rarely.</p></div><button class="link" data-reroll="gesture">reroll</button></div>
+    <div class="grid" id="grid-gesture"></div>
+  </section>
+  <section>
+    <div class="shead"><div><span class="eyebrow">02</span><h2>Minimal</h2><p>Flat shapes with figure and ground, widened toward place: window, hearth, clearing, cushion, shelter.</p></div><button class="link" data-reroll="minimal">reroll</button></div>
+    <div class="grid" id="grid-minimal"></div>
+  </section>
+  <section>
+    <div class="shead"><div><span class="eyebrow">03</span><h2>Atmospheric</h2><p>Printed rather than rendered: flat inks in two slightly misregistered plates, one soft light, paper tooth and ink speckle.</p></div><button class="link" data-reroll="atmos">reroll</button></div>
+    <div class="grid" id="grid-atmos"></div>
+  </section>
+
+  <section>
+    <div class="shead"><div><span class="eyebrow">04</span><h2>Sounds</h2><p>Each card is drawn by its sound's generator: rain falls, water braids, the fire flickers, stars turn. Presets blend the elements of their layers by volume. Cards move only while on screen.</p></div></div>
+    <div id="shelves"></div>
+  </section>
+
+  <section>
+    <div class="shead"><div><span class="eyebrow">05</span><h2>Covers</h2><p>Seeded by the item's ID, so a course keeps its cover. Cut paper, two inks slightly out of register, paper grain. Drawn once and cached.</p></div></div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="covers" id="covers"></div>
+  </section>
+
+  <section>
+    <div class="shead"><div><span class="eyebrow">06</span><h2>Palettes as the app's theme</h2><p>Each board is the app under one palette: Home's mark and Continue card, two Sounds cards and a Library row. Tap a board to apply it, or choose <em>Daily</em> to let the date pick.</p></div></div>
+    <div class="boards" id="boards"></div>
+  </section>
+
+  <footer>
+    <p>To choose, send seeds and a palette, e.g. <code id="footSeed"></code>, and what to keep or change. Round 1 is beside this file in <code>../mark-explore.html</code>.</p>
+    <p>Sources: <code>round2/core.js</code>, <code>marks.js</code>, <code>art.js</code>. Porting notes: <code>NOTES.md</code>.</p>
+  </footer>
+</main>
+
+<script>
+/*@CORE@*/
+</script>
+<script>
+/*@MARKS@*/
+</script>
+<script>
+/*@ART@*/
+</script>
+<script>
+(() => {
+  'use strict';
+  const $ = (s, el = document) => el.querySelector(s), $$ = (s, el = document) => [...el.querySelectorAll(s)];
+  const PAL = Marks.PAL, reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  /*@CURATED@*/
+  const store = { get(k) { try { return JSON.parse(localStorage.getItem('meditejo-r2:' + k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem('meditejo-r2:' + k, JSON.stringify(v)); } catch {} } };
+  const now = new Date(), T0 = +new URLSearchParams(location.search).get('t') || 0;
+  const state = {
+    palMode: store.get('palMode') || 'daily', theme: 'light', paused: false,
+    pinned: store.get('pinned'), viewDay: 0,
+    seeds: { gesture: CURATED.gesture.slice(), minimal: CURATED.minimal.slice(), atmos: CURATED.atmos.slice() },
+    coverKind: 'course',
+  };
+  const dayAt = (i) => { const d = new Date(now); d.setDate(d.getDate() + i); return d; };
+  const todayDaily = () => Marks.daily(dayAt(0));
+  const palette = () => PAL[state.palMode === 'daily' ? todayDaily().pal : state.palMode];
+  const todaySeed = () => state.pinned || Marks.daily(dayAt(state.viewDay)).seed;
+  const marks = new Map(), markOf = (s) => { if (!marks.has(s)) marks.set(s, Marks.build(s)); return marks.get(s); };
+
+  // ---------- one loop, many canvases ----------
+  // A view draws itself with draw(ctx, t, px, dpr). Static views draw once;
+  // animated ones run at up to 30 fps while on screen.
+  const views = new Set();
+  const io = new IntersectionObserver((es) => es.forEach((e) => { const v = e.target._v; if (v) { v.visible = e.isIntersecting; v.dirty = true; } }), { rootMargin: '60px' });
+  function view(canvas, draw, o = {}) { const v = { canvas, ctx: canvas.getContext('2d'), draw, t: T0, dirty: true, visible: false, static: !!o.static, hold: false, follows: !!o.follows, last: 0 }; canvas._v = v; views.add(v); io.observe(canvas); return v; }
+  function drop(root) { $$('canvas', root).forEach((c) => { if (c._v) { io.unobserve(c); views.delete(c._v); } }); }
+  function render(v) {
+    const dpr = Math.min(devicePixelRatio || 1, 2.5), w = Math.round(v.canvas.clientWidth * dpr), h = Math.round(v.canvas.clientHeight * dpr);
+    if (!w || !h) return;
+    if (v.canvas.width !== w || v.canvas.height !== h) { v.canvas.width = w; v.canvas.height = h; }
+    v.ctx.setTransform(1, 0, 0, 1, 0, 0); v.ctx.clearRect(0, 0, w, h); v.ctx.setTransform(w, 0, 0, w, 0, 0);
+    v.draw(v.ctx, v.t, w, dpr, h / w);
+  }
+  let last = performance.now();
+  function tick(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    for (const v of views) {
+      if (!v.visible) continue;
+      const run = !v.static && !reduced.matches && !state.paused && !v.hold;
+      if (run) v.t += dt;
+      if (v.dirty || (run && now - v.last > 32)) { render(v); v.dirty = false; v.last = now; }
+    }
+    requestAnimationFrame(tick);
+  }
+  const redraw = () => views.forEach((v) => (v.dirty = true));
+  const still = () => reduced.matches;
+  const markDraw = (seedFn, palFn, extra = {}) => (ctx, t, px, dpr) => Marks.draw(ctx, markOf(seedFn()), palFn(), t, { px, dpr, still: still(), ...extra });
+
+  // ---------- toolbar ----------
+  $('#chips').innerHTML = `<button class="chip" data-pal="daily"><span class="dots"><i style="background:conic-gradient(${Marks.palettes.map((p) => p.form).join(',')})"></i></span>Daily</button>` +
+    Marks.palettes.map((p) => `<button class="chip" data-pal="${p.id}"><span class="dots">${['tile', 'form', 'stroke', 'accent'].map((k) => `<i style="background:${p[k]}"></i>`).join('')}</span>${p.name}</button>`).join('');
+  $('#chips').addEventListener('click', (e) => { const b = e.target.closest('.chip'); if (b) setPalette(b.dataset.pal); });
+  function setPalette(mode) { state.palMode = mode; store.set('palMode', mode); applyTheme(); }
+  $('#theme').addEventListener('click', () => { state.theme = state.theme === 'light' ? 'dark' : 'light'; applyTheme(); });
+  $('#motion').addEventListener('click', () => { state.paused = !state.paused; $('#motion').textContent = state.paused ? 'Play' : 'Pause'; });
+  function applyTheme() {
+    const p = palette(), ui = p.ui[state.theme], r = document.documentElement.style;
+    for (const k of ['bg', 'surface', 'raised', 'text', 'muted']) r.setProperty('--' + k, ui[k]);
+    r.setProperty('--form', p.form); r.colorScheme = state.theme;
+    $$('#chips .chip').forEach((c) => c.setAttribute('aria-pressed', c.dataset.pal === state.palMode));
+    $$('#boards .board').forEach((b) => b.setAttribute('aria-pressed', b.dataset.pal === palette().id));
+    $('#theme').textContent = state.theme === 'light' ? 'Dark' : 'Light';
+    paintBoards(); updateToday(); redraw();
+  }
+
+  // ---------- today ----------
+  const fmt = (d, o) => d.toLocaleDateString('en-GB', o);
+  const todayView = view($('#todayCanvas'), markDraw(todaySeed, palette), { follows: true });
+  function updateToday() {
+    const d = dayAt(state.viewDay), daily = Marks.daily(d), m = markOf(todaySeed());
+    $('#todayLabel').textContent = state.pinned ? 'Pinned' : state.viewDay === 0 ? 'Today' : 'Coming up';
+    $('#todayDate').textContent = fmt(d, { weekday: 'long', day: 'numeric', month: 'long' });
+    $('#todayState').innerHTML = `Mark: <b>${state.pinned ? 'pinned' : 'daily'}</b> · <code>${todaySeed()}</code> (${m.label})<br>Palette: <b>${state.palMode === 'daily' ? 'daily' : 'fixed'}</b> · ${palette().name}${state.palMode === 'daily' ? '' : ` <span class="muted">(today's would be ${PAL[daily.pal].name})</span>`}`;
+    $('#pin').textContent = state.pinned === todaySeed() ? 'Pinned' : 'Pin this mark';
+    $('#unpin').hidden = !state.pinned;
+    $('#footSeed').textContent = `${todaySeed()} · ${palette().id}`;
+    $$('#week .day').forEach((b, i) => { b.setAttribute('aria-pressed', !state.pinned && i === state.viewDay); });
+  }
+  $('#week').innerHTML = Array.from({ length: 7 }, (_, i) => `<button class="day" data-i="${i}"><canvas></canvas><span>${i === 0 ? 'Today' : fmt(dayAt(i), { weekday: 'short' })}</span></button>`).join('');
+  $$('#week .day').forEach((b) => {
+    const i = +b.dataset.i, d = dayAt(i);
+    view($('canvas', b), markDraw(() => Marks.daily(d).seed, () => state.palMode === 'daily' ? PAL[Marks.daily(d).pal] : palette(), { still: true }), { static: true });
+    b.addEventListener('click', () => { state.viewDay = i; if (state.pinned) state.pinned = null; store.set('pinned', null); todayView.t = 0; updateToday(); todayView.dirty = true; });
+  });
+  $('#pin').addEventListener('click', () => { state.pinned = todaySeed(); store.set('pinned', state.pinned); updateToday(); });
+  $('#unpin').addEventListener('click', () => { state.pinned = null; state.viewDay = 0; store.set('pinned', null); todayView.t = 0; updateToday(); });
+  $('#replay').addEventListener('click', () => views.forEach((v) => { if (v.follows) { v.t = 0; v.dirty = true; } }));
+  function show(seed) { state.pinned = seed; store.set('pinned', seed); todayView.t = 0; updateToday(); todayView.dirty = true; $('#today').scrollIntoView({ behavior: still() ? 'auto' : 'smooth', block: 'start' }); }
+  $('#seedForm').addEventListener('submit', (e) => { e.preventDefault(); const v = $('#seedIn').value; if (v.trim()) show(Marks.normaliseSeed(v)); });
+
+  // ---------- mark grids ----------
+  function renderGrid(fam) {
+    const el = $('#grid-' + fam); drop(el);
+    el.innerHTML = state.seeds[fam].map((s) => `<figure class="card" data-seed="${s}"><div class="art"><canvas aria-label="Mark ${s}"></canvas></div><figcaption><span><code>${s}</code><small>${markOf(s).label}</small></span><button class="use">Pin</button></figcaption></figure>`).join('');
+    $$('.card', el).forEach((card) => {
+      const s = card.dataset.seed, cv = $('canvas', card), v = view(cv, markDraw(() => s, palette));
+      cv.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') v.hold = true; });
+      cv.addEventListener('pointerleave', () => { v.hold = card.classList.contains('pinned-hold'); });
+      cv.addEventListener('click', () => { card.classList.toggle('pinned-hold'); v.hold = card.classList.contains('pinned-hold'); $('.art', card).classList.toggle('paused', v.hold); });
+      $('.use', card).addEventListener('click', () => show(s));
+    });
+  }
+  function reroll(fam) {
+    const out = [], seen = new Set();
+    while (out.length < 8) { const s = Marks.randomSeed(fam), ty = markOf(s).type; if (out.filter((x) => markOf(x).type === ty).length < 2 || seen.size > 60) out.push(s); seen.add(s); }
+    state.seeds[fam] = out; renderGrid(fam);
+  }
+  $$('[data-reroll]').forEach((b) => b.addEventListener('click', () => reroll(b.dataset.reroll)));
+  $('#reroll').addEventListener('click', () => Marks.families.forEach(reroll));
+
+  // ---------- sounds ----------
+  const CATS = [['rain', 'Rain'], ['water', 'Water'], ['wind', 'Wind'], ['forest', 'Forest'], ['fire', 'Fire'], ['room', 'Rooms'], ['night', 'Night'], ['synth', 'Generated']];
+  $('#shelves').innerHTML = `<div class="shelf"><h3>Presets</h3><div class="row">${Art.PRESETS.map((p) => `<div class="snd wide" data-preset="${p.id}"><canvas></canvas><span>${p.title}<small>${p.layers.map(([id]) => Art.SOUNDS.find((s) => s.id === id).title).join(' · ')}</small></span></div>`).join('')}</div></div>` +
+    CATS.map(([cat, name]) => `<div class="shelf"><h3>${name}</h3><div class="row">${Art.SOUNDS.filter((s) => s.cat === cat).map((s) => `<div class="snd" data-sound="${s.id}"><canvas></canvas><span>${s.title}</span></div>`).join('')}</div></div>`).join('');
+  $$('[data-sound]').forEach((el) => view($('canvas', el), (ctx, t, px, dpr) => Art.drawSound(ctx, el.dataset.sound, palette(), still() ? 4 : t + 4, { px, dpr })));
+  $$('[data-preset]').forEach((el) => { const p = Art.PRESETS.find((x) => x.id === el.dataset.preset); view($('canvas', el), (ctx, t, px, dpr, H) => Art.drawPreset(ctx, p, palette(), still() ? 4 : t + 4, { px, dpr, H })); });
+
+  // ---------- covers ----------
+  const KINDS = [['course', 'Courses'], ['playlist', 'Playlists'], ['teacher', 'Teachers'], ['single', 'Singles']];
+  $('#tabs').innerHTML = KINDS.map(([k, n]) => `<button class="tab" role="tab" data-kind="${k}">${n}</button>`).join('');
+  $('#tabs').addEventListener('click', (e) => { const b = e.target.closest('.tab'); if (b) { state.coverKind = b.dataset.kind; renderCovers(); } });
+  function renderCovers() {
+    const el = $('#covers'), k = state.coverKind; drop(el);
+    $$('#tabs .tab').forEach((t) => t.setAttribute('aria-selected', t.dataset.kind === k));
+    el.innerHTML = Art.COVER_TITLES[k].map((title, i) => `<figure class="cover${k === 'teacher' ? ' round' : ''}"><canvas></canvas><figcaption>${title}</figcaption></figure>`).join('');
+    $$('canvas', el).forEach((cv, i) => view(cv, (ctx, t, px, dpr) => Art.drawCover(ctx, k, `${k}-${Art.COVER_TITLES[k][i]}`, palette(), { px, dpr }), { static: true }));
+  }
+
+  // ---------- palette boards ----------
+  $('#boards').innerHTML = Marks.palettes.map((p) => `<button class="board" data-pal="${p.id}">
+      <header><h3>${p.name}</h3><span class="sw">${['tile', 'form', 'stroke', 'accent'].map((k) => `<i style="background:${p[k]}"></i>`).join('')}</span></header>
+      <span class="mood">${p.mood}</span>
+      <div class="home"><canvas class="bm"></canvas><div class="cont"><canvas class="bc"></canvas><span>Practising the Jhānas<small>Session 4 of 32</small></span></div></div>
+      <div class="sounds"><div><canvas class="bs" data-s="rain-window"></canvas><span>Rain</span></div><div><canvas class="bs" data-s="fire-stove"></canvas><span>Wood stove</span></div></div>
+      <div class="lib"><canvas class="bl"></canvas><span>Before sleep<small>Playlist · 9 talks</small></span></div>
+    </button>`).join('');
+  $$('#boards .board').forEach((b) => {
+    const p = PAL[b.dataset.pal];
+    const bare = () => { const ui = p.ui[state.theme]; return Core.contrast(p.stroke, ui.bg) < 2.2 ? { stroke: ui.text } : null; };
+    view($('.bm', b), (ctx, t, px, dpr) => { const m = markOf(todaySeed()); if (m.family === 'atmos') { ctx.beginPath(); ctx.arc(0.5, 0.5, 0.5, 0, Core.TAU); ctx.clip(); } Marks.draw(ctx, m, p, t, { px, dpr, still: still(), bg: m.family === 'atmos', colors: bare() }); }, { follows: true });
+    view($('.bc', b), (ctx, t, px, dpr) => Art.drawCover(ctx, 'course', 'course-Practising the Jhānas', p, { px, dpr }), { static: true });
+    view($('.bl', b), (ctx, t, px, dpr) => Art.drawCover(ctx, 'playlist', 'playlist-Before sleep', p, { px, dpr }), { static: true });
+    $$('.bs', b).forEach((cv) => view(cv, (ctx, t, px, dpr, H) => Art.drawSound(ctx, cv.dataset.s, p, still() ? 4 : t + 4, { px, dpr, H })));
+    b.addEventListener('click', () => setPalette(p.id));
+  });
+  function paintBoards() {
+    $$('#boards .board').forEach((b) => {
+      const p = PAL[b.dataset.pal], ui = p.ui[state.theme];
+      b.style.background = ui.bg; b.style.color = ui.text;
+      $('.cont', b).style.background = Core.css(Core.mix(ui.bg, p.form, state.theme === 'light' ? 0.18 : 0.26));
+      $('.lib', b).style.background = ui.surface;
+    });
+  }
+
+  // ---------- go ----------
+  Marks.families.forEach(renderGrid);
+  renderCovers();
+  applyTheme();
+  reduced.addEventListener?.('change', redraw);
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

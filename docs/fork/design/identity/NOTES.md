@@ -1,6 +1,6 @@
-# Identity exploration, round 1: notes
+# Identity exploration: notes
 
-`mark-explore.html` is the page to look at; it is built, so do not edit it by hand.
+`mark-explore.html` is round 1 and `round2/identity-round2.html` is round 2 (see [Round 2](#round-2) below). Both pages are built, so do not edit them by hand.
 
 - **Sources:** `generator.js` (the marks), `page.html` (the page) and `curated.js` (the opening seeds).
 - **Build:** `node build.mjs` inlines the three into `mark-explore.html` (about 65 KB, with no external resources).
@@ -72,3 +72,66 @@ Every scene gets a 128 px grain tile, overlaid at 7 to 8.5%. Colours are mixed f
    - **Foreground:** the settled frame as a vector drawable, 108 dp viewport, with the mark scaled into the central 72 dp and kept inside the 66 dp circle. The page previews it at 0.9 content scale.
    - **Android 13 themed icon:** a `<monochrome>` layer of one silhouette. For gesture marks use the stroke alone, or the pebble with the stroke knocked out.
    - **Generation:** export the SVG from the frozen path, then run `scripts/regenerate_icons.py`.
+
+## Round 2
+
+Round 2 lives in `round2/`; `node round2/build.mjs` builds `identity-round2.html`.
+
+- **Sources:**
+  - `core.js`: randomness, colour, the stroke engine, breathing shapes and the print finish;
+  - `marks.js`: marks, palettes and the daily pick;
+  - `art.js`: sound scenes, presets and covers;
+  - `page.html` and `curated.js`: the page and its opening seeds.
+- **Round 1 seeds still work** in round 1's page. Round 2 seeds are a separate namespace: every round 2 seed is hashed with an `r2:` prefix.
+
+### Breathing and place
+
+- **Breathing:** every round shape is the pebble curve with its harmonics scaled by `imperf = 1 − breath`. At full inhale it is a true circle; on the exhale it relaxes into its organic shape. One breath takes 10 s, as the current mark does. The stroke stays still once it has drawn.
+- **Gesture kinds:** each kind places its pebble with its line, so the two read as one place:
+  - doorway, shelter, seat line ("cushion"), horizon with one loop, hearth curl, path home, window and threshold;
+  - the round 1 kinds (ensō, breath wave and the double loop) stay at a low weight. The double loop is about 2% of draws.
+- **Minimal:** adds window, hearth, clearing, cushion and shelter.
+
+### Daily marks and pinning
+
+- **Today's mark** comes from the local date: `daily(date)` hashes `day:YYYY-MM-DD` to pick a family (gesture 45%, minimal 40%, atmospheric 15%), and the seed is the date itself, e.g. `m-2026-10-26`.
+- **Daily palette:** walks one fixed shuffle of the palettes a day at a time, so no palette repeats within nine days and nothing has to be stored.
+- **Two independent settings:**
+  - mark: `daily` or `pinned(seed)`;
+  - palette: `daily` or `fixed(id)`.
+
+  Today's mark is the pinned one if there is one, otherwise the daily one. Pinning a mark doesn't fix the palette, and the other way round.
+- **Store a pin as frozen geometry, not only as a seed:** the stroke's 420 samples (x, y, nx, ny, w and cost) plus the pebble parameters come to about 7 KB of JSON. The generator will keep changing; a pinned mark must not.
+- **Changing the day:** the app recomputes at local midnight (a timer to the next midnight) and on resume.
+- **The launcher icon stays fixed.** Android can only swap icons through activity aliases that ship with the app, and each swap restarts the launcher entry. Choose one house mark for the icon; the daily mark lives inside the app.
+
+### Palette as the app's theme
+
+A palette has four mark roles (tile, form, stroke, accent) and neutrals for light and dark (bg, surface, raised, text, muted). In `lib/constants/theme/tokens.dart`, `MeditejoColorTokens.seed` becomes the active palette:
+
+- **Accent ramps:** build the scheme with `ColorScheme.fromSeed(seedColor: palette.form, dynamicSchemeVariant: tonalSpot)`, then set `tertiary` from `accent`.
+- **Neutrals:** overwrite the neutral roles from the palette, so they stay exactly as designed: `surface` = bg, `surfaceContainer` = surface, `surfaceContainerHigh` = raised, `onSurface` = text, `onSurfaceVariant` = muted.
+- **Mark colours:** a `ThemeExtension` (`MeditejoPalette`) carries the four mark roles to the mark and art painters.
+- **Switching:** a provider holds the mode (daily or fixed). The theme switch animates with `AnimatedTheme` over 400 ms, using the existing `MeditejoMotion.medium`.
+- **On the app's background** the mark has no tile, so a stroke under 2.2:1 contrast switches to `onSurface`. This already happens in the page.
+
+### Art generators in Flutter
+
+- **Generators:** one `CustomPainter` per kind, each taking the seeded geometry and a `MeditejoPalette`:
+  - `CoverPainter(kind, id)` for courses, playlists, teachers and singles;
+  - `SoundScenePainter(soundId)` for sound cards;
+  - `PresetPainter(layers)`, which paints the loudest layer's field, then every layer's elements at their volumes.
+- **Seeds:** use FNV-1a over the ID, as `GeneratedArtwork.hash` already does, then a small PRNG (port mulberry32 with 32-bit masking so the results match the page).
+- **Covers are static.** Paint once into a `PictureRecorder` and call `toImage` at display size × device pixel ratio. Keep the result in an LRU keyed by (kind, id, palette, size), and drop it when the palette changes. This replaces `GeneratedArtwork`.
+- **Sound cards move.** Each card gets its own `RepaintBoundary`, driven by a 30 fps ticker. It pauses off screen (`VisibilityDetector` or the scroll position), when the app is in the background, and under reduced motion, where it draws a single frame.
+- **Print finish:** one 256 px paper texture and one speckle texture per palette, used as `ImageShader`s (overlay and source-over). They are made once at start-up.
+
+**Rough cost on a mid-range phone.** These are estimates from the page's drawing work, not measurements; measure in a profile build before relying on them.
+
+| Item | Paint | Memory |
+|---|---|---|
+| A cover, painted once at about 450 px | 1–3 ms | about 0.8 MB as a 3× raster; a 60-entry LRU at 2× is about 25 MB |
+| One frame of an animated sound card | 0.3–1 ms | |
+| Six visible sound cards at 30 fps | 2–6 ms a frame, comfortably inside budget | |
+
+Rain (70 lines) and café (18 radial gradients) are the heaviest sound cards. Fire and noise are the cheapest.
