@@ -346,8 +346,8 @@ clipboard reader and share intake as providers, so tests need no platform.
   names nothing, or an unknown layout, opens Home; the first launch rewrites
   the pair in layout 3's terms. Tab icons are Material Symbols
   (`material_symbols_icons`, rounded, filled when selected); `MeditoNavItem`
-  takes an `IconData`. **You** shows `SettingsScreen` for now, in one line of
-  `_page`, so its own screen can replace it. `meditejo://home`, `explore`,
+  takes an `IconData`. **You** shows `YouView` (the stats summary and the settings
+  groups; see "You and Settings"), in one line of `_page`. `meditejo://home`, `explore`,
   `sounds`, `library`, `you`, `settings` (You) and `search` (Explore with the
   cursor in its field, via `exploreFocusRequestProvider`) select a tab and
   close what is open above it (`tabForLink` in `lib/routes/routes.dart`).
@@ -575,6 +575,49 @@ Local day-boundary, streak and
 consistency calculations, manual sessions, home widgets, local reminders and
 optional Health writes remain. Favourites use SharedPreferences only.
 
+### Practice time (the stats page)
+
+Each `LocalAudioCompleted` also carries, from the stats-page release on,
+`durationMs`, `kind` (`practice` or `talks`) and `courseId`/`courseTitle` (the
+title as it was then). All four are additive and nullable; earlier entries are
+never back-filled, so they read as days practised, not minutes (a timer's
+length is still read from its `timer-<seconds>` id).
+
+- **Where they are filled.** `StatsManager.addAudioCompleted` stores the
+  duration it is given and the label passed in. `handleStats` asks
+  `labelSessionCompletion` (`lib/services/stats/session_label.dart`) for the
+  label: the player registers, when it starts a session, the kind and course
+  its cue scope resolved (`SessionLabelRegistry`), so stats and cues agree; a
+  completion replayed after the app was killed falls back to the library
+  group. Timers are Practice; manual entries are Practice.
+- **Repeat passes** add their minutes to the same track's latest entry that has
+  a length (`AudioCompletionTracker.addRepeatListeningTime(trackId:)`), as well
+  as to `totalTimeListened`; they still add no session. Deleting a session takes
+  back the minutes it recorded (an older entry recorded none).
+- **Aggregation** is pure: `PracticeSummary.from(stats, now:, dayOffset:)`
+  (`lib/services/stats/practice_summary.dart`) gives today, this week (Monday
+  to today), this month, all time (the running `totalTimeListened`), the last 30
+  days, the days practised, the Practice/Talks split and a ranking of courses
+  and sources. `practiceSummaryProvider` feeds it the history, the day boundary
+  and `practiceClockProvider`.
+- **Screens.** `StatsScreen` (`lib/views/stats/`) and its `widgets/` (bar chart,
+  month heat-map, breakdown) read the summary. History (add and delete
+  sessions) is its second tab.
+
+## You and Settings
+
+`YouView` (`lib/views/you/you_view.dart`) is the You tab's body: a stats
+summary card that opens `StatsScreen`, then `SettingsSections`
+(`lib/views/settings/settings_sections.dart`), the settings in groups: Practice,
+Sounds & cues, Library & downloads, Appearance, Notifications & reminders and
+About (version, `UpdateSection` with Check for updates, the AGPL notice, source,
+credits, licences, debug info). It is one widget, so a tab hosts it as
+`const YouView()`, which is what `MainTab.you` does. `SettingsScreen` is the
+same body titled "Settings", for the `settings` link.
+The old Advanced, Manage defaults and About screens are gone: their rows are in
+the groups. When an update is waiting, About moves to the top of the page, and
+Home's update notice's View selects the You tab.
+
 Existing on-device downloads, their full saved `Track` metadata and favourites
 are preserved without deleting data or filtering IDs by source. Downloads builds
 playback requests directly from this metadata; favourite track links resolve it
@@ -602,7 +645,7 @@ off (`homeWidgetHidden`). Defaults, all on: **upNext → quickLinks → pinned**
 `upNext` keeps its old saved name for what is now **Continue**. Sections an
 earlier version saved (shortcuts, carousel, quote) are ignored. The consistency
 score and streak are not on Home; they live on the stats screen (reached from
-Settings), whose copy says the numbers are feedback, not a score.
+the You page), whose copy says the numbers are feedback, not a score.
 
 - **Continue** (`continueItemsProvider`, `lib/services/home/continue_rules.dart`
   for the ordering). Up to three items, from any source:

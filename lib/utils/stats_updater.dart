@@ -19,6 +19,7 @@ import '../models/local_audio_completed.dart';
 import 'logger.dart';
 import 'pending_end_screen.dart';
 import '../services/home_widget_service.dart';
+import '../services/stats/session_label.dart';
 
 export 'consistency_score_history.dart';
 
@@ -172,10 +173,14 @@ Future<bool> _handleStats(
 
     var duration = payload[TypeConstants.durationIdKey];
 
+    final label = await labelSessionCompletion(newAudioCompleted.id);
     await statsManager.addAudioCompleted(
       newAudioCompleted,
       duration,
       completionId: completionId,
+      kind: label.kind,
+      courseId: label.courseId,
+      courseTitle: label.courseTitle,
     );
     AppLogger.d(
       'STATS',
@@ -256,6 +261,7 @@ Future<bool> _handleRepeatPlaythrough(
     await statsManager.addRepeatListeningTime(
       payload[TypeConstants.durationIdKey] as int,
       completionId: completionId,
+      trackId: payload[TypeConstants.trackIdKey] as String?,
     );
     AppLogger.d(
       'STATS',
@@ -495,7 +501,11 @@ Future<bool> addManualSession({
     await statsManager.initialize();
 
     // Add the manual session (this will update streaks, consistency score, etc.)
-    await statsManager.addAudioCompleted(manualSession, durationMs);
+    await statsManager.addAudioCompleted(
+      manualSession,
+      durationMs,
+      kind: LocalAudioCompleted.kindPractice,
+    );
     AppLogger.d(
       'STATS',
       'Manual session added successfully for ${dateTime.toString()}',
@@ -571,6 +581,7 @@ Future<int> addManualSessions({
         entry,
         durationMs,
         updateWidget: false,
+        kind: LocalAudioCompleted.kindPractice,
       );
       added++;
       if (entry.timestamp > latestTimestamp) {
