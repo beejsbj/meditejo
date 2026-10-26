@@ -39,8 +39,13 @@ class StatsSummaryCard extends ConsumerWidget {
       ),
     ];
 
+    void open() => Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => const StatsScreen()));
+
     return Semantics(
       button: true,
+      onTap: open,
       label: [
         l10n.stats,
         for (final (value, label) in figures) '$label: $value',

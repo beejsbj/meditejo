@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
@@ -192,5 +193,49 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('you_stats_card')));
     await tester.pumpAndSettle();
     expect(find.byType(StatsScreen), findsOneWidget);
+  });
+
+  testWidgets('the summary card can be activated by assistive technology', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await _pump(tester, const Scaffold(body: StatsSummaryCard()));
+    final tappable = find.semantics.byAction(SemanticsAction.tap);
+    expect(tappable, findsWidgets);
+    tester.semantics.tap(find.semantics.byLabel(RegExp('^Stats, This week')));
+    await tester.pumpAndSettle();
+    expect(find.byType(StatsScreen), findsOneWidget);
+    handle.dispose();
+  });
+
+  testWidgets('Today turns over at midnight while the app stays open', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    var now = DateTime(2026, 10, 21, 23, 59);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          statsProvider.overrideWith(() => _Stats(fixtureStats())),
+          practiceClockProvider.overrideWithValue(() => now),
+        ],
+        child: MaterialApp(
+          home: Consumer(
+            builder: (context, ref, _) => Text(
+              'today ${ref.watch(practiceSummaryProvider)?.today.inMinutes}',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('today 70'), findsOneWidget);
+
+    now = DateTime(2026, 10, 22, 0, 0, 30);
+    await tester.pump(const Duration(minutes: 2));
+    expect(find.text('today 0'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
   });
 }
