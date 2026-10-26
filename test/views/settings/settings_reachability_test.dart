@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/providers/duration_preference_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/views/settings/settings_screen.dart';
@@ -68,7 +69,7 @@ Finder _titled(String title) => find.byWidgetPredicate(
   description: 'text titled "$title"',
 );
 
-Future<void> _pump(
+Future<ProviderContainer> _pump(
   WidgetTester tester, {
   bool phone = false,
   Widget page = const YouView(),
@@ -102,6 +103,7 @@ Future<void> _pump(
     ),
   );
   await tester.pumpAndSettle();
+  return container;
 }
 
 void main() {
@@ -171,10 +173,15 @@ void main() {
   testWidgets('the default length can be set from Settings before any track', (
     tester,
   ) async {
-    await _pump(tester);
+    final container = await _pump(tester);
+    expect(container.read(durationPreferenceProvider), isNull);
     await tester.tap(_titled('Default Duration'));
     await tester.pumpAndSettle();
     expect(find.byType(Slider), findsOneWidget);
     expect(find.text('10 min'), findsOneWidget);
+    // Opening the sheet saves nothing; moving the slider does.
+    expect(container.read(durationPreferenceProvider), isNull);
+    await tester.drag(find.byType(Slider), const Offset(100, 0));
+    expect(container.read(durationPreferenceProvider), isNotNull);
   });
 }
