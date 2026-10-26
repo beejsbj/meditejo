@@ -6,15 +6,15 @@ lib/models/cues/cue_settings.dart, so the report and the sampler cover exactly
 what the app offers, in the app's order.
 
     python3 tools/meditejo/bells_report.py                   # Markdown table
-    python3 tools/meditejo/bells_report.py --sampler out.mp3  # needs ffmpeg
+    python3 tools/meditejo/bells_report.py --sampler out.wav  # all bells in sequence
     python3 tools/meditejo/bells_report.py --fail-on-defect   # CI: exit 1 on a click, DC offset, ...
 """
 import argparse
 import math
 import re
-import subprocess
+import struct
 import sys
-import tempfile
+import wave
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -86,33 +86,25 @@ def table(rows):
 
 
 def sampler(rows, output):
-    """Every bell in the app's order, each rung once, with a pause between."""
-    with tempfile.TemporaryDirectory() as tmp:
-        parts = []
-        silence = Path(tmp) / 'gap.wav'
-        subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'lavfi', '-i',
-                        'anullsrc=r=44100:cl=mono', '-t', '1.2', str(silence)], check=True)
-        for i, (_, path, _) in enumerate(rows):
-            # The files use two sample rates; the concat demuxer needs one.
-            wav = Path(tmp) / f'{i:02d}.wav'
-            subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', str(ROOT / path),
-                            '-ar', '44100', '-ac', '1', str(wav)], check=True)
-            parts += [wav, silence]
-        listing = Path(tmp) / 'list.txt'
-        listing.write_text(''.join(f"file '{p}'\n" for p in parts))
-        subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'concat', '-safe', '0',
-                        '-i', str(listing), '-ar', '44100', '-ac', '1',
-                        '-b:a', '96k', str(output)], check=True)
-    offsets, at = [], 0.0
-    for name, _, s in rows:
-        offsets.append(f'{int(at // 60)}:{at % 60:04.1f}  {name}')
-        at += s['seconds'] + 1.2
+    """Every bell in the app's order, each rung once, with a pause between.
+    A 44.1 kHz mono WAV, written with the standard library alone (the 22.05 kHz
+    bells are doubled by linear interpolation)."""
+    out, offsets, gap = [], [], [0.0] * round(44100 * 1.2)
+    for name, path, s in rows:
+        x, rate = measure(ROOT / path)
+        if rate == 22050:
+            x = [v for a, b in zip(x, x[1:] + [0.0]) for v in (a, (a + b) / 2)]
+        offsets.append(f'{int(len(out) / 44100 // 60)}:{len(out) / 44100 % 60:04.1f}  {name}')
+        out += x + gap
+    with wave.open(str(output), 'wb') as wav:
+        wav.setparams((1, 2, 44100, 0, 'NONE', 'not compressed'))
+        wav.writeframes(b''.join(struct.pack('<h', round(v * 32767)) for v in out))
     return offsets
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    parser.add_argument('--sampler', metavar='OUT', help='write all bells in sequence (mp3/wav)')
+    parser.add_argument('--sampler', metavar='OUT', help='write all bells in sequence (44.1 kHz mono WAV)')
     parser.add_argument('--fail-on-defect', action='store_true')
     args = parser.parse_args()
     rows = [(name, path, stats(path)) for name, path in catalogue()]
