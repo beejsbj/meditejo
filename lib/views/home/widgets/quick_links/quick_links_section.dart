@@ -182,13 +182,13 @@ class QuickLinkTile extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: type.emphasized.titleMedium?.copyWith(color: onColor),
               ),
-              if (caption != null)
-                Text(
-                  caption!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: type.baseline.bodyMedium?.copyWith(color: muted),
-                ),
+              // An empty caption still takes its line, so labels align.
+              Text(
+                caption ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: type.baseline.bodyMedium?.copyWith(color: muted),
+              ),
             ],
           ),
         ),

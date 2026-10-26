@@ -41,12 +41,7 @@ class _BottomNavigationBarViewState
   @override
   void initState() {
     super.initState();
-    _pages = [
-      const HomeView(),
-      ExploreView(key: _exploreViewKey),
-      const LibraryView(),
-      const SettingsScreen(),
-    ];
+    _pages = [for (final tab in MainTab.values) _page(tab)];
 
     if (ref.read(mainTabProvider) == MainTab.explore) {
       // Restored straight into Explore.
@@ -135,12 +130,7 @@ class _BottomNavigationBarViewState
     final keyboardOpen = keyboardInset > 0;
     final width = MediaQuery.sizeOf(context).width;
     final wide = width >= 700;
-    final items = [
-      MeditoNavItem(icon: MeditoIcons.home, label: l10n.home),
-      MeditoNavItem(icon: MeditoIcons.search, label: l10n.explore),
-      MeditoNavItem(icon: MeditoIcons.libraries, label: l10n.libraryTitle),
-      MeditoNavItem(icon: MeditoIcons.settings, label: l10n.settings),
-    ];
+    final items = [for (final tab in MainTab.values) _navItem(tab, l10n)];
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
@@ -214,6 +204,32 @@ class _BottomNavigationBarViewState
       ),
     );
   }
+
+  // A tab is a MainTab value plus one arm in each switch below; the bar and
+  // the sidebar take any number of destinations.
+  Widget _page(MainTab tab) => switch (tab) {
+    MainTab.home => const HomeView(),
+    MainTab.explore => ExploreView(key: _exploreViewKey),
+    MainTab.library => const LibraryView(),
+    MainTab.settings => const SettingsScreen(),
+  };
+
+  static MeditoNavItem _navItem(MainTab tab, AppLocalizations l10n) =>
+      switch (tab) {
+        MainTab.home => MeditoNavItem(icon: MeditoIcons.home, label: l10n.home),
+        MainTab.explore => MeditoNavItem(
+          icon: MeditoIcons.search,
+          label: l10n.explore,
+        ),
+        MainTab.library => MeditoNavItem(
+          icon: MeditoIcons.libraries,
+          label: l10n.libraryTitle,
+        ),
+        MainTab.settings => MeditoNavItem(
+          icon: MeditoIcons.settings,
+          label: l10n.settings,
+        ),
+      };
 
   void _onDestinationSelected(int index) =>
       ref.read(mainTabProvider.notifier).select(MainTab.values[index]);

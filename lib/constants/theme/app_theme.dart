@@ -37,7 +37,6 @@ ThemeData meditejoTheme(Brightness brightness) {
   final buttonText = emphasized.titleMedium!.copyWith(
     fontWeight: FontWeight.w600,
   );
-  const buttonPadding = EdgeInsets.symmetric(horizontal: 24, vertical: 12);
 
   return ThemeData(
     useMaterial3: true,
@@ -110,11 +109,7 @@ ThemeData meditejoTheme(Brightness brightness) {
     // Buttons: Expressive's round (pill) shape. The elevated button is drawn
     // as a filled one: the app's older screens use it for their main action.
     filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        shape: pill,
-        textStyle: buttonText,
-        padding: buttonPadding,
-      ),
+      style: FilledButton.styleFrom(shape: pill, textStyle: buttonText),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
@@ -123,7 +118,6 @@ ThemeData meditejoTheme(Brightness brightness) {
         elevation: 0,
         shape: pill,
         textStyle: buttonText,
-        padding: buttonPadding,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -132,7 +126,6 @@ ThemeData meditejoTheme(Brightness brightness) {
         side: BorderSide(color: scheme.outline),
         shape: pill,
         textStyle: buttonText,
-        padding: buttonPadding,
       ),
     ),
     textButtonTheme: TextButtonThemeData(
