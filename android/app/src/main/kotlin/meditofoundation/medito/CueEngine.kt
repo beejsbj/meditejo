@@ -61,6 +61,9 @@ internal class CueEngine(
     private var intervalAtMs = Double.MAX_VALUE
     private var beatNumber = Long.MAX_VALUE
     private var beatAtMs = Double.MAX_VALUE
+    private val halfway = HalfwayCue()
+    // The halfway deadline as of the last fireDue (the end is only known there).
+    private var halfwayAtMs = Double.MAX_VALUE
 
     private var interludeReady: Runnable? = null
 
@@ -139,6 +142,7 @@ internal class CueEngine(
     /** Cancels every timer and sound. The session is over or abandoned. */
     fun stop() {
         stopTimers()
+        halfway.disarm()
         phase = Phase.IDLE
         started = false
         config = null
@@ -335,6 +339,13 @@ internal class CueEngine(
     private fun armAll(atMs: Double, fresh: Boolean) {
         armInterval(atMs)
         armPulse(atMs, fresh)
+        armHalfway()
+    }
+
+    /** Re-armed by every arm (a seek back before the midpoint rings it again when crossed). */
+    private fun armHalfway() {
+        if (config?.hasHalfway == true) halfway.arm() else halfway.disarm()
+        halfwayAtMs = Double.MAX_VALUE // recomputed by the next fireDue
     }
 
     private fun armInterval(atMs: Double) {
@@ -374,10 +385,17 @@ internal class CueEngine(
             }
             armPulse(sessionMs, fresh = false)
         }
+        if (halfway.poll(sessionMs, endMs)) bank?.play(cfg.intervalSound, cfg.bellVolume)
+        // Pending with no known end yet (a stream whose length arrives late):
+        // look again in a second rather than stop ticking.
+        halfwayAtMs = when {
+            !halfway.pending -> Double.MAX_VALUE
+            else -> halfway.dueAt(endMs) ?: (sessionMs + 1000.0)
+        }
     }
 
     private fun scheduleNext(maxDelayMs: Long = Long.MAX_VALUE) {
-        val next = minOf(intervalAtMs, beatAtMs)
+        val next = minOf(intervalAtMs, beatAtMs, halfwayAtMs)
         if (next == Double.MAX_VALUE && maxDelayMs == Long.MAX_VALUE) return
         val wait = if (next == Double.MAX_VALUE) Double.MAX_VALUE else (next - sessionMs)
         val delay = minOf(maxOf(wait, 1.0), 1000.0, maxDelayMs.toDouble()).toLong()

@@ -172,6 +172,124 @@ class CueMathTest {
         assertFalse(CueConfig.fromMap(emptyMap<String, Any?>()).autoplay)
     }
 
+    // ---- Halfway bell -----------------------------------------------------------
+
+    private val min = 60_000.0
+
+    /** Polls once a second from [from] to [to]; the session times at which it rang. */
+    private fun ringsWhilePlaying(cue: HalfwayCue, from: Double, to: Double, endMs: (Double) -> Double?): List<Double> {
+        val rang = ArrayList<Double>()
+        var t = from
+        while (t <= to) { if (cue.poll(t, endMs(t))) rang.add(t); t += 1000.0 }
+        return rang
+    }
+
+    @Test fun halfwayIsHalfTheSessionEnd() {
+        assertEquals(15 * min, CueMath.halfwayMs(20 * min + 10 * min)!!, 1e-9) // recording + extension
+        assertEquals(12.5 * min, CueMath.halfwayMs(25 * min)!!, 1e-9) // timer
+        assertNull(CueMath.halfwayMs(null))
+        assertNull(CueMath.halfwayMs(0.0))
+        assertNull(CueMath.halfwayMs(-5.0))
+    }
+
+    @Test fun configReadsHalfwayAndItReplacesTheIntervalBells() {
+        val on = CueConfig.fromMap(mapOf("intervalSound" to "assets/audio/b.wav", "intervalMinutes" to 5, "intervalHalfway" to true))
+        assertTrue(on.intervalHalfway); assertTrue(on.hasHalfway); assertFalse(on.hasInterval)
+        val off = CueConfig.fromMap(mapOf("intervalSound" to "assets/audio/b.wav", "intervalMinutes" to 5, "intervalHalfway" to false))
+        assertFalse(off.hasHalfway); assertTrue(off.hasInterval)
+        val unset = CueConfig.fromMap(mapOf("intervalSound" to "assets/audio/b.wav", "intervalMinutes" to 5))
+        assertFalse(unset.intervalHalfway); assertFalse(unset.hasHalfway); assertTrue(unset.hasInterval)
+        val noSound = CueConfig.fromMap(mapOf("intervalMinutes" to 5, "intervalHalfway" to true))
+        assertFalse(noSound.hasHalfway); assertFalse(noSound.hasInterval)
+    }
+
+    @Test fun halfwayRingsOnceWhenCrossed() {
+        val cue = HalfwayCue().apply { arm() }
+        val rang = ringsWhilePlaying(cue, 0.0, 20 * min) { 20 * min }
+        assertEquals(listOf(10 * min), rang)
+        assertFalse(cue.pending)
+    }
+
+    @Test fun nothingRingsUntilArmed() {
+        val cue = HalfwayCue()
+        assertTrue(ringsWhilePlaying(cue, 0.0, 20 * min) { 20 * min }.isEmpty())
+        assertNull(cue.dueAt(20 * min))
+    }
+
+    @Test fun aPauseAcrossTheMidpointRingsOnceAndNeverEarly() {
+        val cue = HalfwayCue().apply { arm() }
+        val end = 20 * min
+        // Played to just before the midpoint, then paused: session time is frozen.
+        assertTrue(ringsWhilePlaying(cue, 0.0, 10 * min - 2000.0) { end }.isEmpty())
+        repeat(50) { assertFalse(cue.poll(10 * min - 1000.0, end)) }
+        assertTrue(cue.pending)
+        // Resumed: it rings once when crossed.
+        assertEquals(listOf(10 * min), ringsWhilePlaying(cue, 10 * min - 1000.0, 12 * min) { end })
+    }
+
+    @Test fun seekingForwardPastTheMidpointConsumesItSilently() {
+        val cue = HalfwayCue().apply { arm() }
+        val end = 20 * min
+        assertFalse(cue.poll(10 * min + CueMath.INTERVAL_LATE_TOLERANCE_MS + 1, end))
+        assertFalse(cue.pending)
+        assertTrue(ringsWhilePlaying(cue, 10 * min + 2000.0, 20 * min) { end }.isEmpty())
+        // A cue a hair late (inside the tolerance) still rings.
+        val near = HalfwayCue().apply { arm() }
+        assertTrue(near.poll(10 * min + CueMath.INTERVAL_LATE_TOLERANCE_MS, end))
+    }
+
+    @Test fun seekingBackAfterItRangRingsItAgain() {
+        val cue = HalfwayCue().apply { arm() }
+        val end = 20 * min
+        assertEquals(1, ringsWhilePlaying(cue, 0.0, 12 * min) { end }.size)
+        cue.arm() // the engine re-arms after a seek, back to 5 minutes
+        assertEquals(listOf(10 * min), ringsWhilePlaying(cue, 5 * min, 12 * min) { end })
+    }
+
+    @Test fun theMidpointCanFallInTheExtension() {
+        // A 10-minute recording heard in full, then a 30-minute extension: 40 minutes, halfway at 20.
+        val extensionStart = 10 * min
+        val end = extensionStart + 30 * min
+        val cue = HalfwayCue().apply { arm() }
+        assertEquals(20 * min, cue.dueAt(end)!!, 1e-9)
+        assertEquals(listOf(20 * min), ringsWhilePlaying(cue, 0.0, end - 1000.0) { end })
+    }
+
+    @Test fun aSpeedChangeMovesTheMidpoint() {
+        val cue = HalfwayCue().apply { arm() }
+        // 20 minutes at 1x: due at 10. At 4 minutes the listener doubles the speed: the end
+        // drops from 20 to 12 minutes of session time, so it is now due at 6.
+        assertTrue(ringsWhilePlaying(cue, 0.0, 4 * min) { 20 * min }.isEmpty())
+        assertEquals(6 * min, cue.dueAt(12 * min)!!, 1e-9)
+        assertEquals(listOf(6 * min), ringsWhilePlaying(cue, 4 * min + 1000.0, 12 * min) { 12 * min })
+    }
+
+    @Test fun aMidpointAtOrPastTheEndNeverRings() {
+        // Only a non-positive end puts the midpoint at or past it; it is unknown, so nothing rings.
+        val cue = HalfwayCue().apply { arm() }
+        assertTrue(ringsWhilePlaying(cue, 0.0, 5 * min) { 0.0 }.isEmpty())
+        assertTrue(cue.pending)
+        // And the end rule itself, as the engine applies it to every cue.
+        val due = CueMath.halfwayMs(20 * min)!!
+        assertTrue(CueMath.insideSession(due, 20 * min))
+        assertFalse(CueMath.insideSession(20 * min, 20 * min))
+        assertFalse(CueMath.insideSession(due, due))
+    }
+
+    @Test fun anUnknownEndNeverRingsAndStaysPending() {
+        val cue = HalfwayCue().apply { arm() }
+        assertTrue(ringsWhilePlaying(cue, 0.0, 60 * min) { null }.isEmpty())
+        assertTrue(cue.pending)
+        assertNull(cue.dueAt(null))
+        // Once the end is known it rings (or is consumed as late), as normal.
+        assertTrue(cue.poll(10 * min, 20 * min))
+    }
+
+    @Test fun disarmedHalfwayStaysSilent() {
+        val cue = HalfwayCue().apply { arm(); disarm() }
+        assertTrue(ringsWhilePlaying(cue, 0.0, 20 * min) { 20 * min }.isEmpty())
+    }
+
     // ---- Real listening ---------------------------------------------------------
 
     private fun play(tracker: ListeningTracker, from: Long, to: Long, step: Long = 1000) {

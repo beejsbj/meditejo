@@ -30,11 +30,15 @@ struct CueConfig {
     /// Autoplay is on: the session end holds the app for the interlude.
     var autoplay = false
     var interludeSeconds = 0
+    /// The interval bell is "Halfway": one bell at the midpoint, not every N minutes.
+    var intervalHalfway = false
 
     var countdownMs: Double { Double(min(max(countdownSeconds, 0), 10)) * 1000 }
     var extensionMs: Double { Double(min(max(extendMinutes, 0), 60)) * 60_000 }
     var interludeMs: Double { Double(min(max(interludeSeconds, 0), 30)) * 1000 }
-    var hasInterval: Bool { intervalMinutes > 0 && intervalSound != nil }
+    /// Every-N-minutes bells; never alongside the halfway bell.
+    var hasInterval: Bool { !intervalHalfway && intervalMinutes > 0 && intervalSound != nil }
+    var hasHalfway: Bool { intervalHalfway && intervalSound != nil }
     var hasPulse: Bool { pulseSound != nil }
 
     init() {}
@@ -65,6 +69,7 @@ struct CueConfig {
         randomSeed = i64("randomSeed")
         autoplay = (map["autoplay"] as? Bool) ?? false
         interludeSeconds = min(max(int("interludeSeconds"), 0), 30)
+        intervalHalfway = (map["intervalHalfway"] as? Bool) ?? false
     }
 }
 
@@ -172,6 +177,13 @@ enum CueMath {
         return deadlineMs < end
     }
 
+    /// Session time of the halfway bell: half of the session end, which already
+    /// includes the extension and follows speed. nil when the end is unknown.
+    static func halfwayMs(_ endMs: Double?) -> Double? {
+        guard let end = endMs, end > 0 else { return nil }
+        return end / 2
+    }
+
     /// Session time left in the voice. nil for an endless or unknown-length track.
     static func remainingSessionMs(positionMs: Double, durationMs: Double, speed: Double,
                                    itemsAfterCurrent: Int, endless: Bool, extensionMs: Double) -> Double? {
@@ -181,6 +193,30 @@ enum CueMath {
     }
 
     static func shouldRingStart(positionMs: Double) -> Bool { positionMs < 2000 }
+}
+
+// MARK: - Halfway bell
+
+/// The one halfway bell: pending until crossed, re-armed by a seek. The
+/// midpoint is read from the session end on every poll, so a speed change moves it.
+struct HalfwayCue {
+    private(set) var pending = false
+
+    mutating func arm() { pending = true }
+    mutating func disarm() { pending = false }
+
+    /// Session time it is due at, or nil (not pending, or end unknown). For scheduling the next tick.
+    func dueAt(endMs: Double?) -> Double? { pending ? CueMath.halfwayMs(endMs) : nil }
+
+    /// True when it should ring now. Once the midpoint is crossed it is consumed,
+    /// and rings only if it is on time and inside the session. An unknown end
+    /// leaves it pending.
+    mutating func poll(sessionMs: Double, endMs: Double?) -> Bool {
+        guard let due = dueAt(endMs: endMs) else { return false }
+        if sessionMs < due { return false }
+        pending = false
+        return sessionMs - due <= CueMath.intervalLateToleranceMs && CueMath.insideSession(due, end: endMs)
+    }
 }
 
 // MARK: - Real listening
@@ -383,6 +419,7 @@ final class CueScheduler {
 
     private var intervalAtMs = Double.greatestFiniteMagnitude
     private var beatAtMs = Double.greatestFiniteMagnitude
+    private var halfway = HalfwayCue()
 
     private static func uptimeMs() -> Double { ProcessInfo.processInfo.systemUptime * 1000 }
 
@@ -489,6 +526,7 @@ final class CueScheduler {
         started = false
         playing = false
         config = nil
+        halfway.disarm()
         holdAnchorMs = nil
         bank.stopAll()
         bank = CueSoundBank()
@@ -655,12 +693,12 @@ final class CueScheduler {
             schedule(afterMs: min(heldRemaining(), 250))
         case .extending:
             guard holdAnchorMs != nil else { return }
-            let next = min(intervalAtMs, beatAtMs)
+            let next = min(intervalAtMs, beatAtMs, halfwayDeadlineMs())
             let wait = next == .greatestFiniteMagnitude ? 1000 : next - sessionNow()
             schedule(afterMs: min(max(wait, 1), 1000, heldRemaining()))
         case .playing:
             guard started, playing else { return }
-            let next = min(intervalAtMs, beatAtMs)
+            let next = min(intervalAtMs, beatAtMs, halfwayDeadlineMs())
             if next == .greatestFiniteMagnitude { return }
             schedule(afterMs: min(max(next - sessionNow(), 1), 1000))
         default:
@@ -708,6 +746,27 @@ final class CueScheduler {
     private func armAll(at t: Double, fresh: Bool) {
         armInterval(at: t)
         armPulse(at: t, fresh: fresh)
+        armHalfway()
+    }
+
+    /// Re-armed by every arm (a seek back before the midpoint rings it again when crossed).
+    private func armHalfway() {
+        if config?.hasHalfway == true { halfway.arm() } else { halfway.disarm() }
+    }
+
+    /// When the halfway bell is due, against the session end as it stands now
+    /// (the end moves with speed). greatestFiniteMagnitude when nothing is pending.
+    private func halfwayDeadlineMs() -> Double {
+        let end: Double?
+        if phase == .extending, let cfg = config {
+            end = extensionStartSessionMs + cfg.extensionMs
+        } else {
+            end = sessionEndMs()
+        }
+        guard halfway.pending else { return .greatestFiniteMagnitude }
+        // Pending with no known end yet (a stream whose length arrives late):
+        // look again in a second rather than stop ticking.
+        return halfway.dueAt(endMs: end) ?? sessionNow() + 1000
     }
 
     private func armInterval(at t: Double) {
@@ -740,6 +799,9 @@ final class CueScheduler {
                 bank.play(cfg.pulseSound, volume: cfg.pulseVolume)
             }
             armPulse(at: t, fresh: false)
+        }
+        if halfway.poll(sessionMs: t, endMs: end) {
+            bank.play(cfg.intervalSound, volume: cfg.bellVolume)
         }
     }
 

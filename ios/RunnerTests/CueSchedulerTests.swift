@@ -57,6 +57,133 @@ class CueSchedulerTests: XCTestCase {
         XCTAssertTrue(CueMath.insideSession(1e12, end: nil))
     }
 
+    // MARK: Halfway bell
+
+    private let minute = 60_000.0
+
+    /// Polls once a second from `from` to `to`; the session times at which it rang.
+    private func rings(_ cue: inout HalfwayCue, from: Double, to: Double, end: (Double) -> Double?) -> [Double] {
+        var rang: [Double] = []
+        var t = from
+        while t <= to {
+            if cue.poll(sessionMs: t, endMs: end(t)) { rang.append(t) }
+            t += 1000
+        }
+        return rang
+    }
+
+    func testHalfwayIsHalfTheSessionEnd() {
+        XCTAssertEqual(CueMath.halfwayMs(30 * minute)!, 15 * minute, accuracy: 1e-9)
+        XCTAssertEqual(CueMath.halfwayMs(25 * minute)!, 12.5 * minute, accuracy: 1e-9)
+        XCTAssertNil(CueMath.halfwayMs(nil))
+        XCTAssertNil(CueMath.halfwayMs(0))
+        XCTAssertNil(CueMath.halfwayMs(-5))
+    }
+
+    func testConfigReadsHalfwayAndItReplacesTheIntervalBells() {
+        let on = CueConfig(map: ["intervalSound": "assets/audio/b.wav", "intervalMinutes": 5, "intervalHalfway": true])
+        XCTAssertTrue(on.intervalHalfway)
+        XCTAssertTrue(on.hasHalfway)
+        XCTAssertFalse(on.hasInterval)
+        let off = CueConfig(map: ["intervalSound": "assets/audio/b.wav", "intervalMinutes": 5, "intervalHalfway": false])
+        XCTAssertFalse(off.hasHalfway)
+        XCTAssertTrue(off.hasInterval)
+        let unset = CueConfig(map: ["intervalSound": "assets/audio/b.wav", "intervalMinutes": 5])
+        XCTAssertFalse(unset.hasHalfway)
+        XCTAssertTrue(unset.hasInterval)
+        let noSound = CueConfig(map: ["intervalMinutes": 5, "intervalHalfway": true])
+        XCTAssertFalse(noSound.hasHalfway)
+        XCTAssertFalse(noSound.hasInterval)
+    }
+
+    func testHalfwayRingsOnceWhenCrossed() {
+        var cue = HalfwayCue()
+        cue.arm()
+        let rang = rings(&cue, from: 0, to: 20 * minute) { _ in 20 * minute }
+        XCTAssertEqual(rang, [10 * minute])
+        XCTAssertFalse(cue.pending)
+        var idle = HalfwayCue()
+        let silent = rings(&idle, from: 0, to: 20 * minute) { _ in 20 * minute }
+        XCTAssertTrue(silent.isEmpty)
+    }
+
+    func testPauseAcrossTheMidpointRingsOnceAndNeverEarly() {
+        var cue = HalfwayCue()
+        cue.arm()
+        let end = 20 * minute
+        let silent = rings(&cue, from: 0, to: 10 * minute - 2000) { _ in end }
+        XCTAssertTrue(silent.isEmpty)
+        for _ in 0..<50 { XCTAssertFalse(cue.poll(sessionMs: 10 * minute - 1000, endMs: end)) }
+        XCTAssertTrue(cue.pending)
+        let rang = rings(&cue, from: 10 * minute - 1000, to: 12 * minute) { _ in end }
+        XCTAssertEqual(rang, [10 * minute])
+    }
+
+    func testSeekingForwardPastTheMidpointConsumesItSilently() {
+        var cue = HalfwayCue()
+        cue.arm()
+        let end = 20 * minute
+        XCTAssertFalse(cue.poll(sessionMs: 10 * minute + CueMath.intervalLateToleranceMs + 1, endMs: end))
+        XCTAssertFalse(cue.pending)
+        let silent = rings(&cue, from: 10 * minute + 2000, to: 20 * minute) { _ in end }
+        XCTAssertTrue(silent.isEmpty)
+        var near = HalfwayCue()
+        near.arm()
+        XCTAssertTrue(near.poll(sessionMs: 10 * minute + CueMath.intervalLateToleranceMs, endMs: end))
+    }
+
+    func testSeekingBackAfterItRangRingsItAgain() {
+        var cue = HalfwayCue()
+        cue.arm()
+        let end = 20 * minute
+        let rang = rings(&cue, from: 0, to: 12 * minute) { _ in end }
+        XCTAssertEqual(rang.count, 1)
+        cue.arm()
+        let again = rings(&cue, from: 5 * minute, to: 12 * minute) { _ in end }
+        XCTAssertEqual(again, [10 * minute])
+    }
+
+    func testTheMidpointCanFallInTheExtension() {
+        let end = 10 * minute + 30 * minute
+        var cue = HalfwayCue()
+        cue.arm()
+        XCTAssertEqual(cue.dueAt(endMs: end)!, 20 * minute, accuracy: 1e-9)
+        let rang = rings(&cue, from: 0, to: end - 1000) { _ in end }
+        XCTAssertEqual(rang, [20 * minute])
+    }
+
+    func testASpeedChangeMovesTheMidpoint() {
+        var cue = HalfwayCue()
+        cue.arm()
+        let silent = rings(&cue, from: 0, to: 4 * minute) { _ in 20 * minute }
+        XCTAssertTrue(silent.isEmpty)
+        XCTAssertEqual(cue.dueAt(endMs: 12 * minute)!, 6 * minute, accuracy: 1e-9)
+        let rang = rings(&cue, from: 4 * minute + 1000, to: 12 * minute) { _ in 12 * minute }
+        XCTAssertEqual(rang, [6 * minute])
+    }
+
+    func testAMidpointAtOrPastTheEndNeverRings() {
+        var cue = HalfwayCue()
+        cue.arm()
+        let silent = rings(&cue, from: 0, to: 5 * minute) { _ in 0 }
+        XCTAssertTrue(silent.isEmpty)
+        XCTAssertTrue(cue.pending)
+        let due = CueMath.halfwayMs(20 * minute)!
+        XCTAssertTrue(CueMath.insideSession(due, end: 20 * minute))
+        XCTAssertFalse(CueMath.insideSession(20 * minute, end: 20 * minute))
+        XCTAssertFalse(CueMath.insideSession(due, end: due))
+    }
+
+    func testAnUnknownEndNeverRingsAndStaysPending() {
+        var cue = HalfwayCue()
+        cue.arm()
+        let silent = rings(&cue, from: 0, to: 60 * minute) { _ in nil }
+        XCTAssertTrue(silent.isEmpty)
+        XCTAssertTrue(cue.pending)
+        XCTAssertNil(cue.dueAt(endMs: nil))
+        XCTAssertTrue(cue.poll(sessionMs: 10 * minute, endMs: 20 * minute))
+    }
+
     func testNinetyPercentListenedCompletes() {
         let t = ListeningTracker()
         var p: Int64 = 0

@@ -30,11 +30,15 @@ internal data class CueConfig(
     /** Autoplay is on: the session end holds the service for the interlude. */
     val autoplay: Boolean = false,
     val interludeSeconds: Int = 0,
+    /** The interval bell is "Halfway": one bell at the midpoint, not every N minutes. */
+    val intervalHalfway: Boolean = false,
 ) {
     val countdownMs: Long get() = countdownSeconds.coerceIn(0, 10) * 1000L
     val interludeMs: Long get() = interludeSeconds.coerceIn(0, 30) * 1000L
     val extensionMs: Long get() = extendMinutes.coerceIn(0, 60) * 60_000L
-    val hasInterval: Boolean get() = intervalMinutes > 0 && intervalSound != null
+    /** Every-N-minutes bells; never alongside the halfway bell. */
+    val hasInterval: Boolean get() = !intervalHalfway && intervalMinutes > 0 && intervalSound != null
+    val hasHalfway: Boolean get() = intervalHalfway && intervalSound != null
     val hasPulse: Boolean get() = pulseSound != null
 
     companion object {
@@ -62,6 +66,7 @@ internal data class CueConfig(
             randomSeed = long(m["randomSeed"]),
             autoplay = m["autoplay"] as? Boolean ?: false,
             interludeSeconds = int(m["interludeSeconds"]).coerceIn(0, 30),
+            intervalHalfway = m["intervalHalfway"] as? Boolean ?: false,
         )
     }
 }
@@ -187,6 +192,12 @@ internal object CueMath {
     fun insideSession(deadlineMs: Double, endMs: Double?): Boolean = endMs == null || deadlineMs < endMs
 
     /**
+     * Session time of the halfway bell: half of the session end, which already
+     * includes the extension and follows speed. Null when the end is unknown.
+     */
+    fun halfwayMs(endMs: Double?): Double? = endMs?.takeIf { it > 0 }?.let { it / 2 }
+
+    /**
      * Session time left in the voice, from media position and speed. Null for
      * an endless or unknown-length track. Later items in a repeat playlist add
      * their full length.
@@ -224,6 +235,33 @@ internal object CueMath {
     @Suppress("UNUSED_PARAMETER")
     fun earnsCompletion(isTimer: Boolean, heardEnough: Boolean, extensionFinished: Boolean): Boolean =
         isTimer || heardEnough
+}
+
+/**
+ * The one halfway bell: pending until crossed, re-armed by a seek. The
+ * midpoint is read from the session end on every poll, so a speed change moves it.
+ */
+internal class HalfwayCue {
+    var pending = false
+        private set
+
+    fun arm() { pending = true }
+    fun disarm() { pending = false }
+
+    /** Session time it is due at, or null (not pending, or end unknown). For scheduling the next tick. */
+    fun dueAt(endMs: Double?): Double? = if (pending) CueMath.halfwayMs(endMs) else null
+
+    /**
+     * True when it should ring now. Once the midpoint is crossed it is consumed,
+     * and rings only if it is on time and inside the session. An unknown end
+     * leaves it pending.
+     */
+    fun poll(sessionMs: Double, endMs: Double?): Boolean {
+        val due = dueAt(endMs) ?: return false
+        if (sessionMs < due) return false
+        pending = false
+        return sessionMs - due <= CueMath.INTERVAL_LATE_TOLERANCE_MS && CueMath.insideSession(due, endMs)
+    }
 }
 
 /**
