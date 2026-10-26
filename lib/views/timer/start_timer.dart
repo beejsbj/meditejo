@@ -25,6 +25,8 @@ Duration timerDuration(WidgetRef ref) =>
         minutes: ref.read(cueSettingsProvider(timerCueScope)).durationMinutes,
       );
 
+var _starting = false;
+
 /// Starts a timer session as the Timer screen is set (mode, length, cues)
 /// and opens the player. [soundscape] plays under this session only; the
 /// user's saved choices are left as they are. Returns false if the silent
@@ -34,6 +36,22 @@ Future<bool> startTimerSession(
   WidgetRef ref, {
   SoundscapeSelection? soundscape,
 }) async {
+  // One start at a time, whichever screen asked: a double tap on a Home tile
+  // must not push two players.
+  if (_starting) return false;
+  _starting = true;
+  try {
+    return await _startTimerSession(context, ref, soundscape);
+  } finally {
+    _starting = false;
+  }
+}
+
+Future<bool> _startTimerSession(
+  BuildContext context,
+  WidgetRef ref,
+  SoundscapeSelection? soundscape,
+) async {
   final l10n = AppLocalizations.of(context)!;
   final mode = ref.read(timerSettingsProvider).mode;
   final duration = timerDuration(ref);

@@ -437,3 +437,9 @@ Decision 16. Screenshots, the five-tab check and the mark's motion (GIF and stri
   - **Lead Continue card:** on a phone the Resume button squeezes the subtitle ("59:00…" loses "left"). A stacked layout, with the button under the text, may suit the lead card better; this is a taste call for Burooj.
   - **Mark speed:** one turn a minute (6° a second) and one breath in 10 s. Judge it on the phone.
   - **Palette:** the light blob (`primaryContainer`, `#A2F2D9`) is the brightest thing on Home. If it reads loud on the phone, lowering the seed's chroma or drawing the blob from `secondaryContainer` are one-line changes.
+  - **From the independent review of #36 (Claude Opus 5.5), not fixed in this PR:**
+    - **Player's Customize sheet:** opened from a session started by a preset tile, it still shows Practice's saved background sound, not the preset that is playing (`customize_sheet.dart`). Show `request.soundscapeSelection` when set. Low risk, since the preset is session-only.
+    - **Motion tokens:** `MotionToken.duration` and `.curve` re-run the spring simulation on every read, and `HomePressable` reads them on each build. Cache them.
+    - **Home heading for screen readers:** the title is gone and the mark is excluded from semantics. Wrap the mark in `Semantics(header: true, label: l10n.home)`.
+    - **Mark frame rate (taste, Burooj):** the mark draws every frame while Home is visible, up to 120 Hz on the S23+. A lower rate would cost little visually and save battery; judge it with the speed on the phone.
+  - **Fixed in this PR from the same review:** quick-link tiles grow with the text size (a fixed 116 dp overflowed past about 1.36×), and `startTimerSession` ignores a second start while one is preparing (a double tap on a preset tile pushed two players).

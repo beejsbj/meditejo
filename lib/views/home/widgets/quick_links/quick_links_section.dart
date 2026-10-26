@@ -92,12 +92,19 @@ class QuickLinksSection extends ConsumerWidget {
               final columns = (constraints.maxWidth / 220).floor().clamp(2, 4);
               final width =
                   (constraints.maxWidth - kHomeGap * (columns - 1)) / columns;
+              // Padding and icon row stay fixed; the two text lines grow
+              // with the user's text size, so the tile does too.
+              final height = 56 + MediaQuery.textScalerOf(context).scale(44);
               return Wrap(
                 spacing: kHomeGap,
                 runSpacing: kHomeGap,
                 children: [
                   for (final tile in tiles)
-                    SizedBox(width: width, height: 116, child: tile),
+                    SizedBox(
+                      width: width,
+                      height: height < 116 ? 116 : height,
+                      child: tile,
+                    ),
                   SizedBox(
                     width: constraints.maxWidth,
                     child: _AddTile(onTap: () => openImport(context, ref)),

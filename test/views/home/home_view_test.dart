@@ -118,6 +118,22 @@ void main() {
     expect(app.prefs.getStringList('pinned_course_ids'), isEmpty);
   });
 
+  testWidgets('the quick-link tiles grow with the text size without overflow', (
+    tester,
+  ) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final app = await LibraryTestApp.create(tester);
+    await app.pump(
+      tester,
+      const HomeView(),
+      overrides: [continueItemsProvider.overrideWith((ref) async => [])],
+    );
+    expect(tester.takeException(), isNull);
+    final tile = tester.getSize(find.byKey(const ValueKey('quick_timer')));
+    expect(tile.height, greaterThan(116));
+  });
+
   testWidgets('with nothing to continue it says so and keeps the quick links', (
     tester,
   ) async {
