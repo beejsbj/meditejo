@@ -20,8 +20,8 @@ import 'package:medito/widgets/medito_icon.dart';
 
 /// One-tap starts, as a grid of tiles: the Timer, Sounds, a few sound
 /// presets that start the Timer with that background, and Add.
-class QuickLinksSection extends ConsumerWidget {
-  const QuickLinksSection({super.key});
+class ShortcutsSection extends ConsumerWidget {
+  const ShortcutsSection({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,8 +39,8 @@ class QuickLinksSection extends ConsumerWidget {
         : formatTimerLength(Duration(minutes: minutes), l10n);
 
     final tiles = <Widget>[
-      QuickLinkTile(
-        key: const ValueKey('quick_timer'),
+      ShortcutTile(
+        key: const ValueKey('shortcut_timer'),
         color: scheme.secondaryContainer,
         onColor: scheme.onSecondaryContainer,
         icon: (color) =>
@@ -51,8 +51,8 @@ class QuickLinksSection extends ConsumerWidget {
           context,
         ).push<void>(MaterialPageRoute(builder: (_) => const TimerView())),
       ),
-      QuickLinkTile(
-        key: const ValueKey('quick_sounds'),
+      ShortcutTile(
+        key: const ValueKey('shortcut_sounds'),
         color: scheme.surfaceContainerHigh,
         onColor: scheme.onSurface,
         // The Sounds tab's own symbol.
@@ -62,14 +62,14 @@ class QuickLinksSection extends ConsumerWidget {
         onTap: () => ref.read(mainTabProvider.notifier).select(MainTab.sounds),
       ),
       for (final preset in presets)
-        QuickLinkTile(
-          key: ValueKey('quick_preset_${preset.id}'),
+        ShortcutTile(
+          key: ValueKey('shortcut_preset_${preset.id}'),
           color: scheme.tertiaryContainer,
           onColor: scheme.onTertiaryContainer,
           icon: (color) => Icon(Icons.waves_rounded, color: color, size: 24),
           label: preset.name,
           caption: '${l10n.timerTitle} · $timerLength',
-          semanticsLabel: l10n.homeQuickPresetTimer(preset.name),
+          semanticsLabel: l10n.homeShortcutPresetTimer(preset.name),
           starts: true,
           onTap: () => startTimerSession(
             context,
@@ -82,7 +82,7 @@ class QuickLinksSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        HomeSectionTitle(l10n.homeQuickLinksTitle),
+        HomeSectionHeader(l10n.homeShortcutsTitle),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: kHomeGutter),
           child: LayoutBuilder(
@@ -120,8 +120,8 @@ class QuickLinksSection extends ConsumerWidget {
 
 /// A rounded tile: an icon at the top, its label and a caption at the foot,
 /// and a play mark when tapping it starts something at once ([starts]).
-class QuickLinkTile extends StatelessWidget {
-  const QuickLinkTile({
+class ShortcutTile extends StatelessWidget {
+  const ShortcutTile({
     super.key,
     required this.color,
     required this.onColor,
@@ -215,11 +215,11 @@ class _AddTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
-      label: l10n.homeQuickAdd,
+      label: l10n.homeShortcutAdd,
       excludeSemantics: true,
       onTap: onTap,
       child: HomePressable(
-        key: const ValueKey('quick_add'),
+        key: const ValueKey('shortcut_add'),
         color: scheme.surfaceContainer,
         radius: MeditejoShapes.full,
         onTap: onTap,
@@ -230,7 +230,7 @@ class _AddTile extends StatelessWidget {
               Icon(Icons.add_rounded, color: scheme.onSurface),
               const SizedBox(width: 12),
               Text(
-                l10n.homeQuickAdd,
+                l10n.homeShortcutAdd,
                 style: context.typography.emphasized.titleMedium,
               ),
             ],

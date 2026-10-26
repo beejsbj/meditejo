@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/constants/theme/tokens.dart';
 
 /// Radii and spacing shared by Home's sections, from the theme's tokens, so
@@ -14,22 +13,21 @@ const kHomeSectionGap = 28.0;
 /// The logo mark's size at the top of Home.
 const kHomeMarkSize = 168.0;
 
-/// A section's heading on Home: Expressive's emphasized title.
-class HomeSectionTitle extends StatelessWidget {
-  const HomeSectionTitle(this.title, {super.key});
+/// A section's heading on Home, for screen readers only: nothing is drawn.
+/// Sections are told apart by spacing and grouping alone (Waking Up's tiles
+/// sit straight under its hero), but TalkBack still announces each group and
+/// lets the user jump heading to heading.
+class HomeSectionHeader extends StatelessWidget {
+  const HomeSectionHeader(this.title, {super.key});
 
   final String title;
 
   @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      header: true,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(kHomeGutter + 4, 0, kHomeGutter, 12),
-        child: Text(title, style: context.typography.emphasized.titleLarge),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Semantics(
+    header: true,
+    label: title,
+    child: const SizedBox(width: double.infinity),
+  );
 }
 
 /// A tappable surface that settles back with Expressive's spring when

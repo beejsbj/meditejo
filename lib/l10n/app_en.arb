@@ -817,7 +817,7 @@
   },
   "upNextTitle": "Continue",
   "@upNextTitle": {
-    "description": "Eyebrow on the home hero once the pack is under way (CONTINUE · pack), and the section name in Customise Home"
+    "description": "The Continue section's name in Customize, and its screen-reader heading on Home (not drawn)"
   },
   "upNextProgress": "{completed} of {total}",
   "@upNextProgress": {
@@ -2249,8 +2249,14 @@
   "youtubePlaylistEmpty": "Sessions aren't stored on this device yet. We'll try again shortly",
   "navLibrary": "Library",
   "exploreSearchHint": "Search your library and Dharma Seed",
-  "homeQuickLinksTitle": "Quick links",
+  "homeShortcutsTitle": "Shortcuts",
+  "@homeShortcutsTitle": {
+    "description": "The shortcuts section's name in Customize, and its screen-reader heading on Home (not drawn)"
+  },
   "homePinnedTitle": "Pinned",
+  "@homePinnedTitle": {
+    "description": "The pinned section's name in Customize, and its screen-reader heading on Home (not drawn)"
+  },
   "homeCustomize": "Customize",
   "homeCustomizeHint": "Switch sections on or off, and drag to put them in your order.",
   "homeContinueEmpty": "Nothing in progress. Add something to your library, or open Explore.",
@@ -2275,9 +2281,9 @@
       }
     }
   },
-  "homeQuickAdd": "Add",
-  "homeQuickPresetTimer": "Start the timer with {preset}",
-  "@homeQuickPresetTimer": {
+  "homeShortcutAdd": "Add",
+  "homeShortcutPresetTimer": "Start the timer with {preset}",
+  "@homeShortcutPresetTimer": {
     "description": "Screen-reader label of a Home tile that starts the timer with a saved background-sound preset.",
     "placeholders": {
       "preset": {
