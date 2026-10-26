@@ -558,3 +558,7 @@ BRIEF decisions 16 and 18. Screenshots are in `docs/fork/design/` (`sounds-*`, `
 - **Follow-ups:**
   - Customize's Background sound chooser and the scroll-wheel picker, in the Customize redesign PR.
   - Whether the drag handle should also let the panel be dragged from its body, not only its header (today only the header drags, so the layer sliders are not contested).
+  - From the independent review (P3s, left as they are for now):
+    - `collapseMix()` checks only that the panel is open, not that the docked layout is the one showing. Open the mix on a phone-width window, widen past 840 dp (a foldable unfolds), and the first back press folds a panel nobody can see. Fix: return false on the two-pane layout, or fold on the layout change.
+    - On the Sounds page opened from the player, the app bar's close button folds an open mix first, because `canPop` is `!_open`. Back folding first is intended; the X doing the same is debatable. Burooj's call.
+    - A card dimmed because the mix is full still has a live tap and dips on press, but does nothing. Fix: pass a null `onTap` to the `InkWell` and to the semantics when the card is disabled.
