@@ -5,6 +5,7 @@ A throwaway HTTP server stands in for the GitHub release downloads.
 import functools
 import hashlib
 import http.server
+import http.client
 import importlib.util
 import json
 import os
@@ -110,6 +111,41 @@ class CatalogueTool(unittest.TestCase):
         finally:
             catalogue.time.sleep = original
         self.assertNotIsInstance(raised.exception, catalogue.NotFound)
+
+    def test_a_broken_stream_is_retried_then_reported_not_a_traceback(self):
+        class Broken:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def read(self, _size):
+                raise http.client.IncompleteRead(b'partial')
+
+        class Healthy(Broken):
+            def __init__(self):
+                self.sent = False
+
+            def read(self, _size):
+                if self.sent:
+                    return b''
+                self.sent = True
+                return b'abc'
+
+        original_request, original_sleep = catalogue.request, catalogue.time.sleep
+        catalogue.time.sleep = lambda _: None
+        target = Path(self.scratch.name) / 'x'
+        try:
+            responses = [Broken(), Healthy()]
+            catalogue.request = lambda url: responses.pop(0)
+            size, digest = catalogue.download('http://x/y', target)
+            self.assertEqual((size, target.read_bytes()), (3, b'abc'))
+            catalogue.request = lambda url: Broken()
+            with self.assertRaisesRegex(catalogue.Failure, 'while streaming'):
+                catalogue.download('http://x/y', target)
+        finally:
+            catalogue.request, catalogue.time.sleep = original_request, original_sleep
 
     def test_fetch_fails_when_the_manifest_pins_nothing(self):
         catalogue.MANIFEST.write_text(json.dumps({'schema': 1}))

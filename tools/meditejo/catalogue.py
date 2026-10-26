@@ -20,6 +20,7 @@ import argparse
 import datetime as dt
 import gzip
 import hashlib
+import http.client
 import json
 import os
 import re
@@ -118,15 +119,26 @@ def request(url, method='GET', attempts=4):
     raise Failure(f'{method} {url} failed: {last}')
 
 
-def download(url, destination):
-    """Streams [url] to [destination]; returns (bytes, sha256)."""
-    digest, size = hashlib.sha256(), 0
-    with request(url) as response, open(destination, 'wb') as out:
-        for chunk in iter(lambda: response.read(1 << 20), b''):
-            out.write(chunk)
-            digest.update(chunk)
-            size += len(chunk)
-    return size, digest.hexdigest()
+def download(url, destination, attempts=3):
+    """Streams [url] to [destination]; returns (bytes, sha256).
+
+    A stream that breaks part-way (reset, timeout, IncompleteRead) is retried
+    from the start, then reported as a Failure rather than a traceback.
+    """
+    last = None
+    for attempt in range(attempts):
+        digest, size = hashlib.sha256(), 0
+        try:
+            with request(url) as response, open(destination, 'wb') as out:
+                for chunk in iter(lambda: response.read(1 << 20), b''):
+                    out.write(chunk)
+                    digest.update(chunk)
+                    size += len(chunk)
+            return size, digest.hexdigest()
+        except (OSError, http.client.HTTPException) as e:
+            last = e
+            time.sleep(2 ** attempt)
+    raise Failure(f'GET {url} failed while streaming: {last}')
 
 
 def fetch(_args):

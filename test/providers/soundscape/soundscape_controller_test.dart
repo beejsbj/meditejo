@@ -1196,6 +1196,7 @@ void main() {
     });
 
     test('Stop mid-session keeps the session; resuming rejoins it', () async {
+      practiceOn();
       await ctl().startSession(SoundscapeSessionKind.practice);
       await settle();
       ctl().stop();
@@ -1254,6 +1255,7 @@ void main() {
     test(
       'changing a default while the session is paused stays paused',
       () async {
+        practiceOn();
         await ctl().startSession(SoundscapeSessionKind.practice);
         ctl().setSessionPaused(true);
         await settle();
@@ -1273,6 +1275,7 @@ void main() {
     );
 
     test('a session ended while its mix resolves plays nothing', () async {
+      practiceOn();
       final starting = ctl().startSession(SoundscapeSessionKind.practice);
       ctl().endSession();
       await starting;
