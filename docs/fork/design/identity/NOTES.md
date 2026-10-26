@@ -135,3 +135,17 @@ A palette has four mark roles (tile, form, stroke, accent) and neutrals for ligh
 | Six visible sound cards at 30 fps | 2–6 ms a frame, comfortably inside budget | |
 
 Rain (70 lines) and café (18 radial gradients) are the heaviest sound cards. Fire and noise are the cheapest.
+
+## Round 3: the art primitives
+
+Round 3 lives in `round3/`; `node round3/build.mjs` builds `identity-round3.html`, reusing round 2's `core.js` (randomness, paper and ink) and its palettes.
+
+- **Primitives** (`prims.js`): 22 small generators, each `build(rng, place, slot)` then `draw(ctx, params, inks, t, still)`: breath, fire, rings, mandala, strata, horizon, streaks, waves, scales, constellation, lotus, ammonite, cairn, threads, weave, moon, dot rhythm, cut-paper hills, sun and rays, stack, grove and disc. Each has one quiet motion. Those that can fill a card behind another are marked `ground`.
+- **Grammar** (`compose.js`): a card is paper (light, mid or dark), then up to one ground, one figure and up to one accent on a second, misregistered plate. The seed picks structure first: value key, layout (centre, low, left, right or big), which primitives. Then each primitive gets its own seeded parameters. A meaning map per sound kind and cover kind lists the primitives allowed in each slot. A preset keeps its loudest layer's card and adds the quieter layers' figures as accents.
+
+### Port
+
+- **One `CustomPainter` per primitive.** Each takes a frozen parameter object built from the seed, an `Inks` value (paper, main, alt, line, glow) and `t`. Drawing is plain `Path`, `drawCircle`, `drawArc` and gradients, as in the page; the hand-cut edge is the same polygon roughening as round 2's `cutPoly`.
+- **A pure composition function:** `compose(kind, id) → Composition { paperKey, layout, layers: [(primitive, slot, params)] }`. Seed it with FNV-1a over `kind:id` and the mulberry32 PRNG, as round 2 notes, so a course keeps its cover. Keep the meaning maps as a constant table beside it. `CardPainter` paints paper, then each layer (the accent with an offset and `BlendMode.multiply` on light paper or `screen` on dark), then the shared paper and speckle shaders.
+- **Lists use a raster cache.** Draw the still frame once into a `PictureRecorder`, call `toImage` at display size × device pixel ratio, and keep it in an LRU keyed by (kind, id, palette, size). Covers are always still.
+- **Motion only where it is seen.** Live sound cards repaint at 30 fps from one ticker, behind a `RepaintBoundary`. They stop off screen, in the background and under reduced motion, which falls back to the cached still.

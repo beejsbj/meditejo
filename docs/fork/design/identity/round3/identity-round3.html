@@ -1,0 +1,1704 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meditejo · identity, round 3</title>
+<style>
+:root {
+  --bg: #F2F5F6; --surface: #E4EAEC; --raised: #D7E0E3; --text: #18242F; --muted: #5E6F7B; --form: #86A9B1;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --pad: clamp(16px, 4vw, 28px);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 var(--sans); transition: background .5s, color .5s; -webkit-text-size-adjust: 100%; }
+main { max-width: 780px; margin: 0 auto; padding: 0 var(--pad) 64px; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 500; letter-spacing: -0.01em; margin: 0; }
+h1 { font-size: clamp(30px, 7vw, 44px); line-height: 1.05; }
+h2 { font-size: clamp(22px, 5vw, 28px); line-height: 1.15; }
+h3 { font-family: var(--sans); font-size: 13px; font-weight: 600; color: var(--muted); margin: 18px 0 8px; }
+p { margin: 0; }
+button { font: inherit; color: inherit; cursor: pointer; }
+code { font-family: var(--mono); font-size: 11.5px; }
+.eyebrow { font: 600 11px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+header.top { padding: 34px 0 18px; display: grid; gap: 6px; }
+.lede { color: var(--muted); max-width: 60ch; margin-top: 8px; }
+.bar { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); margin: 0 calc(var(--pad) * -1); padding: 10px var(--pad); border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent); display: flex; gap: 8px; align-items: center; }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; flex: 1; }
+.chips::-webkit-scrollbar { display: none; }
+.chip, .tab { flex: none; height: 32px; padding: 0 12px; border-radius: 99px; border: 1px solid color-mix(in srgb, var(--text) 12%, transparent); background: transparent; font-size: 13px; display: inline-flex; align-items: center; gap: 7px; }
+.chip[aria-pressed="true"], .tab[aria-selected="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.chip i { width: 12px; height: 12px; border-radius: 50%; margin-right: -4px; box-shadow: 0 0 0 1.5px var(--bg); }
+.btn { height: 32px; padding: 0 12px; border-radius: 10px; border: 0; background: var(--surface); font-size: 13px; white-space: nowrap; }
+.chip:focus-visible, .tab:focus-visible, .btn:focus-visible { outline: 2px solid var(--form); outline-offset: 2px; }
+section { padding-top: 44px; }
+.shead p { color: var(--muted); font-size: 14px; margin-top: 4px; max-width: 58ch; }
+.shead { margin-bottom: 14px; }
+
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 10px; }
+@media (max-width: 600px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.cell { margin: 0; display: grid; gap: 5px; font-size: 12.5px; line-height: 1.25; }
+.cell canvas { width: 100%; aspect-ratio: 1; display: block; border-radius: 14px; }
+.cell b { font-weight: 600; }
+.cell small, .note { color: var(--muted); font-size: 11.5px; }
+.cell.round canvas { border-radius: 50%; }
+
+.card { position: relative; border-radius: 16px; overflow: hidden; }
+.card canvas { width: 100%; aspect-ratio: 1; display: block; }
+.card span { position: absolute; left: 10px; right: 8px; bottom: 9px; color: #fff; font-weight: 600; font-size: 13px; line-height: 1.2; text-shadow: 0 1px 8px rgba(0,0,0,.35); }
+.card span small { display: block; font-weight: 400; font-size: 10.5px; opacity: .85; }
+.card.wide canvas { aspect-ratio: 2 / 1; }
+
+.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; align-items: start; }
+.steps .cell canvas { border-radius: 12px; }
+.steps .cell:last-child canvas { box-shadow: 0 0 0 2px var(--text); }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.strip { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+@media (max-width: 600px) { .strip { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.strip canvas { width: 100%; aspect-ratio: 1; display: block; border-radius: 10px; }
+
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.vs .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.vs canvas { border-radius: 10px; }
+.vs h3 { margin-top: 0; }
+@media (max-width: 600px) { .vs { grid-template-columns: 1fr; } }
+footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent); color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <span class="eyebrow">Meditejo · identity · round 3 · art only</span>
+    <h1>More to build with</h1>
+    <p class="lede">Round 2's cards all came from one recipe per kind, so they read alike. Here the art is built from a library of 22 small primitives (breath, fire, rings, mandalas, strata, a lotus, an ammonite…), layered by a seeded grammar: <em>paper, ground, figure, accent</em>. Marks and palettes are settled and untouched.</p>
+  </header>
+
+  <div class="bar" role="toolbar" aria-label="Palette and motion">
+    <div class="chips" id="chips"></div>
+    <button class="btn" id="motion">Pause</button>
+  </div>
+
+  <section>
+    <div class="shead"><span class="eyebrow">01</span><h2>The primitives</h2><p>Each is a small seeded generator with one quiet motion. Lists use a still frame. Shown alone, as a figure on plain paper; those marked <em>ground</em> can also fill a card behind another.</p></div>
+    <div class="grid" id="lib"></div>
+  </section>
+
+  <section>
+    <div class="shead"><span class="eyebrow">02</span><h2>The grammar</h2><p>A card is paper, then 0–1 ground, 1 figure, 0–1 accent printed on a second, slightly misregistered plate. The seed picks the structure first (which primitives, which layout, which value key) and only then the details.</p></div>
+    <div id="steps"></div>
+    <h3>Eight rain cards: the same meaning, different structures</h3>
+    <div class="grid" id="rainset"></div>
+  </section>
+
+  <section>
+    <div class="shead"><span class="eyebrow">03</span><h2>Sounds and presets</h2><p>Rain → streaks or ripples; fire → tongues, embers or rays; water → rings, waves or scales; wind → threads; night → constellations and moons; drone → concentric rings; binaural → interference; noise → dot fields. A preset keeps its loudest layer's card and adds each quieter layer's figure as an accent.</p></div>
+    <h3>Presets</h3>
+    <div class="grid" id="presets" style="grid-template-columns:repeat(2,minmax(0,1fr))"></div>
+    <h3>All sounds</h3>
+    <div class="grid" id="sounds"></div>
+  </section>
+
+  <section>
+    <div class="shead"><span class="eyebrow">04</span><h2>Covers</h2><p>Courses take horizons, strata, suns and mandalas; playlists are stacked or woven; teachers get a single mandala or petal portrait; singles are one primitive alone. Seeded by ID, drawn once.</p></div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="grid" id="covers"></div>
+  </section>
+
+  <section>
+    <div class="shead"><span class="eyebrow">05</span><h2>Under other palettes</h2><p>The same sixteen items under Ember and Lotus Riso. Structure stays; value and ink change.</p></div>
+    <h3>Ember</h3><div class="strip" id="stripA"></div>
+    <h3>Lotus Riso</h3><div class="strip" id="stripB"></div>
+  </section>
+
+  <section>
+    <div class="shead"><span class="eyebrow">06</span><h2>Round 2 beside round 3</h2><p>The same six sounds and six courses. Round 2 varied colour and position within one picture per kind; round 3 varies what the picture is made of.</p></div>
+    <div class="vs">
+      <div><h3>Round 2</h3><div class="grid" id="vs2"></div></div>
+      <div><h3>Round 3</h3><div class="grid" id="vs3"></div></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Sources: <code>round3/prims.js</code> (the primitives), <code>round3/compose.js</code> (the grammar and meaning maps), with round 2's <code>core.js</code> for paper, ink and randomness. Porting notes: <code>NOTES.md</code>.</p>
+  </footer>
+</main>
+
+<script>
+/* Round 2 core: seeded randomness, colour, the hand-drawn stroke engine,
+ * organic shapes that breathe between perfect and imperfect, and the print
+ * finish (paper, ink speckle, misregistration) that makes the art less
+ * digital. Shared by marks.js and art.js. Canvas 2D in a unit square. */
+const Core = (() => {
+  'use strict';
+  const TAU = Math.PI * 2;
+  const BREATH = 10; // seconds per breath: six a minute, as the app's mark
+
+  // ---------- randomness ----------
+  function hash(str) {
+    let h = 1779033703 ^ str.length;
+    for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+    h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909);
+    return (h ^ (h >>> 16)) >>> 0;
+  }
+  function makeRng(str) {
+    let a = hash(String(str));
+    const next = () => {
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const r = {
+      next,
+      range: (lo, hi) => lo + (hi - lo) * next(),
+      int: (lo, hi) => Math.floor(lo + (hi - lo + 1) * next()),
+      pick: (arr) => arr[Math.floor(next() * arr.length)],
+      sign: () => (next() < 0.5 ? -1 : 1),
+      chance: (p) => next() < p,
+      // weights: { key: weight }
+      weighted: (w) => { const ks = Object.keys(w); let s = 0; for (const k of ks) s += w[k]; let x = next() * s; for (const k of ks) { x -= w[k]; if (x <= 0) return k; } return ks[ks.length - 1]; },
+    };
+    return r;
+  }
+  function noise1(rng, oct = 3) {
+    const f = [], p = [], a = [];
+    let tot = 0;
+    for (let i = 0; i < oct; i++) { f.push(rng.range(0.8, 1.5) * Math.pow(2.13, i)); p.push(rng.range(0, TAU)); a.push(Math.pow(0.5, i)); tot += a[i]; }
+    return (x) => { let s = 0; for (let i = 0; i < oct; i++) s += a[i] * Math.sin(f[i] * x + p[i]); return s / tot; };
+  }
+
+  // ---------- maths ----------
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const ss = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  const easeOut = (t) => 1 - Math.pow(1 - clamp(t, 0, 1), 3);
+  const easeInOut = (t) => -(Math.cos(Math.PI * clamp(t, 0, 1)) - 1) / 2;
+  const prog = (t, start, dur) => clamp((t - start) / dur, 0, 1);
+  // 0 at full exhale, 1 at full inhale; starts at rest.
+  const breathAt = (t, start = 0) => (t < start ? 0 : 0.5 - 0.5 * Math.cos((TAU * (t - start)) / BREATH));
+
+  // ---------- colour ----------
+  const cache = new Map();
+  function rgb(c) {
+    if (Array.isArray(c)) return c;
+    let v = cache.get(c);
+    if (!v) { const h = c.replace('#', ''); v = [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; cache.set(c, v); }
+    return v;
+  }
+  const mix = (a, b, t) => { const x = rgb(a), y = rgb(b); return [lerp(x[0], y[0], t), lerp(x[1], y[1], t), lerp(x[2], y[2], t)]; };
+  const css = (c, alpha = 1) => { const v = rgb(c); return `rgba(${v[0] | 0},${v[1] | 0},${v[2] | 0},${alpha})`; };
+  const hex = (c) => '#' + rgb(c).map((x) => Math.round(x).toString(16).padStart(2, '0')).join('');
+  function lum(c) {
+    const v = rgb(c).map((x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
+    return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+  }
+  const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const darker = (a, b) => (lum(a) < lum(b) ? a : b);
+  const lighter = (a, b) => (lum(a) < lum(b) ? b : a);
+  // The roles every generator paints with.
+  function roles(pal, over) {
+    const c = { tile: pal.tile, form: pal.form, stroke: pal.stroke, accent: pal.accent, ...(over || {}) };
+    c.deep = darker(c.tile, c.stroke); c.light = lighter(c.tile, c.stroke);
+    c.lightPaper = lum(c.tile) > 0.35;
+    return c;
+  }
+
+  // ---------- strokes ----------
+  function resample(raw, n) {
+    const m = raw.length, cum = new Float64Array(m);
+    for (let i = 1; i < m; i++) cum[i] = cum[i - 1] + Math.hypot(raw[i][0] - raw[i - 1][0], raw[i][1] - raw[i - 1][1]);
+    const L = cum[m - 1], out = [];
+    let j = 0;
+    for (let i = 0; i < n; i++) {
+      const d = (L * i) / (n - 1);
+      while (j < m - 2 && cum[j + 1] < d) j++;
+      const seg = cum[j + 1] - cum[j] || 1, u = clamp((d - cum[j]) / seg, 0, 1);
+      out.push([lerp(raw[j][0], raw[j + 1][0], u), lerp(raw[j][1], raw[j + 1][1], u)]);
+    }
+    return { pts: out, len: L };
+  }
+  function normals(pts, span = 1) {
+    const n = pts.length, nx = new Float64Array(n), ny = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      const a = pts[Math.max(i - span, 0)], b = pts[Math.min(i + span, n - 1)];
+      const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+      nx[i] = -dy / l; ny[i] = dx / l;
+    }
+    return { nx, ny };
+  }
+  function profile(kind, s) {
+    switch (kind) {
+      case 'brush': return (0.66 + 0.34 * ss(0, 0.05, s)) * (1 - 0.8 * Math.pow(ss(0.4, 1, s), 1.25)) + 0.05;
+      case 'grow': return (0.42 + 0.58 * ss(0, 0.5, s)) * (1 - 0.45 * ss(0.86, 1, s));
+      case 'swell': return 0.5 + 0.5 * Math.pow(Math.sin(Math.PI * clamp(s * 1.04 - 0.02, 0, 1)), 0.7);
+      case 'fade': return (0.8 + 0.2 * ss(0, 0.06, s)) * (1 - 0.7 * ss(0.6, 1, s));
+      default: return (0.74 + 0.26 * ss(0, 0.05, s)) * (1 - 0.36 * ss(0.88, 1, s));
+    }
+  }
+  // A centreline becomes a hand-drawn ribbon: even spacing, slow wobble,
+  // pressure, optional nib, and a pen clock that slows in tight curves.
+  function makeStroke(raw, o, rng) {
+    const N = o.samples || 420;
+    let { pts } = resample(raw, N);
+    let { nx, ny } = normals(pts, 2);
+    const wob = noise1(rng, 3), wf = rng.range(3, 6);
+    pts = pts.map((p, i) => { const d = o.wobble * wob((i / (N - 1)) * wf); return [p[0] + nx[i] * d, p[1] + ny[i] * d]; });
+    const r = resample(pts, N);
+    pts = r.pts;
+    ({ nx, ny } = normals(pts, 2));
+    const pn = noise1(rng, 2), pf = rng.range(4, 8), nibA = rng.range(0, Math.PI);
+    const x = new Float64Array(N), y = new Float64Array(N), w = new Float64Array(N), cost = new Float64Array(N);
+    const ds = r.len / (N - 1);
+    let prev = null;
+    for (let i = 0; i < N; i++) {
+      const s = i / (N - 1);
+      x[i] = pts[i][0]; y[i] = pts[i][1];
+      const ang = Math.atan2(-nx[i], ny[i]);
+      let ww = o.width * profile(o.taper, s) * (1 + o.pressure * pn(s * pf));
+      if (o.nib) ww *= 1 - o.nib + o.nib * (0.3 + 0.7 * Math.abs(Math.sin(ang - nibA)));
+      w[i] = ww;
+      if (i > 0) { let da = Math.abs(ang - prev); if (da > Math.PI) da = TAU - da; cost[i] = cost[i - 1] + ds + 0.014 * da; }
+      prev = ang;
+    }
+    for (let i = 0; i < N; i++) cost[i] /= cost[N - 1];
+    return { n: N, x, y, nx, ny, w, cost, len: r.len };
+  }
+  function drawStroke(ctx, st, p) {
+    if (p <= 0) return;
+    const { n, x, y, nx, ny, w, cost } = st;
+    let k = n - 1, f = 0;
+    if (p < 1) {
+      let lo = 0, hi = n - 1;
+      while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (cost[mid] <= p) lo = mid; else hi = mid; }
+      k = lo; f = (p - cost[lo]) / (cost[hi] - cost[lo] || 1);
+    }
+    const k2 = Math.min(k + 1, n - 1);
+    const ex = lerp(x[k], x[k2], f), ey = lerp(y[k], y[k2], f), ew = lerp(w[k], w[k2], f) / 2;
+    const enx = lerp(nx[k], nx[k2], f), eny = lerp(ny[k], ny[k2], f);
+    ctx.beginPath();
+    ctx.moveTo(x[0] + nx[0] * w[0] / 2, y[0] + ny[0] * w[0] / 2);
+    for (let i = 1; i <= k; i++) ctx.lineTo(x[i] + nx[i] * w[i] / 2, y[i] + ny[i] * w[i] / 2);
+    ctx.lineTo(ex + enx * ew, ey + eny * ew);
+    ctx.lineTo(ex - enx * ew, ey - eny * ew);
+    for (let i = k; i >= 0; i--) ctx.lineTo(x[i] - nx[i] * w[i] / 2, y[i] - ny[i] * w[i] / 2);
+    ctx.closePath();
+    ctx.fill('nonzero');
+    ctx.beginPath(); ctx.arc(x[0], y[0], w[0] / 2, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(ex, ey, ew, 0, TAU); ctx.fill();
+  }
+  // Polyline builder for centrelines: lines, arcs and curves, densely sampled.
+  function pen(x, y) {
+    const pts = [[x, y]];
+    const last = () => pts[pts.length - 1];
+    const api = {
+      pts,
+      line(x2, y2, n = 40) { const [x1, y1] = last(); for (let i = 1; i <= n; i++) pts.push([lerp(x1, x2, i / n), lerp(y1, y2, i / n)]); return api; },
+      quad(cx, cy, x2, y2, n = 60) { const [x1, y1] = last(); for (let i = 1; i <= n; i++) { const t = i / n, u = 1 - t; pts.push([u * u * x1 + 2 * u * t * cx + t * t * x2, u * u * y1 + 2 * u * t * cy + t * t * y2]); } return api; },
+      cubic(c1x, c1y, c2x, c2y, x2, y2, n = 80) { const [x1, y1] = last(); for (let i = 1; i <= n; i++) { const t = i / n, u = 1 - t; pts.push([u * u * u * x1 + 3 * u * u * t * c1x + 3 * u * t * t * c2x + t * t * t * x2, u * u * u * y1 + 3 * u * u * t * c1y + 3 * u * t * t * c2y + t * t * t * y2]); } return api; },
+      arc(cx, cy, rx, ry, a0, a1, n = 90) { for (let i = 1; i <= n; i++) { const a = lerp(a0, a1, i / n); pts.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]); } return api; },
+    };
+    return api;
+  }
+  function jitterPts(pts, rng, amt) { const nz = noise1(rng, 2), nz2 = noise1(rng, 2); return pts.map(([x, y], i) => [x + amt * nz(i * 0.05), y + amt * nz2(i * 0.05)]); }
+
+  // ---------- organic shapes ----------
+  // A pebble: radius r(θ) = R(1 + Σ aₖ sin(kθ + φₖ)) plus a fine "cut" edge.
+  // imperf 0 draws a true circle; 1 draws the full organic shape.
+  function makeBlob(rng, cx, cy, R, rough = 1, cut = 0) {
+    return {
+      cx, cy, R, rot: rng.range(0, TAU), asp: rng.range(0.9, 1.08),
+      a: [rng.range(0.03, 0.08) * rough, rng.range(0.015, 0.045) * rough, rng.range(0, 0.018) * rough],
+      p: [rng.range(0, TAU), rng.range(0, TAU), rng.range(0, TAU)],
+      cut, cp: [rng.range(0, TAU), rng.range(0, TAU)], ck: [rng.int(7, 10), rng.int(12, 17)],
+    };
+  }
+  function blobPath(ctx, b, o = {}) {
+    const grow = o.grow ?? 1, imp = o.imperf ?? 1, dx = o.dx || 0, dy = o.dy || 0, sx = o.sx || 1, sy = o.sy || 1;
+    const asp = lerp(1, b.asp, imp), M = 128, c = Math.cos(b.rot), s = Math.sin(b.rot);
+    if (!o.keep) ctx.beginPath();
+    for (let i = 0; i <= M; i++) {
+      const th = (i / M) * TAU;
+      let r = 1;
+      for (let k = 0; k < 3; k++) r += imp * b.a[k] * Math.sin((k + 2) * th + b.p[k]);
+      if (b.cut) r += b.cut * (0.6 * Math.sin(b.ck[0] * th + b.cp[0]) + 0.4 * Math.sin(b.ck[1] * th + b.cp[1]));
+      r *= b.R * grow;
+      const ux = r * Math.cos(th) * asp * sx, uy = r * Math.sin(th) * sy;
+      const px = b.cx + dx + ux * c - uy * s, py = b.cy + dy + ux * s + uy * c;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+  }
+  // A polygon given as points, its edges roughened like scissors on paper.
+  function cutPoly(ctx, pts, rng, amt = 0.004) {
+    const dense = [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length], n = Math.max(2, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.01));
+      for (let j = 0; j < n; j++) dense.push([lerp(a[0], b[0], j / n), lerp(a[1], b[1], j / n)]);
+    }
+    const nz = noise1(rng, 3), { nx, ny } = normals(dense, 1);
+    ctx.beginPath();
+    dense.forEach(([x, y], i) => { const d = amt * nz(i * 0.3); i ? ctx.lineTo(x + nx[i] * d, y + ny[i] * d) : ctx.moveTo(x + nx[i] * d, y + ny[i] * d); });
+    ctx.closePath();
+  }
+  function circle(ctx, x, y, r) { ctx.beginPath(); ctx.arc(x, y, Math.max(r, 0), 0, TAU); }
+
+  // ---------- print finish ----------
+  // Paper: soft clouding, fine tooth and a few fibres, laid over with
+  // 'overlay'. Speckle: paper-coloured flecks that only show on ink, as in
+  // a risograph. Both are cached rasters drawn in device pixels.
+  let paperCanvas = null;
+  const speckles = new Map();
+  const patCache = new WeakMap();
+  function paperTex() {
+    if (paperCanvas) return paperCanvas;
+    const N = 256, cv = document.createElement('canvas'); cv.width = cv.height = N;
+    const g = cv.getContext('2d'), r = makeRng('paper'), img = g.createImageData(N, N);
+    // value noise at two scales, tileable
+    const grid = (k) => { const a = []; for (let i = 0; i < k * k; i++) a.push(r.next()); return (x, y) => { const gx = (x / N) * k, gy = (y / N) * k, x0 = Math.floor(gx), y0 = Math.floor(gy), fx = gx - x0, fy = gy - y0; const v = (i, j) => a[((j % k) * k + (i % k))]; const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy); return lerp(lerp(v(x0, y0), v(x0 + 1, y0), sx), lerp(v(x0, y0 + 1), v(x0 + 1, y0 + 1), sx), sy); }; };
+    const big = grid(6), mid = grid(24);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const v = 128 + (big(x, y) - 0.5) * 34 + (mid(x, y) - 0.5) * 26 + (r.next() - 0.5) * 46;
+      const i = (y * N + x) * 4; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+    g.lineCap = 'round';
+    for (let i = 0; i < 70; i++) {
+      const x = r.next() * N, y = r.next() * N, a = r.next() * TAU, l = 4 + r.next() * 14;
+      g.strokeStyle = r.chance(0.5) ? 'rgba(255,255,255,.35)' : 'rgba(0,0,0,.22)'; g.lineWidth = 0.6;
+      g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + Math.cos(a + 0.6) * l / 2, y + Math.sin(a + 0.6) * l / 2, x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
+    }
+    return (paperCanvas = cv);
+  }
+  function speckleTex(col) {
+    const key = hex(col);
+    if (speckles.has(key)) return speckles.get(key);
+    const N = 128, cv = document.createElement('canvas'); cv.width = cv.height = N;
+    const g = cv.getContext('2d'), r = makeRng('speckle'), v = rgb(col);
+    for (let i = 0; i < 520; i++) {
+      g.fillStyle = `rgba(${v[0] | 0},${v[1] | 0},${v[2] | 0},${0.35 + r.next() * 0.6})`;
+      const s = r.chance(0.85) ? 1 : 2; g.fillRect(Math.floor(r.next() * N), Math.floor(r.next() * N), s, s);
+    }
+    speckles.set(key, cv);
+    return cv;
+  }
+  function pattern(ctx, cv, S, scale = 1) {
+    let m = patCache.get(ctx); if (!m) { m = new Map(); patCache.set(ctx, m); }
+    let p = m.get(cv); if (!p) { p = ctx.createPattern(cv, 'repeat'); m.set(cv, p); }
+    p.setTransform(new DOMMatrix().scale(scale / S));
+    return p;
+  }
+  // Lay the print finish over whatever is drawn in the unit square.
+  function finish(ctx, c, S, o = {}) {
+    const dpr = o.dpr || 1;
+    ctx.save();
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = o.paper ?? (c.lightPaper ? 0.16 : 0.2);
+    ctx.fillStyle = pattern(ctx, paperTex(), S, dpr);
+    ctx.fillRect(0, 0, 1, 1);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = o.speckle ?? 0.5;
+    ctx.fillStyle = pattern(ctx, speckleTex(c.tile), S, dpr);
+    ctx.fillRect(0, 0, 1, 1);
+    if (o.vignette !== 0) {
+      ctx.globalAlpha = 1;
+      const g = ctx.createRadialGradient(0.5, 0.5, 0.35, 0.5, 0.5, 0.75);
+      g.addColorStop(0, css(c.deep, 0)); g.addColorStop(1, css(c.deep, o.vignette ?? 0.1));
+      ctx.fillStyle = g; ctx.fillRect(0, 0, 1, 1);
+    }
+    ctx.restore();
+  }
+  // Overprint mode for a second ink: multiply on paper, screen on dark.
+  const overprint = (c) => (c.lightPaper ? 'multiply' : 'screen');
+
+  return {
+    TAU, BREATH, hash, makeRng, noise1, clamp, lerp, ss, easeOut, easeInOut, prog, breathAt,
+    rgb, mix, css, hex, lum, contrast, darker, lighter, roles,
+    resample, normals, makeStroke, drawStroke, pen, jitterPts,
+    makeBlob, blobPath, cutPoly, circle, finish, overprint, paperTex, pattern,
+  };
+})();
+
+</script>
+<script>
+/* Round 2 marks: gesture strokes that evoke a place, minimal shapes, and
+ * atmospheric scenes. Every pebble, sun and disc breathes between a true
+ * circle (inhale) and its organic shape (exhale), every 10 s.
+ * Seeds: "g-…" gesture, "m-…" minimal, "a-…" atmospheric. */
+const Marks = (() => {
+  'use strict';
+  const C = Core, { TAU, lerp, clamp, easeOut, easeInOut, prog, breathAt, css, mix } = C;
+
+  // ---------- palettes ----------
+  const palettes = [
+    { id: 'clay', name: 'Clay', mood: 'Terracotta, ochre, cream and ink.', tile: '#F6F1E8', form: '#D2754E', stroke: '#1C1916', accent: '#D9A13F',
+      ui: { light: { bg: '#FAF6EF', surface: '#F1E9DD', raised: '#EADFCF', text: '#2A221B', muted: '#7A6B5D' }, dark: { bg: '#191512', surface: '#241E19', raised: '#2E2620', text: '#F2E9DD', muted: '#A79482' } } },
+    { id: 'dusk', name: 'Dusk', mood: 'Indigo, plum and a lamp of amber.', tile: '#211E45', form: '#7B4475', stroke: '#F2B65E', accent: '#E8846A',
+      ui: { light: { bg: '#F6F3F8', surface: '#ECE6F1', raised: '#E2D9EA', text: '#211C3A', muted: '#6C6585' }, dark: { bg: '#12102A', surface: '#1C1938', raised: '#262247', text: '#EEE8F6', muted: '#A097BA' } } },
+    { id: 'forest', name: 'Forest', mood: 'Moss on bark under morning mist.', tile: '#E8EBE2', form: '#7E8E52', stroke: '#2C241D', accent: '#C9A15A',
+      ui: { light: { bg: '#F3F4EE', surface: '#E6E9DF', raised: '#DBE0D2', text: '#22271E', muted: '#687160' }, dark: { bg: '#121611', surface: '#1B211A', raised: '#252C23', text: '#E5EADE', muted: '#949E8B' } } },
+    { id: 'sumi', name: 'Sumi', mood: 'Ink on paper; value carries everything.', tile: '#F3F0E9', form: '#BCB5A8', stroke: '#141413', accent: '#6E685F',
+      ui: { light: { bg: '#F7F5F0', surface: '#ECE8E0', raised: '#E2DDD3', text: '#161514', muted: '#76716A' }, dark: { bg: '#111110', surface: '#1B1A19', raised: '#252422', text: '#EDEAE3', muted: '#8F8A82' } } },
+    { id: 'riso', name: 'Lotus Riso', mood: 'Blush paper, lotus pink, blue ink.', tile: '#F7EAE4', form: '#EC9C8C', stroke: '#24346E', accent: '#F2C14E',
+      ui: { light: { bg: '#FBF4F0', surface: '#F4E6E0', raised: '#EDDAD2', text: '#1F2647', muted: '#6E6A80' }, dark: { bg: '#121528', surface: '#1B1F38', raised: '#252A48', text: '#F4E9E4', muted: '#A39CB3' } } },
+    { id: 'lagoon', name: 'Lagoon', mood: 'Night water and sand-coloured light.', tile: '#0F2D33', form: '#3F8C83', stroke: '#F1E2C2', accent: '#EE8D68',
+      ui: { light: { bg: '#F1F5F3', surface: '#E3ECE9', raised: '#D5E3DF', text: '#13292C', muted: '#5F7472' }, dark: { bg: '#0B1C20', surface: '#12282D', raised: '#1A343A', text: '#E9EFEA', muted: '#8EA5A2' } } },
+    { id: 'saffron', name: 'Saffron', mood: 'New. Robe saffron and maroon on temple stone.', tile: '#F2ECE1', form: '#E39A2E', stroke: '#5B1F1D', accent: '#B8452E',
+      ui: { light: { bg: '#F8F4ED', surface: '#EFE7DA', raised: '#E6DBCA', text: '#3A1715', muted: '#7E655B' }, dark: { bg: '#1A1110', surface: '#251917', raised: '#30211E', text: '#F3E7DA', muted: '#AE9282' } } },
+    { id: 'tide', name: 'Tidewater', mood: 'New. Sea glass, fog and slate ink, with one coral float.', tile: '#E5EAEC', form: '#86A9B1', stroke: '#1E2C3A', accent: '#DE8A62',
+      ui: { light: { bg: '#F2F5F6', surface: '#E4EAEC', raised: '#D7E0E3', text: '#18242F', muted: '#5E6F7B' }, dark: { bg: '#0E151C', surface: '#162029', raised: '#1F2B36', text: '#E6EDF0', muted: '#8DA0AC' } } },
+    { id: 'ember', name: 'Ember', mood: 'New. Charcoal, a banked fire and warm ash.', tile: '#1D1715', form: '#8E3E28', stroke: '#F1C886', accent: '#E8692F',
+      ui: { light: { bg: '#F7F2EE', surface: '#EEE5DE', raised: '#E4D8CE', text: '#2A1C17', muted: '#7C675D' }, dark: { bg: '#141010', surface: '#1F1918', raised: '#2A2220', text: '#F2E6DA', muted: '#A8968A' } } },
+  ];
+  const PAL = Object.fromEntries(palettes.map((p) => [p.id, p]));
+
+  // ---------- seeds and days ----------
+  const FAMILY = { g: 'gesture', a: 'atmos', m: 'minimal' };
+  const PREFIX = { gesture: 'g', atmos: 'a', minimal: 'm' };
+  const ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
+  function randomSeed(family) { let s = ''; for (let i = 0; i < 4; i++) s += ALPHABET[Math.floor(Math.random() * ALPHABET.length)]; return PREFIX[family] + '-' + s; }
+  function normaliseSeed(input) { const s = String(input).trim().toLowerCase().replace(/\s+/g, '-'); return /^[gam]-[a-z0-9-]+$/.test(s) ? s : 'g-' + (s || '0'); }
+  const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const dayNumber = (d) => Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
+  // The local day picks the family, then the date itself is the seed.
+  function daily(d) {
+    const key = dayKey(d), rng = C.makeRng('day:' + key);
+    const fam = rng.weighted({ gesture: 0.45, minimal: 0.4, atmos: 0.15 });
+    // One fixed shuffle, walked a day at a time: no palette repeats within
+    // nine days, and every day knows its palette without any stored state.
+    const n = dayNumber(d), P = palettes.length, order = palettes.map((p, i) => i), pr = C.makeRng('palette-order');
+    for (let i = P - 1; i > 0; i--) { const j = Math.floor(pr.next() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+    return { seed: `${PREFIX[fam]}-${key}`, pal: palettes[order[n % P]].id, key };
+  }
+
+  // ---------- gesture ----------
+  // Each kind returns a centreline in tile units and places its pebble so the
+  // two read as a place together: a sun in a doorway, a sitter on a cushion.
+  const GESTURE = {
+    doorway(r) {
+      const W = r.range(0.34, 0.42), yb = r.range(0.76, 0.8), yt = yb - r.range(0.5, 0.56), x0 = 0.5 - W / 2 + r.range(-0.02, 0.02), x1 = x0 + W, ys = yt + W / 2;
+      const p = C.pen(x0 - r.range(0.05, 0.09), yb + 0.004).quad(x0 - 0.01, yb, x0, yb - 0.04).line(x0, ys).arc(x0 + W / 2, ys, W / 2, W / 2 * r.range(1, 1.12), Math.PI, TAU).line(x1, yb - 0.03).quad(x1 + 0.005, yb, x1 + r.range(0.08, 0.13), yb - r.range(0, 0.02));
+      return { pts: p.pts, blob: [x0 + W * r.range(0.45, 0.7), ys + r.range(0.0, 0.08), r.range(0.15, 0.19)], taper: 'marker' };
+    },
+    // A seat line: the pebble rests on it and presses a soft hollow.
+    cushion(r) {
+      const y0 = r.range(0.66, 0.72), cx = 0.5 + r.range(-0.06, 0.06), R = r.range(0.17, 0.21), dip = r.range(0.025, 0.04), lift = r.range(0.01, 0.03), out = [];
+      for (let i = 0; i <= 400; i++) { const u = i / 400, x = lerp(0.13, 0.87, u), k = (x - cx) / (R * 0.9); out.push([x, y0 + dip * Math.exp(-k * k) - lift * Math.pow(Math.abs(u - 0.5) * 2, 3)]); }
+      return { pts: out, blob: [cx, y0 + dip * 0.7 - R * 0.98, R], taper: 'swell' };
+    },
+    // A horizon with one cursive loop in it: a pause on the way.
+    horizon(r) {
+      const yh = r.range(0.6, 0.66), lx = r.range(0.56, 0.68), a = r.range(0.04, 0.055), b = r.range(0.055, 0.07), h = r.range(0.14, 0.18);
+      const p = C.pen(0.12, yh + r.range(-0.01, 0.01)).quad(0.3, yh + 0.008, lx - a, yh);
+      for (let i = 1; i <= 140; i++) { const t = (i / 140) * TAU; p.pts.push([lx - a + 2 * a * (t / TAU) + b * Math.sin(t), yh - h * (1 - Math.cos(t)) / 2]); }
+      p.quad(lx + a + 0.12, yh + 0.006, 0.88, yh - r.range(0, 0.025));
+      const R = r.range(0.17, 0.22);
+      return { pts: p.pts, blob: [r.range(0.34, 0.46), yh - R * r.range(0.35, 0.7), R], taper: 'marker' };
+    },
+    hearth(r) {
+      const bx = r.range(0.24, 0.3), y = r.range(0.74, 0.78), sx = r.range(0.48, 0.54), sway = r.range(0.06, 0.1), top = r.range(0.24, 0.3), cr = r.range(0.04, 0.055);
+      const p = C.pen(bx, y).line(sx - 0.04, y).quad(sx, y, sx, y - 0.06).cubic(sx + sway, y - 0.18, sx - sway, top + 0.16, sx + 0.01, top + cr * 2);
+      const c0x = sx + 0.01 + cr, c0y = top + cr * 2;
+      p.arc(c0x, c0y, cr, cr, Math.PI, Math.PI + TAU * 0.85, 70);
+      return { pts: p.pts, blob: [sx + r.range(-0.03, 0.03), r.range(0.52, 0.58), r.range(0.19, 0.23)], taper: 'fade' };
+    },
+    path(r) {
+      const ex = r.range(0.56, 0.66), ey = r.range(0.34, 0.42), lr = r.range(0.035, 0.045);
+      const p = C.pen(r.range(0.14, 0.2), r.range(0.84, 0.88)).cubic(0.5, 0.86, 0.22, r.range(0.62, 0.68), 0.5, r.range(0.56, 0.6)).cubic(0.72, 0.52, ex - 0.12, ey + 0.16, ex, ey + lr);
+      p.arc(ex, ey, lr, lr, Math.PI / 2, Math.PI / 2 + TAU * 1.05, 70);
+      return { pts: p.pts, blob: [ex + r.range(-0.04, 0.02), ey + r.range(0.02, 0.06), r.range(0.15, 0.19)], taper: 'marker' };
+    },
+    shelter(r) {
+      const ay = r.range(0.22, 0.28), ey = r.range(0.56, 0.62), w = r.range(0.33, 0.38), ax = 0.5 + r.range(-0.02, 0.02);
+      const p = C.pen(ax - w - 0.03, ey + 0.03).quad(ax - w + 0.01, ey + 0.005, ax - w * 0.55, ey - (ey - ay) * 0.5).quad(ax - 0.03, ay - 0.005, ax, ay).quad(ax + 0.03, ay - 0.005, ax + w * 0.55, ey - (ey - ay) * 0.5).quad(ax + w - 0.01, ey + 0.005, ax + w + 0.04, ey + 0.035);
+      const R = r.range(0.16, 0.2);
+      return { pts: p.pts, blob: [ax + r.range(-0.04, 0.04), ey + R * 0.25, R], taper: 'marker' };
+    },
+    window(r) {
+      const w = r.range(0.36, 0.42), h = r.range(0.4, 0.46), x0 = 0.5 - w / 2 + r.range(-0.03, 0.01), y0 = 0.5 - h / 2 + r.range(-0.02, 0.02), k = 0.06;
+      const p = C.pen(x0 + k, y0).line(x0 + w - k, y0).quad(x0 + w, y0, x0 + w, y0 + k).line(x0 + w, y0 + h - k).quad(x0 + w, y0 + h, x0 + w - k, y0 + h).line(x0 + k, y0 + h).quad(x0, y0 + h, x0, y0 + h - k).line(x0, y0 + k).quad(x0, y0, x0 + k, y0).line(x0 + k + r.range(0.08, 0.16), y0 - 0.004);
+      return { pts: p.pts, blob: [x0 + w * r.range(0.62, 0.85), y0 + h * r.range(0.2, 0.4), r.range(0.15, 0.2)], taper: 'marker' };
+    },
+    step(r) {
+      const y1 = r.range(0.7, 0.74), y2 = y1 - r.range(0.12, 0.16), sx = r.range(0.44, 0.52);
+      const p = C.pen(0.13, y1).line(sx - 0.05, y1).quad(sx, y1, sx, y1 - 0.05).line(sx, y2 + 0.04).quad(sx, y2, sx + 0.05, y2).line(0.87, y2 - r.range(0, 0.02));
+      const R = r.range(0.14, 0.18);
+      return { pts: p.pts, blob: [sx + r.range(0.12, 0.2), y2 - R * 0.95, R], taper: 'marker' };
+    },
+    // Round 1's kinds stay in the pool, quietly.
+    loops(r) {
+      const n = r.pick([1, 2]), d = r.range(2.3, 3.2), h = r.range(4.4, 5.8), lead = r.range(2.2, 3.4), exit = r.range(2.4, 3.6), lift = r.range(1.2, 3.4), out = [];
+      const t0 = -lead, t1 = TAU * n + exit;
+      for (let i = 0; i <= 700; i++) { const t = lerp(t0, t1, i / 700), env = C.ss(t0 + 0.4, 0.4, t) * (1 - C.ss(TAU * n - 0.3, TAU * n + 1.4, t)); out.push([t + d * env * Math.sin(t), -h * env * (1 - Math.cos(t)) / 2 - lift * Math.pow(C.ss(TAU * n - 0.6, t1, t), 1.6)]); }
+      const R = r.range(0.25, 0.3);
+      return { pts: fit(out, 0.74, 0.5, r.range(0.54, 0.6)), blob: [0.5 + r.range(-0.05, 0.05), 0.5, R], taper: 'marker' };
+    },
+    enso(r) {
+      const th0 = r.range(0, TAU), sw = r.range(1.68, 1.9) * Math.PI, dir = r.sign(), out = [];
+      for (let i = 0; i <= 500; i++) { const u = i / 500, th = th0 + dir * sw * u, rr = 0.29 * (1 - 0.07 * u); out.push([0.5 + rr * Math.cos(th), 0.5 + rr * Math.sin(th)]); }
+      return { pts: out, blob: [0.5 + r.range(-0.05, 0.05), 0.5 + r.range(-0.05, 0.05), r.range(0.19, 0.23)], taper: 'brush' };
+    },
+    wave(r) {
+      const cyc = r.range(1, 1.5), A = r.range(0.06, 0.09), out = [];
+      for (let i = 0; i <= 500; i++) { const u = i / 500, env = Math.pow(Math.sin(Math.PI * (0.06 + 0.88 * u)), 0.6); out.push([lerp(0.14, 0.86, u), 0.58 - A * env * Math.sin(TAU * cyc * u)]); }
+      return { pts: out, blob: [0.5 + r.range(-0.06, 0.06), 0.5, r.range(0.22, 0.27)], taper: 'swell' };
+    },
+  };
+  function fit(raw, width, cx, cy) {
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const [x, y] of raw) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    const s = width / (x1 - x0);
+    return raw.map(([x, y]) => [cx + (x - (x0 + x1) / 2) * s, cy + (y - (y0 + y1) / 2) * s]);
+  }
+  const GESTURE_WEIGHT = { doorway: 3, cushion: 3, horizon: 3, hearth: 3, path: 3, shelter: 3, window: 2.5, step: 0.6, enso: 1, wave: 1, loops: 0.6 };
+  const GESTURE_LABEL = { doorway: 'doorway', cushion: 'cushion', horizon: 'horizon', hearth: 'hearth', path: 'path home', shelter: 'shelter', window: 'window', step: 'threshold', loops: 'loops (round 1)', enso: 'ensō', wave: 'breath wave' };
+
+  function buildGesture(r, type) {
+    type = type || r.weighted(GESTURE_WEIGHT);
+    const g = GESTURE[type](r);
+    const pts = C.jitterPts(g.pts, r, 0.006);
+    const width = r.range(0.036, 0.046) * (g.taper === 'brush' ? 1.35 : 1);
+    const stroke = C.makeStroke(pts, { taper: g.taper, width, wobble: 0.003, pressure: 0.12, nib: r.chance(0.35) ? 0.2 : 0 }, r);
+    const [bx, by, R] = g.blob;
+    const blob = C.makeBlob(r, bx, by, R, r.range(0.9, 1.4), 0.004);
+    let maxd = Math.hypot(bx - 0.5, by - 0.5) + R * 1.15;
+    for (let i = 0; i < stroke.n; i++) maxd = Math.max(maxd, Math.hypot(stroke.x[i] - 0.5, stroke.y[i] - 0.5) + stroke.w[i] / 2);
+    return { type, label: GESTURE_LABEL[type], stroke, blob, fit: Math.min(1, 0.44 / maxd), dur: clamp(1.4 + 0.9 * stroke.len, 2.2, 3.6) };
+  }
+  function drawGesture(ctx, m, c, t, o) {
+    const s0 = 0.5, bStart = s0 + m.dur + 0.4, b = o.still ? 0 : breathAt(t, bStart);
+    const appear = easeOut(prog(t, 0, 1));
+    ctx.globalAlpha = appear;
+    C.blobPath(ctx, m.blob, { grow: (0.92 + 0.08 * appear) * (1 + 0.025 * b), imperf: 1 - b });
+    ctx.fillStyle = css(c.form); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = css(c.stroke);
+    C.drawStroke(ctx, m.stroke, o.still ? 1 : easeInOut(prog(t, s0, m.dur)));
+  }
+
+  // ---------- minimal ----------
+  const MIN_WEIGHT = { split: 1, arch: 1, pebble: 1, crescent: 1, vesica: 1, cairn: 0.7, window: 1.2, hearth: 1.2, clearing: 1.2, cushion: 1.4, shelter: 1.2 };
+  const MIN_LABEL = { split: 'split sun', arch: 'arch', pebble: 'pebble & bindu', crescent: 'crescent', vesica: 'vesica', cairn: 'cairn', window: 'window', hearth: 'hearth', clearing: 'clearing', cushion: 'cushion', shelter: 'shelter' };
+  function buildMinimal(r, type) {
+    type = type || r.weighted(MIN_WEIGHT);
+    const m = { type, label: MIN_LABEL[type], fit: 1 };
+    const rough = r.range(0.5, 0.9), B = (x, y, R) => C.makeBlob(r, x, y, R, rough, 0.003);
+    m.roles = r.pick([['form', 'stroke', 'accent'], ['form', 'accent', 'stroke'], ['accent', 'stroke', 'form'], ['form', 'stroke', 'stroke']]);
+    switch (type) {
+      case 'split': { const R = r.range(0.27, 0.31); m.disc = B(0.5, 0.5, R); m.h = 0.5 + R * r.range(0.05, 0.38); m.gap = r.range(0.024, 0.034); m.shift = r.range(-0.03, 0.03); break; }
+      case 'arch': m.w = r.range(0.38, 0.46); m.ht = r.range(0.54, 0.62); m.sun = B(0.5, 0, r.range(0.09, 0.12)); m.sunY = r.range(0, 0.3); break;
+      case 'pebble': { m.peb = B(0.5 + r.range(-0.05, 0.05), 0.5 + r.range(-0.04, 0.04), r.range(0.25, 0.3)); const a = r.range(0, TAU), d = r.range(0.25, 0.6); m.dot = B(m.peb.cx + Math.cos(a) * m.peb.R * d, m.peb.cy + Math.sin(a) * m.peb.R * d, r.range(0.045, 0.065)); m.second = r.chance(0.5) ? B(m.peb.cx - Math.cos(a) * m.peb.R * 0.85, m.peb.cy - Math.sin(a) * m.peb.R * 0.85, r.range(0.09, 0.13)) : null; break; }
+      case 'crescent': { m.disc = B(0.5, 0.5, r.range(0.26, 0.3)); const a = r.range(-2.6, -0.5) + (r.chance(0.5) ? Math.PI : 0); m.cut = { ax: Math.cos(a), ay: Math.sin(a), d: r.range(0.13, 0.2) }; m.dot = r.chance(0.7) ? r.range(0.035, 0.05) : 0; break; }
+      case 'vesica': m.a = B(0, 0.5, r.range(0.2, 0.24)); m.b = B(0, 0.5, m.a.R); m.sep = r.range(0.17, 0.24); break;
+      case 'cairn': { let y = 0.8; m.stones = [r.range(0.2, 0.24), r.range(0.14, 0.17), r.range(0.08, 0.11)].map((rx) => { const ry = rx * r.range(0.5, 0.62); y -= ry; const s = B(0.5 + r.range(-0.03, 0.03), y, 1); s.rot = 0; s.rx = rx; s.ry = ry; y -= ry * 0.92; return s; }); const shift = (1 - (0.8 - y)) / 2 - y; m.stones.forEach((s) => (s.cy += shift)); break; }
+      case 'window': m.w = r.range(0.4, 0.48); m.h = r.range(0.46, 0.54); m.rad = r.range(0.04, 0.1); m.sun = B(0.5 + r.range(-0.08, 0.08), 0.5 + r.range(-0.12, 0.02), r.range(0.1, 0.14)); m.mullion = r.chance(0.6); break;
+      case 'hearth': m.base = B(0.5, 0.66, r.range(0.24, 0.28)); m.flame = r.range(0.1, 0.13); m.fy = r.range(0.44, 0.5); break;
+      case 'clearing': m.ring = B(0.5, 0.5, r.range(0.28, 0.32)); m.inner = r.range(0.55, 0.68); m.dot = B(0.5 + r.range(-0.05, 0.05), 0.5 + r.range(-0.05, 0.05), r.range(0.05, 0.075)); break;
+      case 'cushion': m.cushion = B(0.5, r.range(0.68, 0.72), 1); m.cushion.rot = 0; m.cushion.rx = r.range(0.24, 0.3); m.cushion.ry = r.range(0.07, 0.09); m.sitter = B(0.5 + r.range(-0.02, 0.02), 0, r.range(0.15, 0.19)); m.sitter.cy = m.cushion.cy - m.cushion.ry - m.sitter.R * 0.85; break;
+      case 'shelter': m.ay = r.range(0.2, 0.26); m.ey = r.range(0.48, 0.54); m.w = r.range(0.32, 0.38); m.sitter = B(0.5, 0, r.range(0.14, 0.18)); m.sitter.cy = m.ey + m.sitter.R * 0.95; break;
+    }
+    return m;
+  }
+  function drawMinimal(ctx, m, c, t, o) {
+    const b = o.still ? 0 : breathAt(t, 2.4), imp = 1 - b;
+    const e1 = o.still ? 1 : easeOut(prog(t, 0, 1.1)), e2 = o.still ? 1 : easeOut(prog(t, 0.6, 1.3)), e3 = o.still ? 1 : easeOut(prog(t, 1.1, 1.2));
+    const [r1, r2, r3] = m.roles;
+    const fill = (role, a = 1) => { ctx.globalAlpha = a; ctx.fillStyle = css(c[role]); ctx.fill(); ctx.globalAlpha = 1; };
+    const blob = (bb, opt) => C.blobPath(ctx, bb, { imperf: imp, ...opt });
+    switch (m.type) {
+      case 'split': {
+        ctx.save(); ctx.beginPath(); ctx.rect(0, 0, 1, m.h - m.gap / 2); ctx.clip(); blob(m.disc, { grow: 1 + 0.02 * b, dy: (1 - e1) * 0.12 }); fill(r1); ctx.restore();
+        ctx.save(); ctx.beginPath(); ctx.rect(0, m.h + m.gap / 2, 1, 1); ctx.clip(); blob(m.disc, { dx: m.shift * e2 }); fill(r2, e2); ctx.restore(); break;
+      }
+      case 'arch': {
+        const w = m.w, top = 0.5 - m.ht / 2, bot = 0.5 + m.ht / 2, x0 = 0.5 - w / 2, ys = top + w / 2;
+        const arch = () => { ctx.beginPath(); ctx.moveTo(x0, bot); ctx.lineTo(x0, ys); ctx.arc(0.5, ys, w / 2, Math.PI, 0); ctx.lineTo(x0 + w, bot); ctx.closePath(); };
+        ctx.save(); ctx.beginPath(); ctx.rect(0, lerp(bot, top, e1) - 0.01, 1, 1); ctx.clip(); arch(); fill(r1); ctx.restore();
+        ctx.save(); arch(); ctx.clip(); blob(m.sun, { dy: lerp(bot + 0.1, ys + m.ht * m.sunY, e2) - 0.008 * b }); fill(r2 === 'stroke' ? 'tile' : r2); ctx.restore(); break;
+      }
+      case 'pebble': {
+        blob(m.peb, { grow: (0.92 + 0.08 * e1) * (1 + 0.02 * b) }); fill(r1, e1);
+        if (m.second) { blob(m.second, { grow: 0.6 + 0.4 * e3 }); fill(r3 === r1 ? 'accent' : r3, e3); }
+        blob(m.dot, { grow: e2, dy: -(1 - e2) * 0.08 }); fill(r2 === r1 ? 'stroke' : r2); break;
+      }
+      case 'crescent': {
+        const d = lerp(0.62, m.cut.d, e2) * (1 + 0.05 * b);
+        ctx.save(); blob(m.disc, { grow: 0.92 + 0.08 * e1 }); ctx.clip();
+        ctx.beginPath(); ctx.rect(-1, -1, 3, 3); ctx.arc(0.5 + m.cut.ax * d, 0.5 + m.cut.ay * d, m.disc.R * 1.02, 0, TAU); ctx.globalAlpha = e1; ctx.fillStyle = css(c[r1]); ctx.fill('evenodd'); ctx.restore(); ctx.globalAlpha = 1;
+        if (m.dot) { C.circle(ctx, 0.5 + m.cut.ax * m.disc.R * 0.62, 0.5 + m.cut.ay * m.disc.R * 0.62, m.dot * e3); fill('accent'); } break;
+      }
+      case 'vesica': {
+        const sep = lerp(m.sep * 2.4, m.sep, e1) * (1 - 0.1 * b);
+        m.a.cx = 0.5 - sep / 2; m.b.cx = 0.5 + sep / 2;
+        blob(m.a); fill('form', e1); blob(m.b); fill('accent', e1);
+        ctx.save(); blob(m.a); ctx.clip(); blob(m.b); fill(r2 === 'form' || r2 === 'accent' ? 'stroke' : r2, e1); ctx.restore(); break;
+      }
+      case 'cairn': {
+        ['stroke', 'form', 'accent'].forEach((role, i) => { const s = m.stones[i], e = o.still ? 1 : easeOut(prog(t, i * 0.45, 1)); blob(s, { sx: s.rx, sy: s.ry, dy: -(1 - e) * 0.08 - (i === 2 ? 0.006 * b : 0) }); fill(role, e); }); break;
+      }
+      case 'window': {
+        const x0 = 0.5 - m.w / 2, y0 = 0.5 - m.h / 2;
+        const rr = () => { ctx.beginPath(); ctx.roundRect(x0, lerp(y0 + m.h, y0, e1), m.w, m.h * e1, m.rad); };
+        rr(); fill(r1);
+        ctx.save(); rr(); ctx.clip(); blob(m.sun, { dy: (1 - e2) * 0.2 - 0.01 * b, grow: 1 + 0.03 * b }); fill(r1 === 'accent' ? 'form' : 'accent');
+        if (m.mullion) { ctx.fillStyle = css(c.tile); ctx.fillRect(0.5 - 0.012, y0, 0.024, m.h); ctx.fillRect(x0, 0.5 - 0.012, m.w, 0.024); }
+        ctx.restore(); break;
+      }
+      case 'hearth': {
+        ctx.save(); ctx.beginPath(); ctx.rect(0, 0, 1, m.base.cy); ctx.clip(); blob(m.base, { grow: 0.9 + 0.1 * e1 }); fill(r1 === 'accent' ? 'form' : r1); ctx.restore();
+        const fh = m.flame * (1 + 0.08 * b) * e2, fx = 0.5, fy = m.fy + (1 - e2) * 0.1;
+        ctx.beginPath(); ctx.moveTo(fx, fy - fh * 1.9); ctx.bezierCurveTo(fx + fh * 1.1, fy - fh * 0.6, fx + fh * 0.9, fy + fh, fx, fy + fh); ctx.bezierCurveTo(fx - fh * 0.9, fy + fh, fx - fh * 1.1, fy - fh * 0.6, fx, fy - fh * 1.9); fill('accent');
+        ctx.fillStyle = css(c.stroke); ctx.fillRect(0.5 - m.base.R * 1.05, m.base.cy, m.base.R * 2.1 * e3, 0.03); break;
+      }
+      case 'clearing': {
+        ctx.save(); blob(m.ring, { grow: (0.9 + 0.1 * e1) * (1 + 0.02 * b) }); C.blobPath(ctx, m.ring, { grow: m.inner * (1 - 0.04 * b), imperf: imp * 0.6, keep: true }); ctx.fillStyle = css(c[r1]); ctx.globalAlpha = e1; ctx.fill('evenodd'); ctx.restore(); ctx.globalAlpha = 1;
+        blob(m.dot, { grow: e2 }); fill(r2 === r1 ? 'stroke' : r2); break;
+      }
+      case 'cushion': {
+        const cu = m.cushion; blob(cu, { sx: cu.rx * (0.9 + 0.1 * e1), sy: cu.ry }); fill(r2 === 'stroke' ? 'stroke' : r1 === 'stroke' ? 'form' : 'stroke');
+        blob(m.sitter, { dy: -(1 - e2) * 0.1 - 0.008 * b, grow: 1 + 0.02 * b }); fill(r1 === 'stroke' ? 'accent' : r1, e2); break;
+      }
+      case 'shelter': {
+        const ax = 0.5, w = m.w * (0.85 + 0.15 * e1);
+        ctx.beginPath(); ctx.moveTo(ax - w, m.ey); ctx.quadraticCurveTo(ax - w * 0.35, m.ay + 0.04, ax, m.ay); ctx.quadraticCurveTo(ax + w * 0.35, m.ay + 0.04, ax + w, m.ey); ctx.lineTo(ax + w - 0.05, m.ey); ctx.quadraticCurveTo(ax + w * 0.3, m.ay + 0.1, ax, m.ay + 0.07); ctx.quadraticCurveTo(ax - w * 0.3, m.ay + 0.1, ax - w + 0.05, m.ey); ctx.closePath(); fill('stroke');
+        blob(m.sitter, { grow: e2 * (1 + 0.02 * b) }); fill(r1 === 'stroke' ? 'form' : r1); break;
+      }
+    }
+  }
+
+  // ---------- atmospheric ----------
+  // Printed, not rendered: flat inks laid in two misregistered plates, soft
+  // light from a single source, then paper tooth and ink speckle on top.
+  const ATMOS = ['dawn', 'ridges', 'moonpool', 'doorlight', 'halo', 'shoreline'];
+  function buildAtmos(r, type) {
+    type = type || r.pick(ATMOS);
+    const m = { type, label: { dawn: 'dawn over water', ridges: 'ridges in mist', moonpool: 'moon pool', doorlight: 'lit doorway', halo: 'halo', shoreline: 'shoreline' }[type], fit: 1 };
+    m.mis = [r.range(-0.008, 0.008), r.range(0.003, 0.009)];
+    m.sun = C.makeBlob(r, 0.5 + r.range(-0.1, 0.1), r.range(0.3, 0.42), r.range(0.13, 0.18), 0.45, 0.003);
+    m.h = r.range(0.58, 0.66);
+    m.layers = Array.from({ length: r.int(3, 4) }, (_, i) => ({ y: lerp(0.52, 0.8, i / 3) + r.range(-0.02, 0.02), amp: r.range(0.02, 0.05), f: r.range(0.6, 1.4), ph: r.range(0, TAU), f2: r.range(1.8, 2.8), ph2: r.range(0, TAU), per: r.range(26, 40) }));
+    m.door = { w: r.range(0.24, 0.3), h: r.range(0.42, 0.5) };
+    if (type === 'halo') { const raw = []; const th0 = r.range(0, TAU), sw = r.range(1.7, 1.88) * Math.PI; for (let i = 0; i <= 400; i++) { const u = i / 400, th = th0 + sw * u, rr = r.range(0.295, 0.3) * (1 - 0.06 * u); raw.push([0.5 + rr * Math.cos(th), 0.5 + rr * Math.sin(th)]); } m.ring = C.makeStroke(raw, { taper: 'brush', width: 0.034, wobble: 0.003, pressure: 0.12 }, r); m.sun.cx = 0.5; m.sun.cy = 0.5; m.sun.R *= 1.15; }
+    if (type === 'moonpool' || type === 'shoreline') m.sun.cy = r.range(0.24, 0.3);
+    return m;
+  }
+  function drawAtmos(ctx, m, c, t, o) {
+    const b = o.still ? 0 : breathAt(t, 3.2), imp = 1 - b, e = (s, d) => (o.still ? 1 : easeOut(prog(t, s, d)));
+    const lin = (y0, y1, stops) => { const g = ctx.createLinearGradient(0, y0, 0, y1); stops.forEach(([k, col, a]) => g.addColorStop(k, css(col, a ?? 1))); return g; };
+    const glow = (x, y, r, col, a) => { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, css(col, a)); g.addColorStop(0.5, css(col, a * 0.35)); g.addColorStop(1, css(col, 0)); ctx.fillStyle = g; ctx.fillRect(0, 0, 1, 1); };
+    const plateB = (fn) => { ctx.save(); ctx.translate(m.mis[0], m.mis[1]); ctx.globalCompositeOperation = C.overprint(c); fn(); ctx.restore(); };
+    const sky = mix(c.tile, c.accent, c.lightPaper ? 0.18 : 0.12);
+    ctx.fillStyle = lin(0, 1, [[0, mix(c.tile, c.deep, c.lightPaper ? 0.06 : 0)], [0.6, sky], [1, mix(c.tile, c.form, 0.25)]]); ctx.fillRect(0, 0, 1, 1);
+    const S = m.sun, rise = e(0.2, 3), sunDy = (1 - rise) * 0.25;
+    const ridge = (L, i, n, drift) => {
+      const k = (i + 1) / n, base = L.y + (1 - e(0.3 + i * 0.3, 2)) * 0.06;
+      ctx.beginPath(); ctx.moveTo(-0.1, 1.2);
+      for (let x = -0.1; x <= 1.1001; x += 0.02) ctx.lineTo(x, base + L.amp * (0.65 * Math.sin(TAU * L.f * (x + drift) + L.ph) + 0.35 * Math.sin(TAU * L.f2 * (x + drift) + L.ph2)));
+      ctx.lineTo(1.1, 1.2); ctx.closePath();
+      ctx.fillStyle = css(mix(mix(c.form, c.light, 0.45 * (1 - k)), c.deep, 0.6 * k * k)); ctx.fill();
+    };
+    switch (m.type) {
+      case 'dawn': case 'ridges': {
+        glow(S.cx, S.cy + sunDy, S.R * 3.2 * (1 + 0.08 * b), c.accent, 0.55 * rise);
+        plateB(() => { C.blobPath(ctx, S, { imperf: imp, dy: sunDy }); ctx.fillStyle = css(c.accent); ctx.fill(); });
+        if (m.type === 'ridges') { m.layers.forEach((L, i) => { const drift = o.still ? 0 : 0.025 * Math.sin((TAU * t) / L.per + L.ph); ctx.fillStyle = lin(L.y - 0.1, L.y + 0.02, [[0, c.light, 0], [0.8, c.light, c.lightPaper ? 0.4 : 0.18], [1, c.light, 0]]); ctx.fillRect(0, L.y - 0.1, 1, 0.12); ridge(L, i, m.layers.length, drift); }); }
+        else {
+          ctx.fillStyle = css(mix(c.form, c.deep, 0.45)); ctx.fillRect(0, m.h, 1, 1);
+          plateB(() => { ctx.fillStyle = css(mix(c.form, c.deep, 0.15)); ctx.fillRect(0, m.h + 0.004, 1, 1); });
+          const re = e(1.8, 1.6); ctx.lineCap = 'round';
+          for (let i = 0; i < 6; i++) { const k = i / 6, y = m.h + 0.035 + 0.27 * Math.pow(k, 1.2), sh = o.still ? 0 : 0.2 * Math.sin(TAU * t / 6 + i * 1.7); const w = S.R * 2 * (0.9 - 0.65 * k) * (1 + sh) * re; ctx.strokeStyle = css(c.accent, (0.95 - 0.5 * k) * re); ctx.lineWidth = 0.017 - 0.008 * k; ctx.beginPath(); ctx.moveTo(S.cx - w / 2, y); ctx.lineTo(S.cx + w / 2, y); ctx.stroke(); }
+        }
+        break;
+      }
+      case 'moonpool': case 'shoreline': {
+        glow(S.cx, S.cy, S.R * 3, c.accent, 0.45 * rise);
+        plateB(() => { C.blobPath(ctx, S, { imperf: imp, dy: sunDy * 0.5 }); ctx.fillStyle = css(mix(c.accent, c.light, 0.2)); ctx.fill(); });
+        ctx.fillStyle = lin(m.h, 1, [[0, mix(c.form, c.deep, 0.35)], [1, mix(c.form, c.deep, 0.75)]]); ctx.fillRect(0, m.h, 1, 1);
+        if (m.type === 'moonpool') {
+          for (let i = 0; i < 4; i++) { const u = o.still ? (i + 0.5) / 4 : ((t / 10 + i / 4) % 1), R = 0.04 + 0.42 * u; ctx.strokeStyle = css(mix(c.accent, c.light, 0.3), Math.pow(1 - u, 1.1) * e(1, 2)); ctx.lineWidth = 0.014 * (1 - 0.5 * u); ctx.beginPath(); ctx.ellipse(S.cx, m.h + 0.18, R, R * 0.26, 0, 0, TAU); ctx.stroke(); }
+        } else {
+          for (let i = 0; i < 4; i++) { const y = m.h + 0.06 + i * 0.075, ph = o.still ? 0 : t * 0.25 + i; ctx.beginPath(); ctx.moveTo(0, y); for (let x = 0; x <= 1.001; x += 0.02) ctx.lineTo(x, y + 0.012 * Math.sin(TAU * (x * (1.4 + i * 0.3)) + ph)); ctx.lineTo(1, 1); ctx.lineTo(0, 1); ctx.closePath(); ctx.fillStyle = css(mix(c.form, c.deep, 0.2 + i * 0.18), 0.85); ctx.fill(); ctx.strokeStyle = css(c.light, 0.35 * (1 - i / 4)); ctx.lineWidth = 0.006; ctx.stroke(); }
+        }
+        break;
+      }
+      case 'doorlight': {
+        ctx.fillStyle = css(mix(c.deep, c.form, 0.25)); ctx.fillRect(0, 0, 1, 1);
+        const D = m.door, x0 = 0.5 - D.w / 2, bot = 0.8, top = bot - D.h, ys = top + D.w / 2, open = e(0.2, 2.4);
+        const arch = () => { ctx.beginPath(); ctx.moveTo(x0, bot); ctx.lineTo(x0, ys); ctx.arc(0.5, ys, D.w / 2, Math.PI, 0); ctx.lineTo(x0 + D.w, bot); ctx.closePath(); };
+        ctx.save(); arch(); ctx.clip(); ctx.fillStyle = lin(top, bot, [[0, mix(c.tile, c.accent, 0.3)], [1, mix(c.accent, c.form, 0.3)]]); ctx.fillRect(0, 0, 1, 1);
+        C.blobPath(ctx, S, { imperf: imp, dx: 0.5 - S.cx, dy: ys + 0.06 - S.cy + sunDy, grow: 0.55 }); ctx.fillStyle = css(c.accent); ctx.fill(); ctx.restore();
+        // light falling on the floor
+        ctx.beginPath(); ctx.moveTo(x0, bot); ctx.lineTo(x0 + D.w, bot); ctx.lineTo(0.5 + D.w * 1.4, 1.02); ctx.lineTo(0.5 - D.w * 1.1, 1.02); ctx.closePath();
+        const g = ctx.createLinearGradient(0, bot, 0, 1); g.addColorStop(0, css(mix(c.accent, c.tile, 0.4), 0.7 * open * (0.9 + 0.1 * b))); g.addColorStop(1, css(c.accent, 0)); ctx.fillStyle = g; ctx.fill();
+        plateB(() => { ctx.lineWidth = 0.012; ctx.strokeStyle = css(mix(c.accent, c.light, 0.4), 0.7); arch(); ctx.stroke(); });
+        break;
+      }
+      case 'halo': {
+        ctx.fillStyle = css(mix(c.tile, c.deep, c.lightPaper ? 0.04 : 0)); ctx.fillRect(0, 0, 1, 1);
+        glow(0.5, 0.5, 0.46 * (1 + 0.06 * b), c.accent, 0.55 * rise);
+        plateB(() => { C.blobPath(ctx, S, { imperf: imp, grow: (0.9 + 0.1 * rise) * (1 + 0.03 * b) }); ctx.fillStyle = css(c.form); ctx.fill(); });
+        ctx.fillStyle = css(c.stroke, 0.92); C.drawStroke(ctx, m.ring, o.still ? 1 : easeInOut(prog(t, 0.6, 2.6)));
+        break;
+      }
+    }
+  }
+
+  // ---------- build and draw ----------
+  function build(seedInput, type) {
+    const seed = normaliseSeed(seedInput), family = FAMILY[seed[0]], r = C.makeRng('r2:' + seed);
+    const m = family === 'gesture' ? buildGesture(r, type) : family === 'atmos' ? buildAtmos(r, type) : buildMinimal(r, type);
+    m.seed = seed; m.family = family;
+    return m;
+  }
+  // o: still, bg (false = no tile), scale, colors (role overrides), px, dpr
+  function draw(ctx, m, pal, t, o = {}) {
+    if (o.still) t = 60;
+    const c = C.roles(pal, o.colors);
+    if (m.family === 'atmos') {
+      ctx.save(); ctx.translate(0.5, 0.5); ctx.scale(o.scale || 1, o.scale || 1); ctx.translate(-0.5, -0.5);
+      drawAtmos(ctx, m, c, t, o); ctx.restore();
+      C.finish(ctx, c, o.px || 256, { dpr: o.dpr, speckle: 0.3 });
+      return;
+    }
+    if (o.bg !== false) { ctx.fillStyle = css(c.tile); ctx.fillRect(0, 0, 1, 1); }
+    const sc = (o.scale || 1) * m.fit;
+    ctx.save(); ctx.translate(0.5, 0.5); ctx.scale(sc, sc); ctx.translate(-0.5, -0.5);
+    if (m.family === 'gesture') drawGesture(ctx, m, c, t, o); else drawMinimal(ctx, m, c, t, o);
+    ctx.restore();
+    if (o.bg !== false && o.finish !== false) C.finish(ctx, c, o.px || 256, { dpr: o.dpr, paper: 0.1, speckle: 0.18, vignette: 0 });
+  }
+
+  return { palettes, PAL, build, draw, randomSeed, normaliseSeed, daily, dayKey, GESTURE_WEIGHT, MIN_WEIGHT, ATMOS, families: ['gesture', 'minimal', 'atmos'] };
+})();
+
+</script>
+<script>
+/* Round 2 art: a generator per sound kind for the Sounds tab, preset cards
+ * that blend their layers, and seeded covers for courses, playlists,
+ * teachers and singles. All of it paints in the active palette and gets the
+ * same print finish as the marks. A card is unit-wide and H tall. */
+const Art2 = (() => {
+  'use strict';
+  const C = Core, { TAU, lerp, clamp, css, mix } = C;
+
+  // From assets/sounds/sounds.json, plus the synth layers.
+  const SOUNDS = [
+    ['rain-terrace', 'Rain on a terrace', 'rain'], ['rain-umbrella', 'Rain on an umbrella', 'rain'], ['rain-window', 'Rain at the window', 'rain'], ['rain-car', 'Rain on a car roof', 'rain'],
+    ['stream', 'Mountain stream', 'water'], ['river', 'River', 'water'], ['waves', 'Small waves', 'water'], ['sea', 'Beach at Dellec', 'water'],
+    ['wind-trees', 'Wind in the trees', 'wind'], ['wind-grass', 'Wind in tall grass', 'wind'],
+    ['forest-birds', 'Forest birds', 'forest'], ['dawn-chorus', 'Dawn chorus', 'forest'], ['evening-birds', 'Evening birds', 'forest'], ['forest-brook', 'Forest brook', 'forest'],
+    ['fire-crackle', 'Crackling fire', 'fire'], ['fire-stove', 'Wood stove', 'fire'],
+    ['room-house', 'Quiet house', 'room'], ['cafe', 'Café', 'room'], ['train', 'Metro carriage', 'room'],
+    ['night-meadow', 'Meadow at night', 'night'], ['night-insects', 'Night insects', 'night'], ['night-frogs', 'Frogs by a pond', 'night'],
+    ['noise-white', 'White noise', 'synth'], ['noise-pink', 'Pink noise', 'synth'], ['noise-brown', 'Brown noise', 'synth'], ['drone', 'Drone · 110 Hz', 'synth'], ['binaural', 'Binaural · theta', 'synth'],
+  ].map(([id, title, cat]) => ({ id, title, cat }));
+  const KIND = (id) => id.startsWith('rain') ? 'rain' : id === 'stream' || id === 'river' ? 'flow' : id === 'waves' || id === 'sea' ? 'sea' : id.startsWith('wind') ? 'wind'
+    : ['forest-birds', 'dawn-chorus', 'evening-birds', 'forest-brook'].includes(id) ? 'forest' : id.startsWith('fire') ? 'fire' : ['room-house', 'cafe', 'train'].includes(id) ? 'room'
+    : id.startsWith('night') ? 'night' : id.startsWith('noise') ? 'noise' : id;
+  const PRESETS = [
+    { id: 'starter-rain-forest', title: 'Rain on the forest', layers: [['rain-terrace', 0.7], ['forest-birds', 0.45], ['wind-trees', 0.3]] },
+    { id: 'starter-night', title: 'Night', layers: [['night-meadow', 0.6], ['stream', 0.35]] },
+    { id: 'starter-hearth', title: 'Hearth', layers: [['fire-stove', 0.6], ['fire-crackle', 0.55], ['rain-window', 0.4]] },
+    { id: 'starter-shore', title: 'Shore', layers: [['waves', 0.7], ['wind-grass', 0.3]] },
+    { id: 'starter-stillness', title: 'Stillness', layers: [['noise-brown', 0.55], ['drone', 0.35]] },
+    { id: 'user-morning', title: 'Morning sit (yours)', layers: [['dawn-chorus', 0.6], ['forest-brook', 0.4], ['binaural', 0.3]] },
+  ];
+
+  // ---------- sound scenes ----------
+  function buildSound(id) {
+    const r = C.makeRng('sound:' + id), kind = KIND(id), s = { id, kind, r: C.makeRng('sound-live:' + id) };
+    s.streaks = Array.from({ length: 70 }, () => ({ x: r.range(-0.1, 1.1), y: r.next(), v: r.range(0.06, 0.12), l: r.range(0.04, 0.09), a: r.range(0.18, 0.5) }));
+    s.dots = Array.from({ length: 40 }, () => ({ x: r.next(), y: r.next(), r: r.range(0.002, 0.006), ph: r.range(0, TAU), sp: r.range(0.3, 1.2), a: r.range(0.3, 1) }));
+    s.bokeh = Array.from({ length: 18 }, () => ({ x: r.next(), y: r.range(0.1, 0.9), r: r.range(0.03, 0.11), ph: r.range(0, TAU), role: r.pick(['accent', 'accent', 'light', 'form']), a: r.range(0.25, 0.6) }));
+    s.lines = Array.from({ length: 12 }, () => ({ y: r.next(), ph: r.range(0, TAU), l: r.range(0.25, 0.6), v: r.range(0.015, 0.035), amp: r.range(0.01, 0.03), f: r.range(1, 2.5) }));
+    s.ribbons = Array.from({ length: 6 }, (_, i) => ({ y: lerp(0.25, 0.85, i / 5) + r.range(-0.05, 0.05), amp: r.range(0.03, 0.07), f: r.range(0.8, 1.8), ph: r.range(0, TAU), w: r.range(0.015, 0.05), v: r.range(0.02, 0.05) }));
+    s.crowns = Array.from({ length: 3 }, (_, i) => Array.from({ length: 9 }, (_, j) => ({ x: j / 8 + r.range(-0.05, 0.05), r: r.range(0.08, 0.15) * (1 + i * 0.25), dy: r.range(-0.03, 0.03), ph: r.range(0, TAU) })));
+    s.flames = Array.from({ length: 5 }, () => ({ x: r.range(-0.12, 0.12), h: r.range(0.2, 0.36), w: r.range(0.06, 0.1), ph: r.range(0, TAU) }));
+    s.birds = Array.from({ length: 4 }, () => ({ x: r.next(), y: r.range(0.12, 0.35), s: r.range(0.012, 0.022), v: r.range(0.008, 0.02), ph: r.range(0, TAU) }));
+    s.glow = { x: r.range(0.25, 0.75), y: r.range(0.2, 0.5) };
+    s.hy = r.range(0.38, 0.46);
+    return s;
+  }
+  const hn = (t, k) => 0.5 + 0.5 * (0.6 * Math.sin(t * 2.3 + k) * Math.sin(t * 1.7 + k * 2) + 0.4 * Math.sin(t * 5.1 + k * 3));
+  function radial(ctx, x, y, r, col, a) { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, css(col, a)); g.addColorStop(1, css(col, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
+  function vgrad(ctx, H, stops) { const g = ctx.createLinearGradient(0, 0, 0, H); stops.forEach(([k, col, a]) => g.addColorStop(k, css(col, a ?? 1))); ctx.fillStyle = g; ctx.fillRect(0, 0, 1, H); }
+
+  // Each kind has its own key, all drawn from the palette: rain sits grey
+  // and dim, sea and wind open up, fire and night go deep. The scrim keeps a
+  // light title readable on all of them.
+  const dark = (c, k = 0.3) => mix(c.deep, c.form, k);
+  const pale = (c, k = 0.3) => mix(c.tile, c.accent, k);
+  const BG = {
+    rain(ctx, s, c, H) { const g = mix(c.deep, c.tile, 0.22); vgrad(ctx, H, [[0, mix(g, c.form, 0.2)], [1, mix(c.deep, c.form, 0.12)]]); radial(ctx, s.glow.x, s.glow.y * H, 0.5, c.accent, 0.22); },
+    flow(ctx, s, c, H) { vgrad(ctx, H, [[0, mix(c.form, c.tile, 0.25)], [0.5, c.form], [1, dark(c, 0.55)]]); },
+    sea(ctx, s, c, H) { const hy = s.hy; vgrad(ctx, H, [[0, mix(c.form, c.tile, 0.45)], [hy, pale(c, 0.55)], [hy + 0.002, mix(c.form, c.deep, 0.3)], [1, dark(c, 0.35)]]); radial(ctx, s.glow.x, hy * H, 0.4, c.accent, 0.5); },
+    wind(ctx, s, c, H) { vgrad(ctx, H, [[0, mix(c.tile, c.form, 0.55)], [1, mix(c.form, c.deep, 0.45)]]); },
+    forest(ctx, s, c, H) {
+      const sky = s.id === 'dawn-chorus' ? pale(c, 0.5) : s.id === 'evening-birds' ? mix(c.accent, c.deep, 0.45) : mix(c.tile, c.form, 0.4);
+      vgrad(ctx, H, [[0, mix(sky, c.deep, 0.15)], [0.65, sky], [1, dark(c, 0.4)]]);
+      radial(ctx, s.glow.x, 0.6 * H, 0.45, c.accent, s.id === 'forest-birds' ? 0.15 : 0.45);
+    },
+    fire(ctx, s, c, H) { vgrad(ctx, H, [[0, mix(c.deep, c.tile, 0.04)], [1, dark(c, 0.25)]]); },
+    room(ctx, s, c, H) { vgrad(ctx, H, [[0, mix(dark(c, 0.3), c.accent, 0.15)], [1, dark(c, 0.15)]]); },
+    night(ctx, s, c, H) { vgrad(ctx, H, [[0, mix(c.deep, c.tile, 0.03)], [0.75, mix(c.deep, c.form, 0.28)], [1, c.deep]]); radial(ctx, s.glow.x, 0.2 * H, 0.06, c.light, 0.8); radial(ctx, s.glow.x, 0.2 * H, 0.3, c.light, 0.12); },
+    noise(ctx, s, c, H) { const k = s.id === 'noise-white' ? mix(c.tile, c.form, 0.15) : s.id === 'noise-pink' ? mix(c.form, c.accent, 0.45) : dark(c, 0.55); vgrad(ctx, H, [[0, k], [1, mix(k, c.deep, 0.3)]]); },
+    drone(ctx, s, c, H) { vgrad(ctx, H, [[0, dark(c, 0.2)], [1, dark(c, 0.4)]]); },
+    binaural(ctx, s, c, H) { vgrad(ctx, H, [[0, mix(c.deep, c.stroke === c.deep ? c.form : c.stroke, 0.12)], [1, dark(c, 0.35)]]); },
+  };
+  // Foreground elements can sit on any field, so presets can layer them.
+  const FG = {
+    rain(ctx, s, c, H, t, a) {
+      if (s.id === 'rain-window' && a > 0.6) { ctx.strokeStyle = css(c.light, 0.18 * a); ctx.lineWidth = 0.012; ctx.strokeRect(0.08, 0.08 * H, 0.84, H * 0.84); ctx.beginPath(); ctx.moveTo(0.5, 0.08 * H); ctx.lineTo(0.5, 0.92 * H); ctx.stroke(); }
+      if (s.id === 'rain-umbrella' && a > 0.6) { ctx.beginPath(); ctx.ellipse(0.5, 0, 0.62, 0.2 * H + 0.08, 0, 0, Math.PI); ctx.fillStyle = css(c.deep, 0.85); ctx.fill(); }
+      if (s.id === 'rain-car' && a > 0.6) { ctx.beginPath(); ctx.moveTo(-0.1, H); ctx.quadraticCurveTo(0.5, H * 0.62, 1.1, H); ctx.fillStyle = css(dark(c, 0.05), 0.9); ctx.fill(); }
+      if (s.id === 'rain-terrace' && a > 0.6) { ctx.strokeStyle = css(c.light, 0.12); ctx.lineWidth = 0.004; for (let i = 0; i < 5; i++) { const y = H * (0.72 + i * i * 0.012); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1, y); ctx.stroke(); } }
+      ctx.lineCap = 'round';
+      for (const p of s.streaks) {
+        const y = ((p.y + t * p.v) % 1.15) - 0.1, x = p.x - y * 0.12;
+        ctx.strokeStyle = css(c.light, p.a * a); ctx.lineWidth = 0.0035;
+        ctx.beginPath(); ctx.moveTo(x, y * H); ctx.lineTo(x - p.l * 0.12, (y + p.l) * H); ctx.stroke();
+      }
+    },
+    flow(ctx, s, c, H, t, a) {
+      const diag = s.id === 'stream' ? 0.35 : 0.08;
+      s.ribbons.forEach((R, i) => {
+        const y0 = lerp(0.35, 1, (i + 0.5) / s.ribbons.length) * H, top = [], bot = [];
+        for (let x = -0.1; x <= 1.1; x += 0.025) {
+          const ph = TAU * R.f * x - t * R.v * 12 + R.ph, y = y0 - diag * (x - 0.5) * H + R.amp * H * Math.sin(ph), w = R.w * H * (0.6 + 0.4 * Math.sin(ph * 0.5 + 1));
+          top.push([x, y - w]); bot.push([x, y + w]);
+        }
+        ctx.beginPath(); top.forEach(([x, y], j) => (j ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); bot.reverse().forEach(([x, y]) => ctx.lineTo(x, y)); ctx.closePath();
+        ctx.fillStyle = css(i % 2 ? c.light : mix(c.form, c.light, 0.4), (0.16 + 0.05 * (i % 3)) * a); ctx.fill();
+      });
+    },
+    sea(ctx, s, c, H, t, a) {
+      for (let i = 0; i < 6; i++) {
+        const k = i / 5, y0 = (s.hy + 0.03 + Math.pow(k, 1.4) * (1 - s.hy)) * H, amp = (0.004 + 0.018 * k) * H, ph = t * (0.25 + 0.1 * i) + i * 1.3;
+        ctx.beginPath(); ctx.moveTo(-0.05, H + 0.1);
+        for (let x = -0.05; x <= 1.05; x += 0.02) ctx.lineTo(x, y0 + amp * Math.sin(TAU * x * (1.2 + i * 0.25) + ph));
+        ctx.lineTo(1.05, H + 0.1); ctx.closePath();
+        ctx.fillStyle = css(mix(dark(c, 0.45 - k * 0.3), c.deep, k * 0.4), 0.55 * a); ctx.fill();
+        ctx.strokeStyle = css(c.light, (0.35 - 0.2 * k) * a); ctx.lineWidth = 0.004; ctx.stroke();
+      }
+      if (s.id === 'sea' && a > 0.6) { ctx.beginPath(); ctx.moveTo(0, H * 0.9); ctx.quadraticCurveTo(0.5, H * 0.84, 1, H * 0.88); ctx.lineTo(1, H); ctx.lineTo(0, H); ctx.fillStyle = css(mix(c.accent, c.deep, 0.55), 0.85); ctx.fill(); }
+    },
+    wind(ctx, s, c, H, t, a) {
+      ctx.lineCap = 'round';
+      for (const L of s.lines) {
+        const x0 = ((L.ph / TAU + t * L.v) % 1.6) - 0.5, y = L.y * H * 0.8 + 0.05;
+        ctx.beginPath();
+        for (let i = 0; i <= 30; i++) { const u = i / 30, x = x0 + u * L.l; const yy = y + L.amp * Math.sin(TAU * L.f * u + t * 0.6 + L.ph); i ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy); }
+        const g = ctx.createLinearGradient(x0, 0, x0 + L.l, 0); g.addColorStop(0, css(c.light, 0)); g.addColorStop(0.5, css(c.light, 0.45 * a)); g.addColorStop(1, css(c.light, 0));
+        ctx.strokeStyle = g; ctx.lineWidth = 0.004; ctx.stroke();
+      }
+      if (s.id === 'wind-grass') {
+        for (let i = 0; i < 60; i++) { const x = i / 59, h = (0.18 + 0.12 * Math.sin(i * 7.3)) * H, bend = 0.04 * Math.sin(t * 0.7 + x * 3) + 0.03; ctx.beginPath(); ctx.moveTo(x, H); ctx.quadraticCurveTo(x, H - h * 0.6, x + bend, H - h); ctx.strokeStyle = css(mix(c.form, c.deep, 0.5 + 0.3 * Math.sin(i)), 0.9 * a); ctx.lineWidth = 0.006; ctx.stroke(); }
+      }
+      if (s.id === 'wind-trees') FG.forest(ctx, { ...s, birds: [] }, c, H, t, a * 0.9, true);
+    },
+    forest(ctx, s, c, H, t, a, onlyCanopy) {
+      s.crowns.forEach((row, i) => {
+        const k = (i + 1) / 3, base = H * (0.62 + i * 0.13), sway = 0.006 * Math.sin(t * 0.5 + i);
+        ctx.beginPath(); ctx.moveTo(-0.1, H + 0.1);
+        row.forEach((cr) => { ctx.arc(cr.x + sway * (1 + Math.sin(cr.ph)), base + cr.dy * H, cr.r * 0.6, Math.PI, 0); });
+        ctx.lineTo(1.1, H + 0.1); ctx.closePath();
+        ctx.fillStyle = css(mix(mix(c.form, c.light, 0.25 * (1 - k)), c.deep, 0.55 * k), 0.92 * a); ctx.fill();
+      });
+      if (onlyCanopy) return;
+      ctx.lineCap = 'round'; ctx.lineWidth = 0.004; ctx.strokeStyle = css(c.deep, 0.8 * a);
+      for (const b of s.birds) { const x = ((b.x + t * b.v) % 1.2) - 0.1, y = b.y * H + 0.01 * Math.sin(t + b.ph), f = 0.5 + 0.5 * Math.sin(t * 3 + b.ph); ctx.beginPath(); ctx.moveTo(x - b.s, y - b.s * 0.4 * f); ctx.quadraticCurveTo(x - b.s * 0.4, y - b.s * 0.5, x, y); ctx.quadraticCurveTo(x + b.s * 0.4, y - b.s * 0.5, x + b.s, y - b.s * 0.4 * f); ctx.stroke(); }
+      if (s.id === 'forest-brook') FG.flow(ctx, { ...s, id: 'river', ribbons: s.ribbons.slice(4) }, c, H, t, a * 0.8);
+    },
+    fire(ctx, s, c, H, t, a) {
+      const stove = s.id === 'fire-stove' && a > 0.5, cx = 0.5, by = H * (stove ? 0.78 : 0.86), fl = hn(t, 1);
+      radial(ctx, cx, by, 0.55, c.accent, (0.35 + 0.15 * fl) * a);
+      s.flames.forEach((f, i) => {
+        const sw = 0.025 * Math.sin(t * 1.8 + f.ph), h = f.h * H * (0.85 + 0.25 * hn(t * 1.3, i)), x = cx + f.x, w = f.w;
+        [[mix(c.accent, c.form, 0.35), 1], [c.accent, 0.62], [mix(c.accent, c.light, 0.6), 0.3]].forEach(([col, k]) => {
+          ctx.beginPath(); ctx.moveTo(x - w * k, by); ctx.bezierCurveTo(x - w * k, by - h * k * 0.5, x + sw - w * k * 0.4, by - h * k * 0.8, x + sw * 1.5, by - h * k); ctx.bezierCurveTo(x + sw + w * k * 0.4, by - h * k * 0.8, x + w * k, by - h * k * 0.5, x + w * k, by); ctx.closePath();
+          ctx.fillStyle = css(col, 0.75 * a); ctx.fill();
+        });
+      });
+      for (const p of s.dots.slice(0, 18)) { const u = (p.y + t * p.sp * 0.12) % 1, x = cx + (p.x - 0.5) * 0.4 + 0.03 * Math.sin(t + p.ph), y = by - u * H * 0.8; C.circle(ctx, x, y, p.r * 0.8); ctx.fillStyle = css(mix(c.accent, c.light, 0.5), (1 - u) * a); ctx.fill(); }
+      ctx.fillStyle = css(c.deep, 0.9 * a); ctx.fillRect(0.2, by, 0.6, 0.025);
+      if (stove) { ctx.strokeStyle = css(c.deep, 0.95); ctx.lineWidth = 0.09; ctx.beginPath(); ctx.roundRect(0.14, H * 0.18, 0.72, H * 0.72, 0.08); ctx.stroke(); ctx.strokeStyle = css(c.light, 0.12); ctx.lineWidth = 0.006; ctx.beginPath(); ctx.roundRect(0.19, H * 0.23, 0.62, H * 0.62, 0.05); ctx.stroke(); }
+    },
+    room(ctx, s, c, H, t, a) {
+      const train = s.id === 'train', n = s.id === 'cafe' ? 18 : s.id === 'room-house' ? 7 : 12;
+      if (s.id === 'room-house' && a > 0.6) { ctx.fillStyle = css(mix(c.accent, c.tile, 0.4), 0.12); ctx.fillRect(0.58, H * 0.15, 0.28, H * 0.42); ctx.strokeStyle = css(c.light, 0.18); ctx.lineWidth = 0.006; ctx.strokeRect(0.58, H * 0.15, 0.28, H * 0.42); ctx.beginPath(); ctx.moveTo(0.72, H * 0.15); ctx.lineTo(0.72, H * 0.57); ctx.stroke(); }
+      s.bokeh.slice(0, n).forEach((b, i) => {
+        let x = b.x + 0.02 * Math.sin(t * 0.2 + b.ph), y = b.y * H + 0.01 * Math.cos(t * 0.17 + b.ph);
+        if (train) { x = ((b.x + t * 0.05 * (1 + i % 3)) % 1.3) - 0.15; y = H * (0.3 + 0.25 * (b.y - 0.5)); }
+        if (train) { ctx.lineCap = 'round'; ctx.strokeStyle = css(c[b.role === 'form' ? 'accent' : b.role], b.a * 0.6 * a); ctx.lineWidth = b.r * 0.35; ctx.beginPath(); ctx.moveTo(x - 0.12, y); ctx.lineTo(x, y); ctx.stroke(); }
+        else radial(ctx, x, y, b.r, c[b.role], b.a * a * (0.8 + 0.2 * Math.sin(t * 0.5 + b.ph)));
+      });
+    },
+    night(ctx, s, c, H, t, a) {
+      for (const p of s.dots) { const tw = 0.5 + 0.5 * Math.sin(t * p.sp + p.ph); C.circle(ctx, p.x, p.y * H * 0.62, p.r * 1.1); ctx.fillStyle = css(c.light, p.a * (0.35 + 0.65 * tw) * a); ctx.fill(); }
+      if (a < 0.6) return;
+      if (s.id === 'night-meadow') { ctx.beginPath(); ctx.moveTo(0, H); for (let x = 0; x <= 1.001; x += 0.01) ctx.lineTo(x, H * (0.8 + 0.03 * Math.sin(x * 9) + (x * 97 % 1) * 0.04)); ctx.lineTo(1, H); ctx.fillStyle = css(c.deep, 0.95); ctx.fill(); }
+      if (s.id === 'night-frogs') { ctx.beginPath(); ctx.ellipse(0.5, H * 0.84, 0.42, H * 0.1, 0, 0, TAU); ctx.fillStyle = css(mix(dark(c, 0.3), c.accent, 0.1), 0.9); ctx.fill(); C.circle(ctx, 0.62, H * 0.84, 0.025); ctx.fillStyle = css(c.light, 0.5); ctx.fill(); }
+      if (s.id === 'night-insects') for (const p of s.dots.slice(0, 9)) { const x = p.x + 0.04 * Math.sin(t * 0.4 * p.sp + p.ph), y = H * (0.55 + 0.35 * p.y) + 0.03 * Math.cos(t * 0.3 + p.ph); radial(ctx, x, y, 0.03, c.accent, 0.6 * (0.5 + 0.5 * Math.sin(t * 1.5 * p.sp + p.ph))); }
+    },
+    noise(ctx, s, c, H, t, a) {
+      const coarse = s.id === 'noise-brown' ? 2 : s.id === 'noise-pink' ? 1.5 : 1;
+      ctx.save(); ctx.globalCompositeOperation = 'overlay'; ctx.globalAlpha = (s.id === 'noise-white' ? 0.45 : 0.32) * a;
+      const p = C.pattern(ctx, grainTex(), 256 / coarse, 1); p.setTransform(new DOMMatrix().translate(Math.floor(t * 7) * 0.37 % 1, Math.floor(t * 7) * 0.61 % 1).scale(coarse / 256));
+      ctx.fillStyle = p; ctx.fillRect(0, 0, 1, H); ctx.restore();
+      for (let i = 0; i < 10; i++) { const y = H * (0.1 + i * 0.085); ctx.fillStyle = css(c.light, (0.03 + 0.03 * Math.sin(i * 1.9 + t * 0.2)) * a); ctx.fillRect(0, y, 1, H * 0.035); }
+    },
+    drone(ctx, s, c, H, t, a) {
+      const cy = H * 0.5;
+      for (let i = 0; i < 6; i++) { const u = ((t / 14 + i / 6) % 1), R = 0.06 + u * 0.6; ctx.beginPath(); ctx.ellipse(0.5, cy, R, R * 0.8, 0, 0, TAU); ctx.strokeStyle = css(mix(c.accent, c.light, 0.3), Math.sin(Math.PI * u) * 0.5 * a); ctx.lineWidth = 0.01 * (1 - u) + 0.002; ctx.stroke(); }
+      radial(ctx, 0.5, cy, 0.18 * (1 + 0.06 * Math.sin(t * 0.6)), c.accent, 0.6 * a);
+    },
+    binaural(ctx, s, c, H, t, a) {
+      const band = (y0, f, col, ph) => { ctx.beginPath(); for (let x = 0; x <= 1.001; x += 0.01) { const y = y0 + H * 0.06 * Math.sin(TAU * f * x + ph); x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.strokeStyle = css(col, 0.7 * a); ctx.lineWidth = 0.008; ctx.stroke(); };
+      band(H * 0.32, 5, c.form === c.deep ? c.accent : mix(c.form, c.light, 0.35), t * 0.9); band(H * 0.68, 5.6, c.accent, t * 0.9);
+      ctx.beginPath(); for (let x = 0; x <= 1.001; x += 0.005) { const env = Math.abs(Math.cos(Math.PI * 0.6 * x - t * 0.3)), y = H * 0.5 + H * 0.12 * env * Math.sin(TAU * 5.3 * x + t * 0.9); x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.strokeStyle = css(c.light, 0.55 * a); ctx.lineWidth = 0.005; ctx.stroke();
+    },
+  };
+  let grainCv = null;
+  function grainTex() { if (grainCv) return grainCv; const N = 128, cv = document.createElement('canvas'); cv.width = cv.height = N; const g = cv.getContext('2d'), img = g.createImageData(N, N), r = C.makeRng('grain'); for (let i = 0; i < img.data.length; i += 4) { const v = r.next() * 255; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; } g.putImageData(img, 0, 0); return (grainCv = cv); }
+  // Darken the foot of every card so a light title reads on it.
+  function scrim(ctx, c, H) { const g = ctx.createLinearGradient(0, H * 0.45, 0, H); g.addColorStop(0, css(c.deep, 0)); g.addColorStop(1, css(c.deep, 0.6)); ctx.fillStyle = g; ctx.fillRect(0, H * 0.45, 1, H * 0.55); }
+
+  const scenes = new Map();
+  const sceneOf = (id) => { if (!scenes.has(id)) scenes.set(id, buildSound(id)); return scenes.get(id); };
+  function drawSound(ctx, id, pal, t, o = {}) {
+    const H = o.H || 1, c = C.roles(pal), s = sceneOf(id);
+    BG[s.kind](ctx, s, c, H); FG[s.kind](ctx, s, c, H, t, 1); scrim(ctx, c, H);
+    C.finish(ctx, c, o.px || 256, { dpr: o.dpr, speckle: 0.12, vignette: 0.12 });
+  }
+  // A preset paints its loudest layer's field, then every layer's elements,
+  // each as strong as its volume.
+  function drawPreset(ctx, preset, pal, t, o = {}) {
+    const H = o.H || 1, c = C.roles(pal), layers = preset.layers.map(([id, v]) => [sceneOf(id), v]).sort((a, b) => b[1] - a[1]);
+    BG[layers[0][0].kind](ctx, layers[0][0], c, H);
+    const order = layers.slice().sort((a, b) => (a[0].kind === 'rain' || a[0].kind === 'wind') - (b[0].kind === 'rain' || b[0].kind === 'wind'));
+    for (const [s, v] of order) FG[s.kind](ctx, s, c, H, t, clamp(v * 1.4, 0.35, 1));
+    scrim(ctx, c, H);
+    C.finish(ctx, c, o.px || 256, { dpr: o.dpr, speckle: 0.12, vignette: 0.12 });
+  }
+
+  // ---------- covers ----------
+  const COVER_TITLES = {
+    course: ['Practising the Jhānas', 'The Loving Kindness Retreat', 'Qualia Mastery', 'Seeing That Frees', 'Insight Retreat 2019', 'Metta for Beginners', 'Spring at Gaia House', 'The Heart of Awareness', 'Ten Days of Silence', 'Breath and Body', 'Working with Emotions', 'Winter Retreat'],
+    playlist: ['Morning sits', 'Before sleep', 'Jhāna talks', 'Walking', 'Metta', 'Favourites', 'Short sits', 'Questions and answers', 'Body scans', 'For hard days', 'Sangha talks', 'Silence'],
+    teacher: ['Rob Burbea', 'Leigh Brasington', 'Ajahn Sucitto', 'Tara Brach', 'Gil Fronsdal', 'Joseph Goldstein', 'Sharon Salzberg', 'Christina Feldman', 'Martine Batchelor', 'Kittisaro', 'Ruth King', 'Catherine McGee'],
+    single: ['Guided body scan', 'Settling the breath', 'On equanimity', 'Open awareness', 'Walking meditation', 'Forgiveness practice', 'Noting practice', 'Sitting with pain', 'Gratitude', 'The five hindrances', 'Kindness for oneself', 'Resting as awareness'],
+  };
+  // A cover is painted once: two ink plates (one misregistered), cut edges,
+  // then paper and speckle. id → the same cover every time.
+  function drawCover(ctx, kind, id, pal, o = {}) {
+    const r = C.makeRng(kind + ':' + id), c = C.roles(pal);
+    const inks = [c.form, c.accent, c.stroke, mix(c.form, c.accent, 0.5), mix(c.form, c.tile, 0.45)];
+    const mis = [r.range(-0.012, 0.012), r.range(0.004, 0.012)];
+    const plateB = (fn) => { ctx.save(); ctx.translate(mis[0], mis[1]); ctx.globalCompositeOperation = C.overprint(c); fn(); ctx.restore(); };
+    const paperTint = mix(c.tile, r.pick([c.accent, c.form, c.tile]), r.range(0.05, 0.18));
+    ctx.fillStyle = css(paperTint); ctx.fillRect(0, 0, 1, 1);
+    if (kind === 'course') {
+      // A place under one of four lights; the hills take a ramp that suits it.
+      const key = r.pick(['day', 'dusk', 'night', 'mist']), sub = r.pick(['hills', 'lake', 'door', 'path', 'hills', 'trees']), hy = r.range(0.48, 0.68);
+      const skyCol = { day: mix(paperTint, c.accent, 0.12), dusk: mix(c.accent, c.form, r.range(0.2, 0.6)), night: mix(c.deep, c.form, r.range(0.1, 0.3)), mist: mix(c.tile, c.form, 0.12) }[key];
+      const near = key === 'night' ? mix(c.deep, c.tile, 0.05) : key === 'mist' ? mix(c.form, c.tile, 0.2) : r.pick([c.deep, mix(c.stroke, c.form, 0.4), mix(c.form, c.deep, 0.5)]);
+      const far = key === 'night' ? mix(c.deep, c.form, 0.35) : key === 'mist' ? mix(c.tile, c.form, 0.45) : r.pick([mix(c.form, c.tile, 0.35), mix(c.accent, c.tile, 0.3), c.form]);
+      ctx.fillStyle = css(skyCol); ctx.fillRect(0, 0, 1, 1);
+      if (key === 'night') { for (let i = 0; i < 30; i++) { C.circle(ctx, r.next(), r.next() * hy, r.range(0.002, 0.005)); ctx.fillStyle = css(c.light, r.range(0.3, 0.9)); ctx.fill(); } }
+      const sun = C.makeBlob(r, r.range(0.22, 0.78), r.range(0.2, Math.max(0.24, hy - 0.12)), r.range(0.07, 0.15), 0.6, 0.004);
+      const sunCol = key === 'night' ? mix(c.light, c.accent, 0.15) : key === 'mist' ? mix(c.tile, c.accent, 0.5) : key === 'dusk' ? mix(c.accent, c.light, 0.35) : r.pick([c.accent, c.form]);
+      const sunFill = () => { C.blobPath(ctx, sun); ctx.fillStyle = css(sunCol); ctx.fill(); };
+      if (key === 'night') sunFill(); else if (key !== 'mist' || r.chance(0.6)) plateB(sunFill);
+      const n = sub === 'lake' ? 1 : r.int(2, 4);
+      for (let i = 0; i < n; i++) {
+        const k = n === 1 ? 1 : i / (n - 1), base = hy + i * r.range(0.07, 0.12), pts = [[-0.05, 1.05]];
+        const f = r.range(0.5, 1.8), ph = r.range(0, TAU), amp = r.range(0.03, 0.12) * (sub === 'lake' ? 0.15 : 1);
+        for (let x = -0.05; x <= 1.05; x += 0.05) pts.push([x, base - amp * (0.6 + 0.4 * Math.sin(TAU * f * x + ph))]);
+        pts.push([1.05, 1.05]);
+        C.cutPoly(ctx, pts, r, 0.004); ctx.fillStyle = css(mix(far, near, k)); ctx.fill();
+        if (key === 'mist' && i < n - 1) { const g = ctx.createLinearGradient(0, base - 0.08, 0, base + 0.04); g.addColorStop(0, css(c.tile, 0)); g.addColorStop(1, css(c.tile, 0.55)); ctx.fillStyle = g; ctx.fillRect(0, base - 0.08, 1, 0.12); }
+      }
+      if (sub === 'lake') { ctx.lineCap = 'round'; for (let i = 0; i < 4; i++) { const y = hy + 0.05 + i * 0.07, w = (sun.R * 2) * (0.9 - i * 0.18); ctx.strokeStyle = css(sunCol, 0.8 - i * 0.15); ctx.lineWidth = 0.02; ctx.beginPath(); ctx.moveTo(sun.cx - w / 2, y); ctx.lineTo(sun.cx + w / 2, y); ctx.stroke(); } }
+      if (sub === 'door') { const w = r.range(0.11, 0.15), x = r.range(0.3, 0.7), b = hy + 0.03, tp = b - r.range(0.2, 0.28); C.cutPoly(ctx, [[x - w / 2, b], [x - w / 2, tp + w / 2], ...Array.from({ length: 9 }, (_, i) => [x - (w / 2) * Math.cos((i / 8) * Math.PI), tp + w / 2 - (w / 2) * Math.sin((i / 8) * Math.PI)]), [x + w / 2, b]], r, 0.003); ctx.fillStyle = css(key === 'night' ? c.accent : c.stroke); ctx.fill(); }
+      if (sub === 'path') { ctx.beginPath(); ctx.moveTo(0.42, 1.02); ctx.bezierCurveTo(0.7, 0.86, 0.3, 0.78, 0.52, hy + 0.06); ctx.lineTo(0.55, hy + 0.06); ctx.bezierCurveTo(0.4, 0.8, 0.86, 0.86, 0.66, 1.02); ctx.closePath(); ctx.fillStyle = css(mix(c.tile, c.accent, 0.3), 0.9); ctx.fill(); }
+      if (sub === 'trees') { for (let i = 0; i < r.int(3, 6); i++) { const x = r.range(0.08, 0.92), b = hy + r.range(0.02, 0.1), h = r.range(0.12, 0.24), w = h * 0.32; C.cutPoly(ctx, [[x, b - h], [x + w, b], [x - w, b]], r, 0.003); ctx.fillStyle = css(mix(near, c.deep, 0.3)); ctx.fill(); } }
+    } else if (kind === 'playlist') {
+      const n = r.int(3, 5);
+      for (let i = 0; i < n; i++) {
+        const shape = r.pick(['card', 'card', 'disc', 'half', 'strip']), x = r.range(0.25, 0.75), y = r.range(0.25, 0.75), s = r.range(0.22, 0.42), rot = r.range(-0.3, 0.3), col = inks[(i + r.int(0, 4)) % inks.length];
+        const draw = () => {
+          ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+          if (shape === 'card') C.cutPoly(ctx, [[-s / 2, -s * 0.65], [s / 2, -s * 0.65], [s / 2, s * 0.65], [-s / 2, s * 0.65]], r, 0.003);
+          else if (shape === 'strip') C.cutPoly(ctx, [[-s, -0.03], [s, -0.03], [s, 0.03], [-s, 0.03]], r, 0.002);
+          else if (shape === 'half') C.cutPoly(ctx, Array.from({ length: 13 }, (_, j) => [s * 0.6 * Math.cos(Math.PI + (j / 12) * Math.PI), s * 0.6 * Math.sin(Math.PI + (j / 12) * Math.PI)]), r, 0.003);
+          else C.blobPath(ctx, C.makeBlob(r, 0, 0, s * 0.5, 0.4, 0.004));
+          ctx.fillStyle = css(col); ctx.fill(); ctx.restore();
+        };
+        if (i % 2) plateB(draw); else draw();
+      }
+    } else if (kind === 'teacher') {
+      const warm = mix(c.accent, c.form, r.range(0.2, 0.7)), hx = 0.5 + r.range(-0.06, 0.06), hy = r.range(0.36, 0.42), hr = r.range(0.15, 0.18);
+      plateB(() => { C.blobPath(ctx, C.makeBlob(r, 0.5 + r.range(-0.15, 0.15), r.range(0.3, 0.5), r.range(0.26, 0.36), 0.6, 0.004)); ctx.fillStyle = css(mix(warm, c.tile, 0.45)); ctx.fill(); });
+      const sh = r.range(0.28, 0.36), top = hy + hr * 0.85;
+      C.cutPoly(ctx, [[hx - sh, 1.05], [hx - sh, top + 0.16], ...Array.from({ length: 11 }, (_, i) => [hx - sh * Math.cos((i / 10) * Math.PI), top + 0.16 - 0.16 * Math.sin((i / 10) * Math.PI)]), [hx + sh, 1.05]], r, 0.004);
+      ctx.fillStyle = css(r.pick([c.stroke, mix(c.stroke, c.form, 0.3), c.form])); ctx.fill();
+      const head = C.makeBlob(r, hx, hy, hr, 0.7, 0.003); head.asp = r.range(0.82, 0.92); head.rot = Math.PI / 2 + r.range(-0.15, 0.15);
+      plateB(() => { C.blobPath(ctx, head); ctx.fillStyle = css(warm); ctx.fill(); });
+      if (r.chance(0.4)) { ctx.strokeStyle = css(c.accent, 0.8); ctx.lineWidth = 0.012; ctx.beginPath(); ctx.arc(hx, hy, hr * 1.5, Math.PI * 1.1, Math.PI * 1.95); ctx.stroke(); }
+    } else {
+      const motif = r.pick(['disc', 'arch', 'drop', 'leaf', 'crescent']), col = r.pick([c.form, c.accent, c.form, mix(c.form, c.accent, 0.5), c.stroke]), x = 0.5 + r.range(-0.1, 0.1), y = r.range(0.4, 0.52), s = r.range(0.18, 0.26);
+      ctx.strokeStyle = css(c.stroke, 0.7); ctx.lineWidth = 0.008; ctx.beginPath(); ctx.moveTo(0.12, r.range(0.7, 0.8)); ctx.lineTo(0.88, r.range(0.7, 0.8)); ctx.stroke();
+      plateB(() => {
+        if (motif === 'disc' || motif === 'crescent') { C.blobPath(ctx, C.makeBlob(r, x, y, s, 0.5, 0.004)); ctx.fillStyle = css(col); ctx.fill(); if (motif === 'crescent') { ctx.globalCompositeOperation = 'source-over'; C.circle(ctx, x + s * 0.45, y - s * 0.3, s * 0.9); ctx.fillStyle = css(paperTint); ctx.fill(); } }
+        else if (motif === 'arch') { C.cutPoly(ctx, [[x - s * 0.7, y + s * 1.1], [x - s * 0.7, y], ...Array.from({ length: 11 }, (_, i) => [x - s * 0.7 * Math.cos((i / 10) * Math.PI), y - s * 0.7 * Math.sin((i / 10) * Math.PI)]), [x + s * 0.7, y + s * 1.1]], r, 0.004); ctx.fillStyle = css(col); ctx.fill(); }
+        else { ctx.beginPath(); const a = motif === 'leaf' ? 0.9 : 1.9; ctx.moveTo(x, y - s * a); ctx.bezierCurveTo(x + s, y - s * 0.3, x + s * 0.8, y + s, x, y + s); ctx.bezierCurveTo(x - s * 0.8, y + s, x - s, y - s * 0.3, x, y - s * a); ctx.fillStyle = css(col); ctx.fill(); }
+      });
+    }
+    C.finish(ctx, c, o.px || 256, { dpr: o.dpr, paper: 0.2, speckle: 0.4, vignette: 0.06 });
+  }
+
+  return { SOUNDS, PRESETS, COVER_TITLES, drawSound, drawPreset, drawCover, KIND };
+})();
+
+</script>
+<script>
+/* Round 3 primitives: small seeded generators that each fit a card.
+ *
+ * Every primitive is { label, motion, ground?, build(r, place, slot), draw(ctx, p, k, t, still) }.
+ *   place: { cx, cy, s } in unit card space (s is a radius-like size);
+ *          a ground fills the card and ignores it.
+ *   slot:  'ground' | 'figure' | 'accent', so a primitive can be quieter as a
+ *          ground or simpler as an accent.
+ *   k:     the inks the composition assigned: { paper, main, alt, line, glow }.
+ *   t:     seconds; still freezes motion at a calm frame.
+ * Everything is drawn with slightly wobbly, hand-cut geometry. */
+const Prims = (() => {
+  'use strict';
+  const C = Core, { TAU, lerp, clamp, css, mix } = C;
+  const BR = (t, still, ph = 0) => (still ? 0.5 : 0.5 - 0.5 * Math.cos(TAU * t / C.BREATH + ph)); // 0..1 breath
+
+  // ---------- hand-made helpers ----------
+  // A circle whose radius wanders a little, like a ring drawn with a pen.
+  function wobRing(ctx, cx, cy, r, ry, nz, amt, a0 = 0, a1 = TAU, keep) {
+    if (!keep) ctx.beginPath();
+    const M = Math.max(24, Math.ceil(r * 260));
+    for (let i = 0; i <= M; i++) {
+      const a = lerp(a0, a1, i / M), rr = r * (1 + amt * nz(a * 1.3 + r * 9));
+      const x = cx + rr * Math.cos(a), y = cy + rr * (ry ?? 1) * Math.sin(a);
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+  }
+  function wobLine(ctx, pts, nz, amt) {
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => { const d = amt * nz(i * 0.37 + x * 3); i ? ctx.lineTo(x, y + d) : ctx.moveTo(x, y + d); });
+  }
+  const fill = (ctx, col, a = 1) => { ctx.globalAlpha = a; ctx.fillStyle = css(col); ctx.fill(); ctx.globalAlpha = 1; };
+  const stroke = (ctx, col, w, a = 1) => { ctx.globalAlpha = a; ctx.strokeStyle = css(col); ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke(); ctx.globalAlpha = 1; };
+  const soft = (ctx, x, y, r, col, a) => { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, css(col, a)); g.addColorStop(1, css(col, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); };
+  // Paint a primitive's static part once per size and inks, into a raster
+  // covering the card plus a 0.1 margin, so it can be moved cheaply.
+  function cached(ctx, p, k, paint) {
+    const px = Math.round(ctx.getTransform().a), key = `${px}|${C.hex(k.paper)}|${C.hex(k.main)}|${C.hex(k.line)}`;
+    if (!p._cache || p._cache.key !== key) {
+      const cv = document.createElement('canvas'); cv.width = cv.height = Math.round(px * 1.2);
+      const g = cv.getContext('2d'); g.setTransform(px, 0, 0, px, 0.1 * px, 0.1 * px); paint(g);
+      Object.defineProperty(p, '_cache', { value: { key, cv }, writable: true, enumerable: false });
+    }
+    return p._cache.cv;
+  }
+  function petal(ctx, x, y, len, wid, ang, bend = 0) {
+    const c = Math.cos(ang), s = Math.sin(ang), P = (u, v) => [x + u * c - v * s, y + u * s + v * c];
+    const [ax, ay] = P(len, bend * len), [l1x, l1y] = P(len * 0.35, wid), [l2x, l2y] = P(len * 0.8, wid * 0.6 + bend * len * 0.5), [r1x, r1y] = P(len * 0.35, -wid), [r2x, r2y] = P(len * 0.8, -wid * 0.6 + bend * len * 0.5);
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.bezierCurveTo(l1x, l1y, l2x, l2y, ax, ay); ctx.bezierCurveTo(r2x, r2y, r1x, r1y, x, y); ctx.closePath();
+  }
+
+  const P = {};
+
+  // 1. Breath: an orb whose halo rings follow the breath with a lag, or a
+  // pair of lobes that fill and empty.
+  P.breath = {
+    label: 'breath', motion: 'swells and settles every 10 s',
+    build: (r, pl) => ({ ...pl, kind: r.pick(['orb', 'orb', 'lungs']), n: r.int(3, 5), nz: C.noise1(r, 2), blob: C.makeBlob(r, pl.cx, pl.cy, pl.s * 0.55, 0.7, 0.003), tilt: r.range(0.3, 0.55) }),
+    draw(ctx, p, k, t, still) {
+      const b = BR(t, still);
+      if (p.kind === 'orb') {
+        for (let i = p.n - 1; i >= 0; i--) { const bi = BR(t - i * 0.6, still), rr = p.s * (0.45 + 0.55 * (i + 1) / p.n) * (0.88 + 0.12 * bi); wobRing(ctx, p.cx, p.cy, rr, 1, p.nz, 0.012); i === 0 ? fill(ctx, k.main) : stroke(ctx, k.main, 0.006 + 0.004 * (p.n - i) / p.n, 0.25 + 0.5 * (1 - i / p.n)); }
+        C.blobPath(ctx, p.blob, { imperf: 1 - b, grow: 0.9 + 0.1 * b }); fill(ctx, k.main);
+      } else {
+        const g = 0.9 + 0.12 * b;
+        [-1, 1].forEach((sd) => { petal(ctx, p.cx + sd * p.s * 0.06, p.cy - p.s * 0.55, p.s * 1.25 * g, p.s * 0.42 * g, Math.PI / 2 + sd * p.tilt, -sd * 0.12); fill(ctx, k.main); });
+        ctx.beginPath(); ctx.moveTo(p.cx, p.cy - p.s * 0.95); ctx.lineTo(p.cx, p.cy - p.s * 0.45); stroke(ctx, k.line, 0.012);
+      }
+    },
+  };
+
+  // 2. Fire: layered tongues that sway on their own clocks, embers rising.
+  P.fire = {
+    label: 'fire', motion: 'tongues flicker, embers rise',
+    build: (r, pl) => ({ ...pl, tongues: Array.from({ length: r.int(3, 5) }, () => ({ x: r.range(-0.45, 0.45), h: r.range(0.9, 1.6), w: r.range(0.28, 0.4), ph: r.range(0, TAU) })), embers: Array.from({ length: r.int(8, 16) }, () => ({ x: r.range(-0.6, 0.6), y: r.next(), v: r.range(0.08, 0.16), ph: r.range(0, TAU), z: r.range(0.006, 0.012) })), log: r.chance(0.6) }),
+    draw(ctx, p, k, t, still) {
+      const base = p.cy + p.s * 0.7, fl = (i) => (still ? 0.5 : 0.5 + 0.5 * Math.sin(t * 2.1 + i * 1.7) * Math.sin(t * 1.3 + i));
+      soft(ctx, p.cx, base - p.s * 0.2, p.s * 1.6, k.glow, 0.35);
+      p.tongues.forEach((g, i) => {
+        const h = p.s * g.h * (0.85 + 0.25 * fl(i)), sw = still ? 0 : 0.08 * p.s * Math.sin(t * 1.6 + g.ph), x = p.cx + g.x * p.s, w = g.w * p.s;
+        [[k.main, 1], [k.alt, 0.62], [k.glow, 0.3]].forEach(([col, f]) => { ctx.beginPath(); ctx.moveTo(x - w * f, base); ctx.bezierCurveTo(x - w * f, base - h * f * 0.5, x + sw - w * f * 0.3, base - h * f * 0.85, x + sw * 1.4, base - h * f); ctx.bezierCurveTo(x + sw + w * f * 0.3, base - h * f * 0.85, x + w * f, base - h * f * 0.5, x + w * f, base); ctx.closePath(); fill(ctx, col, 0.85); });
+      });
+      if (p.log) { C.cutPoly(ctx, [[p.cx - p.s * 0.8, base - 0.012], [p.cx + p.s * 0.8, base - 0.018], [p.cx + p.s * 0.82, base + 0.02], [p.cx - p.s * 0.78, base + 0.024]], C.makeRng('log' + p.cx), 0.003); fill(ctx, k.line); }
+      for (const e of p.embers) { const u = still ? e.y : (e.y + t * e.v) % 1, x = p.cx + e.x * p.s + 0.02 * Math.sin(t + e.ph), y = base - u * p.s * 2.4; C.circle(ctx, x, y, e.z * (1 - u * 0.6)); fill(ctx, k.glow, 1 - u); }
+    },
+  };
+
+  // 3. Rings: ripples spreading, a still target, or two sources interfering.
+  P.rings = {
+    label: 'rings', ground: true, motion: 'ripples open outwards',
+    build: (r, pl, slot) => ({ ...pl, kind: slot === 'ground' ? r.pick(['interference', 'target', 'ripple']) : r.pick(['ripple', 'target', 'target', 'interference']), n: r.int(4, 9), sq: r.chance(0.4) ? r.range(0.3, 0.5) : 1, nz: C.noise1(r, 2), d: r.range(0.18, 0.32), ang: r.range(0, TAU), w: r.range(0.004, 0.009), per: r.range(9, 13), slot }),
+    draw(ctx, p, k, t, still) {
+      const g = p.slot === 'ground', R = g ? 0.75 : p.s * 1.1, col = g ? k.line : k.main;
+      if (p.kind === 'ripple') {
+        for (let i = 0; i < p.n; i++) { const u = still ? (i + 0.5) / p.n : (t / p.per + i / p.n) % 1; wobRing(ctx, p.cx, p.cy, 0.02 + R * u, p.sq, p.nz, 0.015); stroke(ctx, col, p.w * (1.4 - u), Math.pow(1 - u, 1.2)); }
+        C.circle(ctx, p.cx, p.cy, 0.012); fill(ctx, col);
+      } else if (p.kind === 'target') {
+        const b = BR(t, still);
+        for (let i = p.n; i >= 1; i--) { wobRing(ctx, p.cx, p.cy, R * i / p.n * (0.97 + 0.03 * b), p.sq, p.nz, 0.01); if (i % 2 && !g) fill(ctx, i === 1 ? k.alt : col, i === 1 ? 1 : 0.18); stroke(ctx, col, p.w, 0.85); }
+      } else {
+        const ox = Math.cos(p.ang) * p.d / 2, oy = Math.sin(p.ang) * p.d / 2, n = p.n * 2 + 6;
+        [[p.cx - ox, p.cy - oy, col], [p.cx + ox, p.cy + oy, g ? k.line : k.alt]].forEach(([x, y, cc], j) => { for (let i = 1; i <= n; i++) { const ph = still ? 0 : ((t / p.per) % 1) * (R / n) * (j ? -1 : 1); wobRing(ctx, x, y, R * i / n + ph, p.sq, p.nz, 0.006); stroke(ctx, cc, p.w * 0.6, 0.7); } });
+      }
+    },
+  };
+
+  // 4. Mandala: 4- to 12-fold, two or three sparse tiers, turning slowly.
+  P.mandala = {
+    label: 'mandala', motion: 'tiers turn slowly against each other',
+    build: (r, pl) => { const n = r.pick([4, 5, 6, 8, 8, 10, 12]); return { ...pl, n, tiers: Array.from({ length: r.int(2, 3) }, (_, i) => ({ el: r.pick(['petal', 'petal', 'dot', 'arc', 'spoke', 'leaf']), rr: lerp(0.35, 1, (i + 1) / 3) * r.range(0.85, 1.05), sz: r.range(0.18, 0.32), off: r.chance(0.5) ? 0.5 : 0, dir: r.sign() })), core: r.range(0.08, 0.16), ring: r.chance(0.6) }; },
+    draw(ctx, p, k, t, still) {
+      const rot = still ? 0 : t / 240 * TAU, b = BR(t, still), S = p.s * (0.97 + 0.03 * b);
+      if (p.ring) { C.circle(ctx, p.cx, p.cy, S * 1.08); stroke(ctx, k.line, 0.004, 0.5); }
+      p.tiers.slice().reverse().forEach((T, ti) => {
+        for (let i = 0; i < p.n; i++) {
+          const a = (i + T.off) / p.n * TAU + rot * T.dir - Math.PI / 2, r0 = S * T.rr, col = ti % 2 ? k.alt : k.main;
+          if (T.el === 'petal' || T.el === 'leaf') { petal(ctx, p.cx + Math.cos(a) * r0 * 0.35, p.cy + Math.sin(a) * r0 * 0.35, r0 * 0.65, S * T.sz * (T.el === 'leaf' ? 0.25 : 0.4) * (6 / p.n + 0.4), a); fill(ctx, col, 0.92); }
+          else if (T.el === 'dot') { C.circle(ctx, p.cx + Math.cos(a) * r0, p.cy + Math.sin(a) * r0, S * T.sz * 0.22); fill(ctx, col); }
+          else if (T.el === 'arc') { ctx.beginPath(); ctx.arc(p.cx + Math.cos(a) * r0 * 0.7, p.cy + Math.sin(a) * r0 * 0.7, r0 * 0.3, a - 1.2, a + 1.2); stroke(ctx, col, 0.007); }
+          else { ctx.beginPath(); ctx.moveTo(p.cx + Math.cos(a) * r0 * 0.3, p.cy + Math.sin(a) * r0 * 0.3); ctx.lineTo(p.cx + Math.cos(a) * r0, p.cy + Math.sin(a) * r0); stroke(ctx, col, 0.006); }
+        }
+      });
+      C.circle(ctx, p.cx, p.cy, S * p.core * (0.9 + 0.2 * b)); fill(ctx, k.alt);
+    },
+  };
+
+  // 5. Strata: wavering bands like sediment or layered mist.
+  P.strata = {
+    label: 'strata', ground: true, motion: 'bands drift a little',
+    build: (r, pl, slot) => ({ ...pl, n: r.int(5, 10), amp: r.range(0.006, 0.025), f: r.range(0.6, 2), ph: r.range(0, TAU), nz: C.noise1(r, 3), y0: slot === 'ground' ? 0 : pl.cy - pl.s, y1: slot === 'ground' ? 1 : pl.cy + pl.s, slot, tone: r.range(0.15, 0.45) }),
+    draw(ctx, p, k, t, still) {
+      const dr = still ? 0 : 0.02 * Math.sin(t / 20);
+      for (let i = 0; i < p.n; i++) {
+        const y = lerp(p.y0, p.y1, (i + 1) / (p.n + 1)), pts = [];
+        for (let x = -0.05; x <= 1.05; x += 0.025) pts.push([x, y + p.amp * Math.sin(TAU * p.f * (x + dr * (i % 2 ? 1 : -1)) + p.ph + i * 0.7)]);
+        if (p.slot === 'ground') { ctx.beginPath(); pts.forEach(([x, yy], j) => (j ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy))); ctx.lineTo(1.05, 1.05); ctx.lineTo(-0.05, 1.05); ctx.closePath(); fill(ctx, i % 2 ? k.main : k.alt, p.tone * 0.5); }
+        else { wobLine(ctx, pts, p.nz, 0.003); stroke(ctx, i % 3 ? k.line : k.main, 0.008, 0.85); }
+      }
+    },
+  };
+
+  // 6. Horizon: a split of sky and ground, a low disc, reflection marks.
+  P.horizon = {
+    label: 'horizon', ground: true, motion: 'reflections shimmer',
+    build: (r, pl) => ({ ...pl, y: r.range(0.52, 0.68), sun: r.chance(0.7), sx: r.range(0.3, 0.7), sr: r.range(0.08, 0.14), bars: r.int(3, 6), blob: null }),
+    draw(ctx, p, k, t, still) {
+      ctx.fillStyle = css(k.main, 0.35); ctx.fillRect(0, p.y, 1, 1);
+      ctx.beginPath(); ctx.moveTo(0, p.y); ctx.lineTo(1, p.y); stroke(ctx, k.line, 0.006);
+      if (p.sun) { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, 1, p.y); ctx.clip(); C.circle(ctx, p.sx, p.y - p.sr * 0.35, p.sr); fill(ctx, k.alt); ctx.restore(); }
+      for (let i = 0; i < p.bars; i++) { const y = p.y + 0.03 + i * 0.035, w = p.sr * 2 * (0.9 - i * 0.14) * (still ? 1 : 1 + 0.15 * Math.sin(t * 0.9 + i)); ctx.beginPath(); ctx.moveTo(p.sx - w / 2, y); ctx.lineTo(p.sx + w / 2, y); stroke(ctx, k.alt, 0.012 - i * 0.0015, 0.8 - i * 0.1); }
+    },
+  };
+
+  // 7. Streaks: slanted rain, falling.
+  P.streaks = {
+    label: 'streaks', ground: true, motion: 'falls',
+    build: (r, pl, slot) => ({ ...pl, slant: r.range(-0.25, 0.05), n: slot === 'ground' ? r.int(50, 90) : r.int(18, 30), drops: Array.from({ length: 90 }, () => ({ x: r.range(-0.2, 1.2), y: r.next(), l: r.range(0.04, 0.1), v: r.range(0.08, 0.14), a: r.range(0.3, 0.9) })), slot }),
+    draw(ctx, p, k, t, still) {
+      const box = p.slot === 'ground' ? [0, 0, 1, 1] : [p.cx - p.s, p.cy - p.s, p.s * 2, p.s * 2];
+      ctx.save(); ctx.beginPath(); p.slot === 'ground' ? ctx.rect(...box) : ctx.arc(p.cx, p.cy, p.s, 0, TAU); ctx.clip();
+      for (const d of p.drops.slice(0, p.n)) { const y = box[1] + (((d.y + (still ? 0 : t * d.v)) % 1.15) - 0.1) * box[3], x = box[0] + d.x * box[2] + (y - box[1]) * p.slant; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + d.l * p.slant, y + d.l); stroke(ctx, p.slot === 'ground' ? k.line : k.main, p.slot === 'ground' ? 0.0045 : 0.006, d.a * (p.slot === 'ground' ? 0.75 : 1)); }
+      ctx.restore();
+    },
+  };
+
+  // 8. Waves: a field of rows of sine strokes, travelling.
+  P.waves = {
+    label: 'waves', ground: true, motion: 'rows travel',
+    build: (r, pl, slot) => ({ ...pl, rows: r.int(5, 11), amp: r.range(0.008, 0.022), f: r.range(2, 5), dash: r.chance(0.4), nz: C.noise1(r, 2), slot, v: r.range(0.15, 0.3) }),
+    draw(ctx, p, k, t, still) {
+      const [y0, y1] = p.slot === 'ground' ? [0.08, 0.95] : [p.cy - p.s * 0.7, p.cy + p.s * 0.7], [x0, x1] = p.slot === 'ground' ? [-0.05, 1.05] : [p.cx - p.s, p.cx + p.s];
+      for (let i = 0; i < p.rows; i++) {
+        const y = lerp(y0, y1, i / (p.rows - 1)), ph = (still ? 0 : t * p.v) + i * 0.9, pts = [];
+        for (let x = x0; x <= x1; x += 0.012) pts.push([x, y + p.amp * Math.sin(TAU * p.f * x + ph)]);
+        if (p.dash) ctx.setLineDash([0.05, 0.03]);
+        wobLine(ctx, pts, p.nz, 0.0015); stroke(ctx, i % 2 ? k.line : k.main, 0.006, p.slot === 'ground' ? 0.4 : 0.9);
+        ctx.setLineDash([]);
+      }
+    },
+  };
+
+  // 9. Scales (seigaiha): overlapping fans of concentric arcs.
+  P.scales = {
+    label: 'scales', ground: true, motion: 'drifts slowly sideways',
+    build: (r, pl, slot) => ({ ...pl, R: slot === 'ground' ? r.range(0.07, 0.11) : r.range(0.05, 0.07), rings: r.int(3, 4), slot }),
+    // Hundreds of overlapping fans: painted once into a raster with a margin,
+    // then only moved.
+    draw(ctx, p, k, t, still) {
+      const img = cached(ctx, p, k, (g) => {
+        const R = p.R;
+        for (let row = 0, y = -0.1 - R; y < 1.1 + R * 2; row++, y += R * 0.5) {
+          for (let x = (row % 2) * R - R - 0.1; x < 1.1 + R; x += R * 2) {
+            g.beginPath(); g.arc(x, y, R, Math.PI, TAU); g.lineTo(x + R, y + R); g.lineTo(x - R, y + R); g.closePath(); fill(g, k.paper);
+            for (let i = 0; i < p.rings; i++) { g.beginPath(); g.arc(x, y, R * (1 - i / p.rings), Math.PI, TAU); stroke(g, i ? k.line : k.main, 0.005, p.slot === 'ground' ? 0.45 : 0.9); }
+          }
+        }
+      });
+      const dx = still ? 0 : 0.04 * Math.sin(t / 18);
+      ctx.save();
+      if (p.slot !== 'ground') { ctx.beginPath(); ctx.arc(p.cx, p.cy, p.s, 0, TAU); ctx.clip(); }
+      ctx.drawImage(img, -0.1 + dx, -0.1, 1.2, 1.2);
+      ctx.restore();
+    },
+  };
+
+  // 10. Points: a constellation, a few stars joined, the rest twinkling.
+  P.points = {
+    label: 'constellation', ground: true, motion: 'twinkles',
+    build: (r, pl, slot) => { const n = slot === 'ground' ? r.int(40, 70) : r.int(6, 9); const pts = Array.from({ length: n }, () => ({ x: slot === 'ground' ? r.next() : pl.cx + r.range(-1, 1) * pl.s, y: slot === 'ground' ? r.next() * 0.7 : pl.cy + r.range(-0.8, 0.8) * pl.s, z: r.range(0.002, 0.007), ph: r.range(0, TAU), sp: r.range(0.4, 1.4) })); const chain = slot === 'ground' ? [] : pts.map((_, i) => i).sort((a, b) => pts[a].x - pts[b].x); return { ...pl, pts, chain, slot }; },
+    draw(ctx, p, k, t, still) {
+      if (p.chain.length) { ctx.beginPath(); p.chain.forEach((i, j) => (j ? ctx.lineTo(p.pts[i].x, p.pts[i].y) : ctx.moveTo(p.pts[i].x, p.pts[i].y))); stroke(ctx, k.line, 0.005, 0.7); }
+      for (const q of p.pts) { const tw = still ? 0.8 : 0.5 + 0.5 * Math.sin(t * q.sp + q.ph); C.circle(ctx, q.x, q.y, q.z * (p.chain.length ? 2.6 : 1)); fill(ctx, p.chain.length ? k.main : k.line, 0.35 + 0.65 * tw); }
+    },
+  };
+
+  // 11. Lotus: petals fanned from a base, opening on the inhale.
+  P.lotus = {
+    label: 'lotus', motion: 'opens on the inhale',
+    build: (r, pl) => ({ ...pl, n: r.pick([5, 7, 9]), tiers: r.int(1, 2), spread: r.range(0.9, 1.4), water: r.chance(0.5) }),
+    draw(ctx, p, k, t, still) {
+      const b = BR(t, still), base = p.cy + p.s * 0.55;
+      if (p.water) { ctx.beginPath(); ctx.ellipse(p.cx, base + 0.01, p.s * 1.2, p.s * 0.14, 0, 0, TAU); fill(ctx, k.alt, 0.35); }
+      for (let tr = p.tiers - 1; tr >= 0; tr--) {
+        const n = p.n - tr * 2, sp = p.spread * (0.85 + 0.15 * b) * (1 + tr * 0.25);
+        for (let i = 0; i < n; i++) { const u = n === 1 ? 0 : i / (n - 1) - 0.5, a = -Math.PI / 2 + u * sp; petal(ctx, p.cx, base, p.s * (1.15 - Math.abs(u) * 0.5) * (1 - tr * 0.18), p.s * 0.2, a); fill(ctx, tr ? k.alt : k.main, 0.92); stroke(ctx, k.paper, 0.004, 0.6); }
+      }
+    },
+  };
+
+  // 12. Spiral: an ammonite, chambers and all, turning slowly.
+  P.spiral = {
+    label: 'ammonite', motion: 'turns very slowly',
+    build: (r, pl) => ({ ...pl, turns: r.range(2.2, 3.2), k: r.range(0.16, 0.22), septa: r.int(14, 24), dir: r.sign(), nz: C.noise1(r, 2) }),
+    draw(ctx, p, k, t, still) {
+      const rot = (still ? 0 : t / 300 * TAU) * p.dir, th1 = p.turns * TAU, R = (th) => p.s * Math.exp(p.k * (th - th1));
+      C.circle(ctx, p.cx, p.cy, p.s); fill(ctx, k.main, 0.85);
+      ctx.beginPath(); for (let i = 0; i <= 300; i++) { const th = th1 * i / 300, rr = R(th); const a = p.dir * th + rot; i ? ctx.lineTo(p.cx + rr * Math.cos(a), p.cy + rr * Math.sin(a)) : ctx.moveTo(p.cx + rr * Math.cos(a), p.cy + rr * Math.sin(a)); } stroke(ctx, k.line, 0.007);
+      for (let i = 1; i <= p.septa; i++) { const th = th1 * (0.25 + 0.75 * i / p.septa), a = p.dir * th + rot, r0 = R(th - TAU), r1 = R(th); ctx.beginPath(); ctx.moveTo(p.cx + r0 * Math.cos(a), p.cy + r0 * Math.sin(a)); ctx.quadraticCurveTo(p.cx + (r0 + r1) / 2 * Math.cos(a + 0.12 * p.dir), p.cy + (r0 + r1) / 2 * Math.sin(a + 0.12 * p.dir), p.cx + r1 * Math.cos(a), p.cy + r1 * Math.sin(a)); stroke(ctx, k.line, 0.004, 0.7); }
+    },
+  };
+
+  // 13. Cairn: three to five stacked stones, cut by hand.
+  P.cairn = {
+    label: 'cairn', motion: 'the top stone settles',
+    build: (r, pl) => { const n = r.int(3, 5); let y = pl.cy + pl.s * 0.9; const st = []; for (let i = 0; i < n; i++) { const rx = pl.s * (0.75 - i * 0.12) * r.range(0.85, 1.1), ry = rx * r.range(0.42, 0.58); y -= ry; const b = C.makeBlob(r, pl.cx + r.range(-0.04, 0.04) * pl.s * 3, y, 1, 0.8, 0.006); b.rot = r.range(-0.12, 0.12); b.rx = rx; b.ry = ry; st.push(b); y -= ry * 0.88; } return { ...pl, st }; },
+    draw(ctx, p, k, t, still) {
+      const b = BR(t, still);
+      p.st.forEach((s, i) => { C.blobPath(ctx, s, { sx: s.rx, sy: s.ry, dy: i === p.st.length - 1 ? -0.004 * b : 0 }); fill(ctx, i % 2 ? k.alt : k.main); });
+    },
+  };
+
+  // 14. Threads: long flowing lines, like wind across grass.
+  P.threads = {
+    label: 'threads', ground: true, motion: 'flows',
+    build: (r, pl, slot) => ({ ...pl, n: slot === 'ground' ? r.int(10, 18) : r.int(6, 10), lines: Array.from({ length: 18 }, () => ({ y: r.next(), amp: r.range(0.02, 0.07), f: r.range(0.6, 1.6), ph: r.range(0, TAU), v: r.range(0.1, 0.25) })), slot }),
+    draw(ctx, p, k, t, still) {
+      const g = p.slot === 'ground';
+      p.lines.slice(0, p.n).forEach((L, i) => {
+        const y0 = g ? L.y : p.cy - p.s * 0.6 + L.y * p.s * 1.2, ph = L.ph + (still ? 0 : t * L.v), pts = [];
+        for (let x = g ? -0.05 : p.cx - p.s * 1.2; x <= (g ? 1.05 : p.cx + p.s * 1.2); x += 0.015) pts.push([x, y0 + L.amp * Math.sin(TAU * L.f * x + ph) + 0.02 * Math.sin(TAU * 0.4 * x + ph * 0.5)]);
+        ctx.beginPath(); pts.forEach(([x, y], j) => (j ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); stroke(ctx, i % 3 ? k.line : k.main, g ? 0.004 : 0.011 - (i % 3) * 0.002, g ? 0.45 : 0.95);
+      });
+    },
+  };
+
+  // 15. Weave: bands over and under, like a cushion cover.
+  P.weave = {
+    label: 'weave', ground: true, motion: 'a light thread glints along it',
+    build: (r, pl, slot) => ({ ...pl, n: r.int(4, 7), w: r.range(0.45, 0.7), slot, tilt: r.range(-0.15, 0.15) }),
+    draw(ctx, p, k, t, still) {
+      const g = p.slot === 'ground', [x0, y0, S] = g ? [-0.1, -0.1, 1.2] : [p.cx - p.s, p.cy - p.s, p.s * 2], cell = S / p.n, bw = cell * p.w;
+      ctx.save(); ctx.translate(p.cx || 0.5, p.cy || 0.5); ctx.rotate(p.tilt); ctx.translate(-(p.cx || 0.5), -(p.cy || 0.5));
+      if (!g) { ctx.beginPath(); ctx.rect(x0, y0, S, S); ctx.clip(); }
+      const glint = still ? -1 : Math.floor((t * 0.4) % p.n);
+      const vb = (i, j0, j1) => { ctx.beginPath(); ctx.rect(x0 + i * cell + (cell - bw) / 2, y0 + j0 * cell, bw, (j1 - j0) * cell); fill(ctx, i === glint ? k.alt : k.main, g ? 0.4 : 1); };
+      const hb = (j) => { ctx.beginPath(); ctx.rect(x0, y0 + j * cell + (cell - bw) / 2, S, bw); fill(ctx, j === glint ? k.main : k.alt, g ? 0.4 : 1); };
+      for (let i = 0; i < p.n; i++) vb(i, 0, p.n);
+      for (let j = 0; j < p.n; j++) hb(j);
+      // the vertical band comes back over where the pattern says so
+      for (let i = 0; i < p.n; i++) for (let j = 0; j < p.n; j++) if ((i + j) % 2 === 0) { ctx.beginPath(); ctx.rect(x0 + i * cell + (cell - bw) / 2, y0 + j * cell + (cell - bw) / 2 - 0.004, bw, bw + 0.008); fill(ctx, i === glint ? k.alt : k.main, g ? 0.4 : 1); ctx.beginPath(); ctx.moveTo(x0 + i * cell + (cell - bw) / 2, y0 + j * cell + (cell - bw) / 2 - 0.004); ctx.lineTo(x0 + i * cell + (cell + bw) / 2, y0 + j * cell + (cell - bw) / 2 - 0.004); stroke(ctx, k.paper, 0.004, 0.5); }
+      ctx.restore();
+    },
+  };
+
+  // 16. Moon: one moon in phase, or a row of phases; the phase moves slowly.
+  P.moon = {
+    label: 'moon', motion: 'the phase moves',
+    build: (r, pl) => ({ ...pl, kind: r.pick(['one', 'one', 'row']), ph: r.next(), n: r.pick([5, 7]) }),
+    draw(ctx, p, k, t, still) {
+      const disc = (x, y, R, ph) => {
+        C.circle(ctx, x, y, R); fill(ctx, k.main, 0.22);
+        const c = Math.cos(ph * TAU); ctx.save(); C.circle(ctx, x, y, R); ctx.clip();
+        ctx.beginPath(); ctx.arc(x, y, R, -Math.PI / 2, Math.PI / 2, ph > 0.5); ctx.ellipse(x, y, Math.abs(c) * R, R, 0, Math.PI / 2, -Math.PI / 2, (c > 0) !== (ph > 0.5)); fill(ctx, k.main); ctx.restore();
+      };
+      const ph = (p.ph + (still ? 0 : t / 400)) % 1;
+      if (p.kind === 'one') disc(p.cx, p.cy, p.s * 0.75, ph);
+      else { const W = Math.min(p.s * 2.6, 0.76), x0 = C.clamp(p.cx - W / 2, 0.12, 0.88 - W); for (let i = 0; i < p.n; i++) disc(x0 + (i / (p.n - 1)) * W, p.cy, W / 2 / p.n, (ph + i / (p.n - 1) * 0.5) % 1); }
+    },
+  };
+
+  // 17. Dots: a grid whose sizes ride a slow wave, a soft bokeh, or grain.
+  P.dots = {
+    label: 'dot rhythm', ground: true, motion: 'a wave passes through',
+    build: (r, pl, slot) => ({ ...pl, kind: r.pick(['grid', 'grid', 'bokeh', 'field']), n: r.int(7, 13), fx: r.range(1, 3), fy: r.range(0.5, 2), ph: r.range(0, TAU), b: Array.from({ length: 16 }, () => ({ x: r.next(), y: r.next(), r: r.range(0.03, 0.1), ph: r.range(0, TAU) })), slot }),
+    draw(ctx, p, k, t, still) {
+      const g = p.slot === 'ground', [x0, y0, S] = g ? [0, 0, 1] : [p.cx - p.s, p.cy - p.s, p.s * 2], ph = p.ph + (still ? 0 : t * 0.4);
+      // One path for all the dots: a fill per dot is what makes grids slow.
+      const dot = (x, y, r) => { ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, TAU); };
+      if (p.kind === 'grid') { const c = S / p.n; ctx.beginPath(); for (let i = 0; i < p.n; i++) for (let j = 0; j < p.n; j++) { const v = 0.5 + 0.5 * Math.sin(p.fx * i / p.n * TAU + p.fy * j / p.n * TAU - ph); dot(x0 + (i + 0.5) * c, y0 + (j + 0.5) * c, c * 0.42 * (0.15 + 0.85 * v)); } fill(ctx, g ? k.line : k.main, g ? 0.35 : 0.9); }
+      else if (p.kind === 'bokeh') p.b.forEach((q) => soft(ctx, x0 + q.x * S, y0 + q.y * S, q.r * S * 1.3, (q.ph > 3 ? k.alt : k.glow), 0.5 * (0.7 + 0.3 * Math.sin(ph + q.ph))));
+      else { const R = C.makeRng('field'); ctx.beginPath(); for (let i = 0; i < 260; i++) { const x = x0 + R.next() * S, y = y0 + R.next() * S; dot(x, y, R.range(0.002, 0.006) * (1 + 0.5 * Math.sin(ph + x * 9))); } fill(ctx, g ? k.line : k.main, 0.6); }
+    },
+  };
+
+  // 18. Hills: two to four cut-paper ridges, drifting in parallax.
+  P.hills = {
+    label: 'cut-paper hills', ground: true, motion: 'ridges drift in parallax',
+    build: (r, pl) => ({ ...pl, layers: Array.from({ length: r.int(2, 4) }, (_, i) => ({ y: r.range(0.5, 0.62) + i * r.range(0.07, 0.11), amp: r.range(0.03, 0.09), f: r.range(0.5, 1.6), ph: r.range(0, TAU), rr: C.makeRng('h' + r.next()) })) }),
+    draw(ctx, p, k, t, still) {
+      const n = p.layers.length;
+      p.layers.forEach((L, i) => {
+        const dr = still ? 0 : 0.015 * (i + 1) * Math.sin(t / 25), pts = [[-0.1, 1.1]];
+        for (let x = -0.1; x <= 1.1; x += 0.05) pts.push([x, L.y - L.amp * (0.6 + 0.4 * Math.sin(TAU * L.f * (x + dr) + L.ph))]);
+        pts.push([1.1, 1.1]); C.cutPoly(ctx, pts, C.makeRng('hill' + i + L.ph), 0.004);
+        fill(ctx, mix(k.alt, k.main, n === 1 ? 1 : i / (n - 1)));
+      });
+    },
+  };
+
+  // 19. Sun: a disc with rays, wedges or lines, turning slowly.
+  P.sun = {
+    label: 'sun and rays', motion: 'rays turn slowly',
+    build: (r, pl) => ({ ...pl, n: r.pick([8, 12, 16, 24]), kind: r.pick(['lines', 'wedges', 'dashes']), len: r.range(0.5, 0.9) }),
+    draw(ctx, p, k, t, still) {
+      const rot = still ? 0 : t / 200 * TAU, b = BR(t, still), R = p.s * 0.45;
+      for (let i = 0; i < p.n; i++) {
+        const a = i / p.n * TAU + rot, r0 = R * 1.25, r1 = R * (1.3 + p.len * (i % 2 ? 0.7 : 1)) * (0.95 + 0.05 * b);
+        if (p.kind === 'wedges') { ctx.beginPath(); ctx.moveTo(p.cx + Math.cos(a - 0.08) * r0, p.cy + Math.sin(a - 0.08) * r0); ctx.lineTo(p.cx + Math.cos(a) * r1, p.cy + Math.sin(a) * r1); ctx.lineTo(p.cx + Math.cos(a + 0.08) * r0, p.cy + Math.sin(a + 0.08) * r0); ctx.closePath(); fill(ctx, k.alt); }
+        else { if (p.kind === 'dashes') ctx.setLineDash([0.02, 0.015]); ctx.beginPath(); ctx.moveTo(p.cx + Math.cos(a) * r0, p.cy + Math.sin(a) * r0); ctx.lineTo(p.cx + Math.cos(a) * r1, p.cy + Math.sin(a) * r1); stroke(ctx, k.alt, 0.008); ctx.setLineDash([]); }
+      }
+      C.circle(ctx, p.cx, p.cy, R); fill(ctx, k.main);
+    },
+  };
+
+  // 20. Stack: cut-paper cards piled a little askew.
+  P.stack = {
+    label: 'stack', motion: 'the top card lifts on the breath',
+    build: (r, pl) => ({ ...pl, cards: Array.from({ length: r.int(4, 7) }, (_, i) => ({ dx: r.range(-0.05, 0.05), dy: -i * r.range(0.035, 0.05), rot: r.range(-0.12, 0.12), w: r.range(1.1, 1.4), h: r.range(0.32, 0.5), rr: C.makeRng('card' + r.next()) })) }),
+    draw(ctx, p, k, t, still) {
+      const b = BR(t, still), n = p.cards.length;
+      p.cards.forEach((c, i) => {
+        ctx.save(); ctx.translate(p.cx + c.dx * p.s * 3, p.cy + p.s * 0.3 + c.dy * p.s * 3 - (i === n - 1 ? 0.01 * b : 0)); ctx.rotate(c.rot);
+        const w = c.w * p.s / 2, h = c.h * p.s / 2; C.cutPoly(ctx, [[-w, -h], [w, -h], [w, h], [-w, h]], c.rr, 0.003);
+        fill(ctx, i % 2 ? k.alt : k.main); stroke(ctx, k.paper, 0.004, 0.7); ctx.restore();
+      });
+    },
+  };
+
+  // 21. Grove: a row of trees cut from paper, swaying.
+  P.grove = {
+    label: 'grove', ground: true, motion: 'sways',
+    build: (r, pl) => ({ ...pl, trees: Array.from({ length: r.int(4, 9) }, () => ({ x: r.range(0.04, 0.96), h: r.range(0.14, 0.32), kind: r.pick(['pine', 'round', 'pine']), z: r.next() })).sort((a, b) => a.z - b.z), base: r.range(0.7, 0.82) }),
+    draw(ctx, p, k, t, still) {
+      for (const tr of p.trees) {
+        const sw = still ? 0 : 0.006 * Math.sin(t * 0.6 + tr.x * 9), b = p.base + tr.z * 0.06, col = mix(k.alt, k.main, tr.z);
+        if (tr.kind === 'pine') C.cutPoly(ctx, [[tr.x + sw, b - tr.h], [tr.x + tr.h * 0.3, b], [tr.x - tr.h * 0.3, b]], C.makeRng('t' + tr.x), 0.003);
+        else { ctx.beginPath(); ctx.moveTo(tr.x, b); ctx.lineTo(tr.x + sw, b - tr.h * 0.4); stroke(ctx, col, 0.008); C.circle(ctx, tr.x + sw, b - tr.h * 0.62, tr.h * 0.3); }
+        fill(ctx, col);
+      }
+      ctx.fillStyle = css(k.main); ctx.fillRect(0, p.base + 0.05, 1, 1);
+    },
+  };
+
+  // 22. Disc: one plain round body (sun, moon, bindu), breathing between a
+  // true circle and its pebble shape. The quietest accent.
+  P.disc = {
+    label: 'disc', motion: 'breathes between round and pebble',
+    build: (r, pl) => ({ ...pl, blob: C.makeBlob(r, pl.cx, pl.cy, pl.s * 0.6, 0.7, 0.003) }),
+    draw(ctx, p, k, t, still) { const b = BR(t, still); C.blobPath(ctx, p.blob, { imperf: 1 - b, grow: 0.95 + 0.05 * b }); fill(ctx, k.main); },
+  };
+
+  return P;
+})();
+
+</script>
+<script>
+/* Round 3 composition grammar.
+ *
+ *   card   = paper + ground? + figure + accent?
+ *   paper  = light | mid | dark, weighted by kind
+ *   ground = a primitive that fills the card, quiet (low contrast)
+ *   figure = one primitive, placed by a layout (centre, low, left, right, big)
+ *   accent = a small primitive on the second ink plate, misregistered
+ *
+ * A meaning map says which primitives may fill each slot for a sound kind or
+ * cover kind. The seed picks the structure first, then the parameters, so two
+ * rain cards can differ in what they are made of, not only in colour. */
+const Compose = (() => {
+  'use strict';
+  const C = Core, { mix, css, lerp } = C;
+
+  // ---------- meaning ----------
+  // slot lists may repeat a name to weight it; null means "leave empty".
+  const M = {
+    rain: { paper: { dark: 3, mid: 2 }, ground: ['streaks', 'streaks', 'streaks', 'strata', 'waves'], figure: ['rings', 'streaks', 'rings', 'horizon', 'moon', 'threads'], accent: ['disc', 'points', null, null] },
+    water: { paper: { mid: 3, dark: 2, light: 1 }, ground: ['waves', 'scales', 'strata', null], figure: ['rings', 'waves', 'scales', 'horizon', 'rings'], accent: ['disc', 'moon', null] },
+    wind: { paper: { mid: 3, light: 2 }, ground: ['threads', 'threads', 'hills', null], figure: ['threads', 'threads', 'grove', 'breath'], accent: ['disc', 'points', null] },
+    forest: { paper: { mid: 2, light: 2, dark: 1 }, ground: ['grove', 'hills', 'points', null], figure: ['grove', 'lotus', 'mandala', 'hills'], accent: ['disc', 'sun', 'points', null] },
+    fire: { paper: { dark: 4, mid: 1 }, ground: ['dots', 'strata', null, null], figure: ['fire', 'fire', 'sun'], accent: ['points', 'disc', null] },
+    room: { paper: { dark: 2, mid: 2, light: 1 }, ground: ['dots', 'weave', 'strata', null], figure: ['dots', 'weave', 'breath', 'stack', 'sun'], accent: ['disc', 'moon', null] },
+    night: { paper: { dark: 4 }, ground: ['points', 'points', 'dots', null], figure: ['moon', 'points', 'rings', 'grove', 'lotus', 'moon'], accent: ['disc', 'points', null] },
+    noise: { paper: { light: 1, mid: 2, dark: 2 }, ground: ['dots', 'strata', 'dots'], figure: ['dots', 'strata', 'weave'], accent: [null, null, 'disc'] },
+    drone: { paper: { dark: 3, mid: 1 }, ground: ['rings', null], figure: ['rings', 'mandala', 'breath', 'spiral'], accent: ['disc', null] },
+    binaural: { paper: { dark: 2, mid: 2 }, ground: ['waves', null], figure: ['rings', 'waves'], accent: ['disc', null], force: { figure: { kind: 'interference' } } },
+    course: { paper: { light: 4, mid: 2, dark: 1 }, ground: ['hills', 'horizon', 'strata', 'points', null, null], figure: ['sun', 'mandala', 'cairn', 'lotus', 'horizon', 'spiral', 'grove', 'moon', 'rings', 'sun'], accent: ['disc', 'moon', 'disc', null, null, 'points'] },
+    playlist: { paper: { light: 3, mid: 2, dark: 1 }, ground: ['weave', 'dots', 'strata', 'scales', null], figure: ['stack', 'stack', 'weave', 'moon', 'dots', 'cairn'], accent: ['disc', null, null] },
+    teacher: { paper: { light: 3, mid: 2 }, ground: [null, null, 'rings', 'dots'], figure: ['mandala', 'mandala', 'lotus', 'breath', 'sun'], accent: [null, null, 'disc'], layout: ['centre', 'big'] },
+    single: { paper: { light: 3, mid: 1, dark: 1 }, ground: [null], figure: Object.keys(Prims).filter((k) => !['stack'].includes(k)), accent: [null] },
+  };
+  const SOUND_KIND = (id) => id.startsWith('rain') ? 'rain' : ['stream', 'river', 'waves', 'sea'].includes(id) ? 'water' : id.startsWith('wind') ? 'wind'
+    : ['forest-birds', 'dawn-chorus', 'evening-birds', 'forest-brook'].includes(id) ? 'forest' : id.startsWith('fire') ? 'fire' : ['room-house', 'cafe', 'train'].includes(id) ? 'room'
+    : id.startsWith('night') ? 'night' : id.startsWith('noise') ? 'noise' : id;
+
+  const LAYOUT = {
+    centre: () => ({ cx: 0.5, cy: 0.48, s: 0.3 }),
+    low: () => ({ cx: 0.5, cy: 0.58, s: 0.26 }),
+    left: () => ({ cx: 0.36, cy: 0.46, s: 0.25 }),
+    right: () => ({ cx: 0.64, cy: 0.46, s: 0.25 }),
+    big: () => ({ cx: 0.5, cy: 0.52, s: 0.4 }),
+  };
+  const ACCENT_AT = (fig, r) => { const a = r.range(0, Math.PI * 2), d = fig.s * r.range(1.05, 1.4); return { cx: C.clamp(fig.cx + Math.cos(a) * d, 0.14, 0.86), cy: C.clamp(fig.cy + Math.sin(a) * d * 0.8 - 0.05, 0.14, 0.7), s: r.range(0.05, 0.09) }; };
+
+  // ---------- inks ----------
+  // Paper sets the value key; inks are chosen to read against it.
+  function inks(c, key, r) {
+    const paper = key === 'light' ? mix(c.tile, c.accent, r.range(0, 0.12)) : key === 'mid' ? mix(c.form, c.tile, r.range(0.25, 0.45)) : mix(c.deep, c.form, r.range(0.12, 0.3));
+    const strong = C.lum(paper) > 0.3 ? [c.stroke, mix(c.stroke, c.form, 0.35), c.deep].filter((x) => C.contrast(x, paper) > 2) : [c.light, mix(c.light, c.accent, 0.3)];
+    const warm = [c.accent, mix(c.accent, c.form, 0.3)];
+    const main = r.pick([c.form, ...strong, warm[0]].filter((x) => C.contrast(x, paper) > 1.35)) || strong[0];
+    const alt = r.pick(warm.filter((x) => C.hex(x) !== C.hex(main)).concat([mix(main, paper, 0.4)]));
+    return {
+      paper, main, alt,
+      line: C.lum(paper) > 0.3 ? mix(c.stroke, paper, 0.25) : mix(c.light, paper, 0.25),
+      glow: mix(c.accent, c.light, 0.45),
+      ground: { paper, main: mix(paper, main, 0.45), alt: mix(paper, alt, 0.45), line: mix(paper, C.lum(paper) > 0.3 ? c.stroke : c.light, 0.5), glow: mix(paper, c.accent, 0.5) },
+    };
+  }
+
+  // ---------- build ----------
+  // Returns a plain description: paper key, inks seed, layers with their
+  // primitive, slot and built parameters. Nothing here draws.
+  function build(kindKey, id, opts = {}) {
+    const m = M[kindKey], r = C.makeRng(`r3:${kindKey}:${id}`);
+    const key = r.weighted(m.paper);
+    const layoutName = r.pick(m.layout || ['centre', 'centre', 'low', 'left', 'right', 'big']);
+    const fig = LAYOUT[layoutName]();
+    const layers = [];
+    const g = opts.ground !== undefined ? opts.ground : r.pick(m.ground);
+    const f = opts.figure || r.pick(m.figure);
+    let a = opts.accent !== undefined ? opts.accent : r.pick(m.accent);
+    if (g && g !== f) layers.push({ prim: g, slot: 'ground', p: Prims[g].build(C.makeRng(`${id}:g`), { cx: 0.5, cy: 0.5, s: 0.5 }, 'ground') });
+    const fp = Prims[f].build(C.makeRng(`${id}:f`), fig, 'figure');
+    Object.assign(fp, (m.force && m.force.figure) || {});
+    layers.push({ prim: f, slot: 'figure', p: fp });
+    if (a && a !== f) layers.push({ prim: a, slot: 'accent', p: Prims[a].build(C.makeRng(`${id}:a`), ACCENT_AT(fig, r), 'accent') });
+    return { kindKey, id, key, layoutName, layers, inkSeed: `${id}:ink`, mis: [r.range(-0.01, 0.01), r.range(0.003, 0.01)] };
+  }
+
+  // ---------- print finish, baked ----------
+  // Round 2 laid paper grain with an 'overlay' pattern fill and speckle with a
+  // second pattern on every frame; on a page of live cards that fill cost
+  // more than the art. Here grain (light and dark flecks), ink speckle in the
+  // paper colour and a faint vignette are baked once per paper colour and
+  // size into one transparent raster, and each frame draws it with one
+  // drawImage.
+  const grains = new Map();
+  let paperPx = null;
+  function grainFor(c, px, H = 1) {
+    const ph = Math.round(px * H), key = `${C.hex(c.tile)}|${px}|${ph}`;
+    if (grains.has(key)) return grains.get(key);
+    const cv = document.createElement('canvas'); cv.width = px; cv.height = ph;
+    const g = cv.getContext('2d'), img = g.createImageData(px, ph), d = img.data, r = C.makeRng('grain3'), tile = C.rgb(c.tile), deep = C.rgb(c.deep);
+    const light = C.lum(c.tile) > 0.35;
+    // Round 2's paper (clouding, tooth, fibres), read once and tiled.
+    paperPx = paperPx || C.paperTex().getContext('2d').getImageData(0, 0, 256, 256).data;
+    for (let y = 0; y < ph; y++) for (let x = 0; x < px; x++) {
+      const i = (y * px + x) * 4, dx = x / px - 0.5, dy = (y / ph - 0.5) * H, vig = Math.max(0, Math.hypot(dx, dy) - 0.38) / 0.4;
+      if (r.next() < 0.005) { d[i] = tile[0]; d[i + 1] = tile[1]; d[i + 2] = tile[2]; d[i + 3] = 120; continue; }
+      const v = (paperPx[((y & 255) * 256 + (x & 255)) * 4] - 128) / 128;
+      if (v > 0) { d[i] = d[i + 1] = d[i + 2] = 255; d[i + 3] = v * (light ? 40 : 22); }
+      else { d[i] = deep[0]; d[i + 1] = deep[1]; d[i + 2] = deep[2]; d[i + 3] = -v * (light ? 34 : 40) + vig * 28; }
+    }
+    g.putImageData(img, 0, 0);
+    if (grains.size > 24) grains.delete(grains.keys().next().value);
+    grains.set(key, cv);
+    return cv;
+  }
+
+  // ---------- draw ----------
+  // upto: draw only the first n layers (for the grammar walkthrough).
+  function draw(ctx, comp, pal, t, o = {}) {
+    const c = C.roles(pal), k = inks(c, comp.key, C.makeRng(comp.inkSeed)), still = !!o.still, n = o.upto ?? comp.layers.length;
+    ctx.fillStyle = css(k.paper); ctx.fillRect(0, 0, 1, o.H || 1);
+    comp.layers.slice(0, n).forEach((L) => {
+      const kk = L.slot === 'ground' ? { ...k.ground, paper: k.paper } : L.slot === 'accent' ? { ...k, main: k.alt, alt: k.main } : k;
+      ctx.save();
+      if (L.slot === 'accent') { ctx.translate(comp.mis[0], comp.mis[1]); ctx.globalCompositeOperation = C.lum(k.paper) > 0.3 ? 'multiply' : 'screen'; }
+      Prims[L.prim].draw(ctx, L.p, kk, t, still);
+      ctx.restore();
+    });
+    if (o.scrim) { const g = ctx.createLinearGradient(0, 0.5, 0, 1); g.addColorStop(0, css(c.deep, 0)); g.addColorStop(1, css(c.deep, 0.62)); ctx.fillStyle = g; ctx.fillRect(0, 0.5, 1, 0.5); }
+    ctx.drawImage(grainFor(c, o.px || 256, o.H || 1), 0, 0, 1, o.H || 1);
+  }
+
+  // A preset: the loudest layer's ground and figure, then each quieter
+  // layer's figure as an accent, on the second plate.
+  function buildPreset(preset) {
+    const sorted = preset.layers.slice().sort((a, b) => b[1] - a[1]);
+    const base = build(SOUND_KIND(sorted[0][0]), sorted[0][0]);
+    const extra = sorted.slice(1).map(([id], i) => {
+      const sub = build(SOUND_KIND(id), id), fl = sub.layers.find((l) => l.slot === 'figure');
+      const pl = i === 0 ? { cx: 0.76, cy: 0.3, s: 0.14 } : { cx: 0.24, cy: 0.26, s: 0.11 };
+      return { prim: fl.prim, slot: 'accent', p: Prims[fl.prim].build(C.makeRng(`${preset.id}:${id}`), pl, 'accent') };
+    });
+    return { ...base, id: preset.id, layers: base.layers.filter((l) => l.slot !== 'accent').concat(extra) };
+  }
+
+  return { M, SOUND_KIND, build, draw, buildPreset, LAYOUT };
+})();
+
+</script>
+<script>
+(() => {
+  'use strict';
+  const $ = (s, el = document) => el.querySelector(s), $$ = (s, el = document) => [...el.querySelectorAll(s)];
+  const PAL = Marks.PAL, reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const T0 = +new URLSearchParams(location.search).get('t') || 0;
+  const state = { pal: 'tide', paused: false, kind: 'course' };
+  const pal = () => PAL[state.pal];
+
+  // ---------- views (as round 2: one loop, visible canvases only, 30 fps) ----------
+  const views = new Set();
+  const io = new IntersectionObserver((es) => es.forEach((e) => { const v = e.target._v; if (v) { v.visible = e.isIntersecting; v.dirty = true; } }), { rootMargin: '60px' });
+  function view(cv, draw, o = {}) { const v = { cv, ctx: cv.getContext('2d'), draw, t: T0, dirty: true, visible: false, static: !!o.static, last: 0 }; cv._v = v; views.add(v); io.observe(cv); return v; }
+  function drop(root) { $$('canvas', root).forEach((c) => { if (c._v) { io.unobserve(c); views.delete(c._v); } }); }
+  function render(v) {
+    const dpr = Math.min(devicePixelRatio || 1, 2.5), w = Math.round(v.cv.clientWidth * dpr), h = Math.round(v.cv.clientHeight * dpr);
+    if (!w || !h) return;
+    if (v.cv.width !== w || v.cv.height !== h) { v.cv.width = w; v.cv.height = h; }
+    v.ctx.setTransform(1, 0, 0, 1, 0, 0); v.ctx.clearRect(0, 0, w, h); v.ctx.setTransform(w, 0, 0, w, 0, 0);
+    v.draw(v.ctx, v.t, w, dpr, h / w);
+  }
+  let last = performance.now();
+  (function tick(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    for (const v of views) {
+      if (!v.visible) continue;
+      const run = !v.static && !reduced.matches && !state.paused;
+      if (run) v.t += dt;
+      if (v.dirty || (run && now - v.last > 32)) { render(v); v.dirty = false; v.last = now; }
+    }
+    requestAnimationFrame(tick);
+  })(last);
+  const redraw = () => views.forEach((v) => (v.dirty = true));
+  const still = () => reduced.matches;
+  // A live card, or a still one for lists.
+  const live = (comp, extra = {}) => (ctx, t, px, dpr, H) => Compose.draw(ctx, comp, extra.pal ? extra.pal() : pal(), t + 3, { px, dpr, still: still(), H, ...extra });
+  const desc = (comp) => comp.layers.map((l) => `${l.slot === 'figure' ? '<b>' : ''}${Prims[l.prim].label}${l.slot === 'figure' ? '</b>' : ''}`).join(' · ');
+
+  // ---------- toolbar ----------
+  $('#chips').innerHTML = Marks.palettes.map((p) => `<button class="chip" data-pal="${p.id}"><span>${['tile', 'form', 'stroke', 'accent'].map((k) => `<i style="display:inline-block;background:${p[k]}"></i>`).join('')}</span>${p.name}</button>`).join('');
+  $('#chips').addEventListener('click', (e) => { const b = e.target.closest('.chip'); if (b) { state.pal = b.dataset.pal; applyTheme(); } });
+  $('#motion').addEventListener('click', () => { state.paused = !state.paused; $('#motion').textContent = state.paused ? 'Play' : 'Pause'; });
+  function applyTheme() {
+    const p = pal(), ui = p.ui.light, r = document.documentElement.style;
+    for (const k of ['bg', 'surface', 'raised', 'text', 'muted']) r.setProperty('--' + k, ui[k]);
+    r.setProperty('--form', p.form);
+    $$('#chips .chip').forEach((c) => c.setAttribute('aria-pressed', c.dataset.pal === state.pal));
+    redraw();
+  }
+
+  // ---------- 01 library ----------
+  $('#lib').innerHTML = Object.entries(Prims).map(([k, P]) => `<figure class="cell" data-p="${k}"><canvas></canvas><figcaption><b>${P.label}</b>${P.ground ? ' · <small>ground</small>' : ''}<br><small>${P.motion}</small></figcaption></figure>`).join('');
+  $$('#lib .cell').forEach((el) => { const comp = Compose.build('single', 'lib:' + el.dataset.p, { figure: el.dataset.p, ground: null, accent: null }); view($('canvas', el), live(comp)); });
+
+  // ---------- 02 grammar ----------
+  // Walkthrough examples: the first sample of each kind that uses every slot.
+  const EX = ['rain', 'course', 'fire'].map((k) => { for (let i = 0; ; i++) { const id = `${k}-walk-${i}`; if (Compose.build(k, id).layers.length === 3) return [k, id]; } });
+  // Four columns: paper, + ground, + figure, + accent; a missing slot says so.
+  const stepCols = (comp) => {
+    const at = (slot) => comp.layers.findIndex((l) => l.slot === slot);
+    return ['ground', 'figure', 'accent'].reduce((cols, slot) => { const i = at(slot); cols.push(i < 0 ? { label: `no ${slot}`, upto: cols[cols.length - 1].upto } : { label: `+ ${Prims[comp.layers[i].prim].label}`, upto: i + 1 }); return cols; }, [{ label: `${comp.key} paper`, upto: 0 }]);
+  };
+  $('#steps').innerHTML = EX.map(([k, id], j) => `<div class="steps" data-ex="${j}">${stepCols(Compose.build(k, id)).map((c) => `<figure class="cell"><canvas></canvas><small>${c.label}</small></figure>`).join('')}</div>`).join('');
+  $$('#steps .steps').forEach((row) => { const [k, id] = EX[+row.dataset.ex], comp = Compose.build(k, id), cols = stepCols(comp); $$('canvas', row).forEach((cv, i) => view(cv, live(comp, { upto: cols[i].upto }))); });
+  $('#rainset').innerHTML = Array.from({ length: 8 }, (_, i) => `<figure class="cell"><canvas></canvas><small></small></figure>`).join('');
+  $$('#rainset .cell').forEach((el, i) => { const comp = Compose.build('rain', 'rain-sample-' + (i * 7 + 3)); $('small', el).innerHTML = `${comp.key} paper · ${desc(comp)}`; view($('canvas', el), live(comp)); });
+
+  // ---------- 03 sounds ----------
+  $('#presets').innerHTML = Art2.PRESETS.map((p) => `<div class="card wide" data-preset="${p.id}"><canvas></canvas><span>${p.title}<small>${p.layers.map(([id]) => Art2.SOUNDS.find((s) => s.id === id).title).join(' · ')}</small></span></div>`).join('');
+  $$('#presets .card').forEach((el) => { const comp = Compose.buildPreset(Art2.PRESETS.find((p) => p.id === el.dataset.preset)); view($('canvas', el), live(comp, { scrim: true })); });
+  $('#sounds').innerHTML = Art2.SOUNDS.map((s) => `<div class="cell"><div class="card"><canvas data-s="${s.id}"></canvas><span>${s.title}</span></div><small></small></div>`).join('');
+  $$('#sounds .cell').forEach((el) => { const id = $('canvas', el).dataset.s, comp = Compose.build(Compose.SOUND_KIND(id), id); $('small', el).innerHTML = desc(comp); view($('canvas', el), live(comp, { scrim: true })); });
+
+  // ---------- 04 covers ----------
+  const MORE = { course: ['Into the Deathless', 'Practising Emptiness', 'The Body Breathing', 'A Year of Kindness'], playlist: ['Long sits', 'Retreat talks', 'Evening', 'Saved for later'], teacher: ['Ajahn Amaro', 'Yuka Nakamura', 'Nathan Glyde', 'Shaila Catherine'], single: ['A short metta', 'Hearing practice', 'Letting be', 'Taking refuge'] };
+  const TITLES = (k) => Art2.COVER_TITLES[k].concat(MORE[k]);
+  const KINDS = [['course', 'Courses'], ['playlist', 'Playlists'], ['teacher', 'Teachers'], ['single', 'Singles']];
+  $('#tabs').innerHTML = KINDS.map(([k, n]) => `<button class="tab" role="tab" data-kind="${k}">${n}</button>`).join('');
+  $('#tabs').addEventListener('click', (e) => { const b = e.target.closest('.tab'); if (b) { state.kind = b.dataset.kind; covers(); } });
+  function covers() {
+    const el = $('#covers'), k = state.kind; drop(el);
+    $$('#tabs .tab').forEach((t) => t.setAttribute('aria-selected', t.dataset.kind === k));
+    el.innerHTML = TITLES(k).map((t) => `<figure class="cell${k === 'teacher' ? ' round' : ''}"><canvas></canvas><figcaption>${t}<br><small></small></figcaption></figure>`).join('');
+    $$('.cell', el).forEach((c, i) => { const comp = Compose.build(k, `${k}-${TITLES(k)[i]}`); $('small', c).innerHTML = desc(comp); view($('canvas', c), live(comp, { still: true }), { static: true }); });
+  }
+
+  // ---------- 05 strips ----------
+  const MIXED = ['rain-window', 'fire-crackle', 'stream', 'night-meadow', 'drone', 'binaural', 'wind-grass', 'cafe'].map((id) => Compose.build(Compose.SOUND_KIND(id), id))
+    .concat(['course-Practising the Jhānas', 'course-Winter Retreat', 'playlist-Before sleep', 'playlist-Walking', 'teacher-Rob Burbea', 'teacher-Tara Brach', 'single-Gratitude', 'single-On equanimity'].map((id) => Compose.build(id.split('-')[0], id)));
+  [['#stripA', 'ember'], ['#stripB', 'riso']].forEach(([sel, pid]) => {
+    $(sel).innerHTML = MIXED.map(() => '<canvas></canvas>').join('');
+    $$('canvas', $(sel)).forEach((cv, i) => view(cv, live(MIXED[i], { pal: () => PAL[pid], still: i >= 8 }), { static: i >= 8 }));
+  });
+
+  // ---------- 06 round 2 vs round 3 ----------
+  const VS = ['rain-terrace', 'rain-window', 'stream', 'waves', 'night-meadow', 'cafe'], VC = ['Practising the Jhānas', 'Qualia Mastery', 'Seeing That Frees', 'Metta for Beginners', 'Breath and Body', 'Winter Retreat'];
+  $('#vs2').innerHTML = $('#vs3').innerHTML = VS.concat(VC).map(() => '<figure class="cell"><canvas></canvas></figure>').join('');
+  $$('#vs2 canvas').forEach((cv, i) => view(cv, i < 6 ? (ctx, t, px, dpr) => Art2.drawSound(ctx, VS[i], pal(), still() ? 4 : t + 4, { px, dpr }) : (ctx, t, px, dpr) => Art2.drawCover(ctx, 'course', 'course-' + VC[i - 6], pal(), { px, dpr }), { static: i >= 6 }));
+  $$('#vs3 canvas').forEach((cv, i) => { const comp = i < 6 ? Compose.build(Compose.SOUND_KIND(VS[i]), VS[i]) : Compose.build('course', 'course-' + VC[i - 6]); view(cv, live(comp, { scrim: i < 6, still: i >= 6 }), { static: i >= 6 }); });
+
+  covers();
+  applyTheme();
+  reduced.addEventListener?.('change', redraw);
+})();
+</script>
+</body>
+</html>
