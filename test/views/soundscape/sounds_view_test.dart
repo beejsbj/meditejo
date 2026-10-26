@@ -120,10 +120,15 @@ void main() {
     expect(find.text('Morning'), findsWidgets);
   });
 
-  testWidgets('session switches follow decision 8', (tester) async {
+  testWidgets('session switches start off and follow the taps (decision 17)', (
+    tester,
+  ) async {
     await pump(tester);
     final practice = find.byKey(const ValueKey('under_practice'));
     await reveal(tester, practice);
+    expect(tester.widget<SwitchListTile>(practice).value, isFalse);
+    await tester.tap(practice);
+    await tester.pumpAndSettle();
     expect(tester.widget<SwitchListTile>(practice).value, isTrue);
     expect(
       tester

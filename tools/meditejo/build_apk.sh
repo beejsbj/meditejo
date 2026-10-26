@@ -45,6 +45,13 @@ build_tools=${MEDITEJO_BUILD_TOOLS:-$HOME/.local/share/android-sdk/build-tools/3
 }
 stage=$(mktemp -d /tmp/meditejo-apk.XXXXXXXX)
 trap 'rm -rf "$stage"' EXIT
+# The CI build fetches the Dharma Seed snapshot that REF's catalogue.json pins
+# (a release asset, not a file in git). Check it is there now rather than after
+# the run. A ref from before the move still commits the snapshot itself.
+if ! git cat-file -e "$ref:assets/dharma_seed/catalogue.sqlite.gz" 2>/dev/null; then
+  git show "$ref:assets/dharma_seed/catalogue.json" >"$stage/catalogue.json"
+  python3 -I "$root/tools/meditejo/catalogue.py" check --manifest "$stage/catalogue.json"
+fi
 python3 "$root/tools/meditejo/github_run.py" "$ref" "$flavor" "$mode" "$stage/artifact"
 apk="$stage/artifact/unsigned.apk"
 if "$build_tools/apksigner" verify "$apk" >/dev/null 2>&1; then

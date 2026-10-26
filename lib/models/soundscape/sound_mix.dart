@@ -281,11 +281,12 @@ class SoundscapeSessionDefault {
     this.volume = 0.5,
   });
 
-  /// Decision 8: on for Practice, off for Talks.
+  /// Nothing is chosen for either kind: both start off, and play only once
+  /// the user picks a sound (BRIEF decision 17; decision 8 had Practice on).
   static SoundscapeSessionDefault initial(SoundscapeSessionKind kind) =>
       switch (kind) {
         SoundscapeSessionKind.practice => const SoundscapeSessionDefault(
-          enabled: true,
+          enabled: false,
         ),
         SoundscapeSessionKind.talks => const SoundscapeSessionDefault(
           enabled: false,

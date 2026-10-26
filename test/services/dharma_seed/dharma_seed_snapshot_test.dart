@@ -276,8 +276,7 @@ void main() {
       final before = target.readAsBytesSync();
 
       // Another connection holds the file exclusively, as a busy disk would.
-      final holder = raw.sqlite3.open(target.path)
-        ..execute('BEGIN EXCLUSIVE');
+      final holder = raw.sqlite3.open(target.path)..execute('BEGIN EXCLUSIVE');
       final result = await (await build(
         name: 'new',
       )).snapshot.installIfNeeded(target);
@@ -516,33 +515,85 @@ void main() {
     });
   });
 
-  test('the committed snapshot matches this build of the app', () {
-    // Guards a schema change made without regenerating the snapshot: the app
-    // would silently skip it and fall back to a full first sync.
-    final manifest = DharmaSeedSnapshotWriter.existing(
-      Directory('assets/dharma_seed'),
-    );
-    expect(manifest, isNotNull, reason: 'assets/dharma_seed/catalogue.json');
-    expect(manifest!.schema, DsSnapshotManifest.supportedSchema);
-    expect(
-      manifest.databaseSchema,
-      DharmaSeedDatabase.currentSchemaVersion,
-      reason: 'rerun tools/meditejo/dharma_seed_snapshot.dart',
-    );
+  group('the bundled snapshot', () {
+    // The snapshot is a release asset, not a file in git: catalogue.json pins
+    // it (docs/fork/ARCHITECTURE.md), and tools/meditejo/catalogue.py fetches
+    // it. These guard a build that has none, a pointer-sized or truncated
+    // file, one that is not the pinned snapshot, or a schema change made
+    // without a new snapshot.
+    const fetchHint =
+        'run `python3 -I tools/meditejo/catalogue.py fetch` '
+        '(docs/fork/BUILD.md)';
     final packed = File('assets/dharma_seed/catalogue.sqlite.gz');
-    expect(packed.existsSync(), isTrue);
-    expect(manifest.counts['talks'], greaterThan(40000));
-    // A Git LFS pointer or a truncated file would be tiny.
-    expect(packed.lengthSync(), greaterThan(5 * 1024 * 1024));
-    expect(
-      manifest.editions.keys,
-      containsAll(['teachers', 'retreats', 'talks']),
-    );
-    // The installer trusts gzip's CRC and does not hash at launch, so this is
-    // where a wrong asset (unpacking to another database than the manifest
-    // describes) is caught.
-    final unpacked = gzip.decode(packed.readAsBytesSync());
-    expect(unpacked.length, manifest.bytes);
-    expect(sha256.convert(unpacked).toString(), manifest.sha256);
+
+    Map<String, Object?> pinnedAsset() {
+      final raw =
+          jsonDecode(
+                File('assets/dharma_seed/catalogue.json').readAsStringSync(),
+              )
+              as Map;
+      final asset = raw['asset'];
+      expect(
+        asset,
+        isA<Map>(),
+        reason:
+            'catalogue.json must pin its snapshot: python3 -I '
+            'tools/meditejo/catalogue.py publish',
+      );
+      return (asset as Map).cast<String, Object?>();
+    }
+
+    test('the manifest pins a catalogue release asset', () {
+      final asset = pinnedAsset();
+      expect(asset['release'], matches(RegExp(r'^catalogue-\d{8}(-\d+)?$')));
+      expect(asset['name'], 'catalogue.sqlite.gz');
+      expect(asset['sha256'], matches(RegExp(r'^[0-9a-f]{64}$')));
+      expect(asset['bytes'] as int, greaterThan(5 * 1024 * 1024));
+    });
+
+    test('the file in assets is present and is the pinned snapshot', () {
+      final asset = pinnedAsset();
+      expect(packed.existsSync(), isTrue, reason: 'no snapshot: $fetchHint');
+      // A Git LFS pointer or a truncated file would be tiny.
+      expect(packed.lengthSync(), greaterThan(5 * 1024 * 1024));
+      final bytes = packed.readAsBytesSync();
+      expect(
+        bytes.length,
+        asset['bytes'],
+        reason: 'wrong snapshot: $fetchHint',
+      );
+      expect(
+        sha256.convert(bytes).toString(),
+        asset['sha256'],
+        reason: 'not the pinned snapshot: $fetchHint',
+      );
+    });
+
+    test('it matches this build of the app', () {
+      // Guards a schema change made without regenerating the snapshot: the
+      // app would silently skip it and fall back to a full first sync.
+      final manifest = DharmaSeedSnapshotWriter.existing(
+        Directory('assets/dharma_seed'),
+      );
+      expect(manifest, isNotNull, reason: 'assets/dharma_seed/catalogue.json');
+      expect(manifest!.schema, DsSnapshotManifest.supportedSchema);
+      expect(
+        manifest.databaseSchema,
+        DharmaSeedDatabase.currentSchemaVersion,
+        reason: 'rerun tools/meditejo/dharma_seed_snapshot.dart',
+      );
+      expect(packed.existsSync(), isTrue, reason: 'no snapshot: $fetchHint');
+      expect(manifest.counts['talks'], greaterThan(40000));
+      expect(
+        manifest.editions.keys,
+        containsAll(['teachers', 'retreats', 'talks']),
+      );
+      // The installer trusts gzip's CRC and does not hash at launch, so this
+      // is where a wrong asset (unpacking to another database than the
+      // manifest describes) is caught.
+      final unpacked = gzip.decode(packed.readAsBytesSync());
+      expect(unpacked.length, manifest.bytes);
+      expect(sha256.convert(unpacked).toString(), manifest.sha256);
+    });
   });
 }

@@ -573,6 +573,14 @@ void main() {
     final container = ProviderScope.containerOf(
       tester.element(find.byType(PlayerView)),
     );
+    // Practice plays nothing until a sound is chosen (decision 17): choose the
+    // current mix, as Customize's chip does.
+    container
+        .read(soundscapeProvider.notifier)
+        .setSessionDefault(
+          SoundscapeSessionKind.practice,
+          const SoundscapeSessionDefault(enabled: true),
+        );
     final audio = container.read(audioStateProvider.notifier);
     SoundscapeState mixer() => container.read(soundscapeProvider);
     bool button() => tester
