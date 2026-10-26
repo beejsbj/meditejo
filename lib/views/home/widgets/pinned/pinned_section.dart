@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
+import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/routes/routes.dart';
+import 'package:medito/views/home/home_styles.dart';
 import 'package:medito/widgets/network_image_widget.dart';
-import 'package:medito/widgets/section_header.dart';
 
 /// Up to three courses the user pinned, each with where they are in it.
 /// Hidden when nothing is pinned.
@@ -23,9 +24,17 @@ class PinnedSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SectionHeader(title: l10n.homePinnedTitle),
-        for (final id in ids)
-          PinnedCourseTile(key: ValueKey('pinned_$id'), id: id),
+        HomeSectionTitle(l10n.homePinnedTitle),
+        for (final (i, id) in ids.indexed)
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              kHomeGutter,
+              i == 0 ? 0 : kHomeGap / 2,
+              kHomeGutter,
+              0,
+            ),
+            child: PinnedCourseTile(key: ValueKey('pinned_$id'), id: id),
+          ),
       ],
     );
   }
@@ -51,22 +60,25 @@ class PinnedCourseTile extends ConsumerWidget {
     final total = playable.length;
     final done = playable.where((i) => i.isCompleted == true).length;
 
-    return InkWell(
-      onTap: () => handleNavigation(
-        TypeConstants.pack,
-        [id, '/packs/$id'],
-        context,
-        ref: ref,
-      ),
+    final scheme = theme.colorScheme;
+    final type = context.typography;
+    void open() => handleNavigation(
+      TypeConstants.pack,
+      [id, '/packs/$id'],
+      context,
+      ref: ref,
+    );
+
+    return HomePressable(
+      color: scheme.surfaceContainer,
+      radius: kHomeCardRadius,
+      onTap: open,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: padding16,
-          vertical: padding8,
-        ),
+        padding: const EdgeInsets.fromLTRB(12, 12, 4, 12),
         child: Row(
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(kHomeArtRadius),
               child: SizedBox.square(
                 dimension: 56,
                 child: NetworkImageWidget(
@@ -76,7 +88,7 @@ class PinnedCourseTile extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(width: padding16),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,13 +97,29 @@ class PinnedCourseTile extends ConsumerWidget {
                     title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium,
+                    style: type.emphasized.titleMedium,
                   ),
-                  if (total > 0)
-                    Text(
-                      l10n.upNextProgress(done, total),
-                      style: theme.textTheme.bodyMedium,
+                  if (total > 0) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: LinearProgressIndicator(
+                            value: done / total,
+                            borderRadius: BorderRadius.circular(4),
+                            minHeight: 6,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          l10n.upNextProgress(done, total),
+                          style: type.baseline.labelMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
+                  ],
                 ],
               ),
             ),
@@ -99,7 +127,7 @@ class PinnedCourseTile extends ConsumerWidget {
               tooltip: l10n.unpinCourse,
               onPressed: () =>
                   ref.read(pinnedCoursesProvider.notifier).unpin(id),
-              icon: const Icon(Icons.push_pin),
+              icon: Icon(Icons.push_pin_rounded, color: scheme.primary),
             ),
           ],
         ),

@@ -1,4 +1,8 @@
 import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/models/soundscape/sound_mix.dart';
+import 'package:medito/models/soundscape/starter_presets.dart';
+import 'package:medito/models/timer/timer_session.dart';
+import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'dart:io';
 
@@ -21,6 +25,8 @@ import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/timer/timer_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../helpers/soundscape_fakes.dart';
 
 const _ioTimeout = Duration(seconds: 5);
 const _settleTimeout = Duration(seconds: 3);
@@ -162,6 +168,7 @@ Future<ProviderContainer> _home(
   WidgetTester tester,
   SharedPreferences prefs, {
   bool ownAudioState = false,
+  FakeSoundscapeEngine? sounds,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(390, 844);
@@ -180,12 +187,20 @@ Future<ProviderContainer> _home(
         // state) uses its own, leaving the global one to the playing test.
         if (ownAudioState)
           audioStateProvider.overrideWith(AudioStateNotifier.new),
+        // The Sounds mixer, silent, for a test that follows what it plays.
+        if (sounds != null) ...soundscapeTestOverrides(sounds),
       ],
       child: MaterialApp(
         theme: ThemeData.dark(useMaterial3: true),
         locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
+        // Home's mark moves for as long as it is shown, so nothing would
+        // settle: still it, as reduced motion does.
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: true),
+          child: child!,
+        ),
         home: const HomeView(),
       ),
     ),
@@ -230,6 +245,62 @@ Future<void> _openTimer(WidgetTester tester) async {
   expect(find.text('Duration'), findsOneWidget);
 }
 
+/// Runs [body] with the native audio boundary faked and a temporary
+/// directory for the timer's silent file, then stops the audio handler
+/// before removing the fakes.
+Future<void> _withNativeAudio(
+  WidgetTester tester,
+  Future<void> Function(_NativeAudio native, Directory directory) body,
+) async {
+  final semantics = tester.ensureSemantics();
+  final directory = (await tester.runAsync(
+    () => Directory.systemTemp
+        .createTemp('local_home_timer_')
+        .timeout(_ioTimeout),
+  ))!;
+  final native = _NativeAudio()..install(directory);
+  addTearDown(native.uninstall);
+  addTearDown(() => directory.delete(recursive: true).timeout(_ioTimeout));
+  iosAudioHandler = IosAudioHandler();
+
+  try {
+    await body(native, directory);
+  } finally {
+    // Stop before removing channel handlers so position timers and pending
+    // bell work cannot leak into subsequent tests. Plugin shutdown also
+    // cancels event streams: pump those callbacks instead of awaiting a
+    // future whose continuations may still be queued in FakeAsync.
+    var stopped = false;
+    Object? stopError;
+    StackTrace? stopTrace;
+    // Pause changes just_audio's playing state synchronously, cancelling
+    // its position timer even if native disposal then fails.
+    await iosAudioHandler.pause();
+    iosAudioHandler.stop().then<void>(
+      (_) => stopped = true,
+      onError: (Object error, StackTrace trace) {
+        stopError = error;
+        stopTrace = trace;
+        stopped = true;
+      },
+    );
+    try {
+      await _pumpUntil(
+        tester,
+        () => stopped,
+        reason: 'The audio handler must finish stopping native players',
+      );
+      if (stopError != null) {
+        Error.throwWithStackTrace(stopError!, stopTrace!);
+      }
+    } finally {
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+      semantics.dispose();
+    }
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late SharedPreferences prefs;
@@ -260,18 +331,7 @@ void main() {
   testWidgets('home timer Customize duration starts a local silent track', (
     tester,
   ) async {
-    final semantics = tester.ensureSemantics();
-    final directory = (await tester.runAsync(
-      () => Directory.systemTemp
-          .createTemp('local_home_timer_')
-          .timeout(_ioTimeout),
-    ))!;
-    final native = _NativeAudio()..install(directory);
-    addTearDown(native.uninstall);
-    addTearDown(() => directory.delete(recursive: true).timeout(_ioTimeout));
-    iosAudioHandler = IosAudioHandler();
-
-    try {
+    await _withNativeAudio(tester, (native, directory) async {
       final container = await _home(tester, prefs);
       await _openTimer(tester);
 
@@ -352,39 +412,67 @@ void main() {
       expect(iosAudioHandler.sessionBells.enabled, isFalse);
       expect(primary.count('seek'), 0);
       expect(tester.takeException(), isNull);
-    } finally {
-      // Stop before removing channel handlers so position timers and pending
-      // bell work cannot leak into subsequent tests. Plugin shutdown also
-      // cancels event streams: pump those callbacks instead of awaiting a
-      // future whose continuations may still be queued in FakeAsync.
-      var stopped = false;
-      Object? stopError;
-      StackTrace? stopTrace;
-      // Pause changes just_audio's playing state synchronously, cancelling
-      // its position timer even if native disposal then fails.
-      await iosAudioHandler.pause();
-      iosAudioHandler.stop().then<void>(
-        (_) => stopped = true,
-        onError: (Object error, StackTrace trace) {
-          stopError = error;
-          stopTrace = trace;
-          stopped = true;
-        },
+    });
+  }, timeout: const Timeout(Duration(seconds: 45)));
+
+  testWidgets('a Home preset tile starts the timer with that preset under it', (
+    tester,
+  ) async {
+    await _withNativeAudio(tester, (native, directory) async {
+      final sounds = FakeSoundscapeEngine();
+      // Its own audio state: the global one belongs to the test above.
+      final container = await _home(
+        tester,
+        prefs,
+        sounds: sounds,
+        ownAudioState: true,
       );
-      try {
-        await _pumpUntil(
-          tester,
-          () => stopped,
-          reason: 'The audio handler must finish stopping native players',
-        );
-        if (stopError != null) {
-          Error.throwWithStackTrace(stopError!, stopTrace!);
-        }
-      } finally {
-        await tester.pumpWidget(const SizedBox());
-        await tester.pump();
-        semantics.dispose();
-      }
-    }
+      // Not the first built-in: that is also Practice's default mix.
+      final preset = kStarterPresets[1];
+      final tile = find.byKey(ValueKey('quick_preset_${preset.id}'));
+      await tester.ensureVisible(tile);
+      await tester.pump();
+      await tester.tap(tile);
+      await _pumpUntil(
+        tester,
+        () => find.byType(PlayerView).evaluate().isNotEmpty,
+        reason: 'The preset tile must open the player at once',
+      );
+
+      final request = container.read(playerProvider)!;
+      expect(request.isTimer, isTrue);
+      expect(request.trackId, 'timer-600');
+      expect(request.soundscape, 'preset:${preset.id}');
+
+      await _pumpUntil(
+        tester,
+        () => native.players.values.any((p) => p.count('play') > 0),
+        reason: 'The timer must start playing',
+      );
+      await _pumpUntil(
+        tester,
+        () => container.read(soundscapeProvider).underSession,
+        reason: 'The preset must play under the timer session',
+      );
+      final mixer = container.read(soundscapeProvider);
+      expect(mixer.sessionKind, SoundscapeSessionKind.practice);
+      expect(mixer.mix, preset.mix);
+      expect(
+        sounds.playing.keys,
+        containsAll([for (final layer in preset.mix.layers) layer.soundId]),
+      );
+
+      // For this session only: Practice's saved choices are untouched.
+      const practice = CueScope(CueKind.practice);
+      expect(container.read(cueSettingsProvider(practice)).soundscape, '');
+      expect(
+        container
+            .read(soundscapeProvider.notifier)
+            .sessionDefault(SoundscapeSessionKind.practice)
+            .selection,
+        isNot(SoundscapeSelection.preset(preset.id)),
+      );
+      expect(tester.takeException(), isNull);
+    });
   }, timeout: const Timeout(Duration(seconds: 45)));
 }

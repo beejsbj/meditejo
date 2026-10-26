@@ -961,6 +961,7 @@
   "homeContinueSessionOf": "Sesión {number} de {total}",
   "homeContinueTimeLeft": "quedan {time}",
   "homeQuickAdd": "Añadir",
+  "homeQuickPresetTimer": "Iniciar el temporizador con {preset}",
   "pinCourse": "Fijar en Inicio",
   "unpinCourse": "Quitar de Inicio",
   "pinnedLimitReached": "Inicio admite hasta tres cursos fijados. Quita uno primero.",

@@ -68,6 +68,7 @@ PlaybackRequest timerPlaybackRequest({
   required String filePath,
   required String title,
   String? coverUrl,
+  String? soundscape,
 }) {
   return PlaybackRequest(
     trackId: timerSessionId(duration),
@@ -81,5 +82,6 @@ PlaybackRequest timerPlaybackRequest({
     remoteUrl: Uri.file(filePath).toString(),
     duration: duration.inMilliseconds,
     hasBackgroundSound: true,
+    soundscape: soundscape,
   );
 }

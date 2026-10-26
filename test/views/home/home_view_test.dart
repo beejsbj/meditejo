@@ -16,6 +16,11 @@ import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/library/import_view.dart';
 import 'package:medito/views/timer/timer_view.dart';
 
+import 'package:medito/models/soundscape/sound_mix.dart';
+import 'package:medito/models/soundscape/starter_presets.dart';
+import 'package:medito/services/soundscape/soundscape_store.dart';
+import 'package:medito/widgets/branding/meditejo_mark.dart';
+
 import '../../helpers/dharma_seed_app.dart';
 import '../../helpers/library_app.dart';
 
@@ -111,6 +116,22 @@ void main() {
     await settle(tester);
     expect(container.read(pinnedCoursesProvider), isEmpty);
     expect(app.prefs.getStringList('pinned_course_ids'), isEmpty);
+  });
+
+  testWidgets('the quick-link tiles grow with the text size without overflow', (
+    tester,
+  ) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final app = await LibraryTestApp.create(tester);
+    await app.pump(
+      tester,
+      const HomeView(),
+      overrides: [continueItemsProvider.overrideWith((ref) async => [])],
+    );
+    expect(tester.takeException(), isNull);
+    final tile = tester.getSize(find.byKey(const ValueKey('quick_timer')));
+    expect(tile.height, greaterThan(116));
   });
 
   testWidgets('with nothing to continue it says so and keeps the quick links', (
@@ -293,6 +314,136 @@ void main() {
     await settle(tester);
     expect(find.text('Quick links'), findsNothing);
     expect(find.text('Continue'), findsOneWidget);
+  });
+
+  group('design pass: mark, quick links, pinned', () {
+    const pack = PackModel(
+      id: 'lib-course-a',
+      title: 'Course A',
+      items: [
+        PackItemsModel(
+          type: 'track',
+          id: 'lib-track-1',
+          title: 'One',
+          path: '/tracks/lib-track-1',
+          isCompleted: true,
+        ),
+      ],
+    );
+
+    // Scrolled away, the mark is offstage but still built (cache extent).
+    MeditejoMarkState mark(WidgetTester tester) =>
+        tester.state<MeditejoMarkState>(
+          find.byType(MeditejoMark, skipOffstage: false),
+        );
+
+    testWidgets('Home leads with the mark, then quick links, then pinned', (
+      tester,
+    ) async {
+      final app = await LibraryTestApp.create(tester);
+      await app.prefs.setStringList('pinned_course_ids', [pack.id]);
+      await app.pump(
+        tester,
+        const HomeView(),
+        overrides: [
+          continueItemsProvider.overrideWith((ref) async => [_item('t1')]),
+          packProvider(packId: pack.id).overrideWith(() => _FakePack(pack)),
+        ],
+      );
+
+      double top(Finder f) => tester.getTopLeft(f).dy;
+      final markTop = top(find.byType(MeditejoMark));
+      final continueTop = top(find.text('Continue'));
+      final quickTop = top(find.text('Quick links'));
+      final timerTop = top(find.byKey(const ValueKey('quick_timer')));
+      final pinnedTop = top(find.text('Pinned courses'));
+      expect(markTop, lessThan(continueTop));
+      expect(continueTop, lessThan(quickTop));
+      expect(quickTop, lessThan(timerTop));
+      expect(timerTop, lessThan(pinnedTop));
+      // The mark sits at the top centre.
+      expect(
+        tester.getCenter(find.byType(MeditejoMark)).dx,
+        closeTo(tester.getSize(find.byType(HomeView)).width / 2, 1),
+      );
+      expect(mark(tester).isRunning, isTrue);
+    });
+
+    testWidgets('with reduced motion the mark is still', (tester) async {
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(
+        tester,
+        Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(disableAnimations: true),
+            child: const HomeView(),
+          ),
+        ),
+        overrides: [continueItemsProvider.overrideWith((ref) async => [])],
+      );
+      expect(mark(tester).isRunning, isFalse);
+      expect(mark(tester).phase, 0);
+      await tester.pump(const Duration(seconds: 3));
+      expect(mark(tester).phase, 0);
+    });
+
+    testWidgets('the mark rests once Home is scrolled past it', (tester) async {
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(
+        tester,
+        const HomeView(),
+        overrides: [
+          continueItemsProvider.overrideWith(
+            (ref) async => [_item('t1'), _item('t2'), _item('t3')],
+          ),
+        ],
+      );
+      tester.view.physicalSize = const Size(430, 640);
+      await tester.pump();
+      expect(mark(tester).isRunning, isTrue);
+
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -300));
+      await tester.pump();
+      expect(mark(tester).isRunning, isFalse);
+      final phase = mark(tester).phase;
+      await tester.pump(const Duration(seconds: 2));
+      expect(mark(tester).phase, phase);
+
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, 600));
+      await tester.pump();
+      expect(mark(tester).isRunning, isTrue);
+    });
+
+    testWidgets('preset tiles show the newest saved presets, then built-ins', (
+      tester,
+    ) async {
+      final app = await LibraryTestApp.create(tester);
+      const mine = SoundPreset(
+        id: 'user-1',
+        name: 'My rain',
+        mix: SoundMix([SoundLayer(soundId: 'rain-terrace', volume: 0.5)]),
+      );
+      SoundscapeStore(app.prefs).writePresets([mine]);
+      await app.pump(
+        tester,
+        const HomeView(),
+        overrides: [continueItemsProvider.overrideWith((ref) async => [])],
+      );
+      expect(find.byKey(const ValueKey('quick_preset_user-1')), findsOneWidget);
+      expect(
+        find.byKey(ValueKey('quick_preset_${kStarterPresets.first.id}')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(ValueKey('quick_preset_${kStarterPresets[1].id}')),
+        findsNothing,
+      );
+      expect(find.text('My rain'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Start the timer with My rain'),
+        findsOneWidget,
+      );
+    });
   });
 }
 

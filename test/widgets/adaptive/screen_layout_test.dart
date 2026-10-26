@@ -1,4 +1,3 @@
-
 import 'package:medito/views/explore/widgets/explore_view.dart';
 import 'package:medito/views/teacher/teacher_view.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
@@ -214,23 +213,26 @@ void main() {
             continueItemsProvider.overrideWith((ref) async => [item]),
             statsProvider.overrideWith(_OnboardingStats.new),
           ],
-          child: size.width >= 700
-              ? Scaffold(
-                  body: Row(
-                    children: [
-                      MeditoSidebar(
-                        extended: size.width >= 1100,
-                        items: destinations,
-                        selectedIndex: 0,
-                        onSelected: (_) {},
-                      ),
-                      const Expanded(
-                        child: AdaptiveContent(child: HomeView()),
-                      ),
-                    ],
-                  ),
-                )
-              : const HomeView(),
+          // Home's mark moves while shown; still it so the page settles.
+          child: _still(
+            size.width >= 700
+                ? Scaffold(
+                    body: Row(
+                      children: [
+                        MeditoSidebar(
+                          extended: size.width >= 1100,
+                          items: destinations,
+                          selectedIndex: 0,
+                          onSelected: (_) {},
+                        ),
+                        const Expanded(
+                          child: AdaptiveContent(child: HomeView()),
+                        ),
+                      ],
+                    ),
+                  )
+                : const HomeView(),
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -890,7 +892,10 @@ void main() {
             expect(tester.takeException(), isNull);
           }
           if (name == 'teacher') {
-            expect(find.byKey(const ValueKey('teacher_counts')), findsOneWidget);
+            expect(
+              find.byKey(const ValueKey('teacher_counts')),
+              findsOneWidget,
+            );
           }
           if (name == 'search') {
             tester.view.viewInsets = const FakeViewPadding(bottom: 300);
@@ -918,3 +923,11 @@ void main() {
     },
   );
 }
+
+/// [child] as reduced motion shows it.
+Widget _still(Widget child) => Builder(
+  builder: (context) => MediaQuery(
+    data: MediaQuery.of(context).copyWith(disableAnimations: true),
+    child: child,
+  ),
+);

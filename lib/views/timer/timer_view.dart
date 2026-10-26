@@ -1,17 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/timer/timer_session.dart';
-import 'package:medito/providers/cues/cue_settings_provider.dart';
-import 'package:medito/providers/player/player_provider.dart';
 import 'package:medito/providers/timer/timer_settings_provider.dart';
-import 'package:medito/services/audio/timer_audio_file.dart';
-import 'package:medito/utils/logger.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
-import 'package:medito/views/player/player_view.dart';
+import 'package:medito/views/timer/start_timer.dart';
 import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 import 'package:medito/widgets/inputs/medito_segmented_tabs.dart';
@@ -25,46 +18,13 @@ class TimerView extends ConsumerStatefulWidget {
 }
 
 class _TimerViewState extends ConsumerState<TimerView> {
-  static const _scope = CueScope(CueKind.practice);
+  static const _scope = timerCueScope;
   bool _starting = false;
   Future<void> _start() async {
     if (_starting) return;
     setState(() => _starting = true);
-    final l10n = AppLocalizations.of(context)!;
-    final mode = ref.read(timerSettingsProvider).mode;
-    final cues = ref.read(cueSettingsProvider(_scope));
-    final duration = mode == TimerMode.stopwatch
-        ? kStopwatchMaxDuration
-        : Duration(minutes: cues.durationMinutes);
-    unawaited(HapticFeedback.mediumImpact());
     try {
-      final path = await TimerAudioFile.prepare(duration);
-      if (!mounted) return;
-      ref
-          .read(playerProvider.notifier)
-          .prepare(
-            timerPlaybackRequest(
-              mode: mode,
-              duration: duration,
-              filePath: path,
-              title: mode == TimerMode.stopwatch
-                  ? l10n.timerModeStopwatch
-                  : l10n.timerTitle,
-            ),
-          );
-      unawaited(
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const PlayerView()),
-        ),
-      );
-    } catch (e, st) {
-      AppLogger.e('TIMER', 'Failed to start timer', e, st);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.unableToLoadAudio)));
-      }
+      await startTimerSession(context, ref);
     } finally {
       if (mounted) setState(() => _starting = false);
     }
