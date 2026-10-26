@@ -90,6 +90,8 @@ class FreesoundSource(unittest.TestCase):
             self.assertEqual(ps.fetch(good, self.cache, pin=False).name, 'freesound-242889.wav')
             with self.assertRaisesRegex(SystemExit, 'source changed'):
                 ps.fetch(sound(sha256='0' * 64), self.cache, pin=False)
+            self.assertFalse((self.cache / 'freesound-242889.wav').exists(),
+                             'a file that fails its pin is not kept as a cache hit')
 
     def test_pinning_a_cached_original_checks_its_licence_first(self):
         (self.cache / 'freesound-242889.wav').write_bytes(b'RIFFdata')

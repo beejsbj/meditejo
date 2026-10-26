@@ -206,6 +206,7 @@ def fetch(sound: dict, cache: Path, pin: bool) -> Path:
     digest = sha256_of(path)
     expected = sound.get('sha256')
     if expected and expected != digest:
+        path.unlink(missing_ok=True)  # don't keep serving a file that fails its pin
         raise SystemExit(f"{sound['id']}: source changed: sha256 {digest} != pinned {expected}")
     if not expected:
         if not pin:
