@@ -239,6 +239,26 @@ void main() {
     expect(find.text('Nothing in your mix yet'), findsNothing);
   });
 
+  testWidgets('an empty mix stays docked and says how to start', (
+    tester,
+  ) async {
+    phone(tester);
+    await pump(tester);
+    container.read(soundscapeProvider.notifier).clearMix();
+    await tester.pumpAndSettle();
+    expect(find.text('Tap a sound or a preset to start a mix.'), findsOne);
+    expect(find.byKey(const ValueKey('sounds_mix_toggle')), findsNothing);
+    await tester.tap(find.text('Your mix'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('sounds_volume')), findsNothing);
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const ValueKey('sounds_play')))
+          .onPressed,
+      isNull,
+    );
+  });
+
   testWidgets('saves the mix as a preset from the panel', (tester) async {
     phone(tester);
     await pump(tester);

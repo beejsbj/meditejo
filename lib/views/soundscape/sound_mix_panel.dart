@@ -99,6 +99,8 @@ class SoundsMixHeader extends ConsumerWidget {
             minimumSize: const Size.square(56),
             backgroundColor: scheme.primary,
             foregroundColor: scheme.onPrimary,
+            disabledBackgroundColor: scheme.onSurface.withValues(alpha: 0.12),
+            disabledForegroundColor: scheme.onSurface.withValues(alpha: 0.38),
           ),
           tooltip: state.playing ? l10n.soundsPause : l10n.soundsPlay,
           onPressed: state.mix.isEmpty ? null : controller.togglePlay,
@@ -145,7 +147,8 @@ class SoundsMixHeader extends ConsumerWidget {
             onPressed: controller.stop,
             icon: const Icon(Symbols.stop_rounded, fill: 1),
           ),
-        if (onToggle != null)
+        // An empty mix has nothing to open: its line says how to start.
+        if (onToggle != null && (expanded || !state.mix.isEmpty))
           IconButton(
             key: const ValueKey('sounds_mix_toggle'),
             tooltip: expanded ? l10n.soundsHideMix : l10n.soundsShowMix,
@@ -413,7 +416,7 @@ class _LayerTile extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Material(
-        color: scheme.surfaceContainerLowest,
+        color: scheme.surfaceContainerLow,
         shape: MeditejoShapes.rounded(MeditejoShapes.largeIncreased),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 12, 4, 8),
@@ -501,6 +504,8 @@ class _LayerTile extends ConsumerWidget {
                       avatar: const Icon(Symbols.waves_rounded),
                       label: Text(l10n.soundsDrift),
                       selected: layer.animate,
+                      // The waves stay; the tonal fill says it is on.
+                      showCheckmark: false,
                       onSelected: (on) => mixer.setLayerAnimate(id, on),
                     ),
                     if (isSynthId(id))

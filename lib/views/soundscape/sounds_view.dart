@@ -98,7 +98,11 @@ class SoundsViewState extends ConsumerState<SoundsView>
     return true;
   }
 
-  void _toggle() => _settle(!_open);
+  void _toggle() {
+    // An empty mix stays docked: there is nothing in it to adjust.
+    if (!_open && ref.read(soundscapeProvider).mix.isEmpty) return;
+    _settle(!_open);
+  }
 
   void _settle(bool open, {double velocity = 0}) {
     if (_open != open) setState(() => _open = open);
@@ -124,10 +128,12 @@ class SoundsViewState extends ConsumerState<SoundsView>
   }
 
   void _drag(DragUpdateDetails details, double travel) {
+    if (!_open && ref.read(soundscapeProvider).mix.isEmpty) return;
     _dock.value = (_dock.value - details.primaryDelta! / travel).clamp(0, 1);
   }
 
   void _release(DragEndDetails details, double travel) {
+    if (!_open && ref.read(soundscapeProvider).mix.isEmpty) return;
     final velocity = -(details.primaryVelocity ?? 0) / travel;
     final open = velocity.abs() > 1.5 ? velocity > 0 : _dock.value > 0.5;
     _settle(open, velocity: velocity);
