@@ -518,6 +518,8 @@ void main() {
           sound.author,
           sound.license.label,
           sound.modifications,
+          Uri.parse(sound.sourceUrl).host,
+          'Attribution required',
         ]) {
           expect(
             find.descendant(of: tile, matching: find.textContaining(text)),

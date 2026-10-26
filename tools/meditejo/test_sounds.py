@@ -8,6 +8,7 @@ Needs numpy (the pipeline itself does).
 import hashlib
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -18,6 +19,8 @@ from unittest import mock
 try:
     import numpy as np
 except ImportError:  # pragma: no cover
+    if os.environ.get('CI'):
+        raise  # CI must run these, not skip them
     raise unittest.SkipTest('numpy is required')
 
 _path = Path(__file__).with_name('sounds') / 'process_sounds.py'
@@ -87,8 +90,18 @@ class FreesoundSource(unittest.TestCase):
             self.assertEqual(ps.fetch(good, self.cache, pin=False).name, 'freesound-242889.wav')
             with self.assertRaisesRegex(SystemExit, 'source changed'):
                 ps.fetch(sound(sha256='0' * 64), self.cache, pin=False)
+
+    def test_pinning_a_cached_original_checks_its_licence_first(self):
+        (self.cache / 'freesound-242889.wav').write_bytes(b'RIFFdata')
+        with mock.patch.object(ps.subprocess, 'run', FakeTool(info(license=NC))):
+            with self.assertRaisesRegex(SystemExit, 'does not accept'):
+                ps.fetch(sound(), self.cache, pin=True)
+        with mock.patch.object(ps.subprocess, 'run', FakeTool(info())):
             with self.assertRaisesRegex(SystemExit, 'no pinned sha256'):
                 ps.fetch(sound(), self.cache, pin=False)
+            s = sound()
+            ps.fetch(s, self.cache, pin=True)
+            self.assertEqual(s['sha256'], hashlib.sha256(b'RIFFdata').hexdigest())
 
     def test_a_missing_tool_fails_clearly(self):
         with mock.patch.object(ps, 'freesound_tool', REAL_TOOL), \
@@ -165,6 +178,10 @@ class SeamMetrics(unittest.TestCase):
         m = ps.seam_metrics(loop)
         self.assertLessEqual(m['spectralDb'], m['spectralP95Db'] + 1.0)
         self.assertLessEqual(m['rmsStepDb'], m['rmsStepP95Db'] + 1.0)
+
+    def test_a_loop_too_short_to_measure_is_refused(self):
+        with self.assertRaisesRegex(SystemExit, 'too short'):
+            ps.seam_metrics(self.noise(0.8))
 
     def test_a_level_jump_at_the_seam_shows(self):
         loop = self.noise(6)

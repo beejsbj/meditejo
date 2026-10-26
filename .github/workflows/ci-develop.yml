@@ -90,8 +90,9 @@ jobs:
 
       - name: Sound pipeline tests
         run: |
-          python3 -m pip install --quiet numpy
-          python3 -I -m unittest discover -s tools/meditejo -p 'test_sounds.py'
+          python3 -m venv "$RUNNER_TEMP/sounds-venv"
+          "$RUNNER_TEMP/sounds-venv/bin/pip" install --quiet numpy
+          "$RUNNER_TEMP/sounds-venv/bin/python" -I -m unittest discover -s tools/meditejo -p 'test_sounds.py'
 
       - name: Run Unit Tests
         run: timeout 2400 nice -n 10 flutter test -j 2
