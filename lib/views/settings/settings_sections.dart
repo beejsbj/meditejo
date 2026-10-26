@@ -297,7 +297,7 @@ class _AboutHeader extends ConsumerWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(MeditejoShapes.medium),
             child: Image.asset(
-              'assets/images/app_icons/placeholder.png',
+              'assets/images/app_icons/meditejo.png',
               width: 48,
               height: 48,
               excludeFromSemantics: true,
