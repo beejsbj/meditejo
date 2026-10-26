@@ -2,15 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/models/background_sounds/background_sounds_model.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
+import 'package:medito/services/audio/session_bell_preview.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/soundscape_fakes.dart';
+
+/// Records what the pickers audition, without touching a platform player.
+class _FakePreview extends SessionBellPreview {
+  final played = <(String, double)>[];
+  int stops = 0;
+
+  @override
+  Future<void> play(double volume, {String asset = kSessionBellAsset}) async =>
+      played.add((asset, volume));
+
+  @override
+  Future<void> stop() async => stops++;
+}
 
 Future<ProviderContainer> _pump(
   WidgetTester tester, {
@@ -20,6 +35,7 @@ Future<ProviderContainer> _pump(
   int positionMs = 0,
   Size? size,
   double textScale = 1,
+  SessionBellPreview? preview,
 }) async {
   if (size != null) {
     tester.view.physicalSize = size;
@@ -32,6 +48,8 @@ Future<ProviderContainer> _pump(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       ...soundscapeTestOverrides(FakeSoundscapeEngine()),
+      if (preview != null)
+        sessionBellPreviewProvider.overrideWithValue(preview),
     ],
   );
   addTearDown(container.dispose);
@@ -328,6 +346,87 @@ void main() {
     await tester.pumpAndSettle();
     expect(_read(container).pulseSound, '');
     expect(find.text('Rate'), findsNothing);
+    await _closeSub(tester);
+    await _unmount(tester);
+  });
+
+  testWidgets('each bell picker previews at the bell volume and saves its own '
+      'cue', (tester) async {
+    final preview = _FakePreview();
+    final container = await _pump(tester, preview: preview);
+    const bowl = 'assets/audio/bell_bowl_deep.wav';
+    const chime = 'assets/audio/bell_chime.wav';
+    const gong = 'assets/audio/bell_gong.wav';
+    Future<void> pick(String row, String bell) async {
+      await tester.tap(find.text(row));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text(bell));
+      await tester.tap(find.text(bell));
+      await tester.pumpAndSettle();
+    }
+
+    await pick('Starting bell', 'Singing bowl, deep');
+    expect(_read(container).startSound, bowl);
+    expect(_read(container).intervalSound, kSessionBellAsset);
+    expect(_read(container).endSound, kSessionBellAsset);
+    expect(preview.played.single, (bowl, 0.5));
+    await _closeSub(tester);
+    // Closing the picker silences any bell still ringing.
+    expect(preview.stops, 1);
+
+    await pick('Interval bell', 'Chime');
+    expect(_read(container).intervalSound, chime);
+    expect(_read(container).startSound, bowl);
+    expect(preview.played.last, (chime, 0.5));
+    await _closeSub(tester);
+
+    // The volume the picker auditions at is the one in the settings.
+    await tester.tap(find.text('Ending bell'));
+    await tester.pumpAndSettle();
+    await _drag(tester, 'Bell volume', 0.8);
+    await tester.ensureVisible(find.text('Gong'));
+    await tester.tap(find.text('Gong'));
+    await tester.pumpAndSettle();
+    expect(preview.played.last, (gong, 0.8));
+    expect(_read(container).endSound, gong);
+    expect(
+      [
+        _read(container).startSound,
+        _read(container).intervalSound,
+        _read(container).endSound,
+      ],
+      [bowl, chime, gong],
+    );
+    await _closeSub(tester);
+
+    // Off is silent: it stops the preview rather than playing anything.
+    final before = preview.played.length;
+    await tester.tap(find.text('Starting bell'));
+    await tester.pumpAndSettle();
+    // The picker's row, not a value shown behind it.
+    await tester.tap(find.text('Off').last);
+    await tester.pumpAndSettle();
+    expect(_read(container).startSound, '');
+    expect(preview.played.length, before);
+    expect(find.text('Off'), findsWidgets);
+    await _closeSub(tester);
+    await _unmount(tester);
+  });
+
+  testWidgets('the picker lists every bell and marks the chosen one', (
+    tester,
+  ) async {
+    await _pump(tester, preview: _FakePreview());
+    await tester.tap(find.text('Ending bell'));
+    await tester.pumpAndSettle();
+    for (final name in cueBellSounds.keys) {
+      // A row behind the sheet can show the same name as its value; the
+      // picker's own row is the last one built.
+      expect(find.text(name), findsWidgets, reason: name);
+      await tester.ensureVisible(find.text(name).last);
+    }
+    // The default is selected: one filled radio.
+    expect(find.byIcon(Icons.radio_button_checked_rounded), findsOneWidget);
     await _closeSub(tester);
     await _unmount(tester);
   });
