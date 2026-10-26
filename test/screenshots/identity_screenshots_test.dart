@@ -56,6 +56,15 @@ Future<void> _loadFonts() async {
         ).readAsBytes().then((b) => ByteData.sublistView(b)),
       ))
       .load();
+  // Home's tiles use Material Symbols.
+  await (FontLoader(
+        'packages/material_symbols_icons/MaterialSymbolsRounded',
+      )..addFont(
+        rootBundle.load(
+          'packages/material_symbols_icons/lib/fonts/MaterialSymbolsRounded.ttf',
+        ),
+      ))
+      .load();
 }
 
 final _boundary = GlobalKey();
