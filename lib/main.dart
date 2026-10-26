@@ -18,6 +18,7 @@ import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/providers/notification/reminder_provider.dart';
 import 'package:medito/providers/locale_provider.dart';
 import 'package:medito/providers/providers.dart';
+import 'package:medito/providers/stats/practice_summary_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/providers/theme_provider.dart';
 import 'package:medito/routes/routes.dart';
@@ -179,7 +180,15 @@ class _ParentWidgetState extends ConsumerState<ParentWidget>
     unawaited(prepareDharmaSeed(ref));
     unawaited(startFeedRefresh(ref));
     unawaited(startUpdateCheck(ref));
+    // The stats page's Today and This week turn over at the day boundary
+    // while the app stays open.
+    _dayTick = Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => ref.read(practiceTickProvider.notifier).tick(),
+    );
   }
+
+  Timer? _dayTick;
 
   Future<void> _recoverPreviousSession() async {
     if (Platform.isIOS) await processPendingCompletedTracks();
@@ -222,6 +231,7 @@ class _ParentWidgetState extends ConsumerState<ParentWidget>
   @override
   void dispose() {
     _deepLinkService?.dispose();
+    _dayTick?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -278,6 +288,7 @@ class _ParentWidgetState extends ConsumerState<ParentWidget>
   void _onAppForegrounded() async {
     ref.read(reminderProvider).clearBadge();
     ref.read(statsProvider.notifier).refresh();
+    ref.read(practiceTickProvider.notifier).tick();
     if (Platform.isIOS) {
       // Process any pending track completions when app comes back to foreground
       processPendingCompletedTracks().then((processedCount) {

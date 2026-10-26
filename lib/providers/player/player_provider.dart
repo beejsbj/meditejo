@@ -1,6 +1,7 @@
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/services/audio/native_cue_controller.dart';
+import 'package:medito/services/stats/session_label.dart';
 import 'package:medito/providers/library/library_providers.dart';
 
 import 'dart:io';
@@ -86,6 +87,13 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
   Future<void> _playTrack(PlaybackRequest request, int generation) async {
     final scope = await ref.read(cueScopeForRequestProvider(request).future);
     if (generation != _generation) return;
+    // The stats page counts this session as the same kind, in the same
+    // course, as the cues treat it.
+    SessionLabelRegistry.remember(
+      request.trackId,
+      kind: scope.kind.name,
+      courseId: scope.courseId,
+    );
     _cues = ref.read(cueSettingsProvider(scope));
     AppLogger.d(
       'PLAYER',
