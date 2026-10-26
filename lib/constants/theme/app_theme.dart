@@ -1,228 +1,229 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/constants/theme/text_theme.dart';
+import 'package:medito/constants/theme/tokens.dart';
 
-import '../colors/color_constants.dart';
-import '../styles/widget_styles.dart';
 import 'input_theme.dart';
 
+/// The app's colour scheme for [brightness], grown from the seed token.
+ColorScheme meditejoColorScheme(Brightness brightness) => ColorScheme.fromSeed(
+  seedColor: MeditejoColorTokens.seed,
+  brightness: brightness,
+  dynamicSchemeVariant: MeditejoColorTokens.variant,
+);
+
+/// Material 3 Expressive, built from the tokens in `tokens.dart`. Screens
+/// not yet redesigned keep the text roles they were laid out with
+/// (`text_theme.dart`) but take their colours, shapes and components from
+/// here.
 ThemeData appTheme(BuildContext context, [ThemeMode? themeMode]) {
   final brightness = MediaQuery.of(context).platformBrightness;
   final isDark =
       themeMode == ThemeMode.dark ||
       (themeMode == ThemeMode.system && brightness == Brightness.dark);
+  return meditejoTheme(isDark ? Brightness.dark : Brightness.light);
+}
+
+ThemeData meditejoTheme(Brightness brightness) {
+  final scheme = meditejoColorScheme(brightness);
+  final isDark = brightness == Brightness.dark;
+  final typography = ExpressiveTypography.from(scheme);
+  final type = typography.baseline;
+  final emphasized = typography.emphasized;
+
+  final pill = MeditejoShapes.stadium;
+  final buttonText = emphasized.titleMedium!.copyWith(
+    fontWeight: FontWeight.w600,
+  );
+  const buttonPadding = EdgeInsets.symmetric(horizontal: 24, vertical: 12);
 
   return ThemeData(
     useMaterial3: true,
-    brightness: isDark ? Brightness.dark : Brightness.light,
-    splashColor: isDark ? ColorConstants.ebony : ColorConstants.lightSurface,
-    cardColor: isDark ? ColorConstants.onyx : ColorConstants.lightCard,
-    canvasColor: isDark ? ColorConstants.ebony : ColorConstants.lightBackground,
+    brightness: brightness,
+    colorScheme: scheme,
+    fontFamily: MeditejoType.family,
+    scaffoldBackgroundColor: scheme.surface,
+    canvasColor: scheme.surface,
+    cardColor: scheme.surfaceContainerHigh,
+    dividerColor: scheme.outlineVariant,
+    textTheme: legacyTextTheme(scheme),
+    extensions: [typography],
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: {
         TargetPlatform.android: PredictiveBackPageTransitionsBuilder(),
         TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
       },
     ),
-    colorScheme: isDark
-        ? const ColorScheme.dark(
-            primary: ColorConstants.accentDark,
-            onPrimary: ColorConstants.onAccentDark,
-            secondary: ColorConstants.white,
-            onSecondary: ColorConstants.black,
-            surface: ColorConstants.ebony,
-            onSurface: ColorConstants.white,
-            error: ColorConstants.amber,
-            onError: ColorConstants.white,
-          )
-        : const ColorScheme.light(
-            primary: ColorConstants.lightPrimary,
-            onPrimary: ColorConstants.onAccentLight,
-            secondary: ColorConstants.lightSecondary,
-            onSecondary: ColorConstants.white,
-            surface: ColorConstants.lightSurface,
-            onSurface: ColorConstants.lightOnSurface,
-            error: ColorConstants.lightError,
-            onError: ColorConstants.white,
-          ),
-    scaffoldBackgroundColor: isDark
-        ? ColorConstants.ebony
-        : ColorConstants.lightBackground,
-    textTheme: meditoTextTheme(context, themeMode),
-    inputDecorationTheme: inputDecorationTheme(),
-    // The time picker's hour/minute fields are Material's own TextFields, so
-    // match them to MeditoTextField by letting their InputDecoration own the
-    // box: cardColor fill, 12px rounded corners, a 0.5px outline, and — on the
-    // focused field — the same 4px translucent light ring (the "glow").
-    timePickerTheme: TimePickerThemeData(
-      backgroundColor: isDark
-          ? ColorConstants.ebony
-          : ColorConstants.lightSurface,
-      // Transparent so only the InputDecoration below paints the box.
-      hourMinuteColor: ColorConstants.transparent,
-      hourMinuteTextColor: isDark
-          ? ColorConstants.white
-          : ColorConstants.lightOnSurface,
-      hourMinuteShape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: isDark ? ColorConstants.onyx : ColorConstants.lightCard,
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color:
-                (isDark ? ColorConstants.white : ColorConstants.lightOnSurface)
-                    .withValues(alpha: 0.3),
-            width: 0.5,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color:
-                (isDark ? ColorConstants.white : ColorConstants.lightOnSurface)
-                    .withValues(alpha: 0.35),
-            width: 4,
-          ),
-        ),
-      ),
-    ),
+    inputDecorationTheme: inputDecorationTheme(scheme, type),
     appBarTheme: AppBarTheme(
+      backgroundColor: scheme.surface,
+      foregroundColor: scheme.onSurface,
+      surfaceTintColor: Colors.transparent,
+      scrolledUnderElevation: 0,
+      elevation: 0,
+      titleTextStyle: emphasized.titleLarge,
       systemOverlayStyle: SystemUiOverlayStyle(
-        systemNavigationBarColor: isDark
-            ? ColorConstants.ebony
-            : ColorConstants.lightBackground,
+        systemNavigationBarColor: scheme.surfaceContainer,
         systemNavigationBarIconBrightness: isDark
             ? Brightness.light
             : Brightness.dark,
-        statusBarColor: ColorConstants.transparent,
+        statusBarColor: Colors.transparent,
         statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
         statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
       ),
     ),
-    // Enhanced button themes.
-    // Light mode uses lightPrimary (#171717) for both fills and text; dark mode
-    // uses accentDark (#E5E5E5) on dark surfaces.
+    navigationBarTheme: NavigationBarThemeData(
+      height: 72,
+      elevation: 0,
+      backgroundColor: scheme.surfaceContainer,
+      surfaceTintColor: Colors.transparent,
+      indicatorColor: scheme.secondaryContainer,
+      indicatorShape: pill,
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      labelTextStyle: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? emphasized.labelMedium!.copyWith(color: scheme.onSurface)
+            : type.labelMedium!.copyWith(color: scheme.onSurfaceVariant),
+      ),
+      iconTheme: WidgetStateProperty.resolveWith(
+        (states) => IconThemeData(
+          size: 24,
+          color: states.contains(WidgetState.selected)
+              ? scheme.onSecondaryContainer
+              : scheme.onSurfaceVariant,
+        ),
+      ),
+    ),
+    navigationRailTheme: NavigationRailThemeData(
+      backgroundColor: scheme.surface,
+      indicatorColor: scheme.secondaryContainer,
+      indicatorShape: pill,
+      selectedLabelTextStyle: emphasized.labelMedium!.copyWith(
+        color: scheme.onSurface,
+      ),
+      unselectedLabelTextStyle: type.labelMedium!.copyWith(
+        color: scheme.onSurfaceVariant,
+      ),
+    ),
+    // Buttons: Expressive's round (pill) shape. The elevated button is drawn
+    // as a filled one: the app's older screens use it for their main action.
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        shape: pill,
+        textStyle: buttonText,
+        padding: buttonPadding,
+      ),
+    ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: isDark
-            ? ColorConstants.accentDark
-            : ColorConstants.lightPrimary,
-        foregroundColor: isDark
-            ? ColorConstants.onAccentDark
-            : ColorConstants.onAccentLight,
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        textStyle: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          fontFamily: googleSans,
-        ),
+        shape: pill,
+        textStyle: buttonText,
+        padding: buttonPadding,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        backgroundColor: Colors.transparent,
-        foregroundColor: isDark
-            ? ColorConstants.accentDark
-            : ColorConstants.lightPrimary,
-        side: BorderSide(
-          color: isDark
-              ? ColorConstants.accentDark
-              : ColorConstants.lightPrimary,
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        textStyle: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          fontFamily: googleSans,
-        ),
+        foregroundColor: scheme.primary,
+        side: BorderSide(color: scheme.outline),
+        shape: pill,
+        textStyle: buttonText,
+        padding: buttonPadding,
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: isDark
-            ? ColorConstants.accentDark
-            : ColorConstants.lightPrimary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        textStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          fontFamily: googleSans,
-        ),
+        foregroundColor: scheme.primary,
+        shape: pill,
+        textStyle: emphasized.labelLarge,
       ),
     ),
-    // Dialog theme
-    dialogTheme: DialogThemeData(
-      backgroundColor: isDark
-          ? ColorConstants.ebony
-          : ColorConstants.lightSurface,
-      titleTextStyle: TextStyle(
-        color: isDark ? ColorConstants.white : ColorConstants.lightOnSurface,
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-        fontFamily: googleSans,
-      ),
-      contentTextStyle: TextStyle(
-        color: isDark ? ColorConstants.white : ColorConstants.lightOnSurface,
-        fontSize: 14,
-        fontWeight: FontWeight.w400,
-        fontFamily: googleSans,
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
-    // Bottom sheet theme
-    bottomSheetTheme: BottomSheetThemeData(
-      backgroundColor: isDark ? ColorConstants.onyx : ColorConstants.lightCard,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(14),
-          topRight: Radius.circular(14),
-        ),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: SegmentedButton.styleFrom(
+        shape: pill,
+        textStyle: emphasized.labelLarge,
       ),
     ),
-    // Card theme
-    cardTheme: CardThemeData(
-      color: isDark ? ColorConstants.onyx : ColorConstants.lightCard,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: scheme.primaryContainer,
+      foregroundColor: scheme.onPrimaryContainer,
       elevation: 0,
+      shape: MeditejoShapes.rounded(MeditejoShapes.large),
     ),
-    // Switch theme
-    switchTheme: SwitchThemeData(
-      thumbColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) {
-          // White thumb sits on the coloured track in both modes.
-          return ColorConstants.white;
-        }
-        // Unselected: white thumb reads well on the dark track; on the light
-        // grey track we need a darker thumb for visible contrast.
-        return isDark ? ColorConstants.white : ColorConstants.lightSecondary;
-      }),
-      trackColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) {
-          // Light mode: use solid lightPrimary for a 3:1+ track against the
-          // white thumb. Dark mode keeps the semi-transparent brand accent.
-          return isDark
-              ? ColorConstants.accentDark.withValues(alpha: 0.3)
-              : ColorConstants.lightPrimary;
-        }
-        return isDark
-            ? ColorConstants.greyIsTheNewGrey
-            : ColorConstants.lightGrey;
-      }),
+    chipTheme: ChipThemeData(
+      shape: MeditejoShapes.rounded(MeditejoShapes.small),
+      side: BorderSide(color: scheme.outlineVariant),
+      backgroundColor: scheme.surfaceContainerLow,
+      selectedColor: scheme.secondaryContainer,
+      labelStyle: type.labelLarge!.copyWith(color: scheme.onSurfaceVariant),
+      secondaryLabelStyle: emphasized.labelLarge!.copyWith(
+        color: scheme.onSecondaryContainer,
+      ),
+      checkmarkColor: scheme.onSecondaryContainer,
     ),
-    // Progress indicator theme
+    cardTheme: CardThemeData(
+      color: scheme.surfaceContainerHigh,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: MeditejoShapes.rounded(MeditejoShapes.largeIncreased),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: scheme.surfaceContainerLow,
+      surfaceTintColor: Colors.transparent,
+      modalBackgroundColor: scheme.surfaceContainerLow,
+      dragHandleColor: scheme.onSurfaceVariant.withValues(alpha: 0.4),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(MeditejoShapes.extraLarge),
+        ),
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: scheme.surfaceContainerHigh,
+      surfaceTintColor: Colors.transparent,
+      titleTextStyle: type.headlineSmall!.copyWith(color: scheme.onSurface),
+      contentTextStyle: type.bodyMedium!.copyWith(
+        color: scheme.onSurfaceVariant,
+      ),
+      shape: MeditejoShapes.rounded(MeditejoShapes.extraLarge),
+    ),
+    popupMenuTheme: PopupMenuThemeData(
+      color: scheme.surfaceContainer,
+      surfaceTintColor: Colors.transparent,
+      shape: MeditejoShapes.rounded(MeditejoShapes.large),
+      textStyle: type.bodyLarge!.copyWith(color: scheme.onSurface),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: scheme.inverseSurface,
+      contentTextStyle: type.bodyMedium!.copyWith(
+        color: scheme.onInverseSurface,
+      ),
+      actionTextColor: scheme.inversePrimary,
+      shape: MeditejoShapes.rounded(MeditejoShapes.medium),
+    ),
+    dividerTheme: DividerThemeData(color: scheme.outlineVariant, space: 1),
+    listTileTheme: ListTileThemeData(
+      shape: MeditejoShapes.rounded(MeditejoShapes.large),
+      iconColor: scheme.onSurfaceVariant,
+    ),
+    // Material's 2024 indicators: rounded ends, a gap and a stop dot. Native.
     progressIndicatorTheme: ProgressIndicatorThemeData(
-      color: isDark ? ColorConstants.accentDark : ColorConstants.lightPrimary,
-      linearTrackColor: isDark
-          ? ColorConstants.greyIsTheNewGrey
-          : ColorConstants.lightGrey,
-      circularTrackColor: isDark
-          ? ColorConstants.greyIsTheNewGrey
-          : ColorConstants.lightGrey,
+      // ignore: deprecated_member_use
+      year2023: false,
+      color: scheme.primary,
+      linearTrackColor: scheme.secondaryContainer,
+      circularTrackColor: scheme.secondaryContainer,
+    ),
+    timePickerTheme: TimePickerThemeData(
+      backgroundColor: scheme.surfaceContainerHigh,
+      hourMinuteShape: MeditejoShapes.rounded(MeditejoShapes.medium),
+      dayPeriodShape: MeditejoShapes.rounded(MeditejoShapes.medium),
+      shape: MeditejoShapes.rounded(MeditejoShapes.extraLarge),
     ),
   );
 }

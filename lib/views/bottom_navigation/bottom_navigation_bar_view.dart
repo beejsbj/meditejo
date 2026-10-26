@@ -50,7 +50,9 @@ class _BottomNavigationBarViewState
 
     if (ref.read(mainTabProvider) == MainTab.explore) {
       // Restored straight into Explore.
-      WidgetsBinding.instance.addPostFrameCallback((_) => catchUpDharmaSeed(ref));
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => catchUpDharmaSeed(ref),
+      );
     }
     _initializeStats();
     _trackPlaybackPositions();
@@ -145,7 +147,9 @@ class _BottomNavigationBarViewState
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
         statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
-        systemNavigationBarColor: theme.scaffoldBackgroundColor,
+        systemNavigationBarColor: wide
+            ? theme.colorScheme.surface
+            : theme.colorScheme.surfaceContainer,
         systemNavigationBarIconBrightness: isDark
             ? Brightness.light
             : Brightness.dark,
