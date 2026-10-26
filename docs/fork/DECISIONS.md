@@ -481,6 +481,23 @@ Follow-ups, answered not fixed:
 - **Follow-up (review of #35, not done):** a saved mix made only of sounds a later library dropped pins Practice on; `_dropVanishedSounds` then empties the mix and Practice plays the first starter, exactly as 0.1.3 did. It needs a sound to have left the library; left alone.
 - **Follow-up (CodeRabbit on #35, declined for now):** `migrateSessionDefaults` writes the version marker and the Practice setting as two unawaited preference writes, so a failure of only the second would leave a later launch un-migrated. Both go to the same local store, so one failing without the other is very unlikely, and the running session still sees the right value from the in-memory cache. Chaining the marker after the setting's save is the fix; it changes when the marker appears (several tests read it right after launch) and would need the migration re-reviewed, so it is left until it is worth that.
 
+## 2026-10-26 (BRIEF decision 18: what the user makes is a Playlist)
+
+Screenshots: `docs/fork/design/library-playlists-*.png` (the Library with both kinds) and `add-to-playlist-*.png`; regenerate with `MEDITEJO_SCREENSHOTS=1 flutter test test/screenshots`.
+
+- **User-facing strings only.** Code, tables, providers and `my-course-…` IDs keep their names, so nothing migrates. ARCHITECTURE.md carries the note "my course" in code = "Playlist" in the UI.
+- **Words.** English "Playlist". German "Playlist", plural "Playlists" (an anglicism, as in everyday German). Spanish "lista", plural "listas" (feminine, so "Nueva lista", "Añadir a una lista…"). The de and es are my translations, for Burooj to check.
+- **Copy.** "Make my own copy" is now "Copy as playlist" (de "Als Playlist kopieren", es "Copiar como lista"). The copy keeps the title "<title> (my copy)".
+- **Telling the two apart on one screen.** A playlist's line leads with "Playlist" (the kind) wherever it sits beside courses: Library rows ("Playlist · 5 sessions · 2 of 5"), Explore's "In your library" and search rows. A course keeps its teacher or source. A playlist's own page shows "Playlist" under the title where a course shows its source. The same helper does all three (`playlistAwareDetail`).
+- **Progress is unchanged:** "2 of 5" in the Library and "N of M left" on the page. Only the noun moved.
+- **Home's pinned section is now "Pinned"** (was "Pinned courses"), because it holds playlists too; the limit message says "courses or playlists".
+- **The Customize sheet's scope switch** (hard-coded English, as before) says "playlist" when the scope is a playlist and "course" otherwise.
+- **A blank playlist title** falls back to "My playlist" (was "My course") in the source layer as well as the localized default.
+- **Flagged, for Burooj:**
+  - The Explore search "Courses" heading and the Explore "Courses" grid can contain a playlist (search finds the user's playlists). Each such row says "Playlist" in its detail line; a separate "Playlists" heading in search is a layout call I did not make.
+  - Existing playlists keep their stored library subtitle ("3 sessions"); the "Playlist" word is added when drawing, so it follows the language and needs no data change.
+  - `exploreSavedCourses` is an unused string and was left alone.
+
 ## 2026-10-26 (design pass PR 1: Material 3 Expressive foundation and Home)
 
 Decision 16. Screenshots, the five-tab check and the mark's motion (GIF and strip) are in `docs/fork/design/`; regenerate them with `MEDITEJO_SCREENSHOTS=1 flutter test test/screenshots`.
