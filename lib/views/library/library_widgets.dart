@@ -9,6 +9,7 @@ import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/views/library/library_actions.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
+import 'package:medito/views/my_courses/playlist_label.dart';
 import 'package:medito/widgets/network_image_widget.dart';
 
 /// "3 of 12" for a course the user has started; null otherwise.
@@ -38,9 +39,9 @@ class LibraryEntryTile extends ConsumerWidget {
     final theme = Theme.of(context);
     final progress = libraryProgressText(ref, l10n, entry);
     final detail = [
-      if (entry.subtitle.isNotEmpty) entry.subtitle,
+      ?playlistAwareDetail(l10n, entry.sourceId, entry.subtitle),
       ?progress,
-    ].join(' · ');
+    ].where((part) => part.isNotEmpty).join(' · ');
 
     return Semantics(
       container: true,

@@ -3835,7 +3835,7 @@ abstract class AppLocalizations {
   /// No description provided for @homePinnedTitle.
   ///
   /// In en, this message translates to:
-  /// **'Pinned courses'**
+  /// **'Pinned'**
   String get homePinnedTitle;
 
   /// No description provided for @homeCustomize.
@@ -3907,7 +3907,7 @@ abstract class AppLocalizations {
   /// No description provided for @pinnedLimitReached.
   ///
   /// In en, this message translates to:
-  /// **'Home holds up to three pinned courses. Unpin one first.'**
+  /// **'Home holds up to three pinned courses or playlists. Unpin one first.'**
   String get pinnedLimitReached;
 
   /// No description provided for @pinnedCourseAdded.
@@ -4288,61 +4288,61 @@ abstract class AppLocalizations {
   /// **'Stillness'**
   String get soundPresetStillness;
 
-  /// Action that makes a personal course
+  /// Action that makes a playlist
   ///
   /// In en, this message translates to:
-  /// **'New course'**
+  /// **'New playlist'**
   String get myCourseNew;
 
-  /// Hint in the new course name field
+  /// Hint in the new playlist name field
   ///
   /// In en, this message translates to:
-  /// **'Course name'**
+  /// **'Playlist name'**
   String get myCourseNameHint;
 
-  /// Confirms making a new course
+  /// Confirms making a new playlist
   ///
   /// In en, this message translates to:
   /// **'Create'**
   String get myCourseCreate;
 
-  /// Title of a new course left unnamed
+  /// Title of a new playlist left unnamed
   ///
   /// In en, this message translates to:
-  /// **'My course'**
+  /// **'My playlist'**
   String get myCourseDefaultTitle;
 
-  /// Menu entry that adds a session or course to a personal course
+  /// Menu entry that adds a session or playlist to a playlist
   ///
   /// In en, this message translates to:
-  /// **'Add to course…'**
+  /// **'Add to playlist…'**
   String get myCourseAddTo;
 
-  /// Title of the sheet listing personal courses
+  /// Title of the sheet listing playlists
   ///
   /// In en, this message translates to:
-  /// **'Add to course'**
+  /// **'Add to playlist'**
   String get myCourseAddToTitle;
 
-  /// Snackbar after adding to a personal course
+  /// Snackbar after adding to a playlist
   ///
   /// In en, this message translates to:
   /// **'Added to {title}'**
   String myCourseAddedSnack(String title);
 
-  /// Snackbar after adding a course's sessions
+  /// Snackbar after adding a playlist's sessions
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 session added to {title}} other{{count} sessions added to {title}}}'**
   String myCourseAddedCountSnack(int count, String title);
 
-  /// Snackbar when the course already holds it
+  /// Snackbar when the playlist already holds it
   ///
   /// In en, this message translates to:
   /// **'Already in {title}'**
   String myCourseAlreadyIn(String title);
 
-  /// Snackbar when a course has nothing addable
+  /// Snackbar when a playlist has nothing addable
   ///
   /// In en, this message translates to:
   /// **'There are no sessions to add.'**
@@ -4351,22 +4351,22 @@ abstract class AppLocalizations {
   /// Snackbar when adding fails
   ///
   /// In en, this message translates to:
-  /// **'Could not add it to the course.'**
+  /// **'Could not add it to the playlist.'**
   String get myCourseAddFailed;
 
-  /// Shown in the add-to-course sheet with no courses
+  /// Shown in the add-to-playlist sheet with no playlists
   ///
   /// In en, this message translates to:
-  /// **'You haven\'t made a course yet. Start one here.'**
+  /// **'You haven\'t made a playlist yet. Start one here.'**
   String get myCourseNoneYet;
 
-  /// Copies a course into a personal one
+  /// Copies any course, or another playlist, into a new playlist
   ///
   /// In en, this message translates to:
-  /// **'Make my own copy'**
+  /// **'Copy as playlist'**
   String get myCourseDuplicate;
 
-  /// Title of a duplicated course
+  /// Title of a duplicated playlist
   ///
   /// In en, this message translates to:
   /// **'{title} (my copy)'**
@@ -4375,22 +4375,22 @@ abstract class AppLocalizations {
   /// Snackbar when duplicating fails
   ///
   /// In en, this message translates to:
-  /// **'Could not copy this course.'**
+  /// **'Could not make a playlist from this.'**
   String get myCourseDuplicateFailed;
 
-  /// Snackbar when saving a course fails
+  /// Snackbar when saving a playlist fails
   ///
   /// In en, this message translates to:
-  /// **'Could not save the course.'**
+  /// **'Could not save the playlist.'**
   String get myCourseSaveFailed;
 
-  /// Opens the course edit screen; also its title
+  /// Opens the playlist edit screen; also its title
   ///
   /// In en, this message translates to:
-  /// **'Edit course'**
+  /// **'Edit playlist'**
   String get myCourseEdit;
 
-  /// Saves the course edit
+  /// Saves the playlist edit
   ///
   /// In en, this message translates to:
   /// **'Save'**
@@ -4432,7 +4432,7 @@ abstract class AppLocalizations {
   /// **'Cover {index}'**
   String myCourseCoverChoice(int index);
 
-  /// Header above the course rows on the edit screen
+  /// Header above the playlist rows on the edit screen
   ///
   /// In en, this message translates to:
   /// **'Sessions'**
@@ -4450,10 +4450,10 @@ abstract class AppLocalizations {
   /// **'Heading, e.g. Day 1'**
   String get myCourseHeadingHint;
 
-  /// Removes a row from the course
+  /// Removes a row from the playlist
   ///
   /// In en, this message translates to:
-  /// **'Remove from course'**
+  /// **'Remove from playlist'**
   String get myCourseRemoveRow;
 
   /// Semantics label of a row's drag handle
@@ -4465,7 +4465,7 @@ abstract class AppLocalizations {
   /// Edit screen with no rows
   ///
   /// In en, this message translates to:
-  /// **'No sessions yet. Use Add to course… in any session\'s menu.'**
+  /// **'No sessions yet. Use Add to playlist… in any session\'s menu.'**
   String get myCourseEditEmpty;
 
   /// Leaving the edit screen with unsaved changes
@@ -4486,40 +4486,40 @@ abstract class AppLocalizations {
   /// **'Keep editing'**
   String get myCourseKeepEditing;
 
-  /// Deletes a personal course
+  /// Deletes a playlist
   ///
   /// In en, this message translates to:
-  /// **'Delete course'**
+  /// **'Delete playlist'**
   String get myCourseDelete;
 
   /// Delete confirmation title
   ///
   /// In en, this message translates to:
-  /// **'Delete this course?'**
+  /// **'Delete this playlist?'**
   String get myCourseDeleteTitle;
 
   /// Delete confirmation body
   ///
   /// In en, this message translates to:
-  /// **'Only the course goes. Its sessions stay in your library, with their downloads and progress.'**
+  /// **'Only the playlist goes. Its sessions stay in your library, with their downloads and progress.'**
   String get myCourseDeleteBody;
 
-  /// Snackbar after deleting a course
+  /// Snackbar after deleting a playlist
   ///
   /// In en, this message translates to:
-  /// **'Course deleted'**
+  /// **'Playlist deleted'**
   String get myCourseDeletedSnack;
 
-  /// Empty personal course page title
+  /// Empty playlist page title
   ///
   /// In en, this message translates to:
   /// **'No sessions yet'**
   String get myCourseEmptyTitle;
 
-  /// Empty personal course page body
+  /// Empty playlist page body
   ///
   /// In en, this message translates to:
-  /// **'Add sessions from anywhere: a Dharma Seed talk, a YouTube video, an episode or a file. Open its menu and choose Add to course…'**
+  /// **'Add sessions from anywhere: a Dharma Seed talk, a YouTube video, an episode or a file. Open its menu and choose Add to playlist…'**
   String get myCourseEmptyBody;
 
   /// Label on a session its source no longer has
@@ -4534,10 +4534,10 @@ abstract class AppLocalizations {
   /// **'This session is no longer available from its source.'**
   String get myCourseUnavailableSnack;
 
-  /// Extra line when removing an import that personal courses list
+  /// Extra line when removing an import that playlists list
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{It is also in one of your courses, where it will show as unavailable.} other{It is also in {count} of your courses, where it will show as unavailable.}}'**
+  /// **'{count, plural, =1{It is also in one of your playlists, where it will show as unavailable.} other{It is also in {count} of your playlists, where it will show as unavailable.}}'**
   String myCourseRemoveWarning(int count);
 
   /// Tooltip of a row's overflow menu
@@ -4546,17 +4546,23 @@ abstract class AppLocalizations {
   /// **'More options'**
   String get myCourseMore;
 
-  /// After taking a session out of a personal course
+  /// After taking a session out of a playlist
   ///
   /// In en, this message translates to:
-  /// **'Removed from the course'**
+  /// **'Removed from the playlist'**
   String get myCourseRemovedSnack;
 
-  /// Button on a personal course page that opens its edit screen
+  /// Button on a playlist page that opens its edit screen
   ///
   /// In en, this message translates to:
   /// **'Edit'**
   String get myCourseEditAction;
+
+  /// Names what the user makes (a Playlist), shown beside a course on Library rows and as the kind on a playlist page. A course comes from a source.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist'**
+  String get playlistKind;
 }
 
 class _AppLocalizationsDelegate

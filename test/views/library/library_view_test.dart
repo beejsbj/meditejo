@@ -85,6 +85,35 @@ void main() {
       expect(find.text('One long talk'), findsOneWidget);
     });
 
+    testWidgets('says which rows are playlists and which are courses', (
+      tester,
+    ) async {
+      final app = await LibraryTestApp.create(tester);
+      final store = app.harness.store;
+      await add(
+        tester,
+        store,
+        'ds-retreat-2',
+        'Body scan course',
+        subtitle: 'Tara Brach',
+      );
+      await add(
+        tester,
+        store,
+        'my-course-0123456789abcdef',
+        'Morning sits',
+        subtitle: '3 sessions',
+      );
+      await app.pump(tester, const LibraryView());
+
+      // A playlist leads its line with what it is; a course keeps its source.
+      expect(find.text('Playlist · 3 sessions'), findsOneWidget);
+      expect(find.text('Tara Brach'), findsOneWidget);
+      expect(find.textContaining('Playlist'), findsOneWidget);
+      expect(find.text('New playlist'), findsNothing);
+      expect(find.byTooltip('New playlist'), findsOneWidget);
+    });
+
     testWidgets('empty, it invites the first addition', (tester) async {
       final app = await LibraryTestApp.create(tester);
       await app.pump(tester, const LibraryView(), asRoute: true);
@@ -408,7 +437,9 @@ void main() {
       await pin('Course d');
       expect(container.read(pinnedCoursesProvider), hasLength(3));
       expect(
-        find.text('Home holds up to three pinned courses. Unpin one first.'),
+        find.text(
+          'Home holds up to three pinned courses or playlists. Unpin one first.',
+        ),
         findsOneWidget,
       );
     });
