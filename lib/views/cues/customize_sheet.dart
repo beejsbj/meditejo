@@ -1,4 +1,5 @@
 import 'package:medito/providers/cues/cue_runtime_provider.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
+import 'package:medito/services/audio/session_bell_preview.dart';
 import 'package:medito/views/soundscape/sound_labels.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 
@@ -200,8 +202,8 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   Future<void> _open(
     String title,
     Widget Function(CueSettings s, void Function(CueSettings) change) body,
-  ) {
-    return showModalBottomSheet<void>(
+  ) async {
+    await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
@@ -214,6 +216,8 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         },
       ),
     );
+    // A bell auditioned in a picker never rings on after its sheet closes.
+    if (mounted) unawaited(ref.read(sessionBellPreviewProvider).stop());
   }
 
   @override
@@ -302,13 +306,6 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
           'Interval bell',
           (s, change) => Column(
             children: [
-              _ChoiceWrap<String>(
-                options: {
-                  for (final e in cueBellSounds.entries) e.value: e.key,
-                },
-                selected: s.intervalSound,
-                onSelected: (v) => change(s.copyWith(intervalSound: v)),
-              ),
               _SliderTile(
                 label: 'Every',
                 value: s.intervalMinutes.toDouble(),
@@ -343,6 +340,12 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
                   onChanged: (v) =>
                       change(s.copyWith(randomWindowMinutes: v.round())),
                 ),
+              const SizedBox(height: 8),
+              _BellList(
+                selected: s.intervalSound,
+                volume: s.bellVolume,
+                onSelected: (v) => change(s.copyWith(intervalSound: v)),
+              ),
               _volume(s, change),
             ],
           ),
@@ -585,9 +588,9 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     CueSettings Function(String) apply,
   ) => Column(
     children: [
-      _ChoiceWrap<String>(
-        options: {for (final e in cueBellSounds.entries) e.value: e.key},
+      _BellList(
         selected: selected,
+        volume: s.bellVolume,
         onSelected: (v) => change(apply(v)),
       ),
       _volume(s, change),
@@ -898,6 +901,91 @@ class _SectionLabel extends StatelessWidget {
           color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
         ),
       ),
+    );
+  }
+}
+
+/// The bells a cue can ring. Tapping one selects it and rings it once at the
+/// bell [volume], so what is heard is what a session will play.
+class _BellList extends ConsumerWidget {
+  const _BellList({
+    required this.selected,
+    required this.volume,
+    required this.onSelected,
+  });
+
+  final String selected;
+  final double volume;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    void pick(String asset) {
+      onSelected(asset);
+      final preview = ref.read(sessionBellPreviewProvider);
+      // Best effort: a tap that interrupts a still-loading bell, or a sound
+      // the platform will not play, is not an error worth surfacing.
+      unawaited(
+        (asset.isEmpty ? preview.stop() : preview.play(volume, asset: asset))
+            .catchError((Object _) {}),
+      );
+    }
+
+    return Column(
+      children: [
+        for (final e in cueBellSounds.entries)
+          Semantics(
+            button: true,
+            selected: e.value == selected,
+            label: e.value.isEmpty ? e.key : '${e.key}, plays a preview',
+            excludeSemantics: true,
+            onTap: () => pick(e.value),
+            child: InkWell(
+              onTap: () => pick(e.value),
+              borderRadius: BorderRadius.circular(12),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    children: [
+                      Icon(
+                        e.value == selected
+                            ? Icons.radio_button_checked_rounded
+                            : Icons.radio_button_unchecked_rounded,
+                        color: e.value == selected
+                            ? context.brandAccent
+                            : theme.colorScheme.onSurface.withValues(
+                                alpha: 0.5,
+                              ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          e.key,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: e.value == selected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                      if (e.value.isNotEmpty)
+                        Icon(
+                          Icons.volume_up_rounded,
+                          size: 20,
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
