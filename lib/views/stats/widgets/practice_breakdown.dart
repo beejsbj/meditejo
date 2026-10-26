@@ -63,8 +63,10 @@ class PracticeBreakdown extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: SizedBox(
+              key: const ValueKey('split_bar'),
               height: 16,
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   for (final (i, k) in kinds.indexed) ...[
                     if (i > 0) const SizedBox(width: 2),

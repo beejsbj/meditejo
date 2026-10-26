@@ -113,6 +113,8 @@ void main() {
     // Practice: 10 + 20 + 30 + 5. Talks: 60 + 15.
     expect(find.bySemanticsLabel('Practice: 1 h 5 min, 46%'), findsOneWidget);
     expect(find.bySemanticsLabel('Talks: 1 h 15 min, 54%'), findsOneWidget);
+    // The split bar has a height (a bare ColoredBox in a Row has none).
+    expect(tester.getSize(find.byKey(const ValueKey('split_bar'))).height, 16);
     for (final row in [
       'Practising the Jhānas: 1 h',
       'Added by hand: 30 min',

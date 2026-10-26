@@ -23,7 +23,18 @@ import 'package:medito/views/library/library_view.dart';
 import 'package:medito/views/timer/timer_view.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
 
+import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
+import 'package:medito/providers/stats/practice_summary_provider.dart';
+import 'package:medito/providers/stats_provider.dart';
+import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/models/local_all_stats.dart';
+import 'package:medito/views/stats/stats_screen.dart';
+import 'package:medito/views/you/you_view.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../helpers/library_app.dart';
+import '../helpers/stats_fixtures.dart';
+import '../helpers/update_fakes.dart';
 
 const _out = 'docs/fork/design';
 final _enabled = Platform.environment['MEDITEJO_SCREENSHOTS'] == '1';
@@ -132,6 +143,52 @@ class _FakePack extends Pack {
   AsyncValue<PackModel> build({required String packId}) => AsyncData(_pack);
 }
 
+class _Stats extends StatsNotifier {
+  _Stats(this.stats);
+  final LocalAllStats stats;
+  @override
+  Future<LocalAllStats> build() async => stats;
+}
+
+/// [page] on the fixed stats history and an update harness, in [brightness].
+Future<void> _pumpYou(
+  WidgetTester tester,
+  Brightness brightness,
+  Widget page,
+) async {
+  // The reminder row asks for the notification permission.
+  const permissions = MethodChannel('flutter.baseflow.com/permissions/methods');
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(permissions, (call) async => 0);
+  addTearDown(
+    () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(permissions, null),
+  );
+  final h = await UpdateHarness.create();
+  final container = ProviderContainer(
+    overrides: [
+      ...h.overrides,
+      statsProvider.overrideWith(() => _Stats(richStats(fixtureNow))),
+      practiceClockProvider.overrideWithValue(() => fixtureNow),
+    ],
+  );
+  addTearDown(container.dispose);
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: meditejoTheme(brightness),
+        home: _frame(brightness, page),
+      ),
+    ),
+  );
+  await _phone(tester);
+  await tester.pump(const Duration(seconds: 1));
+  expect(tester.takeException(), isNull);
+}
+
 void main() {
   setUpAll(() async {
     if (_enabled) await _loadFonts();
@@ -208,6 +265,28 @@ void main() {
       expect(tester.takeException(), isNull);
       await _capture(tester, 'navbar-five-${brightness.name}');
     }, skip: !_enabled);
+
+    testWidgets('You and Settings, ${brightness.name}', (tester) async {
+      await _pumpYou(tester, brightness, const YouView());
+      await _capture(tester, 'you-${brightness.name}');
+      tester.view.physicalSize = const Size(1080, 6200);
+      await tester.pump(const Duration(seconds: 1));
+      await _capture(tester, 'settings-${brightness.name}');
+    }, skip: !_enabled);
+
+    for (final days in [7, 30]) {
+      testWidgets('Stats, $days days, ${brightness.name}', (tester) async {
+        await _pumpYou(tester, brightness, const StatsScreen());
+        if (days == 30) {
+          await tester.tap(find.text('30 days'));
+          await tester.pump(const Duration(seconds: 1));
+        }
+        await _capture(tester, 'stats-top-$days-${brightness.name}');
+        tester.view.physicalSize = const Size(1080, 4950);
+        await tester.pump(const Duration(seconds: 1));
+        await _capture(tester, 'stats-$days-${brightness.name}');
+      }, skip: !_enabled);
+    }
 
     for (final (name, page) in [
       ('timer', const TimerView()),

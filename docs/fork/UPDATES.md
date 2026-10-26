@@ -109,7 +109,8 @@ and the updater never offers them:
 ## The updater
 
 Dart in `lib/services/updates/`, state in `lib/providers/updates/`, UI in
-`lib/views/settings/about_screen.dart` and `lib/views/home/widgets/update_notice.dart`,
+`lib/views/settings/widgets/update_section.dart` (the About group on the You/Settings page, which carries the version
+and Check for updates inline) and `lib/views/home/widgets/update_notice.dart`,
 Android in `ApkUpdaterBridge.kt`.
 
 1. **Check** (at most daily, 10 s after launch, and at once on the first launch of a new build, so
