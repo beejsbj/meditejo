@@ -58,7 +58,8 @@ void main() {
     final semantics = tester.getSemantics(
       find.byKey(const ValueKey('home_mark')),
     );
-    expect(semantics.label, 'Pinned');
+    expect(semantics.label, 'Home mark');
+    expect(semantics.value, 'Pinned');
 
     await tester.longPress(find.byKey(const ValueKey('home_mark')));
     await tester.pump(const Duration(milliseconds: 600));

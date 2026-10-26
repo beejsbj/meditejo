@@ -4978,12 +4978,6 @@ abstract class AppLocalizations {
   /// **'Daily'**
   String get paletteDaily;
 
-  /// Palette picker: the Daily option's description
-  ///
-  /// In en, this message translates to:
-  /// **'A different palette each day'**
-  String get paletteDailyBody;
-
   /// Settings subtitle when the palette is daily; name is today's palette
   ///
   /// In en, this message translates to:

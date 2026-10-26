@@ -24,10 +24,17 @@ class MarkTextures extends ChangeNotifier {
   ui.Image? get paper => _paper;
 
   /// Starts making the paper texture, once.
-  Future<void> load() => _loading ??= _makePaper().then((image) {
-    _paper = image;
-    notifyListeners();
-  });
+  Future<void> load() => _loading ??= _makePaper().then(
+    (image) {
+      _paper = image;
+      notifyListeners();
+    },
+    onError: (Object e) {
+      // Without paper the marks still draw; try again on the next mark.
+      _loading = null;
+      debugPrint('Mark paper texture failed: $e');
+    },
+  );
 
   /// Speckle in [tile]'s colour, made on first use.
   ui.Image speckleFor(Color tile) =>

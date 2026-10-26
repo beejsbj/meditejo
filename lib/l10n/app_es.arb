@@ -1143,6 +1143,5 @@
   "homeMarkPinHint": "fijar o soltar",
   "paletteTitle": "Paleta",
   "paletteDaily": "Diaria",
-  "paletteDailyBody": "Una paleta distinta cada día",
   "paletteDailyToday": "Diaria · hoy {name}"
 }

@@ -168,7 +168,8 @@ class _HomeMark extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return Semantics(
       key: const ValueKey('home_mark'),
-      label: pinned ? l10n.homeMarkPinned : l10n.homeMarkToday,
+      label: l10n.homeMarkTitle,
+      value: pinned ? l10n.homeMarkPinned : l10n.homeMarkToday,
       onLongPressHint: l10n.homeMarkPinHint,
       child: GestureDetector(
         onLongPress: () => showHomeMarkSheet(context),

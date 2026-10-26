@@ -2852,9 +2852,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get paletteDaily => 'Täglich';
 
   @override
-  String get paletteDailyBody => 'Jeden Tag eine andere Palette';
-
-  @override
   String paletteDailyToday(String name) {
     return 'Täglich · heute $name';
   }

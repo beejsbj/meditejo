@@ -124,7 +124,8 @@ class MeditejoMarkState extends State<MeditejoMark>
   void _onTick(Duration elapsed) {
     final t = _base + elapsed.inMicroseconds / 1e6;
     // Once it has drawn in, breathing is slow: 30 frames a second is plenty.
-    if (t > 5 && t - _lastFrame < 1 / 30) return;
+    // (Just under 1/30 s, so every other 60 Hz frame is drawn.)
+    if (t > 5 && t - _lastFrame < 0.03) return;
     _lastFrame = t;
     _time.value = t;
   }

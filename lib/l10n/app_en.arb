@@ -3122,10 +3122,6 @@
   "@paletteDaily": {
     "description": "Palette option: a different palette each day"
   },
-  "paletteDailyBody": "A different palette each day",
-  "@paletteDailyBody": {
-    "description": "Palette picker: the Daily option's description"
-  },
   "paletteDailyToday": "Daily · {name} today",
   "@paletteDailyToday": {
     "description": "Settings subtitle when the palette is daily; name is today's palette",

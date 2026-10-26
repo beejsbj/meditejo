@@ -91,8 +91,8 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
   });
 
-  // Six or more seeds across the three families, settled, plus three
-  // frames caught mid-drawing.
+  // Six or more seeds across the three families, settled, plus frames
+  // caught mid-drawing and mid-breath.
   const cases = <(String, double, bool)>[
     ('g-1kq', 60, true), // gesture shelter
     ('g-1cq', 60, true), // doorway
@@ -106,6 +106,13 @@ void main() {
     ('g-1kq', 1.6, false),
     ('m-2026-10-26', 1.6, false),
     ('a-dq', 1.6, false),
+    // Mid-breath: every round shape between circle and pebble, ridges
+    // drifting, rings opening.
+    ('g-1kq', 7.3, false),
+    ('m-2026-10-26', 7.3, false),
+    ('m-1zq', 7.3, false),
+    ('a-3q', 7.3, false),
+    ('a-dq', 7.3, false),
   ];
 
   testWidgets('the comparison tells two marks apart', (tester) async {

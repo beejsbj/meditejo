@@ -33,8 +33,15 @@ ThemeData appTheme(
 }
 
 /// The theme for [brightness] under [palette] (the default when none).
+/// Built once per pair: the palette picker draws a dozen of them.
 ThemeData meditejoTheme(Brightness brightness, [IdentityPalette? palette]) {
   final active = palette ?? IdentityPalettes.fallback;
+  return _themes[(brightness, active.id)] ??= _buildTheme(brightness, active);
+}
+
+final _themes = <(Brightness, String), ThemeData>{};
+
+ThemeData _buildTheme(Brightness brightness, IdentityPalette active) {
   final scheme = meditejoColorScheme(brightness, active);
   final isDark = brightness == Brightness.dark;
   final typography = ExpressiveTypography.from(scheme);

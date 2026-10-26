@@ -112,4 +112,14 @@ void main() {
     expect(contrastRatio(grey, white), greaterThanOrEqualTo(4.5));
     expect(contrastRatio(grey, white), lessThan(5.2));
   });
+
+  test("on the app's background, a mark's cut-outs show the background", () {
+    final tide = IdentityPalettes.byId('tide');
+    final scheme = paletteColorScheme(tide, Brightness.dark);
+    final colors = MeditejoPalette(tide).markColors(scheme);
+    expect(colors.ground, scheme.surface);
+    expect(colors.tile, Color(tide.tile));
+    // On its own tile, the ground is the tile.
+    expect(MarkColors.of(tide).ground, Color(tide.tile));
+  });
 }

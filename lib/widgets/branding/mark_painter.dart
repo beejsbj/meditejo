@@ -17,7 +17,9 @@ class MarkColors {
     required this.form,
     required this.stroke,
     required this.accent,
-  }) : deep = _lum(tile) < _lum(stroke) ? tile : stroke,
+    Color? ground,
+  }) : ground = ground ?? tile,
+       deep = _lum(tile) < _lum(stroke) ? tile : stroke,
        light = _lum(tile) < _lum(stroke) ? stroke : tile,
        lightPaper = _lum(tile) > 0.35;
 
@@ -41,10 +43,15 @@ class MarkColors {
       form: Color(p.form),
       stroke: contrastRatio(stroke, background) < 2.2 ? text : stroke,
       accent: Color(p.accent),
+      ground: background,
     );
   }
 
   final Color tile, form, stroke, accent;
+
+  /// What a mark's cut-outs show (a window's bars, a sun cut from an
+  /// arch): the tile when the mark sits on one, else the app's background.
+  final Color ground;
   final Color deep, light;
 
   /// Whether the tile is paper (light) rather than night (dark).
@@ -64,10 +71,11 @@ class MarkColors {
       other.tile == tile &&
       other.form == form &&
       other.stroke == stroke &&
-      other.accent == accent;
+      other.accent == accent &&
+      other.ground == ground;
 
   @override
-  int get hashCode => Object.hash(tile, form, stroke, accent);
+  int get hashCode => Object.hash(tile, form, stroke, accent, ground);
 }
 
 /// WCAG relative luminance, with the page's (WCAG 2.0) threshold.
@@ -324,7 +332,7 @@ class MarkRenderer {
             m.blobs['sun']!,
             dy: lerp(bot + 0.1, ys + ht * m['sunY'], e2) - 0.008 * b,
           ),
-          r2 == 'stroke' ? c.tile : role(r2),
+          r2 == 'stroke' ? c.ground : role(r2),
         );
         canvas.restore();
       case 'pebble':
@@ -425,8 +433,8 @@ class MarkRenderer {
           r1 == 'accent' ? c.form : c.accent,
         );
         if (m.mullion) {
-          _rect(Rect.fromLTWH(0.5 - 0.012, y0, 0.024, h), c.tile);
-          _rect(Rect.fromLTWH(x0, 0.5 - 0.012, w, 0.024), c.tile);
+          _rect(Rect.fromLTWH(0.5 - 0.012, y0, 0.024, h), c.ground);
+          _rect(Rect.fromLTWH(x0, 0.5 - 0.012, w, 0.024), c.ground);
         }
         canvas.restore();
       case 'hearth':

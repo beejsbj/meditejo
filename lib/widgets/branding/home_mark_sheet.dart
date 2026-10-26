@@ -30,7 +30,8 @@ class HomeMarkSheet extends ConsumerWidget {
     final notifier = ref.read(pinnedMarkProvider.notifier);
 
     return SafeArea(
-      child: Padding(
+      // Scrolls when short (landscape, large text).
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,

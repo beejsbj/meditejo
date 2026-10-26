@@ -1383,6 +1383,5 @@
   "homeMarkPinHint": "anheften oder lösen",
   "paletteTitle": "Farbpalette",
   "paletteDaily": "Täglich",
-  "paletteDailyBody": "Jeden Tag eine andere Palette",
   "paletteDailyToday": "Täglich · heute {name}"
 }

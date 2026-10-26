@@ -150,4 +150,27 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('the pin sheet scrolls rather than overflow in landscape', (
+    tester,
+  ) async {
+    await _pump(tester);
+    tester.view.physicalSize = const Size(780, 360);
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('settings_home_mark')));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(tester.takeException(), isNull);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('home_mark_pin')),
+      100,
+      scrollable: find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    expect(find.byKey(const ValueKey('home_mark_pin')), findsOneWidget);
+  });
 }
