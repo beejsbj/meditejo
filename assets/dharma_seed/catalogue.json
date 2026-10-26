@@ -13,5 +13,11 @@
     "talks": 49007
   },
   "bytes": 37064704,
-  "sha256": "4543f57d5eeddd506db9e59389c605acc481eac098a1a281e6835ff810958ad5"
+  "sha256": "4543f57d5eeddd506db9e59389c605acc481eac098a1a281e6835ff810958ad5",
+  "asset": {
+    "release": "catalogue-20261019",
+    "name": "catalogue.sqlite.gz",
+    "bytes": 13683132,
+    "sha256": "40973470a2cb93b5d5b05c7d0996bc5f17dc2931f91a04399621c950ff14de9a"
+  }
 }

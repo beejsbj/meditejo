@@ -14,6 +14,11 @@ const kReleaseManifestName = 'meditejo-release.json';
 final _sha256Pattern = RegExp(r'^[0-9a-f]{64}$');
 final _apkNamePattern = RegExp(r'^meditejo-[A-Za-z0-9._+-]+\.apk$');
 
+/// What `release.sh` tags an app release: `v<MAJOR.MINOR.PATCH>`. The repository
+/// holds other releases too (`catalogue-YYYYMMDD`, the bundled Dharma Seed
+/// snapshot), which are prereleases and are never an update.
+final _appTagPattern = RegExp(r'^v\d+\.\d+\.\d+$');
+
 /// The release data as GitHub's `releases/latest` endpoint returns it, before
 /// the manifest is read.
 class ReleaseListing {
@@ -41,6 +46,12 @@ class ReleaseListing {
     }
     if (json['draft'] == true || json['prerelease'] == true) {
       throw const FormatException('Release is not published');
+    }
+    // GitHub's `releases/latest` already leaves prereleases out; this keeps a
+    // catalogue release that was published by mistake from ever passing for
+    // an app update, whatever its date.
+    if (!_appTagPattern.hasMatch(tag)) {
+      throw FormatException('Release $tag is not an app release');
     }
     final assets = <String, String>{};
     final rawAssets = json['assets'];

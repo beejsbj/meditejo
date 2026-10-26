@@ -104,8 +104,18 @@ app: `assets/dharma_seed/catalogue.sqlite.gz` (a `VACUUM INTO` copy of the
 catalogue database with its FTS indexes merged, gzipped: 13 MiB for 49,007
 talks, 35 MiB unpacked) and `catalogue.json` (the manifest: format and database
 schema versions, `asOf`, the per-kind `edition` cursors, row counts, unpacked
-size and SHA-256). It holds catalogue text only, never audio, and no user data
-(saved rows and the fetch queue are emptied).
+size and SHA-256, and the `asset` pin, below). It holds catalogue text only,
+never audio, and no user data (saved rows and the fetch queue are emptied).
+
+**Only the manifest is in git.** The gzip is a git-ignored file, fetched at
+build time from an asset on a `catalogue-YYYYMMDD` **prerelease** of
+`beejsbj/meditejo`. `catalogue.json`'s `asset` section (`release`, `name`,
+`bytes` and the `sha256` of the gzip) pins exactly which snapshot a commit
+builds with, so a build is reproducible from the commit alone. A prerelease
+because the in-app updater reads `releases/latest`, which never returns one,
+and because the updater also refuses any tag that is not `v<MAJOR.MINOR.PATCH>`
+(`docs/fork/UPDATES.md`). `tools/meditejo/catalogue.py` is the one tool:
+`fetch`, `check`, `publish` and `verify-apk`.
 
 - **Install** (`DharmaSeedSnapshot.installIfNeeded`): `DharmaSeedDatabase.open()`
   runs it inside the lazy opener, so it happens before the database file is
@@ -137,19 +147,33 @@ size and SHA-256). It holds catalogue text only, never audio, and no user data
   touches the database and so triggers the install in the background.
 - **Build** (`tools/meditejo/dharma_seed_snapshot.dart`, a `flutter test` file
   because the sync imports Flutter): runs the app's own polite sync (serial,
-  750 ms apart) starting from the committed snapshot, so a refresh is a delta of
-  a few requests, or from nothing (`DS_FRESH=true`) a full sync. It refuses an
-  unfinished sync, and leaves the files untouched when the sync changed no
-  record. **`release.sh` runs it before the version bump only when the committed
-  snapshot is over 30 days old** (`--refresh-catalogue` forces it,
-  `--skip-snapshot` never runs it), and commits the snapshot when it changed.
-- **Shipping choice**: committed directly, no Git LFS. At 13 MiB it is under the
-  20 MB line, a plain checkout is all CI and `build_apk.sh` need (an LFS pointer
-  in an asset would build an app with no catalogue and no error), and
+  750 ms apart) starting from the snapshot in `assets/dharma_seed` (which
+  `catalogue.py fetch` put there), so a refresh is a delta of a few requests,
+  or from nothing (`DS_FRESH=true`) a full sync. It refuses an unfinished
+  sync, and leaves the files untouched when the sync changed no record.
+  **`release.sh` runs it before the version bump only when the pinned snapshot
+  is over 30 days old** (`--refresh-catalogue` forces it, `--skip-snapshot`
+  never runs it). When the snapshot changed, `catalogue.py publish` uploads it
+  as a new prerelease, checks it by downloading it back, and pins it in
+  `catalogue.json`; the release commit holds the manifest alone.
+- **Fetch.** `catalogue.py fetch` downloads the pinned asset over HTTPS from the
+  public release URL (no token), refuses a size or SHA-256 mismatch, a missing
+  asset or a manifest with no pin, and moves the file into place only once it
+  verifies. It runs in `meditejo-apk.yml`, `ci-develop.yml` and the inherited
+  `release.yml` and `smoke-test.yml` builds, and by hand for local work
+  (`docs/fork/BUILD.md`). After the APK is built, `catalogue.py verify-apk`
+  compares the packaged gzip and manifest with the pin. `build_apk.sh` and
+  `release.sh` check the pin is downloadable before spending a CI run.
+- **Shipping choice**: a release asset fetched in CI, not committed and not
+  Git LFS (BRIEF decision 17, 2026-10-26; before it the 13 MiB gzip was
+  committed, which cost about 13 MiB of history per refresh. The old commits
+  keep their copies; the history was not rewritten). An LFS pointer in an asset
+  would build an app with no catalogue and no error, so every route fails loudly
+  instead: `fetch` and `verify-apk` exit non-zero, and
   `test/services/dharma_seed/dharma_seed_snapshot_test.dart` fails on a missing,
-  pointer-sized or schema-stale snapshot. The cost is about 13 MiB of git history
-  per release that changes it; revisit (LFS, or a release asset fetched in CI)
-  if releases become frequent.
+  pointer-sized, wrong (hash differs from the pin) or schema-stale snapshot. The
+  trade is that a checkout needs one network step before a full test run or
+  build.
 
 `DharmaSeedSource` also carries the Dharma Seed screens' reads, outside the
 interface until a second source shows what is shared: `explore({group})`,
@@ -435,8 +459,11 @@ mixer.sessionDefault(kind) / mixer.setSessionDefault(kind, value);
 mixer.setSessionVolume(kind, double);  // that kind's level, live if it runs
 ```
 
-`SoundscapeSessionDefault` is `{enabled, selection, volume}`; the initial values
-follow decision 8 (Practice on, Talks off). It is the single source of truth
+`SoundscapeSessionDefault` is `{enabled, selection, volume}`; both kinds start
+off, with nothing chosen (BRIEF decision 17; decision 8 had Practice on). A
+one-time migration (`SoundscapeStore.migrateSessionDefaults`, rule in
+DECISIONS.md, 2026-10-26) moves an untouched existing install the same way and
+leaves anyone who chose a sound alone. It is the single source of truth
 for a kind's on/off, selection and volume: Customize's Background sound row
 writes kind-wide choices through `setSessionDefault` and `setSessionVolume`.
 A course override keeps only a selection, in `CueSettings.soundscape` (empty:

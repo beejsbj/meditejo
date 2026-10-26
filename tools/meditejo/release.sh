@@ -28,21 +28,23 @@ release.sh <version> [--notes FILE] [--dry-run] [--yes] [--allow-branch]
   --allow-branch Release from a branch other than develop.
   --refresh-catalogue
                  Refresh the bundled Dharma Seed catalogue even though the
-                 committed snapshot is under 30 days old.
+                 pinned snapshot is under 30 days old.
   --skip-snapshot
                  Never refresh the catalogue; the release carries whatever
-                 snapshot is already committed.
+                 snapshot catalogue.json already pins.
 
 versionCode is chosen automatically as YYMMDDnn (build date plus a counter for
 the day) and is always above the highest code already released.
 
 Before the version bump the release refreshes the Dharma Seed catalogue shipped
-inside the app (assets/dharma_seed), but only when the committed snapshot is
+inside the app (assets/dharma_seed), but only when the pinned snapshot is
 more than 30 days old (its asOf date in catalogue.json) or --refresh-catalogue
-is given. Each refreshed snapshot adds about 13 MiB to git history, and the app
-catches up on its own with a delta sync when Search or Explore opens. A refresh
-is a delta from the committed snapshot, a few requests, committed only when
-Dharma Seed changed something.
+is given. The snapshot is not in git: it is an asset on a catalogue-YYYYMMDD
+prerelease, which catalogue.json pins by SHA-256 and the CI build fetches. A
+refresh fetches the pinned snapshot, takes a delta from it (a few requests),
+and only when Dharma Seed changed something uploads the result as a new
+prerelease and commits the manifest alone (tools/meditejo/catalogue.py). The
+app catches up on its own with a delta sync when Search or Explore opens.
 EOF
 }
 
@@ -112,14 +114,14 @@ else
 fi
 [[ -z $notes_file || -s $notes_file ]] || problem "notes file '$notes_file' is missing or empty"
 # Decide whether this release refreshes the bundled catalogue: only when the
-# committed snapshot is older than 30 days (by its asOf date, which travels with
+# pinned snapshot is older than 30 days (by its asOf date, which travels with
 # the commit; file times do not) or when forced. A missing or unreadable
 # manifest counts as stale. MEDITEJO_SNAPSHOT_NOW (ISO date) fakes "now" for tests.
 snapshot_dir=assets/dharma_seed
 refresh_snapshot=0
 snapshot_why=
 if ((skip_snapshot)); then
-  snapshot_why='skipped (--skip-snapshot): the release carries the committed snapshot'
+  snapshot_why='skipped (--skip-snapshot): the release carries the pinned snapshot'
 elif ((force_snapshot)); then
   refresh_snapshot=1
   snapshot_why='forced (--refresh-catalogue)'
@@ -139,9 +141,9 @@ print(f"{days} {'stale' if days > limit else 'fresh'}")
 PY
   ); then :; else age=unreadable; fi
   case $age in
-    unreadable) refresh_snapshot=1; snapshot_why='no readable committed snapshot manifest' ;;
-    *stale) refresh_snapshot=1; snapshot_why="committed snapshot is ${age% *} days old (limit $snapshot_max_days)" ;;
-    *) snapshot_why="skipped: committed snapshot is ${age% *} days old (limit $snapshot_max_days); --refresh-catalogue forces it" ;;
+    unreadable) refresh_snapshot=1; snapshot_why='no readable snapshot manifest' ;;
+    *stale) refresh_snapshot=1; snapshot_why="pinned snapshot is ${age% *} days old (limit $snapshot_max_days)" ;;
+    *) snapshot_why="skipped: pinned snapshot is ${age% *} days old (limit $snapshot_max_days); --refresh-catalogue forces it" ;;
   esac
 fi
 
@@ -150,9 +152,13 @@ if ((refresh_snapshot)); then
   [[ -f lib/services/dharma_seed/dharma_seed_database.g.dart ]] ||
     problem 'generated code is missing; run the codegen loop in docs/fork/BUILD.md (or --skip-snapshot)'
   [[ -f $snapshot_dir/catalogue.json ]] ||
-    echo 'note: no snapshot is committed yet; the refresh will be a full sync (about six minutes)'
+    echo 'note: no snapshot is pinned yet; the refresh will be a full sync (about six minutes)'
 fi
 echo "catalogue snapshot: $snapshot_why"
+# The build on GitHub fetches the snapshot the manifest pins; a missing asset
+# would fail it after minutes, so check now (a HEAD request, read-only).
+python3 -I tools/meditejo/catalogue.py check ||
+  problem 'the pinned Dharma Seed catalogue is not downloadable (tools/meditejo/catalogue.py check)'
 
 echo "branch: ${branch:-?}   commit: $(git rev-parse --short HEAD)   tag: $tag"
 
@@ -233,27 +239,34 @@ if ((! dry)); then
 fi
 
 # ----------------------------------------------------------------- catalogue
-# The Dharma Seed catalogue ships inside the app (docs/fork/ARCHITECTURE.md).
-# Every committed refresh costs about 13 MiB of git history, so a release
-# refreshes it only when the committed one is over 30 days old or on request;
-# the app's own delta sync covers the gap. The tool starts from the committed
-# snapshot and asks Dharma Seed only for what changed (a few requests, politely
-# paced); it leaves the files alone when nothing did. Catalogue text only.
+# The Dharma Seed catalogue ships inside the app (docs/fork/ARCHITECTURE.md) but
+# not in git: catalogue.json pins a snapshot that lives as an asset on a
+# catalogue-YYYYMMDD prerelease, and the CI build fetches it by hash. A release
+# refreshes it only when the pinned one is over 30 days old or on request; the
+# app's own delta sync covers the gap. The tool starts from the pinned snapshot
+# and asks Dharma Seed only for what changed (a few requests, politely paced);
+# it leaves the files alone when nothing did. Catalogue text only. A changed
+# snapshot is uploaded first and the manifest committed second, so a commit
+# never pins an asset that is not there.
 step 'Refresh the bundled Dharma Seed catalogue'
 if ((! refresh_snapshot)); then
   echo "$snapshot_why"
 else
+  run python3 -I tools/meditejo/catalogue.py fetch
   run timeout 2400 nice -n 10 flutter test tools/meditejo/dharma_seed_snapshot.dart
   if ((dry)); then
-    echo "+ git add $snapshot_dir && git commit   # only if the snapshot changed"
+    echo "+ python3 -I tools/meditejo/catalogue.py publish   # only if the snapshot changed"
+    echo "+ git add $snapshot_dir/catalogue.json && git commit   # the manifest alone"
   elif [[ -n $(git status --porcelain -- "$snapshot_dir") ]]; then
-    git add -- "$snapshot_dir"
+    python3 -I tools/meditejo/catalogue.py publish
+    git add -- "$snapshot_dir/catalogue.json"
+    release_tag=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["asset"]["release"])' "$snapshot_dir/catalogue.json")
     git commit -q -m 'chore(release): refresh the bundled Dharma Seed catalogue' \
-      -m "Catalogue text only, built by tools/meditejo/dharma_seed_snapshot.dart."
-    python3 -I -c 'import json,sys; m=json.load(open(sys.argv[1])); print("committed: %d talks as of %s" % (m["counts"]["talks"], m["asOf"]))' \
+      -m "Catalogue text only, built by tools/meditejo/dharma_seed_snapshot.dart and uploaded as the $release_tag prerelease; the manifest pins it."
+    python3 -I -c 'import json,sys; m=json.load(open(sys.argv[1])); print("pinned %s: %d talks as of %s" % (m["asset"]["release"], m["counts"]["talks"], m["asOf"]))' \
       "$snapshot_dir/catalogue.json"
   else
-    echo 'unchanged: Dharma Seed has nothing new since the committed snapshot'
+    echo 'unchanged: Dharma Seed has nothing new since the pinned snapshot'
   fi
 fi
 

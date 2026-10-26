@@ -34,7 +34,8 @@ dev/release. This works before PR #1 merges. `workflow_dispatch` is also
 available once the workflow is on the default branch, with flavor and mode
 inputs. See [GitHub's trigger documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
 
-It uses `gh run watch --exit-status` and `gh run download`, verifies artifact
+Before the push, it checks that the Dharma Seed snapshot pinned by the ref's
+`catalogue.json` is downloadable (see the catalogue section below). It uses `gh run watch --exit-status` and `gh run download`, verifies artifact
 metadata against the requested commit/configuration and APK SHA-256, aligns
 16 KiB native libraries, signs locally and verifies both alignment and signing
 certificate. Expired artifacts trigger a rerun of the same commit (or a fresh uniquely
@@ -47,9 +48,28 @@ Outputs go to `~/.local/share/meditejo/apk/<prefix>-<shortsha>.apk`, with
 The command prints the path, bytes and certificate digest. Generic default
 prefix: `meditejo-<flavor>-<mode>`.
 
+## The Dharma Seed catalogue (fetch before building or testing locally)
+
+The bundled catalogue snapshot (`assets/dharma_seed/catalogue.sqlite.gz`, 13 MiB)
+is **not in git**: `catalogue.json`, which is, pins it, and it is a release
+asset on a `catalogue-YYYYMMDD` prerelease of `beejsbj/meditejo`. CI fetches it
+itself. In a fresh checkout or worktree, before a local build or a full
+`flutter test`, run:
+
+```bash
+python3 -I tools/meditejo/catalogue.py fetch
+```
+
+It downloads the pinned asset (no login or token), checks its size and SHA-256
+against the manifest, and does nothing when the file is already the right one.
+Without it, `test/services/dharma_seed/dharma_seed_snapshot_test.dart` fails
+with this command in its message, and the app would build with no catalogue.
+Tool tests: `python3 -I -m unittest discover -s tools/meditejo -p 'test_catalogue.py'`.
+See ARCHITECTURE.md ("The bundled catalogue") for the rest.
+
 ## Publishing a release
 
-`tools/meditejo/release.sh <version>` wraps this route (`build_apk.sh --flavor prod`) and publishes the signed APK as a GitHub release for the in-app updater; see [UPDATES.md](UPDATES.md).
+`tools/meditejo/release.sh <version>` wraps this route (`build_apk.sh --flavor prod`) and publishes the signed APK as a GitHub release for the in-app updater; see [UPDATES.md](UPDATES.md). The build on GitHub fetches the catalogue snapshot that `catalogue.json` pins; `build_apk.sh` and `release.sh` check it is downloadable first.
 
 ## GitHub build and signing boundary
 
@@ -62,7 +82,9 @@ It fetches pub.dev dependencies, runs the guarded Pigeon loop with
 flutter build apk --flavor dev --release --target-platform android-arm64
 ```
 
-The guard skips absent `pigeons/*.dart`; PR #3 removed that directory. Normal
+The guard skips absent `pigeons/*.dart`; PR #3 removed that directory. The first
+step fetches the pinned Dharma Seed snapshot (SHA-256 checked), and after the
+build `catalogue.py verify-apk` confirms the APK carries exactly it. Normal
 runner SDK/NDK installation remains enabled: `path_provider_android` uses JNI
 and compiles C, so the NDK is required. The JVM is bounded to 4 GiB/two workers.
 Unrelated preinstalled tools are removed to provide disk space.
