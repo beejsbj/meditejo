@@ -2,6 +2,7 @@
 // part of the normal run (they render real fonts and write files):
 //
 //   MEDITEJO_SCREENSHOTS=1 flutter test test/screenshots
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -14,9 +15,13 @@ import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/home/continue_provider.dart';
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/services/home/continue_rules.dart';
 import 'package:medito/services/library/library_models.dart';
+import 'package:medito/services/my_courses/my_course_models.dart';
+import 'package:medito/services/my_courses/my_course_source.dart';
+import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/bottom_navigation/widgets/medito_nav_bar.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/library/library_view.dart';
@@ -30,6 +35,8 @@ import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/views/stats/stats_screen.dart';
 import 'package:medito/views/you/you_view.dart';
 
+import '../helpers/dharma_seed_app.dart';
+import '../helpers/fake_session_source.dart';
 import '../helpers/library_app.dart';
 import '../helpers/stats_fixtures.dart';
 import '../helpers/update_fakes.dart';
@@ -66,6 +73,24 @@ Future<void> _capture(WidgetTester tester, String name) async {
     final image = await render.toImage(
       pixelRatio: tester.view.devicePixelRatio,
     );
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    File('$_out/$name.png')
+      ..parent.createSync(recursive: true)
+      ..writeAsBytesSync(bytes!.buffer.asUint8List());
+  });
+}
+
+/// Everything on screen, including routes above the page (a bottom sheet).
+Future<void> _captureView(WidgetTester tester, String name) async {
+  await tester.runAsync(() async {
+    var render = tester.element(find.byType(Navigator).first).renderObject!;
+    while (!render.isRepaintBoundary) {
+      render = render.parent!;
+    }
+    final layer = render.debugLayer! as OffsetLayer;
+    // The render view's bounds are already in physical pixels.
+    final image = await layer.toImage(render.paintBounds);
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     image.dispose();
     File('$_out/$name.png')
@@ -285,6 +310,124 @@ void main() {
         await _capture(tester, 'stats-$days-${brightness.name}');
       }, skip: !_enabled);
     }
+
+    // Decision 18: what the user makes is a Playlist, what a source gives is
+    // a Course. The Library lists both; the add-to sheet offers playlists.
+    Future<(MyCourseSource, String)> seedPlaylists(
+      WidgetTester tester,
+      LibraryTestApp app,
+    ) async {
+      final upstream = FakeSessionSource();
+      final source = MyCourseSource(
+        db: app.harness.db,
+        library: app.harness.store,
+        sources: () => [upstream],
+      );
+      addTearDown(source.dispose);
+      MyItemDraft session(String id) => MyItemDraft(
+        id: id,
+        title: 'Session $id',
+        subtitle: 'Teacher of $id',
+        durationMs: 600000,
+      );
+      late String morning;
+      await tester.runAsync(() async {
+        final store = app.harness.store;
+        for (final (id, title, author) in [
+          ('ds-retreat-1', 'Jhāna Retreat', 'Rob Burbea'),
+          ('lib-course-a', 'Metta, week by week', 'Sharon Salzberg'),
+          (
+            'yt-playlist-a',
+            'Vervaeke: Awakening from the Meaning Crisis',
+            'YouTube',
+          ),
+        ]) {
+          await store.add(
+            LibraryDraft(
+              sourceId: id,
+              kind: LibraryKind.course,
+              title: title,
+              subtitle: author,
+            ),
+          );
+        }
+        morning = (await source.create(
+          title: 'Morning sits',
+          lines: [
+            for (final n in [1, 2, 3, 4, 5])
+              MyCourseLine.session(session('x-$n')),
+          ],
+        ));
+        await source.create(
+          title: 'Evening wind-down',
+          lines: [MyCourseLine.session(session('x-6'))],
+        );
+        await source.create(title: 'For hard days', lines: const []);
+      });
+      return (source, morning);
+    }
+
+    testWidgets('Library with courses and playlists, ${brightness.name}', (
+      tester,
+    ) async {
+      final app = await LibraryTestApp.create(tester);
+      final (source, morning) = await seedPlaylists(tester, app);
+      await app.pump(
+        tester,
+        _frame(brightness, const LibraryView()),
+        played: const ['x-1', 'x-2'],
+        overrides: [
+          myCourseSourceProvider.overrideWithValue(source),
+          packTrackIdsProvider.overrideWith(
+            (ref) async => {
+              morning: ['x-1', 'x-2', 'x-3', 'x-4', 'x-5'],
+              'ds-retreat-1': ['d-1', 'd-2', 'd-3'],
+            },
+          ),
+        ],
+      );
+      await _phone(tester);
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+      await _capture(tester, 'library-playlists-${brightness.name}');
+    }, skip: !_enabled);
+
+    testWidgets('Add to playlist sheet, ${brightness.name}', (tester) async {
+      final app = await LibraryTestApp.create(tester);
+      final (source, _) = await seedPlaylists(tester, app);
+      // No debug ribbon in the corner of the capture.
+      WidgetsApp.debugAllowBannerOverride = false;
+      addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
+      late Future<void> Function() open;
+      await app.pump(
+        tester,
+        _frame(
+          brightness,
+          Consumer(
+            builder: (context, ref, _) {
+              open = () => showAddToCourse(
+                context,
+                ref,
+                id: 'x-6',
+                fallback: const MyItemDraft(
+                  id: 'x-6',
+                  title: 'Session x-6',
+                  subtitle: 'Teacher of x-6',
+                  durationMs: 600000,
+                ),
+              );
+              return const LibraryView();
+            },
+          ),
+        ),
+        overrides: [myCourseSourceProvider.overrideWithValue(source)],
+      );
+      await _phone(tester);
+      unawaited(open());
+      await DharmaSeedTestApp.settle(tester);
+      expect(tester.takeException(), isNull);
+      await _captureView(tester, 'add-to-playlist-${brightness.name}');
+    }, skip: !_enabled);
 
     for (final (name, page) in [
       ('timer', const TimerView()),

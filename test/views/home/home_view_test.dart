@@ -67,7 +67,7 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Start'), findsOneWidget);
     expect(find.textContaining('Consistency'), findsNothing);
     expect(find.textContaining('streak'), findsNothing);
-    expect(find.text('Pinned courses'), findsNothing);
+    expect(find.text('Pinned'), findsNothing);
   });
 
   testWidgets('starting from Continue notes the course it is shown under', (
@@ -222,7 +222,7 @@ void main() {
         packProvider(packId: pack.id).overrideWith(() => _FakePack(pack)),
       ],
     );
-    expect(find.text('Pinned courses'), findsNothing);
+    expect(find.text('Pinned'), findsNothing);
 
     final container = ProviderScope.containerOf(
       tester.element(find.byType(HomeView)),
@@ -241,7 +241,7 @@ void main() {
     await container.read(pinnedCoursesProvider.notifier).pin(pack.id);
     await settle(tester);
 
-    expect(find.text('Pinned courses'), findsOneWidget);
+    expect(find.text('Pinned'), findsOneWidget);
     expect(find.text('My course'), findsOneWidget);
     await tester.runAsync(
       () => app.harness.store.setTitle(pack.id, 'Renamed again'),
@@ -356,7 +356,7 @@ void main() {
       final continueTop = top(find.text('Continue'));
       final quickTop = top(find.text('Quick links'));
       final timerTop = top(find.byKey(const ValueKey('quick_timer')));
-      final pinnedTop = top(find.text('Pinned courses'));
+      final pinnedTop = top(find.text('Pinned'));
       expect(markTop, lessThan(continueTop));
       expect(continueTop, lessThan(quickTop));
       expect(quickTop, lessThan(timerTop));

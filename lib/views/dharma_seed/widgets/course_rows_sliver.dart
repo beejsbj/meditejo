@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
+import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
+import 'package:medito/views/my_courses/playlist_label.dart';
 import 'package:medito/widgets/add_to_library_icon.dart';
 import 'package:medito/widgets/network_image_widget.dart';
 
@@ -26,10 +28,12 @@ class CourseRowsSliver extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final completed = ref.watch(completedPackIdsProvider);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return SliverList.builder(
       itemCount: courses.length,
       itemBuilder: (context, index) {
         final course = courses[index];
+        final detail = playlistAwareDetail(l10n, course.id, course.subtitle);
         return Semantics(
           button: true,
           child: InkWell(
@@ -73,11 +77,11 @@ class CourseRowsSliver extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.headlineMedium,
                         ),
-                        if ((course.subtitle ?? '').isNotEmpty)
+                        if ((detail ?? '').isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(top: 2),
                             child: Text(
-                              course.subtitle!,
+                              detail!,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.titleMedium,

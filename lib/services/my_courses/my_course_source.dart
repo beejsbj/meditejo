@@ -559,7 +559,7 @@ class MyCourseSource implements ContentSource {
 
   String _titleOr(String title) {
     final trimmed = title.trim();
-    return trimmed.isEmpty ? 'My course' : trimmed;
+    return trimmed.isEmpty ? 'My playlist' : trimmed;
   }
 
   /// A session appears once per course; headings with nothing to say go.
