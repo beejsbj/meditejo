@@ -16,7 +16,9 @@ const kHomeMarkSize = 168.0;
 /// A section's heading on Home, for screen readers only: nothing is drawn.
 /// Sections are told apart by spacing and grouping alone (Waking Up's tiles
 /// sit straight under its hero), but TalkBack still announces each group and
-/// lets the user jump heading to heading.
+/// lets the user jump heading to heading. Android sets a node's heading flag
+/// only for a positive [Semantics.headingLevel], and screen readers tend to
+/// skip a node with no area, so the label has a level and a 1 dp strip.
 class HomeSectionHeader extends StatelessWidget {
   const HomeSectionHeader(this.title, {super.key});
 
@@ -25,8 +27,9 @@ class HomeSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
     header: true,
+    headingLevel: 2,
     label: title,
-    child: const SizedBox(width: double.infinity),
+    child: const SizedBox(width: double.infinity, height: 1),
   );
 }
 

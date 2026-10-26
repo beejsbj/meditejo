@@ -108,7 +108,14 @@ void main() {
         matchesSemantics(isHeader: true, label: heading),
         reason: heading,
       );
-      expect(tester.getSize(finder).height, 0, reason: '$heading has height');
+      // Android sets its heading flag only for a positive level.
+      expect(
+        tester.getSemantics(finder).getSemanticsData().headingLevel,
+        2,
+        reason: heading,
+      );
+      // No area to look at, but enough for a screen reader to land on.
+      expect(tester.getSize(finder).height, 1, reason: '$heading height');
     }
     semantics.dispose();
   });

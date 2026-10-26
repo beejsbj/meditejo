@@ -112,6 +112,15 @@ void main() {
       expect(open().read(homeHiddenWidgetsProvider), isEmpty);
     });
 
+    test('a hidden Shortcuts saved before the rename stays hidden', () async {
+      final (_, open) = await _prefs({
+        SharedPreferenceConstants.homeWidgetHidden: ['quickLinks', 'quote'],
+      });
+      expect(open().read(homeHiddenWidgetsProvider), {
+        HomeWidgetType.homeShortcuts,
+      });
+    });
+
     test('a layout saved by the Medito home keeps what still exists', () async {
       final (_, open) = await _prefs({
         SharedPreferenceConstants.homeWidgetOrder: [
