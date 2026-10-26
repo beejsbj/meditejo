@@ -141,6 +141,12 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
     - **The palette is fixed by default: Tidewater.** "Daily palette" is an option in Settings, and the mark and palette are pinned separately.
     - **Generated art is the right direction but needs more primitives.** Sound cards and covers read too alike. Add breaths, fire, concentric circles and minimal mandalas, among others.
     - **Freesound:** all eleven originals and the three replacements are approved by ear.
+22. **Generated art rules** (Burooj, 2026-10-26, after identity round 3):
+    - **Random generation is for what the user adds, imports or creates.** **Everything Meditejo ships is curated**: built-in sounds, presets, the starter set, and featured catalogue items each get a hand-chosen composition.
+    - **Round 2's atmosphere returns** as grounds under round 3's figures.
+    - **A tight meaning map:** each sound or kind has only a few fitting grounds and figures, so no arbitrary pairings.
+    - **Drop the weak primitives.** Constellation becomes a scatter of stars forming a shape, not stars linked in sequence.
+    - **Every primitive animates gracefully.**
 
 ## Build and run
 

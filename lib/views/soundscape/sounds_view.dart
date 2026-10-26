@@ -355,8 +355,7 @@ class _SoundsLibrary extends ConsumerWidget {
     final state = ref.watch(soundscapeProvider);
     final mixer = ref.read(soundscapeProvider.notifier);
     final full = !mixer.canAddLayer;
-    final scale = MediaQuery.textScalerOf(context);
-    final cardHeight = math.max(112.0, 72 + scale.scale(40));
+    final grid = SoundGridMetrics.of(context);
 
     Widget card(String id, String title, SoundLook look) {
       final inMix = state.mix.contains(id);
@@ -383,12 +382,13 @@ class _SoundsLibrary extends ConsumerWidget {
       SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         sliver: SliverGrid(
-          // As many columns as fit at up to 200 dp each: two on a phone.
+          // As many columns as fit at up to [maxCardWidth] each: three on a
+          // phone, fewer once large text needs the room.
           gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 200,
-            mainAxisExtent: cardHeight,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
+            maxCrossAxisExtent: grid.maxCardWidth,
+            mainAxisExtent: grid.cardHeight,
+            mainAxisSpacing: kSoundGridGap,
+            crossAxisSpacing: kSoundGridGap,
           ),
           delegate: SliverChildListDelegate(cards),
         ),

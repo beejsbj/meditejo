@@ -237,7 +237,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('continue_track-4')), findsOneWidget);
-      final timer = find.byKey(const ValueKey('quick_timer'));
+      final timer = find.byKey(const ValueKey('shortcut_timer'));
       expect(timer.hitTestable(), findsOneWidget);
       await tester.tap(timer);
       await tester.pumpAndSettle();

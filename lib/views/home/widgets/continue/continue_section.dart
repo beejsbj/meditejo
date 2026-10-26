@@ -25,7 +25,7 @@ class ContinueSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        HomeSectionTitle(l10n.upNextTitle),
+        HomeSectionHeader(l10n.upNextTitle),
         if (items.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: kHomeGutter + 4),
