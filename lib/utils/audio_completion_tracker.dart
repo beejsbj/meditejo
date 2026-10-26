@@ -65,12 +65,39 @@ class AudioCompletionTracker {
   /// The first play-through is already recorded as the session via
   /// [updateStatsWithCompletedAudio]; repetitions only add listening time so
   /// looping one track does not inflate the session count.
+  ///
+  /// With [trackId], [duration] is also added to that track's most recent
+  /// entry that has a recorded length, so the stats page shows it on the day
+  /// of the session. No such entry (an older history, with no recorded length)
+  /// leaves only the running total. If the session it repeats was deleted,
+  /// the minutes go to the track's latest remaining session instead.
   static LocalAllStats addRepeatListeningTime({
     required LocalAllStats? stats,
     required int duration,
+    String? trackId,
   }) {
-    return (stats ?? LocalAllStats.empty()).copyWith(
-      totalTimeListened: (stats?.totalTimeListened ?? 0) + duration,
+    final base = stats ?? LocalAllStats.empty();
+    var entries = base.audioCompleted;
+    if (trackId != null && entries != null) {
+      var latest = -1;
+      for (var i = 0; i < entries.length; i++) {
+        final entry = entries[i];
+        if (entry.id == trackId &&
+            entry.durationMs != null &&
+            (latest < 0 || entry.timestamp >= entries[latest].timestamp)) {
+          latest = i;
+        }
+      }
+      if (latest >= 0) {
+        entries = [...entries];
+        entries[latest] = entries[latest].copyWith(
+          durationMs: entries[latest].durationMs! + duration,
+        );
+      }
+    }
+    return base.copyWith(
+      audioCompleted: entries,
+      totalTimeListened: base.totalTimeListened + duration,
       updated: DateTime.now().toUtc().millisecondsSinceEpoch,
     );
   }

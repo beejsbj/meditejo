@@ -12,7 +12,7 @@ import 'package:medito/services/home_widget_service.dart';
 import 'package:medito/views/home/home_styles.dart';
 import 'package:medito/views/home/widgets/continue/continue_section.dart';
 import 'package:medito/views/home/widgets/pinned/pinned_section.dart';
-import 'package:medito/views/home/widgets/quick_links/quick_links_section.dart';
+import 'package:medito/views/home/widgets/shortcuts/shortcuts_section.dart';
 import 'package:medito/views/home/widgets/update_notice.dart';
 import 'package:medito/widgets/adaptive/adaptive_home_sections.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
@@ -121,7 +121,7 @@ class _HomeViewState extends ConsumerState<HomeView>
 
   Widget _buildSection(HomeWidgetType type) => switch (type) {
     HomeWidgetType.upNext => const ContinueSection(),
-    HomeWidgetType.quickLinks => const QuickLinksSection(),
+    HomeWidgetType.homeShortcuts => const ShortcutsSection(),
     HomeWidgetType.pinned => const PinnedSection(),
   };
 

@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/views/bottom_navigation/bottom_navigation_bar_view.dart';
-import 'package:medito/views/settings/settings_screen.dart';
+import 'package:medito/views/you/you_view.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 
 import '../../helpers/dharma_seed_app.dart';
@@ -49,7 +49,7 @@ void main() {
   bool onScreen(WidgetTester tester, Type type) =>
       find.byType(type).hitTestable().evaluate().isNotEmpty;
 
-  testWidgets('five tabs; Sounds is the Sounds screen, You is Settings', (
+  testWidgets('five tabs; Sounds is the Sounds screen, You is the You page', (
     tester,
   ) async {
     final container = await pump(tester);
@@ -83,7 +83,7 @@ void main() {
     );
     await settle(tester);
     expect(container.read(mainTabProvider), MainTab.you);
-    expect(onScreen(tester, SettingsScreen), isTrue);
+    expect(onScreen(tester, YouView), isTrue);
   });
 
   testWidgets('back folds an open mix on the Sounds tab, then goes Home', (

@@ -1852,7 +1852,7 @@ abstract class AppLocalizations {
   /// **'Completed at'**
   String get completedAt;
 
-  /// Eyebrow on the home hero once the pack is under way (CONTINUE · pack), and the section name in Customise Home
+  /// The Continue section's name in Customize, and its screen-reader heading on Home (not drawn)
   ///
   /// In en, this message translates to:
   /// **'Continue'**
@@ -3826,13 +3826,13 @@ abstract class AppLocalizations {
   /// **'Search your library and Dharma Seed'**
   String get exploreSearchHint;
 
-  /// No description provided for @homeQuickLinksTitle.
+  /// The shortcuts section's name in Customize, and its screen-reader heading on Home (not drawn)
   ///
   /// In en, this message translates to:
-  /// **'Quick links'**
-  String get homeQuickLinksTitle;
+  /// **'Shortcuts'**
+  String get homeShortcutsTitle;
 
-  /// No description provided for @homePinnedTitle.
+  /// The pinned section's name in Customize, and its screen-reader heading on Home (not drawn)
   ///
   /// In en, this message translates to:
   /// **'Pinned'**
@@ -3880,17 +3880,17 @@ abstract class AppLocalizations {
   /// **'{time} left'**
   String homeContinueTimeLeft(String time);
 
-  /// No description provided for @homeQuickAdd.
+  /// No description provided for @homeShortcutAdd.
   ///
   /// In en, this message translates to:
   /// **'Add'**
-  String get homeQuickAdd;
+  String get homeShortcutAdd;
 
   /// Screen-reader label of a Home tile that starts the timer with a saved background-sound preset.
   ///
   /// In en, this message translates to:
   /// **'Start the timer with {preset}'**
-  String homeQuickPresetTimer(String preset);
+  String homeShortcutPresetTimer(String preset);
 
   /// No description provided for @pinCourse.
   ///
@@ -4635,6 +4635,288 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Playlist'**
   String get playlistKind;
+
+  /// Settings group: defaults for sessions, day boundary, Health
+  ///
+  /// In en, this message translates to:
+  /// **'Practice'**
+  String get settingsSectionPractice;
+
+  /// Settings group: bells, cues and background sound defaults
+  ///
+  /// In en, this message translates to:
+  /// **'Sounds & cues'**
+  String get settingsSectionSounds;
+
+  /// Settings group: imports, favorites, downloads, catalogue sync
+  ///
+  /// In en, this message translates to:
+  /// **'Library & downloads'**
+  String get settingsSectionLibrary;
+
+  /// Settings group: theme, icon, home layout, widget
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get settingsSectionAppearance;
+
+  /// Settings group: the daily reminder
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications & reminders'**
+  String get settingsSectionReminders;
+
+  /// Settings group: version, updates, licences and credits
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get settingsSectionAbout;
+
+  /// Settings row that opens the Customize sheet for guided Practice
+  ///
+  /// In en, this message translates to:
+  /// **'Practice sounds & cues'**
+  String get settingsPracticeCues;
+
+  /// Caption of the Practice cues row
+  ///
+  /// In en, this message translates to:
+  /// **'Bells, cues and background sound'**
+  String get settingsPracticeCuesCaption;
+
+  /// Settings row that opens the Customize sheet for Talks
+  ///
+  /// In en, this message translates to:
+  /// **'Talks sounds & cues'**
+  String get settingsTalksCues;
+
+  /// Caption of the Talks cues row
+  ///
+  /// In en, this message translates to:
+  /// **'Bells, cues and background sound'**
+  String get settingsTalksCuesCaption;
+
+  /// Settings row for the day boundary used by streaks and stats
+  ///
+  /// In en, this message translates to:
+  /// **'When my day starts'**
+  String get settingsDayStarts;
+
+  /// Day boundary value: midnight
+  ///
+  /// In en, this message translates to:
+  /// **'Midnight (default)'**
+  String get settingsDayStartsMidnight;
+
+  /// Day boundary value: an hour of the morning
+  ///
+  /// In en, this message translates to:
+  /// **'{hour}:00 AM'**
+  String settingsDayStartsAt(int hour);
+
+  /// The AGPL notice in About
+  ///
+  /// In en, this message translates to:
+  /// **'Meditejo is free software under the GNU Affero General Public License v3.0. You can read, change and share its source code.'**
+  String get settingsAgplNotice;
+
+  /// Settings row opening the credits of the background sounds
+  ///
+  /// In en, this message translates to:
+  /// **'Sound credits'**
+  String get settingsSoundCredits;
+
+  /// Settings row opening the licences page
+  ///
+  /// In en, this message translates to:
+  /// **'Open-source licences'**
+  String get settingsLicenses;
+
+  /// Stats card: today, week, month and all-time totals
+  ///
+  /// In en, this message translates to:
+  /// **'Time practised'**
+  String get statsTimePractised;
+
+  /// Stats label
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get statsToday;
+
+  /// Stats label: Monday to today
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get statsThisWeek;
+
+  /// Stats label
+  ///
+  /// In en, this message translates to:
+  /// **'This month'**
+  String get statsThisMonth;
+
+  /// Stats label
+  ///
+  /// In en, this message translates to:
+  /// **'All time'**
+  String get statsAllTime;
+
+  /// You tab summary label
+  ///
+  /// In en, this message translates to:
+  /// **'Total time'**
+  String get statsTotalTime;
+
+  /// Note under the totals when older sessions have no recorded length
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions from before the app recorded their length ({count}) count as days practised, not as minutes.'**
+  String statsUntimedNote(int count);
+
+  /// Stats empty state
+  ///
+  /// In en, this message translates to:
+  /// **'Your first recorded session will show up here.'**
+  String get statsEmpty;
+
+  /// Chart title
+  ///
+  /// In en, this message translates to:
+  /// **'Minutes a day'**
+  String get statsDailyMinutes;
+
+  /// Chart range option
+  ///
+  /// In en, this message translates to:
+  /// **'7 days'**
+  String get statsRange7;
+
+  /// Chart range option
+  ///
+  /// In en, this message translates to:
+  /// **'30 days'**
+  String get statsRange30;
+
+  /// Chart readout and screen-reader summary
+  ///
+  /// In en, this message translates to:
+  /// **'{total} in all, practised on {practised} of {days} days'**
+  String statsChartTotal(String total, int practised, int days);
+
+  /// Calendar card title
+  ///
+  /// In en, this message translates to:
+  /// **'Days practised'**
+  String get statsDaysPracticedTitle;
+
+  /// Days practised in the month shown
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day} other{{count} days}}'**
+  String statsDaysPractised(int count);
+
+  /// Screen-reader status of a calendar day with a session of unknown length
+  ///
+  /// In en, this message translates to:
+  /// **'Practised'**
+  String get statsPractised;
+
+  /// Heat-map legend
+  ///
+  /// In en, this message translates to:
+  /// **'Less'**
+  String get statsLess;
+
+  /// Heat-map legend
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get statsMore;
+
+  /// Breakdown card title
+  ///
+  /// In en, this message translates to:
+  /// **'Where your time went'**
+  String get statsBreakdown;
+
+  /// Breakdown: guided practice
+  ///
+  /// In en, this message translates to:
+  /// **'Practice'**
+  String get statsPractice;
+
+  /// Breakdown: talks
+  ///
+  /// In en, this message translates to:
+  /// **'Talks'**
+  String get statsTalks;
+
+  /// Breakdown sub-heading
+  ///
+  /// In en, this message translates to:
+  /// **'By course or source'**
+  String get statsByCourse;
+
+  /// Breakdown empty state
+  ///
+  /// In en, this message translates to:
+  /// **'Once a session is recorded with its length, the split shows here.'**
+  String get statsBreakdownEmpty;
+
+  /// Breakdown row for a course with no recorded title
+  ///
+  /// In en, this message translates to:
+  /// **'A course'**
+  String get statsSourceCourse;
+
+  /// Breakdown row
+  ///
+  /// In en, this message translates to:
+  /// **'Added by hand'**
+  String get statsSourceByHand;
+
+  /// Breakdown row
+  ///
+  /// In en, this message translates to:
+  /// **'Dharma Seed talks'**
+  String get statsSourceDharmaSeed;
+
+  /// Breakdown row
+  ///
+  /// In en, this message translates to:
+  /// **'YouTube'**
+  String get statsSourceYoutube;
+
+  /// Breakdown row
+  ///
+  /// In en, this message translates to:
+  /// **'Imported'**
+  String get statsSourceImported;
+
+  /// Breakdown row
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get statsSourceOther;
+
+  /// Streak card title
+  ///
+  /// In en, this message translates to:
+  /// **'Streak and consistency'**
+  String get statsStreakTitle;
+
+  /// Streak card feedback line
+  ///
+  /// In en, this message translates to:
+  /// **'You practised on {count} of the last 30 days.'**
+  String statsLast30Days(int count);
+
+  /// Streak card label
+  ///
+  /// In en, this message translates to:
+  /// **'Consistency'**
+  String get statsConsistency;
 
   /// Library heading over what the user has started and not finished
   ///

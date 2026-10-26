@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
@@ -10,6 +12,38 @@ import 'sound_labels.dart';
 /// Corner radius of the Sounds tab's cards and of the art inside its panel.
 const kSoundCardRadius = MeditejoShapes.largeIncreased;
 const kPresetCardRadius = MeditejoShapes.extraLarge;
+
+/// Space between the library's cards, across and down.
+const kSoundGridGap = 10.0;
+
+/// The library grid's cell sizes: three cards across a phone (BRIEF 19
+/// follow-up), on a card small enough to hold an icon, a tick and a
+/// two-line title at 101 dp.
+class SoundGridMetrics {
+  const SoundGridMetrics._(this.maxCardWidth, this.cardHeight);
+
+  /// A card is never wider than this, so the grid takes as many columns as
+  /// fit (3 at 360 dp and 412 dp; 8 across 1280 dp). It widens with the text
+  /// size beyond 1.3x, so a 360 dp phone falls back to two columns when
+  /// titles would otherwise break mid-word.
+  final double maxCardWidth;
+  final double cardHeight;
+
+  /// The widest card at the default text size. The usable width of a 360 dp
+  /// phone (328 dp) fits three of these and their gaps; 412 dp does too.
+  static const _baseMaxWidth = 140.0;
+
+  factory SoundGridMetrics.of(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    // The factor on a 14 sp title, which is what the card sets.
+    final factor = scaler.scale(14) / 14;
+    return SoundGridMetrics._(
+      _baseMaxWidth * math.max(1.0, factor / 1.3),
+      // Padding, the icon row and a gap are fixed; two title lines grow.
+      math.max(104.0, 58 + scaler.scale(40)),
+    );
+  }
+}
 
 /// White text and icons on the generated art; the art's colours are muted
 /// and a scrim darkens the foot, so this reads in both themes.
@@ -195,14 +229,14 @@ class SoundCard extends StatelessWidget {
       enabled: enabled,
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SoundIconBubble(look.icon),
+                SoundIconBubble(look.icon, size: 16),
                 const Spacer(),
                 AnimatedScale(
                   scale: selected ? 1 : 0,
@@ -214,10 +248,10 @@ class SoundCard extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(4),
+                      padding: const EdgeInsets.all(3),
                       child: Icon(
                         Symbols.check_rounded,
-                        size: 18,
+                        size: 16,
                         weight: 600,
                         color: scheme.onPrimary,
                       ),

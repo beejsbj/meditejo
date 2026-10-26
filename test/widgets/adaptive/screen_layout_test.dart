@@ -237,7 +237,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('continue_track-4')), findsOneWidget);
-      final timer = find.byKey(const ValueKey('quick_timer'));
+      final timer = find.byKey(const ValueKey('shortcut_timer'));
       expect(timer.hitTestable(), findsOneWidget);
       await tester.tap(timer);
       await tester.pumpAndSettle();
@@ -610,7 +610,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
 
-      await tester.drag(find.byType(CustomScrollView), const Offset(0, -1500));
+      await tester.drag(find.byType(ListView), const Offset(0, -1500));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());

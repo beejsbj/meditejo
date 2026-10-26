@@ -12,7 +12,9 @@ import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/services/home/continue_rules.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/views/home/customise_home_layout_screen.dart';
+import 'package:medito/views/home/home_styles.dart';
 import 'package:medito/views/home/home_view.dart';
+import 'package:medito/views/home/widgets/pinned/pinned_section.dart';
 import 'package:medito/views/library/import_view.dart';
 import 'package:medito/views/timer/timer_view.dart';
 
@@ -41,8 +43,12 @@ ContinueItem _item(String id, {bool resume = true}) => ContinueItem(
   sessionTotal: 5,
 );
 
+/// A section's screen-reader heading: Home draws none.
+Finder sectionHeader(String label) =>
+    find.byWidgetPredicate((w) => w is HomeSectionHeader && w.title == label);
+
 void main() {
-  testWidgets('shows Continue, quick links and no score or streak', (
+  testWidgets('shows Continue, shortcuts and no score or streak', (
     tester,
   ) async {
     final app = await LibraryTestApp.create(tester);
@@ -56,8 +62,9 @@ void main() {
       ],
     );
 
-    expect(find.text('Continue'), findsOneWidget);
-    expect(find.text('Quick links'), findsOneWidget);
+    expect(sectionHeader('Continue'), findsOneWidget);
+    expect(sectionHeader('Shortcuts'), findsOneWidget);
+    expect(find.byKey(const ValueKey('shortcut_timer')), findsOneWidget);
     expect(find.byKey(const ValueKey('continue_t1')), findsOneWidget);
     expect(find.text('Title t1'), findsOneWidget);
     expect(find.textContaining('Course A · Session 2 of 5'), findsNWidgets(2));
@@ -67,7 +74,50 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Start'), findsOneWidget);
     expect(find.textContaining('Consistency'), findsNothing);
     expect(find.textContaining('streak'), findsNothing);
-    expect(find.text('Pinned'), findsNothing);
+    expect(sectionHeader('Pinned'), findsNothing);
+  });
+
+  testWidgets('draws no section headings, but announces them as headers', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    final app = await LibraryTestApp.create(tester);
+    await app.prefs.setStringList('pinned_course_ids', ['lib-course-a']);
+    await app.pump(
+      tester,
+      const HomeView(),
+      overrides: [
+        continueItemsProvider.overrideWith((ref) async => [_item('t1')]),
+        packProvider(packId: 'lib-course-a').overrideWith(
+          () =>
+              _FakePack(const PackModel(id: 'lib-course-a', title: 'Course A')),
+        ),
+      ],
+    );
+
+    // Nothing says Continue, Shortcuts, Quick links or Pinned on screen.
+    for (final heading in ['Continue', 'Shortcuts', 'Quick links', 'Pinned']) {
+      expect(find.text(heading), findsNothing, reason: '$heading is drawn');
+    }
+    // Each group is still a heading to TalkBack, with nothing to look at.
+    for (final heading in ['Continue', 'Shortcuts', 'Pinned']) {
+      final finder = sectionHeader(heading);
+      expect(finder, findsOneWidget, reason: heading);
+      expect(
+        tester.getSemantics(finder),
+        matchesSemantics(isHeader: true, label: heading),
+        reason: heading,
+      );
+      // Android sets its heading flag only for a positive level.
+      expect(
+        tester.getSemantics(finder).getSemanticsData().headingLevel,
+        2,
+        reason: heading,
+      );
+      // No area to look at, but enough for a screen reader to land on.
+      expect(tester.getSize(finder).height, 1, reason: '$heading height');
+    }
+    semantics.dispose();
   });
 
   testWidgets('starting from Continue notes the course it is shown under', (
@@ -118,7 +168,7 @@ void main() {
     expect(app.prefs.getStringList('pinned_course_ids'), isEmpty);
   });
 
-  testWidgets('the quick-link tiles grow with the text size without overflow', (
+  testWidgets('the shortcut tiles grow with the text size without overflow', (
     tester,
   ) async {
     tester.platformDispatcher.textScaleFactorTestValue = 2.0;
@@ -130,11 +180,11 @@ void main() {
       overrides: [continueItemsProvider.overrideWith((ref) async => [])],
     );
     expect(tester.takeException(), isNull);
-    final tile = tester.getSize(find.byKey(const ValueKey('quick_timer')));
+    final tile = tester.getSize(find.byKey(const ValueKey('shortcut_timer')));
     expect(tile.height, greaterThan(116));
   });
 
-  testWidgets('with nothing to continue it says so and keeps the quick links', (
+  testWidgets('with nothing to continue it says so and keeps the shortcuts', (
     tester,
   ) async {
     final app = await LibraryTestApp.create(tester);
@@ -144,12 +194,12 @@ void main() {
       overrides: [continueItemsProvider.overrideWith((ref) async => [])],
     );
     expect(find.byKey(const ValueKey('continue_empty')), findsOneWidget);
-    expect(find.byKey(const ValueKey('quick_timer')), findsOneWidget);
-    expect(find.byKey(const ValueKey('quick_sounds')), findsOneWidget);
-    expect(find.byKey(const ValueKey('quick_add')), findsOneWidget);
+    expect(find.byKey(const ValueKey('shortcut_timer')), findsOneWidget);
+    expect(find.byKey(const ValueKey('shortcut_sounds')), findsOneWidget);
+    expect(find.byKey(const ValueKey('shortcut_add')), findsOneWidget);
   });
 
-  group('quick links', () {
+  group('shortcuts', () {
     Future<LibraryTestApp> home(WidgetTester tester) async {
       final app = await LibraryTestApp.create(tester);
       await app.pump(
@@ -162,7 +212,7 @@ void main() {
 
     testWidgets('Timer opens the timer', (tester) async {
       await home(tester);
-      await tester.tap(find.byKey(const ValueKey('quick_timer')));
+      await tester.tap(find.byKey(const ValueKey('shortcut_timer')));
       await settle(tester);
       expect(find.byType(TimerView), findsOneWidget);
     });
@@ -173,14 +223,14 @@ void main() {
         tester.element(find.byType(HomeView)),
       );
       expect(container.read(mainTabProvider), MainTab.home);
-      await tester.tap(find.byKey(const ValueKey('quick_sounds')));
+      await tester.tap(find.byKey(const ValueKey('shortcut_sounds')));
       await settle(tester);
       expect(container.read(mainTabProvider), MainTab.sounds);
     });
 
     testWidgets('Add opens import', (tester) async {
       await home(tester);
-      await tester.tap(find.byKey(const ValueKey('quick_add')));
+      await tester.tap(find.byKey(const ValueKey('shortcut_add')));
       await settle(tester);
       expect(find.byType(ImportView), findsOneWidget);
     });
@@ -226,7 +276,7 @@ void main() {
         packProvider(packId: pack.id).overrideWith(() => _FakePack(pack)),
       ],
     );
-    expect(find.text('Pinned'), findsNothing);
+    expect(find.byType(PinnedCourseTile), findsNothing);
 
     final container = ProviderScope.containerOf(
       tester.element(find.byType(HomeView)),
@@ -245,7 +295,7 @@ void main() {
     await container.read(pinnedCoursesProvider.notifier).pin(pack.id);
     await settle(tester);
 
-    expect(find.text('Pinned'), findsOneWidget);
+    expect(find.byType(PinnedCourseTile), findsOneWidget);
     expect(find.text('My course'), findsOneWidget);
     await tester.runAsync(
       () => app.harness.store.setTitle(pack.id, 'Renamed again'),
@@ -265,7 +315,7 @@ void main() {
       try {
         final app = await LibraryTestApp.create(tester);
         await app.pump(tester, const CustomiseHomeLayoutScreen());
-        final toggle = find.byKey(const ValueKey('home_section_quickLinks'));
+        final toggle = find.byKey(const ValueKey('home_section_homeShortcuts'));
         await tester.tap(toggle);
         await settle(tester);
         expect(tester.widget<Switch>(toggle).value, isFalse);
@@ -305,22 +355,23 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('home_customize')));
     await settle(tester);
     expect(find.byType(CustomiseHomeLayoutScreen), findsOneWidget);
-    final quickLinksSwitch = find.byKey(
-      ValueKey('home_section_${HomeWidgetType.quickLinks.name}'),
+    final shortcutsSwitch = find.byKey(
+      ValueKey('home_section_${HomeWidgetType.homeShortcuts.name}'),
     );
-    expect(tester.widget<Switch>(quickLinksSwitch).value, isTrue);
+    expect(tester.widget<Switch>(shortcutsSwitch).value, isTrue);
 
-    await tester.tap(quickLinksSwitch);
+    await tester.tap(shortcutsSwitch);
     await settle(tester);
-    expect(tester.widget<Switch>(quickLinksSwitch).value, isFalse);
+    expect(tester.widget<Switch>(shortcutsSwitch).value, isFalse);
 
     Navigator.of(tester.element(find.byType(CustomiseHomeLayoutScreen))).pop();
     await settle(tester);
-    expect(find.text('Quick links'), findsNothing);
-    expect(find.text('Continue'), findsOneWidget);
+    expect(find.byKey(const ValueKey('shortcut_timer')), findsNothing);
+    expect(sectionHeader('Shortcuts'), findsNothing);
+    expect(sectionHeader('Continue'), findsOneWidget);
   });
 
-  group('design pass: mark, quick links, pinned', () {
+  group('design pass: mark, shortcuts, pinned', () {
     const pack = PackModel(
       id: 'lib-course-a',
       title: 'Course A',
@@ -341,7 +392,7 @@ void main() {
           find.byType(MeditejoMark, skipOffstage: false),
         );
 
-    testWidgets('Home leads with the mark, then quick links, then pinned', (
+    testWidgets('Home leads with the mark, then shortcuts, then pinned', (
       tester,
     ) async {
       final app = await LibraryTestApp.create(tester);
@@ -357,13 +408,11 @@ void main() {
 
       double top(Finder f) => tester.getTopLeft(f).dy;
       final markTop = top(find.byType(MeditejoMark));
-      final continueTop = top(find.text('Continue'));
-      final quickTop = top(find.text('Quick links'));
-      final timerTop = top(find.byKey(const ValueKey('quick_timer')));
-      final pinnedTop = top(find.text('Pinned'));
+      final continueTop = top(find.byKey(const ValueKey('continue_t1')));
+      final timerTop = top(find.byKey(const ValueKey('shortcut_timer')));
+      final pinnedTop = top(find.byKey(const ValueKey('pinned_lib-course-a')));
       expect(markTop, lessThan(continueTop));
-      expect(continueTop, lessThan(quickTop));
-      expect(quickTop, lessThan(timerTop));
+      expect(continueTop, lessThan(timerTop));
       expect(timerTop, lessThan(pinnedTop));
       // The mark sits at the top centre.
       expect(
@@ -433,13 +482,16 @@ void main() {
         const HomeView(),
         overrides: [continueItemsProvider.overrideWith((ref) async => [])],
       );
-      expect(find.byKey(const ValueKey('quick_preset_user-1')), findsOneWidget);
       expect(
-        find.byKey(ValueKey('quick_preset_${kStarterPresets.first.id}')),
+        find.byKey(const ValueKey('shortcut_preset_user-1')),
         findsOneWidget,
       );
       expect(
-        find.byKey(ValueKey('quick_preset_${kStarterPresets[1].id}')),
+        find.byKey(ValueKey('shortcut_preset_${kStarterPresets.first.id}')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(ValueKey('shortcut_preset_${kStarterPresets[1].id}')),
         findsNothing,
       );
       expect(find.text('My rain'), findsOneWidget);

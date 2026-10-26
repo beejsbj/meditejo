@@ -2175,7 +2175,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exploreSearchHint => 'Bibliothek und Dharma Seed durchsuchen';
 
   @override
-  String get homeQuickLinksTitle => 'Schnellzugriff';
+  String get homeShortcutsTitle => 'Kurzbefehle';
 
   @override
   String get homePinnedTitle => 'Angeheftet';
@@ -2208,10 +2208,10 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get homeQuickAdd => 'Hinzufügen';
+  String get homeShortcutAdd => 'Hinzufügen';
 
   @override
-  String homeQuickPresetTimer(String preset) {
+  String homeShortcutPresetTimer(String preset) {
     return 'Timer mit $preset starten';
   }
 
@@ -2657,6 +2657,167 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get playlistKind => 'Playlist';
+
+  @override
+  String get settingsSectionPractice => 'Meditation';
+
+  @override
+  String get settingsSectionSounds => 'Klänge & Signale';
+
+  @override
+  String get settingsSectionLibrary => 'Bibliothek & Downloads';
+
+  @override
+  String get settingsSectionAppearance => 'Darstellung';
+
+  @override
+  String get settingsSectionReminders => 'Mitteilungen & Erinnerungen';
+
+  @override
+  String get settingsSectionAbout => 'Über';
+
+  @override
+  String get settingsPracticeCues => 'Klänge & Signale für Meditation';
+
+  @override
+  String get settingsPracticeCuesCaption =>
+      'Glocken, Signale und Hintergrundklang';
+
+  @override
+  String get settingsTalksCues => 'Klänge & Signale für Vorträge';
+
+  @override
+  String get settingsTalksCuesCaption =>
+      'Glocken, Signale und Hintergrundklang';
+
+  @override
+  String get settingsDayStarts => 'Wann mein Tag beginnt';
+
+  @override
+  String get settingsDayStartsMidnight => 'Mitternacht (Standard)';
+
+  @override
+  String settingsDayStartsAt(int hour) {
+    return '$hour:00 Uhr';
+  }
+
+  @override
+  String get settingsAgplNotice =>
+      'Meditejo ist freie Software unter der GNU Affero General Public License v3.0. Du kannst den Quellcode lesen, ändern und weitergeben.';
+
+  @override
+  String get settingsSoundCredits => 'Klang-Nachweise';
+
+  @override
+  String get settingsLicenses => 'Open-Source-Lizenzen';
+
+  @override
+  String get statsTimePractised => 'Geübte Zeit';
+
+  @override
+  String get statsToday => 'Heute';
+
+  @override
+  String get statsThisWeek => 'Diese Woche';
+
+  @override
+  String get statsThisMonth => 'Diesen Monat';
+
+  @override
+  String get statsAllTime => 'Insgesamt';
+
+  @override
+  String get statsTotalTime => 'Gesamtzeit';
+
+  @override
+  String statsUntimedNote(int count) {
+    return 'Sitzungen aus der Zeit, bevor die App ihre Länge erfasste ($count), zählen als geübte Tage, nicht als Minuten.';
+  }
+
+  @override
+  String get statsEmpty => 'Deine erste aufgezeichnete Sitzung erscheint hier.';
+
+  @override
+  String get statsDailyMinutes => 'Minuten pro Tag';
+
+  @override
+  String get statsRange7 => '7 Tage';
+
+  @override
+  String get statsRange30 => '30 Tage';
+
+  @override
+  String statsChartTotal(String total, int practised, int days) {
+    return '$total insgesamt, geübt an $practised von $days Tagen';
+  }
+
+  @override
+  String get statsDaysPracticedTitle => 'Geübte Tage';
+
+  @override
+  String statsDaysPractised(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tage',
+      one: '1 Tag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get statsPractised => 'Geübt';
+
+  @override
+  String get statsLess => 'Weniger';
+
+  @override
+  String get statsMore => 'Mehr';
+
+  @override
+  String get statsBreakdown => 'Wohin deine Zeit ging';
+
+  @override
+  String get statsPractice => 'Meditation';
+
+  @override
+  String get statsTalks => 'Vorträge';
+
+  @override
+  String get statsByCourse => 'Nach Kurs oder Quelle';
+
+  @override
+  String get statsBreakdownEmpty =>
+      'Sobald eine Sitzung mit ihrer Länge erfasst ist, erscheint die Aufteilung hier.';
+
+  @override
+  String get statsSourceCourse => 'Ein Kurs';
+
+  @override
+  String get statsSourceByHand => 'Von Hand hinzugefügt';
+
+  @override
+  String get statsSourceDharmaSeed => 'Dharma-Seed-Vorträge';
+
+  @override
+  String get statsSourceYoutube => 'YouTube';
+
+  @override
+  String get statsSourceImported => 'Importiert';
+
+  @override
+  String get statsSourceOther => 'Andere';
+
+  @override
+  String get statsStreakTitle => 'Serie und Beständigkeit';
+
+  @override
+  String statsLast30Days(int count) {
+    return 'Du hast an $count der letzten 30 Tage geübt.';
+  }
+
+  @override
+  String get statsConsistency => 'Beständigkeit';
 
   @override
   String get libraryInProgress => 'Begonnen';
