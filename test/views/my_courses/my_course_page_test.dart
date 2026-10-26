@@ -17,8 +17,8 @@ MyItemDraft draft(String id) => MyItemDraft(
   durationMs: 600000,
 );
 
-/// A personal course opened as a course page: PackView, unchanged, reads it
-/// through `MyCourseSource`.
+/// A playlist (a "my course" in code) opened as a course page: PackView,
+/// unchanged, reads it through `MyCourseSource`.
 void main() {
   late LibraryTestApp app;
   late FakeSessionSource upstream;
@@ -61,9 +61,11 @@ void main() {
     for (final s in ['x-1', 'x-2', 'x-3']) {
       expect(find.text('Session $s'), findsOneWidget);
     }
-    // Its own course: Edit, not "Save course".
+    // Its own playlist: Edit, not "Add to library", and it says what it is
+    // where a course shows its source.
     expect(find.byKey(const ValueKey('my_course_edit')), findsOneWidget);
-    expect(find.text('Save course'), findsNothing);
+    expect(find.text('Add to library'), findsNothing);
+    expect(find.text('Playlist'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('my_course_edit')));
     await DharmaSeedTestApp.settle(tester);
@@ -95,7 +97,7 @@ void main() {
     expect(find.byType(PackView), findsOneWidget);
   });
 
-  testWidgets('an empty course says how to fill it', (tester) async {
+  testWidgets('an empty playlist says how to fill it', (tester) async {
     final id = await setUp(tester, const []);
     await pump(tester, id);
 

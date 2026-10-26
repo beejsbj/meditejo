@@ -695,6 +695,17 @@ A course the user makes from sessions anywhere: a Dharma Seed talk, a YouTube
 video, a podcast episode, a local file. A course and a playlist are the same
 thing (DECISIONS, 2026-10-19 "My courses").
 
+**Naming: "my course" in code = "Playlist" in the UI** (BRIEF decision 18). What
+the user makes is a Playlist; what comes from a source (a retreat, a YouTube
+playlist, a feed, an imported folder) stays a Course. Class names, tables,
+providers and `my-course-…` IDs keep the old name, so there is no migration, and
+the code and this section below still say "course" for a playlist. Only the
+strings (`myCourse*` keys in `lib/l10n`, plus `playlistKind`) changed. Where
+both kinds share a list (the Library, Explore's "In your library", search),
+`playlistAwareDetail` (`lib/views/my_courses/playlist_label.dart`) leads a
+playlist's line with "Playlist · "; its own page shows "Playlist" where a course
+shows its source.
+
 - **Model** (`lib/services/my_courses/my_course_models.dart`): a course is
   `my-course-<16 random hex>`, an ordered list of rows. A row is a session
   reference (any source's track ID, kept as it is: `ds-talk-…`, `yt-video-…`,

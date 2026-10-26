@@ -2178,7 +2178,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get homeQuickLinksTitle => 'Schnellzugriff';
 
   @override
-  String get homePinnedTitle => 'Angeheftete Kurse';
+  String get homePinnedTitle => 'Angeheftet';
 
   @override
   String get homeCustomize => 'Anpassen';
@@ -2223,7 +2223,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get pinnedLimitReached =>
-      'Auf Start passen bis zu drei angeheftete Kurse. Löse zuerst einen.';
+      'Auf Start passen bis zu drei angeheftete Kurse oder Playlists. Löse zuerst eins davon.';
 
   @override
   String get pinnedCourseAdded => 'An Start angeheftet';
@@ -2444,22 +2444,22 @@ class AppLocalizationsDe extends AppLocalizations {
   String get soundPresetStillness => 'Stille';
 
   @override
-  String get myCourseNew => 'Neuer Kurs';
+  String get myCourseNew => 'Neue Playlist';
 
   @override
-  String get myCourseNameHint => 'Name des Kurses';
+  String get myCourseNameHint => 'Name der Playlist';
 
   @override
   String get myCourseCreate => 'Erstellen';
 
   @override
-  String get myCourseDefaultTitle => 'Mein Kurs';
+  String get myCourseDefaultTitle => 'Meine Playlist';
 
   @override
-  String get myCourseAddTo => 'Zu Kurs hinzufügen…';
+  String get myCourseAddTo => 'Zur Playlist hinzufügen…';
 
   @override
-  String get myCourseAddToTitle => 'Zu Kurs hinzufügen';
+  String get myCourseAddToTitle => 'Zur Playlist hinzufügen';
 
   @override
   String myCourseAddedSnack(String title) {
@@ -2486,14 +2486,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get myCourseNothingToAdd => 'Es gibt keine Sitzungen zum Hinzufügen.';
 
   @override
-  String get myCourseAddFailed => 'Konnte nicht zum Kurs hinzugefügt werden.';
+  String get myCourseAddFailed =>
+      'Konnte nicht zur Playlist hinzugefügt werden.';
 
   @override
   String get myCourseNoneYet =>
-      'Du hast noch keinen Kurs erstellt. Beginne hier einen.';
+      'Du hast noch keine Playlist erstellt. Beginne hier eine.';
 
   @override
-  String get myCourseDuplicate => 'Eigene Kopie erstellen';
+  String get myCourseDuplicate => 'Als Playlist kopieren';
 
   @override
   String myCourseCopyTitle(String title) {
@@ -2502,13 +2503,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get myCourseDuplicateFailed =>
-      'Dieser Kurs konnte nicht kopiert werden.';
+      'Daraus konnte keine Playlist erstellt werden.';
 
   @override
-  String get myCourseSaveFailed => 'Der Kurs konnte nicht gespeichert werden.';
+  String get myCourseSaveFailed =>
+      'Die Playlist konnte nicht gespeichert werden.';
 
   @override
-  String get myCourseEdit => 'Kurs bearbeiten';
+  String get myCourseEdit => 'Playlist bearbeiten';
 
   @override
   String get myCourseSave => 'Speichern';
@@ -2543,14 +2545,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get myCourseHeadingHint => 'Überschrift, z. B. Tag 1';
 
   @override
-  String get myCourseRemoveRow => 'Aus dem Kurs entfernen';
+  String get myCourseRemoveRow => 'Aus der Playlist entfernen';
 
   @override
   String get myCourseDragHandle => 'Zum Umordnen ziehen';
 
   @override
   String get myCourseEditEmpty =>
-      'Noch keine Sitzungen. Nutze „Zu Kurs hinzufügen…“ im Menü einer Sitzung.';
+      'Noch keine Sitzungen. Nutze „Zur Playlist hinzufügen…“ im Menü einer Sitzung.';
 
   @override
   String get myCourseDiscardTitle => 'Änderungen verwerfen?';
@@ -2562,24 +2564,24 @@ class AppLocalizationsDe extends AppLocalizations {
   String get myCourseKeepEditing => 'Weiter bearbeiten';
 
   @override
-  String get myCourseDelete => 'Kurs löschen';
+  String get myCourseDelete => 'Playlist löschen';
 
   @override
-  String get myCourseDeleteTitle => 'Diesen Kurs löschen?';
+  String get myCourseDeleteTitle => 'Diese Playlist löschen?';
 
   @override
   String get myCourseDeleteBody =>
-      'Nur der Kurs wird gelöscht. Seine Sitzungen bleiben in deiner Bibliothek, mit Downloads und Fortschritt.';
+      'Nur die Playlist wird gelöscht. Ihre Sitzungen bleiben in deiner Bibliothek, mit Downloads und Fortschritt.';
 
   @override
-  String get myCourseDeletedSnack => 'Kurs gelöscht';
+  String get myCourseDeletedSnack => 'Playlist gelöscht';
 
   @override
   String get myCourseEmptyTitle => 'Noch keine Sitzungen';
 
   @override
   String get myCourseEmptyBody =>
-      'Füge Sitzungen von überall hinzu: einen Dharma-Seed-Vortrag, ein YouTube-Video, eine Folge oder eine Datei. Öffne ihr Menü und wähle „Zu Kurs hinzufügen…“.';
+      'Füge Sitzungen von überall hinzu: einen Dharma-Seed-Vortrag, ein YouTube-Video, eine Folge oder eine Datei. Öffne ihr Menü und wähle „Zur Playlist hinzufügen…“.';
 
   @override
   String get myCourseUnavailable => 'Nicht verfügbar';
@@ -2594,9 +2596,9 @@ class AppLocalizationsDe extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Sie ist auch in $count deiner Kurse und wird dort als nicht verfügbar angezeigt.',
+          'Sie ist auch in $count deiner Playlists und wird dort als nicht verfügbar angezeigt.',
       one:
-          'Sie ist auch in einem deiner Kurse und wird dort als nicht verfügbar angezeigt.',
+          'Sie ist auch in einer deiner Playlists und wird dort als nicht verfügbar angezeigt.',
     );
     return '$_temp0';
   }
@@ -2605,7 +2607,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get myCourseMore => 'Weitere Optionen';
 
   @override
-  String get myCourseRemovedSnack => 'Aus dem Kurs entfernt';
+  String get myCourseRemovedSnack => 'Aus der Playlist entfernt';
 
   @override
   String get myCourseEditAction => 'Bearbeiten';
@@ -2652,4 +2654,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get soundsEditMix => 'Mix in Klänge bearbeiten';
+
+  @override
+  String get playlistKind => 'Playlist';
 }
