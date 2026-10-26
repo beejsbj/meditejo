@@ -40,7 +40,9 @@ gain would push the true peak over `truePeakCeiling`, a peak limiter takes
 up to `maxLimitDb` (default 6) off the peaks, run over the loop padded
 circularly so its state matches across the seam; beyond that the gain is
 held back and the sound stays quieter than the target. The encoded file is
-measured again and both measurements are recorded.
+measured again and both measurements are recorded. If the codec pushes its
+true peak more than 0.25 dB over the ceiling (spiky sounds can), the excess is
+taken off the static gain and the loop is encoded again, twice at most.
 
 The seam. `seam_metrics` decodes the shipped Opus file and compares the half
 second before the loop point with the half second after it (they are
@@ -350,31 +352,38 @@ def process(sound: dict, src: Path, workdir: Path, target: float, ceiling: float
     pre = workdir / f'{sid}.loop.f32'
     loop.astype('<f4').tofile(pre)
     before = loudness(pre, channels, raw=True, target=target, ceiling=ceiling)
-    gain = target - before['lufs']
-    # Peaky sounds (crackle, drips) would need more peak room than the
-    # ceiling allows. A limiter takes up to maxLimitDb off the peaks; past
-    # that the gain is held back and the sound stays under the target.
-    over = before['truePeak'] + gain - ceiling
-    max_limit = float(sound.get('maxLimitDb', 6))
-    limiting = 0.0
-    if over > 0:
-        limiting = min(over, max_limit)
-        gain -= over - limiting
-    loop *= 10 ** (gain / 20)
-    if limiting > 0:
-        # Sample-peak limiter, 1 dB under the true-peak ceiling for the
-        # inter-sample overs it can't see.
-        loop = limit_circular(loop, ceiling - 1, workdir, sid)
-    loop.astype('<f4').tofile(pre)
     out = OUT_DIR / f'{sid}.opus'
     bitrate = int(sound.get('bitrate', 64 if channels == 2 else 40))
-    run(['ffmpeg', '-nostdin', '-hide_banner', '-loglevel', 'error', '-y',
-         '-f', 'f32le', '-ar', str(RATE), '-ac', str(channels), '-i', str(pre),
-         '-c:a', 'libopus', '-b:a', f'{bitrate}k', '-vbr', 'on', '-compression_level', '10',
-         '-application', 'audio', '-frame_duration', '20',
-         '-map_metadata', '-1', '-fflags', '+bitexact', '-flags:a', '+bitexact', str(out)])
+    max_limit = float(sound.get('maxLimitDb', 6))
+    base, extra = loop, 0.0
+    for attempt in range(3):
+        gain = target - before['lufs'] - extra
+        # Peaky sounds (crackle, drips) would need more peak room than the
+        # ceiling allows. A limiter takes up to maxLimitDb off the peaks; past
+        # that the gain is held back and the sound stays under the target.
+        over = before['truePeak'] + gain - ceiling
+        limiting = 0.0
+        if over > 0:
+            limiting = min(over, max_limit)
+            gain -= over - limiting
+        loop = base * 10 ** (gain / 20)
+        if limiting > 0:
+            # Sample-peak limiter, 1 dB under the true-peak ceiling for the
+            # inter-sample overs it can't see.
+            loop = limit_circular(loop, ceiling - 1, workdir, sid)
+        loop.astype('<f4').tofile(pre)
+        run(['ffmpeg', '-nostdin', '-hide_banner', '-loglevel', 'error', '-y',
+             '-f', 'f32le', '-ar', str(RATE), '-ac', str(channels), '-i', str(pre),
+             '-c:a', 'libopus', '-b:a', f'{bitrate}k', '-vbr', 'on', '-compression_level', '10',
+             '-application', 'audio', '-frame_duration', '20',
+             '-map_metadata', '-1', '-fflags', '+bitexact', '-flags:a', '+bitexact', str(out)])
+        after = loudness(out, channels, raw=False, target=target, ceiling=ceiling)
+        # Spiky sounds can overshoot the ceiling again in the codec. Take the
+        # excess off the (static) gain and encode again, twice at most.
+        if after['truePeak'] <= ceiling + 0.25:
+            break
+        extra += after['truePeak'] - ceiling
     pre.unlink()
-    after = loudness(out, channels, raw=False, target=target, ceiling=ceiling)
     probe = json.loads(run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
                             '-of', 'json', str(out)]))
     return {
