@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:medito/services/library/folder_import.dart';
 import 'package:medito/services/library/import_models.dart';
 import 'package:medito/services/library/link_classifier.dart';
 import 'package:medito/services/library/share_intake.dart';
@@ -10,12 +13,29 @@ abstract interface class ImportPickers {
   /// Audio files the user chose, or null if they backed out.
   Future<List<PickedFile>?> pickAudioFiles();
 
-  /// A folder's path, or null.
-  Future<String?> pickFolder();
+  /// A folder, or null if the user backed out or cancelled. On Android its
+  /// audio arrives already copied (see [FolderImporter]), with [onProgress]
+  /// reporting the copy; elsewhere only its path.
+  Future<PickedFolder?> pickFolder({void Function(FolderProgress)? onProgress});
+
+  /// Stops a folder pick or copy in progress.
+  Future<void> cancelFolderImport();
+
+  /// Removes what a folder import staged and nothing took.
+  Future<void> discardFolderImport();
 }
 
 class SystemImportPickers implements ImportPickers {
-  const SystemImportPickers();
+  SystemImportPickers({FolderImporter? folders, bool? isAndroid})
+    : _folders = folders,
+      _isAndroid = isAndroid ?? Platform.isAndroid;
+
+  FolderImporter? _folders;
+  final bool _isAndroid;
+
+  /// Created on first use, so only a device that imports a folder this way
+  /// ever opens the channel.
+  FolderImporter get _folderImporter => _folders ??= ChannelFolderImporter();
 
   @override
   Future<List<PickedFile>?> pickAudioFiles() async {
@@ -32,11 +52,30 @@ class SystemImportPickers implements ImportPickers {
   }
 
   @override
-  Future<String?> pickFolder() => FilePicker.getDirectoryPath();
+  Future<PickedFolder?> pickFolder({
+    void Function(FolderProgress)? onProgress,
+  }) async {
+    if (_isAndroid) {
+      return _folderImporter.importFolder(onProgress: onProgress);
+    }
+    // iOS and desktops can still read a folder by its path.
+    final path = await FilePicker.getDirectoryPath();
+    return path == null ? null : PickedFolder.path(path);
+  }
+
+  @override
+  Future<void> cancelFolderImport() async {
+    if (_isAndroid) await _folderImporter.cancel();
+  }
+
+  @override
+  Future<void> discardFolderImport() async {
+    if (_isAndroid) await _folderImporter.discard();
+  }
 }
 
 final importPickersProvider = Provider<ImportPickers>(
-  (ref) => const SystemImportPickers(),
+  (ref) => SystemImportPickers(),
 );
 
 /// Reads a link from the clipboard if there is one worth offering. The

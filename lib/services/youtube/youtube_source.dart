@@ -11,6 +11,7 @@ import 'package:medito/models/explore/track_search_model.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/models/track/track.dart';
 import 'package:medito/services/content/content_source.dart';
+import 'package:medito/services/library/import_defaults.dart';
 import 'package:medito/services/library/import_models.dart';
 import 'package:medito/services/library/library_database.dart';
 import 'package:medito/services/library/library_models.dart';
@@ -119,13 +120,44 @@ class YoutubeSource
       final durations = playlist == null
           ? [video!.durationSeconds]
           : playlist.items.map((i) => i.durationSeconds).toList();
+      final shape = playlist == null
+          ? ImportShape.youtubeVideo
+          : video == null
+          ? ImportShape.youtubePlaylist
+          : ImportShape.youtubeWatchWithPlaylist;
+      // What Single picks from: the playlist in its own order, with the video
+      // in the link (if any) selected; otherwise the top of the list.
+      final listed = <String>{};
+      final episodes = playlist == null
+          ? [_episodeOfVideo(video!)]
+          : [
+              for (final item in playlist.items)
+                // A video listed twice is one choice.
+                if (listed.add(item.videoId))
+                  // The video in the link was resolved in full; it speaks
+                  // for itself where the list only summarises it.
+                  if (item.videoId == video?.videoId)
+                    _episodeOfVideo(video!)
+                  else
+                    ImportEpisode(
+                      id: item.videoId,
+                      title: item.title,
+                      durationMs: item.durationSeconds > 0
+                          ? item.durationSeconds * 1000
+                          : null,
+                      artworkUrl: item.thumbnail,
+                    ),
+            ];
+      // A watch link whose video the list does not hold still has to be
+      // something Single can pick.
+      if (video != null && episodes.every((e) => e.id != video.videoId)) {
+        episodes.insert(0, _episodeOfVideo(video));
+      }
       return ImportPreview(
         origin: ImportOrigin.youtube,
         entryId: id,
-        kind: playlist == null ? LibraryKind.single : LibraryKind.course,
-        allowedKinds: video == null
-            ? const {LibraryKind.course}
-            : const {LibraryKind.course, LibraryKind.single},
+        kind: shape.defaultKind,
+        allowedKinds: shape.allowedKinds,
         group: youtubeGroup(title),
         title: title,
         subtitle: uploader,
@@ -156,6 +188,8 @@ class YoutubeSource
         youtubeVideo: video,
         youtubePlaylist: playlist,
         youtubePlaylistId: playlist == null ? null : link.playlistId,
+        episodes: episodes,
+        defaultEpisodeId: video?.videoId ?? episodes.first.id,
       );
     } on ImportFailure {
       rethrow;
@@ -172,6 +206,14 @@ class YoutubeSource
       });
     }
   }
+
+  static ImportEpisode _episodeOfVideo(YoutubeVideo video) => ImportEpisode(
+    id: video.videoId,
+    title: video.title,
+    durationMs: video.durationSeconds > 0 ? video.durationSeconds * 1000 : null,
+    subtitle: video.uploader,
+    artworkUrl: video.thumbnail,
+  );
 
   static YoutubeUnavailableError _failure(Object error) {
     if (error is YoutubeUnavailableError) return error;
@@ -213,12 +255,17 @@ class YoutubeSource
   Future<ImportResult> add(ImportPreview preview, ImportChoice choice) async {
     final video = preview.youtubeVideo;
     final playlist = preview.youtubePlaylist;
-    final asCourse = choice.kind == LibraryKind.course || video == null;
+    // A Single is the video the user picked from the list; the link's own
+    // video when they did not pick another.
+    final single = choice.kind == LibraryKind.course
+        ? null
+        : await _singleVideo(preview, choice.episodeId);
+    final asCourse = single == null;
     final id = asCourse
         ? (playlist == null
               ? ytSingleCourseId(video!.videoId)
               : ytPlaylistId(preview.youtubePlaylistId!))
-        : ytVideoId(video.videoId);
+        : ytVideoId(single.videoId);
     if (await library.contains(id)) {
       return ImportResult(
         entryId: id,
@@ -226,15 +273,16 @@ class YoutubeSource
         alreadyPresent: true,
       );
     }
-    final title = asCourse ? preview.title : video.title;
-    final uploader = asCourse ? preview.subtitle : video.uploader;
-    final artwork = asCourse ? preview.artworkUrl : video.thumbnail;
+    final title = asCourse ? preview.title : single.title;
+    final uploader = asCourse ? preview.subtitle : single.uploader;
+    final artwork = asCourse ? preview.artworkUrl : single.thumbnail;
     final duration = asCourse
         ? preview.durationMs
-        : video.durationSeconds * 1000;
+        : single.durationSeconds * 1000;
     final detected = youtubeGroup(title);
     await db.transaction(() async {
-      if (video != null) await storeVideo(video);
+      if (single != null) await storeVideo(single);
+      if (asCourse && video != null) await storeVideo(video);
       if (asCourse) {
         await storePlaylist(
           id.substring('yt-playlist-'.length),
@@ -284,6 +332,35 @@ class YoutubeSource
       kind: asCourse ? LibraryKind.course : LibraryKind.single,
       alreadyPresent: !added,
     );
+  }
+
+  /// The video a Single adds: the one picked from the playlist, else the one
+  /// in the link. Null when there is neither, which makes it a course.
+  Future<YoutubeVideo?> _singleVideo(
+    ImportPreview preview,
+    String? episodeId,
+  ) async {
+    final video = preview.youtubeVideo;
+    final playlist = preview.youtubePlaylist;
+    final wanted = episodeId ?? preview.defaultEpisodeId ?? video?.videoId;
+    if (video != null && (wanted == null || wanted == video.videoId)) {
+      return video;
+    }
+    for (final item in playlist?.items ?? const <YoutubePlaylistItem>[]) {
+      if (item.videoId != wanted) continue;
+      // A playlist row carries less than a resolved video; keep what is known.
+      final previous = await db.youtubeVideo(item.videoId);
+      return YoutubeVideo(
+        videoId: item.videoId,
+        title: item.title,
+        uploader: previous?.uploader ?? playlist!.uploader,
+        // What a full resolve found outranks the list's summary.
+        durationSeconds: previous?.durationSeconds ?? item.durationSeconds,
+        thumbnail: previous?.thumbnail ?? item.thumbnail,
+        description: previous?.description ?? '',
+      );
+    }
+    return video;
   }
 
   Future<void> storeVideo(YoutubeVideo video) => db

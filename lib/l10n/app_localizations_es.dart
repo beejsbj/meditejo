@@ -1961,7 +1961,8 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get importCaptionLatest => 'Solo el último episodio';
+  String get importCaptionLatest =>
+      'Solo un episodio: el último, o el que elijas';
 
   @override
   String get importCaptionFilesCourse => 'Un curso, en el orden mostrado';
@@ -2056,6 +2057,65 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get importFailAdd => 'No se pudo añadir. Inténtalo de nuevo.';
+
+  @override
+  String get importEpisodeLabel => 'Episodio';
+
+  @override
+  String get importEpisodeChange => 'Cambiar';
+
+  @override
+  String get importEpisodePickerTitle => 'Elige un episodio';
+
+  @override
+  String get importEpisodeSearch => 'Buscar episodios';
+
+  @override
+  String get importEpisodeNone => 'Ningún episodio coincide.';
+
+  @override
+  String get importEpisodeLatest => 'Último';
+
+  @override
+  String get importFolderLooking => 'Mirando la carpeta…';
+
+  @override
+  String importFolderCopying(int done, int total) {
+    return 'Copiando $done de $total…';
+  }
+
+  @override
+  String get importFolderCancel => 'Cancelar';
+
+  @override
+  String importUnreadable(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'No se pudieron leer $count elementos y se omitieron',
+      one: 'No se pudo leer 1 elemento y se omitió',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailFolderEmpty => 'Esa carpeta está vacía.';
+
+  @override
+  String get importFailFolderTooLarge =>
+      'Esa carpeta tiene más de 1000 archivos de audio. Elige una más pequeña.';
+
+  @override
+  String get importFailFolderNoSpace =>
+      'No hay espacio libre suficiente en este teléfono para copiar la carpeta.';
+
+  @override
+  String get importFailFolderUnreadable =>
+      'No se pudo leer la carpeta. Elígela de nuevo o elige archivos.';
+
+  @override
+  String get importFailFolderUnavailable =>
+      'Este dispositivo no tiene selector de carpetas. Elige archivos.';
 
   @override
   String get shareArrived => 'Compartido con Meditejo';

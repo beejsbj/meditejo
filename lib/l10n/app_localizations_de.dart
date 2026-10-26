@@ -1956,7 +1956,8 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get importCaptionLatest => 'Nur die neueste Folge';
+  String get importCaptionLatest =>
+      'Nur eine Folge: die neueste oder eine, die du wählst';
 
   @override
   String get importCaptionFilesCourse =>
@@ -2052,6 +2053,66 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get importFailAdd =>
       'Das konnte nicht hinzugefügt werden. Bitte versuche es erneut.';
+
+  @override
+  String get importEpisodeLabel => 'Folge';
+
+  @override
+  String get importEpisodeChange => 'Ändern';
+
+  @override
+  String get importEpisodePickerTitle => 'Folge wählen';
+
+  @override
+  String get importEpisodeSearch => 'Folgen durchsuchen';
+
+  @override
+  String get importEpisodeNone => 'Keine Folge passt dazu.';
+
+  @override
+  String get importEpisodeLatest => 'Neueste';
+
+  @override
+  String get importFolderLooking => 'Ordner wird angesehen…';
+
+  @override
+  String importFolderCopying(int done, int total) {
+    return 'Kopiere $done von $total…';
+  }
+
+  @override
+  String get importFolderCancel => 'Abbrechen';
+
+  @override
+  String importUnreadable(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Elemente konnten nicht gelesen werden und wurden ausgelassen',
+      one: '1 Element konnte nicht gelesen werden und wurde ausgelassen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importFailFolderEmpty => 'Dieser Ordner ist leer.';
+
+  @override
+  String get importFailFolderTooLarge =>
+      'In diesem Ordner liegen mehr als 1.000 Audiodateien. Wähle einen kleineren Ordner.';
+
+  @override
+  String get importFailFolderNoSpace =>
+      'Auf diesem Telefon ist nicht genug Platz, um den Ordner zu kopieren.';
+
+  @override
+  String get importFailFolderUnreadable =>
+      'Der Ordner konnte nicht gelesen werden. Wähle ihn noch einmal oder wähle stattdessen Dateien aus.';
+
+  @override
+  String get importFailFolderUnavailable =>
+      'Dieses Gerät hat keine Ordnerauswahl. Wähle stattdessen Dateien aus.';
 
   @override
   String get shareArrived => 'Mit Meditejo geteilt';

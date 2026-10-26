@@ -1,8 +1,9 @@
-import 'package:medito/services/youtube/youtube_ids.dart';
 import 'package:medito/services/youtube/youtube_source.dart';
 
 import 'dart:async';
+import 'dart:math';
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,10 +12,13 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/library/import_providers.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/routes/routes.dart';
+import 'package:medito/services/library/folder_import.dart';
 import 'package:medito/services/library/import_models.dart';
+import 'package:medito/services/library/import_service.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/link_classifier.dart';
 import 'package:medito/utils/logger.dart';
+import 'package:medito/views/library/episode_picker.dart';
 import 'package:medito/views/library/library_actions.dart';
 import 'package:medito/views/library/library_format.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
@@ -87,12 +91,28 @@ class _ImportViewState extends ConsumerState<ImportView> {
   var _group = LibraryGroup.practice;
   var _order = 'oldest';
 
+  /// The episode a Single will add; the preview's default until picked.
+  String? _episodeId;
+
+  /// A folder is being picked, listed or copied, and how far the copy is.
+  var _folderBusy = false;
+
+  /// This screen has staged a folder's files, which are its to discard.
+  var _stagedFolder = false;
+
+  /// Bumped on every folder pick and on Cancel, so a stale pick cannot clear
+  /// the busy state of a newer one.
+  var _folderPick = 0;
+  final _folderProgress = ValueNotifier<FolderProgress?>(null);
+  late final ImportPickers _pickers;
+
   /// Bumped on every new request, so a slow earlier answer is dropped.
   int _request = 0;
 
   @override
   void initState() {
     super.initState();
+    _pickers = ref.read(importPickersProvider);
     final text = widget.initialText?.trim();
     if (widget.initialFiles.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback(
@@ -108,6 +128,11 @@ class _ImportViewState extends ConsumerState<ImportView> {
 
   @override
   void dispose() {
+    // A folder's copies are only for the screen that staged them: stop one in
+    // progress and drop any that nothing took. Another import screen (a share
+    // that arrived over this one) must not wipe them.
+    if (_stagedFolder) unawaited(_pickers.discardFolderImport());
+    _folderProgress.dispose();
     _field.dispose();
     _titleField.dispose();
     super.dispose();
@@ -149,14 +174,11 @@ class _ImportViewState extends ConsumerState<ImportView> {
     await _run(() => ref.read(importServiceProvider).resolve(input));
   }
 
-  Future<void> _resolveFiles(List<PickedFile> files, {String? folderName}) =>
-      _run(
-        () => ref
-            .read(importServiceProvider)
-            .resolveFiles(files, suggestedTitle: folderName),
-      );
+  Future<void> _resolveFiles(List<PickedFile> files) =>
+      _run(() => ref.read(importServiceProvider).resolveFiles(files));
 
-  Future<void> _run(Future<ImportPreview> Function() resolve) async {
+  /// [resolve] may answer null: nothing was chosen, so nothing changes.
+  Future<void> _run(Future<ImportPreview?> Function() resolve) async {
     final request = ++_request;
     setState(() {
       _phase = _Phase.resolving;
@@ -167,9 +189,14 @@ class _ImportViewState extends ConsumerState<ImportView> {
     try {
       final preview = await resolve();
       if (!mounted || request != _request) return;
+      if (preview == null) {
+        setState(() => _phase = _Phase.idle);
+        return;
+      }
       setState(() {
         _preview = preview;
         _kind = preview.kind;
+        _episodeId = preview.defaultEpisodeId;
         _alreadyInLibrary = preview.alreadyInLibrary;
         _group = preview.group;
         _order = 'oldest';
@@ -202,30 +229,122 @@ class _ImportViewState extends ConsumerState<ImportView> {
   }
 
   Future<void> _pickFolder() async {
-    final folder = await ref.read(importPickersProvider).pickFolder();
-    if (folder == null || !mounted) return;
-    _field.text = folder;
-    await _resolve();
-  }
-
-  String _selectedId(ImportPreview preview, LibraryKind kind) {
-    if (preview.origin != ImportOrigin.youtube) return preview.entryId;
-    if (kind == LibraryKind.single) {
-      return ytVideoId(preview.youtubeVideo!.videoId);
+    _folderProgress.value = null;
+    final pick = ++_folderPick;
+    _stagedFolder = true;
+    setState(() => _folderBusy = true);
+    try {
+      await _run(() async {
+        final folder = await _pickers.pickFolder(
+          onProgress: (progress) {
+            if (mounted) _folderProgress.value = progress;
+          },
+        );
+        if (folder == null || !mounted) return null;
+        final service = ref.read(importServiceProvider);
+        final path = folder.path;
+        if (path != null) {
+          // iOS: the folder is read where it is.
+          _field.text = path;
+          return service.resolve(path);
+        }
+        _field.clear();
+        return service.resolveFiles(
+          folder.files,
+          suggestedTitle: folder.name,
+          folder: true,
+          unreadable: folder.unreadable,
+        );
+      });
+    } finally {
+      if (mounted && pick == _folderPick) {
+        setState(() => _folderBusy = false);
+      }
     }
-    return preview.youtubePlaylistId != null
-        ? ytPlaylistId(preview.youtubePlaylistId!)
-        : ytSingleCourseId(preview.youtubeVideo!.videoId);
   }
 
-  Future<void> _checkSelection(ImportPreview preview, LibraryKind kind) async {
-    if (preview.origin != ImportOrigin.youtube) return;
+  /// Stops the copy, and also drops a preview still being worked out from it
+  /// (probing the files' lengths takes a while for a big folder).
+  Future<void> _cancelFolder() async {
+    _request++;
+    _folderPick++;
+    setState(() {
+      _phase = _Phase.idle;
+      _folderBusy = false;
+    });
+    await _pickers.cancelFolderImport();
+    await _pickers.discardFolderImport();
+  }
+
+  String _selectedId(
+    ImportPreview preview,
+    LibraryKind kind, [
+    String? episodeId,
+  ]) => ImportService.selectedId(preview, kind, episodeId: episodeId);
+
+  /// Whether what the choices now add is already in the library. Only the
+  /// kinds with a choice of what to add can differ from the preview.
+  Future<void> _checkSelection(
+    ImportPreview preview,
+    LibraryKind kind, [
+    String? episodeId,
+  ]) async {
+    if (preview.origin != ImportOrigin.youtube &&
+        preview.origin != ImportOrigin.feed) {
+      return;
+    }
     final present = await ref
         .read(libraryStoreProvider)
-        .contains(_selectedId(preview, kind));
-    if (mounted && _preview == preview && _kind == kind) {
+        .contains(_selectedId(preview, kind, episodeId));
+    if (mounted &&
+        _preview == preview &&
+        _kind == kind &&
+        _episodeId == episodeId) {
       setState(() => _alreadyInLibrary = present);
     }
+  }
+
+  /// The title the preview starts with for [kind] and [episodeId]: the list's
+  /// own, or the episode's for a Single.
+  String _autoTitle(
+    ImportPreview preview,
+    LibraryKind kind,
+    String? episodeId,
+  ) {
+    if (kind == LibraryKind.single) {
+      final episode = preview.episode(episodeId);
+      if (episode != null) return episode.title;
+    }
+    return preview.title;
+  }
+
+  /// Follows a change of kind or episode: a title the user has not edited
+  /// follows it (and so does YouTube's detected group); one they typed stays.
+  void _follow(ImportPreview preview, LibraryKind kind, String? episodeId) {
+    final previous = _autoTitle(preview, _kind, _episodeId);
+    final next = _autoTitle(preview, kind, episodeId);
+    if (_titleField.text == previous) _titleField.text = next;
+    if (preview.origin == ImportOrigin.youtube &&
+        _group == youtubeGroup(previous)) {
+      _group = youtubeGroup(next);
+    }
+    _kind = kind;
+    _episodeId = episodeId;
+    _alreadyInLibrary = false;
+    unawaited(_checkSelection(preview, kind, episodeId));
+  }
+
+  Future<void> _chooseEpisode(ImportPreview preview) async {
+    final picked = await showEpisodePicker(
+      context,
+      episodes: preview.episodes,
+      selectedId: _episodeId ?? preview.defaultEpisodeId,
+      latestId: preview.origin == ImportOrigin.feed
+          ? preview.defaultEpisodeId
+          : null,
+    );
+    if (picked == null || !mounted || picked == _episodeId) return;
+    setState(() => _follow(preview, _kind, picked));
   }
 
   Future<void> _add() async {
@@ -236,7 +355,7 @@ class _ImportViewState extends ConsumerState<ImportView> {
       Navigator.pop(
         context,
         ImportResult(
-          entryId: _selectedId(preview, _kind),
+          entryId: _selectedId(preview, _kind, _episodeId),
           kind: _kind,
           alreadyPresent: true,
         ),
@@ -255,6 +374,7 @@ class _ImportViewState extends ConsumerState<ImportView> {
               group: _group,
               title: typed.isEmpty || typed == preview.title ? null : typed,
               episodeOrder: _order,
+              episodeId: _episodeId,
             ),
           );
       if (mounted) Navigator.pop(context, result);
@@ -279,173 +399,166 @@ class _ImportViewState extends ConsumerState<ImportView> {
     final preview = _preview;
     final busy = _phase == _Phase.resolving || _phase == _Phase.adding;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.importTitle)),
-      body: AdaptivePageBody(
-        maxWidth: 640,
-        child: ListView(
-          padding: EdgeInsets.fromLTRB(
-            padding16,
-            padding8,
-            padding16,
-            MediaQuery.paddingOf(context).bottom + padding24,
-          ),
-          children: [
-            TextField(
-              key: const ValueKey('import_field'),
-              controller: _field,
-              enabled: _phase != _Phase.adding,
-              keyboardType: TextInputType.url,
-              textInputAction: TextInputAction.go,
-              autocorrect: false,
-              onSubmitted: (_) => _resolve(),
-              // Changing the link drops a preview of the old one, and abandons
-              // one still resolving, so Add can never add something other
-              // than what the field shows.
-              onChanged: (_) {
-                final resolving = _phase == _Phase.resolving;
-                if (resolving ||
-                    (_preview != null && _phase == _Phase.preview)) {
-                  if (resolving) _request++;
-                  setState(() {
-                    _preview = null;
-                    _phase = _Phase.idle;
-                  });
-                }
-              },
-              decoration: InputDecoration(
-                hintText: l10n.importFieldHint,
-                prefixIcon: const Icon(Icons.link_rounded),
-                suffixIcon: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      key: const ValueKey('import_paste'),
-                      tooltip: l10n.importPaste,
-                      onPressed: busy ? null : _paste,
-                      icon: const Icon(Icons.content_paste_rounded),
-                    ),
-                    IconButton(
-                      key: const ValueKey('import_go'),
-                      tooltip: l10n.importPreviewAction,
-                      onPressed: busy ? null : _resolve,
-                      icon: const Icon(Icons.arrow_forward_rounded),
-                    ),
-                  ],
-                ),
-              ),
+    // Leaving while files are being stored would strand some of them.
+    return PopScope(
+      canPop: _phase != _Phase.adding,
+      child: Scaffold(
+        appBar: AppBar(title: Text(l10n.importTitle)),
+        body: AdaptivePageBody(
+          maxWidth: 640,
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(
+              padding16,
+              padding8,
+              padding16,
+              MediaQuery.paddingOf(context).bottom + padding24,
             ),
-            if (_clipboardLink case final link? when preview == null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l10n.importClipboard(
-                          Uri.tryParse(link)?.host.isNotEmpty == true
-                              ? Uri.parse(link).host
-                              : link,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                    ),
-                    TextButton(
-                      key: const ValueKey('import_use_clipboard'),
-                      onPressed: _useClipboard,
-                      child: Text(l10n.importUseClipboard),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    key: const ValueKey('import_files'),
-                    onPressed: busy ? null : _pickFiles,
-                    icon: const Icon(Icons.audio_file_outlined),
-                    label: Text(l10n.importChooseFiles),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    key: const ValueKey('import_folder'),
-                    onPressed: busy ? null : _pickFolder,
-                    icon: const Icon(Icons.folder_open_rounded),
-                    label: Text(l10n.importChooseFolder),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (_phase == _Phase.resolving)
-              _Looking(label: l10n.importLooking)
-            else if (_failure != null)
-              _FailureCard(reason: _failure!)
-            else if (preview == null)
-              Text(
-                l10n.importHelp,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-            if (preview != null && _phase != _Phase.resolving) ...[
-              if (_failure != null) const SizedBox(height: 12),
-              _PreviewCard(
-                preview: preview,
-                alreadyInLibrary: _alreadyInLibrary,
-                titleField: _titleField,
-                editingTitle: _editingTitle,
-                onEditTitle: () => setState(() => _editingTitle = true),
-                onTitleDone: () => setState(() => _editingTitle = false),
-                kind: _kind,
-                group: _group,
-                order: _order,
-                onKind: (value) => setState(() {
-                  final video = preview.youtubeVideo;
-                  if (preview.origin == ImportOrigin.youtube && video != null) {
-                    final previousTitle = _kind == LibraryKind.single
-                        ? video.title
-                        : preview.title;
-                    final nextTitle = value == LibraryKind.single
-                        ? video.title
-                        : preview.title;
-                    if (_titleField.text == previousTitle) {
-                      _titleField.text = nextTitle;
-                    }
-                    if (_group == youtubeGroup(previousTitle)) {
-                      _group = youtubeGroup(nextTitle);
-                    }
+            children: [
+              TextField(
+                key: const ValueKey('import_field'),
+                controller: _field,
+                enabled: _phase != _Phase.adding && !_folderBusy,
+                keyboardType: TextInputType.url,
+                textInputAction: TextInputAction.go,
+                autocorrect: false,
+                onSubmitted: (_) => _resolve(),
+                // Changing the link drops a preview of the old one, and abandons
+                // one still resolving, so Add can never add something other
+                // than what the field shows.
+                onChanged: (_) {
+                  final resolving = _phase == _Phase.resolving;
+                  if (resolving ||
+                      (_preview != null && _phase == _Phase.preview)) {
+                    if (resolving) _request++;
+                    setState(() {
+                      _preview = null;
+                      _phase = _Phase.idle;
+                    });
                   }
-                  _kind = value;
-                  _alreadyInLibrary = false;
-                  unawaited(_checkSelection(preview, value));
-                }),
-                onGroup: (value) => setState(() => _group = value),
-                onOrder: (value) => setState(() => _order = value),
+                },
+                decoration: InputDecoration(
+                  hintText: l10n.importFieldHint,
+                  prefixIcon: const Icon(Icons.link_rounded),
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        key: const ValueKey('import_paste'),
+                        tooltip: l10n.importPaste,
+                        onPressed: busy ? null : _paste,
+                        icon: const Icon(Icons.content_paste_rounded),
+                      ),
+                      IconButton(
+                        key: const ValueKey('import_go'),
+                        tooltip: l10n.importPreviewAction,
+                        onPressed: busy ? null : _resolve,
+                        icon: const Icon(Icons.arrow_forward_rounded),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (_clipboardLink case final link? when preview == null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.importClipboard(
+                            Uri.tryParse(link)?.host.isNotEmpty == true
+                                ? Uri.parse(link).host
+                                : link,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
+                      TextButton(
+                        key: const ValueKey('import_use_clipboard'),
+                        onPressed: _useClipboard,
+                        child: Text(l10n.importUseClipboard),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      key: const ValueKey('import_files'),
+                      onPressed: busy ? null : _pickFiles,
+                      icon: const Icon(Icons.audio_file_outlined),
+                      label: Text(l10n.importChooseFiles),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      key: const ValueKey('import_folder'),
+                      onPressed: busy ? null : _pickFolder,
+                      icon: const Icon(Icons.folder_open_rounded),
+                      label: Text(l10n.importChooseFolder),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
-              FilledButton(
-                key: const ValueKey('import_add'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(52),
+              if (_phase == _Phase.resolving && _folderBusy)
+                _FolderProgressCard(
+                  progress: _folderProgress,
+                  onCancel: _cancelFolder,
+                )
+              else if (_phase == _Phase.resolving)
+                _Looking(label: l10n.importLooking)
+              else if (_failure != null)
+                _FailureCard(reason: _failure!)
+              else if (preview == null)
+                Text(
+                  l10n.importHelp,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
                 ),
-                onPressed: busy ? null : _add,
-                child: _phase == _Phase.adding
-                    ? Text(l10n.importAdding)
-                    : Text(
-                        _alreadyInLibrary
-                            ? l10n.libraryOpen
-                            : l10n.importPrimary,
-                      ),
-              ),
+              if (preview != null && _phase != _Phase.resolving) ...[
+                if (_failure != null) const SizedBox(height: 12),
+                _PreviewCard(
+                  preview: preview,
+                  alreadyInLibrary: _alreadyInLibrary,
+                  titleField: _titleField,
+                  editingTitle: _editingTitle,
+                  onEditTitle: () => setState(() => _editingTitle = true),
+                  onTitleDone: () => setState(() => _editingTitle = false),
+                  kind: _kind,
+                  group: _group,
+                  order: _order,
+                  episodeId: _episodeId,
+                  onChooseEpisode: () => _chooseEpisode(preview),
+                  onKind: (value) =>
+                      setState(() => _follow(preview, value, _episodeId)),
+                  onGroup: (value) => setState(() => _group = value),
+                  onOrder: (value) => setState(() => _order = value),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  key: const ValueKey('import_add'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                  ),
+                  onPressed: busy ? null : _add,
+                  child: _phase == _Phase.adding
+                      ? Text(l10n.importAdding)
+                      : Text(
+                          _alreadyInLibrary
+                              ? l10n.libraryOpen
+                              : l10n.importPrimary,
+                        ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -497,6 +610,11 @@ class _FailureCard extends StatelessWidget {
     ImportFailureReason.dharmaSeedMissing => l10n.importFailDharmaSeed,
     ImportFailureReason.fileMissing => l10n.importFailFile,
     ImportFailureReason.noAudioFiles => l10n.importFailNoAudio,
+    ImportFailureReason.folderEmpty => l10n.importFailFolderEmpty,
+    ImportFailureReason.folderTooLarge => l10n.importFailFolderTooLarge,
+    ImportFailureReason.folderNoSpace => l10n.importFailFolderNoSpace,
+    ImportFailureReason.folderUnreadable => l10n.importFailFolderUnreadable,
+    ImportFailureReason.folderUnavailable => l10n.importFailFolderUnavailable,
   };
 
   @override
@@ -541,6 +659,8 @@ class _PreviewCard extends StatelessWidget {
     required this.kind,
     required this.group,
     required this.order,
+    required this.episodeId,
+    required this.onChooseEpisode,
     required this.onKind,
     required this.onGroup,
     required this.onOrder,
@@ -555,6 +675,10 @@ class _PreviewCard extends StatelessWidget {
   final LibraryKind kind;
   final LibraryGroup group;
   final String order;
+
+  /// The episode a Single will add, when the list has episodes.
+  final String? episodeId;
+  final VoidCallback onChooseEpisode;
   final ValueChanged<LibraryKind> onKind;
   final ValueChanged<LibraryGroup> onGroup;
   final ValueChanged<String> onOrder;
@@ -583,29 +707,24 @@ class _PreviewCard extends StatelessWidget {
         ? l10n.importDefaultTitle
         : titleField.text.trim();
 
-    final youtubeSingle =
-        preview.origin == ImportOrigin.youtube && kind == LibraryKind.single;
-    final displayedDuration = youtubeSingle
-        ? (preview.youtubeVideo?.durationSeconds ?? 0) * 1000
+    // A Single from a list is one episode: it, not the list, is described.
+    final selected = kind == LibraryKind.single
+        ? preview.episode(episodeId)
+        : null;
+    final displayedDuration = selected != null
+        ? selected.durationMs ?? 0
         : preview.durationMs;
-    final selectedSubtitle = youtubeSingle
-        ? preview.youtubeVideo!.uploader
+    final selectedSubtitle = selected != null && selected.subtitle.isNotEmpty
+        ? selected.subtitle
         : preview.subtitle;
-    final selectedArtwork = youtubeSingle
-        ? preview.youtubeVideo!.thumbnail
+    final selectedArtwork = selected != null && selected.artworkUrl.isNotEmpty
+        ? selected.artworkUrl
         : preview.artworkUrl;
     final counts = [
       if (kind != LibraryKind.teacher || preview.itemCount > 0)
-        l10n.librarySessions(
-          kind == LibraryKind.single &&
-                  (preview.origin == ImportOrigin.feed ||
-                      preview.origin == ImportOrigin.youtube)
-              ? 1
-              : preview.itemCount,
-        ),
-      if (displayedDuration > 0 &&
-          (kind != LibraryKind.single || preview.origin != ImportOrigin.feed))
-        preview.durationComplete || youtubeSingle
+        l10n.librarySessions(selected != null ? 1 : preview.itemCount),
+      if (displayedDuration > 0)
+        preview.durationComplete || selected != null
             ? formatLongDuration(displayedDuration)
             : l10n.importAtLeast(formatLongDuration(displayedDuration)),
     ].join(' · ');
@@ -708,7 +827,7 @@ class _PreviewCard extends StatelessWidget {
               style: theme.textTheme.bodyMedium,
             ),
           ],
-          if (preview.firstItems.isNotEmpty && !youtubeSingle) ...[
+          if (preview.firstItems.isNotEmpty && selected == null) ...[
             const SizedBox(height: 12),
             for (final item in preview.firstItems)
               Padding(
@@ -749,6 +868,14 @@ class _PreviewCard extends StatelessWidget {
               style: theme.textTheme.bodySmall?.copyWith(color: muted),
             ),
           ],
+          if (preview.unreadableItems > 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              l10n.importUnreadable(preview.unreadableItems),
+              key: const ValueKey('import_unreadable'),
+              style: theme.textTheme.bodySmall?.copyWith(color: muted),
+            ),
+          ],
           if (preview.attribution case final attribution?)
             AttributionNotice(
               attribution: attribution,
@@ -763,7 +890,12 @@ class _PreviewCard extends StatelessWidget {
               style: theme.textTheme.bodyMedium,
             ),
           ],
-          if (!alreadyInLibrary || preview.origin == ImportOrigin.youtube) ...[
+          // Choices stay while one thing is being picked from a list, so an
+          // episode that is already kept can be swapped for another.
+          if (!alreadyInLibrary ||
+              preview.origin == ImportOrigin.youtube ||
+              (preview.origin == ImportOrigin.feed &&
+                  kind == LibraryKind.single)) ...[
             if (preview.hasKindChoice) ...[
               const SizedBox(height: 16),
               SegmentedButton<LibraryKind>(
@@ -788,6 +920,17 @@ class _PreviewCard extends StatelessWidget {
                   _caption(l10n, kind),
                   style: theme.textTheme.bodySmall?.copyWith(color: muted),
                 ),
+              ),
+            ],
+            if (selected != null && preview.hasEpisodeChoice) ...[
+              const SizedBox(height: 8),
+              _EpisodeRow(
+                key: const ValueKey('import_episode'),
+                episode: selected,
+                latest:
+                    preview.origin == ImportOrigin.feed &&
+                    selected.id == preview.defaultEpisodeId,
+                onChange: onChooseEpisode,
               ),
             ],
             if (preview.origin == ImportOrigin.feed &&
@@ -835,6 +978,114 @@ class _PreviewCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Copying a picked folder: what is happening, how far, and a way out.
+class _FolderProgressCard extends StatelessWidget {
+  const _FolderProgressCard({required this.progress, required this.onCancel});
+
+  final ValueListenable<FolderProgress?> progress;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return ValueListenableBuilder<FolderProgress?>(
+      valueListenable: progress,
+      builder: (context, value, _) => Padding(
+        key: const ValueKey('import_folder_progress'),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                value == null || value.filesTotal < 1
+                    ? l10n.importFolderLooking
+                    : l10n.importFolderCopying(
+                        min(value.filesDone + 1, value.filesTotal),
+                        value.filesTotal,
+                      ),
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+            const SizedBox(height: 10),
+            LinearProgressIndicator(value: value?.fraction),
+            if (value != null && value.name.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                value.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                key: const ValueKey('import_folder_cancel'),
+                onPressed: onCancel,
+                child: Text(l10n.importFolderCancel),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The episode a Single will add, with a way to pick another.
+class _EpisodeRow extends StatelessWidget {
+  const _EpisodeRow({
+    super.key,
+    required this.episode,
+    required this.latest,
+    required this.onChange,
+  });
+
+  final ImportEpisode episode;
+  final bool latest;
+  final VoidCallback onChange;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.importEpisodeLabel, style: theme.textTheme.bodySmall),
+              Text(
+                episode.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium,
+              ),
+              Text(
+                episodeDetail(context, episode, latest: latest),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+          ),
+        ),
+        TextButton(
+          key: const ValueKey('import_episode_change'),
+          onPressed: onChange,
+          child: Text(l10n.importEpisodeChange),
+        ),
+      ],
     );
   }
 }

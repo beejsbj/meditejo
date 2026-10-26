@@ -3475,7 +3475,7 @@ abstract class AppLocalizations {
   /// Caption under the Single choice for a feed
   ///
   /// In en, this message translates to:
-  /// **'Just the latest episode'**
+  /// **'Just one episode: the latest, or one you pick'**
   String get importCaptionLatest;
 
   /// Caption under the Course choice for several files
@@ -3627,6 +3627,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t add that. Please try again.'**
   String get importFailAdd;
+
+  /// The row naming the episode a Single will add
+  ///
+  /// In en, this message translates to:
+  /// **'Episode'**
+  String get importEpisodeLabel;
+
+  /// Opens the episode picker
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get importEpisodeChange;
+
+  /// Title of the episode picker
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an episode'**
+  String get importEpisodePickerTitle;
+
+  /// Hint in the episode picker's search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search episodes'**
+  String get importEpisodeSearch;
+
+  /// Shown when the episode search finds nothing
+  ///
+  /// In en, this message translates to:
+  /// **'No episode matches that.'**
+  String get importEpisodeNone;
+
+  /// Marks a feed's newest episode in the picker
+  ///
+  /// In en, this message translates to:
+  /// **'Latest'**
+  String get importEpisodeLatest;
+
+  /// Shown while a picked folder is listed
+  ///
+  /// In en, this message translates to:
+  /// **'Looking in the folder…'**
+  String get importFolderLooking;
+
+  /// Progress while a folder's audio is copied into the app
+  ///
+  /// In en, this message translates to:
+  /// **'Copying {done} of {total}…'**
+  String importFolderCopying(int done, int total);
+
+  /// Stops copying a folder
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get importFolderCancel;
+
+  /// Note that some items in a folder could not be read
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 item couldn\'t be read and was left out} other{{count} items couldn\'t be read and were left out}}'**
+  String importUnreadable(int count);
+
+  /// Calm failure: empty folder
+  ///
+  /// In en, this message translates to:
+  /// **'That folder is empty.'**
+  String get importFailFolderEmpty;
+
+  /// Calm failure: too many files
+  ///
+  /// In en, this message translates to:
+  /// **'That folder holds more than 1,000 audio files. Choose a smaller one.'**
+  String get importFailFolderTooLarge;
+
+  /// Calm failure: storage full
+  ///
+  /// In en, this message translates to:
+  /// **'There isn\'t enough free space on this phone to copy that folder.'**
+  String get importFailFolderNoSpace;
+
+  /// Calm failure: folder could not be read
+  ///
+  /// In en, this message translates to:
+  /// **'That folder couldn\'t be read. Try choosing it again, or choose files instead.'**
+  String get importFailFolderUnreadable;
+
+  /// Calm failure: no folder picker
+  ///
+  /// In en, this message translates to:
+  /// **'This device has no folder picker. Choose files instead.'**
+  String get importFailFolderUnavailable;
 
   /// Shown when a link or file was shared into the app
   ///

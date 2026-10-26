@@ -255,6 +255,12 @@ catalogue database: that one is a replaceable copy of someone else's catalogue
   opening them already does. Failures are `ImportFailure(reason)`, which the
   screen turns into a plain sentence. Files are moved (a picker or share cache
   copy) or copied into `<support>/library/<id>.<ext>`; audio is never changed.
+- `import_defaults.dart`: the one table of what each kind of link or pick
+  arrives as (`importDefaults`, keyed by `ImportShape`): every list is a Course
+  by default, one recording is a Single, and it says which of the two the user
+  may choose between. The resolvers read it; they do not decide.
+- `folder_import.dart`: folder import on Android (below): `FolderImporter`,
+  its `ChannelFolderImporter` over `meditejo/folder`, and `FolderProgress`.
 - `import_http.dart`: the one HTTP client for imports: a Meditejo User-Agent, a
   timeout, an 8 MiB body cap, redirects followed, no body read for audio or a 304.
 - `feed_refresher.dart`: looks for new episodes in kept feeds 10 s after launch,
@@ -281,9 +287,38 @@ clipboard reader and share intake as providers, so tests need no platform.
   opens it.
 - **Add** (`import_view.dart`): a link field with Paste and Preview, a clipboard
   suggestion, Choose files / Choose a folder, then the preview and one primary
-  action, Add to library. Course/Single appears where both make sense (a feed:
-  the whole feed or just its latest episode; several files: a course or separate
+  action, Add to library. Course/Single appears where both make sense (a feed or
+  playlist: the whole list, or one episode; several files: a course or separate
   singles); Practice/Talk defaults to the detected group, Practice when unknown.
+  **Single from a list means picking an episode.** The preview carries the list
+  as `ImportEpisode`s (a feed's newest first, a playlist in its own order) with
+  `defaultEpisodeId` chosen: a feed's latest, the video in a watch link, else a
+  playlist's first. The Episode row names the current pick and *Change* opens
+  `EpisodePickerSheet` (`episode_picker.dart`: title, date, length; a search
+  field above 12 episodes). The pick travels as `ImportChoice.episodeId`, and
+  `ImportService.selectedId` says which library ID the choices would add, so the
+  preview knows whether *that* episode is already kept. A picked episode has the
+  same ID alone or inside its course (`lib_ids.dart` / `youtube_ids.dart`), so
+  adding it again, in either form, finds it.
+- **Folder import (Android)**: since Android 11 an app cannot list a folder by
+  path, so *Choose a folder* goes through the Storage Access Framework.
+  `FolderImportBridge` (`android/.../folder/`, channel `meditejo/folder`) opens
+  `ACTION_OPEN_DOCUMENT_TREE`, and `AudioTreeScanner` walks the granted tree
+  with `DocumentsContract` queries (one per folder, subfolders included,
+  hidden entries skipped, playlists that merely carry an audio MIME type
+  ignored), collecting audio by MIME type and extension in natural name order,
+  folder by folder. `FolderCopier` then copies it off the main thread into
+  `cache/folder_import` as `001-name.ext`, reporting progress, skipping files
+  it cannot read (reported, not hidden) and removing everything if the user
+  cancels or the phone fills. Dart drives the calls in order (`pick`, `scan`,
+  `copy`; `cancel`, `discard`) and gets ordinary `PickedFile`s, so the preview,
+  Course or separate Singles, and Add are the existing path. On Add, files in a
+  temporary directory are **moved** into app storage when they can be (a
+  failure moves them back), so a big folder is never on the disk twice. The
+  permission is temporary and is never persisted; there is no "keep in sync".
+  Limits: 1,000 audio files and 16 folders deep (a sentence, not a crash).
+  Leaving the Add screen calls `discard`. iOS and desktops still list the
+  folder by path (`resolveDirectory`).
 - **Share target**: `AndroidManifest.xml` registers `text/plain`, `audio/*`
   (send and send-multiple) and an audio view filter on `MainActivity`. The
   activity copies shared audio into `cache/shared_audio` off the main thread

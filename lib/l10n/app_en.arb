@@ -2029,7 +2029,7 @@
       }
     }
   },
-  "importCaptionLatest": "Just the latest episode",
+  "importCaptionLatest": "Just one episode: the latest, or one you pick",
   "@importCaptionLatest": {
     "description": "Caption under the Single choice for a feed"
   },
@@ -2142,6 +2142,79 @@
   "importFailAdd": "Couldn't add that. Please try again.",
   "@importFailAdd": {
     "description": "Calm failure: storing failed"
+  },
+  "importEpisodeLabel": "Episode",
+  "@importEpisodeLabel": {
+    "description": "The row naming the episode a Single will add"
+  },
+  "importEpisodeChange": "Change",
+  "@importEpisodeChange": {
+    "description": "Opens the episode picker"
+  },
+  "importEpisodePickerTitle": "Choose an episode",
+  "@importEpisodePickerTitle": {
+    "description": "Title of the episode picker"
+  },
+  "importEpisodeSearch": "Search episodes",
+  "@importEpisodeSearch": {
+    "description": "Hint in the episode picker's search field"
+  },
+  "importEpisodeNone": "No episode matches that.",
+  "@importEpisodeNone": {
+    "description": "Shown when the episode search finds nothing"
+  },
+  "importEpisodeLatest": "Latest",
+  "@importEpisodeLatest": {
+    "description": "Marks a feed's newest episode in the picker"
+  },
+  "importFolderLooking": "Looking in the folder…",
+  "@importFolderLooking": {
+    "description": "Shown while a picked folder is listed"
+  },
+  "importFolderCopying": "Copying {done} of {total}…",
+  "@importFolderCopying": {
+    "description": "Progress while a folder's audio is copied into the app",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "importFolderCancel": "Cancel",
+  "@importFolderCancel": {
+    "description": "Stops copying a folder"
+  },
+  "importUnreadable": "{count, plural, =1{1 item couldn't be read and was left out} other{{count} items couldn't be read and were left out}}",
+  "@importUnreadable": {
+    "description": "Note that some items in a folder could not be read",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importFailFolderEmpty": "That folder is empty.",
+  "@importFailFolderEmpty": {
+    "description": "Calm failure: empty folder"
+  },
+  "importFailFolderTooLarge": "That folder holds more than 1,000 audio files. Choose a smaller one.",
+  "@importFailFolderTooLarge": {
+    "description": "Calm failure: too many files"
+  },
+  "importFailFolderNoSpace": "There isn't enough free space on this phone to copy that folder.",
+  "@importFailFolderNoSpace": {
+    "description": "Calm failure: storage full"
+  },
+  "importFailFolderUnreadable": "That folder couldn't be read. Try choosing it again, or choose files instead.",
+  "@importFailFolderUnreadable": {
+    "description": "Calm failure: folder could not be read"
+  },
+  "importFailFolderUnavailable": "This device has no folder picker. Choose files instead.",
+  "@importFailFolderUnavailable": {
+    "description": "Calm failure: no folder picker"
   },
   "shareArrived": "Shared with Meditejo",
   "@shareArrived": {

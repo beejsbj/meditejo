@@ -126,7 +126,7 @@ void main() {
       expect(find.text('20 min'), findsOneWidget);
     });
 
-    testWidgets('a video offers Course or Single; a playlist alone does not', (
+    testWidgets('a video and a playlist both offer Course or Single', (
       tester,
     ) async {
       final api = scriptedApi();
@@ -138,7 +138,12 @@ void main() {
       expect(find.text('Single'), findsOneWidget);
 
       await enterLink(tester, listOne);
-      expect(find.byKey(const ValueKey('import_kind')), findsNothing);
+      expect(find.byKey(const ValueKey('import_kind')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('import_episode')),
+        findsNothing,
+        reason: 'the course has no episode to pick',
+      );
     });
 
     testWidgets('a video inside a list offers both and starts as the course', (
@@ -169,7 +174,11 @@ void main() {
       await settle(tester);
 
       expect(find.text('1 session · 10 min'), findsOneWidget);
-      expect(find.text('A quiet sit'), findsOneWidget);
+      expect(
+        find.text('A quiet sit'),
+        findsNWidgets(2),
+        reason: 'the title, and the Episode row naming the pick',
+      );
     });
   });
 
@@ -299,7 +308,7 @@ void main() {
         expect(find.text('Open'), findsOneWidget);
         await tester.tap(find.text('Single'));
         await settle(tester);
-        expect(find.text('A quiet sit'), findsOneWidget);
+        expect(find.text('A quiet sit'), findsNWidgets(2));
         expect(find.text('Add to library'), findsOneWidget);
         await tapAdd(tester);
         final entries = (await tester.runAsync(app.harness.store.entries))!;
@@ -309,6 +318,39 @@ void main() {
         );
       },
     );
+
+    testWidgets('Single from a playlist adds the video picked from it', (
+      tester,
+    ) async {
+      final api = scriptedApi();
+      final app = await openImport(tester, api);
+      await enterLink(tester, listOne);
+
+      await tester.tap(find.text('Single'));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('import_episode')), findsOneWidget);
+      expect(find.text('1 session · 10 min'), findsOneWidget);
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('import_episode_change')),
+      );
+      await tester.tap(find.byKey(const ValueKey('import_episode_change')));
+      await settle(tester);
+      expect(
+        find.byKey(ValueKey('episode_$videoA')),
+        findsOneWidget,
+        reason: 'a video listed twice is one choice',
+      );
+      await tester.tap(find.byKey(ValueKey('episode_$videoB')));
+      await settle(tester);
+      expect(find.text('1 session · 20 min'), findsOneWidget);
+
+      await tapAdd(tester);
+      final entry = (await tester.runAsync(app.harness.store.entries))!.single;
+      expect(entry.sourceId, ytVideoId(videoB));
+      expect(entry.kind, LibraryKind.single);
+      expect(entry.title, 'Second sit');
+    });
 
     testWidgets('something already kept says so and offers Open', (
       tester,
