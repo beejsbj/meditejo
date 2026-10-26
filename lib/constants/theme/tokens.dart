@@ -17,10 +17,18 @@ abstract final class MeditejoColorTokens {
   /// for how a palette maps onto the scheme.
   static const defaultPalette = IdentityPalettes.defaultId;
 
-  /// Material's tonal-spot scheme: low-chroma, pastel roles, the calmest of
-  /// Flutter's native variants. `DynamicSchemeVariant.expressive` shifts the
-  /// primary's hue away from the seed and is louder than this app wants.
-  static const variant = DynamicSchemeVariant.tonalSpot;
+  /// The scheme variant the palette's form colour grows its ramps with:
+  /// Material's neutral variant, low chroma. The palettes are already
+  /// tuned (Tidewater's fog, Sumi's paper); tonal spot lifts every seed to
+  /// the same chroma, which turned Sumi gold and Tidewater cyan. With
+  /// neutral, the containers are quiet tints of the palette and the mark
+  /// stays the most colourful thing on screen. See DECISIONS.md, identity
+  /// PR 1, for the comparison.
+  static const variant = DynamicSchemeVariant.neutral;
+
+  /// The tertiary roles grow from the palette's accent with tonal spot, so
+  /// the palette's one float of colour (Tidewater's coral) stays alive.
+  static const accentVariant = DynamicSchemeVariant.tonalSpot;
 
   /// Dynamic colour (Material You, the wallpaper's palette) is off: the mark
   /// and the art are tuned against the identity palettes, and it needs the

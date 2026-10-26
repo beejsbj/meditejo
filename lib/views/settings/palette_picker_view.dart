@@ -29,7 +29,7 @@ class PalettePickerView extends ConsumerWidget {
       appBar: AppBar(title: Text(l10n.paletteTitle)),
       body: GridView.extent(
         maxCrossAxisExtent: 240,
-        childAspectRatio: 0.92,
+        childAspectRatio: 0.85,
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
@@ -187,9 +187,16 @@ class _BoardContent extends StatelessWidget {
               _Swatches(palette: palette, daily: daily),
           ],
         ),
-        const Spacer(),
-        Center(child: MeditejoMark(mark: mark, size: 64, still: true)),
-        const Spacer(),
+        // The mark takes what height is left, so a long name or large text
+        // shrinks it rather than overflowing the board.
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: FittedBox(
+              child: MeditejoMark(mark: mark, size: 64, still: true),
+            ),
+          ),
+        ),
         // A Continue card.
         Container(
           padding: const EdgeInsets.all(10),

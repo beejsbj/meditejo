@@ -8,10 +8,10 @@ import 'package:medito/widgets/branding/mark_painter.dart';
 /// An identity palette as the app's Material 3 colour scheme (decision 21:
 /// the palette is the app theme).
 ///
-/// - **Accent ramps** grow from the palette's form colour with Material's
-///   tonal-spot scheme ([MeditejoColorTokens.variant]); the tertiary roles
-///   grow the same way from its accent, so they carry its hue at tones
-///   that keep text legible.
+/// - **Ramps** grow from the palette's form colour with Material's neutral
+///   variant ([MeditejoColorTokens.variant]); the tertiary roles grow from
+///   its accent with tonal spot ([MeditejoColorTokens.accentVariant]), so
+///   they carry its hue at tones that keep text legible.
 /// - **Neutrals** are the palette's own: surface = bg, surfaceContainer =
 ///   surface, surfaceContainerHigh = raised, onSurface = text,
 ///   onSurfaceVariant = muted. The rest are mixed from those.
@@ -31,7 +31,7 @@ ColorScheme paletteColorScheme(IdentityPalette palette, Brightness brightness) {
   final accent = ColorScheme.fromSeed(
     seedColor: Color(palette.accent),
     brightness: brightness,
-    dynamicSchemeVariant: MeditejoColorTokens.variant,
+    dynamicSchemeVariant: MeditejoColorTokens.accentVariant,
   );
   final bg = Color(n.bg), surface = Color(n.surface), raised = Color(n.raised);
   final text = Color(n.text);

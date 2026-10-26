@@ -134,4 +134,20 @@ void main() {
       expect(tester.takeException(), isNull);
     }
   });
+
+  testWidgets('boards fit a narrow phone at large text', (tester) async {
+    await _pump(tester);
+    tester.view.physicalSize = const Size(360, 1400);
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('settings_palette')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('palette_ember')),
+      200,
+    );
+    expect(tester.takeException(), isNull);
+  });
 }
