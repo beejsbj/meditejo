@@ -135,6 +135,12 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
       - the Sounds and preset cards get atmospheres driven by their sounds;
       - courses, playlists, teachers and singles get seeded covers.
     - **Categories:** curating practices by category (Metta, Vipassanā, Sankalpa, Jhāna, TMI…) is a future issue (BJS-586).
+21. **Identity picks** (Burooj, 2026-10-26, after round 2 of the identity exploration on `fork/mark-explore`):
+    - **App icon: the shelter mark** (a roof line over a resting pebble). It is the fixed launcher icon and house mark.
+    - **On Home, the mark changes daily and can be pinned.** It breathes between perfect and imperfect.
+    - **The palette is fixed by default: Tidewater.** "Daily palette" is an option in Settings, and the mark and palette are pinned separately.
+    - **Generated art is the right direction but needs more primitives.** Sound cards and covers read too alike. Add breaths, fire, concentric circles and minimal mandalas, among others.
+    - **Freesound:** all eleven originals and the three replacements are approved by ear.
 
 ## Build and run
 
