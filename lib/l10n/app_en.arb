@@ -2203,6 +2203,15 @@
     }
   },
   "homeQuickAdd": "Add",
+  "homeQuickPresetTimer": "Start the timer with {preset}",
+  "@homeQuickPresetTimer": {
+    "description": "Screen-reader label of a Home tile that starts the timer with a saved background-sound preset.",
+    "placeholders": {
+      "preset": {
+        "type": "String"
+      }
+    }
+  },
   "pinCourse": "Pin to Home",
   "unpinCourse": "Unpin from Home",
   "pinnedLimitReached": "Home holds up to three pinned courses. Unpin one first.",

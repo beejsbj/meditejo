@@ -3796,6 +3796,12 @@ abstract class AppLocalizations {
   /// **'Add'**
   String get homeQuickAdd;
 
+  /// Screen-reader label of a Home tile that starts the timer with a saved background-sound preset.
+  ///
+  /// In en, this message translates to:
+  /// **'Start the timer with {preset}'**
+  String homeQuickPresetTimer(String preset);
+
   /// No description provided for @pinCourse.
   ///
   /// In en, this message translates to:

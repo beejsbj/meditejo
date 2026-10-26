@@ -2150,6 +2150,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get homeQuickAdd => 'Hinzufügen';
 
   @override
+  String homeQuickPresetTimer(String preset) {
+    return 'Timer mit $preset starten';
+  }
+
+  @override
   String get pinCourse => 'An Start anheften';
 
   @override
