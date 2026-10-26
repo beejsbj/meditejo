@@ -73,6 +73,8 @@ class CueBellCatalogueTest {
             // The end bell holds the service open for its length; the longest ring stays modest.
             val seconds = (b.limit() - 44) / 2.0 / rate
             assertTrue("$name is $seconds s", seconds in 0.2..15.0)
+            // SoundPool decodes a sound whole and refuses one over about 1 MiB.
+            assertTrue("$name is ${b.limit()} bytes", b.limit() < 1 shl 20)
         }
     }
 

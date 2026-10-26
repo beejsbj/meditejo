@@ -924,8 +924,11 @@ class _BellList extends ConsumerWidget {
     void pick(String asset) {
       onSelected(asset);
       final preview = ref.read(sessionBellPreviewProvider);
+      // Best effort: a tap that interrupts a still-loading bell, or a sound
+      // the platform will not play, is not an error worth surfacing.
       unawaited(
-        asset.isEmpty ? preview.stop() : preview.play(volume, asset: asset),
+        (asset.isEmpty ? preview.stop() : preview.play(volume, asset: asset))
+            .catchError((Object _) {}),
       );
     }
 

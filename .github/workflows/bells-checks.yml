@@ -20,15 +20,20 @@ jobs:
         run: python3 -I tools/meditejo/generate_bells.py --check
       - name: Per-file numbers (fails on a click, DC offset, hard onset or loud tail)
         run: |
-          python3 tools/meditejo/bells_report.py --fail-on-defect | tee report.md
+          status=0
+          python3 tools/meditejo/bells_report.py --fail-on-defect > report.md || status=$?
+          cat report.md
           { echo '## Bells'; cat report.md; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
       - name: Sampler, every bell in sequence
         run: |
           set -euo pipefail
+          sudo apt-get update
           sudo apt-get install -y --no-install-recommends ffmpeg
           python3 tools/meditejo/bells_report.py --sampler bells-sampler.mp3 | tail -13
           test -s bells-sampler.mp3
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           if-no-files-found: error
           name: bells-sampler

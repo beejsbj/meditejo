@@ -69,6 +69,8 @@ void main() {
       expect(wav.bits, 16, reason: e.value);
       expect(wav.rate, anyOf(22050, 44100), reason: e.value);
       expect(wav.seconds, inInclusiveRange(0.2, 15), reason: e.value);
+      // SoundPool decodes a sound whole and refuses one over about 1 MiB.
+      expect(File(e.value).lengthSync(), lessThan(1 << 20), reason: e.value);
     }
   });
 
