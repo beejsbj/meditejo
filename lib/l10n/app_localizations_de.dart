@@ -2614,4 +2614,62 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get playlistKind => 'Playlist';
+
+  @override
+  String get libraryInProgress => 'Begonnen';
+
+  @override
+  String get libraryFilterAll => 'Alle';
+
+  @override
+  String get libraryFilterCourses => 'Kurse';
+
+  @override
+  String get libraryFilterPlaylists => 'Playlists';
+
+  @override
+  String get libraryFilterSingles => 'Einzelne';
+
+  @override
+  String get libraryFilterDownloads => 'Downloads';
+
+  @override
+  String get libraryFilterLabel => 'Anzeigen';
+
+  @override
+  String get libraryGroupLabel => 'Praxis oder Vorträge';
+
+  @override
+  String get librarySort => 'Sortieren';
+
+  @override
+  String get librarySortRecent => 'Zuletzt';
+
+  @override
+  String get librarySortTitle => 'A–Z';
+
+  @override
+  String get librarySortProgress => 'Fortschritt';
+
+  @override
+  String get libraryShowGrid => 'Als Raster anzeigen';
+
+  @override
+  String get libraryShowList => 'Als Liste anzeigen';
+
+  @override
+  String get librarySourceImported => 'Importiert';
+
+  @override
+  String get libraryFilterEmpty => 'Hier ist noch nichts';
+
+  @override
+  String get libraryFilterEmptyBody =>
+      'Finde etwas unter Entdecken, oder füge einen Link oder eine Datei hinzu.';
+
+  @override
+  String get libraryEmptyExplore => 'Entdecken';
+
+  @override
+  String get libraryPinned => 'Auf Home angeheftet';
 }
