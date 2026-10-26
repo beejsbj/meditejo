@@ -2614,4 +2614,163 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get playlistKind => 'Playlist';
+
+  @override
+  String get settingsSectionPractice => 'Practice';
+
+  @override
+  String get settingsSectionSounds => 'Sounds & cues';
+
+  @override
+  String get settingsSectionLibrary => 'Library & downloads';
+
+  @override
+  String get settingsSectionAppearance => 'Appearance';
+
+  @override
+  String get settingsSectionReminders => 'Notifications & reminders';
+
+  @override
+  String get settingsSectionAbout => 'About';
+
+  @override
+  String get settingsPracticeCues => 'Practice sounds & cues';
+
+  @override
+  String get settingsPracticeCuesCaption => 'Bells, cues and background sound';
+
+  @override
+  String get settingsTalksCues => 'Talks sounds & cues';
+
+  @override
+  String get settingsTalksCuesCaption => 'Bells, cues and background sound';
+
+  @override
+  String get settingsDayStarts => 'When my day starts';
+
+  @override
+  String get settingsDayStartsMidnight => 'Midnight (default)';
+
+  @override
+  String settingsDayStartsAt(int hour) {
+    return '$hour:00 AM';
+  }
+
+  @override
+  String get settingsAgplNotice =>
+      'Meditejo is free software under the GNU Affero General Public License v3.0. You can read, change and share its source code.';
+
+  @override
+  String get settingsSoundCredits => 'Sound credits';
+
+  @override
+  String get settingsLicenses => 'Open-source licences';
+
+  @override
+  String get statsTimePractised => 'Time practised';
+
+  @override
+  String get statsToday => 'Today';
+
+  @override
+  String get statsThisWeek => 'This week';
+
+  @override
+  String get statsThisMonth => 'This month';
+
+  @override
+  String get statsAllTime => 'All time';
+
+  @override
+  String get statsTotalTime => 'Total time';
+
+  @override
+  String statsUntimedNote(int count) {
+    return 'Sessions from before the app recorded their length ($count) count as days practised, not as minutes.';
+  }
+
+  @override
+  String get statsEmpty => 'Your first recorded session will show up here.';
+
+  @override
+  String get statsDailyMinutes => 'Minutes a day';
+
+  @override
+  String get statsRange7 => '7 days';
+
+  @override
+  String get statsRange30 => '30 days';
+
+  @override
+  String statsChartTotal(String total, int practised, int days) {
+    return '$total in all, practised on $practised of $days days';
+  }
+
+  @override
+  String get statsDaysPracticedTitle => 'Days practised';
+
+  @override
+  String statsDaysPractised(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days',
+      one: '1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get statsPractised => 'Practised';
+
+  @override
+  String get statsLess => 'Less';
+
+  @override
+  String get statsMore => 'More';
+
+  @override
+  String get statsBreakdown => 'Where your time went';
+
+  @override
+  String get statsPractice => 'Practice';
+
+  @override
+  String get statsTalks => 'Talks';
+
+  @override
+  String get statsByCourse => 'By course or source';
+
+  @override
+  String get statsBreakdownEmpty =>
+      'Once a session is recorded with its length, the split shows here.';
+
+  @override
+  String get statsSourceCourse => 'A course';
+
+  @override
+  String get statsSourceByHand => 'Added by hand';
+
+  @override
+  String get statsSourceDharmaSeed => 'Dharma Seed talks';
+
+  @override
+  String get statsSourceYoutube => 'YouTube';
+
+  @override
+  String get statsSourceImported => 'Imported';
+
+  @override
+  String get statsSourceOther => 'Other';
+
+  @override
+  String get statsStreakTitle => 'Streak and consistency';
+
+  @override
+  String statsLast30Days(int count) {
+    return 'You practised on $count of the last 30 days.';
+  }
+
+  @override
+  String get statsConsistency => 'Consistency';
 }

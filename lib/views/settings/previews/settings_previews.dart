@@ -16,7 +16,6 @@ import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/views/settings/settings_screen.dart';
-import 'package:medito/views/settings/advanced_settings_screen.dart';
 import 'package:medito/views/settings/widgets/app_icon_tile.dart';
 import 'package:medito/views/settings/widgets/day_boundary_offset_dialog.dart';
 import 'package:medito/views/settings/widgets/dnd_setting_tile.dart';
@@ -190,14 +189,6 @@ Widget toggleTiles() => Builder(
     );
   },
 );
-
-@Preview(
-  group: 'Settings page',
-  name: 'Advanced screen',
-  size: phoneSize,
-  wrapper: wrapConfigured,
-)
-Widget advancedScreen() => const AdvancedSettingsScreen();
 
 // ---------------------------------------------------------------------------
 // Dialogs & sheets
