@@ -1,23 +1,25 @@
-import 'package:medito/providers/cues/cue_runtime_provider.dart';
-
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:medito/constants/constants.dart';
+import 'package:medito/constants/theme/expressive_typography.dart';
+import 'package:medito/constants/theme/tokens.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/cues/cue_settings.dart';
-import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/models/soundscape/sound_library.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/timer/timer_session.dart';
+import 'package:medito/providers/cues/cue_runtime_provider.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
+import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/views/soundscape/sound_labels.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
+import 'package:medito/widgets/inputs/wheel_picker.dart';
 
 /// When a session started or running now will end. While playing
 /// ([positionMs] > 0) the countdown has already been spent, and a timer's
@@ -118,9 +120,27 @@ Future<bool> showCustomizeSheet(
   return result ?? false;
 }
 
-/// Cue settings in one place: every row shows its value and opens a small
-/// sub-sheet. Edits are saved as the defaults for the scope's kind (or as a
-/// per-course override) and picked up by the player through the provider.
+/// The longest timer [CueSettings] stores.
+const _maxDurationMinutes = 299;
+
+/// Which part of the sheet is open. One at a time, so the sheet never turns
+/// into a wall of controls.
+enum _Part {
+  duration,
+  extend,
+  countdown,
+  startBell,
+  intervalBell,
+  endBell,
+  pulse,
+  background,
+  autoplay,
+}
+
+/// Cue settings in one place, in sections (Bells, Rhythm, Time, Sound, Flow)
+/// that show their values at a glance and open in place. Edits are saved as
+/// the defaults for the scope's kind (or as a per-course override) and picked
+/// up by the player through the provider.
 class CustomizeSheet extends ConsumerStatefulWidget {
   const CustomizeSheet({
     super.key,
@@ -130,7 +150,6 @@ class CustomizeSheet extends ConsumerStatefulWidget {
     this.positionMs = 0,
     this.speed = 1,
     this.onStart,
-    this.embedded = false,
     this.showFinishes = true,
     this.timerMinutes,
     this.clock = DateTime.now,
@@ -150,14 +169,11 @@ class CustomizeSheet extends ConsumerStatefulWidget {
   /// Shows a Start button; pressing it hands control back to the caller.
   final VoidCallback? onStart;
 
-  /// Rendered inline in a page (no title, no inner scrolling).
-  final bool embedded;
-
   /// The "Finishes at" line; a stopwatch has no end to show.
   final bool showFinishes;
 
-  /// A timer length chosen elsewhere (the wheels); the sheet's own Duration
-  /// row is hidden when this is set.
+  /// A timer length chosen elsewhere; the sheet's own Duration row is hidden
+  /// when this is set (a stopwatch passes 0).
   final int? timerMinutes;
   final DateTime Function() clock;
 
@@ -168,8 +184,11 @@ class CustomizeSheet extends ConsumerStatefulWidget {
 class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   Timer? _tick;
   late bool _courseOverride;
+  late final SessionBellPreview _preview;
+  _Part? _open;
 
   CueScope get _scope => widget.scope;
+  bool get _practice => _scope.kind == CueKind.practice;
 
   /// What the scope's list is called: a playlist is what the user made, a
   /// course comes from a source.
@@ -180,6 +199,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   void initState() {
     super.initState();
     _courseOverride = ref.read(cueSettingsStoreProvider).hasOverride(_scope);
+    _preview = ref.read(sessionBellPreviewProvider);
     _tick = Timer.periodic(
       const Duration(seconds: 30),
       (_) => mounted ? setState(() {}) : null,
@@ -189,6 +209,8 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   @override
   void dispose() {
     _tick?.cancel();
+    // A bell auditioned here never rings on after the sheet closes.
+    unawaited(_preview.stop().catchError((Object _) {}));
     super.dispose();
   }
 
@@ -198,346 +220,501 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         .update(value, courseOverride: _courseOverride),
   );
 
-  /// Opens a sub-sheet whose body rebuilds with the live settings.
-  Future<void> _open(
-    String title,
-    Widget Function(CueSettings s, void Function(CueSettings) change) body,
-  ) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Theme.of(context).bottomSheetTheme.backgroundColor,
-      builder: (_) => Consumer(
-        builder: (context, ref, _) {
-          final s = ref.watch(cueSettingsProvider(_scope));
-          return _SubSheet(title: title, child: body(s, _edit));
-        },
-      ),
-    );
-    // A bell auditioned in a picker never rings on after its sheet closes.
-    if (mounted) unawaited(ref.read(sessionBellPreviewProvider).stop());
+  void _toggle(_Part part) {
+    final closing = _open;
+    setState(() => _open = _open == part ? null : part);
+    // Folding a bell list silences what it was auditioning.
+    if (closing != null && _bellParts.contains(closing)) {
+      unawaited(_preview.stop().catchError((Object _) {}));
+    }
   }
+
+  static const _bellParts = {
+    _Part.startBell,
+    _Part.intervalBell,
+    _Part.endBell,
+  };
+
+  /// Rings [asset] once at [volume], as a session would. Best effort: a tap
+  /// that interrupts a still-loading bell, or a sound the platform will not
+  /// play, is not an error worth surfacing.
+  void _audition(String asset, double volume) => unawaited(
+    (asset.isEmpty ? _preview.stop() : _preview.play(volume, asset: asset))
+        .catchError((Object _) {}),
+  );
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final s = ref.watch(cueSettingsProvider(_scope));
     final isTimer = widget.isTimer;
     final canSetDuration =
         isTimer && widget.timerMinutes == null && widget.onStart != null;
-    final practice = _scope.kind == CueKind.practice;
-    final media = MediaQuery.of(context);
 
-    final rows = <Widget>[
-      if (widget.showFinishes) _finishes(context, s),
-      if (canSetDuration)
-        _CueRow(
-          title: 'Duration',
-          value: '${s.durationMinutes} min',
-          onTap: () => _open(
-            'Duration',
-            (s, change) => _SliderTile(
-              label: 'Minutes',
-              value: s.durationMinutes.toDouble().clamp(1, 299),
-              min: 1,
-              max: 299,
-              divisions: 298,
-              format: (v) => '${v.round()} min',
-              onChanged: (v) => change(s.copyWith(durationMinutes: v.round())),
+    final time = _Section(
+      title: 'Time',
+      children: [
+        if (canSetDuration)
+          _row(
+            _Part.duration,
+            icon: Icons.timer_outlined,
+            title: 'Duration',
+            value: _minutes(s.durationMinutes),
+            editor: () => _WheelField<int>(
+              label: 'Duration',
+              options: [
+                for (var m = 1; m <= _maxDurationMinutes; m++)
+                  WheelOption(m, _minutes(m), semanticsLabel: '$m minutes'),
+              ],
+              value: s.durationMinutes.clamp(1, _maxDurationMinutes),
+              parse: _range(1, _maxDurationMinutes),
+              hint: '1 to $_maxDurationMinutes minutes',
+              onChanged: (v) => _edit(s.copyWith(durationMinutes: v)),
             ),
-          ),
-        )
-      else if (!isTimer)
-        _CueRow(
-          title: 'Extend',
-          value: s.extendMinutes == 0 ? 'Off' : '+${s.extendMinutes} min',
-          onTap: () => _open(
-            'Extend with silence',
-            (s, change) => Column(
+          )
+        else if (!isTimer)
+          _row(
+            _Part.extend,
+            icon: Icons.more_time_rounded,
+            title: 'Extend with silence',
+            value: s.extendMinutes == 0 ? 'Off' : '+${s.extendMinutes} min',
+            editor: () => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const _Caption(
-                  'Keep going in silence (with any background sound) after the audio ends, then ring the ending bell.',
+                  'Keep going in silence (with any background sound) after '
+                  'the audio ends, then ring the ending bell.',
                 ),
-                _SliderTile(
+                _WheelField<int>(
                   label: 'Extra minutes',
-                  value: s.extendMinutes.toDouble(),
-                  min: 0,
-                  max: 60,
-                  divisions: 60,
-                  format: (v) => v.round() == 0 ? 'Off' : '+${v.round()} min',
-                  onChanged: (v) =>
-                      change(s.copyWith(extendMinutes: v.round())),
+                  options: [
+                    const WheelOption(0, 'Off'),
+                    for (var m = 1; m <= 60; m++)
+                      WheelOption(m, '+$m min', semanticsLabel: '$m minutes'),
+                  ],
+                  value: s.extendMinutes,
+                  parse: _range(0, 60),
+                  hint: '0 to 60 minutes',
+                  onChanged: (v) => _edit(s.copyWith(extendMinutes: v)),
                 ),
               ],
             ),
           ),
-        ),
-      _CueRow(
-        title: 'Countdown',
-        value: s.countdownSeconds == 0 ? 'Off' : '${s.countdownSeconds} sec',
-        onTap: () => _open(
-          'Countdown',
-          (s, change) => _ChoiceWrap<int>(
-            options: const {0: 'Off', 5: '5 sec', 10: '10 sec'},
-            selected: s.countdownSeconds,
-            onSelected: (v) => change(s.copyWith(countdownSeconds: v)),
-          ),
-        ),
-      ),
-      _CueRow(
-        title: 'Starting bell',
-        value: _bellName(s.startSound),
-        onTap: () => _open(
-          'Starting bell',
-          (s, change) => _bellBody(
-            s,
-            change,
-            s.startSound,
-            (v) => s.copyWith(startSound: v),
-          ),
-        ),
-      ),
-      _CueRow(
-        title: 'Interval bell',
-        value: _intervalValue(s),
-        onTap: () => _open(
-          'Interval bell',
-          (s, change) => Column(
-            children: [
-              _SliderTile(
-                label: 'Every',
-                value: s.intervalMinutes.toDouble(),
-                min: 0,
-                max: 60,
-                divisions: 60,
-                format: (v) => v.round() == 0 ? 'Off' : '${v.round()} min',
-                // A shorter interval pulls the random window in with it, so
-                // the saved value never exceeds what the slider can show.
-                onChanged: (v) => change(
-                  s.copyWith(
-                    intervalMinutes: v.round(),
-                    randomWindowMinutes: s.randomWindowMinutes.clamp(
-                      0,
-                      v.round(),
-                    ),
-                  ),
-                ),
-              ),
-              if (s.intervalMinutes > 0)
-                _SliderTile(
-                  label: 'Random window ±',
-                  value: s.randomWindowMinutes.toDouble().clamp(
-                    0,
-                    s.intervalMinutes.toDouble(),
-                  ),
-                  min: 0,
-                  max: s.intervalMinutes.toDouble().clamp(1, 60),
-                  divisions: s.intervalMinutes.clamp(1, 60),
-                  format: (v) =>
-                      v.round() == 0 ? 'Exact' : '± ${v.round()} min',
-                  onChanged: (v) =>
-                      change(s.copyWith(randomWindowMinutes: v.round())),
-                ),
-              const SizedBox(height: 8),
-              _BellList(
-                selected: s.intervalSound,
-                volume: s.bellVolume,
-                onSelected: (v) => change(s.copyWith(intervalSound: v)),
-              ),
-              _volume(s, change),
+        _row(
+          _Part.countdown,
+          icon: Icons.hourglass_top_rounded,
+          title: 'Countdown',
+          value: s.countdownSeconds == 0 ? 'Off' : '${s.countdownSeconds} sec',
+          editor: () => _WheelField<int>(
+            label: 'Countdown',
+            options: const [
+              WheelOption(0, 'Off'),
+              WheelOption(5, '5 sec', semanticsLabel: '5 seconds'),
+              WheelOption(10, '10 sec', semanticsLabel: '10 seconds'),
             ],
+            value: s.countdownSeconds,
+            visibleItems: 3,
+            onChanged: (v) => _edit(s.copyWith(countdownSeconds: v)),
           ),
         ),
-      ),
-      _CueRow(
-        title: 'Pulse',
-        value: _pulseValue(s),
-        onTap: () => _open(
-          'Pulse',
-          (s, change) => Column(
-            children: [
-              _ChoiceWrap<String>(
-                options: {
-                  for (final e in cuePulseSounds.entries) e.value: e.key,
-                },
-                selected: s.pulseSound,
-                onSelected: (v) => change(s.copyWith(pulseSound: v)),
-              ),
-              if (s.pulseSound.isNotEmpty) ...[
-                _SliderTile(
-                  label: 'Rate',
-                  value: s.pulseBpm,
-                  min: 20,
-                  max: 120,
-                  divisions: 100,
-                  format: (v) => '${v.round()} BPM',
-                  onChanged: (v) =>
-                      change(s.copyWith(pulseBpm: v.roundToDouble())),
-                ),
-                _SliderTile(
-                  label: 'Slow down over',
-                  value: s.pulseRampMinutes.toDouble(),
-                  min: 0,
-                  max: 60,
-                  divisions: 60,
-                  format: (v) => v.round() == 0 ? 'Off' : '${v.round()} min',
-                  onChanged: (v) =>
-                      change(s.copyWith(pulseRampMinutes: v.round())),
-                ),
-                if (s.pulseRampMinutes > 0)
-                  _SliderTile(
-                    label: 'Ends at',
-                    value: s.pulseEndBpm,
-                    min: 20,
-                    max: 120,
-                    divisions: 100,
-                    format: (v) => '${v.round()} BPM',
-                    onChanged: (v) =>
-                        change(s.copyWith(pulseEndBpm: v.roundToDouble())),
-                  ),
-                _SliderTile(
-                  label: 'Volume',
-                  value: s.pulseVolume,
-                  min: 0,
-                  max: 1,
-                  divisions: 20,
-                  format: (v) => '${(v * 100).round()}%',
-                  onChanged: (v) => change(s.copyWith(pulseVolume: v)),
-                ),
-              ],
-            ],
-          ),
+      ],
+    );
+
+    final bells = _Section(
+      title: 'Bells',
+      children: [
+        _bellRow(
+          _Part.startBell,
+          s,
+          title: 'Starting bell',
+          icon: Icons.notifications_active_outlined,
+          sound: s.startSound,
+          value: _bellName(s.startSound),
+          apply: (v) => s.copyWith(startSound: v),
         ),
-      ),
-      _CueRow(
-        title: 'Ending bell',
-        value: _bellName(s.endSound),
-        onTap: () => _open(
-          'Ending bell',
-          (s, change) =>
-              _bellBody(s, change, s.endSound, (v) => s.copyWith(endSound: v)),
+        _bellRow(
+          _Part.intervalBell,
+          s,
+          title: 'Interval bell',
+          icon: Icons.restart_alt_rounded,
+          sound: s.hasIntervalBell ? s.intervalSound : '',
+          value: _intervalValue(s),
+          apply: (v) => s.copyWith(intervalSound: v),
+          above: _intervalWheels(s),
         ),
-      ),
-      _CueRow(
-        title: 'Background sound',
-        value: _backgroundValue(s),
-        onTap: () => _open('Background sound', _backgroundBody),
-      ),
-      if (!isTimer)
-        _CueRow(
-          title: 'Autoplay',
-          value: !s.autoplay
-              ? 'Off'
-              : s.interludeSeconds == 0
-              ? 'On'
-              : 'On · ${s.interludeSeconds} sec pause',
-          onTap: () => _open(
-            'Autoplay',
-            (s, change) => Column(
+        _bellRow(
+          _Part.endBell,
+          s,
+          title: 'Ending bell',
+          icon: Icons.notifications_paused_outlined,
+          sound: s.endSound,
+          value: _bellName(s.endSound),
+          apply: (v) => s.copyWith(endSound: v),
+        ),
+        _SliderRow(
+          icon: Icons.volume_up_outlined,
+          label: 'Bell volume',
+          value: s.bellVolume,
+          format: _percent,
+          onChanged: (v) => _edit(s.copyWith(bellVolume: v)),
+        ),
+      ],
+    );
+
+    final rhythm = _Section(
+      title: 'Rhythm',
+      children: [
+        _row(
+          _Part.pulse,
+          icon: Icons.monitor_heart_outlined,
+          title: 'Pulse',
+          value: _pulseValue(s),
+          editor: () => _pulseEditor(s),
+        ),
+      ],
+    );
+
+    final sound = _Section(
+      title: 'Sound',
+      children: [
+        _row(
+          _Part.background,
+          icon: Icons.graphic_eq_rounded,
+          title: 'Background sound',
+          value: _backgroundValue(s),
+          editor: () => _backgroundEditor(s),
+        ),
+      ],
+    );
+
+    final flow = _Section(
+      title: 'Flow',
+      children: [
+        if (!isTimer)
+          _row(
+            _Part.autoplay,
+            icon: Icons.playlist_play_rounded,
+            title: 'Autoplay',
+            value: !s.autoplay
+                ? 'Off'
+                : s.interludeSeconds == 0
+                ? 'On'
+                : 'On · ${s.interludeSeconds} sec pause',
+            editor: () => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Play the next session automatically'),
                   value: s.autoplay,
-                  onChanged: (v) => change(s.copyWith(autoplay: v)),
+                  onChanged: (v) => _edit(s.copyWith(autoplay: v)),
                 ),
-                if (s.autoplay) ...[
-                  const _Caption('Interlude before the next session'),
-                  _ChoiceWrap<int>(
-                    options: const {
-                      0: 'None',
-                      5: '5 sec',
-                      10: '10 sec',
-                      30: '30 sec',
-                    },
-                    selected: s.interludeSeconds,
-                    onSelected: (v) => change(s.copyWith(interludeSeconds: v)),
+                if (s.autoplay)
+                  _WheelField<int>(
+                    label: 'Interlude before the next session',
+                    options: const [
+                      WheelOption(0, 'None'),
+                      WheelOption(5, '5 sec', semanticsLabel: '5 seconds'),
+                      WheelOption(10, '10 sec', semanticsLabel: '10 seconds'),
+                      WheelOption(30, '30 sec', semanticsLabel: '30 seconds'),
+                    ],
+                    value: s.interludeSeconds,
+                    onChanged: (v) => _edit(s.copyWith(interludeSeconds: v)),
                   ),
-                ],
               ],
             ),
           ),
+        _SwitchRow(
+          icon: Icons.visibility_off_outlined,
+          title: 'Hide these settings before practice',
+          value: s.hideBeforePractice,
+          onChanged: (v) => _edit(s.copyWith(hideBeforePractice: v)),
         ),
-      SwitchListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-        title: const Text('Hide these settings before practice'),
-        value: s.hideBeforePractice,
-        onChanged: (v) => _edit(s.copyWith(hideBeforePractice: v)),
-      ),
-      if (_scope.courseId != null)
-        SwitchListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-          title: Text('Use these only for this $_scopeNoun'),
-          subtitle: Text(
-            _courseOverride
-                ? 'Changes apply to this $_scopeNoun'
-                : 'Changes apply to all ${practice ? 'practice' : 'talks'}',
+      ],
+    );
+
+    // The brief's order is Bells, Rhythm, Time, Sound, Flow. A timer's
+    // length is what its screen is for, so there Time leads.
+    final sections = [
+      if (_scope.courseId != null) _scopeCard(s),
+      if (isTimer) time,
+      bells,
+      rhythm,
+      if (!isTimer) time,
+      sound,
+      flow,
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final media = MediaQuery.of(context);
+        // Tall enough to breathe; fills a page (the Timer) that gives less.
+        final height = math.min(
+          constraints.maxHeight,
+          media.size.height * 0.92,
+        );
+        return SafeArea(
+          top: false,
+          child: SizedBox(
+            height: height,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _Header(
+                  subtitle: _scopeLine,
+                  finishes: widget.showFinishes ? _finishes(context, s) : null,
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    key: const ValueKey('customize_list'),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final (i, section) in sections.indexed) ...[
+                          if (i > 0) const SizedBox(height: 20),
+                          section,
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                if (widget.onStart != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(56),
+                        shape: MeditejoShapes.stadium,
+                      ),
+                      onPressed: widget.onStart,
+                      child: const Text('Start'),
+                    ),
+                  ),
+              ],
+            ),
           ),
-          value: _courseOverride,
-          onChanged: (v) async {
-            setState(() => _courseOverride = v);
-            if (!v) {
-              await ref
-                  .read(cueSettingsProvider(_scope).notifier)
-                  .clearOverride();
+        );
+      },
+    );
+  }
+
+  String get _scopeLine {
+    if (_courseOverride) return 'For this $_scopeNoun';
+    if (widget.isTimer) return 'Timer · all practice';
+    return _practice ? 'All practice' : 'All talks';
+  }
+
+  /// "Use these only for this course": where an edit is saved.
+  Widget _scopeCard(CueSettings s) => _Section(
+    children: [
+      SwitchListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+        title: Text('Use these only for this $_scopeNoun'),
+        subtitle: Text(
+          _courseOverride
+              ? 'Changes apply to this $_scopeNoun'
+              : 'Changes apply to all ${_practice ? 'practice' : 'talks'}',
+        ),
+        value: _courseOverride,
+        onChanged: (v) async {
+          setState(() => _courseOverride = v);
+          if (!v) {
+            await ref
+                .read(cueSettingsProvider(_scope).notifier)
+                .clearOverride();
+          } else {
+            _edit(s);
+          }
+        },
+      ),
+    ],
+  );
+
+  Widget _row(
+    _Part part, {
+    required IconData icon,
+    required String title,
+    required String value,
+    required Widget Function() editor,
+    Widget? trailing,
+  }) => _ExpandingRow(
+    key: ValueKey('customize_${part.name}'),
+    icon: icon,
+    title: title,
+    value: value,
+    open: _open == part,
+    onTap: () => _toggle(part),
+    trailing: trailing,
+    editor: _open == part ? editor() : null,
+  );
+
+  /// A bell cue: its name and a play button folded; the list of bells (tap
+  /// to choose and hear) open. [above] goes before the list.
+  Widget _bellRow(
+    _Part part,
+    CueSettings s, {
+    required String title,
+    required IconData icon,
+    required String sound,
+    required String value,
+    required CueSettings Function(String) apply,
+    Widget? above,
+  }) => _row(
+    part,
+    icon: icon,
+    title: title,
+    value: value,
+    trailing: sound.isEmpty
+        ? null
+        : IconButton(
+            key: ValueKey('customize_play_${part.name}'),
+            tooltip: 'Play $value',
+            icon: const Icon(Icons.play_arrow_rounded),
+            onPressed: () => _audition(sound, s.bellVolume),
+          ),
+    editor: () => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ?above,
+        _BellList(
+          selected: part == _Part.intervalBell ? s.intervalSound : sound,
+          onSelected: (v) {
+            _edit(apply(v));
+            _audition(v, s.bellVolume);
+          },
+        ),
+      ],
+    ),
+  );
+
+  /// How often the interval bell rings: off, halfway, or every N minutes
+  /// (with an optional random window).
+  Widget _intervalWheels(CueSettings s) {
+    // 0 is Off and -1 Halfway; the rest are minutes.
+    const halfway = -1;
+    final every = !s.hasIntervalBell && !s.intervalHalfway
+        ? 0
+        : s.intervalHalfway
+        ? halfway
+        : s.intervalMinutes;
+    final minutes = !s.intervalHalfway && s.intervalMinutes > 0;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: _WheelPair(
+        first: _WheelField<int>(
+          label: 'Every',
+          options: [
+            const WheelOption(0, 'Off'),
+            const WheelOption(
+              halfway,
+              'Halfway',
+              semanticsLabel: 'Halfway, one bell at the midpoint',
+            ),
+            for (var m = 1; m <= 60; m++)
+              WheelOption(m, '$m min', semanticsLabel: '$m minutes'),
+          ],
+          value: every,
+          parse: _range(1, 60),
+          hint: '1 to 60 minutes',
+          onChanged: (v) {
+            if (v == halfway) {
+              _edit(s.copyWith(intervalHalfway: true));
             } else {
-              _edit(s);
+              // A shorter interval pulls the random window in with it, so
+              // the saved value never exceeds what the wheel can show.
+              _edit(
+                s.copyWith(
+                  intervalHalfway: false,
+                  intervalMinutes: v,
+                  randomWindowMinutes: s.randomWindowMinutes.clamp(0, v),
+                ),
+              );
             }
           },
         ),
-    ];
-
-    final list = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: rows,
+        second: minutes
+            ? _WheelField<int>(
+                label: 'Random window',
+                options: [
+                  const WheelOption(0, 'Exact'),
+                  for (var m = 1; m <= s.intervalMinutes; m++)
+                    WheelOption(m, '± $m min', semanticsLabel: '$m minutes'),
+                ],
+                value: s.randomWindowMinutes.clamp(0, s.intervalMinutes),
+                parse: _range(0, s.intervalMinutes),
+                hint: '0 to ${s.intervalMinutes} minutes',
+                onChanged: (v) => _edit(s.copyWith(randomWindowMinutes: v)),
+              )
+            : null,
+      ),
     );
+  }
 
-    if (widget.embedded) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: list,
-      );
+  Widget _pulseEditor(CueSettings s) {
+    final bpm = [
+      for (var b = 20; b <= 120; b++)
+        WheelOption(
+          b.toDouble(),
+          '$b BPM',
+          semanticsLabel: '$b beats a minute',
+        ),
+    ];
+    double? parseBpm(String text) {
+      final v = int.tryParse(text);
+      return v != null && v >= 20 && v <= 120 ? v.toDouble() : null;
     }
 
-    return SafeArea(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: media.size.height * 0.9),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text(
-                'Customize',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: list,
-              ),
-            ),
-            if (widget.onStart != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: SizedBox(
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: widget.onStart,
-                    child: const Text('Start'),
-                  ),
-                ),
-              ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _Chips<String>(
+          options: {for (final e in cuePulseSounds.entries) e.value: e.key},
+          selected: s.pulseSound,
+          onSelected: (v) => _edit(s.copyWith(pulseSound: v)),
         ),
-      ),
+        if (s.pulseSound.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _WheelPair(
+            first: _WheelField<double>(
+              label: 'Rate',
+              options: bpm,
+              value: s.pulseBpm.roundToDouble(),
+              parse: parseBpm,
+              hint: '20 to 120 BPM',
+              onChanged: (v) => _edit(s.copyWith(pulseBpm: v)),
+            ),
+            second: _WheelField<int>(
+              label: 'Slow down over',
+              options: [
+                const WheelOption(0, 'Off'),
+                for (var m = 1; m <= 60; m++)
+                  WheelOption(m, '$m min', semanticsLabel: '$m minutes'),
+              ],
+              value: s.pulseRampMinutes,
+              parse: _range(0, 60),
+              hint: '0 to 60 minutes',
+              onChanged: (v) => _edit(s.copyWith(pulseRampMinutes: v)),
+            ),
+          ),
+          if (s.pulseRampMinutes > 0)
+            _WheelPair(
+              first: _WheelField<double>(
+                label: 'Ends at',
+                options: bpm,
+                value: s.pulseEndBpm.roundToDouble(),
+                parse: parseBpm,
+                hint: '20 to 120 BPM',
+                onChanged: (v) => _edit(s.copyWith(pulseEndBpm: v)),
+              ),
+            ),
+          _SliderRow(
+            label: 'Pulse volume',
+            value: s.pulseVolume,
+            format: _percent,
+            onChanged: (v) => _edit(s.copyWith(pulseVolume: v)),
+          ),
+        ],
+      ],
     );
   }
 
@@ -558,48 +735,11 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
       TimeOfDay.fromDateTime(end),
       alwaysUse24HourFormat: MediaQuery.of(context).alwaysUse24HourFormat,
     );
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-      child: Text(
-        'Finishes at $time',
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-        ),
-      ),
-    );
+    return _FinishesPill('Finishes at $time');
   }
 
-  Widget _volume(CueSettings s, void Function(CueSettings) change) =>
-      _SliderTile(
-        label: 'Bell volume',
-        value: s.bellVolume,
-        min: 0,
-        max: 1,
-        divisions: 20,
-        format: (v) => '${(v * 100).round()}%',
-        onChanged: (v) => change(s.copyWith(bellVolume: v)),
-      );
-
-  Widget _bellBody(
-    CueSettings s,
-    void Function(CueSettings) change,
-    String selected,
-    CueSettings Function(String) apply,
-  ) => Column(
-    children: [
-      _BellList(
-        selected: selected,
-        volume: s.bellVolume,
-        onSelected: (v) => change(apply(v)),
-      ),
-      _volume(s, change),
-    ],
-  );
-
-  SoundscapeSessionKind get _soundscapeKind => _scope.kind == CueKind.practice
-      ? SoundscapeSessionKind.practice
-      : SoundscapeSessionKind.talks;
+  SoundscapeSessionKind get _soundscapeKind =>
+      _practice ? SoundscapeSessionKind.practice : SoundscapeSessionKind.talks;
 
   /// What plays under this scope's sessions: its own choice, or the mixer's
   /// default for the kind (Off while that is switched off).
@@ -643,7 +783,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     if (s.soundscape.isNotEmpty) _edit(s.copyWith(soundscape: ''));
   }
 
-  Widget _backgroundBody(CueSettings s, void Function(CueSettings) change) {
+  Widget _backgroundEditor(CueSettings s) {
     return Consumer(
       builder: (context, ref, _) {
         final l10n = AppLocalizations.of(context);
@@ -656,12 +796,11 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _Caption(
-              _scope.kind == CueKind.practice
-                  ? 'On by default for practice'
-                  : 'Off by default for talks',
+            const _Caption(
+              'What plays under these sessions. Nothing is chosen until you '
+              'pick it.',
             ),
-            _ChoiceWrap<String>(
+            _Chips<String>(
               options: {
                 SoundscapeSelection.none.encode(): 'Off',
                 SoundscapeSelection.currentMix.encode(): 'Current mix',
@@ -669,8 +808,8 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
               selected: selected,
               onSelected: pick,
             ),
-            _SectionLabel(l10n?.soundsPresets ?? 'Presets'),
-            _ChoiceWrap<String>(
+            _SubLabel(l10n?.soundsPresets ?? 'Presets'),
+            _Chips<String>(
               options: {
                 for (final p in mixer.presets)
                   SoundscapeSelection.preset(p.id).encode(): l10n == null
@@ -681,12 +820,12 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
               onSelected: pick,
             ),
             for (final category in library.categories) ...[
-              _SectionLabel(
+              _SubLabel(
                 l10n == null
                     ? category.name
                     : soundCategoryLabel(l10n, category),
               ),
-              _ChoiceWrap<String>(
+              _Chips<String>(
                 options: {
                   for (final e in library.inCategory(category))
                     SoundscapeSelection.sound(e.id).encode(): e.title,
@@ -696,25 +835,23 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
               ),
             ],
             if (selected != SoundscapeSelection.none.encode())
-              _SliderTile(
+              _SliderRow(
                 label: 'Volume',
-                value: mixer.sessionDefault(_soundscapeKind).volume * 100,
-                min: 0,
-                max: 100,
-                divisions: 20,
-                format: (v) => '${v.round()}%',
+                value: mixer.sessionDefault(_soundscapeKind).volume,
+                format: _percent,
                 onChanged: (v) => ref
                     .read(soundscapeProvider.notifier)
-                    .setSessionVolume(_soundscapeKind, v / 100),
+                    .setSessionVolume(_soundscapeKind, v),
               ),
             // The mix itself (what "Current mix" plays) is made on the
             // Sounds screen, full height over the sheet.
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              padding: const EdgeInsets.only(top: 12),
               child: OutlinedButton.icon(
                 key: const ValueKey('customize_open_sounds'),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
+                  shape: MeditejoShapes.stadium,
                 ),
                 onPressed: () => openSoundsPage(context),
                 icon: const Icon(Icons.graphic_eq_rounded),
@@ -727,6 +864,21 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     );
   }
 
+  static String _minutes(int m) {
+    if (m < 60) return '$m min';
+    final h = m ~/ 60;
+    final rest = m % 60;
+    return rest == 0 ? '$h h' : '$h h $rest min';
+  }
+
+  static String _percent(double v) => '${(v * 100).round()}%';
+
+  /// Typed whole numbers from [low] to [high], else null.
+  static int? Function(String) _range(int low, int high) => (text) {
+    final v = int.tryParse(text);
+    return v != null && v >= low && v <= high ? v : null;
+  };
+
   String _bellName(String path) => cueBellSounds.entries
       .firstWhere(
         (e) => e.value == path,
@@ -735,11 +887,13 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
       .key;
 
   String _intervalValue(CueSettings s) {
-    if (s.intervalMinutes == 0 || s.intervalSound.isEmpty) return 'Off';
+    if (!s.hasIntervalBell) return 'Off';
+    final bell = _bellName(s.intervalSound);
+    if (s.intervalHalfway) return 'Halfway · $bell';
     final base = 'Every ${s.intervalMinutes} min';
     return s.randomWindowMinutes == 0
-        ? base
-        : '$base ± ${s.randomWindowMinutes}';
+        ? '$base · $bell'
+        : '$base ± ${s.randomWindowMinutes} · $bell';
   }
 
   String _pulseValue(CueSettings s) {
@@ -775,93 +929,400 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   }
 }
 
-class _SubSheet extends StatelessWidget {
-  const _SubSheet({required this.title, required this.child});
+/// The sheet's title, whose settings these are, and when the session ends.
+class _Header extends StatelessWidget {
+  const _Header({required this.subtitle, this.finishes});
 
-  final String title;
-  final Widget child;
+  final String subtitle;
+  final Widget? finishes;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+    final type = context.typography;
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 12,
+        runSpacing: 8,
+        children: [
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Semantics(
+                header: true,
+                child: Text('Customize', style: type.emphasized.headlineSmall),
               ),
-            ),
-            const SizedBox(height: 12),
-            child,
-          ],
-        ),
+              Text(
+                subtitle,
+                style: type.baseline.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          ?finishes,
+        ],
       ),
     );
   }
 }
 
-class _CueRow extends StatelessWidget {
-  const _CueRow({
-    required this.title,
-    required this.value,
-    required this.onTap,
-  });
-
-  final String title;
-  final String value;
-  final VoidCallback onTap;
+class _FinishesPill extends StatelessWidget {
+  const _FinishesPill(this.text);
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Semantics(
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      key: const ValueKey('customize_finishes'),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: scheme.tertiaryContainer,
+        borderRadius: BorderRadius.circular(MeditejoShapes.full),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.schedule_rounded,
+            size: 18,
+            color: scheme.onTertiaryContainer,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              text,
+              style: context.typography.emphasized.labelLarge?.copyWith(
+                color: scheme.onTertiaryContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A section: its name in the primary colour, its rows on one tonal 28 dp
+/// surface, as on the Settings and You screens.
+class _Section extends StatelessWidget {
+  const _Section({this.title, required this.children});
+
+  final String? title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (title != null)
+          Semantics(
+            header: true,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 16, 8),
+              child: Text(
+                title!,
+                style: context.typography.emphasized.titleSmall?.copyWith(
+                  color: scheme.primary,
+                ),
+              ),
+            ),
+          ),
+        Material(
+          color: scheme.surfaceContainerLow,
+          clipBehavior: Clip.antiAlias,
+          shape: MeditejoShapes.rounded(MeditejoShapes.extraLarge),
+          child: Column(children: children),
+        ),
+      ],
+    );
+  }
+}
+
+/// A setting that shows its value folded and opens its controls in place.
+class _ExpandingRow extends StatelessWidget {
+  const _ExpandingRow({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.open,
+    required this.onTap,
+    this.trailing,
+    this.editor,
+  });
+
+  final IconData icon;
+  final String title, value;
+  final bool open;
+  final VoidCallback onTap;
+  final Widget? trailing;
+  final Widget? editor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final type = context.typography;
+    final reduce = MediaQuery.of(context).disableAnimations;
+    final header = Semantics(
       button: true,
+      expanded: open,
       label: '$title, $value',
       excludeSemantics: true,
       onTap: onTap,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 52),
+          constraints: const BoxConstraints(minHeight: 64),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            padding: const EdgeInsets.fromLTRB(20, 10, 12, 10),
             child: Row(
               children: [
+                Icon(icon, color: scheme.onSurfaceVariant),
+                const SizedBox(width: 16),
                 Expanded(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: type.baseline.titleMedium),
+                      Text(
+                        value,
+                        style: type.emphasized.bodyMedium?.copyWith(
+                          color: scheme.primary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                Flexible(
-                  child: Text(
-                    value,
-                    textAlign: TextAlign.end,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: context.brandAccent,
-                      fontWeight: FontWeight.w600,
-                    ),
+                AnimatedRotation(
+                  turns: open ? 0.5 : 0,
+                  duration: reduce ? Duration.zero : MeditejoMotion.short,
+                  child: Icon(
+                    Icons.expand_more_rounded,
+                    color: scheme.onSurfaceVariant,
                   ),
-                ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
               ],
             ),
           ),
         ),
       ),
+    );
+    final body = editor == null
+        ? null
+        : Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: editor,
+          );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Stack(
+          children: [
+            header,
+            // Kept outside the row's own semantics so it is its own button.
+            if (trailing != null)
+              Positioned(
+                right: 44,
+                top: 0,
+                bottom: 0,
+                child: Center(child: trailing),
+              ),
+          ],
+        ),
+        // Reduced motion opens in one step. (A zero-length AnimatedSize
+        // restarts inside its own layout and asserts, so it is left out.)
+        if (reduce)
+          ?body
+        else
+          AnimatedSize(
+            duration: MeditejoMotion.medium,
+            curve: MeditejoMotion.emphasizedDecelerate,
+            alignment: Alignment.topCenter,
+            child: body ?? const SizedBox(width: double.infinity),
+          ),
+      ],
+    );
+  }
+}
+
+class _SwitchRow extends StatelessWidget {
+  const _SwitchRow({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String title;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) => SwitchListTile(
+    contentPadding: const EdgeInsets.fromLTRB(20, 4, 16, 4),
+    secondary: Icon(icon),
+    title: Text(title),
+    value: value,
+    onChanged: onChanged,
+  );
+}
+
+/// A level (0 to 1). Volumes stay sliders: a wheel is for counts and times.
+class _SliderRow extends StatelessWidget {
+  const _SliderRow({
+    this.icon,
+    required this.label,
+    required this.value,
+    required this.format,
+    required this.onChanged,
+  });
+
+  final IconData? icon;
+  final String label;
+  final double value;
+  final String Function(double) format;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final type = context.typography;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(icon == null ? 4 : 20, 8, 12, 4),
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            Icon(icon, color: scheme.onSurfaceVariant),
+            const SizedBox(width: 16),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(label, style: type.baseline.titleMedium),
+                    ),
+                    Text(
+                      format(value),
+                      style: type.emphasized.bodyMedium?.copyWith(
+                        color: scheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                Slider(
+                  value: value.clamp(0, 1),
+                  divisions: 20,
+                  label: format(value),
+                  semanticFormatterCallback: format,
+                  onChanged: onChanged,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A labelled [WheelPicker].
+class _WheelField<T> extends StatelessWidget {
+  const _WheelField({
+    required this.label,
+    required this.options,
+    required this.value,
+    required this.onChanged,
+    this.parse,
+    this.hint,
+    this.visibleItems = 5,
+  });
+
+  final String label;
+  final List<WheelOption<T>> options;
+  final T value;
+  final ValueChanged<T> onChanged;
+  final T? Function(String)? parse;
+  final String? hint;
+  final int visibleItems;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 4, top: 4),
+          child: ExcludeSemantics(
+            child: Text(
+              label,
+              style: context.typography.baseline.labelLarge?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+        WheelPicker<T>(
+          key: ValueKey('wheel_$label'),
+          label: label,
+          options: options,
+          value: value,
+          onChanged: onChanged,
+          parseEntry: parse,
+          entryHint: hint,
+          visibleItems: visibleItems,
+        ),
+      ],
+    );
+  }
+}
+
+/// Two wheels side by side, or stacked when large text needs the width.
+class _WheelPair extends StatelessWidget {
+  const _WheelPair({required this.first, this.second});
+
+  final Widget first;
+  final Widget? second;
+
+  @override
+  Widget build(BuildContext context) {
+    final stacked = MediaQuery.textScalerOf(context).scale(10) > 13;
+    if (stacked || second == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (second == null && !stacked)
+            Row(
+              children: [
+                Expanded(child: first),
+                const Spacer(),
+              ],
+            )
+          else
+            first,
+          ?second,
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: first),
+        const SizedBox(width: 12),
+        Expanded(child: second!),
+      ],
     );
   }
 }
@@ -871,127 +1332,112 @@ class _Caption extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        text,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-          height: 1.4,
-        ),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 8, left: 4),
+    child: Text(
+      text,
+      style: context.typography.baseline.bodyMedium?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
-    );
-  }
+    ),
+  );
 }
 
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
+class _SubLabel extends StatelessWidget {
+  const _SubLabel(this.text);
   final String text;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(top: 12, bottom: 2),
-      child: Text(
-        text,
-        style: theme.textTheme.labelLarge?.copyWith(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-        ),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 12, bottom: 4, left: 4),
+    child: Text(
+      text,
+      style: context.typography.baseline.labelLarge?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
-    );
-  }
+    ),
+  );
 }
 
-/// The bells a cue can ring. Tapping one selects it and rings it once at the
-/// bell [volume], so what is heard is what a session will play.
-class _BellList extends ConsumerWidget {
-  const _BellList({
-    required this.selected,
-    required this.volume,
-    required this.onSelected,
-  });
+/// The bells a cue can ring. Tapping one selects it and rings it once, so
+/// what is heard is what a session will play.
+class _BellList extends StatelessWidget {
+  const _BellList({required this.selected, required this.onSelected});
 
   final String selected;
-  final double volume;
   final ValueChanged<String> onSelected;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    void pick(String asset) {
-      onSelected(asset);
-      final preview = ref.read(sessionBellPreviewProvider);
-      // Best effort: a tap that interrupts a still-loading bell, or a sound
-      // the platform will not play, is not an error worth surfacing.
-      unawaited(
-        (asset.isEmpty ? preview.stop() : preview.play(volume, asset: asset))
-            .catchError((Object _) {}),
-      );
-    }
-
-    return Column(
-      children: [
-        for (final e in cueBellSounds.entries)
-          Semantics(
-            button: true,
-            selected: e.value == selected,
-            label: e.value.isEmpty ? e.key : '${e.key}, plays a preview',
-            excludeSemantics: true,
-            onTap: () => pick(e.value),
-            child: InkWell(
-              onTap: () => pick(e.value),
-              borderRadius: BorderRadius.circular(12),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 48),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Row(
-                    children: [
-                      Icon(
-                        e.value == selected
-                            ? Icons.radio_button_checked_rounded
-                            : Icons.radio_button_unchecked_rounded,
-                        color: e.value == selected
-                            ? context.brandAccent
-                            : theme.colorScheme.onSurface.withValues(
-                                alpha: 0.5,
-                              ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          e.key,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            fontWeight: e.value == selected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final type = context.typography;
+    return Material(
+      color: scheme.surfaceContainerHigh,
+      clipBehavior: Clip.antiAlias,
+      shape: MeditejoShapes.rounded(MeditejoShapes.largeIncreased),
+      child: Column(
+        children: [
+          for (final e in cueBellSounds.entries)
+            Semantics(
+              button: true,
+              selected: e.value == selected,
+              label: e.value.isEmpty ? e.key : '${e.key}, plays a preview',
+              excludeSemantics: true,
+              onTap: () => onSelected(e.value),
+              child: InkWell(
+                onTap: () => onSelected(e.value),
+                child: Ink(
+                  color: e.value == selected ? scheme.secondaryContainer : null,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 48),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          Icon(
+                            e.value == selected
+                                ? Icons.radio_button_checked_rounded
+                                : Icons.radio_button_unchecked_rounded,
+                            color: e.value == selected
+                                ? scheme.primary
+                                : scheme.onSurfaceVariant,
                           ),
-                        ),
-                      ),
-                      if (e.value.isNotEmpty)
-                        Icon(
-                          Icons.volume_up_rounded,
-                          size: 20,
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.5,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              e.key,
+                              style:
+                                  (e.value == selected
+                                          ? type.emphasized.bodyLarge
+                                          : type.baseline.bodyLarge)
+                                      ?.copyWith(
+                                        color: e.value == selected
+                                            ? scheme.onSecondaryContainer
+                                            : scheme.onSurface,
+                                      ),
+                            ),
                           ),
-                        ),
-                    ],
+                          if (e.value.isNotEmpty)
+                            Icon(
+                              Icons.volume_up_rounded,
+                              size: 20,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-class _ChoiceWrap<T> extends StatelessWidget {
-  const _ChoiceWrap({
+class _Chips<T> extends StatelessWidget {
+  const _Chips({
     required this.options,
     required this.selected,
     required this.onSelected,
@@ -1002,91 +1448,19 @@ class _ChoiceWrap<T> extends StatelessWidget {
   final ValueChanged<T> onSelected;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final e in options.entries)
-            ChoiceChip(
-              label: Text(e.value),
-              selected: e.key == selected,
-              onSelected: (_) => onSelected(e.key),
-              selectedColor: context.brandAccent,
-              labelStyle: TextStyle(
-                color: e.key == selected
-                    ? context.onBrandAccent
-                    : Theme.of(context).colorScheme.onSurface,
-              ),
-              showCheckmark: false,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SliderTile extends StatelessWidget {
-  const _SliderTile({
-    required this.label,
-    required this.value,
-    required this.min,
-    required this.max,
-    required this.divisions,
-    required this.format,
-    required this.onChanged,
-  });
-
-  final String label;
-  final double value, min, max;
-  final int divisions;
-  final String Function(double) format;
-  final ValueChanged<double> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final onSurface = theme.colorScheme.onSurface;
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text(label, style: theme.textTheme.bodyMedium)),
-              Text(
-                format(value),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: context.brandAccent,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final e in options.entries)
+          ChoiceChip(
+            label: Text(e.value),
+            selected: e.key == selected,
+            onSelected: (_) => onSelected(e.key),
           ),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 4,
-              activeTrackColor: context.brandAccent,
-              inactiveTrackColor: onSurface.withValues(alpha: 0.15),
-              thumbColor: context.brandAccent,
-              overlayColor: context.brandAccent.withValues(alpha: 0.12),
-              showValueIndicator: ShowValueIndicator.never,
-            ),
-            child: Slider(
-              value: value.clamp(min, max),
-              min: min,
-              max: max,
-              divisions: divisions,
-              label: format(value),
-              semanticFormatterCallback: format,
-              onChanged: onChanged,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
 }
