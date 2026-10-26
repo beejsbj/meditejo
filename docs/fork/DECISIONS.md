@@ -442,4 +442,5 @@ Decision 16. Screenshots, the five-tab check and the mark's motion (GIF and stri
     - **Motion tokens:** `MotionToken.duration` and `.curve` re-run the spring simulation on every read, and `HomePressable` reads them on each build. Cache them.
     - **Home heading for screen readers:** the title is gone and the mark is excluded from semantics. Wrap the mark in `Semantics(header: true, label: l10n.home)`.
     - **Mark frame rate (taste, Burooj):** the mark draws every frame while Home is visible, up to 120 Hz on the S23+. A lower rate would cost little visually and save battery; judge it with the speed on the phone.
+    - **CodeRabbit nit, tile semantics:** assert the fallback screen-reader labels of the Timer and Sounds tiles (`semanticsLabel ?? label`) with `find.bySemanticsLabel`. Trivial test hardening; not done here.
   - **Fixed in this PR from the same review:** quick-link tiles grow with the text size (a fixed 116 dp overflowed past about 1.36×), and `startTimerSession` ignores a second start while one is preparing (a double tap on a preset tile pushed two players).
