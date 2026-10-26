@@ -570,6 +570,19 @@ the active native configuration and the existing ambient player; the
 Background sound row drives the soundscape mixer (Sounds and the mixer). The timer
 continues to use a sparse local WAV as its primary audio.
 
+**Bells.** Each cue stores its own bell (`startSound`, `intervalSound`,
+`endSound`) as a bundled asset path, validated against `cueBellSounds`, the one
+catalogue (display name to asset path, in picker order; `''` is Off). The path
+is the stored id and what both native cue banks load, so adding a bell is: a
+WAV under `assets/audio/`, an entry in the map, a line in `assets/audio/NOTICE`.
+The ten new bells are synthesised by `tools/meditejo/generate_bells.py`
+(`--check` proves byte-identical regeneration; `tools/meditejo/bells_report.py`
+prints per-file numbers and builds the sampler). A bell the build does not know
+reads as the default. The Customize sheet's three bell rows share `_BellList`:
+tapping a row selects it and rings it once through `SessionBellPreview` at the
+bell volume; closing the sub-sheet stops it. `CueBellCatalogueTest` (Kotlin)
+reads the Dart catalogue, so the native side and the list cannot drift.
+
 `NativeCueController` sends plain configuration over `meditejo/cues`.
 Android's `CueEngine` lives in `AudioPlayerService`, with predecoded SoundPool
 assets and pure scheduling/listening maths in `CueMath.kt`. It follows media

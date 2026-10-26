@@ -1,0 +1,33 @@
+name: Bells checks
+on:
+  pull_request:
+    paths:
+      - 'assets/audio/**'
+      - 'tools/meditejo/generate_bells.py'
+      - 'tools/meditejo/bells_report.py'
+      - 'lib/models/cues/cue_settings.dart'
+      - '.github/workflows/bells-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bells:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: The generator reproduces every bell byte-for-byte
+        run: python3 -I tools/meditejo/generate_bells.py --check
+      - name: Per-file numbers (fails on a click, DC offset, hard onset or loud tail)
+        run: |
+          python3 tools/meditejo/bells_report.py --fail-on-defect | tee report.md
+          { echo '## Bells'; cat report.md; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Sampler, every bell in sequence
+        run: python3 tools/meditejo/bells_report.py --sampler bells-sampler.mp3 | tail -13
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bells-sampler
+          path: |
+            bells-sampler.mp3
+            report.md
+          retention-days: 30
