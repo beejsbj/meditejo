@@ -68,7 +68,8 @@ class FolderCopier(
             files.forEachIndexed { index, file ->
                 if (isCancelled()) throw CopyCancelled()
                 onProgress(CopyProgress(index, files.size, bytesDone, bytesTotal, file.name))
-                val target = File(destination, "%0${width}d-%s".format(index + 1, stagedName(file.name)))
+                // Plain digits whatever the phone's language (String.format would follow it).
+                val target = File(destination, "${(index + 1).toString().padStart(width, '0')}-${stagedName(file.name)}")
                 try {
                     val written = copyOne(file, target) { chunk ->
                         bytesDone += chunk
