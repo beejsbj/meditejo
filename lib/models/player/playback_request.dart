@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
+import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/track/track.dart';
 
 part 'playback_request.freezed.dart';
@@ -27,6 +28,12 @@ abstract class PlaybackRequest with _$PlaybackRequest {
     /// Where to start, when the user is resuming a session they left. Zero
     /// starts from the beginning.
     @Default(0) int startPositionMs,
+
+    /// The background sound for this session only, in
+    /// [SoundscapeSelection]'s grammar (`preset:<id>`, `sound:<id>`, …), for
+    /// a start that names its own (Home's preset tiles). Null follows the
+    /// session's Customize choice and the kind's default as usual.
+    String? soundscape,
   }) = _PlaybackRequest;
 
   factory PlaybackRequest.fromJson(Map<String, Object?> json) =>
@@ -49,4 +56,13 @@ abstract class PlaybackRequest with _$PlaybackRequest {
     artist: track.artist,
     attribution: track.attribution,
   );
+}
+
+extension PlaybackRequestSoundscape on PlaybackRequest {
+  /// [PlaybackRequest.soundscape] as a selection; null when the request
+  /// names none (or names one this version can't read).
+  SoundscapeSelection? get soundscapeSelection {
+    final value = soundscape;
+    return value == null ? null : SoundscapeSelection.tryParse(value);
+  }
 }

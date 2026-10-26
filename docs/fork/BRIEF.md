@@ -98,6 +98,22 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
     - Practice's background sound starts with nothing chosen.
     - Removing an imported course confirms before deleting its audio (the current behaviour).
     - Ask Hermes Amāra, QRI and Plum Village for permission to stream their recordings. Don't ask AudioDharma for a catalogue export, since slice 8 builds its catalogue anyway.
+18. **Answers after testing cues** (Burooj, 2026-10-26):
+    - **Tabs:** Home · Explore · Sounds · Library · You. Stats and Settings sit under You. This supersedes decision 14's four tabs.
+    - **Settings needs reorganising.** Check for updates belongs on the main Settings screen, not two levels down.
+    - **Naming:** what the user makes is a **Playlist**. What comes from a source (retreats, YouTube playlists, feeds) stays a **Course**.
+    - **Number and time selection** uses a scroll-wheel picker: a centred, highlighted value with its neighbours faded above and below. It replaces sliders and pills for durations and counts.
+    - **Interval bells can be set to "halfway",** a single bell at the session's midpoint.
+    - **Import:**
+      - a pasted feed or playlist defaults to the whole list as a Course;
+      - Single means picking one episode, with the latest preselected;
+      - folder import must work on Android.
+    - **Saved teachers** stay in the Library as a Teachers filter. "New from teachers you follow" can come later.
+    - **AudioDharma is skipped** (superseded the same day, 2026-10-26). Users can still import its feed themselves.
+    - **Permissions:**
+      - Hermes Amāra was asked by email (sent 2026-10-26 to info@hermesamara.org).
+      - QRI and Plum Village are not being asked. QRI's YouTube playlists stay in the starter set, at the same accepted risk as Vervaeke's.
+      - Plum Village's own terms forbid sharing, so it is not built in.
 
 ## Build and run
 

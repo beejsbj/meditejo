@@ -1186,6 +1186,7 @@
   "homeContinueSessionOf": "Einheit {number} von {total}",
   "homeContinueTimeLeft": "noch {time}",
   "homeQuickAdd": "Hinzufügen",
+  "homeQuickPresetTimer": "Timer mit {preset} starten",
   "pinCourse": "An Start anheften",
   "unpinCourse": "Von Start lösen",
   "pinnedLimitReached": "Auf Start passen bis zu drei angeheftete Kurse. Löse zuerst einen.",

@@ -58,22 +58,12 @@ class ColorConstants {
   }
 }
 
-/// The brand accent, resolved per theme. Monochrome: the accent is the
-/// inverse of the surface, so it always contrasts strongly with it.
-///   * Dark mode → [ColorConstants.accentDark] (light grey #E5E5E5).
-///   * Light mode → [ColorConstants.lightPrimary] (near-black #171717), which
-///     themed widgets also route through, so the two never mismatch.
+/// The brand accent: the theme's primary colour (Material 3 Expressive,
+/// grown from the seed in `constants/theme/tokens.dart`). Older screens
+/// reach the palette through this.
 extension BrandAccent on BuildContext {
-  Color get brandAccent {
-    return Theme.of(this).brightness == Brightness.dark
-        ? ColorConstants.accentDark
-        : ColorConstants.lightPrimary;
-  }
+  Color get brandAccent => Theme.of(this).colorScheme.primary;
 
   /// Foreground for glyphs and text drawn on [brandAccent].
-  Color get onBrandAccent {
-    return Theme.of(this).brightness == Brightness.dark
-        ? ColorConstants.onAccentDark
-        : ColorConstants.onAccentLight;
-  }
+  Color get onBrandAccent => Theme.of(this).colorScheme.onPrimary;
 }
