@@ -116,6 +116,9 @@ class FolderImportBridge(
     private fun pick(result: MethodChannel.Result) {
         if (busy()) return result.error("busy", "A folder import is already running", null)
         val picker = launcher ?: return result.error("no_picker", "No folder picker is available", null)
+        // One cancel flag per import: a Cancel tapped between the calls below
+        // must survive until the copy sees it.
+        cancelled.set(false)
         pendingPick = result
         try {
             picker.launch(null)
@@ -196,7 +199,6 @@ class FolderImportBridge(
     /** Runs [work] off the main thread and answers [result] on it. */
     private fun background(result: MethodChannel.Result, work: () -> Any?) {
         if (busy()) return result.error("busy", "A folder import is already running", null)
-        cancelled.set(false)
         running = true
         job = scope.launch(Dispatchers.IO) {
             val outcome = runCatching { work() }
@@ -239,7 +241,11 @@ class FolderImportBridge(
     }
 
     private fun displayName(treeUri: Uri): String {
-        val rootId = DocumentsContract.getTreeDocumentId(treeUri)
+        val rootId = try {
+            DocumentsContract.getTreeDocumentId(treeUri)
+        } catch (e: Exception) {
+            return treeUri.lastPathSegment ?: ""
+        }
         try {
             context.contentResolver.query(
                 DocumentsContract.buildDocumentUriUsingTree(treeUri, rootId),

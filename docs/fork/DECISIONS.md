@@ -436,3 +436,12 @@ BRIEF decision 18. Implementation calls below; the product ones are flagged at t
 3. Dharma Seed retreats do not offer "one talk" yet (a talk page does that). Easy to add by the same picker.
 4. Phone checks remain (see the PR): the real system folder picker on Android 11+ and 14, Downloads and Music, a nested folder, 50+ files, cancel mid-copy.
 
+**Review of PR #37** (Claude Opus 5.5, read-only; CodeRabbit). Fixed before merge: leaving an import screen only discards what *that* screen staged (a share arriving over a folder preview no longer wipes its files); Back is blocked while Add is storing files; a Cancel tapped between the bridge's calls is no longer reset (the flag resets once, in `pick`); Cancel also drops a preview still being worked out (CodeRabbit); the episode picker's rows are tall enough for two-line titles; `getTreeDocumentId` in the folder-name lookup is inside its `try`; a Single from a playlist keeps a stored video's resolved length and thumbnail. Two more phone checks: share a link into the app over a folder preview, and press Back during Add.
+
+Follow-ups, answered not fixed:
+- **Backing out of the system folder picker clears the current preview and the clipboard suggestion** (`_run` resets before the picker opens; the file picker behaves the same). Minor; moving the reset after a non-null answer is a small change when the Add screen is next touched.
+- **The Cancel button shows on iOS/desktops**, where there is no copy to cancel and the folder is read by path (it then only abandons the lookup). Hide it when the design pass restyles the screen.
+- **A failed Add of several files as separate Singles, retried on the same preview, reports a missing file** for the ones already recorded (their staged copies were moved). Before this PR the retry would have duplicated them instead. Needs a per-file "done" record on the preview.
+- **Spanish `@key` descriptions** (CodeRabbit): `app_es.arb` and `app_de.arb` carry no `@` metadata for any key, only the English template does, so the new keys follow the file's existing convention.
+- **Staging tokens**: the discard fix above is per screen. A copy per token would be the stricter design if two folder imports can ever overlap; the bridge refuses a second one while the first runs, so it cannot today.
+

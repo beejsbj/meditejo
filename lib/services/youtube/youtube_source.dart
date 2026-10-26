@@ -349,8 +349,9 @@ class YoutubeSource
         videoId: item.videoId,
         title: item.title,
         uploader: previous?.uploader ?? playlist!.uploader,
-        durationSeconds: item.durationSeconds,
-        thumbnail: item.thumbnail,
+        // What a full resolve found outranks the list's summary.
+        durationSeconds: previous?.durationSeconds ?? item.durationSeconds,
+        thumbnail: previous?.thumbnail ?? item.thumbnail,
         description: previous?.description ?? '',
       );
     }

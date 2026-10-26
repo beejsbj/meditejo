@@ -96,6 +96,13 @@ class _ImportViewState extends ConsumerState<ImportView> {
 
   /// A folder is being picked, listed or copied, and how far the copy is.
   var _folderBusy = false;
+
+  /// This screen has staged a folder's files, which are its to discard.
+  var _stagedFolder = false;
+
+  /// Bumped on every folder pick and on Cancel, so a stale pick cannot clear
+  /// the busy state of a newer one.
+  var _folderPick = 0;
   final _folderProgress = ValueNotifier<FolderProgress?>(null);
   late final ImportPickers _pickers;
 
@@ -121,9 +128,10 @@ class _ImportViewState extends ConsumerState<ImportView> {
 
   @override
   void dispose() {
-    // A folder's copies are only for this screen: stop one in progress and
-    // drop any that nothing took.
-    unawaited(_pickers.discardFolderImport());
+    // A folder's copies are only for the screen that staged them: stop one in
+    // progress and drop any that nothing took. Another import screen (a share
+    // that arrived over this one) must not wipe them.
+    if (_stagedFolder) unawaited(_pickers.discardFolderImport());
     _folderProgress.dispose();
     _field.dispose();
     _titleField.dispose();
@@ -222,6 +230,8 @@ class _ImportViewState extends ConsumerState<ImportView> {
 
   Future<void> _pickFolder() async {
     _folderProgress.value = null;
+    final pick = ++_folderPick;
+    _stagedFolder = true;
     setState(() => _folderBusy = true);
     try {
       await _run(() async {
@@ -247,11 +257,24 @@ class _ImportViewState extends ConsumerState<ImportView> {
         );
       });
     } finally {
-      if (mounted) setState(() => _folderBusy = false);
+      if (mounted && pick == _folderPick) {
+        setState(() => _folderBusy = false);
+      }
     }
   }
 
-  Future<void> _cancelFolder() => _pickers.cancelFolderImport();
+  /// Stops the copy, and also drops a preview still being worked out from it
+  /// (probing the files' lengths takes a while for a big folder).
+  Future<void> _cancelFolder() async {
+    _request++;
+    _folderPick++;
+    setState(() {
+      _phase = _Phase.idle;
+      _folderBusy = false;
+    });
+    await _pickers.cancelFolderImport();
+    await _pickers.discardFolderImport();
+  }
 
   String _selectedId(
     ImportPreview preview,
@@ -376,162 +399,166 @@ class _ImportViewState extends ConsumerState<ImportView> {
     final preview = _preview;
     final busy = _phase == _Phase.resolving || _phase == _Phase.adding;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.importTitle)),
-      body: AdaptivePageBody(
-        maxWidth: 640,
-        child: ListView(
-          padding: EdgeInsets.fromLTRB(
-            padding16,
-            padding8,
-            padding16,
-            MediaQuery.paddingOf(context).bottom + padding24,
-          ),
-          children: [
-            TextField(
-              key: const ValueKey('import_field'),
-              controller: _field,
-              enabled: _phase != _Phase.adding && !_folderBusy,
-              keyboardType: TextInputType.url,
-              textInputAction: TextInputAction.go,
-              autocorrect: false,
-              onSubmitted: (_) => _resolve(),
-              // Changing the link drops a preview of the old one, and abandons
-              // one still resolving, so Add can never add something other
-              // than what the field shows.
-              onChanged: (_) {
-                final resolving = _phase == _Phase.resolving;
-                if (resolving ||
-                    (_preview != null && _phase == _Phase.preview)) {
-                  if (resolving) _request++;
-                  setState(() {
-                    _preview = null;
-                    _phase = _Phase.idle;
-                  });
-                }
-              },
-              decoration: InputDecoration(
-                hintText: l10n.importFieldHint,
-                prefixIcon: const Icon(Icons.link_rounded),
-                suffixIcon: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      key: const ValueKey('import_paste'),
-                      tooltip: l10n.importPaste,
-                      onPressed: busy ? null : _paste,
-                      icon: const Icon(Icons.content_paste_rounded),
-                    ),
-                    IconButton(
-                      key: const ValueKey('import_go'),
-                      tooltip: l10n.importPreviewAction,
-                      onPressed: busy ? null : _resolve,
-                      icon: const Icon(Icons.arrow_forward_rounded),
-                    ),
-                  ],
-                ),
-              ),
+    // Leaving while files are being stored would strand some of them.
+    return PopScope(
+      canPop: _phase != _Phase.adding,
+      child: Scaffold(
+        appBar: AppBar(title: Text(l10n.importTitle)),
+        body: AdaptivePageBody(
+          maxWidth: 640,
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(
+              padding16,
+              padding8,
+              padding16,
+              MediaQuery.paddingOf(context).bottom + padding24,
             ),
-            if (_clipboardLink case final link? when preview == null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l10n.importClipboard(
-                          Uri.tryParse(link)?.host.isNotEmpty == true
-                              ? Uri.parse(link).host
-                              : link,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium,
+            children: [
+              TextField(
+                key: const ValueKey('import_field'),
+                controller: _field,
+                enabled: _phase != _Phase.adding && !_folderBusy,
+                keyboardType: TextInputType.url,
+                textInputAction: TextInputAction.go,
+                autocorrect: false,
+                onSubmitted: (_) => _resolve(),
+                // Changing the link drops a preview of the old one, and abandons
+                // one still resolving, so Add can never add something other
+                // than what the field shows.
+                onChanged: (_) {
+                  final resolving = _phase == _Phase.resolving;
+                  if (resolving ||
+                      (_preview != null && _phase == _Phase.preview)) {
+                    if (resolving) _request++;
+                    setState(() {
+                      _preview = null;
+                      _phase = _Phase.idle;
+                    });
+                  }
+                },
+                decoration: InputDecoration(
+                  hintText: l10n.importFieldHint,
+                  prefixIcon: const Icon(Icons.link_rounded),
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        key: const ValueKey('import_paste'),
+                        tooltip: l10n.importPaste,
+                        onPressed: busy ? null : _paste,
+                        icon: const Icon(Icons.content_paste_rounded),
                       ),
-                    ),
-                    TextButton(
-                      key: const ValueKey('import_use_clipboard'),
-                      onPressed: _useClipboard,
-                      child: Text(l10n.importUseClipboard),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    key: const ValueKey('import_files'),
-                    onPressed: busy ? null : _pickFiles,
-                    icon: const Icon(Icons.audio_file_outlined),
-                    label: Text(l10n.importChooseFiles),
+                      IconButton(
+                        key: const ValueKey('import_go'),
+                        tooltip: l10n.importPreviewAction,
+                        onPressed: busy ? null : _resolve,
+                        icon: const Icon(Icons.arrow_forward_rounded),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    key: const ValueKey('import_folder'),
-                    onPressed: busy ? null : _pickFolder,
-                    icon: const Icon(Icons.folder_open_rounded),
-                    label: Text(l10n.importChooseFolder),
+              ),
+              if (_clipboardLink case final link? when preview == null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.importClipboard(
+                            Uri.tryParse(link)?.host.isNotEmpty == true
+                                ? Uri.parse(link).host
+                                : link,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
+                      TextButton(
+                        key: const ValueKey('import_use_clipboard'),
+                        onPressed: _useClipboard,
+                        child: Text(l10n.importUseClipboard),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (_phase == _Phase.resolving && _folderBusy)
-              _FolderProgressCard(
-                progress: _folderProgress,
-                onCancel: _cancelFolder,
-              )
-            else if (_phase == _Phase.resolving)
-              _Looking(label: l10n.importLooking)
-            else if (_failure != null)
-              _FailureCard(reason: _failure!)
-            else if (preview == null)
-              Text(
-                l10n.importHelp,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-            if (preview != null && _phase != _Phase.resolving) ...[
-              if (_failure != null) const SizedBox(height: 12),
-              _PreviewCard(
-                preview: preview,
-                alreadyInLibrary: _alreadyInLibrary,
-                titleField: _titleField,
-                editingTitle: _editingTitle,
-                onEditTitle: () => setState(() => _editingTitle = true),
-                onTitleDone: () => setState(() => _editingTitle = false),
-                kind: _kind,
-                group: _group,
-                order: _order,
-                episodeId: _episodeId,
-                onChooseEpisode: () => _chooseEpisode(preview),
-                onKind: (value) =>
-                    setState(() => _follow(preview, value, _episodeId)),
-                onGroup: (value) => setState(() => _group = value),
-                onOrder: (value) => setState(() => _order = value),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      key: const ValueKey('import_files'),
+                      onPressed: busy ? null : _pickFiles,
+                      icon: const Icon(Icons.audio_file_outlined),
+                      label: Text(l10n.importChooseFiles),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      key: const ValueKey('import_folder'),
+                      onPressed: busy ? null : _pickFolder,
+                      icon: const Icon(Icons.folder_open_rounded),
+                      label: Text(l10n.importChooseFolder),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
-              FilledButton(
-                key: const ValueKey('import_add'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(52),
+              if (_phase == _Phase.resolving && _folderBusy)
+                _FolderProgressCard(
+                  progress: _folderProgress,
+                  onCancel: _cancelFolder,
+                )
+              else if (_phase == _Phase.resolving)
+                _Looking(label: l10n.importLooking)
+              else if (_failure != null)
+                _FailureCard(reason: _failure!)
+              else if (preview == null)
+                Text(
+                  l10n.importHelp,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
                 ),
-                onPressed: busy ? null : _add,
-                child: _phase == _Phase.adding
-                    ? Text(l10n.importAdding)
-                    : Text(
-                        _alreadyInLibrary
-                            ? l10n.libraryOpen
-                            : l10n.importPrimary,
-                      ),
-              ),
+              if (preview != null && _phase != _Phase.resolving) ...[
+                if (_failure != null) const SizedBox(height: 12),
+                _PreviewCard(
+                  preview: preview,
+                  alreadyInLibrary: _alreadyInLibrary,
+                  titleField: _titleField,
+                  editingTitle: _editingTitle,
+                  onEditTitle: () => setState(() => _editingTitle = true),
+                  onTitleDone: () => setState(() => _editingTitle = false),
+                  kind: _kind,
+                  group: _group,
+                  order: _order,
+                  episodeId: _episodeId,
+                  onChooseEpisode: () => _chooseEpisode(preview),
+                  onKind: (value) =>
+                      setState(() => _follow(preview, value, _episodeId)),
+                  onGroup: (value) => setState(() => _group = value),
+                  onOrder: (value) => setState(() => _order = value),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  key: const ValueKey('import_add'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                  ),
+                  onPressed: busy ? null : _add,
+                  child: _phase == _Phase.adding
+                      ? Text(l10n.importAdding)
+                      : Text(
+                          _alreadyInLibrary
+                              ? l10n.libraryOpen
+                              : l10n.importPrimary,
+                        ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

@@ -293,14 +293,73 @@ void main() {
       expect(find.text('inbox'), findsOneWidget);
     });
 
-    testWidgets('leaving the screen discards what was staged', (tester) async {
+    testWidgets('leaving the screen discards what it staged, and only that', (
+      tester,
+    ) async {
       final app = await LibraryTestApp.create(tester);
       await app.pump(tester, const ImportView(), asRoute: true);
-
       await tester.pageBack();
       await settle(tester);
+      expect(
+        app.pickers.discardCalls,
+        0,
+        reason: 'a screen that staged nothing must not wipe another\'s files',
+      );
 
+      app.pickers.copiedFolder = await copiedFolder(app, tester);
+      await app.pump(tester, const ImportView(), asRoute: true);
+      await tester.tap(find.byKey(const ValueKey('import_folder')));
+      await settle(tester);
+      await tester.pageBack();
+      await settle(tester);
       expect(app.pickers.discardCalls, 1);
+    });
+
+    testWidgets('Cancel also drops a preview still being worked out', (
+      tester,
+    ) async {
+      final gate = Completer<int?>();
+      final app = await LibraryTestApp.create(
+        tester,
+        probe: (_) => gate.future,
+      );
+      app.pickers.copiedFolder = await copiedFolder(app, tester);
+      await app.pump(tester, const ImportView(), asRoute: true);
+
+      await tester.tap(find.byKey(const ValueKey('import_folder')));
+      // The copy is done; the files' lengths are still being read.
+      // (No `settle`: its long pumps would trip the 8 s length-probe timeout.)
+      for (var i = 0; i < 3; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(
+        find.byKey(const ValueKey('import_folder_progress')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('import_folder_cancel')));
+      await tester.pump();
+      expect(app.pickers.cancelCalls, 1);
+      expect(
+        find.byKey(const ValueKey('import_folder_progress')),
+        findsNothing,
+      );
+
+      gate.complete(60000);
+      for (var i = 0; i < 3; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(
+        find.byKey(const ValueKey('import_preview')),
+        findsNothing,
+        reason: 'the cancelled pick must not turn up afterwards',
+      );
     });
   });
 

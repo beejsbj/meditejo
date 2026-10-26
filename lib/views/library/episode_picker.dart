@@ -7,7 +7,7 @@ import 'package:medito/views/library/library_format.dart';
 /// Lists longer than this get a search field.
 const episodeSearchThreshold = 12;
 
-const _rowExtent = 68.0;
+const _rowExtent = 96.0;
 
 /// "12 Mar 2026 · 45 min" (whatever of it is known), with "Latest" first for
 /// a feed's newest episode.
