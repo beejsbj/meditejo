@@ -863,9 +863,12 @@ class _PreviewCard extends StatelessWidget {
               style: theme.textTheme.bodyMedium,
             ),
           ],
+          // Choices stay while one thing is being picked from a list, so an
+          // episode that is already kept can be swapped for another.
           if (!alreadyInLibrary ||
               preview.origin == ImportOrigin.youtube ||
-              preview.origin == ImportOrigin.feed) ...[
+              (preview.origin == ImportOrigin.feed &&
+                  kind == LibraryKind.single)) ...[
             if (preview.hasKindChoice) ...[
               const SizedBox(height: 16),
               SegmentedButton<LibraryKind>(
