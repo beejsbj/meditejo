@@ -82,7 +82,9 @@ class LibraryEntryTile extends ConsumerWidget {
                       if (detail.isNotEmpty)
                         Text(
                           detail,
-                          maxLines: 1,
+                          // Two lines, so the "Playlist · " prefix cannot push
+                          // the count and progress off a narrow row.
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurface.withValues(
