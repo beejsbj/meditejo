@@ -114,6 +114,13 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
       - Hermes Amāra was asked by email (sent 2026-10-26 to info@hermesamara.org).
       - QRI and Plum Village are not being asked. QRI's YouTube playlists stay in the starter set, at the same accepted risk as Vervaeke's.
       - Plum Village's own terms forbid sharing, so it is not built in.
+19. **After seeing design pass 1** (Burooj, 2026-10-26):
+    - **The Timer starts silent by default.** Users set their own defaults. Later the Timer may reuse whatever was used last time.
+    - **Home's hierarchy is right; the visuals are not finished.**
+      - The mark is weak, and so are the colours.
+      - There is no logo or app icon yet.
+      - A dedicated identity pass comes next: a seeded generator that builds many marks (gesture-on-form in the spirit of Claude's "Duet" icon, plus atmospheric ones), palettes, and an app icon. Burooj picks before anything is ported into the app.
+    - **"Quick links" is the wrong name.** Its tiles can also be guided practices (a session, possibly with a sound preset), not only Timer presets.
 
 ## Build and run
 
