@@ -901,8 +901,10 @@ BRIEF decisions 19 to 21. The generator from the identity exploration
   `activePaletteProvider`, `pinnedMarkProvider` (frozen JSON in
   `identity_pinned_mark`), `dailyMarkProvider` and `homeMarkProvider`. The
   mark and the palette are chosen and pinned independently.
-- **Palette → scheme (`lib/constants/theme/palette_theme.dart`):** tonal-spot
-  ramps from the palette's form colour (tertiary from its accent); the
+- **Palette → scheme (`lib/constants/theme/palette_theme.dart`):** ramps
+  from the palette's form colour with Material's neutral variant
+  (`MeditejoColorTokens.variant`), tertiary from its accent with tonal spot
+  (`accentVariant`); the
   palette's neutrals as surfaces and text; text roles held at WCAG AA on
   every surface (`legibleOn`). `MeditejoPalette` (a theme extension) carries
   the palette to the mark, which drops its tile on the app's background and
