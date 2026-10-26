@@ -98,25 +98,28 @@ void main() {
       });
     }
 
-    test('a playlist page previews the course and offers no Single', () async {
-      final preview = await previewOf(listOne);
+    test(
+      'a playlist page previews the course and offers a Single pick',
+      () async {
+        final preview = await previewOf(listOne);
 
-      expect(api.playlistCalls, [listOne]);
-      expect(api.videoCalls, isEmpty);
-      expect(preview.entryId, ytPlaylistId(playlistOne));
-      expect(preview.kind, LibraryKind.course);
-      expect(preview.allowedKinds, {LibraryKind.course});
-      expect(preview.title, 'Evening Sits');
-      expect(preview.subtitle, 'Quiet Channel');
-      expect(preview.itemCount, 3, reason: 'repeats count');
-      expect(preview.durationMs, 2400000);
-      expect(preview.durationComplete, isTrue);
-      expect(
-        [for (final i in preview.firstItems) i.title],
-        ['First sit', 'Second sit', 'First sit'],
-      );
-      expect(preview.attribution?.url, listOne);
-    });
+        expect(api.playlistCalls, [listOne]);
+        expect(api.videoCalls, isEmpty);
+        expect(preview.entryId, ytPlaylistId(playlistOne));
+        expect(preview.kind, LibraryKind.course);
+        expect(preview.allowedKinds, {LibraryKind.course, LibraryKind.single});
+        expect(preview.title, 'Evening Sits');
+        expect(preview.subtitle, 'Quiet Channel');
+        expect(preview.itemCount, 3, reason: 'repeats count');
+        expect(preview.durationMs, 2400000);
+        expect(preview.durationComplete, isTrue);
+        expect(
+          [for (final i in preview.firstItems) i.title],
+          ['First sit', 'Second sit', 'First sit'],
+        );
+        expect(preview.attribution?.url, listOne);
+      },
+    );
 
     test(
       'a watch link inside a list previews the course, offers both',
@@ -219,7 +222,12 @@ void main() {
         const gone = 'https://www.youtube.com/watch?v=ggggggggggg';
         final preview = await previewOf('$gone&list=$playlistOne');
         expect(preview.entryId, ytPlaylistId(playlistOne));
-        expect(preview.allowedKinds, {LibraryKind.course});
+        expect(preview.kind, LibraryKind.course);
+        expect(
+          preview.defaultEpisodeId,
+          videoA,
+          reason: 'with no video of its own, Single starts at the list top',
+        );
       });
 
       test('both unusable is the calm unavailable failure', () async {

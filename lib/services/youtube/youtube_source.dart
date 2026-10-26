@@ -134,14 +134,19 @@ class YoutubeSource
               for (final item in playlist.items)
                 // A video listed twice is one choice.
                 if (listed.add(item.videoId))
-                  ImportEpisode(
-                    id: item.videoId,
-                    title: item.title,
-                    durationMs: item.durationSeconds > 0
-                        ? item.durationSeconds * 1000
-                        : null,
-                    artworkUrl: item.thumbnail,
-                  ),
+                  // The video in the link was resolved in full; it speaks
+                  // for itself where the list only summarises it.
+                  if (item.videoId == video?.videoId)
+                    _episodeOfVideo(video!)
+                  else
+                    ImportEpisode(
+                      id: item.videoId,
+                      title: item.title,
+                      durationMs: item.durationSeconds > 0
+                          ? item.durationSeconds * 1000
+                          : null,
+                      artworkUrl: item.thumbnail,
+                    ),
             ];
       return ImportPreview(
         origin: ImportOrigin.youtube,
