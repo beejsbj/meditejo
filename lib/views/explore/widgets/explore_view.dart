@@ -1,35 +1,38 @@
 import 'dart:async';
+import 'dart:math' as math;
 
-import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
+import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/models/explore/explore_list_item.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/main_tab_provider.dart';
-import 'package:medito/services/library/library_models.dart';
+import 'package:medito/providers/pack/pack_provider.dart';
+import 'package:medito/routes/routes.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
+import 'package:medito/services/library/library_models.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
 import 'package:medito/views/dharma_seed/widgets/teacher_widgets.dart';
 import 'package:medito/views/explore/widgets/kind_chips.dart';
 import 'package:medito/views/explore/widgets/library_state_card.dart';
-import 'package:medito/views/explore/widgets/pack_grid_sliver.dart';
-import 'package:medito/views/home/widgets/header/home_header_widget.dart';
-import 'package:medito/views/tags/widgets/tag_chips.dart';
-import 'package:medito/utils/utils.dart';
-import 'package:medito/views/my_courses/playlist_label.dart';
+import 'package:medito/views/library/library_actions.dart';
+import 'package:medito/views/library/library_widgets.dart';
+import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/search/search_results.dart';
-import 'package:medito/widgets/filter_pill.dart';
-import 'package:medito/widgets/medito_icon.dart';
-import 'package:medito/constants/icons/medito_icons.dart';
-import 'package:medito/widgets/section_header.dart';
+import 'package:medito/views/tags/widgets/tag_chips.dart';
+import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
+import 'package:medito/widgets/add_to_library_icon.dart';
+import 'package:medito/widgets/cards/card_art.dart';
+import 'package:medito/widgets/cards/card_tokens.dart';
+import 'package:medito/widgets/cards/course_card.dart';
+import 'package:medito/widgets/cards/section_title.dart';
 import 'package:medito/widgets/widgets.dart';
 
 /// A few starting points shown beside the empty search field. They are
@@ -38,10 +41,11 @@ import 'package:medito/widgets/widgets.dart';
 const searchSuggestions = ['Rob Burbea', 'metta', 'jhana', 'emptiness'];
 
 /// The Explore tab: find something to add. A search field sits at the top.
-/// With nothing typed it browses: Practice and Talks chips, the library's
-/// courses, Dharma Seed retreats as courses, the teachers behind them and,
-/// once a chip is chosen, the latest single sessions. Typing replaces that
-/// with grouped results (Teachers, Courses, Talks), the user's library first.
+/// With nothing typed it browses: Practice and Talks chips, "In your library"
+/// as a strip of small cards, Dharma Seed retreats as large course cards, the
+/// teachers behind them, and the latest single sessions (guided practice
+/// unless Talks is chosen). Typing replaces that with grouped results
+/// (Teachers, Courses, Talks), the user's library first.
 class ExploreView extends ConsumerStatefulWidget {
   const ExploreView({super.key});
 
@@ -153,15 +157,19 @@ class ExploreViewState extends ConsumerState<ExploreView> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(
-                  padding16,
-                  padding16,
-                  padding16,
+                  kCardGutter + 4,
+                  kCardGutter,
+                  kCardGutter,
                   0,
                 ),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: HomeHeaderWidget(
-                    greeting: AppLocalizations.of(context)!.explore,
+                  child: Semantics(
+                    header: true,
+                    child: Text(
+                      AppLocalizations.of(context)!.explore,
+                      style: context.typography.emphasized.headlineMedium,
+                    ),
                   ),
                 ),
               ),
@@ -183,48 +191,36 @@ class ExploreViewState extends ConsumerState<ExploreView> {
 
   Widget _searchField(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final onSurface = Theme.of(context).colorScheme.onSurface;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        padding16,
-        padding16,
-        padding16,
-        padding8,
-      ),
+      padding: const EdgeInsets.fromLTRB(kCardGutter, 12, kCardGutter, 8),
       child: ValueListenableBuilder<TextEditingValue>(
         valueListenable: _controller,
-        builder: (context, value, _) => MeditoTextField(
+        builder: (context, value, _) => SearchBar(
           key: const ValueKey('explore_search_field'),
           controller: _controller,
           focusNode: _focusNode,
           hintText: l10n.exploreSearchHint,
           textInputAction: TextInputAction.search,
-          prefixIcon: Padding(
-            padding: const EdgeInsets.only(left: 14, right: 10),
-            child: MeditoIcon(
-              assetName: MeditoIcons.search,
-              color: onSurface.withOpacityValue(0.6),
-              size: 18,
-            ),
+          elevation: const WidgetStatePropertyAll(0),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(horizontal: 16),
           ),
-          suffixIcon: value.text.isEmpty
-              ? null
-              : IconButton(
-                  tooltip: l10n.clearSearch,
-                  iconSize: 20,
-                  onPressed: _clear,
-                  icon: Icon(
-                    Icons.cancel,
-                    color: onSurface.withOpacityValue(0.6),
-                  ),
-                ),
+          leading: const Icon(Icons.search_rounded),
+          trailing: [
+            if (value.text.isNotEmpty)
+              IconButton(
+                tooltip: l10n.clearSearch,
+                onPressed: _clear,
+                icon: const Icon(Icons.close_rounded),
+              ),
+          ],
           onChanged: _onChanged,
         ),
       ),
     );
   }
 
-  /// Nothing typed: the chips, suggestions and what there is to add.
+  /// Nothing typed: the chips and suggestions, then what there is to add.
   Widget _browse() {
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -232,33 +228,39 @@ class ExploreViewState extends ConsumerState<ExploreView> {
         physics: const AlwaysScrollableScrollPhysics(),
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
-          const SliverToBoxAdapter(child: ExploreKindChips()),
-          SliverToBoxAdapter(
+          const SliverToBoxAdapter(
             child: Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: ExploreKindChips(),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.fromLTRB(
-                padding16,
-                padding8,
-                padding16,
+                kCardGutter,
+                4,
+                kCardGutter,
                 0,
               ),
-              child: Wrap(
-                spacing: padding8,
-                runSpacing: padding8,
+              child: Row(
                 children: [
-                  for (final suggestion in searchSuggestions)
-                    FilterPill(
+                  for (final (i, suggestion) in searchSuggestions.indexed) ...[
+                    if (i > 0) const SizedBox(width: 8),
+                    ActionChip(
                       key: ValueKey('suggestion_$suggestion'),
-                      label: suggestion,
-                      selected: false,
-                      onTap: () => _useSuggestion(suggestion),
+                      avatar: const Icon(Icons.search_rounded),
+                      label: Text(suggestion),
+                      onPressed: () => _useSuggestion(suggestion),
                     ),
+                  ],
                 ],
               ),
             ),
           ),
           // Browse-by-tag strip, hidden when the local catalog has no tags.
           const SliverToBoxAdapter(
-            child: ExploreTagChips(padding: EdgeInsets.only(top: padding8)),
+            child: ExploreTagChips(padding: EdgeInsets.only(top: 4)),
           ),
           ..._buildContent(),
           SliverPadding(
@@ -270,6 +272,14 @@ class ExploreViewState extends ConsumerState<ExploreView> {
       ),
     );
   }
+
+  /// A section's heading, with the gap above it.
+  Widget _title(String text) => SliverToBoxAdapter(
+    child: Padding(
+      padding: const EdgeInsets.only(top: 28),
+      child: SectionTitle(text),
+    ),
+  );
 
   List<Widget> _buildContent() {
     final group = ref.watch(exploreGroupProvider);
@@ -305,45 +315,26 @@ class ExploreViewState extends ConsumerState<ExploreView> {
             .toList() ??
         const <LibraryEntry>[];
     final l10n = AppLocalizations.of(context)!;
-    final libraryHeading = library.isEmpty
+    final libraryStrip = library.isEmpty
         ? const <Widget>[]
         : [
-            SliverToBoxAdapter(
-              child: SectionHeader(title: l10n.exploreLibraryHeading),
-            ),
-            PackGridSliver(
-              packs: [
-                for (final entry in library)
-                  PackItem(
-                    id: entry.sourceId,
-                    title: entry.displayTitle,
-                    subtitle:
-                        playlistAwareDetail(
-                          l10n,
-                          entry.sourceId,
-                          entry.subtitle,
-                        ) ??
-                        '',
-                    coverUrl: entry.coverUrl,
-                    path: '/packs/${entry.sourceId}',
-                  ),
-              ],
-            ),
+            _title(l10n.exploreLibraryHeading),
+            SliverToBoxAdapter(child: _LibraryStrip(entries: library)),
           ];
 
     if (explore.isEmpty) {
       return [
-        ...libraryHeading,
+        ...libraryStrip,
         SliverFillRemaining(
           hasScrollBody: false,
           child: Center(
             child: explore.hasCatalogue
                 ? Padding(
-                    padding: const EdgeInsets.all(padding24),
+                    padding: const EdgeInsets.all(24),
                     child: Text(
-                      AppLocalizations.of(context)!.exploreNothingInGroup,
+                      l10n.exploreNothingInGroup,
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyLarge,
+                      style: context.typography.baseline.bodyLarge,
                     ),
                   )
                 : const LibraryStateCard(),
@@ -353,44 +344,141 @@ class ExploreViewState extends ConsumerState<ExploreView> {
     }
 
     return [
-      ...libraryHeading,
+      ...libraryStrip,
       if (explore.courses.isNotEmpty) ...[
-        SliverToBoxAdapter(child: SectionHeader(title: l10n.exploreCourses)),
-        PackGridSliver(packs: _packs(explore.courses)),
+        _title(l10n.exploreCourses),
+        SliverToBoxAdapter(child: _CourseStrip(courses: explore.courses)),
       ],
       if (explore.savedTeachers.isNotEmpty) ...[
-        SliverToBoxAdapter(
-          child: SectionHeader(title: l10n.exploreSavedTeachers),
-        ),
+        _title(l10n.exploreSavedTeachers),
         SliverToBoxAdapter(
           child: TeacherStrip(teachers: explore.savedTeachers),
         ),
       ],
       if (explore.teachers.isNotEmpty) ...[
-        SliverToBoxAdapter(child: SectionHeader(title: l10n.exploreTeachers)),
+        _title(l10n.exploreTeachers),
         SliverToBoxAdapter(child: TeacherStrip(teachers: explore.teachers)),
       ],
       if (explore.talks.isNotEmpty) ...[
-        SliverToBoxAdapter(
-          child: SectionHeader(
-            title: group == DsContentGroup.practice
-                ? l10n.exploreLatestPractice
-                : l10n.exploreLatestTalks,
-          ),
+        _title(
+          group == DsContentGroup.talks
+              ? l10n.exploreLatestTalks
+              : l10n.exploreLatestPractice,
         ),
         SessionRowsSliver(items: explore.talks),
       ],
     ];
   }
+}
 
-  List<PackItem> _packs(List<PackItemsModel> items) => [
-    for (final item in items)
-      PackItem(
-        id: item.id,
-        title: item.title,
-        subtitle: item.subtitle ?? '',
-        coverUrl: item.coverUrl ?? '',
-        path: item.path,
+/// "In your library": the courses and playlists the user keeps, as a strip of
+/// small cards. Each opens its page.
+class _LibraryStrip extends ConsumerWidget {
+  const _LibraryStrip({required this.entries});
+
+  final List<LibraryEntry> entries;
+
+  static const _width = 136.0;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    return SizedBox(
+      height: CourseCard.heightFor(
+        context,
+        width: _width,
+        size: CourseCardSize.compact,
+        detail: false,
       ),
-  ];
+      child: ListView.separated(
+        key: const ValueKey('explore_library_strip'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: kCardGutter),
+        itemCount: entries.length,
+        separatorBuilder: (_, _) => const SizedBox(width: kCardGap),
+        itemBuilder: (context, i) {
+          final entry = entries[i];
+          return SizedBox(
+            width: _width,
+            child: CourseCard(
+              key: ValueKey('pack_${entry.sourceId}'),
+              size: CourseCardSize.compact,
+              title: entry.displayTitle,
+              overline: librarySourceLabel(l10n, entry.sourceId),
+              art: CardArt(
+                url: entry.coverUrl,
+                seed: entry.displayTitle,
+                portrait: hasPortraitCover(entry.sourceId),
+                avatarSize: 28,
+              ),
+              onTap: () => openLibraryEntry(context, ref, entry),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Dharma Seed's courses as a strip of large cards: generated art with the
+/// teacher's photo, the name, "teacher · year · N talks", and a quiet Add to
+/// library on the art.
+class _CourseStrip extends ConsumerWidget {
+  const _CourseStrip({required this.courses});
+
+  final List<PackItemsModel> courses;
+
+  static const _width = 288.0;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final completed = ref.watch(completedPackIdsProvider);
+    // Narrow phones keep a peek of the next card.
+    final width = math.min(
+      _width,
+      MediaQuery.sizeOf(context).width - 2 * kCardGutter - 40,
+    );
+    return SizedBox(
+      height: CourseCard.heightFor(
+        context,
+        width: width,
+        size: CourseCardSize.large,
+        overline: false,
+      ),
+      child: ListView.separated(
+        key: const ValueKey('explore_course_strip'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: kCardGutter),
+        itemCount: courses.length,
+        separatorBuilder: (_, _) => const SizedBox(width: kCardGap),
+        itemBuilder: (context, i) {
+          final course = courses[i];
+          return SizedBox(
+            width: width,
+            child: CourseCard(
+              key: ValueKey('pack_${course.id}'),
+              size: CourseCardSize.large,
+              title: course.title,
+              detail: course.subtitle,
+              art: CardArt(
+                url: course.coverUrl ?? '',
+                seed: course.title,
+                portrait: hasPortraitCover(course.id),
+              ),
+              badge: completed.contains(course.id)
+                  ? const PackCompleteBadge()
+                  : null,
+              action: AddToLibraryIcon(id: course.id),
+              onTap: () => handleNavigation(
+                TypeConstants.pack,
+                [course.id, course.path],
+                context,
+                ref: ref,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }

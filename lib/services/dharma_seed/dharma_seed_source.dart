@@ -296,9 +296,11 @@ class DharmaSeedSource
         final top = await db.topTeachers(group: group, limit: 20);
         final savedSet = {for (final t in savedTeachers) t.id};
 
-        final talks = group == null
-            ? const <DsTalkWithTeacher>[]
-            : await db.recentTalks(filter: DsTalkFilter(group: group));
+        // With no chip, the latest guided practice: practice leads where
+        // nothing else decides (decision 11).
+        final talks = await db.recentTalks(
+          filter: DsTalkFilter(group: group ?? DsContentGroup.practice),
+        );
 
         return DsExplore(
           courses: [for (final r in courses) course(r)],
