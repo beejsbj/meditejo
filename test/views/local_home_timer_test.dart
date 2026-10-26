@@ -231,7 +231,7 @@ Future<ProviderContainer> _home(
 }
 
 Future<void> _openTimer(WidgetTester tester) async {
-  final open = find.byKey(const ValueKey('quick_timer'));
+  final open = find.byKey(const ValueKey('shortcut_timer'));
   expect(open, findsOneWidget);
   await tester.ensureVisible(open);
   await tester.tap(open);
@@ -430,7 +430,7 @@ void main() {
       );
       // Not the first built-in: that is also Practice's default mix.
       final preset = kStarterPresets[1];
-      final tile = find.byKey(ValueKey('quick_preset_${preset.id}'));
+      final tile = find.byKey(ValueKey('shortcut_preset_${preset.id}'));
       await tester.ensureVisible(tile);
       await tester.pump();
       await tester.tap(tile);
