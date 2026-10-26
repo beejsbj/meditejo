@@ -1072,5 +1072,6 @@
   "myCourseRemoveWarning": "{count, plural, =1{También está en uno de tus cursos, donde aparecerá como no disponible.} other{También está en {count} de tus cursos, donde aparecerá como no disponible.}}",
   "myCourseMore": "Más opciones",
   "myCourseRemovedSnack": "Quitada del curso",
-  "myCourseEditAction": "Editar"
+  "myCourseEditAction": "Editar",
+  "navYou": "Tú"
 }

@@ -2609,4 +2609,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get myCourseEditAction => 'Bearbeiten';
+
+  @override
+  String get navYou => 'Du';
 }

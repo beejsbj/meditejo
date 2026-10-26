@@ -4557,6 +4557,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit'**
   String get myCourseEditAction;
+
+  /// The tab bar's last tab: the user's own place (stats and settings)
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get navYou;
 }
 
 class _AppLocalizationsDelegate

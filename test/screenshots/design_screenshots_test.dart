@@ -10,7 +10,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medito/constants/icons/medito_icons.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/home/continue_provider.dart';
@@ -137,11 +137,12 @@ void main() {
     if (_enabled) await _loadFonts();
   });
 
-  final nav = [
-    const MeditoNavItem(icon: MeditoIcons.home, label: 'Home'),
-    const MeditoNavItem(icon: MeditoIcons.search, label: 'Explore'),
-    const MeditoNavItem(icon: MeditoIcons.libraries, label: 'Library'),
-    const MeditoNavItem(icon: MeditoIcons.settings, label: 'Settings'),
+  const nav = [
+    MeditoNavItem(icon: Symbols.home_rounded, label: 'Home'),
+    MeditoNavItem(icon: Symbols.search_rounded, label: 'Explore'),
+    MeditoNavItem(icon: Symbols.graphic_eq_rounded, label: 'Sounds'),
+    MeditoNavItem(icon: Symbols.library_books_rounded, label: 'Library'),
+    MeditoNavItem(icon: Symbols.person_rounded, label: 'You'),
   ];
 
   for (final brightness in Brightness.values) {
@@ -184,16 +185,7 @@ void main() {
             Scaffold(
               body: const SizedBox.expand(),
               bottomNavigationBar: MeditoNavBar(
-                items: [
-                  nav[0],
-                  nav[1],
-                  const MeditoNavItem(
-                    icon: MeditoIcons.musicNote,
-                    label: 'Sounds',
-                  ),
-                  nav[2],
-                  const MeditoNavItem(icon: MeditoIcons.settings, label: 'You'),
-                ],
+                items: nav,
                 selectedIndex: 2,
                 onSelected: (_) {},
               ),

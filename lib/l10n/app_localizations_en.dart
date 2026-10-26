@@ -2569,4 +2569,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myCourseEditAction => 'Edit';
+
+  @override
+  String get navYou => 'You';
 }

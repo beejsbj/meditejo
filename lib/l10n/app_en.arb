@@ -2789,5 +2789,9 @@
   "myCourseEditAction": "Edit",
   "@myCourseEditAction": {
     "description": "Button on a personal course page that opens its edit screen"
+  },
+  "navYou": "You",
+  "@navYou": {
+    "description": "The tab bar's last tab: the user's own place (stats and settings)"
   }
 }
