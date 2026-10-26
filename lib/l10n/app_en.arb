@@ -2793,5 +2793,64 @@
   "navYou": "You",
   "@navYou": {
     "description": "The tab bar's last tab: the user's own place (stats and settings)"
+  },
+  "soundsMixEmptyTitle": "Nothing in your mix yet",
+  "@soundsMixEmptyTitle": {
+    "description": "The Sounds tab's mix panel when the mix has no layers"
+  },
+  "soundsMixEmptyHint": "Tap a sound or a preset to start a mix.",
+  "@soundsMixEmptyHint": {
+    "description": "Under the empty mix: how to start one"
+  },
+  "soundsMute": "Mute {sound}",
+  "@soundsMute": {
+    "description": "Button on a layer of the mix that silences it",
+    "placeholders": {
+      "sound": {
+        "type": "String"
+      }
+    }
+  },
+  "soundsUnmute": "Unmute {sound}",
+  "@soundsUnmute": {
+    "description": "Button on a muted layer of the mix that brings its sound back",
+    "placeholders": {
+      "sound": {
+        "type": "String"
+      }
+    }
+  },
+  "soundsShowMix": "Show your mix",
+  "@soundsShowMix": {
+    "description": "Opens the mix panel docked at the bottom of the Sounds tab"
+  },
+  "soundsHideMix": "Hide your mix",
+  "@soundsHideMix": {
+    "description": "Folds the mix panel back down to its bar"
+  },
+  "soundsMixVolume": "Mix volume",
+  "@soundsMixVolume": {
+    "description": "Screen-reader label of the slider for the whole mix's volume"
+  },
+  "soundsPlayPreset": "Play {name}",
+  "@soundsPlayPreset": {
+    "description": "Screen-reader label of a preset card, which starts the preset",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "soundsPresetPlaying": "Playing",
+  "@soundsPresetPlaying": {
+    "description": "Badge on the preset card that is playing now"
+  },
+  "soundsAdjust": "Adjust",
+  "@soundsAdjust": {
+    "description": "Button on a generated layer (noise, drone, binaural beats) that opens its settings"
+  },
+  "soundsEditMix": "Edit your mix in Sounds",
+  "@soundsEditMix": {
+    "description": "In the player's Customize sheet, under Background sound: opens the Sounds screen"
   }
 }

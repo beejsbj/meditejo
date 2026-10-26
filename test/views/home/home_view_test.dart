@@ -7,10 +7,10 @@ import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
+import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/services/home/continue_rules.dart';
 import 'package:medito/services/library/library_models.dart';
-import 'package:medito/views/background_sound/background_sound_view.dart';
 import 'package:medito/views/home/customise_home_layout_screen.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/library/import_view.dart';
@@ -167,11 +167,15 @@ void main() {
       expect(find.byType(TimerView), findsOneWidget);
     });
 
-    testWidgets('Sounds opens the background sound picker', (tester) async {
+    testWidgets('Sounds opens the Sounds tab', (tester) async {
       await home(tester);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(HomeView)),
+      );
+      expect(container.read(mainTabProvider), MainTab.home);
       await tester.tap(find.byKey(const ValueKey('quick_sounds')));
       await settle(tester);
-      expect(find.byType(BackgroundSoundView), findsOneWidget);
+      expect(container.read(mainTabProvider), MainTab.sounds);
     });
 
     testWidgets('Add opens import', (tester) async {

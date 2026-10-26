@@ -13,7 +13,8 @@ import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
-import 'package:medito/views/soundscape/sounds_panel.dart';
+import 'package:medito/views/soundscape/sound_labels.dart';
+import 'package:medito/views/soundscape/sounds_view.dart';
 
 /// When a session started or running now will end. While playing
 /// ([positionMs] > 0) the countdown has already been spent, and a timer's
@@ -613,7 +614,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
 
   /// A course override keeps its choice in its own cue settings. Otherwise
   /// the choice is the kind's, and the mixer holds it (with the on/off and
-  /// the volume), so the Sounds sheet's switches show the same thing.
+  /// the volume), so the Sounds screen's switches show the same thing.
   void _chooseSoundscape(CueSettings s, SoundscapeSelection choice) {
     if (_courseOverride) {
       _edit(s.copyWith(soundscape: choice.encode()));
@@ -697,6 +698,20 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
                     .read(soundscapeProvider.notifier)
                     .setSessionVolume(_soundscapeKind, v / 100),
               ),
+            // The mix itself (what "Current mix" plays) is made on the
+            // Sounds screen, full height over the sheet.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: OutlinedButton.icon(
+                key: const ValueKey('customize_open_sounds'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                onPressed: () => openSoundsPage(context),
+                icon: const Icon(Icons.graphic_eq_rounded),
+                label: Text(l10n?.soundsEditMix ?? 'Edit your mix in Sounds'),
+              ),
+            ),
           ],
         );
       },

@@ -20,8 +20,8 @@ import 'package:medito/views/library/share_intake_host.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/views/library/library_view.dart';
-import 'package:medito/views/background_sound/background_sound_view.dart';
 import 'package:medito/views/settings/settings_screen.dart';
+import 'package:medito/views/soundscape/sounds_view.dart';
 
 class BottomNavigationBarView extends ConsumerStatefulWidget {
   const BottomNavigationBarView({super.key});
@@ -36,6 +36,7 @@ class _BottomNavigationBarViewState
   // Nav destination index == MainTab index == page index in _pages: Home,
   // Explore, Sounds, Library, You. Search lives inside Explore.
   final _exploreViewKey = GlobalKey<ExploreViewState>();
+  final _soundsViewKey = GlobalKey<SoundsViewState>();
   late final List<Widget> _pages;
   bool _restoringEndScreen = false;
 
@@ -150,6 +151,11 @@ class _BottomNavigationBarViewState
           canPop: currentTab == MainTab.home,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
+            // An open mix panel folds first; then back returns Home.
+            if (currentTab == MainTab.sounds &&
+                (_soundsViewKey.currentState?.collapseMix() ?? false)) {
+              return;
+            }
             _onDestinationSelected(MainTab.home.index);
           },
           child: Scaffold(
@@ -211,7 +217,7 @@ class _BottomNavigationBarViewState
   Widget _page(MainTab tab) => switch (tab) {
     MainTab.home => const HomeView(),
     MainTab.explore => ExploreView(key: _exploreViewKey),
-    MainTab.sounds => const BackgroundSoundView(),
+    MainTab.sounds => SoundsView(key: _soundsViewKey),
     MainTab.library => const LibraryView(),
     // You's own screen (stats and Settings) replaces this line.
     MainTab.you => const SettingsScreen(),
@@ -254,5 +260,6 @@ class _BottomNavigationBarViewState
       _exploreViewKey.currentState?.loadData();
       catchUpDharmaSeed(ref);
     }
+    if (tab == MainTab.sounds) retryLegacySounds(ref.container);
   }
 }

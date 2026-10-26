@@ -2572,4 +2572,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get navYou => 'You';
+
+  @override
+  String get soundsMixEmptyTitle => 'Nothing in your mix yet';
+
+  @override
+  String get soundsMixEmptyHint => 'Tap a sound or a preset to start a mix.';
+
+  @override
+  String soundsMute(String sound) {
+    return 'Mute $sound';
+  }
+
+  @override
+  String soundsUnmute(String sound) {
+    return 'Unmute $sound';
+  }
+
+  @override
+  String get soundsShowMix => 'Show your mix';
+
+  @override
+  String get soundsHideMix => 'Hide your mix';
+
+  @override
+  String get soundsMixVolume => 'Mix volume';
+
+  @override
+  String soundsPlayPreset(String name) {
+    return 'Play $name';
+  }
+
+  @override
+  String get soundsPresetPlaying => 'Playing';
+
+  @override
+  String get soundsAdjust => 'Adjust';
+
+  @override
+  String get soundsEditMix => 'Edit your mix in Sounds';
 }
