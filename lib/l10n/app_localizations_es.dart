@@ -2613,6 +2613,49 @@ class AppLocalizationsEs extends AppLocalizations {
   String get myCourseEditAction => 'Editar';
 
   @override
+  String get navYou => 'Tú';
+
+  @override
+  String get soundsMixEmptyTitle => 'Tu mezcla aún está vacía';
+
+  @override
+  String get soundsMixEmptyHint =>
+      'Toca un sonido o un preajuste para empezar una mezcla.';
+
+  @override
+  String soundsMute(String sound) {
+    return 'Silenciar $sound';
+  }
+
+  @override
+  String soundsUnmute(String sound) {
+    return 'Activar $sound';
+  }
+
+  @override
+  String get soundsShowMix => 'Mostrar tu mezcla';
+
+  @override
+  String get soundsHideMix => 'Ocultar tu mezcla';
+
+  @override
+  String get soundsMixVolume => 'Volumen de la mezcla';
+
+  @override
+  String soundsPlayPreset(String name) {
+    return 'Reproducir $name';
+  }
+
+  @override
+  String get soundsPresetPlaying => 'Sonando';
+
+  @override
+  String get soundsAdjust => 'Ajustar';
+
+  @override
+  String get soundsEditMix => 'Editar tu mezcla en Sonidos';
+
+  @override
   String get playlistKind => 'Lista';
 
   @override

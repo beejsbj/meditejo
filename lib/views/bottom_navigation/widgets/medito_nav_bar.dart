@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:medito/widgets/medito_icon.dart';
 
 class MeditoNavItem {
   const MeditoNavItem({required this.icon, required this.label});
 
-  /// SVG asset name, see [MeditoIcons].
-  final String icon;
+  /// A Material Symbols glyph (`Symbols.*_rounded`). It is drawn outlined,
+  /// and filled when its tab is selected, as Material 3 asks.
+  final IconData icon;
   final String label;
+
+  Widget iconFor(Color color, {required bool selected, double size = 24}) =>
+      Icon(icon, color: color, size: size, fill: selected ? 1 : 0);
 }
 
 /// The phone's tab bar: Material's navigation bar, styled by the theme
@@ -37,15 +40,10 @@ class MeditoNavBar extends StatelessWidget {
       destinations: [
         for (final item in items)
           NavigationDestination(
-            icon: MeditoIcon(
-              assetName: item.icon,
-              color: scheme.onSurfaceVariant,
-              size: 24,
-            ),
-            selectedIcon: MeditoIcon(
-              assetName: item.icon,
-              color: scheme.onSecondaryContainer,
-              size: 24,
+            icon: item.iconFor(scheme.onSurfaceVariant, selected: false),
+            selectedIcon: item.iconFor(
+              scheme.onSecondaryContainer,
+              selected: true,
             ),
             label: item.label,
           ),

@@ -8,6 +8,7 @@ import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
+import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/soundscape_fakes.dart';
@@ -206,6 +207,28 @@ void main() {
     expect(find.text('Volume'), findsNothing);
     await _closeSub(tester);
     expect(find.text('Off'), findsWidgets);
+    await _unmount(tester);
+  });
+
+  testWidgets('background sound opens the Sounds screen to edit the mix', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await tester.ensureVisible(find.text('Background sound'));
+    await tester.tap(find.text('Background sound'));
+    await tester.pumpAndSettle();
+    final edit = find.byKey(const ValueKey('customize_open_sounds'));
+    await tester.ensureVisible(edit);
+    await tester.tap(edit);
+    await tester.pumpAndSettle();
+    // Full height, over the sheets, not another drawer.
+    expect(find.byType(SoundsView), findsOneWidget);
+    expect(tester.widget<SoundsView>(find.byType(SoundsView)).standalone, true);
+    // It closes like a full-screen dialog.
+    await tester.tap(find.byType(CloseButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(SoundsView), findsNothing);
+    expect(edit, findsOneWidget, reason: 'back to the choice');
     await _unmount(tester);
   });
 

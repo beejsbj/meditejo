@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:medito/exceptions/app_error.dart';
-import 'package:medito/views/background_sound/background_sound_view.dart';
+import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
@@ -177,7 +177,9 @@ void main() {
     expect(find.text('Campanas de sesión'), findsOneWidget);
   });
 
-  testWidgets('the Sounds sheet offers no legacy bells switch', (tester) async {
+  testWidgets('the Sounds screen offers no legacy bells switch', (
+    tester,
+  ) async {
     final notifier = _FakeNotifier(const BackgroundSoundsState());
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
@@ -194,15 +196,24 @@ void main() {
         child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(body: BackgroundSoundView()),
+          home: SoundsView(),
         ),
       ),
     );
     await tester.pumpAndSettle();
     // Customize's cue scheduler owns bells; a switch here (reachable from
     // the player) would ring a second set over the cues.
-    final end = find.text('Sound credits');
-    await tester.scrollUntilVisible(end, 200);
+    final end = find.byKey(const ValueKey('sound_credits_footer'));
+    await tester.scrollUntilVisible(
+      end,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const PageStorageKey('sounds_library')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     expect(end, findsOneWidget);
     expect(find.text('Session bells'), findsNothing);
     expect(find.byType(Switch), findsNWidgets(2), reason: 'practice, talks');

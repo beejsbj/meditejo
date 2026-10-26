@@ -72,6 +72,7 @@ dependencies:
   path: ^1.9.1
   sqlite3: ^2.9.4
   flutter_soloud: 4.1.7
+  material_symbols_icons: ^4.2960.0
 
 dev_dependencies:
   flutter_test:

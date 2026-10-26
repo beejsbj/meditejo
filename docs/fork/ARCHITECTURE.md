@@ -344,19 +344,30 @@ clipboard reader and share intake as providers, so tests need no platform.
 
 ### Screens
 
-- **Tabs** (`lib/views/bottom_navigation/`): **Home · Explore · Library ·
-  Settings**. `MainTab` and `mainTabProvider` (`lib/providers/main_tab_provider.dart`)
-  hold the selected tab, so any screen or link can move it; the main screen
-  listens, drops the keyboard, and on Explore loads its lists and runs the
-  Dharma Seed catch-up. Android back from any other tab returns Home. The
-  saved tab (`last_main_tab_index`, with `main_tab_layout` = 2 saying which bar
-  wrote it) restores Home, Explore or Library, never Settings. The first bar
-  (Home · Explore · Search · Settings) only ever saved 0 or 1, which mean the
-  same now; any other value opens Home, and the first launch rewrites the pair.
-  `meditejo://home`, `explore`, `library` and `search` (Explore with the cursor
-  in its field, via `exploreFocusRequestProvider`) select a tab and close what
-  is open above it (`tabForLink` in `lib/routes/routes.dart`). Track and pack
-  links, the Up Next widget and the share target push pages as before.
+- **Tabs** (`lib/views/bottom_navigation/`): **Home · Explore · Sounds ·
+  Library · You** (BRIEF decision 18). `MainTab` and `mainTabProvider`
+  (`lib/providers/main_tab_provider.dart`) hold the selected tab, so any screen
+  or link can move it; the main screen listens, drops the keyboard, on Explore
+  loads its lists and runs the Dharma Seed catch-up, and on Sounds retries a
+  failed legacy background-sound fetch. Android back from any other tab
+  returns Home, except that on Sounds an open mix panel folds first
+  (`SoundsViewState.collapseMix`, through a `GlobalKey`). **`MainTab`'s order
+  is a saved format** (`last_main_tab_index`, with `main_tab_layout` saying
+  which bar wrote it; now 3). `MainTab.restore` maps a saved index through
+  the bar that wrote it (`_olderLayouts`): the first bar (Home · Explore ·
+  Search · Settings, no layout) saved only 0 or 1; layout 2 (Home · Explore ·
+  Library · Settings) keeps Home, Explore and Library, and its Settings is
+  You. You is never restored or saved (nor Settings before it); an index that
+  names nothing, or an unknown layout, opens Home; the first launch rewrites
+  the pair in layout 3's terms. Tab icons are Material Symbols
+  (`material_symbols_icons`, rounded, filled when selected); `MeditoNavItem`
+  takes an `IconData`. **You** shows `SettingsScreen` for now, in one line of
+  `_page`, so its own screen can replace it. `meditejo://home`, `explore`,
+  `sounds`, `library`, `you`, `settings` (You) and `search` (Explore with the
+  cursor in its field, via `exploreFocusRequestProvider`) select a tab and
+  close what is open above it (`tabForLink` in `lib/routes/routes.dart`).
+  Track and pack links, the Up Next widget and the share target push pages
+  as before.
 - **Explore** (`lib/views/explore/`) is find-something-to-add, with a **search
   field at the top** (Material's `SearchBar`). Nothing typed: Practice and
   Talks chips and the starter suggestions (`searchSuggestions`), then the
@@ -454,8 +465,8 @@ and `tools/meditejo/sounds/commands.log` from `tools/meditejo/sounds/sources.jso
 Never edit the outputs by hand; change the manifest and rerun (see the script's
 docstring for the loop, loudness and encoding steps). The sounds keep their own
 licences, outside the AGPL; Settings › licences lists the mixer's native code
-(`assets/licenses/soloud-native-components.json`), and **Sound credits** (from
-the Sounds sheet) lists every recording.
+(`assets/licenses/soloud-native-components.json`), and **Sound credits** (the
+Sounds screen's app-bar button and its last row) lists every recording.
 
 **Engine.** `SoundscapeEngine` (`lib/services/soundscape/soundscape_engine.dart`)
 is implemented on **flutter_soloud 4.1.7** (pinned; see DECISIONS 2026-10-19,
@@ -483,12 +494,12 @@ preferences `soundscape_mix`, `soundscape_presets`, `soundscape_volume`,
 ### API for the player's Customize sheet
 
 The sheet's **Background sound** row should drive the mixer only through these
-(stable) members; the Sounds sheet (`showBackgroundSoundSheet`) is the place to
-build or edit a mix.
+(stable) members; the Sounds screen (`SoundsView`: the Sounds tab, or
+`openSoundsPage` over anything else) is the place to build or edit a mix.
 
 ```dart
 // What to play, as a string the cue settings can store:
-//   'mix' or ''      the current mix (as left on the Sounds sheet;
+//   'mix' or ''      the current mix (as left on the Sounds screen;
 //                    CueSettings.soundscape keeps '' for "kind default")
 //   'preset:<id>'    a preset (state.presets: starters + the user's)
 //   'sound:<id>'     one library sound
@@ -534,7 +545,25 @@ ends natively (the end screen opens without stopping the player, so the end
 bell's tail survives) ends it directly. Bells belong to the cue scheduler
 (Session cues and Customize); the legacy ambient layer follows Customize
 through `applyCueSettings`. The player's bottom row keeps the sound button,
-which opens the Sounds sheet, beside Customize.
+which opens the Sounds screen as a page (`openSoundsPage`), beside Customize.
+
+**The Sounds screen** (`lib/views/soundscape/sounds_view.dart`, BRIEF
+decisions 16 and 18) is presentation over the controller above; it adds no
+mixer state. Presets are a row of `PresetCard`s and the library a grid of
+`SoundCard`s per shelf, both on `GeneratedArtwork` (`sound_cards.dart`); a
+shelf's colour and Material Symbol come from `SoundLook`
+(`sound_labels.dart`, with the localised labels). The current mix
+(`sound_mix_panel.dart`: `SoundsMixHeader`, `SoundsMixBody`,
+`AnimatedMixLayers`) is docked at the foot, opening on
+`MeditejoMotion.expressiveSpatial`; at 840 dp or wider it is a panel beside
+the library. An empty mix stays docked. Layers enter and leave through an
+`AnimatedList` diffed against the mix, whoever changed it. **Mute** is
+`setLayerVolume(id, 0)` plus the old level in `layerUnmuteVolumesProvider`
+(in memory), so a mix or preset saved while muted keeps the layer silent.
+Entry points: Home's Sounds tile selects the tab; the player's sound button
+and Customize's Background sound sub-sheet ("Edit your mix in Sounds") push
+it full height with `openSoundsPage`, where back folds an open mix before
+closing.
 
 ## Completion, stats and favourites
 
@@ -772,7 +801,8 @@ sizes for screens not yet redesigned (`text_theme.dart`), coloured from the
 scheme. Redesigned screens use `context.typography`, `MeditejoShapes` and
 `MeditejoMotion` rather than literals. The tab bar and sidebar are Material's
 `NavigationBar` and `NavigationRail`; a tab is a `MainTab` value plus an arm
-in each of `BottomNavigationBarView`'s `_page` and `_navItem` switches.
+in each of `BottomNavigationBarView`'s `_page` and `_navItem` switches, and,
+because the order is saved, a new `MainTab.layout` with its restore rules.
 
 **Shared cards** (`lib/widgets/cards/`), used by Home, the Library, Explore,
 search and the teacher page: `PressableCard` (the 96% press dip; Home's

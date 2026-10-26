@@ -23,11 +23,14 @@ extension SanitisePath on String {
 final navigatorKey = GlobalKey<NavigatorState>();
 
 /// The tab a link such as `meditejo://library` opens; `search` is Explore with
-/// the cursor in its field. Null for anything else.
+/// the cursor in its field, and `settings` is You, where Settings lives. Null
+/// for anything else.
 MainTab? tabForLink(String type) => switch (type) {
   TypeConstants.tabHome => MainTab.home,
   TypeConstants.tabExplore || TypeConstants.tabSearch => MainTab.explore,
+  TypeConstants.tabSounds => MainTab.sounds,
   TypeConstants.tabLibrary => MainTab.library,
+  TypeConstants.tabYou || TypeConstants.tabSettings => MainTab.you,
   _ => null,
 };
 

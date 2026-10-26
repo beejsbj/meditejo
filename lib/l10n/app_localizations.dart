@@ -4558,6 +4558,78 @@ abstract class AppLocalizations {
   /// **'Edit'**
   String get myCourseEditAction;
 
+  /// The tab bar's last tab: the user's own place (stats and settings)
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get navYou;
+
+  /// The Sounds tab's mix panel when the mix has no layers
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing in your mix yet'**
+  String get soundsMixEmptyTitle;
+
+  /// Under the empty mix: how to start one
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a sound or a preset to start a mix.'**
+  String get soundsMixEmptyHint;
+
+  /// Button on a layer of the mix that silences it
+  ///
+  /// In en, this message translates to:
+  /// **'Mute {sound}'**
+  String soundsMute(String sound);
+
+  /// Button on a muted layer of the mix that brings its sound back
+  ///
+  /// In en, this message translates to:
+  /// **'Unmute {sound}'**
+  String soundsUnmute(String sound);
+
+  /// Opens the mix panel docked at the bottom of the Sounds tab
+  ///
+  /// In en, this message translates to:
+  /// **'Show your mix'**
+  String get soundsShowMix;
+
+  /// Folds the mix panel back down to its bar
+  ///
+  /// In en, this message translates to:
+  /// **'Hide your mix'**
+  String get soundsHideMix;
+
+  /// Screen-reader label of the slider for the whole mix's volume
+  ///
+  /// In en, this message translates to:
+  /// **'Mix volume'**
+  String get soundsMixVolume;
+
+  /// Screen-reader label of a preset card, which starts the preset
+  ///
+  /// In en, this message translates to:
+  /// **'Play {name}'**
+  String soundsPlayPreset(String name);
+
+  /// Badge on the preset card that is playing now
+  ///
+  /// In en, this message translates to:
+  /// **'Playing'**
+  String get soundsPresetPlaying;
+
+  /// Button on a generated layer (noise, drone, binaural beats) that opens its settings
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust'**
+  String get soundsAdjust;
+
+  /// In the player's Customize sheet, under Background sound: opens the Sounds screen
+  ///
+  /// In en, this message translates to:
+  /// **'Edit your mix in Sounds'**
+  String get soundsEditMix;
+
   /// Names what the user makes (a Playlist), shown beside a course on Library rows and as the kind on a playlist page. A course comes from a source.
   ///
   /// In en, this message translates to:
