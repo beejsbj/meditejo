@@ -23,14 +23,12 @@ import 'package:medito/views/library/library_view.dart';
 import 'package:medito/views/timer/timer_view.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
 
-import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/stats/practice_summary_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/views/stats/stats_screen.dart';
 import 'package:medito/views/you/you_view.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/library_app.dart';
 import '../helpers/stats_fixtures.dart';
