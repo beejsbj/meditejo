@@ -103,4 +103,4 @@ Three of these **replace** a BigSoundBank loop under its old id, so saved mixes 
 
 `train-yamanote` (SDLx, CC BY 3.0) is the first CC BY loop to ship. Its credit (title, author, source page, licence link and the changes made) is in `assets/sounds/NOTICE` and on the in-app Sound credits screen, where it is marked "attribution required".
 
-Not used from the first scouting list: Sauron974's fire (crickets audible), gluckose's stream (birdsong in it), Blankie's and Moodist's audio (licence unclear), and the Ylmir rain beyond the one already shipped. None of the new loops was auditioned by ear in the build; see DECISIONS.md (2026-10-26, Freesound originals) for what was checked instead.
+Not used from the first scouting list: Sauron974's fire (crickets audible), gluckose's stream (birdsong in it), Blankie's and Moodist's audio (licence unclear), and the Ylmir rain beyond the one already shipped. The build does not audition by ear; the numbers and spectrogram checks are in DECISIONS.md (2026-10-26, Freesound originals). Burooj then listened to all eleven on the phone and approved them.
