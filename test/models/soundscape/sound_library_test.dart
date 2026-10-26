@@ -18,7 +18,7 @@ void main() {
 
   test('every entry parses, with an allowed licence and a category', () {
     expect(library.sounds, hasLength(raw.length));
-    expect(library.sounds.length, inInclusiveRange(15, 25));
+    expect(library.sounds.length, inInclusiveRange(15, 40));
     for (final sound in library.sounds) {
       expect(sound.author, isNotEmpty, reason: sound.id);
       expect(sound.sourceUrl, startsWith('https://'), reason: sound.id);
@@ -66,6 +66,31 @@ void main() {
     for (final sound in library.sounds) {
       expect(notice, contains(sound.asset.split('/').last));
       expect(notice, contains(sound.sourceUrl));
+    }
+  });
+
+  test('a CC BY sound is credited in full, and only CC0 or CC BY ships', () {
+    final notice = File('assets/sounds/NOTICE').readAsStringSync();
+    for (final sound in library.sounds) {
+      expect(
+        {SoundLicense.cc0, SoundLicense.ccBy3, SoundLicense.ccBy4},
+        contains(sound.license),
+        reason: '${sound.id}: ${sound.license.spdx}',
+      );
+      if (!sound.license.requiresAttribution) continue;
+      // CC BY: who, what, where, under which licence, and what was changed.
+      for (final credit in [
+        sound.originalTitle,
+        sound.author,
+        sound.authorUrl,
+        sound.sourceUrl,
+        sound.license.label,
+        sound.license.url,
+        sound.modifications,
+      ]) {
+        expect(credit, isNotEmpty, reason: sound.id);
+        expect(notice, contains(credit), reason: '${sound.id}: $credit');
+      }
     }
   });
 

@@ -446,7 +446,20 @@ ignored), author, source page, and its processing record.
 `tools/meditejo/sounds/process_sounds.py` writes the JSON, `assets/sounds/NOTICE`
 and `tools/meditejo/sounds/commands.log` from `tools/meditejo/sounds/sources.json`.
 Never edit the outputs by hand; change the manifest and rerun (see the script's
-docstring for the loop, loudness and encoding steps). The sounds keep their own
+docstring for the loop, loudness and encoding steps). A manifest entry names its
+original by `downloadUrl` (BigSoundBank, OpenGameArt) or by `"freesound": <id>`.
+A Freesound original needs Burooj's authorised app: on a cache miss the script
+asks `meditejo-freesound-fetch info` for the live licence (it stops on anything
+but the licence the manifest declares, CC0 or CC BY), then `get` for the file, a
+few seconds apart. That tool holds the OAuth tokens; the script never sees them.
+The original is cached outside the repo and pinned by SHA-256, so a cached,
+pinned original builds anywhere, and without the tool anything else stops with
+a message. Each entry's `processing.seam` records the loop's seam on the encoded
+file (level step and third-octave spectral distance across the wrap, beside the
+loop's own p95 elsewhere); `python3 -I -m unittest discover -s tools/meditejo -p
+'test_sounds.py'` tests the source kind and the metric with a fake tool. A CC BY
+sound must carry its credit (original title, author, page URL): it is in NOTICE
+and, marked "attribution required", on Sound credits. The sounds keep their own
 licences, outside the AGPL; Settings › licences lists the mixer's native code
 (`assets/licenses/soloud-native-components.json`), and **Sound credits** (the
 Sounds screen's app-bar button and its last row) lists every recording.
@@ -533,7 +546,9 @@ which opens the Sounds screen as a page (`openSoundsPage`), beside Customize.
 **The Sounds screen** (`lib/views/soundscape/sounds_view.dart`, BRIEF
 decisions 16 and 18) is presentation over the controller above; it adds no
 mixer state. Presets are a row of `PresetCard`s and the library a grid of
-`SoundCard`s per shelf, both on `GeneratedArtwork` (`sound_cards.dart`); a
+`SoundCard`s per shelf, both on `GeneratedArtwork` (`sound_cards.dart`), three
+cards across a phone (`SoundGridMetrics`: cells at most 140 dp wide, which
+grows past 1.3× text so a phone falls back to two columns); a
 shelf's colour and Material Symbol come from `SoundLook`
 (`sound_labels.dart`, with the localised labels). The current mix
 (`sound_mix_panel.dart`: `SoundsMixHeader`, `SoundsMixBody`,
@@ -642,8 +657,15 @@ it can be seen; the sections follow. `HomeWidgetType`
 user can switch on or off and reorder in Customize (the Organize Home Layout
 screen, from the button beside the title). `homeWidgetOrderProvider` keeps the
 order (`homeWidgetOrder`) and `homeHiddenWidgetsProvider` the sections switched
-off (`homeWidgetHidden`). Defaults, all on: **upNext → quickLinks → pinned**.
-`upNext` keeps its old saved name for what is now **Continue**. Sections an
+off (`homeWidgetHidden`). Defaults, all on: **upNext → homeShortcuts → pinned**.
+`upNext` keeps its old saved name for what is now **Continue**, and
+`homeShortcuts` still reads its old saved name `quickLinks`
+(`HomeWidgetType.tryParse`; saving writes the new one). **Home draws no
+section headings** (BRIEF decision 19): spacing and grouping separate the
+sections, and `HomeSectionHeader` (`home_styles.dart`) gives each one an undrawn
+`Semantics(header: true)` label (`upNextTitle`, `homeShortcutsTitle`,
+`homePinnedTitle`) so TalkBack still announces the groups. The same strings
+name the sections in Customize. Sections an
 earlier version saved (shortcuts, carousel, quote) are ignored. The consistency
 score and streak are not on Home; they live on the stats screen (reached from
 the You page), whose copy says the numbers are feedback, not a score.
@@ -659,7 +681,7 @@ the You page), whose copy says the numbers are feedback, not a score.
   unfinished session of the first pinned course, else of the first course in the
   library (the starter set leads a fresh install), so Home is not empty. The
   first item also feeds the Android Up Next widget.
-- **Quick links**: Timer (Medito's timer), Sounds (the background-sound
+- **Shortcuts** (`lib/views/home/widgets/shortcuts/`): Timer (Medito's timer), Sounds (the background-sound
   picker), up to two **sound presets** (`homeSoundPresetsProvider`: the
   user's own, newest first, then the built-ins) and Add (import). A preset
   tile starts the timer at once (`startTimerSession`,
@@ -711,6 +733,19 @@ sliders action. `PlayerView` optionally shows it before starting; edits update
 the active native configuration and the existing ambient player; the
 Background sound row drives the soundscape mixer (Sounds and the mixer). The timer
 continues to use a sparse local WAV as its primary audio.
+
+**Bells.** Each cue stores its own bell (`startSound`, `intervalSound`,
+`endSound`) as a bundled asset path, validated against `cueBellSounds`, the one
+catalogue (display name to asset path, in picker order; `''` is Off). The path
+is the stored id and what both native cue banks load, so adding a bell is: a
+WAV under `assets/audio/`, an entry in the map, a line in `assets/audio/NOTICE`.
+The ten new bells are synthesised by `tools/meditejo/generate_bells.py`
+(`--check` proves byte-identical regeneration; `tools/meditejo/bells_report.py`
+prints per-file numbers and builds the sampler). A bell the build does not know
+reads as the default. The Customize sheet's three bell rows share `_BellList`:
+tapping a row selects it and rings it once through `SessionBellPreview` at the
+bell volume; closing the sub-sheet stops it. `CueBellCatalogueTest` (Kotlin)
+reads the Dart catalogue, so the native side and the list cannot drift.
 
 `NativeCueController` sends plain configuration over `meditejo/cues`.
 Android's `CueEngine` lives in `AudioPlayerService`, with predecoded SoundPool

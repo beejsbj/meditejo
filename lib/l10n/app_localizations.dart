@@ -1852,7 +1852,7 @@ abstract class AppLocalizations {
   /// **'Completed at'**
   String get completedAt;
 
-  /// Eyebrow on the home hero once the pack is under way (CONTINUE · pack), and the section name in Customise Home
+  /// The Continue section's name in Customize, and its screen-reader heading on Home (not drawn)
   ///
   /// In en, this message translates to:
   /// **'Continue'**
@@ -3826,13 +3826,13 @@ abstract class AppLocalizations {
   /// **'Search your library and Dharma Seed'**
   String get exploreSearchHint;
 
-  /// No description provided for @homeQuickLinksTitle.
+  /// The shortcuts section's name in Customize, and its screen-reader heading on Home (not drawn)
   ///
   /// In en, this message translates to:
-  /// **'Quick links'**
-  String get homeQuickLinksTitle;
+  /// **'Shortcuts'**
+  String get homeShortcutsTitle;
 
-  /// No description provided for @homePinnedTitle.
+  /// The pinned section's name in Customize, and its screen-reader heading on Home (not drawn)
   ///
   /// In en, this message translates to:
   /// **'Pinned'**
@@ -3880,17 +3880,17 @@ abstract class AppLocalizations {
   /// **'{time} left'**
   String homeContinueTimeLeft(String time);
 
-  /// No description provided for @homeQuickAdd.
+  /// No description provided for @homeShortcutAdd.
   ///
   /// In en, this message translates to:
   /// **'Add'**
-  String get homeQuickAdd;
+  String get homeShortcutAdd;
 
   /// Screen-reader label of a Home tile that starts the timer with a saved background-sound preset.
   ///
   /// In en, this message translates to:
   /// **'Start the timer with {preset}'**
-  String homeQuickPresetTimer(String preset);
+  String homeShortcutPresetTimer(String preset);
 
   /// No description provided for @pinCourse.
   ///

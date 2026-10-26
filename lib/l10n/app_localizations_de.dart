@@ -2175,7 +2175,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exploreSearchHint => 'Bibliothek und Dharma Seed durchsuchen';
 
   @override
-  String get homeQuickLinksTitle => 'Schnellzugriff';
+  String get homeShortcutsTitle => 'Kurzbefehle';
 
   @override
   String get homePinnedTitle => 'Angeheftet';
@@ -2208,10 +2208,10 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get homeQuickAdd => 'Hinzufügen';
+  String get homeShortcutAdd => 'Hinzufügen';
 
   @override
-  String homeQuickPresetTimer(String preset) {
+  String homeShortcutPresetTimer(String preset) {
     return 'Timer mit $preset starten';
   }
 

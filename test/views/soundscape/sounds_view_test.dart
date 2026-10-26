@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/starter_presets.dart';
@@ -488,6 +489,92 @@ void main() {
     });
   }
 
+  group('the library grid', () {
+    /// How many cards the fullest row on screen holds. (The first shelf has
+    /// only the three generated sounds, so its row can't show the grid's
+    /// width.)
+    Future<int> columns(WidgetTester tester) async {
+      final library = await container.read(soundLibraryProvider.future);
+      final rows = <int, int>{};
+      for (final id in [...kSynthIds, for (final s in library.sounds) s.id]) {
+        final card = find.byKey(ValueKey('sound_$id'));
+        if (card.evaluate().isEmpty) continue;
+        final row = tester.getTopLeft(card).dy.round();
+        rows[row] = (rows[row] ?? 0) + 1;
+      }
+      return rows.values.reduce((a, b) => a > b ? a : b);
+    }
+
+    Future<void> sized(WidgetTester tester, Size size, double scale) async {
+      tester.view
+        ..physicalSize = size
+        ..devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      addTearDown(tester.view.reset);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pump(tester);
+    }
+
+    for (final (size, scale, across) in [
+      (const Size(360, 740), 1.0, 3),
+      (const Size(360, 740), 1.3, 3),
+      (const Size(412, 915), 1.0, 3),
+      // Beyond 1.3x titles would break mid-word at 101 dp, so a 360 dp phone
+      // trades a column for room.
+      (const Size(360, 740), 2.0, 2),
+    ]) {
+      testWidgets('$across across at ${size.width.toInt()} dp, ${scale}x text, '
+          'with every card laid out without overflow', (tester) async {
+        await sized(tester, size, scale);
+        expect(await columns(tester), across);
+        expect(tester.takeException(), isNull);
+
+        // Scroll the whole library past, so every shelf's cards are laid
+        // out, and a card with a long title can't hide an overflow.
+        final list = find
+            .descendant(
+              of: find.byKey(const PageStorageKey('sounds_library')),
+              matching: find.byType(Scrollable),
+            )
+            .first;
+        for (var i = 0; i < 40; i++) {
+          await tester.drag(list, const Offset(0, -400));
+          await tester.pump();
+          expect(tester.takeException(), isNull, reason: 'page $i');
+        }
+      });
+    }
+
+    testWidgets('keeps the card tap target and the selected tick in view', (
+      tester,
+    ) async {
+      await sized(tester, const Size(360, 740), 1.3);
+      final card = find.byKey(const ValueKey('sound_synth-noise'));
+      expect(tester.getSize(card).width, greaterThan(96));
+      expect(tester.getSize(card).width, lessThan(110));
+      // Selected: the tick sits inside the card's right edge.
+      container.read(soundscapeProvider.notifier).clearMix();
+      await tester.pumpAndSettle();
+      await tester.tap(card);
+      await tester.pumpAndSettle();
+      final tick = find.descendant(
+        of: card,
+        matching: find.byIcon(Symbols.check_rounded),
+      );
+      expect(tick, findsOneWidget);
+      expect(
+        tester.getTopRight(tick).dx,
+        lessThanOrEqualTo(tester.getTopRight(card).dx),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('wide windows take more columns, as before', (tester) async {
+      await sized(tester, const Size(1280, 900), 1.0);
+      expect(await columns(tester), greaterThan(3));
+    });
+  });
+
   testWidgets('is localised', (tester) async {
     phone(tester);
     await pump(tester, locale: const Locale('de'));
@@ -509,6 +596,25 @@ void main() {
         200,
         scrollable: list,
       );
+      if (sound.license.requiresAttribution) {
+        // CC BY must be credited in the app too: title, author, licence,
+        // source and the changes made.
+        final tile = find.byKey(ValueKey('credit_${sound.id}'));
+        for (final text in [
+          sound.originalTitle,
+          sound.author,
+          sound.license.label,
+          sound.modifications,
+          Uri.parse(sound.sourceUrl).host,
+          'Attribution required',
+        ]) {
+          expect(
+            find.descendant(of: tile, matching: find.textContaining(text)),
+            findsWidgets,
+            reason: '${sound.id}: $text',
+          );
+        }
+      }
     }
     expect(find.text('CC0 1.0'), findsWidgets);
     await tester.pageBack();

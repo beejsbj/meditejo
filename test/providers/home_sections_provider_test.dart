@@ -35,10 +35,11 @@ void main() {
       expect(await pins.pin('c'), isTrue);
       expect(await pins.pin('d'), isFalse);
       expect(c.read(pinnedCoursesProvider), ['a', 'b', 'c']);
-      expect(
-        prefs.getStringList(SharedPreferenceConstants.pinnedCourseIds),
-        ['a', 'b', 'c'],
-      );
+      expect(prefs.getStringList(SharedPreferenceConstants.pinnedCourseIds), [
+        'a',
+        'b',
+        'c',
+      ]);
 
       // Pinning one already pinned is fine, and unpinning frees a place.
       expect(await pins.pin('b'), isTrue);
@@ -69,16 +70,19 @@ void main() {
   });
 
   group('Customize persists', () {
-    test('every section shows, in the default order, on a fresh install', () async {
-      final (_, open) = await _prefs({});
-      final c = open();
-      expect(c.read(homeWidgetOrderProvider), [
-        HomeWidgetType.upNext,
-        HomeWidgetType.quickLinks,
-        HomeWidgetType.pinned,
-      ]);
-      expect(c.read(homeHiddenWidgetsProvider), isEmpty);
-    });
+    test(
+      'every section shows, in the default order, on a fresh install',
+      () async {
+        final (_, open) = await _prefs({});
+        final c = open();
+        expect(c.read(homeWidgetOrderProvider), [
+          HomeWidgetType.upNext,
+          HomeWidgetType.homeShortcuts,
+          HomeWidgetType.pinned,
+        ]);
+        expect(c.read(homeHiddenWidgetsProvider), isEmpty);
+      },
+    );
 
     test('order and hidden sections are remembered', () async {
       final (_, open) = await _prefs({});
@@ -86,26 +90,35 @@ void main() {
       await first.read(homeWidgetOrderProvider.notifier).updateOrder([
         HomeWidgetType.pinned,
         HomeWidgetType.upNext,
-        HomeWidgetType.quickLinks,
+        HomeWidgetType.homeShortcuts,
       ]);
       await first
           .read(homeHiddenWidgetsProvider.notifier)
-          .setVisible(HomeWidgetType.quickLinks, false);
+          .setVisible(HomeWidgetType.homeShortcuts, false);
 
       final second = open();
       expect(second.read(homeWidgetOrderProvider), [
         HomeWidgetType.pinned,
         HomeWidgetType.upNext,
-        HomeWidgetType.quickLinks,
+        HomeWidgetType.homeShortcuts,
       ]);
       expect(second.read(homeHiddenWidgetsProvider), {
-        HomeWidgetType.quickLinks,
+        HomeWidgetType.homeShortcuts,
       });
 
       await second
           .read(homeHiddenWidgetsProvider.notifier)
-          .setVisible(HomeWidgetType.quickLinks, true);
+          .setVisible(HomeWidgetType.homeShortcuts, true);
       expect(open().read(homeHiddenWidgetsProvider), isEmpty);
+    });
+
+    test('a hidden Shortcuts saved before the rename stays hidden', () async {
+      final (_, open) = await _prefs({
+        SharedPreferenceConstants.homeWidgetHidden: ['quickLinks', 'quote'],
+      });
+      expect(open().read(homeHiddenWidgetsProvider), {
+        HomeWidgetType.homeShortcuts,
+      });
     });
 
     test('a layout saved by the Medito home keeps what still exists', () async {
@@ -119,7 +132,7 @@ void main() {
       });
       expect(open().read(homeWidgetOrderProvider), [
         HomeWidgetType.upNext,
-        HomeWidgetType.quickLinks,
+        HomeWidgetType.homeShortcuts,
         HomeWidgetType.pinned,
       ]);
     });

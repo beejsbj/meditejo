@@ -4,7 +4,7 @@
 Nobody has to audition every recording to avoid the worst cuts: a loop
 that holds a thunder clap, a door or a burst of voices repeats it every
 lap. This scans each source in 100 ms frames (level after a 120 Hz
-high-pass, so wind rumble doesn't dominate) and scores every candidate
+high-pass by default, so wind rumble doesn't dominate; see --highpass) and scores every candidate
 window of `loop + crossfade` seconds:
 
 * transients: how far the loudest frames rise above the window's median
@@ -35,10 +35,10 @@ RATE = 16000
 FRAME = RATE // 10
 
 
-def levels(path: Path) -> np.ndarray:
+def levels(path: Path, highpass: float = 120) -> np.ndarray:
     raw = subprocess.run(
         ['ffmpeg', '-nostdin', '-hide_banner', '-loglevel', 'error', '-i', str(path),
-         '-af', 'highpass=f=120', '-ac', '1', '-ar', str(RATE), '-f', 'f32le', '-'],
+         '-af', f'highpass=f={highpass:g}', '-ac', '1', '-ar', str(RATE), '-f', 'f32le', '-'],
         capture_output=True, check=True).stdout
     x = np.frombuffer(raw, dtype='<f4')
     n = len(x) // FRAME
@@ -66,6 +66,9 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument('--only', action='append')
     ap.add_argument('--write', action='store_true', help='store the suggested start')
+    ap.add_argument('--highpass', type=float, default=120,
+                    help='Hz; lower it (30-50) for sounds whose loudness is low-frequency '
+                         'rumble (trains, surf), so a thump below 120 Hz still counts')
     ap.add_argument('--cache', type=Path, default=Path.home() / '.cache/meditejo-sounds')
     args = ap.parse_args()
     manifest = json.loads(ps.SOURCES.read_text())
@@ -73,7 +76,7 @@ def main() -> None:
         if args.only and s['id'] not in args.only:
             continue
         src = ps.fetch(s, args.cache, pin=True)
-        db = levels(src)
+        db = levels(src, args.highpass)
         width = round((float(s['loop']) + float(s['crossfade'])) * 10)
         xf = round(float(s['crossfade']) * 10)
         margin = 10  # skip the first and last second (handling, fades)

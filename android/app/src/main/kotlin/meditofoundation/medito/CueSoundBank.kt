@@ -93,7 +93,7 @@ internal class CueSoundBank(private val context: Context) {
         val key = try {
             FlutterInjector.instance().flutterLoader().getLookupKeyForAsset(asset)
         } catch (_: Exception) {
-            "flutter_assets/$asset"
+            fallbackKey(asset)
         }
         try {
             return Opened(context.assets.openFd(key), null)
@@ -121,9 +121,12 @@ internal class CueSoundBank(private val context: Context) {
         }
     }
 
-    private companion object {
-        const val TAG = "CueSoundBank"
-        const val LATE_PLAY_MS = 1500L
-        const val DEFAULT_TAIL_MS = 8000L
+    companion object {
+        /** Where an asset sits in the APK when the Flutter loader cannot be asked. */
+        internal fun fallbackKey(asset: String): String = "flutter_assets/$asset"
+
+        private const val TAG = "CueSoundBank"
+        private const val LATE_PLAY_MS = 1500L
+        private const val DEFAULT_TAIL_MS = 8000L
     }
 }
