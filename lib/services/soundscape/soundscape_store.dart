@@ -64,7 +64,9 @@ class SoundscapeStore {
   /// someone may have chosen is never taken away. The one case the data cannot
   /// separate is a user who switched Practice on with the starter mix, left
   /// every level alone and never opened the mixer; they move too, and one tap
-  /// in Customize puts the sound back.
+  /// in Customize puts the sound back. A user with a built mix but no Practice
+  /// setting stored (nothing ever rewrote it) is pinned to the old default
+  /// explicitly, so the mix keeps playing.
   ///
   /// Runs once: the version key stops it from undoing a later explicit choice.
   void migrateSessionDefaults() {
@@ -75,11 +77,29 @@ class SoundscapeStore {
     unawaited(
       _prefs.setInt(sessionDefaultsVersionKey, _sessionDefaultsVersion),
     );
-    final raw = _decode(sessionDefaultsKey);
-    if (raw is! Map) return;
+    final decoded = _decode(sessionDefaultsKey);
+    final raw = decoded is Map ? decoded : const <Object?, Object?>{};
     final stored = raw[SoundscapeSessionKind.practice.name];
-    if (stored is! Map) return;
     final mix = readMix();
+    if (stored is! Map) {
+      // Nothing stored for Practice, so it followed the old factory default
+      // (on, the current mix). Someone who built a mix has been hearing it
+      // under every session: keep that explicit before the new default (off)
+      // would silently drop it.
+      if (mix != null && !mix.isEmpty) {
+        unawaited(
+          _prefs.setString(
+            sessionDefaultsKey,
+            jsonEncode({
+              ...raw,
+              SoundscapeSessionKind.practice.name:
+                  const SoundscapeSessionDefault(enabled: true).toJson(),
+            }),
+          ),
+        );
+      }
+      return;
+    }
     final untouched =
         stored['enabled'] == true &&
         SoundscapeSelection.parse(

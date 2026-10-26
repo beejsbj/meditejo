@@ -96,6 +96,21 @@ class CatalogueTool(unittest.TestCase):
             self.run_command('fetch')
         self.assertFalse(self.packed.exists())
 
+    def test_only_a_404_reads_as_not_there(self):
+        url = catalogue.base_url() + '/catalogue-20990101/' + catalogue.ASSET_NAME
+        with self.assertRaises(catalogue.NotFound):
+            catalogue.download(url, Path(self.scratch.name) / 'x')
+        self.server.shutdown()
+        self.server.server_close()
+        original = catalogue.time.sleep
+        catalogue.time.sleep = lambda _: None  # no waiting between retries
+        try:
+            with self.assertRaises(catalogue.Failure) as raised:
+                catalogue.download(url, Path(self.scratch.name) / 'x')
+        finally:
+            catalogue.time.sleep = original
+        self.assertNotIsInstance(raised.exception, catalogue.NotFound)
+
     def test_fetch_fails_when_the_manifest_pins_nothing(self):
         catalogue.MANIFEST.write_text(json.dumps({'schema': 1}))
         with self.assertRaisesRegex(catalogue.Failure, 'pins no snapshot'):

@@ -47,6 +47,10 @@ class Failure(Exception):
     pass
 
 
+class NotFound(Failure):
+    """The server said 404: the thing is not there (as opposed to unreachable)."""
+
+
 def base_url():
     # Overridable so the tests can serve a fake release from localhost.
     return os.environ.get('MEDITEJO_CATALOGUE_BASE', DEFAULT_BASE).rstrip('/')
@@ -109,6 +113,8 @@ def request(url, method='GET', attempts=4):
         except (urllib.error.URLError, TimeoutError, OSError) as e:
             last = e
         time.sleep(2 ** attempt)
+    if isinstance(last, urllib.error.HTTPError) and last.code == 404:
+        raise NotFound(f'{method} {url} failed: {last}')
     raise Failure(f'{method} {url} failed: {last}')
 
 
@@ -175,8 +181,10 @@ def release_asset_sha(tag):
         path = Path(scratch) / ASSET_NAME
         try:
             _, digest = download(f'{base_url()}/{tag}/{ASSET_NAME}', path)
-        except Failure:
+        except NotFound:
             return ''  # the release exists but carries no snapshot
+        # Any other failure (5xx, timeout) propagates: it must not read as
+        # "taken" and make publish create a second release.
         return digest
 
 

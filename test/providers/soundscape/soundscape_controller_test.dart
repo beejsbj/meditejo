@@ -291,6 +291,42 @@ void main() {
       },
     );
 
+    test(
+      'a built mix keeps playing when nothing was stored for Practice',
+      () async {
+        // On 0.1.3 the mix alone never wrote session settings; Practice played
+        // it through the old default.
+        final noSettings = await practiceAfter({
+          SoundscapeStore.mixKey: mixWith('river'),
+        });
+        expect(noSettings.enabled, isTrue);
+        expect(noSettings.selection, SoundscapeSelection.currentMix);
+
+        // Defaults stored for Talks only, still no Practice entry.
+        final talksOnly = await practiceAfter({
+          SoundscapeStore.mixKey: mixWith('river'),
+          SoundscapeStore.sessionDefaultsKey: jsonEncode({
+            'talks': {'enabled': true, 'selection': 'mix', 'volume': 0.2},
+          }),
+        });
+        expect(talksOnly.enabled, isTrue);
+        final stored =
+            jsonDecode(prefs.getString(SoundscapeStore.sessionDefaultsKey)!)
+                as Map;
+        expect((stored['talks'] as Map)['volume'], 0.2);
+
+        // And it plays: a Practice session starts the mix.
+        final c = await make({SoundscapeStore.mixKey: mixWith('river')});
+        await c
+            .read(soundscapeProvider.notifier)
+            .startSession(SoundscapeSessionKind.practice);
+        for (var i = 0; i < 10; i++) {
+          await Future<void>.delayed(Duration.zero);
+        }
+        expect(engine.playing.keys, ['river']);
+      },
+    );
+
     test('an emptied mix is not a chosen sound', () async {
       final d = await practiceAfter({
         SoundscapeStore.sessionDefaultsKey: oldFactory(),
