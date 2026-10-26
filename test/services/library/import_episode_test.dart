@@ -12,6 +12,7 @@ import '../../helpers/library_fixtures.dart';
 import '../../helpers/youtube_fake.dart';
 
 const feedUrl = 'https://example.org/evening.rss';
+const videoD = 'ddddddddddd';
 
 const single = ImportChoice(
   kind: LibraryKind.single,
@@ -236,6 +237,21 @@ void main() {
 
       expect(preview.kind, LibraryKind.course);
       expect(preview.defaultEpisodeId, videoB);
+    });
+
+    test('a linked video the list does not hold is still pickable', () async {
+      api.videos[videoD] = video(videoD, title: 'Outside the list');
+      final preview = await previewOf(
+        '${watchA.replaceFirst(videoA, videoD)}'
+        '&list=$playlistOne',
+      );
+
+      expect(preview.defaultEpisodeId, videoD);
+      expect(preview.episodes.first.id, videoD);
+      expect(preview.episode(null)!.title, 'Outside the list');
+      final result = await source.add(preview, single);
+      expect(result.entryId, ytVideoId(videoD));
+      expect((await store.entry(result.entryId))!.title, 'Outside the list');
     });
 
     test('a plain video has just itself to pick', () async {

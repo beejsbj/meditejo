@@ -148,6 +148,11 @@ class YoutubeSource
                       artworkUrl: item.thumbnail,
                     ),
             ];
+      // A watch link whose video the list does not hold still has to be
+      // something Single can pick.
+      if (video != null && episodes.every((e) => e.id != video.videoId)) {
+        episodes.insert(0, _episodeOfVideo(video));
+      }
       return ImportPreview(
         origin: ImportOrigin.youtube,
         entryId: id,
