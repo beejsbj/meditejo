@@ -23,9 +23,14 @@ jobs:
           python3 tools/meditejo/bells_report.py --fail-on-defect | tee report.md
           { echo '## Bells'; cat report.md; } >> "$GITHUB_STEP_SUMMARY"
       - name: Sampler, every bell in sequence
-        run: python3 tools/meditejo/bells_report.py --sampler bells-sampler.mp3 | tail -13
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          python3 tools/meditejo/bells_report.py --sampler bells-sampler.mp3 | tail -13
+          test -s bells-sampler.mp3
       - uses: actions/upload-artifact@v4
         with:
+          if-no-files-found: error
           name: bells-sampler
           path: |
             bells-sampler.mp3
