@@ -21,8 +21,7 @@ Future<DharmaSeedTestApp> _withLibrary(WidgetTester tester) async {
   return app;
 }
 
-double _top(WidgetTester tester, Finder finder) =>
-    tester.getTopLeft(finder).dy;
+double _top(WidgetTester tester, Finder finder) => tester.getTopLeft(finder).dy;
 
 void main() {
   testWidgets('browse shows its sections in order', (tester) async {

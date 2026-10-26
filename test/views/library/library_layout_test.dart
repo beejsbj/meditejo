@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/main_tab_provider.dart';
-import 'package:medito/providers/meditation/downloaded_track_ids_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/services/home/continue_rules.dart';
 import 'package:medito/services/library/library_models.dart';
@@ -15,6 +14,16 @@ import '../../helpers/dharma_seed_app.dart';
 import '../../helpers/library_app.dart';
 
 Future<void> settle(WidgetTester tester) => DharmaSeedTestApp.settle(tester);
+
+/// Taps a kind chip, scrolling the chip row to it first: on a phone the
+/// later chips start off to the right.
+Future<void> tapFilter(WidgetTester tester, String name) async {
+  final chip = find.byKey(ValueKey('library_filter_$name'));
+  await tester.ensureVisible(chip);
+  await tester.pump();
+  await tester.tap(chip);
+  await settle(tester);
+}
 
 Future<void> _add(
   WidgetTester tester,
@@ -104,7 +113,7 @@ Future<LibraryTestApp> _mixed(WidgetTester tester) async {
   return app;
 }
 
-final _overrides = [
+final _progress = [
   packTrackIdsProvider.overrideWith(
     (ref) async => {
       'ds-retreat-1': ['j-1', 'j-2', 'j-3', 'j-4'],
@@ -112,6 +121,10 @@ final _overrides = [
       'yt-playlist-q': ['q-1', 'q-2'],
     },
   ),
+];
+
+final _overrides = [
+  ..._progress,
   inProgressItemsProvider.overrideWith((ref) async => const []),
 ];
 
@@ -132,10 +145,7 @@ void main() {
         overrides: _overrides,
       );
 
-      Future<void> filter(String name) async {
-        await tester.tap(find.byKey(ValueKey('library_filter_$name')));
-        await settle(tester);
-      }
+      Future<void> filter(String name) => tapFilter(tester, name);
 
       // All: everything, teacher included.
       for (final title in [
@@ -183,13 +193,10 @@ void main() {
       await app.pump(
         tester,
         const LibraryView(),
-        overrides: [
-          ..._overrides,
-          downloadedTrackIdsProvider.overrideWithValue({'q-2', 'lib-track-a'}),
-        ],
+        downloaded: const {'q-2', 'lib-track-a'},
+        overrides: _overrides,
       );
-      await tester.tap(find.byKey(const ValueKey('library_filter_downloads')));
-      await settle(tester);
+      await tapFilter(tester, 'downloads');
 
       expect(_visibleText('Qualia Mastery'), findsOneWidget);
       expect(_visibleText('Body scan'), findsOneWidget);
@@ -215,17 +222,20 @@ void main() {
 
     testWidgets('sorts by recent, A–Z and progress', (tester) async {
       final app = await _mixed(tester);
+      // Renamed so A–Z and Progress disagree.
+      await tester.runAsync(
+        () => app.harness.store.setTitle('yt-playlist-q', 'Awakening, Qualia'),
+      );
       await app.pump(
         tester,
         const LibraryView(),
         played: _played,
         overrides: _overrides,
       );
-      await tester.tap(find.byKey(const ValueKey('library_filter_courses')));
-      await settle(tester);
+      await tapFilter(tester, 'courses');
 
       List<String> order() {
-        final titles = ['Practising the Jhānas', 'Qualia Mastery'];
+        final titles = ['Practising the Jhānas', 'Awakening, Qualia'];
         return titles..sort(
           (a, b) => tester
               .getTopLeft(_visibleText(a))
@@ -241,15 +251,15 @@ void main() {
         await settle(tester);
       }
 
-      // Recent: the store's order, most recently added first.
-      expect(order(), ['Qualia Mastery', 'Practising the Jhānas']);
+      final recent = order();
       await sortBy('title');
-      expect(order(), ['Practising the Jhānas', 'Qualia Mastery']);
-      await sortBy('recent');
-      expect(order(), ['Qualia Mastery', 'Practising the Jhānas']);
+      expect(order(), ['Awakening, Qualia', 'Practising the Jhānas']);
       // Progress: 3 of 4 leads the unbegun.
       await sortBy('progress');
-      expect(order(), ['Practising the Jhānas', 'Qualia Mastery']);
+      expect(order(), ['Practising the Jhānas', 'Awakening, Qualia']);
+      await sortBy('recent');
+      expect(order(), recent);
+      expect(app.prefs.getString('library_sort'), 'recent');
       expect(find.text('3 of 4'), findsOneWidget);
     });
 
@@ -318,16 +328,21 @@ void main() {
         tester,
         const LibraryView(),
         overrides: [
-          ..._overrides,
+          ..._progress,
           inProgressItemsProvider.overrideWith((ref) async => items),
         ],
       );
 
       expect(find.text('In progress'), findsOneWidget);
       final strip = find.byKey(const ValueKey('library_in_progress'));
-      final list = tester.widget<ListView>(strip);
-      expect(list.childrenDelegate.estimatedChildCount, 5);
       expect(find.text('Session 0'), findsOneWidget);
+      // All five, the last at the far end of the strip.
+      await tester.dragUntilVisible(
+        find.byKey(const ValueKey('in_progress_t4')),
+        strip,
+        const Offset(-300, 0),
+      );
+      expect(find.byKey(const ValueKey('in_progress_t4')), findsOneWidget);
       // Above the filters.
       expect(
         tester.getTopLeft(find.text('In progress')).dy,
@@ -345,8 +360,7 @@ void main() {
       final app = await LibraryTestApp.create(tester);
       await _add(tester, app.harness.store, 'ds-retreat-1', 'A course');
       await app.pump(tester, const LibraryView(), overrides: _overrides);
-      await tester.tap(find.byKey(const ValueKey('library_filter_playlists')));
-      await settle(tester);
+      await tapFilter(tester, 'playlists');
 
       expect(find.text('Nothing here yet'), findsOneWidget);
       expect(
@@ -469,7 +483,7 @@ void main() {
             ),
             played: _played,
             overrides: [
-              ..._overrides,
+              ..._progress,
               inProgressItemsProvider.overrideWith((ref) async => items),
             ],
           );
