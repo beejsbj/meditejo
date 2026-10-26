@@ -545,3 +545,9 @@ Screenshots: `docs/fork/design/library-playlists-*.png` (the Library with both k
   - The Explore search "Courses" heading and the Explore "Courses" grid can contain a playlist (search finds the user's playlists). Each such row says "Playlist" in its detail line; a separate "Playlists" heading in search is a layout call I did not make.
   - Existing playlists keep their stored library subtitle ("3 sessions"); the "Playlist" word is added when drawing, so it follows the language and needs no data change.
   - `exploreSavedCourses` is an unused string and was left alone.
+- **Follow-ups from the independent review of #38 (Claude Opus 5.5), not fixed in this PR:**
+  - **"N sessions" is English in German and Spanish rows.** `MyCourseSource.sessionCountText` (and the library snapshot built from it) is hard-coded English, an existing pattern across the library sources, so a playlist row reads "Lista · 3 sessions". The "Playlist" word follows the language; the count does not. Fix by drawing the count from `librarySessions` at draw time rather than storing English.
+  - **Home's pinned tiles do not say Playlist or Course** (title and progress only, as before). Burooj's call whether a pinned tile wants a kind or source line; it is a Home layout decision.
+  - **"Copy as playlist" is offered on a playlist's own row** (it duplicates it). A "Duplicate" label may read better there.
+  - **Spanish "Lista" alone** as the kind label is broad; "lista de reproducción" is the full term. The brief chose "lista"; check on the phone.
+  - **Fixed from the same review:** German "Löse zuerst eins davon" (agrees with Kurs and Playlist), a long test comment, and tests for `playlistAwareDetail` and the search rows. The Explore library grid and the Customize sheet's playlist wording still have no widget test; each is one call to the same helper.

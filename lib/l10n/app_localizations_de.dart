@@ -2223,7 +2223,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get pinnedLimitReached =>
-      'Auf Start passen bis zu drei angeheftete Kurse oder Playlists. Löse zuerst einen.';
+      'Auf Start passen bis zu drei angeheftete Kurse oder Playlists. Löse zuerst eins davon.';
 
   @override
   String get pinnedCourseAdded => 'An Start angeheftet';

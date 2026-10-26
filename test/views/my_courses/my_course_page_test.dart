@@ -17,8 +17,8 @@ MyItemDraft draft(String id) => MyItemDraft(
   durationMs: 600000,
 );
 
-/// A playlist (a "my course" in code) opened as a course page: PackView, unchanged, reads it
-/// through `MyCourseSource`.
+/// A playlist (a "my course" in code) opened as a course page: PackView,
+/// unchanged, reads it through `MyCourseSource`.
 void main() {
   late LibraryTestApp app;
   late FakeSessionSource upstream;

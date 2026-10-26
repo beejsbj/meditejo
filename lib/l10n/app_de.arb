@@ -1204,7 +1204,7 @@
   "homeQuickPresetTimer": "Timer mit {preset} starten",
   "pinCourse": "An Start anheften",
   "unpinCourse": "Von Start lösen",
-  "pinnedLimitReached": "Auf Start passen bis zu drei angeheftete Kurse oder Playlists. Löse zuerst einen.",
+  "pinnedLimitReached": "Auf Start passen bis zu drei angeheftete Kurse oder Playlists. Löse zuerst eins davon.",
   "pinnedCourseAdded": "An Start angeheftet",
   "statsFeedbackNote": "Diese Zahlen sind Rückmeldung, keine Bewertung.",
   "soundsYourMix": "Dein Mix",
