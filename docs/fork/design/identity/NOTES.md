@@ -150,3 +150,76 @@ Round 3 lives in `round3/`; `node round3/build.mjs` builds `identity-round3.html
 - **Lists use a raster cache.** Draw the still frame once into a `PictureRecorder`, call `toImage` at display size × device pixel ratio, and keep it in an LRU keyed by (kind, id, palette, size). Covers are always still.
 - **Motion only where it is seen.** Live sound cards repaint at 30 fps from one ticker, behind a `RepaintBoundary`. They stop off screen, in the background and under reduced motion, which falls back to the cached still.
 - **Bake the print finish.** Grain, speckle and vignette go into one transparent image per (paper colour, size), drawn with a single `drawImage`. Redrawing round 2's overlay pattern fills on every frame held a page of live cards to 7–11 fps in the browser, against 34–62 fps with the baked raster. Expect the same proportions on a phone.
+
+## Round 4: atmosphere, a tight map, curation
+
+Round 4 lives in `round4/`; `node round4/build.mjs` builds `identity-round4.html` from round 2's `core.js` and palettes and round 4's own sources:
+
+- `grounds.js`: the ten grounds;
+- `prims.js`: the seventeen figures;
+- `compose.js`: the meaning map, the candidates and the frozen form;
+- `shipped.js`: everything Meditejo ships;
+- `export.js`: the `curated_art.json` format.
+
+### Rules (decision 22)
+
+- **Shipped items are curated.** Every built-in sound (30 from PR #41 plus the five synth layers), the five starter presets and the starter set (six courses and one single) has a hand-picked card. That is 47 items, all in `curated_art.json`.
+- **Everything a person adds, imports or creates is generated** from its id by the same map.
+- **Dharma Seed's Explore rows aren't a fixed list.** They show recent retreats and the teachers behind them, so they follow the course and teacher rules. A teacher's own photo, when there is one, wins.
+
+### Grounds and figures
+
+- **Grounds (10).** Round 2's atmospheres become grounds: paper, mist, dawn, rain field, canopy, night field, hearth glow, sea, room bokeh and texture (noise only).
+- **Figures (17):**
+  - breath, fire (tongues or embers), rings (ripple, target or interference), mandala;
+  - streaks, waves, scales, star shape;
+  - lotus, ammonite, cairn;
+  - threads, grass, flock, petals;
+  - moon, disc (plain, halo or rayed).
+- **Dropped from round 3:** dot rhythm, strata, stack, grove, weave, the moon row, and the sun as its own figure (it is now the disc's rayed kind).
+- **The star shape** places bright stars to suggest a dipper, a W, a cross, a swan, a lotus or a ring, with faint companions around them. Nothing joins the stars.
+- **Motion:** every ground and figure moves slowly and loops without a seam. Motion is a sine of time, or a phase that wraps while the element is faded out. The breath-paced figures use the 10 s breath. Reduced motion draws a still frame.
+
+### The meaning map
+
+Only these may meet. A variant after a colon is pinned.
+
+| Class | Ships as | Grounds | Figures | Accents |
+|---|---|---|---|---|
+| Rain | the six rain sounds | rain field, mist | streaks, rings:ripple, disc:halo | none, disc |
+| Stream and river | Mountain stream, River | mist, paper | waves, threads | none |
+| Forest brook | Forest brook | canopy, mist | waves, threads | none, flock |
+| Sea | Small waves, Beach at Dellec, Gentle ocean | sea, dawn | disc, flock, scales | none, flock |
+| Wind | Wind in an open field | mist, dawn | threads, grass | none, flock |
+| Wind in the pines | Wind in the pines | canopy, mist | threads | none, flock |
+| Birds | Forest birds, Dawn chorus, Evening birds, Wood thrush | canopy, dawn | flock, petals | none, disc |
+| Fire | Crackling fire, Wood stove | hearth glow | fire:tongues, fire:embers | none |
+| Rooms | Quiet house, Café, Laundry room | room bokeh, paper | disc:halo, breath, rings:target | none |
+| Fan | Fan hum | paper, mist | mandala, rings:target | none |
+| Trains | Metro carriage, Yamanote Line train | night field, room bokeh | threads, disc:halo | none |
+| Night | Night insects | night field | star shape, moon | none, star shape |
+| Frogs | Frogs by a pond | night field | rings:ripple, moon, star shape | none, star shape |
+| Crickets by the sea | Crickets by the sea | night field | waves, moon, star shape | none, star shape |
+| Meadow at night | Meadow at night | night field | grass, star shape, moon | none, star shape |
+| Noise | White, pink, brown | texture (tinted by colour) | none | none |
+| Drone | Drone | night field, mist | rings:target, mandala, breath | none |
+| Binaural | Binaural beats | paper, night field | rings:interference | none |
+| Courses | starter courses; retreats by rule | dawn, mist, paper | mandala, lotus, cairn, ammonite, disc:rayed, breath | none, disc, star shape |
+| Singles | the starter single; talks by rule | paper, mist | disc, breath, lotus, rings:ripple, ammonite | none |
+| Teachers | by rule (a photo wins) | paper | mandala, lotus | none |
+| Playlists | by rule | paper, mist | cairn, scales, mandala, rings:target | none |
+| Presets | the five starters | the loudest layer's ground and figure | | the next layer's figure |
+
+Fire is always drawn in warm inks, whatever the palette's form colour.
+
+### Curation and port
+
+- **Candidates.** Each item gets eight candidate compositions from its row of the map, seeded `id#0` to `id#39`. They are chosen to cover as many different (ground, figure) pairs as the row allows.
+- **Choosing.** The page's curation view lets Burooj change any pick and export the file.
+- **The first pass:**
+  - `picks.json` holds the chosen candidate index for every item;
+  - `node round4/curate.mjs` freezes them into `curated_art.json`: for each item, its ground, figure and accent with their variants, layout, seeds and every numeric parameter;
+  - the page's export writes the same file byte for byte.
+- **In the app, ship `curated_art.json` as an asset.** Painters read the frozen params for shipped items and never re-derive them, so later generator changes can't alter what ships. Anything else calls `compose(kind, id)` with the same map.
+- **Painters:** one `CustomPainter` per ground and per figure, plus `CardPainter` (ground, then figure, then the accent with a small offset and `multiply` on light grounds or `screen` on dark ones, then the baked finish).
+- **Lists, motion and cost:** as in round 3. Lists use a raster cache; motion runs only where it's seen, at up to 30 fps, and stops under reduced motion.
