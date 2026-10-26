@@ -2789,5 +2789,228 @@
   "myCourseEditAction": "Edit",
   "@myCourseEditAction": {
     "description": "Button on a personal course page that opens its edit screen"
+  },
+  "youTitle": "You",
+  "@youTitle": {
+    "description": "Title of the You tab: stats, then settings"
+  },
+  "settingsSectionPractice": "Practice",
+  "@settingsSectionPractice": {
+    "description": "Settings group: defaults for sessions, day boundary, Health"
+  },
+  "settingsSectionSounds": "Sounds & cues",
+  "@settingsSectionSounds": {
+    "description": "Settings group: bells, cues and background sound defaults"
+  },
+  "settingsSectionLibrary": "Library & downloads",
+  "@settingsSectionLibrary": {
+    "description": "Settings group: imports, favorites, downloads, catalogue sync"
+  },
+  "settingsSectionAppearance": "Appearance",
+  "@settingsSectionAppearance": {
+    "description": "Settings group: theme, icon, home layout, widget"
+  },
+  "settingsSectionReminders": "Notifications & reminders",
+  "@settingsSectionReminders": {
+    "description": "Settings group: the daily reminder"
+  },
+  "settingsSectionAbout": "About",
+  "@settingsSectionAbout": {
+    "description": "Settings group: version, updates, licences and credits"
+  },
+  "settingsPracticeCues": "Practice sounds & cues",
+  "@settingsPracticeCues": {
+    "description": "Settings row that opens the Customize sheet for guided Practice"
+  },
+  "settingsPracticeCuesCaption": "Bells, cues and background sound",
+  "@settingsPracticeCuesCaption": {
+    "description": "Caption of the Practice cues row"
+  },
+  "settingsTalksCues": "Talks sounds & cues",
+  "@settingsTalksCues": {
+    "description": "Settings row that opens the Customize sheet for Talks"
+  },
+  "settingsTalksCuesCaption": "Bells, cues and background sound",
+  "@settingsTalksCuesCaption": {
+    "description": "Caption of the Talks cues row"
+  },
+  "settingsDayStarts": "When my day starts",
+  "@settingsDayStarts": {
+    "description": "Settings row for the day boundary used by streaks and stats"
+  },
+  "settingsDayStartsMidnight": "Midnight (default)",
+  "@settingsDayStartsMidnight": {
+    "description": "Day boundary value: midnight"
+  },
+  "settingsDayStartsAt": "{hour}:00 AM",
+  "@settingsDayStartsAt": {
+    "description": "Day boundary value: an hour of the morning",
+    "placeholders": {
+      "hour": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsAgplNotice": "Meditejo is free software under the GNU Affero General Public License v3.0. You can read, change and share its source code.",
+  "@settingsAgplNotice": {
+    "description": "The AGPL notice in About"
+  },
+  "settingsSoundCredits": "Sound credits",
+  "@settingsSoundCredits": {
+    "description": "Settings row opening the credits of the background sounds"
+  },
+  "settingsLicenses": "Open-source licences",
+  "@settingsLicenses": {
+    "description": "Settings row opening the licences page"
+  },
+  "statsTimePractised": "Time practised",
+  "@statsTimePractised": {
+    "description": "Stats card: today, week, month and all-time totals"
+  },
+  "statsToday": "Today",
+  "@statsToday": {
+    "description": "Stats label"
+  },
+  "statsThisWeek": "This week",
+  "@statsThisWeek": {
+    "description": "Stats label: Monday to today"
+  },
+  "statsThisMonth": "This month",
+  "@statsThisMonth": {
+    "description": "Stats label"
+  },
+  "statsAllTime": "All time",
+  "@statsAllTime": {
+    "description": "Stats label"
+  },
+  "statsTotalTime": "Total time",
+  "@statsTotalTime": {
+    "description": "You tab summary label"
+  },
+  "statsUntimedNote": "Sessions from before the app recorded their length ({count}) count as days practised, not as minutes.",
+  "@statsUntimedNote": {
+    "description": "Note under the totals when older sessions have no recorded length",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsEmpty": "Your first recorded session will show up here.",
+  "@statsEmpty": {
+    "description": "Stats empty state"
+  },
+  "statsDailyMinutes": "Minutes a day",
+  "@statsDailyMinutes": {
+    "description": "Chart title"
+  },
+  "statsRange7": "7 days",
+  "@statsRange7": {
+    "description": "Chart range option"
+  },
+  "statsRange30": "30 days",
+  "@statsRange30": {
+    "description": "Chart range option"
+  },
+  "statsChartTotal": "{total} in all, practised on {practised} of {days} days",
+  "@statsChartTotal": {
+    "description": "Chart readout and screen-reader summary",
+    "placeholders": {
+      "total": {
+        "type": "String"
+      },
+      "practised": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "statsDaysPracticedTitle": "Days practised",
+  "@statsDaysPracticedTitle": {
+    "description": "Calendar card title"
+  },
+  "statsDaysPractised": "{count, plural, =1{1 day} other{{count} days}}",
+  "@statsDaysPractised": {
+    "description": "Days practised in the month shown",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsPractised": "Practised",
+  "@statsPractised": {
+    "description": "Screen-reader status of a calendar day with a session of unknown length"
+  },
+  "statsLess": "Less",
+  "@statsLess": {
+    "description": "Heat-map legend"
+  },
+  "statsMore": "More",
+  "@statsMore": {
+    "description": "Heat-map legend"
+  },
+  "statsBreakdown": "Where your time went",
+  "@statsBreakdown": {
+    "description": "Breakdown card title"
+  },
+  "statsPractice": "Practice",
+  "@statsPractice": {
+    "description": "Breakdown: guided practice"
+  },
+  "statsTalks": "Talks",
+  "@statsTalks": {
+    "description": "Breakdown: talks"
+  },
+  "statsByCourse": "By course or source",
+  "@statsByCourse": {
+    "description": "Breakdown sub-heading"
+  },
+  "statsBreakdownEmpty": "Once a session is recorded with its length, the split shows here.",
+  "@statsBreakdownEmpty": {
+    "description": "Breakdown empty state"
+  },
+  "statsSourceCourse": "A course",
+  "@statsSourceCourse": {
+    "description": "Breakdown row for a course with no recorded title"
+  },
+  "statsSourceByHand": "Added by hand",
+  "@statsSourceByHand": {
+    "description": "Breakdown row"
+  },
+  "statsSourceDharmaSeed": "Dharma Seed talks",
+  "@statsSourceDharmaSeed": {
+    "description": "Breakdown row"
+  },
+  "statsSourceYoutube": "YouTube",
+  "@statsSourceYoutube": {
+    "description": "Breakdown row"
+  },
+  "statsSourceImported": "Imported",
+  "@statsSourceImported": {
+    "description": "Breakdown row"
+  },
+  "statsSourceOther": "Other",
+  "@statsSourceOther": {
+    "description": "Breakdown row"
+  },
+  "statsStreakTitle": "Streak and consistency",
+  "@statsStreakTitle": {
+    "description": "Streak card title"
+  },
+  "statsLast30Days": "You practised on {count} of the last 30 days.",
+  "@statsLast30Days": {
+    "description": "Streak card feedback line",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsConsistency": "Consistency",
+  "@statsConsistency": {
+    "description": "Streak card label"
   }
 }
