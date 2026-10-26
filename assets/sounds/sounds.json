@@ -2,7 +2,7 @@
   "version": 1,
   "targetLufs": -27.0,
   "generatedBy": "tools/meditejo/sounds/process_sounds.py",
-  "totalBytes": 11539173,
+  "totalBytes": 11777081,
   "sounds": [
     {
       "id": "rain-terrace",
@@ -468,7 +468,7 @@
     },
     {
       "id": "ocean",
-      "title": "Ocean swell",
+      "title": "Gentle ocean",
       "category": "water",
       "asset": "assets/sounds/ocean.opus",
       "durationMs": 21776,
@@ -519,92 +519,104 @@
     },
     {
       "id": "wind-trees",
-      "title": "Wind in the trees",
+      "title": "Wind in the pines",
       "category": "wind",
       "asset": "assets/sounds/wind-trees.opus",
-      "durationMs": 50006,
+      "durationMs": 60006,
       "channels": 2,
-      "bytes": 340943,
-      "originalTitle": "Wind in the Trees",
-      "author": "Joseph Sardin",
-      "authorUrl": "https://bigsoundbank.com/",
-      "sourceUrl": "https://bigsoundbank.com/forest-wind-in-the-trees-s0904.html",
+      "bytes": 424854,
+      "originalTitle": "Wind_pine.wav",
+      "author": "sinewave1kHz",
+      "authorUrl": "https://freesound.org/people/sinewave1kHz/",
+      "sourceUrl": "https://freesound.org/people/sinewave1kHz/sounds/202989/",
       "license": {
         "spdx": "CC0-1.0",
         "name": "CC0 1.0",
         "url": "https://creativecommons.org/publicdomain/zero/1.0/"
       },
-      "licenseVerifiedOn": "https://bigsoundbank.com/forest-wind-in-the-trees-s0904.html",
-      "licenseCheckedAt": "2026-10-19",
+      "licenseVerifiedOn": "https://freesound.org/people/sinewave1kHz/sounds/202989/",
+      "licenseCheckedAt": "2026-10-26",
       "assurance": "high",
-      "modifications": "excerpt of 50 s from 56.5 s; looped with a 4 s crossfade; gain +16.4 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "modifications": "excerpt of 60 s from 28.03 s; filtered (highpass=f=60); looped with a 5 s crossfade; gain +7.6 dB (to about -27 LUFS); stereo Opus 64 kbps",
       "processing": {
-        "sourceSha256": "0977950ade4efe3c1a975c4c7c983b1487bfeb4adb456895e4d0b637ba81373b",
-        "start": 56.5,
-        "loop": 50,
-        "crossfade": 4,
-        "filters": "",
-        "gainDb": 16.44,
+        "sourceSha256": "5a5ebd64965082b04528522ae22e259c05ca3b86bf7f46e3d02f0e9d7ee255a0",
+        "start": 28.03,
+        "loop": 60,
+        "crossfade": 5,
+        "filters": "highpass=f=60",
+        "gainDb": 7.58,
         "limiterDb": 0.0,
         "measuredBefore": {
-          "lufs": -43.44,
-          "truePeak": -27.91,
-          "lra": 1.9
+          "lufs": -34.58,
+          "truePeak": -17.67,
+          "lra": 3.0
         },
         "measuredAfter": {
-          "lufs": -27.01,
-          "truePeak": -11.58,
-          "lra": 2.0
+          "lufs": -26.99,
+          "truePeak": -9.86,
+          "lra": 3.1
         },
-        "seamRank": 29.8,
+        "seamRank": 32.1,
+        "seam": {
+          "rmsStepDb": 0.06,
+          "rmsStepP95Db": 1.14,
+          "spectralDb": 1.58,
+          "spectralP95Db": 2.11
+        },
         "bitrateKbps": 64,
-        "bytes": 340943,
-        "durationMs": 50006
+        "bytes": 424854,
+        "durationMs": 60006
       }
     },
     {
       "id": "wind-grass",
-      "title": "Wind in tall grass",
+      "title": "Wind in an open field",
       "category": "wind",
       "asset": "assets/sounds/wind-grass.opus",
-      "durationMs": 45006,
+      "durationMs": 60006,
       "channels": 2,
-      "bytes": 309507,
-      "originalTitle": "Wind in Tall Grass",
-      "author": "Joseph Sardin",
-      "authorUrl": "https://bigsoundbank.com/",
-      "sourceUrl": "https://bigsoundbank.com/wind-in-tall-grass-s0908.html",
+      "bytes": 417549,
+      "originalTitle": "Wind blowing in a field in Texas, USA",
+      "author": "felix.blume",
+      "authorUrl": "https://freesound.org/people/felix.blume/",
+      "sourceUrl": "https://freesound.org/people/felix.blume/sounds/217506/",
       "license": {
         "spdx": "CC0-1.0",
         "name": "CC0 1.0",
         "url": "https://creativecommons.org/publicdomain/zero/1.0/"
       },
-      "licenseVerifiedOn": "https://bigsoundbank.com/wind-in-tall-grass-s0908.html",
-      "licenseCheckedAt": "2026-10-19",
+      "licenseVerifiedOn": "https://freesound.org/people/felix.blume/sounds/217506/",
+      "licenseCheckedAt": "2026-10-26",
       "assurance": "high",
-      "modifications": "excerpt of 45 s from 35 s; looped with a 4 s crossfade; gain +10.6 dB (to about -27 LUFS); stereo Opus 64 kbps",
+      "modifications": "excerpt of 60 s from 84.5 s; filtered (highpass=f=40); looped with a 5 s crossfade; gain -9.3 dB (to about -27 LUFS); stereo Opus 64 kbps",
       "processing": {
-        "sourceSha256": "e45986e15436ea41af289fb929524df889c1f3204e263fd6b1231d4140b11da1",
-        "start": 35.0,
-        "loop": 45,
-        "crossfade": 4,
-        "filters": "",
-        "gainDb": 10.61,
+        "sourceSha256": "416358742301fa46f0a72b4b0d2d3979da28da1fb364b8d4cbb5cc56e2a8bf24",
+        "start": 84.5,
+        "loop": 60,
+        "crossfade": 5,
+        "filters": "highpass=f=40",
+        "gainDb": -9.26,
         "limiterDb": 0.0,
         "measuredBefore": {
-          "lufs": -37.61,
-          "truePeak": -12.94,
-          "lra": 5.3
+          "lufs": -17.74,
+          "truePeak": 0.0,
+          "lra": 4.7
         },
         "measuredAfter": {
-          "lufs": -27.04,
-          "truePeak": -1.78,
-          "lra": 5.4
+          "lufs": -27.01,
+          "truePeak": -8.76,
+          "lra": 4.7
         },
-        "seamRank": 56.1,
+        "seamRank": 27.4,
+        "seam": {
+          "rmsStepDb": 0.14,
+          "rmsStepP95Db": 3.92,
+          "spectralDb": 1.97,
+          "spectralP95Db": 3.78
+        },
         "bitrateKbps": 64,
-        "bytes": 309507,
-        "durationMs": 45006
+        "bytes": 417549,
+        "durationMs": 60006
       }
     },
     {
@@ -843,44 +855,50 @@
       "title": "Crackling fire",
       "category": "fire",
       "asset": "assets/sounds/fire-crackle.opus",
-      "durationMs": 40006,
+      "durationMs": 52006,
       "channels": 2,
-      "bytes": 343962,
-      "originalTitle": "Fireplace #4",
-      "author": "Joseph Sardin",
-      "authorUrl": "https://bigsoundbank.com/",
-      "sourceUrl": "https://bigsoundbank.com/fireplace-4-s2856.html",
+      "bytes": 389917,
+      "originalTitle": "Crackling Fire",
+      "author": "samarobryn",
+      "authorUrl": "https://freesound.org/people/samarobryn/",
+      "sourceUrl": "https://freesound.org/people/samarobryn/sounds/414767/",
       "license": {
         "spdx": "CC0-1.0",
         "name": "CC0 1.0",
         "url": "https://creativecommons.org/publicdomain/zero/1.0/"
       },
-      "licenseVerifiedOn": "https://bigsoundbank.com/fireplace-4-s2856.html",
-      "licenseCheckedAt": "2026-10-19",
+      "licenseVerifiedOn": "https://freesound.org/people/samarobryn/sounds/414767/",
+      "licenseCheckedAt": "2026-10-26",
       "assurance": "high",
-      "modifications": "excerpt of 40 s from 13.5 s; looped with a 4 s crossfade; gain +3.9 dB, peaks limited by up to 6.0 dB (to about -36 LUFS); stereo Opus 64 kbps",
+      "modifications": "excerpt of 52 s from 2.512 s; looped with a 4 s crossfade; gain -5.0 dB (to about -31 LUFS); stereo Opus 64 kbps",
       "processing": {
-        "sourceSha256": "4a9f1fa51cae224cd359f9e66ab552c0ba3593b263a515536e32f55579356092",
-        "start": 13.5,
-        "loop": 40,
+        "sourceSha256": "0adade5e9632415475c124e47a7a924f6719b94a9034875ef70ce045b1195836",
+        "start": 2.512,
+        "loop": 52,
         "crossfade": 4,
         "filters": "",
-        "gainDb": 3.87,
-        "limiterDb": 6.0,
+        "gainDb": -5.02,
+        "limiterDb": 0.0,
         "measuredBefore": {
-          "lufs": -38.54,
-          "truePeak": 0.13,
-          "lra": 10.0
+          "lufs": -26.45,
+          "truePeak": 2.92,
+          "lra": 3.7
         },
         "measuredAfter": {
-          "lufs": -36.08,
-          "truePeak": -1.3,
-          "lra": 5.8
+          "lufs": -31.46,
+          "truePeak": -2.23,
+          "lra": 3.8
         },
-        "seamRank": 10.1,
+        "seamRank": 28.8,
+        "seam": {
+          "rmsStepDb": 0.13,
+          "rmsStepP95Db": 11.7,
+          "spectralDb": 1.88,
+          "spectralP95Db": 12.59
+        },
         "bitrateKbps": 64,
-        "bytes": 343962,
-        "durationMs": 40006
+        "bytes": 389917,
+        "durationMs": 52006
       }
     },
     {
