@@ -319,6 +319,23 @@ class CueMathTest {
         assertFalse(bell.pending)
     }
 
+    @Test fun aReArmBetweenTicksDoesNotUseUpABellThatHasNotRung() {
+        val bell = HalfwayBell()
+        val end = 20 * min
+        bell.rearm(true, 0.0, end)
+        // The midpoint passes between two ticks and a settings change re-arms first.
+        bell.rearm(true, 10 * min + 300.0, end)
+        assertTrue(bell.pending)
+        assertTrue(bell.fire(10 * min + 300.0, end)) // still within the late tolerance: rings
+        assertFalse(bell.pending)
+        // Far too late is still consumed silently, as before.
+        val late = HalfwayBell()
+        late.rearm(true, 0.0, end)
+        late.rearm(true, 12 * min, end)
+        assertFalse(late.fire(12 * min, end))
+        assertFalse(late.pending)
+    }
+
     @Test fun reArmingAtTheMidpointExactlyLeavesItUsedUp() {
         val bell = HalfwayBell()
         bell.rearm(true, 10 * min, 20 * min)

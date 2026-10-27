@@ -290,15 +290,19 @@ internal class HalfwayBell {
     fun disarm() = cue.disarm()
 
     /**
-     * Arms the bell for a session now at [sessionMs] with [endMs] to go. A seek
-     * back before the midpoint, or a longer extension that moves it ahead,
-     * rings it again. A session already at or past the midpoint leaves it used
-     * up: re-arming within the late tolerance after it rang must not ring it
-     * twice. An unknown end arms it, to be judged once the end is known.
+     * Arms the bell for a session now at [sessionMs] with [endMs] to go. A bell
+     * that is still pending stays pending, so a re-arm between ticks cannot use
+     * up a bell that has not rung yet ([fire] still consumes a late one
+     * silently). A bell that has rung rings again only if the session is back
+     * before the midpoint (a seek back, or a longer extension that moves it
+     * ahead): re-arming within the late tolerance after it rang must not ring
+     * it twice. An unknown end arms it, to be judged once the end is known.
      */
     fun rearm(enabled: Boolean, sessionMs: Double, endMs: Double?) {
+        if (!enabled) { cue.disarm(); return }
+        if (cue.pending) return
         val due = CueMath.halfwayMs(endMs)
-        if (enabled && (due == null || sessionMs < due)) cue.arm() else cue.disarm()
+        if (due == null || sessionMs < due) cue.arm()
     }
 
     /** True when the bell should ring now. */

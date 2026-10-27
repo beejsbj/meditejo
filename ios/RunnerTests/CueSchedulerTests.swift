@@ -212,6 +212,21 @@ class CueSchedulerTests: XCTestCase {
         XCTAssertFalse(bell.pending)
     }
 
+    func testAReArmBetweenTicksDoesNotUseUpABellThatHasNotRung() {
+        var bell = HalfwayBell()
+        let end = 20 * minute
+        bell.rearm(enabled: true, sessionMs: 0, endMs: end)
+        bell.rearm(enabled: true, sessionMs: 10 * minute + 300, endMs: end)
+        XCTAssertTrue(bell.pending)
+        XCTAssertTrue(bell.fire(sessionMs: 10 * minute + 300, endMs: end))
+        XCTAssertFalse(bell.pending)
+        var late = HalfwayBell()
+        late.rearm(enabled: true, sessionMs: 0, endMs: end)
+        late.rearm(enabled: true, sessionMs: 12 * minute, endMs: end)
+        XCTAssertFalse(late.fire(sessionMs: 12 * minute, endMs: end))
+        XCTAssertFalse(late.pending)
+    }
+
     func testReArmingAtTheMidpointExactlyLeavesItUsedUp() {
         var bell = HalfwayBell()
         bell.rearm(enabled: true, sessionMs: 10 * minute, endMs: 20 * minute)
