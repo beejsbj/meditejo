@@ -12,13 +12,13 @@ Meditejo releases go to **GitHub Releases on `beejsbj/meditejo`**; the app check
 
 ## 2. Dry run
 
-Work from a clean `develop` with the changes merged and pushed.
+Work from a clean `develop` with the changes merged and pushed. Releases go through a pull request: `develop` requires the `review-evidence` check, and the script never pushes to it directly.
 
 ```bash
 tools/meditejo/release.sh <version> --notes <notes.md> --dry-run
 ```
 
-Read the plan: the chosen `versionCode`, the commands, and any `WOULD REFUSE` line. Write notes in plain, user-facing language (they appear in the app's About page); without `--notes` the script lists commit subjects since the previous release.
+Read the plan: the chosen `versionCode`, the commands (bump on `release/v<version>`, `gh pr create`, wait for the required checks, `gh pr merge --merge`, then the build from the merged commit), and any `WOULD REFUSE` line. Write notes in plain, user-facing language (they appear in the app's About page); without `--notes` the script lists commit subjects since the previous release.
 
 ## 3. Publish
 
@@ -28,7 +28,9 @@ Publishing is outward-facing and cannot be taken back cleanly (the app may alrea
 tools/meditejo/release.sh <version> --notes <notes.md> --yes
 ```
 
-The script builds on GitHub Actions, signs on bjslab with the durable key and refuses any other certificate, then creates a draft release, checks its assets and publishes it. Never move or print the signing key.
+The script commits the version bump on `release/v<version>`, opens a PR against `develop`, waits for the required checks and merges it (`gh pr merge --merge`, never `--admin`). Then it builds on GitHub Actions from the **merged** commit, signs on bjslab with the durable key and refuses any other certificate, creates a draft release on that commit, checks its assets and publishes it. Never move or print the signing key.
+
+If a required check fails or the wait times out, the script stops with the PR open and `develop` untouched; close the PR and delete the branch before trying again. If it fails after the merge, run the same version again: it sees the bump already on `develop` and builds without a second PR. `docs/fork/UPDATES.md` has the details. The run waits for the checks and then for the build, so keep it somewhere it can stay open.
 
 ## 4. Report
 
