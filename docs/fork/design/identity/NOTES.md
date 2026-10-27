@@ -351,3 +351,40 @@ The first terrace was the balcony ground's `terrace` variant: a parapet against 
 
 Only "Rain on a terrace" changed. The first pick's frozen entry is kept in `terrace_before.json` for the page's strip.
 
+
+## Round 6: an M in the roof
+
+Burooj picked B, the minimal shelter `m-2026-10-26`, as the app icon (beejsbj/meditejo PR #45, `fork/identity`). He then asked: what if the top corner bent inwards, making a subtle M? Round 6 lives in `round6/`; `node round6/build.mjs` builds `identity-round6.html` (24.5 KB).
+
+### The fold
+
+- **The slopes stay the shipped ones.** The roof is still `shelterRoofCommands`' two quadratic slopes and its 0.07 thickness. With a notch, each slope stops `nw` short of the centre (cut exactly with de Casteljau), and the apex folds down between those two shoulders.
+- **The first try was wrong.** I first redrew each half as an arch rising to the old apex height. That turned the low gable into two round humps, a gull rather than a roof, so I dropped it. Folding the corner keeps B's silhouette and changes only its top.
+- **The inside follows at the roof's thickness.** Its shoulders are on the shipped inner slope. Under a V, the inner notch is lower by the thickness across the V's arm (`0.07 × √(nw² + notch²) / nw`); under a round bottom, it is lower by 0.07.
+- **Four optional numbers in `values`** (tile units; absent or 0 is B):
+  - `notch`: how far the apex folds down below the shoulders;
+  - `nw`: how far each shoulder sits from the centre;
+  - `soft`: 0 for a sharp V, otherwise a dip with a round bottom, its curve reaching this far out;
+  - `gap`: a hairline between the two halves, each cut square.
+
+| Variant | notch | nw | soft | gap | File |
+|---|---|---|---|---|---|
+| B, as shipped | — | — | — | — | `marks/b.json` (identical to `house_mark.json`) |
+| Whisper | 0.018 | 0.05 | — | — | `marks/m1-whisper.json` |
+| Clear V | 0.045 | 0.065 | — | — | `marks/m2-clear.json` |
+| Deep M | 0.075 | 0.08 | — | — | `marks/m3-deep.json` |
+| Soft dip | 0.05 | 0.07 | 0.035 | — | `marks/m4-soft.json` |
+| Split | 0.045 | 0.065 | — | 0.016 | `marks/m5-split.json` |
+
+### Port: verified end to end
+
+- **The JSON drops in as `assets/branding/house_mark.json`.** It uses the same format, seed and blob, with the new keys in `values`. `MarkSpec.decode` keeps unknown `values` keys, so nothing else changes.
+- **`shelter_notch.patch` is required.** It teaches `shelterRoofCommands` (`lib/services/identity/mark_outline.dart`) to draw the fold. Without it the shipped code ignores the keys and draws B. With no notch it returns the shipped commands exactly, so B is unchanged.
+- **`shelter.js` is a JS port of `blobOutline`, `shelterRoofCommands`, `settledOutline` and `house_mark.dart`'s icon mapping.** For B it reproduces the shipped `house_mark.svg`, `_glyph.svg` and `_square.svg` byte for byte.
+- **The patch was checked on a throwaway worktree of `fork/identity` at 44b2fc6e:**
+  - with the patch applied, `house_mark.dart` writes the same three SVGs as `freeze.mjs` for all six variants (18 files, byte for byte);
+  - `make_icons.py` renders the split variant, the oddest path (two subpaths), into correct launcher PNGs;
+  - `house_mark_test.dart` and `mark_reference_test.dart` pass (21 tests).
+- **To ship one:** `git apply round6/shelter_notch.patch`, copy `round6/marks/<id>.json` over `assets/branding/house_mark.json`, then `uv run tools/meditejo/branding/make_icons.py`.
+- **Home's mark** is `MarkPainter`'s minimal shelter with the same roof: the roof spreads once (`open`), then the pebble breathes between round and organic every 10 s. The page draws exactly that, on Tidewater's light and dark backgrounds; on dark, the roof takes the text colour.
+- **The SVG comment still names the seed `m-2026-10-26`.** The fold is frozen values, not a new seed: `--freeze` would rebuild B.

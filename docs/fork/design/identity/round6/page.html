@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meditejo · identity, round 6 · an M in the roof</title>
+<style>
+:root {
+  --bg: #F2F5F6; --surface: #E4EAEC; --raised: #D7E0E3; --text: #18242F; --muted: #5E6F7B; --form: #86A9B1;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --pad: clamp(16px, 4vw, 28px);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 var(--sans); -webkit-text-size-adjust: 100%; }
+main { max-width: 860px; margin: 0 auto; padding: 0 var(--pad) 64px; }
+h1, h2 { font-family: var(--serif); font-weight: 500; letter-spacing: -0.01em; margin: 0; }
+h1 { font-size: clamp(30px, 7vw, 44px); line-height: 1.05; }
+h2 { font-size: clamp(22px, 5vw, 28px); line-height: 1.15; }
+h3 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 16px 0 8px; }
+p { margin: 0; }
+code { font-family: var(--mono); font-size: 11.5px; }
+.eyebrow { font: 600 11px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+header.top { padding: 34px 0 18px; display: grid; gap: 6px; }
+.lede { color: var(--muted); max-width: 64ch; margin-top: 8px; }
+section { padding-top: 40px; }
+.shead { margin-bottom: 14px; }
+.shead p { color: var(--muted); font-size: 14px; margin-top: 4px; max-width: 62ch; }
+.opts { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin: 8px 0 12px; }
+.opts label { display: inline-flex; gap: 6px; align-items: center; }
+/* side by side */
+.lineup { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 640px) { .lineup { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.lineup figure { margin: 0; display: grid; gap: 4px; font-size: 12px; text-align: center; }
+.lineup canvas { width: 100%; aspect-ratio: 1; border-radius: 14px; display: block; }
+.screen { border-radius: 20px; padding: 16px 10px 12px; display: grid; gap: 6px; justify-items: center; margin-top: 10px; }
+.screen.six { grid-template-columns: repeat(6, 1fr); }
+.screen.light { background: linear-gradient(160deg, #E9E6E1, #D9D6D2); color: #2b2b2b; }
+.screen.dark { background: linear-gradient(160deg, #1d1f22, #0e0f11); color: #e8e8e8; }
+.app { display: grid; gap: 5px; justify-items: center; font-size: 11px; text-align: center; line-height: 1.2; }
+.app canvas, .app svg { display: block; }
+/* one variant */
+.variant { padding: 18px 0 22px; border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent); display: grid; grid-template-columns: minmax(0, 384px) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 760px) { .variant { grid-template-columns: 1fr; } }
+.variant .big { width: 100%; max-width: 384px; aspect-ratio: 1; display: block; border-radius: 18px; }
+.variant h2 { font-size: 24px; }
+.variant .note { color: var(--muted); font-size: 14px; margin: 4px 0 6px; }
+.variant .vals { font: 11.5px var(--mono); color: var(--muted); }
+.masks { display: flex; gap: 14px; align-items: end; flex-wrap: wrap; padding: 12px 14px; border-radius: 16px; background: var(--surface); margin-top: 10px; }
+.masks figure { margin: 0; display: grid; gap: 4px; justify-items: center; font-size: 11px; color: var(--muted); }
+.screen.four { grid-template-columns: repeat(5, 1fr); align-items: end; }
+.homes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.homes figure { margin: 0; display: grid; gap: 4px; font-size: 11px; color: var(--muted); }
+.homes canvas { width: 100%; aspect-ratio: 1; border-radius: 16px; display: block; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06), 0 0 0 1px color-mix(in srgb, var(--text) 10%, transparent); }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th, td { text-align: left; padding: 7px 8px 7px 0; border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; }
+.tablewrap { overflow-x: auto; }
+pre { font: 11.5px/1.5 var(--mono); background: var(--surface); padding: 10px 12px; border-radius: 10px; overflow-x: auto; margin: 8px 0 0; }
+footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent); color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <span class="eyebrow">Meditejo · identity · round 6 · the house mark</span>
+    <h1>An M in the roof</h1>
+    <p class="lede">The minimal shelter, <code>m-2026-10-26</code>, with the roof's top corner folded in. The two slopes are the shipped ones, unchanged; they stop at two shoulders, and the apex dips between them, so the roof over the pebble also reads as an M for Meditejo. All in Tidewater.</p>
+  </header>
+
+  <section>
+    <div class="shead"><span class="eyebrow">01</span><h2>Side by side</h2><p>The six at the same size, then together on home screens at 48 px, where the choice is really made.</p></div>
+    <div class="lineup" id="lineup"></div>
+    <div class="opts"><label><input type="checkbox" id="sq"> squircle on the home screens</label></div>
+    <div class="screen light six" id="six-light"></div>
+    <div class="screen dark six" id="six-dark"></div>
+  </section>
+
+  <section>
+    <div class="shead"><span class="eyebrow">02</span><h2>Each variant</h2><p>384 px as the square icon (iOS, the legacy mipmaps); 48 and 36 px in Android's circle and squircle masks, which show the adaptive icon's central 72 dp; on light and dark home screens; and as Home's mark, breathing: the pebble moves between round and organic over ten seconds. Tap a Home mark to watch the roof spread again.</p></div>
+    <div id="variants"></div>
+  </section>
+
+  <section>
+    <div class="shead"><span class="eyebrow">03</span><h2>Frozen, ready to drop in</h2><p>Each variant is a <code>house_mark.json</code> in the format <code>house_mark.dart</code> reads: B's geometry plus up to four new numbers in <code>values</code>. The shipped roof code ignores them, so <code>shelter_notch.patch</code> teaches <code>shelterRoofCommands</code> to draw them.</p></div>
+    <div class="tablewrap"><table id="vals"></table></div>
+    <h3>To ship one</h3>
+    <pre>git apply docs/fork/design/identity/round6/shelter_notch.patch   # on fork/identity
+cp docs/fork/design/identity/round6/marks/m2-clear.json assets/branding/house_mark.json
+uv run tools/meditejo/branding/make_icons.py</pre>
+  </section>
+
+  <footer>
+    <p>Sources in <code>round6/</code>: <code>shelter.js</code> (a port of <code>mark_outline.dart</code>'s shelter, plus the notch), <code>variants.json</code>, <code>freeze.mjs</code> (writes <code>marks/*.json</code> and the SVGs <code>house_mark.dart</code> writes from them), <code>shelter_notch.patch</code>. Notes: <code>NOTES.md</code>, round 6.</p>
+  </footer>
+</main>
+
+<script>
+/*@SHELTER@*/
+</script>
+<script>
+(() => {
+  'use strict';
+  const $ = (s, el = document) => el.querySelector(s), $$ = (s, el = document) => [...el.querySelectorAll(s)];
+  const BASE = /*@BASE@*/{}, VARIANTS = /*@VARIANTS@*/[];
+  const TIDE = { tile: '#E5EAEC', form: '#86A9B1', stroke: '#1E2C3A', accent: '#DE8A62', light: { bg: '#F2F5F6', text: '#18242F' }, dark: { bg: '#0E151C', text: '#E6EDF0' } };
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const markOf = (v) => ({ ...BASE, values: { ...BASE.values, ...v.values } });
+  const state = { sq: false };
+
+  // The icon's two layouts, from house_mark.dart: the adaptive one (mark in
+  // the central 72 dp of 108) and the square one (the whole canvas).
+  const icons = new Map();
+  function iconOf(v) {
+    if (icons.has(v.id)) return icons.get(v.id);
+    const m = markOf(v), c = Shelter.boxCentre(m);
+    const make = (vis) => Shelter.settledOutline(m, Shelter.toIcon(vis, c)).map((s) => ({ fill: s.role === 'stroke' ? TIDE.stroke : TIDE.form, path: new Path2D(s.path) }));
+    const r = { adaptive: make(Shelter.VISIBLE), square: make(Shelter.CANVAS) };
+    icons.set(v.id, r); return r;
+  }
+  function maskPath(ctx, kind, S) { // S: size in px
+    ctx.beginPath();
+    if (kind === 'circle') { ctx.arc(S / 2, S / 2, S / 2, 0, Math.PI * 2); return; }
+    const n = 5; // a superellipse close to One UI's squircle
+    for (let i = 0; i <= 96; i++) {
+      const a = (i / 96) * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+      const x = S / 2 + (S / 2) * Math.sign(c) * Math.pow(Math.abs(c), 2 / n), y = S / 2 + (S / 2) * Math.sign(s) * Math.pow(Math.abs(s), 2 / n);
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.closePath();
+  }
+  function sizeCanvas(cv, css) {
+    const dpr = Math.min(devicePixelRatio || 1, 3), w = css || cv.clientWidth, px = Math.round(w * dpr);
+    if (css) { cv.style.width = cv.style.height = css + 'px'; }
+    if (cv.width !== px) { cv.width = cv.height = px; }
+    return px;
+  }
+  // kind: 'square' (whole canvas, rounded tile) or a launcher mask.
+  function drawIcon(cv, v, kind, css) {
+    const px = sizeCanvas(cv, css), ctx = cv.getContext('2d'), ic = iconOf(v);
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, px, px);
+    ctx.save();
+    if (kind === 'square') { ctx.scale(px / 108, px / 108); ctx.fillStyle = TIDE.tile; ctx.fillRect(0, 0, 108, 108); ic.square.forEach((s) => { ctx.fillStyle = s.fill; ctx.fill(s.path); }); }
+    else { maskPath(ctx, kind, px); ctx.clip(); ctx.scale(px / 72, px / 72); ctx.translate(-18, -18); ctx.fillStyle = TIDE.tile; ctx.fillRect(0, 0, 108, 108); ic.adaptive.forEach((s) => { ctx.fillStyle = s.fill; ctx.fill(s.path); }); }
+    ctx.restore();
+  }
+
+  // ---------- Home's mark, breathing (mark_painter.dart, minimal shelter) ----------
+  const BREATH = 10, breathAt = (t, s) => (t < s ? 0 : 0.5 - 0.5 * Math.cos((2 * Math.PI * (t - s)) / BREATH));
+  const easeOut = (x) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3), prog = (t, s, d) => (t - s) / d;
+  const homes = [];
+  function drawHome(h, t) {
+    const px = sizeCanvas(h.cv), ctx = h.cv.getContext('2d'), m = h.m, still = reduced.matches, theme = TIDE[h.mode];
+    const b = still ? 0 : breathAt(t, 2.4), e = (s, d) => (still ? 1 : easeOut(prog(t, s, d))), e1 = e(0, 1.1), e2 = e(0.6, 1.3);
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = theme.bg; ctx.fillRect(0, 0, px, px);
+    ctx.setTransform(px, 0, 0, px, 0, 0);
+    // On the app's own background there is no tile; a stroke that would
+    // vanish on dark takes the text colour.
+    Shelter.roofPath(ctx, m, e1); ctx.fillStyle = h.mode === 'dark' ? theme.text : TIDE.stroke; ctx.fill();
+    if (e2 > 0) { Shelter.pebblePath(ctx, m.blobs.sitter, { imperf: 1 - b, grow: e2 * (1 + 0.02 * b) }); ctx.fillStyle = TIDE.form; ctx.fill(); }
+  }
+
+  // ---------- 01 side by side ----------
+  $('#lineup').innerHTML = VARIANTS.map((v) => `<figure><canvas data-v="${v.id}"></canvas><figcaption>${v.name}</figcaption></figure>`).join('');
+  const lineup = () => $$('#lineup canvas').forEach((cv) => drawIcon(cv, VARIANTS.find((v) => v.id === cv.dataset.v), 'square'));
+  const strip = (host) => { host.innerHTML = VARIANTS.map((v) => `<span class="app"><canvas data-v="${v.id}"></canvas><span>${v.name.split(',')[0]}</span></span>`).join(''); };
+  strip($('#six-light')); strip($('#six-dark'));
+  const strips = () => $$('#six-light canvas, #six-dark canvas').forEach((cv) => drawIcon(cv, VARIANTS.find((v) => v.id === cv.dataset.v), state.sq ? 'squircle' : 'circle', 48));
+  $('#sq').addEventListener('change', (e) => { state.sq = e.target.checked; strips(); });
+
+  // ---------- 02 each variant ----------
+  const GLYPHS = [
+    ['Clock', '<circle cx="24" cy="24" r="11" fill="none" stroke="FG" stroke-width="2.6"/><path d="M24 17v7l5 3" fill="none" stroke="FG" stroke-width="2.6" stroke-linecap="round"/>'],
+    ['Notes', '<rect x="15" y="13" width="18" height="22" rx="3" fill="none" stroke="FG" stroke-width="2.6"/><path d="M19 20h10M19 25h10M19 30h6" stroke="FG" stroke-width="2.4" stroke-linecap="round"/>'],
+  ];
+  const placeholder = (g, dark, size) => `<svg viewBox="0 0 48 48" width="${size}" height="${size}" aria-hidden="true"><circle cx="24" cy="24" r="24" fill="${dark ? '#3a3d42' : '#ffffff'}"/>${g.replaceAll('FG', dark ? '#c9ccd1' : '#5b5f66')}</svg>`;
+  const screen = (dark) => `<div class="screen ${dark ? 'dark' : 'light'} four"><span class="app">${placeholder(GLYPHS[0][1], dark, 48)}<span>Clock</span></span><span class="app"><canvas data-k="circle" data-s="48"></canvas><span>Meditejo</span></span><span class="app"><canvas data-k="squircle" data-s="48"></canvas><span>squircle</span></span><span class="app">${placeholder(GLYPHS[1][1], dark, 36)}<span>36 px</span></span><span class="app"><canvas data-k="circle" data-s="36"></canvas><span>Meditejo</span></span></div>`;
+  $('#variants').innerHTML = VARIANTS.map((v) => `<div class="variant" data-v="${v.id}">
+    <canvas class="big"></canvas>
+    <div><h2>${v.name}</h2><p class="note">${v.note}</p><p class="vals">${Object.keys(v.values).length ? Object.entries(v.values).map(([k, x]) => `${k} ${x}`).join(' · ') : 'no new values'} · <code>marks/${v.id}.json</code></p>
+      <div class="masks"><figure><canvas data-k="circle" data-s="48"></canvas>48 circle</figure><figure><canvas data-k="squircle" data-s="48"></canvas>48 squircle</figure><figure><canvas data-k="circle" data-s="36"></canvas>36 circle</figure><figure><canvas data-k="squircle" data-s="36"></canvas>36 squircle</figure></div>
+      ${screen(false)}${screen(true)}
+      <div class="homes"><figure><canvas data-home="light"></canvas>Home's mark, light</figure><figure><canvas data-home="dark"></canvas>Home's mark, dark</figure></div>
+    </div></div>`).join('');
+  const t0 = performance.now();
+  $$('#variants .variant').forEach((el) => {
+    const v = VARIANTS.find((x) => x.id === el.dataset.v);
+    $$('canvas[data-home]', el).forEach((cv) => { const h = { cv, m: markOf(v), mode: cv.dataset.home, start: t0, visible: false }; homes.push(h); cv._h = h; cv.addEventListener('click', () => { h.start = performance.now(); }); });
+  });
+  function statics() {
+    lineup(); strips();
+    $$('#variants .variant').forEach((el) => {
+      const v = VARIANTS.find((x) => x.id === el.dataset.v);
+      drawIcon($('.big', el), v, 'square');
+      $$('canvas[data-k]', el).forEach((cv) => drawIcon(cv, v, cv.dataset.k, +cv.dataset.s));
+    });
+  }
+
+  // ---------- 03 values ----------
+  const KEYS = ['notch', 'nw', 'soft', 'gap'];
+  $('#vals').innerHTML = `<tr><th>Variant</th>${KEYS.map((k) => `<th>${k}</th>`).join('')}<th>File</th></tr>` + VARIANTS.map((v) => `<tr><td><b>${v.name}</b></td>${KEYS.map((k) => `<td>${v.values[k] ?? '—'}</td>`).join('')}<td><code>marks/${v.id}.json</code></td></tr>`).join('');
+
+  // ---------- one loop for the breathing marks ----------
+  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.target._h) e.target._h.visible = e.isIntersecting; }), { rootMargin: '60px' });
+  homes.forEach((h) => io.observe(h.cv));
+  let last = 0;
+  (function tick(now) {
+    if (now - last > 32) { last = now; for (const h of homes) if (h.visible || reduced.matches) drawHome(h, (now - h.start) / 1000); }
+    requestAnimationFrame(tick);
+  })(0);
+  statics();
+  addEventListener('resize', statics);
+})();
+</script>
+</body>
+</html>

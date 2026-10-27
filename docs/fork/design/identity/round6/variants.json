@@ -1,0 +1,8 @@
+[
+ {"id": "b", "name": "B, as shipped", "note": "the reference: the roof's apex is one sharp corner", "values": {}},
+ {"id": "m1-whisper", "name": "Whisper", "note": "the corner barely folds; an M only up close", "values": {"notch": 0.018, "nw": 0.05}},
+ {"id": "m2-clear", "name": "Clear V", "note": "a sharp V between two shoulders: a roof that is also an M", "values": {"notch": 0.045, "nw": 0.065}},
+ {"id": "m3-deep", "name": "Deep M", "note": "the fold goes a third of the way down the slope; the M leads", "values": {"notch": 0.075, "nw": 0.08}},
+ {"id": "m4-soft", "name": "Soft dip", "note": "the V's bottom is round, the shoulders stay sharp", "values": {"notch": 0.05, "nw": 0.07, "soft": 0.035}},
+ {"id": "m5-split", "name": "Split", "note": "the clear V with a hairline between the halves: two hands meeting", "values": {"notch": 0.045, "nw": 0.065, "gap": 0.016}}
+]
