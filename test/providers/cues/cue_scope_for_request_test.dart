@@ -163,8 +163,8 @@ void main() {
       container.invalidate(cueScopeForRequestProvider);
       expect(
         (await scopeOf(shared)).courseId,
-        talks,
-        reason: 'a removed course keeps no sessions; the other one lists it',
+        isNull,
+        reason: 'the removed course keeps no sessions and the other dropped it',
       );
     });
   });
