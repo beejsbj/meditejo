@@ -142,6 +142,12 @@ class CustomBellStore {
     final file = await _file(bell.token);
     if (!await file.exists() || await file.length() == 0) {
       await _write(bell, await _render(bell.spec));
+      // Deleted while it was being made (by another store over the same
+      // preferences): leave no orphan.
+      if (find(id) == null) {
+        if (await file.exists()) await file.delete();
+        return null;
+      }
     }
     return file.path;
   });
@@ -187,7 +193,7 @@ class CustomBellStore {
     final file = await _file(bell.token);
     await file.parent.create(recursive: true);
     // Whole or not at all: the engine must never open half a bell.
-    final partial = File('${file.path}.part');
+    final partial = File('${file.path}.${_random.nextInt(1 << 30)}.part');
     await partial.writeAsBytes(wav, flush: true);
     await partial.rename(file.path);
   }

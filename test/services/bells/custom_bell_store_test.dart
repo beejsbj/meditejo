@@ -213,7 +213,13 @@ void main() {
     expect(store.all().map((b) => b.id), [good.id]);
     await store.rename(good.id, 'Still good');
     final kept = jsonDecode(prefs.getString(CustomBellStore.prefsKey)!) as List;
-    expect(kept, contains(newer));
+    expect(
+      kept.whereType<Map>().any(
+        (m) => m['id'] == newer['id'] && m['preset'] == newer['preset'],
+      ),
+      isTrue,
+      reason: 'the entry from the future is still stored',
+    );
     await prefs.setString(CustomBellStore.prefsKey, '{not json');
     expect(store.all(), isEmpty);
   });
@@ -291,6 +297,42 @@ void main() {
       expect(sent['intervalSound'], path);
       expect(sent['endSound'], 'assets/audio/bell_temple.wav');
       expect(File(sent['startSound'] as String).existsSync(), isTrue);
+    });
+
+    test('configurations reach the native side in the order asked', () async {
+      final sent = <String?>[];
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(NativeCueController.channel, (
+        call,
+      ) async {
+        sent.add((call.arguments as Map)['startSound'] as String?);
+        return null;
+      });
+      final real = NativeCueController.bellFile;
+      // The made bell's file takes a while; the bundled bell asked for after
+      // it does not wait on anything.
+      NativeCueController.bellFile = (id) async {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        return '/files/slow.wav';
+      };
+      try {
+        final first = NativeCueController.configure(
+          const CueSettings(startSound: 'custom-bell:abcdef1234'),
+          _request,
+          update: true,
+        );
+        final second = NativeCueController.configure(
+          const CueSettings(startSound: 'assets/audio/bell_temple.wav'),
+          _request,
+          update: true,
+        );
+        await Future.wait([first, second]);
+      } finally {
+        NativeCueController.bellFile = real;
+        messenger.setMockMethodCallHandler(NativeCueController.channel, null);
+      }
+      expect(sent, ['/files/slow.wav', 'assets/audio/bell_temple.wav']);
     });
 
     test('a deleted bell rings as the default bell, not as nothing', () async {

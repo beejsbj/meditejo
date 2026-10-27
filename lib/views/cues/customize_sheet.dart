@@ -1489,10 +1489,9 @@ class _BellListState extends ConsumerState<_BellList> {
       ),
     );
     if (delete != true || !mounted) return;
-    final wasSelected = widget.selected == bell.id;
+    // Every stored cue that rang it moves to the default bell, and the sheet
+    // follows through the settings provider.
     await ref.read(customBellsProvider.notifier).delete(bell.id);
-    // The cue that rang it moved to the default bell; the list follows.
-    if (wasSelected && mounted) widget.onSelected(cueDefaultBell);
   }
 
   @override

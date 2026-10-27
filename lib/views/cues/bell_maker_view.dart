@@ -67,6 +67,7 @@ class _BellMakerViewState extends ConsumerState<BellMakerView> {
   late String _preset;
   late BellKnobs _knobs;
   late final TextEditingController _name;
+  late final SessionBellPreview _preview;
   final _strike = ValueNotifier<int>(0);
   var _making = false;
   var _saving = false;
@@ -77,6 +78,7 @@ class _BellMakerViewState extends ConsumerState<BellMakerView> {
   @override
   void initState() {
     super.initState();
+    _preview = ref.read(sessionBellPreviewProvider);
     final start = _startingPoint(widget.from);
     _preset = start.$1;
     _knobs = start.$2;
@@ -89,7 +91,7 @@ class _BellMakerViewState extends ConsumerState<BellMakerView> {
   void dispose() {
     _generation++;
     // Nothing keeps ringing once the maker is closed.
-    unawaited(ref.read(sessionBellPreviewProvider).stop());
+    unawaited(_preview.stop());
     _name.dispose();
     _strike.dispose();
     super.dispose();
@@ -155,9 +157,7 @@ class _BellMakerViewState extends ConsumerState<BellMakerView> {
       await file.writeAsBytes(wav, flush: true);
       if (!mounted) return;
       _strike.value++;
-      await ref
-          .read(sessionBellPreviewProvider)
-          .playFile(file.path, widget.volume);
+      await _preview.playFile(file.path, widget.volume);
     } catch (e) {
       AppLogger.e('BELLS', 'Bell preview failed', e);
       if (!mounted) return;

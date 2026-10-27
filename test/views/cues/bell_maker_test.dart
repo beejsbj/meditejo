@@ -60,6 +60,9 @@ Future<void> _io(WidgetTester tester) async {
 }
 
 Future<void> _setUp(WidgetTester tester) async {
+  tester.view.physicalSize = const Size(420, 1000);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
   SharedPreferences.setMockInitialValues({});
   _prefs = await SharedPreferences.getInstance();
   _dir = Directory.systemTemp.createTempSync('bellmaker');
@@ -391,6 +394,15 @@ void main() {
         await tester.pumpAndSettle();
         const scope = CueScope(CueKind.practice);
         expect(_container.read(cueSettingsProvider(scope)).startSound, bell.id);
+        // The end cue rings it too: deleting from the start list moves both.
+        await _container
+            .read(cueSettingsProvider(scope).notifier)
+            .update(
+              _container
+                  .read(cueSettingsProvider(scope))
+                  .copyWith(endSound: bell.id),
+            );
+        await tester.pump();
         await tester.tap(find.byKey(ValueKey('bell_menu_${bell.id}')));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Delete'));
@@ -411,6 +423,10 @@ void main() {
         expect(File(path).existsSync(), isFalse);
         expect(
           _container.read(cueSettingsProvider(scope)).startSound,
+          kSessionBellAsset,
+        );
+        expect(
+          _container.read(cueSettingsProvider(scope)).endSound,
           kSessionBellAsset,
         );
         expect(find.text('Your bells'), findsNothing);
