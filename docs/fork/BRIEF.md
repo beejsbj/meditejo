@@ -153,6 +153,13 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
     - A separate T3 thread ("Meditejo UX pass", branch `ux/pass`) works with Burooj directly: journeys, the interaction model, friction points and a definition of done for v1.
     - Findings live in `docs/fork/ux/`.
     - Burooj will try the next release on the phone first.
+24. **The v1 push** (Burooj, 2026-10-27, while he tries 0.1.4):
+    - Fix every logged bug in parallel batches (cues and sounds; playlists, covers and stats; YouTube; the licence line; housekeeping).
+    - Build slice 8's catalogues: dhammatalks.org, and Hermes Amāra **built but off in release builds until it grants permission**.
+    - Build BJS-583 (Extend into pauses), BJS-586 (categories and labels), BJS-587 (design your own bell) and sounds as a separate download.
+    - **Shelved:** F-Droid builds and iOS.
+    - **Releases go through a PR:** the version bump no longer pushes straight to `develop`.
+    - **German and Spanish:** new strings carry English text in de/es until Burooj decides whether to keep those languages.
 
 ## Build and run
 

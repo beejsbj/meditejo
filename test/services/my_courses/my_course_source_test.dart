@@ -103,6 +103,8 @@ void main() {
       old.execute('DROP TABLE my_course_items');
       old.execute('DROP TABLE my_courses');
       old.execute('DROP TABLE session_contexts');
+      old.execute('ALTER TABLE lib_tracks DROP COLUMN license_name');
+      old.execute('ALTER TABLE lib_tracks DROP COLUMN license_url');
       old.execute('PRAGMA user_version = 2');
       old.dispose();
 

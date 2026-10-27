@@ -102,7 +102,7 @@ void main() {
 
       final old = raw.sqlite3.open(file.path);
       old.execute('DROP TABLE library_labels');
-      old.execute('PRAGMA user_version = 3');
+      old.execute('PRAGMA user_version = 4');
       old.dispose();
 
       fileDb = LibraryDatabase(NativeDatabase(file));
