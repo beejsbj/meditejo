@@ -998,6 +998,33 @@ void main() {
         st().playable(SoundscapeSelection.preset(gone.id), _library),
         SoundscapeSelection.currentMix,
       );
+      // A preset with no sounds at all plays nothing either.
+      container.dispose();
+      container = await make({
+        SoundscapeStore.presetsKey: jsonEncode([
+          const SoundPreset(
+            id: 'user-empty',
+            name: 'Empty',
+            mix: SoundMix.empty,
+          ).toJson(),
+        ]),
+      });
+      expect(
+        st().playable(const SoundscapeSelection.preset('user-empty'), _library),
+        SoundscapeSelection.currentMix,
+      );
+      container.dispose();
+      container = await make({
+        SoundscapeStore.presetsKey: jsonEncode([gone.toJson()]),
+        SoundscapeStore.sessionDefaultsKey: jsonEncode({
+          'practice': {
+            'enabled': true,
+            'selection': SoundscapeSelection.preset(gone.id).encode(),
+            'volume': 0.5,
+          },
+        }),
+        SoundscapeStore.sessionDefaultsVersionKey: 2,
+      });
       // Still loading: taken on trust.
       expect(
         st().playable(SoundscapeSelection.preset(gone.id), null),

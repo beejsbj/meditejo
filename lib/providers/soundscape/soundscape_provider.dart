@@ -132,12 +132,13 @@ class SoundscapeState {
     _ => selection,
   };
 
-  /// Whether preset [id] exists and still has something to play. [library]
-  /// null (still loading) takes its sounds on trust.
+  /// Whether preset [id] exists and still has something to play (a preset with
+  /// no sounds left, or none to begin with, does not). [library] null (still
+  /// loading) takes its sounds on trust.
   bool _presetPlays(String id, SoundLibrary? library) {
     final preset = presets.where((p) => p.id == id).firstOrNull;
     if (preset == null) return false;
-    if (library == null || preset.mix.isEmpty) return true;
+    if (library == null) return true;
     return preset.mix.layers.any(
       (l) => library.contains(l.soundId) || isSynthId(l.soundId),
     );
