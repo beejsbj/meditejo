@@ -30,10 +30,12 @@ class WheelSettleGroup {
   /// A wheel here is still turning (a finger on it, a fling, or a move).
   bool get moving => _wheels.any((wheel) => wheel._moving);
 
-  /// Completes once every wheel here is at rest and has reported its value.
-  Future<void> settled() => Future.wait([
-    for (final wheel in _wheels.toList()) wheel.settled(),
-  ]).timeout(patience, onTimeout: () => const []).then((_) {});
+  /// Completes once every wheel here is at rest and has reported its value,
+  /// including a wheel that starts turning while this waits for another.
+  Future<void> settled() => Future.doWhile(() async {
+    await Future.wait([for (final wheel in _wheels.toList()) wheel.settled()]);
+    return moving;
+  }).timeout(patience, onTimeout: () {});
 }
 
 /// Provides a [WheelSettleGroup] to the [WheelPicker]s below it.

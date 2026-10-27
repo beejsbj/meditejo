@@ -128,6 +128,54 @@ void main() {
       expect(group.moving, isFalse);
     });
 
+    testWidgets('a second wheel flung while waiting is waited for too', (
+      tester,
+    ) async {
+      final group = WheelSettleGroup();
+      final first = <int>[], second = <int>[];
+      Widget wheel(String label, List<int> log) => SizedBox(
+        height: 200,
+        child: WheelPicker<int>(
+          label: label,
+          options: _minutes,
+          value: 5,
+          onChanged: log.add,
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WheelSettleScope(
+              group: group,
+              child: Row(
+                children: [
+                  Expanded(child: wheel('One', first)),
+                  Expanded(child: wheel('Two', second)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      final wheels = find.byType(ListWheelScrollView);
+      await tester.fling(wheels.first, const Offset(0, -300), 1200);
+      await tester.pump(const Duration(milliseconds: 60));
+      int? secondReportedWhenDone;
+      unawaited(
+        group.settled().then((_) => secondReportedWhenDone = second.length),
+      );
+      // The other wheel, at rest when the wait began, starts turning.
+      await tester.fling(wheels.last, const Offset(0, -300), 1200);
+      await tester.pumpAndSettle();
+      expect(first, hasLength(1));
+      expect(second, hasLength(1));
+      expect(
+        secondReportedWhenDone,
+        1,
+        reason: 'done only once the late wheel had reported too',
+      );
+    });
+
     testWidgets('a wheel taken off the screen stops being waited for', (
       tester,
     ) async {
