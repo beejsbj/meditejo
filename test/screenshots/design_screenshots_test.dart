@@ -59,7 +59,7 @@ import '../helpers/soundscape_fakes.dart';
 
 /// Where captures go, and under which palette (the generated art's
 /// screenshots run this twice: MEDITEJO_SHOT_PALETTE=tide and another, into
-/// docs/fork/design/art/<palette>).
+/// `docs/fork/design/art/<palette>`).
 final _out = Platform.environment['MEDITEJO_SHOT_DIR'] ?? 'docs/fork/design';
 final _palette = IdentityPalettes.byId(
   Platform.environment['MEDITEJO_SHOT_PALETTE'],
