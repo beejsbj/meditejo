@@ -2773,4 +2773,62 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get statsConsistency => 'Consistency';
+
+  @override
+  String get libraryInProgress => 'In progress';
+
+  @override
+  String get libraryFilterAll => 'All';
+
+  @override
+  String get libraryFilterCourses => 'Courses';
+
+  @override
+  String get libraryFilterPlaylists => 'Playlists';
+
+  @override
+  String get libraryFilterSingles => 'Singles';
+
+  @override
+  String get libraryFilterDownloads => 'Downloads';
+
+  @override
+  String get libraryFilterLabel => 'Show';
+
+  @override
+  String get libraryGroupLabel => 'Practice or talks';
+
+  @override
+  String get librarySort => 'Sort';
+
+  @override
+  String get librarySortRecent => 'Recent';
+
+  @override
+  String get librarySortTitle => 'A–Z';
+
+  @override
+  String get librarySortProgress => 'Progress';
+
+  @override
+  String get libraryShowGrid => 'Show as grid';
+
+  @override
+  String get libraryShowList => 'Show as list';
+
+  @override
+  String get librarySourceImported => 'Imported';
+
+  @override
+  String get libraryFilterEmpty => 'Nothing here yet';
+
+  @override
+  String get libraryFilterEmptyBody =>
+      'Find something in Explore, or add a link or a file.';
+
+  @override
+  String get libraryEmptyExplore => 'Explore';
+
+  @override
+  String get libraryPinned => 'Pinned to Home';
 }

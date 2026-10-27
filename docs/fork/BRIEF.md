@@ -137,6 +137,7 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
     - **Categories:** curating practices by category (Metta, Vipassanā, Sankalpa, Jhāna, TMI…) is a future issue (BJS-586).
 21. **Identity picks** (Burooj, 2026-10-26, after round 2 of the identity exploration on `fork/mark-explore`):
     - **App icon: the shelter mark** (a roof line over a resting pebble). It is the fixed launcher icon and house mark.
+      - *2026-10-27:* Burooj chose the **minimal** shelter (`m-2026-10-26`) over the gesture one. A variant whose apex bends inward into a subtle "M" is being explored (round 6 on `fork/mark-explore`).
     - **On Home, the mark changes daily and can be pinned.** It breathes between perfect and imperfect.
     - **The palette is fixed by default: Tidewater.** "Daily palette" is an option in Settings, and the mark and palette are pinned separately.
     - **Generated art is the right direction but needs more primitives.** Sound cards and covers read too alike. Add breaths, fire, concentric circles and minimal mandalas, among others.
@@ -147,6 +148,10 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
     - **A tight meaning map:** each sound or kind has only a few fitting grounds and figures, so no arbitrary pairings.
     - **Drop the weak primitives.** Constellation becomes a scatter of stars forming a shape, not stars linked in sequence.
     - **Every primitive animates gracefully.**
+23. **A dedicated UX pass before v1 is done** (Burooj, 2026-10-27): "We really have to think of UX fully, because we are getting close to the done point."
+    - A separate T3 thread ("Meditejo UX pass", branch `ux/pass`) works with Burooj directly: journeys, the interaction model, friction points and a definition of done for v1.
+    - Findings live in `docs/fork/ux/`.
+    - Burooj will try the next release on the phone first.
 
 ## Build and run
 

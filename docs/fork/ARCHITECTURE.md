@@ -279,10 +279,25 @@ clipboard reader and share intake as providers, so tests need no platform.
 
 ### Library screens
 
-- **Library tab** (`lib/views/library/library_view.dart`): Practice, Talks,
-  Teachers; a row menu to move between Practice and Talks, rename (library only),
-  pin a course to Home, or remove (an import asks first, since its audio is
-  deleted). It is the third of four tabs (below), where Home used to link to it.
+- **Library tab** (`lib/views/library/library_view.dart`). From the top:
+  **In progress** (`inProgressItemsProvider`: everything Continue would offer,
+  unlimited and without its fallback) as large cards that start the session;
+  the kind chips (All, Courses, Playlists, Singles, Teachers, Downloads);
+  Practice or Talks (a segmented switch, neither chosen shows both), the sort
+  (Recent, A–Z, Progress) and the grid or list switch; then Practice before
+  Talks, each with courses and playlists as cards (art, source, detail,
+  progress) and singles as compact rows, then saved teachers. The options are
+  `libraryViewOptionsProvider` (`lib/providers/library/library_view_provider.dart`);
+  the sort and layout are kept in preferences (`library_sort`,
+  `library_layout`), the filter and Practice/Talks are not. `arrangeLibrary`
+  there is the pure filter and sort, unit-tested. Every entry keeps its menu
+  (`LibraryEntryMenu`): move between Practice and Talks, rename (library
+  only), pin a course to Home, add to a playlist, copy as playlist, edit or
+  delete a playlist, or remove (an import asks first, since its audio is
+  deleted; a catalogue item has Undo). Downloads lists singles that are
+  downloaded and courses with a downloaded session
+  (`libraryDownloadedIdsProvider`). An empty library, or an empty filter,
+  points to Explore (selects the tab) and Add.
 - **New course** (the Library app bar): makes a personal course (below) and
   opens it.
 - **Add** (`import_view.dart`): a link field with Paste and Preview, a clipboard
@@ -354,15 +369,17 @@ clipboard reader and share intake as providers, so tests need no platform.
   Track and pack links, the Up Next widget and the share target push pages
   as before.
 - **Explore** (`lib/views/explore/`) is find-something-to-add, with a **search
-  field at the top**. Nothing typed: Practice and Talks chips and the starter
-  suggestions (`searchSuggestions`), then the library's courses ("In your
-  library", under any chip: a filter never hides what the user kept), courses
-  (`PackGridSliver`), saved teachers and teachers (`TeacherStrip`), and, with a
-  chip chosen, the latest sessions (`SessionRowsSliver`). `LibraryStateCard`
-  explains the first sync. Pull to refresh runs an incremental sync. Typing
-  (400 ms debounce, not ASCII-filtered) replaces that with `SearchResults`
-  (`lib/views/search/`): Teachers, Courses, Talks, with the length pills over
-  the talks, and the usual `AddToLibraryIcon` on courses and talks.
+  field at the top** (Material's `SearchBar`). Nothing typed: Practice and
+  Talks chips and the starter suggestions (`searchSuggestions`), then the
+  library's courses ("In your library", a strip of small cards, under any chip:
+  a filter never hides what the user kept), Dharma Seed courses as a strip of
+  large cards with Add to library on the art, saved teachers and teachers
+  (`TeacherStrip`), and the latest sessions (`SessionRowsSliver`): guided
+  practice unless Talks is chosen. `LibraryStateCard` explains the first sync.
+  Pull to refresh runs an incremental sync. Typing (400 ms debounce, not
+  ASCII-filtered) replaces that with `SearchResults` (`lib/views/search/`):
+  Teachers, Courses, Talks, with the length chips over the talks, and the
+  usual `AddToLibraryIcon` on courses and talks.
   `exploreSearchProvider` (`lib/providers/explore/`) merges the library into
   Dharma Seed's result: courses and talks from the other sources (imports,
   YouTube) first, then anything else already in the library, then the rest of
@@ -679,7 +696,9 @@ the You page), whose copy says the numbers are feedback, not a score.
   `startSession`, which resumes. With nothing in progress it offers the next
   unfinished session of the first pinned course, else of the first course in the
   library (the starter set leads a fresh install), so Home is not empty. The
-  first item also feeds the Android Up Next widget.
+  first item also feeds the Android Up Next widget. `inProgressItemsProvider`
+  reads the same items with no limit and no fallback, for the Library's In
+  progress; both start an item with `startContinueItem`.
 - **Shortcuts** (`lib/views/home/widgets/shortcuts/`): Timer (Medito's timer), Sounds (the background-sound
   picker), up to two **sound presets** (`homeSoundPresetsProvider`: the
   user's own, newest first, then the built-ins) and Add (import). A preset
@@ -880,4 +899,14 @@ scheme. Redesigned screens use `context.typography`, `MeditejoShapes` and
 `NavigationBar` and `NavigationRail`; a tab is a `MainTab` value plus an arm
 in each of `BottomNavigationBarView`'s `_page` and `_navItem` switches, and,
 because the order is saved, a new `MainTab.layout` with its restore rules.
+
+**Shared cards** (`lib/widgets/cards/`), used by Home, the Library, Explore,
+search and the teacher page: `PressableCard` (the 96% press dip; Home's
+`HomePressable` is a typedef of it), `SectionTitle` (Home's
+`HomeSectionTitle` likewise), `CourseCard` (art on top; large, medium or
+compact, with `heightFor` so strips grow with the text size) and
+`CourseRowCard` (art at the start), `CardArt` (a Dharma Seed cover is the
+teacher's portrait, so it is drawn as generated art with the photo as an
+avatar), `SessionRow`, `TeacherTile` and `TeacherRow`, and `FilterChipBar`.
+Radii and spacing are in `card_tokens.dart`.
 

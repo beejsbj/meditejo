@@ -12,20 +12,23 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Explore', () {
-    testWidgets('lists courses and teachers; singles wait for a chip', (
+    testWidgets('lists courses, teachers and the latest guided practice', (
       tester,
     ) async {
       final app = await DharmaSeedTestApp.create(tester);
       await app.pump(tester, const ExploreView());
 
       expect(find.text('Courses'), findsOneWidget);
+      // Courses are a sideways strip: the later ones are built off to the
+      // right.
       expect(find.text('Mixed Weekend'), findsOneWidget);
-      expect(find.text('Jhana Retreat'), findsOneWidget);
+      expect(find.text('Jhana Retreat', skipOffstage: false), findsOneWidget);
       expect(find.text('Teachers'), findsOneWidget);
       // The name is also a search suggestion beside the field.
       expect(find.text('Rob Burbea'), findsNWidgets(2));
+      // With no chip, practice leads (decision 11).
       expect(find.text('Latest talks'), findsNothing);
-      expect(find.text('Latest guided practice'), findsNothing);
+      expect(find.text('Latest guided practice'), findsOneWidget);
     });
 
     testWidgets('Practice narrows to guided practice, and clears on a second '
@@ -46,7 +49,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('explore_chip_practice')));
       await DharmaSeedTestApp.settle(tester);
-      expect(find.text('Latest guided practice'), findsNothing);
+      // Cleared: the Talks course is back.
       expect(find.text('Dharma Talks Winter'), findsOneWidget);
     });
 

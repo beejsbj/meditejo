@@ -13,12 +13,17 @@ import 'package:medito/views/library/library_view.dart';
 import 'package:medito/views/library/library_widgets.dart';
 import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/track/track_view.dart';
+import 'package:medito/widgets/cards/section_title.dart';
 
 import '../../helpers/dharma_seed_app.dart';
 import '../../helpers/library_app.dart';
 import '../../helpers/library_fixtures.dart';
 
 Future<void> settle(WidgetTester tester) => DharmaSeedTestApp.settle(tester);
+
+/// A section heading, not the Practice/Talks switch's label.
+Finder heading(String text) =>
+    find.descendant(of: find.byType(SectionTitle), matching: find.text(text));
 
 Future<void> add(
   WidgetTester tester,
@@ -73,9 +78,9 @@ void main() {
       );
       await app.pump(tester, const LibraryView());
 
-      final practice = tester.getTopLeft(find.text('Practice')).dy;
-      final talks = tester.getTopLeft(find.text('Talks')).dy;
-      final teachers = tester.getTopLeft(find.text('Teachers')).dy;
+      final practice = tester.getTopLeft(heading('Practice')).dy;
+      final talks = tester.getTopLeft(heading('Talks')).dy;
+      final teachers = tester.getTopLeft(heading('Teachers')).dy;
       expect(practice, lessThan(talks));
       expect(talks, lessThan(teachers));
       expect(
@@ -106,10 +111,11 @@ void main() {
       );
       await app.pump(tester, const LibraryView());
 
-      // A playlist leads its line with what it is; a course keeps its source.
-      expect(find.text('Playlist · 3 sessions'), findsOneWidget);
+      // A playlist says what it is above its name; a course says its source.
+      expect(find.text('Playlist'), findsOneWidget);
+      expect(find.text('3 sessions'), findsOneWidget);
+      expect(find.text('Dharma Seed'), findsOneWidget);
       expect(find.text('Tara Brach'), findsOneWidget);
-      expect(find.textContaining('Playlist'), findsOneWidget);
       expect(find.text('New playlist'), findsNothing);
       expect(find.byTooltip('New playlist'), findsOneWidget);
     });
@@ -130,15 +136,15 @@ void main() {
       final app = await LibraryTestApp.create(tester);
       await add(tester, app.harness.store, 'ds-retreat-1', 'Evening sits');
       await app.pump(tester, const LibraryView());
-      expect(find.text('Talks'), findsNothing);
+      expect(heading('Talks'), findsNothing);
 
       await tester.tap(find.byIcon(Icons.more_vert_rounded));
       await settle(tester);
       await tester.tap(find.text('Move to Talks'));
       await settle(tester);
 
-      expect(find.text('Talks'), findsOneWidget);
-      expect(find.text('Practice'), findsNothing);
+      expect(heading('Talks'), findsOneWidget);
+      expect(heading('Practice'), findsNothing);
       final entry = (await tester.runAsync(app.harness.store.entries))!.single;
       expect(entry.group, LibraryGroup.talks);
       expect(entry.detectedGroup, LibraryGroup.practice);
