@@ -745,13 +745,30 @@ The stored JSON carries `version` 1 (unversioned reads as 1); a newer version,
 or anything that fails to decode, reads as the kind's defaults.
 `cueScopeForRequestProvider` resolves a course's effective library group before
 playback. `CueSchedule` is the pure reference for countdown, start/end bells,
-fixed/random intervals, integrated pulse ramps and silent extension.
+fixed/random intervals, the halfway bell, integrated pulse ramps and silent
+extension.
 
-`CustomizeSheet` is used by `TimerView` as its setup screen and by the player's
-sliders action. `PlayerView` optionally shows it before starting; edits update
-the active native configuration and the existing ambient player; the
-Background sound row drives the soundscape mixer (Sounds and the mixer). The timer
-continues to use a sparse local WAV as its primary audio.
+`CustomizeSheet` is used by `TimerView` as its setup screen, by the player's
+sliders action and by Settings' Practice and Talks rows. `PlayerView`
+optionally shows it before starting; edits update the active native
+configuration and the existing ambient player; the Background sound row drives
+the soundscape mixer (Sounds and the mixer). The timer continues to use a
+sparse local WAV as its primary audio.
+
+The sheet is sections (Bells, Rhythm, Time, Sound, Flow; Time first for the
+Timer) under a pinned header with the scope and a Finishes at pill. Each row
+(`_ExpandingRow`, keyed `customize_<part>`) shows its value and opens its
+controls in place, one at a time. Durations and counts are `WheelPicker`s
+(`lib/widgets/inputs/wheel_picker.dart`, keyed `wheel_<label>`): snap, a
+haptic per row, one `onChanged` when the wheel rests, typed entry through
+`parseEntry`, one adjustable semantics node. Levels stay sliders.
+
+**Halfway.** `CueSettings.intervalHalfway` replaces the every-N-minutes bells
+with one bell at the midpoint of session time (`intervalMinutes` is kept for
+switching back). Natively it is `HalfwayCue` (`CueMath.kt`, mirrored in
+`CueScheduler.swift`): pending until crossed, re-armed by every `armAll`,
+due at half the session end the engine measures (extension and speed
+included), consumed silently when more than the interval tolerance late.
 
 **Bells.** Each cue stores its own bell (`startSound`, `intervalSound`,
 `endSound`) as a bundled asset path, validated against `cueBellSounds`, the one
@@ -763,7 +780,8 @@ The ten new bells are synthesised by `tools/meditejo/generate_bells.py`
 prints per-file numbers and builds the sampler). A bell the build does not know
 reads as the default. The Customize sheet's three bell rows share `_BellList`:
 tapping a row selects it and rings it once through `SessionBellPreview` at the
-bell volume; closing the sub-sheet stops it. `CueBellCatalogueTest` (Kotlin)
+bell volume; a folded row's play button rings the chosen bell; folding the
+list or closing the sheet stops it. `CueBellCatalogueTest` (Kotlin)
 reads the Dart catalogue, so the native side and the list cannot drift.
 
 `NativeCueController` sends plain configuration over `meditejo/cues`.

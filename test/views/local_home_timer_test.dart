@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/widgets/inputs/wheel_picker.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/background_sounds/background_sounds_model.dart';
 import 'package:medito/providers/home/continue_provider.dart';
@@ -240,7 +241,7 @@ Future<void> _openTimer(WidgetTester tester) async {
     _settleTimeout,
   );
   expect(find.byType(TimerView), findsOneWidget);
-  expect(find.widgetWithText(ElevatedButton, 'Start'), findsOneWidget);
+  expect(find.widgetWithText(FilledButton, 'Start'), findsOneWidget);
   expect(tester.getBottomLeft(find.text('Start')).dy, lessThan(844));
   expect(find.text('Duration'), findsOneWidget);
 }
@@ -335,11 +336,11 @@ void main() {
       final container = await _home(tester, prefs);
       await _openTimer(tester);
 
+      // The Duration row opens its wheel in place; turn it to 3 minutes.
       await tester.tap(find.text('Duration'));
       await tester.pumpAndSettle();
-      tester.widget<Slider>(find.byType(Slider)).onChanged!(3);
-      await tester.pumpAndSettle();
-      Navigator.of(tester.element(find.byType(Slider))).pop();
+      const wheel = ValueKey('wheel_Duration');
+      tester.state<WheelPickerState<int>>(find.byKey(wheel)).moveTo(2);
       await tester.pumpAndSettle();
       expect(
         container
@@ -347,7 +348,7 @@ void main() {
             .durationMinutes,
         3,
       );
-      final start = find.widgetWithText(ElevatedButton, 'Start');
+      final start = find.widgetWithText(FilledButton, 'Start');
       await tester.ensureVisible(start);
       await tester.tap(start);
       await _pumpUntil(

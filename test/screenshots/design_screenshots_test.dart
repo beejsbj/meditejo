@@ -30,6 +30,12 @@ import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/library/library_view.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:medito/views/timer/timer_view.dart';
+import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/providers/cues/cue_settings_provider.dart';
+import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
+import 'package:medito/views/cues/customize_sheet.dart';
+import 'package:medito/constants/theme/expressive_typography.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medito/constants/theme/palette_theme.dart';
 import 'package:medito/services/identity/daily_mark.dart';
 import 'package:medito/services/identity/mark_generator.dart';
@@ -302,6 +308,87 @@ Future<void> _pumpYou(
   expect(tester.takeException(), isNull);
 }
 
+/// The Customize sheet over a quiet page, opened as the player opens it.
+Future<ProviderContainer> _pumpCustomize(
+  WidgetTester tester,
+  Brightness brightness, {
+  required CueScope scope,
+  required CueSettings settings,
+  bool beforeStart = false,
+  int positionMs = 0,
+}) async {
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
+  final container = ProviderContainer(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      ...soundscapeTestOverrides(FakeSoundscapeEngine()),
+    ],
+  );
+  addTearDown(container.dispose);
+  await container
+      .read(cueSettingsProvider(scope).notifier)
+      .update(settings, courseOverride: scope.courseId != null);
+  final navigator = GlobalKey<NavigatorState>();
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        navigatorKey: navigator,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: meditejoTheme(brightness),
+        home: _frame(
+          brightness,
+          Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: Text(
+                  'Developing Piti, Developing Focus',
+                  style: context.typography.emphasized.titleLarge,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  await _phone(tester);
+  unawaited(
+    showModalBottomSheet<void>(
+      context: navigator.currentContext!,
+      showDragHandle: true,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => MediaQuery(
+        data: MediaQuery.of(
+          navigator.currentContext!,
+        ).copyWith(disableAnimations: true),
+        child: CustomizeSheet(
+          scope: scope,
+          isActive: !beforeStart,
+          audioDurationMs: 45 * 60000,
+          positionMs: positionMs,
+          onStart: beforeStart ? () {} : null,
+          clock: () => DateTime(2026, 10, 26, 7, 30),
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  expect(tester.takeException(), isNull);
+  return container;
+}
+
+/// Opens a Customize row by its title.
+Future<void> _openRow(WidgetTester tester, String title) async {
+  await tester.ensureVisible(find.text(title).first);
+  await tester.tap(find.text(title).first);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   setUpAll(() async {
     if (_enabled) await _loadFonts();
@@ -564,6 +651,84 @@ void main() {
       await DharmaSeedTestApp.settle(tester);
       expect(tester.takeException(), isNull);
       await _captureView(tester, 'add-to-playlist-${brightness.name}');
+    }, skip: !_enabled);
+
+    // The Customize sheet (design PR 5): before a Practice session, during
+    // a course's session, a wheel in use, and the Timer with its duration.
+    const practiceCues = CueSettings(
+      startSound: 'assets/audio/bell_bowl_medium.wav',
+      endSound: 'assets/audio/bell_bowl_deep.wav',
+      intervalHalfway: true,
+      intervalMinutes: 15,
+      extendMinutes: 5,
+      countdownSeconds: 5,
+    );
+    testWidgets('Customize before a session, ${brightness.name}', (
+      tester,
+    ) async {
+      await _pumpCustomize(
+        tester,
+        brightness,
+        scope: const CueScope(CueKind.practice),
+        settings: practiceCues,
+        beforeStart: true,
+      );
+      await _captureView(tester, 'customize-before-${brightness.name}');
+    }, skip: !_enabled);
+
+    testWidgets('Customize during a session, ${brightness.name}', (
+      tester,
+    ) async {
+      await _pumpCustomize(
+        tester,
+        brightness,
+        scope: const CueScope(CueKind.practice, courseId: 'lib-course-a'),
+        settings: practiceCues.copyWith(
+          intervalHalfway: false,
+          randomWindowMinutes: 3,
+          pulseSound: 'assets/audio/pulse_heartbeat.wav',
+          pulseBpm: 60,
+          pulseEndBpm: 48,
+          pulseRampMinutes: 10,
+        ),
+        positionMs: 12 * 60000,
+      );
+      await _captureView(tester, 'customize-during-${brightness.name}');
+    }, skip: !_enabled);
+
+    testWidgets('Customize wheel in use, ${brightness.name}', (tester) async {
+      await _pumpCustomize(
+        tester,
+        brightness,
+        scope: const CueScope(CueKind.practice),
+        settings: practiceCues.copyWith(
+          intervalHalfway: false,
+          randomWindowMinutes: 3,
+        ),
+        beforeStart: true,
+      );
+      await _openRow(tester, 'Interval bell');
+      // The row's header at the top, its wheels and list under it.
+      await tester.ensureVisible(find.text('Interval bell'));
+      await tester.pumpAndSettle();
+      await _captureView(tester, 'customize-wheel-${brightness.name}');
+    }, skip: !_enabled);
+
+    testWidgets('Timer setup with its duration open, ${brightness.name}', (
+      tester,
+    ) async {
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(
+        tester,
+        _frame(brightness, const TimerView()),
+        overrides: soundscapeTestOverrides(FakeSoundscapeEngine()),
+      );
+      await _phone(tester);
+      await tester.pump(const Duration(seconds: 1));
+      await _openRow(tester, 'Duration');
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+      await _capture(tester, 'timer-duration-${brightness.name}');
     }, skip: !_enabled);
 
     // Design pass PR 4: the Library with a realistic mix (two courses in
