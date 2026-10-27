@@ -31,7 +31,7 @@ class CustomBellStore {
   /// The preferences key of the list.
   static const prefsKey = 'bells.custom.v1';
 
-  /// Bells a user can keep; each file is up to about half a megabyte.
+  /// Bells a user can keep;.
   static const maxBells = 30;
 
   final SharedPreferences prefs;
