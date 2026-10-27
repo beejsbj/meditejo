@@ -268,7 +268,9 @@ void main() {
       tester,
     ) async {
       await pump(tester);
+      // The fresh mix is the first starter preset; start from an empty one.
       container.read(soundscapeProvider.notifier)
+        ..clearMix()
         ..toggleSound('sea')
         ..toggleSound('ocean');
       await tester.pumpAndSettle();
