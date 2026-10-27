@@ -31,6 +31,7 @@ import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/views/end_screen/end_screen_view.dart';
 import 'package:medito/views/player/session_completion_gate.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
+import 'package:medito/views/player/widgets/rest_card.dart';
 import 'package:medito/views/player/widgets/artist_title_widget.dart';
 import 'package:medito/widgets/attribution_notice.dart';
 import 'package:medito/widgets/art/art_cover.dart';
@@ -85,6 +86,7 @@ class _PlayerViewState extends ConsumerState<PlayerView>
   bool _playbackStarted = false;
   Timer? _playbackStartFallback;
   Timer? _countdownPoll;
+  Duration? _pollEvery;
   int _countdownMs = 0;
   bool _foreground = true;
   bool _cueStateFailed = false;
@@ -156,10 +158,25 @@ class _PlayerViewState extends ConsumerState<PlayerView>
     _syncCuePoll();
   }
 
+  /// Whether Extend is placed in the guide's pauses for this session, so a
+  /// rest may begin at any moment and the screen has to notice it.
+  bool get _holdsPlanned {
+    final scope = _cueScope;
+    final request = ref.read(playerProvider);
+    if (!Platform.isAndroid || scope == null || request == null) return false;
+    final settings = ref.read(cueSettingsProvider(scope));
+    return !request.isTimer &&
+        settings.extendInPauses &&
+        settings.extendMinutes > 0;
+  }
+
   /// Polls the native cue state only while this screen is in the foreground
-  /// and a countdown or extension runs or may begin; nothing else shows it.
+  /// and a countdown, a rest in a pause or the extension runs or may begin;
+  /// nothing else shows it. Fast around a countdown, once a second when only
+  /// waiting for a rest to begin or tick down.
   void _syncCuePoll() {
     final audio = ref.read(audioStateProvider);
+    final phase = ref.read(cueRuntimeProvider).phase;
     final wanted =
         (Platform.isAndroid || Platform.isIOS) &&
         mounted &&
@@ -167,19 +184,25 @@ class _PlayerViewState extends ConsumerState<PlayerView>
         !_cueStateFailed &&
         shouldPollCueState(
           foreground: _foreground,
-          phase: ref.read(cueRuntimeProvider).phase,
+          phase: phase,
           countdownExpected: _countdownExpected,
           voiceAtEnd:
               audio.duration > 0 && audio.position >= audio.duration - 1000,
+          holdsPlanned: _holdsPlanned,
         );
+    final every = phase == 'countdown' || _countdownExpected
+        ? const Duration(milliseconds: 200)
+        : phase == 'extension'
+        ? const Duration(milliseconds: 200)
+        : const Duration(seconds: 1);
     if (!wanted) {
       _countdownPoll?.cancel();
       _countdownPoll = null;
-    } else {
-      _countdownPoll ??= Timer.periodic(
-        const Duration(milliseconds: 200),
-        (_) => unawaited(_pollCueState()),
-      );
+      _pollEvery = null;
+    } else if (_countdownPoll == null || _pollEvery != every) {
+      _countdownPoll?.cancel();
+      _pollEvery = every;
+      _countdownPoll = Timer.periodic(every, (_) => unawaited(_pollCueState()));
     }
   }
 
@@ -282,6 +305,8 @@ class _PlayerViewState extends ConsumerState<PlayerView>
         ref
             .read(backgroundSoundsNotifierProvider.notifier)
             .applyCueSettings(settings);
+        // Extend moved into (or out of) the pauses: start or stop watching for rests.
+        _syncCuePoll();
         // A new Background sound choice for this scope plays at once.
         if (previous?.soundscape != settings.soundscape) {
           _playSessionSounds(
@@ -449,6 +474,11 @@ class _PlayerViewState extends ConsumerState<PlayerView>
         !audioState.isCompleted &&
         (!_playbackStarted || audioState.isBuffering);
 
+    // Resting in one of the guide's pauses (Extend placed there).
+    final resting = ref.watch(
+      cueRuntimeProvider.select((s) => (s.isResting, (s.holdMs + 999) ~/ 1000)),
+    );
+
     return PopScope<void>(
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) {
@@ -470,6 +500,21 @@ class _PlayerViewState extends ConsumerState<PlayerView>
             onEndSession: _endTimerSession,
             courseId: _cueScope?.courseId,
           ),
+          if (resting.$1)
+            Positioned(
+              top: 0,
+              left: 16,
+              right: 16,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 56),
+                  child: RestCard(
+                    secondsLeft: resting.$2,
+                    onSkip: () => unawaited(NativeCueController.skipHold()),
+                  ),
+                ),
+              ),
+            ),
           if (_countdownMs > 0)
             Positioned.fill(
               child: Material(

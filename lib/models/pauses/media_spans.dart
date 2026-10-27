@@ -89,10 +89,8 @@ class MediaSpanMap {
     if (version is! int || version > formatVersion) return null;
     if (analyzer is! int || analyzer != analyzerVersion) return null;
     if (duration is! int || duration <= 0 || raw is! List) return null;
-    final spans = [
-      for (final item in raw)
-        if (MediaSpan.tryFromJson(item) case final span?) span,
-    ]..sort((a, b) => a.startMs.compareTo(b.startMs));
+    final spans = [for (final item in raw) ?MediaSpan.tryFromJson(item)]
+      ..sort((a, b) => a.startMs.compareTo(b.startMs));
     return MediaSpanMap(durationMs: duration, spans: spans, analyzer: analyzer);
   }
 }

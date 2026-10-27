@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/models/pauses/pause_hold.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -207,4 +208,56 @@ void main() {
       expect(container.read(cueSettingsProvider(course)).extendMinutes, 10);
     },
   );
+
+  group('Extend placement', () {
+    const holds = [PauseHold(105000, 60000), PauseHold(215000, 120000)];
+
+    test('is at the end unless chosen, and survives a round trip', () {
+      expect(const CueSettings().extendInPauses, isFalse);
+      const s = CueSettings(extendMinutes: 10, extendInPauses: true);
+      expect(CueSettings.fromJson(s.toJson()).extendInPauses, isTrue);
+      expect(CueSettings.fromJson(const {}).extendInPauses, isFalse);
+      expect(
+        CueSettings.fromJson({'extendInPauses': 'yes'}).extendInPauses,
+        isFalse,
+      );
+      expect(s.copyWith(extendInPauses: false).extendInPauses, isFalse);
+      expect(s.copyWith(extendMinutes: 5).extendInPauses, isTrue);
+    });
+
+    test('the native configuration carries the holds only when asked for', () {
+      const inPauses = CueSettings(extendMinutes: 10, extendInPauses: true);
+      final sent = inPauses.nativeConfiguration(
+        durationMs: 600000,
+        isTimer: false,
+        holds: holds,
+      );
+      expect(sent['extendMinutes'], 10);
+      expect(sent['holds'], [
+        {'atMs': 105000, 'holdMs': 60000},
+        {'atMs': 215000, 'holdMs': 120000},
+      ]);
+      // At the end: whatever was computed, nothing is held in the recording.
+      final atEnd = const CueSettings(
+        extendMinutes: 10,
+      ).nativeConfiguration(durationMs: 600000, isTimer: false, holds: holds);
+      expect(atEnd['holds'], isEmpty);
+      // A timer has no recording to rest in.
+      final timer = inPauses.nativeConfiguration(
+        durationMs: 600000,
+        isTimer: true,
+        holds: holds,
+      );
+      expect(timer['holds'], isEmpty);
+      expect(timer['extendMinutes'], 0);
+    });
+
+    test('the session still lasts the recording plus Extend', () {
+      const s = CueSettings(extendMinutes: 10, extendInPauses: true);
+      expect(
+        s.sessionDuration(const Duration(minutes: 30), isTimer: false),
+        const Duration(minutes: 40),
+      );
+    });
+  });
 }

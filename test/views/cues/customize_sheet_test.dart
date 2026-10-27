@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart'
+    show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
 import 'dart:ui' show Tristate;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -834,4 +836,105 @@ void main() {
       );
     },
   );
+
+  group('Extend placement', () {
+    tearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    testWidgets('Android can place Extend in the pauses; it is saved', (
+      tester,
+    ) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final container = await _pump(tester);
+      expect(_value(tester, 'Extend with silence'), 'Off');
+      await _row(tester, 'Extend with silence');
+      expect(find.widgetWithText(ChoiceChip, 'At the end'), findsOneWidget);
+      expect(find.widgetWithText(ChoiceChip, 'In the pauses'), findsOneWidget);
+      expect(_read(container).extendInPauses, isFalse);
+      expect(
+        tester
+            .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'At the end'))
+            .selected,
+        isTrue,
+      );
+      await tester.tap(find.widgetWithText(ChoiceChip, 'In the pauses'));
+      await tester.pumpAndSettle();
+      expect(_read(container).extendInPauses, isTrue);
+      await _turn(tester, 'Extra minutes', '+10 min');
+      expect(_read(container).extendMinutes, 10);
+      await _row(tester, 'Extend with silence');
+      expect(_value(tester, 'Extend with silence'), '+10 min · In the pauses');
+      await _unmount(tester);
+    });
+
+    testWidgets('and back to the end', (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final container = await _pump(tester);
+      await container
+          .read(cueSettingsProvider(_practice).notifier)
+          .update(
+            const CueSettings(extendMinutes: 6, extendInPauses: true),
+            courseOverride: false,
+          );
+      await tester.pumpAndSettle();
+      expect(_value(tester, 'Extend with silence'), '+6 min · In the pauses');
+      await _row(tester, 'Extend with silence');
+      await tester.tap(find.widgetWithText(ChoiceChip, 'At the end'));
+      await tester.pumpAndSettle();
+      expect(_read(container).extendInPauses, isFalse);
+      expect(_value(tester, 'Extend with silence'), '+6 min');
+      await _unmount(tester);
+    });
+
+    testWidgets('where the voice cannot be held there is no choice', (
+      tester,
+    ) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      final container = await _pump(tester);
+      await container
+          .read(cueSettingsProvider(_practice).notifier)
+          .update(
+            const CueSettings(extendMinutes: 6, extendInPauses: true),
+            courseOverride: false,
+          );
+      await tester.pumpAndSettle();
+      // The stored choice is kept, but nothing says it applies here.
+      expect(_value(tester, 'Extend with silence'), '+6 min');
+      await _row(tester, 'Extend with silence');
+      expect(find.byType(ChoiceChip), findsNothing);
+      await _unmount(tester);
+    });
+
+    test(
+      'finish time uses what is left to rest when Extend is in the pauses',
+      () {
+        const s = CueSettings(extendMinutes: 10, extendInPauses: true);
+        final now = DateTime(2026, 1, 1, 9);
+        // 4 of 10 minutes already rested: 6 left, 5 minutes of audio.
+        expect(
+          customizeFinishesAt(
+            now,
+            s,
+            isTimer: false,
+            audioDurationMs: 20 * 60000,
+            positionMs: 15 * 60000,
+            isActive: true,
+            extensionLeftMs: 6 * 60000,
+          ),
+          now.add(const Duration(minutes: 11)),
+        );
+        // Without a reading from the engine it is the setting, as before.
+        expect(
+          customizeFinishesAt(
+            now,
+            s,
+            isTimer: false,
+            audioDurationMs: 20 * 60000,
+            positionMs: 15 * 60000,
+            isActive: true,
+          ),
+          now.add(const Duration(minutes: 15)),
+        );
+      },
+    );
+  });
 }

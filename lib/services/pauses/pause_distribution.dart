@@ -1,23 +1,5 @@
 import 'package:medito/models/pauses/media_spans.dart';
-
-/// A silent hold the player takes at [atMs] of the recording.
-class PauseHold {
-  const PauseHold(this.atMs, this.holdMs);
-
-  final int atMs, holdMs;
-
-  Map<String, Object?> toJson() => {'atMs': atMs, 'holdMs': holdMs};
-
-  @override
-  bool operator ==(Object other) =>
-      other is PauseHold && atMs == other.atMs && holdMs == other.holdMs;
-
-  @override
-  int get hashCode => Object.hash(atMs, holdMs);
-
-  @override
-  String toString() => 'PauseHold($atMs +$holdMs)';
-}
+import 'package:medito/models/pauses/pause_hold.dart';
 
 /// Where the Extend minutes go: [holds] in the guide's pauses, and
 /// [remainderMs] after the recording as "At the end" has always done.

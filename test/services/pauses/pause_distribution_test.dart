@@ -107,10 +107,7 @@ void main() {
     });
 
     test('under ten seconds of extension stays at the end', () {
-      final d = distributeExtension(
-        totalMs: 9000,
-        pauses: [_silence(100, 30)],
-      );
+      final d = distributeExtension(totalMs: 9000, pauses: [_silence(100, 30)]);
       expect(d.holds, isEmpty);
       expect(d.remainderMs, 9000);
     });
@@ -138,7 +135,9 @@ void main() {
     });
 
     test('is deterministic: the same input gives the same plan', () {
-      final pauses = [for (var i = 0; i < 9; i++) _silence(100 + i * 70, 10 + i)];
+      final pauses = [
+        for (var i = 0; i < 9; i++) _silence(100 + i * 70, 10 + i),
+      ];
       final a = distributeExtension(totalMs: 7 * minute, pauses: pauses);
       final b = distributeExtension(totalMs: 7 * minute, pauses: pauses);
       expect(a.holds, b.holds);

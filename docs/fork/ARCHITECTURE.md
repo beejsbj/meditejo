@@ -784,6 +784,20 @@ bell volume; a folded row's play button rings the chosen bell; folding the
 list or closing the sheet stops it. `CueBellCatalogueTest` (Kotlin)
 reads the Dart catalogue, so the native side and the list cannot drift.
 
+**Extend in the pauses (Android).** `CueSettings.extendInPauses` puts Extend's
+minutes into the guide's own pauses instead of after the recording. The pieces:
+`MediaSpanMap` (`lib/models/pauses/media_spans.dart`) is the per-recording
+store of time ranges with a kind (silence today; section markers can add
+kinds); `PauseMapService` reads a recording once through `meditejo/pauses`
+(`PauseMapAnalyzer.kt` decodes with MediaCodec, `SilenceDetector.kt` finds the
+quiet from the file's own floor), keeps the result as JSON, and
+`distributeExtension` (pure Dart) turns it into holds. `PlayerProvider` sends
+the holds in the cue configuration and again when a map arrives mid-session.
+Natively, `HoldPlan` tracks the holds and the Extend they have spent, and
+`CueEngine`'s `HOLD` phase pauses the voice, counts the hold on the monotonic
+clock and resumes it, with interval, halfway and pulse cues running through.
+What no hold uses is the end extension as before. See DECISIONS, "BJS-583".
+
 `NativeCueController` sends plain configuration over `meditejo/cues`.
 Android's `CueEngine` lives in `AudioPlayerService`, with predecoded SoundPool
 assets and pure scheduling/listening maths in `CueMath.kt`. It follows media

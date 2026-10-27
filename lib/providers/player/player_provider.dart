@@ -1,9 +1,12 @@
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/services/audio/native_cue_controller.dart';
+import 'package:medito/models/pauses/pause_hold.dart';
+import 'package:medito/services/pauses/pause_map_service.dart';
 import 'package:medito/services/stats/session_label.dart';
 import 'package:medito/providers/library/library_providers.dart';
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -75,13 +78,69 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
 
   CueSettings? _cues;
 
+  /// Where the current recording can be read for pauses: a path on the phone,
+  /// or a URL (fetched only on an unmetered connection). Set by [_playTrack].
+  String? _analysisSource;
+
   Future<void> updateCueSettings(CueSettings settings) async {
     _cues = settings;
     final request = state;
     if (request == null) return;
     if (Platform.isAndroid || Platform.isIOS) {
-      await NativeCueController.configure(settings, request, update: true);
+      await NativeCueController.configure(
+        settings,
+        request,
+        update: true,
+        holds: await _holdsFor(settings, request),
+      );
     }
+  }
+
+  /// Extend's holds for [request]: in its pauses when the setting says so and
+  /// the recording has been read. Without a pause map the silence all goes to
+  /// the end, and the reading starts in the background; when it lands the
+  /// native cues are configured again with the holds that follow from it.
+  Future<List<PauseHold>> _holdsFor(
+    CueSettings settings,
+    PlaybackRequest request,
+  ) async {
+    final source = _analysisSource;
+    if (!Platform.isAndroid ||
+        !settings.extendInPauses ||
+        settings.extendMinutes <= 0 ||
+        request.isTimer ||
+        source == null ||
+        !PauseMapService.canAnalyse(request.trackId, source)) {
+      return const [];
+    }
+    final service = ref.read(pauseMapServiceProvider);
+    final key = PauseMapService.keyFor(request.trackId, request.fileId);
+    final map = await service.cached(key, durationMs: request.duration);
+    if (map != null) {
+      return PauseMapService.holdsFor(map, settings.extendMinutes);
+    }
+    final generation = _generation;
+    unawaited(
+      service.analyse(key, source).then((found) async {
+        if (found == null || generation != _generation) return;
+        // The session may have moved on, or the setting been turned off.
+        final current = _cues;
+        final live = state;
+        if (current == null ||
+            live == null ||
+            live.trackId != request.trackId ||
+            !current.extendInPauses) {
+          return;
+        }
+        await NativeCueController.configure(
+          current,
+          live,
+          update: true,
+          holds: PauseMapService.holdsFor(found, current.extendMinutes),
+        );
+      }),
+    );
+    return const [];
   }
 
   Future<void> _playTrack(PlaybackRequest request, int generation) async {
@@ -118,6 +177,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     if (generation != _generation) return;
     final url = downloadPath ?? request.remoteUrl;
     AppLogger.d('PLAYER', 'Will use path: $url');
+    _analysisSource = url;
 
     // Both engines outlive the player screen and keep their last repeat mode
     // and speed across tracks, while each player screen starts at repeat off /
@@ -168,7 +228,11 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
       if (generation != _generation) return;
       setRepeatMode(repeatMode);
       setSpeed(1.0);
-      await NativeCueController.configure(_cues!, request);
+      await NativeCueController.configure(
+        _cues!,
+        request,
+        holds: await _holdsFor(_cues!, request),
+      );
       if (generation != _generation) return;
       await _playAudioWithRetry(url, trackData, generation);
     } else {

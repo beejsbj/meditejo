@@ -1404,5 +1404,12 @@
   "libraryFilterEmpty": "Hier ist noch nichts",
   "libraryFilterEmptyBody": "Finde etwas unter Entdecken, oder füge einen Link oder eine Datei hinzu.",
   "libraryEmptyExplore": "Entdecken",
-  "libraryPinned": "Auf Home angeheftet"
+  "libraryPinned": "Auf Home angeheftet",
+  "extendPlacementEnd": "At the end",
+  "extendPlacementPauses": "In the pauses",
+  "extendPlacementCaptionEnd": "All the extra minutes come after the recording, then the ending bell.",
+  "extendPlacementCaptionPauses": "The voice rests in its own long pauses, in the order of the recording. What no pause takes comes after the recording, then the ending bell. Streamed recordings are read on Wi-Fi; until then it all comes at the end.",
+  "extendHoldTitle": "Resting in silence",
+  "extendHoldLeft": "{time} left",
+  "extendSkipPause": "Skip this pause"
 }

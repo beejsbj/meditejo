@@ -696,6 +696,55 @@ Burooj authorised Meditejo's Freesound app, so the picks that needed an account 
   - **Fixed from the same review:** the CI step ran with zero tests (pip's numpy was invisible to `python3 -I`, so the module skipped itself; now a venv, and a missing numpy fails when `CI` is set); a cached original now gets its licence checked when it is first pinned; NOTICE's header no longer says every file was crossfaded; a loop too short to measure stops with a message; the credits-screen test also asserts the source host and "Attribution required".
   - **From CodeRabbit on #41.** Fixed: a cached original that fails its SHA-256 pin is deleted, so the next run downloads it again instead of failing on the same file. Declined: making the true-peak retry fail the build when its last encode is still over the ceiling. The shipped `river` is over it already, so a hard failure would stop the pipeline reproducing the current library; the warning stays, and the limiter-threshold fix above is the real answer.
 
+## 2026-10-27 (BJS-583: Extend with silence in the guide's own pauses)
+
+Android first. iOS stays at "At the end": the Customize choice is not shown there, and the Swift engine ignores the `holds` it is sent. Completion rules are unchanged: a hold is the player paused, so it is never listening and never counts toward the 90% heard.
+
+- **The setting.** `CueSettings.extendInPauses` (default false; an older app ignores the key). Customize's Extend row, in the Time section, has "At the end / In the pauses" chips above the wheel. The folded row reads "+10 min · In the pauses". The caption says streamed recordings are read on Wi-Fi and that, until then, it all comes at the end.
+- **The pause map is general on purpose.** `MediaSpanMap` (`lib/models/pauses/media_spans.dart`) is time ranges with a **kind** (`silence` today), per recording, with the analyser version and the recording's length. Section markers for mixed recordings (practice versus talk) can add kinds to `MediaSpanKind` and reuse the same detection, store and channel. They are not built here; an unknown kind in a stored map is dropped, and an analyser version that has changed re-reads the recording.
+  - The native analyser keeps every quiet stretch of 5 s or more. The app asks for its own minimum (10 s, `defaultMinPauseMs`), so the threshold can move without re-reading anything.
+  - Kept as one JSON file per recording under `<app support>/media_spans/`, written whole then renamed, at most 300 (the oldest go). Keyed by track and file; a cached map whose length is more than 5 s off the request's is not used.
+- **Reading a recording (`PauseMapAnalyzer.kt`, `SilenceDetector.kt`).** MediaExtractor and MediaCodec decode the file once to PCM on a background thread; the level of each 100 ms window feeds `SilenceDetector`.
+  - **No fixed level.** The threshold is the file's 10th-percentile level (its floor) plus a quarter of the distance to its 90th (its speaking level). A file whose speech stands less than 12 dB over its floor (a music bed, steady hiss) has no pauses at all. Digital silence is left out of the floor. A burst of 300 ms or less inside a quiet stretch (a breath) does not end it.
+  - **Which recordings are read.** Anything on the phone (a download, a local file, a `content://` URI). A streamed recording only on an unmetered connection, checked natively (`NET_CAPABILITY_NOT_METERED`); on a metered one, or if the phone cannot decode the format, it is not read this run and everything goes to the end. YouTube is never read (a music bed under the voice, and a URL that expires).
+  - **When.** At the start of a session, if the setting is on and there is no cached map; the session does not wait. When the map lands, the cues are configured again with the holds that follow, and only holds ahead of the playhead are used.
+  - **Cost.** The whole file is decoded, which is minutes of CPU for a long talk on a slow phone and, for a stream, the whole file over Wi-Fi. That is why it is once per recording and cached, and why it is not repeated after a failure.
+- **Distribution (`distributeExtension`, pure Dart, tested).** The usable pauses are quiet stretches of at least 10 s that do not touch the first or last 3 s of the file. Each hold is at the **midpoint** of its pause.
+  - **Weighted by length**, so the long pauses of a guided sit take more than a breath between instructions.
+  - **A hold is at least 10 s.** Few minutes go to the longest pauses only (as many as fit); a pause whose weighted share would be under 10 s drops out and the rest are shared again.
+  - **A pause takes at most 5 minutes**; what a capped pause cannot take is shared among the rest.
+  - **Holds are whole seconds.** What no pause takes is the remainder, held after the recording as ever; with no usable pause, all of it. Holds plus remainder always equal the Extend minutes, so "Finishes at" and the end bell at recording length + Extend do not change.
+- **Native holds (`HoldPlan`, `CueEngine` phase `HOLD`).** Dart sends the holds as `{atMs, holdMs}` in the cue configuration. When playback reaches one the engine pauses the voice (keeping audio focus and the background sound), counts the hold on the monotonic clock under the bounded wake lock, and resumes the voice. Interval bells, the halfway bell and the pulse run through it on the same clock, exactly as in the end extension.
+  - **A hold is taken once.** Seeking back over it does not take it again; seeking past it leaves its time for the end. The end extension is whatever Extend the holds have not used or will not use, so the total stays the Extend minutes.
+  - **The halfway bell and "Finishes at"** use the session end the engine already measures, which now counts the holds still to come. `state()` reports `holdRemainingMs` and `extensionLeftMs`; the Finishes at line uses the latter while holds are on.
+  - **Editing mid-session.** Dart sends the whole plan again; holds already taken stay taken, and a hold never exceeds the Extend time left. Changing Extend in the sheet during a hold keeps that hold's planned length.
+  - **Pause, unplug and seek during a hold** behave as in the end extension: the player's pause button freezes the hold, a headphone unplug freezes it, a seek ends it and the voice follows the seek.
+- **Skip this pause.** A card at the top of the player ("Resting in silence · 1:45 left" and **Skip this pause**) shows while a hold runs. **Skipping spends the hold's planned time; it does not move it to the end.** The listener asked to carry on, so the sit finishes earlier than "Finishes at" said, by the part skipped. This is reversible (move `spend` after a re-plan in `CueEngine.endHold`); say if you would rather skipped time went to the end.
+- **The player watches for holds.** While Extend is in the pauses the player screen reads the native state once a second (foreground only); around a countdown or the end extension it still reads five times a second.
+- **Native test:** `HoldPlanTest` (several holds spend the budget and leave the rest for the end; the budget clamp; seek back and forward; skip; reconfigure; channel parsing) and `SilenceDetectorTest`, both added to the APK workflow's unit-test filter. `CueEngine` itself needs a `Context` and a player, so the HOLD phase is covered by the phone checklist below, not a JVM test.
+- **Licensing.** The file is untouched; playback pauses, as with the user's own pause button. The working reading in the issue stands (Dharma Seed is CC BY-NC-ND); Burooj may differ. The analyser reads the file and stores only times.
+- **Follow-ups:**
+  - Section markers (practice versus talk) on the same store and channel.
+  - iOS: `AVAssetReader` for the map and a hold phase in `CueScheduler.swift`.
+  - Download-on-Wi-Fi for streamed recordings, with the file kept, instead of reading it twice (once to read, once to play).
+  - Read a recording ahead of time (when added to the library on Wi-Fi) so the first session already has its holds.
+  - If skipped time should go to the end, or a "skip all remaining pauses" control.
+  - Real Dharma Seed recordings through `PauseMapAnalyzer` to tune the threshold fraction and the 12 dB range test; the issue's probe used ffmpeg at -45 dB, and the app's relative threshold has not been compared with it on the phone.
+
+### Phone checklist (S23+, screen off)
+
+1. Download *Metta Instructions and Guided Meditation 3* (Burbea, ds-talk 9985, 44 min) or *Breathing with the Energy Body* (ds-talk 60862).
+2. Customize, Extend with silence: +10 min, **In the pauses**. Start the session and lock the screen at once.
+3. Within about a minute the pause map should be made (the first hold is at least 7 minutes in on 60862, 22 minutes in on 9985). Logcat tag `PauseMapAnalyzer` and `CueEngine`; the file appears under `files/media_spans/` (app support).
+4. At each pause the voice stops for the hold and starts again by itself, with the screen off, and the background sound, interval bell and (if on) pulse carry on through it. Notification shows playing throughout.
+5. Unlock mid-hold: the "Resting in silence" card shows the time left. **Skip this pause** carries on with the voice at once. The pause button freezes the hold and the card.
+6. With interval bells every 5 min and again with Halfway: they ring on time, through holds. The halfway bell rings at half of recording + Extend.
+7. The end bell rings at recording length + Extend (less anything skipped) from the start of the session. Compare the clock with "Finishes at" in the sheet, which should hold steady across holds.
+8. Stats: the session counts once, 90% of the recording heard; holds add nothing to time heard.
+9. Seek back over a hold already taken: it does not repeat. Seek past one: its time comes at the end.
+10. A streamed (not downloaded) recording on Wi-Fi: it is read (watch data), then holds begin. On mobile data: no holds, everything at the end, no data used for the map.
+11. A YouTube session with Extend in the pauses: all at the end.
+
 ## 2026-10-27 (identity PR 2: the generated art in the app)
 
 - **The engine is a port of the page, checked against the page.** `lib/widgets/art/engine/` ports identity rounds 4 and 5 (`fork/mark-explore`, a15aefda): 16 grounds, 27 figures, the bell, the meaning map, the seeded builder and the print finish. The ported code is over a small Canvas 2D context (`canvas2d.dart`), which keeps the browser's path, transform and arc semantics, so the drawing code ports line for line.

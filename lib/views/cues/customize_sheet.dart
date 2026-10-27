@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
@@ -37,6 +38,7 @@ DateTime customizeFinishesAt(
   bool isActive = false,
   int? extensionRemainingMs,
   int? countdownRemainingMs,
+  int? extensionLeftMs,
 }) {
   if (extensionRemainingMs != null) {
     return now.add(Duration(milliseconds: extensionRemainingMs));
@@ -59,7 +61,12 @@ DateTime customizeFinishesAt(
   } else {
     end = end
         .add(Duration(microseconds: (remaining.inMicroseconds / speed).round()))
-        .add(Duration(minutes: settings.extendMinutes));
+        // With Extend in the pauses, some of it has already been spent.
+        .add(
+          extensionLeftMs != null
+              ? Duration(milliseconds: extensionLeftMs)
+              : Duration(minutes: settings.extendMinutes),
+        );
   }
   return end;
 }
@@ -96,12 +103,27 @@ Future<bool> showCustomizeSheet(
         }
         final runtime = ref.watch(
           cueRuntimeProvider.select(
-            (s) => (s.phase, s.countdownMs ~/ 1000, s.extensionMs ~/ 1000),
+            (s) => (
+              s.phase,
+              s.countdownMs ~/ 1000,
+              s.extensionMs ~/ 1000,
+              s.extensionLeftMs == null ? null : s.extensionLeftMs! ~/ 1000,
+            ),
           ),
+        );
+        final inPauses = ref.watch(
+          cueSettingsProvider(scope).select((s) => s.extendInPauses),
         );
         return CustomizeSheet(
           scope: scope,
           isActive: !beforeStart,
+          extensionLeftMs:
+              !beforeStart &&
+                  inPauses &&
+                  runtime.$4 != null &&
+                  (runtime.$1 == 'playing' || runtime.$1 == 'hold')
+              ? runtime.$4! * 1000
+              : null,
           extensionRemainingMs: !beforeStart && runtime.$1 == 'extension'
               ? runtime.$3 * 1000
               : null,
@@ -158,6 +180,7 @@ class CustomizeSheet extends ConsumerStatefulWidget {
     this.isActive = false,
     this.extensionRemainingMs,
     this.countdownRemainingMs,
+    this.extensionLeftMs,
   });
 
   final CueScope scope;
@@ -167,6 +190,10 @@ class CustomizeSheet extends ConsumerStatefulWidget {
   final double speed;
   final bool isActive;
   final int? extensionRemainingMs, countdownRemainingMs;
+
+  /// Extend time still to come when it is placed in the pauses (some may
+  /// have been spent already); null reads the setting.
+  final int? extensionLeftMs;
 
   /// Shows a Start button; pressing it hands control back to the caller.
   final VoidCallback? onStart;
@@ -188,6 +215,14 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   late bool _courseOverride;
   late final SessionBellPreview _preview;
   _Part? _open;
+
+  /// Extend can be placed in the guide's pauses where the native engine can
+  /// hold the voice: Android. The setting is kept either way.
+  bool get _canPlaceInPauses => defaultTargetPlatform == TargetPlatform.android;
+
+  bool _inPauses(CueSettings s) => _canPlaceInPauses && s.extendInPauses;
+
+  AppLocalizations? get _l10n => AppLocalizations.of(context);
 
   CueScope get _scope => widget.scope;
   bool get _practice => _scope.kind == CueKind.practice;
@@ -283,13 +318,28 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
             _Part.extend,
             icon: Icons.more_time_rounded,
             title: 'Extend with silence',
-            value: s.extendMinutes == 0 ? 'Off' : '+${s.extendMinutes} min',
+            value: s.extendMinutes == 0
+                ? 'Off'
+                : '+${s.extendMinutes} min${_inPauses(s) ? ' · ${_l10n?.extendPlacementPauses ?? 'In the pauses'}' : ''}',
             editor: () => Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const _Caption(
-                  'Keep going in silence (with any background sound) after '
-                  'the audio ends, then ring the ending bell.',
+                if (_canPlaceInPauses)
+                  _Chips<bool>(
+                    options: {
+                      false: _l10n?.extendPlacementEnd ?? 'At the end',
+                      true: _l10n?.extendPlacementPauses ?? 'In the pauses',
+                    },
+                    selected: s.extendInPauses,
+                    onSelected: (v) => _edit(s.copyWith(extendInPauses: v)),
+                  ),
+                _Caption(
+                  _inPauses(s)
+                      ? _l10n?.extendPlacementCaptionPauses ??
+                            'The voice rests in its own long pauses. What no '
+                                'pause takes comes after the recording.'
+                      : 'Keep going in silence (with any background sound) '
+                            'after the audio ends, then ring the ending bell.',
                 ),
                 _WheelField<int>(
                   label: 'Extra minutes',
@@ -753,6 +803,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
       isActive: widget.isActive,
       extensionRemainingMs: widget.extensionRemainingMs,
       countdownRemainingMs: widget.countdownRemainingMs,
+      extensionLeftMs: widget.extensionLeftMs,
     );
     final time = MaterialLocalizations.of(context).formatTimeOfDay(
       TimeOfDay.fromDateTime(end),
