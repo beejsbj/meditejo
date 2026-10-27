@@ -1,3 +1,5 @@
+import 'dart:ui' show SemanticsAction;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
@@ -60,6 +62,10 @@ void main() {
     );
     expect(semantics.label, 'Home mark');
     expect(semantics.value, 'Pinned');
+    expect(
+      semantics.getSemanticsData().hasAction(SemanticsAction.longPress),
+      isTrue,
+    );
 
     await tester.longPress(find.byKey(const ValueKey('home_mark')));
     await tester.pump(const Duration(milliseconds: 600));
