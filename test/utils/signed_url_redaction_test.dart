@@ -32,6 +32,19 @@ void main() {
       );
     });
 
+    test('redacting twice does not stack markers', () {
+      final once = redactSignedUrls('uri = $_signed');
+      expect(redactSignedUrls(once), once);
+      expect('<redacted>'.allMatches(once), hasLength(1));
+    });
+
+    test('the scheme and host match whatever their case', () {
+      expect(
+        redactSignedUrls('HTTPS://RR1.GoogleVideo.com/videoplayback?sig=S'),
+        isNot(contains('sig=')),
+      );
+    });
+
     test('ordinary addresses and plain text are untouched', () {
       const text =
           'Opened https://www.youtube.com/watch?v=aaaaaaaaaaa, '
@@ -52,6 +65,13 @@ void main() {
     });
     tearDown(() => debugPrint = original);
 
+    test('with debugPrint wrapped as in main, a line is redacted once', () {
+      redactDebugPrint();
+      AppLogger.d('PLAYER', 'Will use path: $_signed');
+      expect(lines.single, isNot(contains('SECRET')));
+      expect('<redacted>'.allMatches(lines.single), hasLength(1));
+    });
+
     test('AppLogger redacts messages and error details', () {
       AppLogger.d('PLAYER', 'Will use path: $_signed');
       AppLogger.i('PLAYER', 'i $_signed');
@@ -70,7 +90,7 @@ void main() {
       redactDebugPrint();
       debugPrint('FlutterError: uri = $_signed');
       expect(lines.single, isNot(contains('SECRET')));
-      expect(lines.single, contains('<redacted>'));
+      expect('<redacted>'.allMatches(lines.single), hasLength(1));
     });
   });
 }

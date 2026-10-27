@@ -32,6 +32,18 @@ class SignedUrlRedactionTest {
     }
 
     @Test
+    fun redactingTwiceDoesNotStackMarkers() {
+        val once = SignedUrlRedaction.redact("uri = $signed")
+        assertEquals(once, SignedUrlRedaction.redact(once))
+        assertEquals(1, Regex("<redacted>").findAll(once).count())
+    }
+
+    @Test
+    fun theSchemeAndHostMatchWhateverTheirCase() {
+        assertFalse(SignedUrlRedaction.redact("HTTPS://RR1.GoogleVideo.com/videoplayback?sig=S").contains("sig="))
+    }
+
+    @Test
     fun ordinaryAddressesAreLeftAlone() {
         val text = "Fetched https://www.youtube.com/watch?v=aaaaaaaaaaa and https://example.org/a.mp3?x=1"
         assertEquals(text, SignedUrlRedaction.redact(text))

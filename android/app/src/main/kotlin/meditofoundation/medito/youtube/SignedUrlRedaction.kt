@@ -10,10 +10,14 @@ import java.util.Locale
  * reports. Only the host survives, so a log still says which server failed.
  */
 object SignedUrlRedaction {
-    private val url = Regex("""https?://[^\s"'<>)\]]+""")
+    private val url = Regex("""https?://[^\s"'<>)\]]+""", RegexOption.IGNORE_CASE)
+    private const val MARKER = "<redacted>"
 
     fun redact(text: String): String = url.replace(text) { match ->
-        if (isSigned(match.value)) "https://${hostOf(match.value) ?: "unknown"}/<redacted>" else match.value
+        // Already redacted: a second pass must not stack markers.
+        if (text.startsWith(MARKER, match.range.last + 1)) match.value
+        else if (isSigned(match.value)) "https://${hostOf(match.value) ?: "unknown"}/$MARKER"
+        else match.value
     }
 
     /** A stream address: a googlevideo.com host, or a youtube.com `/videoplayback` path. */

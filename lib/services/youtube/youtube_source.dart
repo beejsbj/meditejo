@@ -52,11 +52,18 @@ class YoutubeSource
     required this.library,
     required this.api,
     DateTime Function()? clock,
+    this.sessionCourse,
   }) : _clock = clock ?? DateTime.now;
 
   final LibraryDatabase db;
   final LibraryStore library;
   final YoutubeExtractorApi api;
+
+  /// The course a session counts towards across every source (a personal
+  /// course can hold a YouTube video too), wired to
+  /// `ContentRouter.courseOfSession`. Without it only saved YouTube courses
+  /// are considered.
+  final Future<String?> Function(String trackId)? sessionCourse;
   final DateTime Function() _clock;
   final _streams = <String, ({YoutubeAudioStream stream, DateTime until})>{};
   final _resolving = <String, Future<YoutubeAudioStream>>{};
@@ -623,12 +630,13 @@ class YoutubeSource
     final videoId = id.substring('yt-video-'.length);
     final video = await db.youtubeVideo(videoId);
     if (video == null) throw CatalogueEntryUnavailable('track', id);
-    // A video in two saved courses takes the group of the one it was opened
-    // from; with no such context, the most recently active one.
+    // The course decides, as it does for the cues: the one the session was
+    // opened from, else the most recently active. The video's own label
+    // applies only when no course has one.
     final parent = await _courseOf(id);
     final group =
-        await library.groupOf(id) ??
         (parent == null ? null : await library.groupOf(parent)) ??
+        await library.groupOf(id) ??
         youtubeGroup(video.title);
     final url = 'https://www.youtube.com/watch?v=$videoId';
     return Track(
@@ -718,6 +726,8 @@ class YoutubeSource
   /// The saved course a session counts towards: the one it was last opened
   /// from while that course still lists it, else [parentOf].
   Future<String?> _courseOf(String trackId) async {
+    final lookup = sessionCourse;
+    if (lookup != null) return lookup(trackId);
     final opened = await library.sessionContext(trackId);
     if (opened != null && await courseLists(opened, trackId)) return opened;
     return parentOf(trackId);

@@ -99,6 +99,15 @@ final youtubeSourceProvider = Provider<YoutubeSource>((ref) {
     db: ref.watch(libraryDatabaseProvider),
     library: ref.watch(libraryStoreProvider),
     api: ref.watch(youtubeExtractorProvider),
+    // Read when asked: the router includes this very source.
+    sessionCourse: (trackId) async => ref
+        .read(libraryContentRouterProvider)
+        .courseOfSession(
+          trackId,
+          openedFrom: await ref
+              .read(libraryStoreProvider)
+              .sessionContext(trackId),
+        ),
   );
   void refreshCompleted() => ref.invalidate(packTrackIdsProvider);
   source.refreshRevision.addListener(refreshCompleted);

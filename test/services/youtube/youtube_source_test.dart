@@ -6,7 +6,10 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/exceptions/app_error.dart';
+import 'package:medito/services/content/content_source.dart';
 import 'package:medito/services/library/import_models.dart';
+import 'package:medito/services/my_courses/my_course_models.dart';
+import 'package:medito/services/my_courses/my_course_source.dart';
 import 'package:medito/services/library/library_database.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
@@ -1390,6 +1393,55 @@ void main() {
     test('only its own courses and videos are claimed', () async {
       expect(await source.courseLists('ds-retreat-1', shared), isFalse);
       expect(await source.courseLists(one, 'ds-talk-1'), isFalse);
+    });
+  });
+
+  group('a video in a personal course too', () {
+    final saved = ytPlaylistId(playlistOne);
+    final shared = ytVideoId(videoA);
+    late MyCourseSource mine;
+    late String personal;
+
+    setUp(() async {
+      await addCourse(listOne);
+      await store.setGroup(saved, LibraryGroup.talks);
+      mine = MyCourseSource(db: db, library: store, sources: () => [source]);
+      personal = await mine.create(
+        title: 'Morning sits',
+        group: LibraryGroup.practice,
+        lines: [
+          MyCourseLine.session(MyItemDraft(id: shared, title: 'First sit')),
+        ],
+      );
+      // Wired as the app does: one lookup across every source.
+      final router = ContentRouter(sources: [source, mine]);
+      source = YoutubeSource(
+        db: db,
+        library: store,
+        api: api,
+        clock: clock.call,
+        sessionCourse: (id) async => router.courseOfSession(
+          id,
+          openedFrom: await store.sessionContext(id),
+        ),
+      );
+    });
+    tearDown(() => mine.dispose());
+
+    test('started from the personal course, its group decides', () async {
+      await store.noteSessionContext(shared, personal);
+      expect((await source.track(shared)).hasBackgroundSound, isTrue);
+    });
+
+    test('started from the saved playlist, the playlist decides', () async {
+      await store.noteSessionContext(shared, saved);
+      expect((await source.track(shared)).hasBackgroundSound, isFalse);
+    });
+
+    test('the course decides before the video\'s own label', () async {
+      await store.noteSessionContext(shared, saved);
+      await store.setGroup(shared, LibraryGroup.practice);
+      expect((await source.track(shared)).hasBackgroundSound, isFalse);
     });
   });
 }
