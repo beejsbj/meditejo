@@ -696,6 +696,52 @@ Burooj authorised Meditejo's Freesound app, so the picks that needed an account 
   - **Fixed from the same review:** the CI step ran with zero tests (pip's numpy was invisible to `python3 -I`, so the module skipped itself; now a venv, and a missing numpy fails when `CI` is set); a cached original now gets its licence checked when it is first pinned; NOTICE's header no longer says every file was crossfaded; a loop too short to measure stops with a message; the credits-screen test also asserts the source host and "Attribution required".
   - **From CodeRabbit on #41.** Fixed: a cached original that fails its SHA-256 pin is deleted, so the next run downloads it again instead of failing on the same file. Declined: making the true-peak retry fail the build when its last encode is still over the ceiling. The shipped `river` is over it already, so a hard failure would stop the pipeline reproducing the current library; the warning stays, and the limiter-threshold fix above is the real answer.
 
+## 2026-10-27 (sounds as a separate download: the sound pack)
+
+Burooj asked for the sounds to become a separate download; the APK was 78 MB, 11.8 MB of it the 30 loops.
+ARCHITECTURE.md, "The sound pack", has the design; these are the calls.
+
+- **The core set is 11 sounds, 4.3 MiB, not "about 6 to 8".** The brief says "one per category plus the presets'
+  layers", but the five starter presets use ten different loops (`rain-terrace`, `rain-window`, `stream`, `waves`,
+  `wind-trees`, `wind-grass`, `forest-birds`, `fire-stove`, `fire-crackle`, `night-meadow`), and "the presets work
+  offline" is the stronger requirement. Those ten already cover six of the seven shelves; `room-house` (the
+  smallest calm room tone) covers the seventh. **Cost:** the APK sheds 7.2 MB of the 11.8 MB, not 9 or 10. The set
+  is one flag per sound in `sources.json` (`"bundled": true`); to shrink further, change the presets' layers (a
+  product call) or re-encode the bigger loops (`night-meadow` alone is 0.95 MB). For Burooj.
+- **The pack is 19 files, not one archive.** A file per sound gives per-card download, progress and cancel, and
+  lets `sounds.json` pin each SHA-256, so the app never asks the GitHub API anything. A manifest copy
+  (`sounds-pack.json`) is attached to the release for people and for `publish` to recognise its own release.
+  A changed sound is a new `sounds-YYYYMMDD[-n]` prerelease; old ones are never deleted, since an installed app
+  pins the one it shipped with.
+- **Released:** `sounds-20261027` (prerelease, `--latest=false`, 19 files, 7,229,930 bytes), as authorised for
+  this slice. `releases/latest` still answers `v0.1.4`. No `v*` release was touched.
+- **Nothing downloads by itself.** A card's tap, Download all, a message's Download and Retry are the only
+  triggers. **Wi-Fi only is on by default** (Settings › Library & downloads); on mobile data a download waits and
+  says so, with **Download anyway** for that once. Wi-Fi and Ethernet count as unmetered; a VPN alone does not.
+  This adds one dependency, `connectivity_plus` (BSD-3-Clause).
+- **Tapping a card for a sound that is not on the phone downloads it; it does not also add it to the mix.** Two
+  taps for a sound you did want, in exchange for never changing a mix behind a user's back. Easy to flip
+  (`_SoundsLibrary.card`).
+- **A mix is never rewritten for a missing sound.** The layer stays, the mixer plays the rest, says once which
+  sounds it left out (message with Download), and a sound that arrives joins the mix that is playing. A mix with
+  nothing playable stays silent and says why. The same for a session.
+- **Integrity.** SHA-256 and size are checked as the bytes arrive, into a `.part` file that is deleted on any
+  mismatch. After that a file is trusted by name and size (renamed from `<id>-<sha12>.opus`, so a changed sound is a
+  different file); a launch does not re-hash 7 MB. A corrupt file would fail to decode and show "could not be
+  played".
+- **Deleting is all-or-nothing** (Settings), after a confirmation that names the space it frees. No per-sound
+  delete yet.
+- **Downloads run while the app is open.** There is no foreground service or notification for them (a sound is a
+  few hundred KB); leaving the app mid-download cancels the transfer and the next one starts again.
+- **The bundled budget** in `process_sounds.py` is now 6 MB for the sounds that ship in the APK (it was 15 MB for
+  the whole library).
+- **Test fixtures.** The widget tests' fake clock never lets file I/O finish, so the widget and mixer tests use a
+  `FakeSoundPack`; the real controller and downloader are tested over a temp directory
+  (`sound_pack_controller_test.dart`, `sound_pack_service_test.dart`).
+- **Follow-ups, not done here:** per-sound delete; a quiet "N sounds to download" line in the player's Customize
+  sheet where the mix is chosen; resuming a half-finished download (it restarts, at most 1 MB lost); offering the
+  pack on first launch (the brief says the opposite: nothing downloads unasked).
+
 ## 2026-10-27 (identity PR 2: the generated art in the app)
 
 - **The engine is a port of the page, checked against the page.** `lib/widgets/art/engine/` ports identity rounds 4 and 5 (`fork/mark-explore`, a15aefda): 16 grounds, 27 figures, the bell, the meaning map, the seeded builder and the print finish. The ported code is over a small Canvas 2D context (`canvas2d.dart`), which keeps the browser's path, transform and arc semantics, so the drawing code ports line for line.

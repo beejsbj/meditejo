@@ -12,12 +12,14 @@ import 'package:medito/models/soundscape/sound_library.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/synth.dart';
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
+import 'package:medito/providers/soundscape/sound_pack_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 
 import 'sound_cards.dart';
 import 'sound_credits_view.dart';
 import 'sound_labels.dart';
 import 'sound_mix_panel.dart';
+import 'sound_pack_widgets.dart';
 
 /// Opens the Sounds screen as a page of its own, over whatever is open (the
 /// player, its Customize sheet), so a session stays where it was. Home opens
@@ -353,6 +355,7 @@ class _SoundsLibrary extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final library = ref.watch(soundLibraryProvider).value;
     final state = ref.watch(soundscapeProvider);
+    final pack = ref.watch(soundPackProvider);
     final mixer = ref.read(soundscapeProvider.notifier);
     final full = !mixer.canAddLayer;
     final grid = SoundGridMetrics.of(context);
@@ -360,15 +363,21 @@ class _SoundsLibrary extends ConsumerWidget {
     Widget card(String id, String title) {
       final layer = state.mix.layers.where((l) => l.soundId == id).firstOrNull;
       final inMix = layer != null;
+      // A sound of the pack that is not on the phone: its card offers the
+      // download instead of the mix.
+      final offer = SoundOffer.of(library?[id], pack);
       return SoundCard(
         key: ValueKey('sound_$id'),
         soundId: id,
         title: title,
         params: layer?.params ?? defaultSynthParams(id),
         selected: inMix,
-        sounding: inMix && state.playing && layer.volume > 0,
+        sounding: inMix && offer == null && state.playing && layer.volume > 0,
         enabled: inMix || !full,
-        onTap: () => mixer.toggleSound(id),
+        offer: offer,
+        onTap: offer == null
+            ? () => mixer.toggleSound(id)
+            : () => offer.act(ref),
       );
     }
 
@@ -414,6 +423,7 @@ class _SoundsLibrary extends ConsumerWidget {
       slivers: [
         SliverToBoxAdapter(child: _SectionTitle(l10n.soundsPresets)),
         const SliverToBoxAdapter(child: _PresetRow()),
+        const SliverToBoxAdapter(child: SoundPackBanner()),
         if (full)
           SliverToBoxAdapter(
             child: Padding(
@@ -471,6 +481,7 @@ class _PresetRow extends ConsumerWidget {
     final state = ref.watch(soundscapeProvider);
     final library = ref.watch(soundLibraryProvider).value ?? SoundLibrary.empty;
     final mixer = ref.read(soundscapeProvider.notifier);
+    final pack = ref.watch(soundPackProvider);
     final current = state.matchingPreset;
     final size = presetCardSize(context);
     final canSave = !state.mix.isEmpty && current == null;
@@ -491,6 +502,11 @@ class _PresetRow extends ConsumerWidget {
           layers: preset.mix.layers,
           layerTitles: titles(preset),
           builtIn: preset.builtIn,
+          missing: [
+            for (final layer in preset.mix.layers)
+              if (SoundOffer.of(library[layer.soundId], pack) != null)
+                layer.soundId,
+          ].length,
           playing: state.playing && current?.id == preset.id,
           onTap: () => mixer.applyPreset(preset.id),
           onDelete: preset.builtIn

@@ -454,11 +454,13 @@ other layer.
   per ear. They need headphones, and every view of them says so.
   Oscillators retune in place, phase-continuously.
 
-**Library.** `assets/sounds/*.opus` (Ogg Opus loops) and
+**Library.** `assets/sounds/*.opus` (the **bundled** Ogg Opus loops; the rest
+are the downloadable sound pack, below) and
 `assets/sounds/sounds.json`, the licence-as-data the app reads
-(`SoundLibrary`, `lib/models/soundscape/sound_library.dart`). Each entry has its
+(`SoundLibrary`, `lib/models/soundscape/sound_library.dart`), which lists every
+sound, bundled or not. Each entry has its
 id, title, category (`rain · water · wind · forest · fire · room · night`),
-asset, licence (`CC0-1.0 | CC-BY-3.0 | CC-BY-4.0 | PD`, anything else is
+file, whether it is bundled, its SHA-256 and size, licence (`CC0-1.0 | CC-BY-3.0 | CC-BY-4.0 | PD`, anything else is
 ignored), author, source page, and its processing record.
 `tools/meditejo/sounds/process_sounds.py` writes the JSON, `assets/sounds/NOTICE`
 and `tools/meditejo/sounds/commands.log` from `tools/meditejo/sounds/sources.json`.
@@ -503,6 +505,74 @@ follows `audioStateProvider.isPlaying`; Dart never holds both.
 reconciles it to the engine, one pass at a time. Persistence: shared
 preferences `soundscape_mix`, `soundscape_presets`, `soundscape_volume`,
 `soundscape_session_defaults`.
+
+### The sound pack
+
+Sounds are a separate download (2026-10-27). The APK ships a **core set** (each
+sound `"bundled": true` in `tools/meditejo/sounds/sources.json`): every layer of
+a starter preset, so the presets work offline, plus one sound for each shelf.
+Every other sound is a file on a `sounds-YYYYMMDD` **prerelease** of
+`beejsbj/meditejo`, like the Dharma Seed catalogue's `catalogue-YYYYMMDD`.
+
+* **Pinning.** `sounds.json` holds each sound's `file` (`<id>.opus`), `sha256`
+  and `bytes`, and a top-level `pack` section: `{release, digest, files,
+  bytes}`. The download URL is `<release downloads>/<release>/<file>`; nothing is
+  asked of the GitHub API at run time. `digest` hashes the pack sounds'
+  `id sha256 bytes` lines, so any change to a pack sound makes the pin stale
+  (`sound_pack.py verify` and the release script both say so). Old pack releases
+  are never deleted: an installed app pins the one it shipped with.
+* **Tooling** (`tools/meditejo/sound_pack.py`, standard library only):
+  `verify` (library, NOTICE and `assets/sounds` agree, offline, run in CI),
+  `status`, `check` (HEAD every pinned file), `fetch` (download the pack into
+  `build/sound-pack`), `publish` (upload `build/sound-pack` as a new prerelease
+  with a copy of the manifest, read every file back, then pin it) and
+  `verify-apk` (the APK holds exactly the bundled sounds and none of the pack).
+  `process_sounds.py` writes bundled loops to `assets/sounds/` and the others to
+  `build/sound-pack/` (not in git), and keeps the `pack` pin.
+  `release.sh` publishes a new pack when the sounds changed since the pin and
+  commits `sounds.json` alone; `build_apk.sh` and the APK workflow `check` the
+  pin. **CI downloads no sound**: the bundled ones are in git, and tests read
+  `sounds.json` only.
+* **The updater never sees it.** The in-app updater reads `releases/latest`
+  (prereleases excluded) and accepts only a `vX.Y.Z` tag; tests cover both
+  (`github_release_client_test.dart`, `update_release_test.dart`).
+* **On the phone.** `SoundPackFiles` / `SoundPackDownloader`
+  (`lib/services/soundscape/sound_pack_service.dart`) keep files in the app's
+  support directory (`sound_pack/`), named `<id>-<first 12 hex of sha256>.opus`.
+  A download streams into a `.part` file, is checked for size and SHA-256 and
+  renamed into place; any mismatch deletes it and fails as `integrity`. Only
+  `https://github.com/beejsbj/meditejo/releases/download/` URLs are fetched.
+  On start the folder is scanned (whole files only) and stale or partial files
+  are removed. A downloaded file is trusted by name and size afterwards; one that
+  will not decode fails like any sound that cannot be played.
+* **State.** `soundPackProvider` (`SoundPackController`,
+  `lib/providers/soundscape/sound_pack_provider.dart`): the `downloaded` ids, a
+  `downloads` map (queued, downloading with progress, failed with why), and the
+  Wi-Fi-only setting (`sound_pack_wifi_only`, default **on**). One download at a
+  time; nothing downloads unless asked (a card, Download all, a message's
+  Download, Retry). With Wi-Fi only on and the phone on mobile data, jobs wait
+  (`waitingForWifi`) and start when Wi-Fi returns, or at once for **Download
+  anyway**. Wi-Fi and Ethernet count as unmetered (`connectivity_plus`).
+* **The mixer.** A layer whose sound is in the library but not on the phone
+  stays in the mix (a preset or saved mix is never rewritten) and is left out of
+  what plays (`_isAvailable`). When a mix starts, or a download finishes or is
+  deleted, the mixer says which sounds it leaves out, once per change
+  (`soundMissingNoticeProvider`); `SoundMissingListener`, mounted in
+  `MaterialApp.builder`, shows "Playing without …" (or "Nothing to play yet: …")
+  with a **Download** action, and a note if the download waits for Wi-Fi. A sound
+  that finishes downloading joins a mix that is playing. Downloaded recordings
+  play from `FileLoopSource`, bundled ones from `AssetLoopSource`.
+* **Screens.** A card for a sound that is not on the phone shows its size and a
+  download arrow where the + is; its tap downloads (a ring while it arrives; tap
+  cancels), and a failed one shows a retry. Under the presets,
+  `SoundPackBanner` offers **Download all**, then progress with Cancel, "Waiting
+  for Wi-Fi" with **Download anyway**, or failures with Retry; it is gone when
+  everything is here. The mix dock says "n sounds in this mix need downloading.
+  The rest plays."; each such layer has a **Needs download** line, and a preset
+  card says how many of its sounds are missing. **Settings › Library &
+  downloads** has "Downloaded sounds" (how many, how much, Delete after
+  asking) and "Download sounds on Wi-Fi only". Sound credits and NOTICE list
+  every sound, downloaded or not.
 
 ### API for the player's Customize sheet
 

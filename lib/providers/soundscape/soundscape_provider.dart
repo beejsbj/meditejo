@@ -1,7 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 
-import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show setEquals, visibleForTesting;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,18 +15,11 @@ import '../../services/soundscape/synth/noise_generator.dart';
 import '../../utils/logger.dart';
 import '../player/audio_state_provider.dart';
 import '../shared_preference/shared_preference_provider.dart';
+import 'sound_library_provider.dart';
+import 'sound_missing_notice.dart';
+import 'sound_pack_provider.dart';
 
-/// The bundled library (`assets/sounds/sounds.json`).
-final soundLibraryProvider = FutureProvider<SoundLibrary>((ref) async {
-  ref.keepAlive();
-  try {
-    final raw = await rootBundle.loadString(kSoundLibraryAsset);
-    return SoundLibrary.fromJson(jsonDecode(raw) as Map<String, Object?>);
-  } catch (error, stack) {
-    AppLogger.e('SOUNDSCAPE', 'Could not read the sound library', error, stack);
-    return SoundLibrary.empty;
-  }
-});
+export 'sound_library_provider.dart';
 
 final soundscapeEngineProvider = Provider<SoundscapeEngine>(
   (ref) => SoLoudSoundscapeEngine(),
@@ -249,6 +241,18 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         if (state.underSession && state.playing != playing) {
           _update(state.copyWith(playing: playing));
         }
+      },
+    );
+    // A sound that finishes downloading joins a mix that was playing without
+    // it; one deleted from the phone leaves.
+    // Selected as text: a Set is never equal to another, so progress ticks
+    // would otherwise look like a change.
+    ref.listen(
+      soundPackProvider.select(
+        (s) => (s.downloaded.toList()..sort()).join(','),
+      ),
+      (previous, _) {
+        if (previous != null && state.active) _update(state);
       },
     );
     unawaited(_dropVanishedSounds());
@@ -605,7 +609,18 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   static bool _isKnown(String id, SoundLibrary library) =>
       library.contains(id) || isSynthId(id);
 
-  static LayerSource _sourceFor(SoundLayer layer, SoundLibrary library) =>
+  /// Known, and its file is here: generated, bundled, or downloaded.
+  static bool _isAvailable(
+    String id,
+    SoundLibrary library,
+    SoundPackState pack,
+  ) {
+    if (isSynthId(id)) return true;
+    final sound = library[id];
+    return sound != null && pack.isAvailable(sound);
+  }
+
+  LayerSource _sourceFor(SoundLayer layer, SoundLibrary library) =>
       switch (layer.soundId) {
         kSynthNoiseId => NoiseLoopSource(
           NoiseSpec(params: NoiseParams.fromJson(layer.params)),
@@ -616,11 +631,16 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         kSynthBinauralId => OscillatorSource(
           BinauralParams.fromJson(layer.params).partials(),
         ),
-        _ => AssetLoopSource(
-          library[layer.soundId]!.asset,
-          channels: library[layer.soundId]!.channels,
-        ),
+        _ => _recordingSource(library[layer.soundId]!),
       };
+
+  LayerSource _recordingSource(SoundEntry sound) {
+    if (sound.bundled) {
+      return AssetLoopSource(sound.asset, channels: sound.channels);
+    }
+    final file = ref.read(soundPackProvider.notifier).fileOf(sound);
+    return FileLoopSource(file!.path, channels: sound.channels);
+  }
 
   void _editMix(SoundMix mix, {Set<String>? failed, bool start = false}) {
     _store.writeMix(mix);
@@ -724,15 +744,19 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   Future<void> _apply() async {
     if (!ref.mounted) return;
     final library = await ref.read(soundLibraryProvider.future);
+    await ref.read(soundPackProvider.notifier).ready;
     if (!ref.mounted) return;
     final s = state;
     final updates = _updates;
+    final pack = ref.read(soundPackProvider);
     final desired = <String, SoundLayer>{
       if (s.active)
         for (final l in s.mix.layers)
-          if (_isKnown(l.soundId, library) && !s.failed.contains(l.soundId))
+          if (_isAvailable(l.soundId, library, pack) &&
+              !s.failed.contains(l.soundId))
             l.soundId: l,
     };
+    _announceMissing(s, library, pack, nothingPlays: desired.isEmpty);
 
     final standalone = s.owner == SoundscapeOwner.standalone && s.active;
     // Let go first when nothing should hold; take the service only once a
@@ -853,6 +877,34 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     if (ref.mounted && !s.active && _applied.isEmpty && !state.active) {
       await _engine.shutdown();
     }
+  }
+
+  /// Sounds already announced as left out of the mix that plays.
+  Set<String> _announced = const {};
+
+  /// Says (once) which sounds of the mix are not downloaded, so a preset or
+  /// a saved mix is never quietly thinner than it was saved. Plays what is
+  /// here meanwhile.
+  void _announceMissing(
+    SoundscapeState s,
+    SoundLibrary library,
+    SoundPackState pack, {
+    required bool nothingPlays,
+  }) {
+    final missing = s.active
+        ? {
+            for (final l in s.mix.layers)
+              if (_isKnown(l.soundId, library) &&
+                  !_isAvailable(l.soundId, library, pack))
+                l.soundId,
+          }
+        : <String>{};
+    if (setEquals(missing, _announced)) return;
+    _announced = missing;
+    if (missing.isEmpty) return;
+    ref
+        .read(soundMissingNoticeProvider.notifier)
+        .announce(missing, nothingPlays: nothingPlays);
   }
 
   bool _failedBefore(SoundLayer layer) {

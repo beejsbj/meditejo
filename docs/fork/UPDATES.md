@@ -93,10 +93,11 @@ Medito's `prepare_release.sh` and its `release` skill drove the App Store / Play
 `release.sh`; `prepare_release.sh` stays untouched, since the iOS fastlane and
 `release.yml` still reference it.
 
-## Catalogue releases are not app releases
+## Catalogue and sound-pack releases are not app releases
 
 The same repository also holds `catalogue-YYYYMMDD` releases, the bundled Dharma Seed snapshot (see
-ARCHITECTURE.md, "The bundled catalogue"). They are **prereleases**, they have no `meditejo-release.json`,
+ARCHITECTURE.md, "The bundled catalogue"), and `sounds-YYYYMMDD` releases, the downloadable sound pack ("The
+sound pack"). The rest of this section is written about the first and holds for both. They are **prereleases**, they have no `meditejo-release.json`,
 and the updater never offers them:
 
 - `releases/latest`, the only endpoint the app reads, returns the newest published release that is not a
@@ -104,7 +105,10 @@ and the updater never offers them:
 - If one were ever published without the flag, `ReleaseListing.fromApi` still refuses it, because only
   `v<MAJOR.MINOR.PATCH>` tags are app releases. The user would see "unavailable" in About, not an update;
   fix it by marking the release a prerelease again.
-- Never make a catalogue release "latest" (`gh release create` for it passes `--prerelease --latest=false`).
+- Never make a catalogue or sound-pack release "latest" (`gh release create` for them passes `--prerelease --latest=false`).
+- Tests: `github_release_client_test.dart` ("catalogue releases are never an update", "the sound pack release is
+  never an update") and `update_release_test.dart` (the tag test). Checked 2026-10-27: with `sounds-20261027` created,
+  `releases/latest` still answered `v0.1.4`.
 
 ## The updater
 

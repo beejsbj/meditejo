@@ -26,19 +26,27 @@ void main() {
     }
   });
 
-  test('every asset exists and the library fits the 15 MB budget', () {
-    var total = 0;
-    for (final sound in library.sounds) {
+  test('every bundled asset exists, and the APK carries only those', () {
+    var bundled = 0;
+    for (final sound in library.sounds.where((s) => s.bundled)) {
       final file = File(sound.asset);
       expect(file.existsSync(), isTrue, reason: sound.asset);
-      total += file.lengthSync();
+      expect(file.lengthSync(), sound.bytes, reason: sound.id);
+      bundled += file.lengthSync();
     }
-    expect(total, lessThanOrEqualTo(15 * 1000 * 1000));
+    // The point of the sound pack: the APK holds the core set, not the library.
+    expect(bundled, lessThanOrEqualTo(6 * 1000 * 1000));
+    expect(bundled, json['bundledBytes']);
+    final total = library.sounds.fold<int>(0, (n, s) => n + s.bytes);
     expect(total, json['totalBytes']);
+    expect(total - bundled, json['packBytes']);
   });
 
-  test('no orphan files ship beside the library', () {
-    final listed = {for (final s in library.sounds) s.asset};
+  test('no orphan files ship beside the library, and none of the pack', () {
+    final listed = {
+      for (final s in library.sounds)
+        if (s.bundled) s.asset,
+    };
     final shipped = Directory('assets/sounds')
         .listSync()
         .whereType<File>()
@@ -46,6 +54,81 @@ void main() {
         .where((p) => p.endsWith('.opus'))
         .toSet();
     expect(shipped, listed);
+  });
+
+  group('the sound pack', () {
+    test('has sounds, pinned to a release the updater never reads', () {
+      expect(library.packSounds, isNotEmpty);
+      expect(library.pack, isNotNull);
+      // `sounds-YYYYMMDD[-n]` is not a `vX.Y.Z` app release, and the repository
+      // marks it a prerelease.
+      expect(library.pack!.release, matches(RegExp(r'^sounds-\d{8}(-\d+)?$')));
+    });
+
+    test('every pack sound pins its bytes, and downloads from the release', () {
+      for (final sound in library.packSounds) {
+        expect(sound.bytes, greaterThan(10000), reason: sound.id);
+        expect(
+          sound.sha256,
+          matches(RegExp(r'^[0-9a-f]{64}$')),
+          reason: sound.id,
+        );
+        expect(sound.file, '${sound.id}.opus');
+        expect(
+          library.pack!.urlFor(sound).toString(),
+          'https://github.com/beejsbj/meditejo/releases/download/'
+          '${library.pack!.release}/${sound.file}',
+        );
+      }
+    });
+
+    test('a pack sound without a pinned hash and size is not offered', () {
+      SoundLibrary parse(Map<String, Object?> extra) => SoundLibrary.fromJson({
+        'sounds': [
+          {
+            'id': 'far',
+            'category': 'rain',
+            'license': {'spdx': 'CC0-1.0'},
+            'bundled': false,
+            ...extra,
+          },
+        ],
+      });
+      expect(parse({}).sounds, isEmpty);
+      expect(parse({'sha256': 'abc', 'bytes': 5}).sounds, isEmpty);
+      expect(parse({'sha256': 'a' * 64, 'bytes': 0}).sounds, isEmpty);
+      expect(parse({'sha256': 'a' * 64, 'bytes': 5}).sounds, hasLength(1));
+    });
+
+    test('a pin that is not a sounds release is ignored', () {
+      for (final release in ['v0.1.4', 'catalogue-20261019', 'sounds-1', '']) {
+        expect(SoundPackPin.tryFromJson({'release': release}), isNull);
+      }
+      expect(SoundPackPin.tryFromJson(null), isNull);
+    });
+
+    test('the presets work offline: every layer is bundled', () {
+      for (final preset in kStarterPresets) {
+        for (final layer in preset.mix.layers) {
+          if (isSynthId(layer.soundId)) continue;
+          expect(
+            library[layer.soundId]!.bundled,
+            isTrue,
+            reason: '${preset.id}: ${layer.soundId}',
+          );
+        }
+      }
+    });
+
+    test('every shelf has a sound that is bundled', () {
+      for (final category in library.categories) {
+        expect(
+          library.inCategory(category).any((s) => s.bundled),
+          isTrue,
+          reason: category.name,
+        );
+      }
+    });
   });
 
   test('loudness was measured near the -27 LUFS target', () {
@@ -59,12 +142,12 @@ void main() {
     }
   });
 
-  test('NOTICE credits every file', () {
+  test('NOTICE credits every sound, downloaded or not', () {
     final notice = File('assets/sounds/NOTICE').readAsStringSync();
     expect(notice, contains('not'));
     expect(notice, contains('AGPL'));
     for (final sound in library.sounds) {
-      expect(notice, contains(sound.asset.split('/').last));
+      expect(notice, contains(sound.file));
       expect(notice, contains(sound.sourceUrl));
     }
   });

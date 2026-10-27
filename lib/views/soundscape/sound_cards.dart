@@ -9,6 +9,8 @@ import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/widgets/art/art_cover.dart';
 import 'package:medito/widgets/art/art_subject.dart';
 
+import 'sound_pack_widgets.dart';
+
 /// Corner radius of the Sounds tab's cards and of the art inside its panel.
 const kSoundCardRadius = MeditejoShapes.largeIncreased;
 const kPresetCardRadius = MeditejoShapes.extraLarge;
@@ -71,12 +73,16 @@ class SoundArtSurface extends StatefulWidget {
     this.radius = kSoundCardRadius,
     this.action,
     this.topScrim = false,
+    this.veiled = false,
   });
 
   final ArtSubject art;
 
   /// Darkens the top too, for text set at the top of the art.
   final bool topScrim;
+
+  /// Dims the art: the sound is not on the phone yet.
+  final bool veiled;
   final bool live;
   final String semanticsLabel;
   final VoidCallback onTap;
@@ -135,6 +141,7 @@ class _SoundArtSurfaceState extends State<SoundArtSurface> {
                   ),
                 ),
               ),
+              if (widget.veiled) ColoredBox(color: _scrim(0.28)),
               widget.child,
               Material(
                 type: MaterialType.transparency,
@@ -221,6 +228,7 @@ class SoundCard extends StatelessWidget {
     required this.onTap,
     this.params = const {},
     this.sounding = false,
+    this.offer,
   });
 
   final String soundId;
@@ -237,6 +245,11 @@ class SoundCard extends StatelessWidget {
   final bool enabled;
   final VoidCallback onTap;
 
+  /// Set while the sound is not on the phone (the sound pack): the corner
+  /// offers the download in place of the +, and a tap downloads, cancels or
+  /// retries rather than adds.
+  final SoundOffer? offer;
+
   @override
   Widget build(BuildContext context) {
     final still = MediaQuery.disableAnimationsOf(context);
@@ -245,9 +258,11 @@ class SoundCard extends StatelessWidget {
     return SoundArtSurface(
       art: ArtSubject.sound(soundId, params),
       live: sounding,
-      semanticsLabel: title,
-      selected: selected,
-      enabled: enabled,
+      veiled: offer != null,
+      semanticsLabel: offer?.semanticsLabel(context, title) ?? title,
+      selected: selected && offer == null,
+      // A sound to download is never dimmed by a full mix: it can be fetched.
+      enabled: enabled || offer != null,
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(8),
@@ -261,31 +276,41 @@ class SoundCard extends StatelessWidget {
                 switchInCurve: pop.curve,
                 transitionBuilder: (child, animation) =>
                     ScaleTransition(scale: animation, child: child),
-                child: DecoratedBox(
-                  key: ValueKey(selected),
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? scheme.primary
-                        : Colors.black.withValues(alpha: 0.22),
-                    shape: BoxShape.circle,
-                    border: selected
-                        ? null
-                        : Border.all(
-                            color: _onArt.withValues(alpha: 0.7),
-                            width: 1.5,
+                child: offer != null
+                    ? KeyedSubtree(
+                        key: ValueKey('offer_${offer!.phase.name}'),
+                        child: SoundOfferBadge(
+                          offer!,
+                          key: ValueKey('sound_offer_$soundId'),
+                        ),
+                      )
+                    : DecoratedBox(
+                        key: ValueKey(selected),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? scheme.primary
+                              : Colors.black.withValues(alpha: 0.22),
+                          shape: BoxShape.circle,
+                          border: selected
+                              ? null
+                              : Border.all(
+                                  color: _onArt.withValues(alpha: 0.7),
+                                  width: 1.5,
+                                ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(3),
+                          child: Icon(
+                            selected
+                                ? Symbols.check_rounded
+                                : Symbols.add_rounded,
+                            key: ValueKey('sound_state_$soundId'),
+                            size: 16,
+                            weight: 600,
+                            color: selected ? scheme.onPrimary : _onArt,
                           ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(3),
-                    child: Icon(
-                      selected ? Symbols.check_rounded : Symbols.add_rounded,
-                      key: ValueKey('sound_state_$soundId'),
-                      size: 16,
-                      weight: 600,
-                      color: selected ? scheme.onPrimary : _onArt,
-                    ),
-                  ),
-                ),
+                        ),
+                      ),
               ),
             ),
             const Spacer(),
@@ -329,6 +354,7 @@ class PresetCard extends StatelessWidget {
     required this.playing,
     required this.onTap,
     this.onDelete,
+    this.missing = 0,
   });
 
   final String presetId;
@@ -345,6 +371,10 @@ class PresetCard extends StatelessWidget {
 
   /// Null for a built-in preset, which can't be deleted.
   final VoidCallback? onDelete;
+
+  /// How many of its sounds are not on the phone (the sound pack). It plays
+  /// the rest, and the card says so.
+  final int missing;
 
   @override
   Widget build(BuildContext context) {
@@ -368,9 +398,13 @@ class PresetCard extends StatelessWidget {
       live: playing,
       topScrim: true,
       radius: kPresetCardRadius,
-      semanticsLabel: playing
-          ? '${l10n.soundsPlayPreset(label)}, ${l10n.soundsPresetPlaying}'
-          : l10n.soundsPlayPreset(label),
+      semanticsLabel: [
+        if (playing)
+          '${l10n.soundsPlayPreset(label)}, ${l10n.soundsPresetPlaying}'
+        else
+          l10n.soundsPlayPreset(label),
+        if (missing > 0) l10n.soundPackPresetMissing(missing),
+      ].join(', '),
       selected: playing,
       onTap: onTap,
       onLongPress: onDelete,
@@ -408,6 +442,31 @@ class PresetCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: type.emphasized.titleMedium?.copyWith(color: _onArt),
             ),
+            if (missing > 0)
+              Padding(
+                key: ValueKey('preset_missing_$presetId'),
+                padding: const EdgeInsets.only(top: 2),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Symbols.download_rounded,
+                      size: 14,
+                      color: _onArt,
+                    ),
+                    const SizedBox(width: 3),
+                    Flexible(
+                      child: Text(
+                        l10n.soundPackPresetMissing(missing),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: type.baseline.labelSmall?.copyWith(
+                          color: _onArt.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const Spacer(),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,

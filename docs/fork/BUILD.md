@@ -67,9 +67,24 @@ with this command in its message, and the app would build with no catalogue.
 Tool tests: `python3 -I -m unittest discover -s tools/meditejo -p 'test_catalogue.py'`.
 See ARCHITECTURE.md ("The bundled catalogue") for the rest.
 
+## The sound pack (nothing to fetch)
+
+`assets/sounds/` holds only the **bundled** sounds (the core set). The other
+sounds are files on a `sounds-YYYYMMDD` prerelease that `assets/sounds/sounds.json`
+pins, and the app downloads them on request, so **CI and local builds fetch no
+sound**: the bundled ones are in git, and tests read `sounds.json`. CI runs
+`python3 -I tools/meditejo/sound_pack.py verify` (offline), the APK workflow runs
+`check` before the build and `verify-apk` after it (the APK holds exactly the
+bundled sounds and none of the pack) and prints the APK size in the job summary.
+To change a sound: edit `tools/meditejo/sounds/sources.json`, run
+`process_sounds.py`, and `sound_pack.py publish`, or leave it to
+`release.sh`, which publishes a new pack when the sounds changed since the pin.
+Tool tests: `python3 -I -m unittest discover -s tools/meditejo -p 'test_sound_pack.py'`.
+See ARCHITECTURE.md ("The sound pack").
+
 ## Publishing a release
 
-`tools/meditejo/release.sh <version>` wraps this route (`build_apk.sh --flavor prod`) and publishes the signed APK as a GitHub release for the in-app updater; see [UPDATES.md](UPDATES.md). The build on GitHub fetches the catalogue snapshot that `catalogue.json` pins; `build_apk.sh` and `release.sh` check it is downloadable first.
+`tools/meditejo/release.sh <version>` wraps this route (`build_apk.sh --flavor prod`) and publishes the signed APK as a GitHub release for the in-app updater; see [UPDATES.md](UPDATES.md). The build on GitHub fetches the catalogue snapshot that `catalogue.json` pins; `build_apk.sh` and `release.sh` check it is downloadable first, and the same for the sound pack that `sounds.json` pins (and `release.sh` publishes a new one when the sounds changed).
 
 ## GitHub build and signing boundary
 

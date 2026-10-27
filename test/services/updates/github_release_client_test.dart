@@ -249,6 +249,87 @@ void main() {
     });
   });
 
+  group('the sound pack release is never an update', () {
+    // The downloadable sounds are files on a `sounds-YYYYMMDD` prerelease of
+    // this same repository (docs/fork/ARCHITECTURE.md, "The sound pack").
+    // `releases/latest` leaves prereleases out; these cases hold even if the
+    // updater did meet one, however it was published or dated.
+    String soundPack({
+      String tag = 'sounds-20261027',
+      bool prerelease = true,
+      String published = '2026-10-27T12:00:00Z',
+      bool withUpdateManifest = false,
+    }) => jsonEncode({
+      'tag_name': tag,
+      'draft': false,
+      'prerelease': prerelease,
+      'published_at': published,
+      'body': 'Meditejo sound pack',
+      'assets': [
+        for (final name in ['rain-car.opus', 'stream.opus', 'sounds-pack.json'])
+          {
+            'name': name,
+            'browser_download_url': '$kReleaseDownloadPrefix$tag/$name',
+          },
+        if (withUpdateManifest)
+          {
+            'name': kReleaseManifestName,
+            'browser_download_url':
+                '$kReleaseDownloadPrefix$tag/$kReleaseManifestName',
+          },
+      ],
+    });
+
+    Future<void> expectIgnored(String listing) async {
+      final seen = <Uri>[];
+      final client = _client((request) async {
+        seen.add(request.url);
+        if (request.url.host == 'api.github.com') {
+          return http.Response(listing, 200);
+        }
+        return http.Response(_manifest(), 200);
+      });
+      await expectLater(
+        client.latest(),
+        throwsA(
+          isA<UpdateException>().having(
+            (e) => e.failure,
+            'failure',
+            UpdateFailure.unavailable,
+          ),
+        ),
+      );
+      // Only the `latest` endpoint is read; no pack file is ever fetched.
+      expect(seen.single.path, '/repos/beejsbj/meditejo/releases/latest');
+    }
+
+    test('whatever its date, as a prerelease', () async {
+      for (final published in [
+        '2026-10-27T12:00:00Z',
+        '2099-01-01T00:00:00Z',
+      ]) {
+        await expectIgnored(soundPack(published: published));
+      }
+    });
+
+    test('even when published without the prerelease flag', () async {
+      await expectIgnored(soundPack(prerelease: false));
+      await expectIgnored(
+        soundPack(
+          prerelease: false,
+          published: '2099-01-01T00:00:00Z',
+          withUpdateManifest: true,
+        ),
+      );
+    });
+
+    test('whatever the suffix of its tag', () async {
+      for (final tag in ['sounds-20261027-2', 'sounds-99999999']) {
+        await expectIgnored(soundPack(tag: tag, prerelease: false));
+      }
+    });
+  });
+
   test('a malformed manifest is unavailable', () async {
     final client = _client((request) async {
       if (request.url.host == 'api.github.com') {

@@ -52,6 +52,10 @@ if ! git cat-file -e "$ref:assets/dharma_seed/catalogue.sqlite.gz" 2>/dev/null; 
   git show "$ref:assets/dharma_seed/catalogue.json" >"$stage/catalogue.json"
   python3 -I "$root/tools/meditejo/catalogue.py" check --manifest "$stage/catalogue.json"
 fi
+# The app downloads the rest of the sounds from the pack release that REF's
+# sounds.json pins; a build that points at a missing pack must not ship.
+git show "$ref:assets/sounds/sounds.json" >"$stage/sounds.json"
+python3 -I "$root/tools/meditejo/sound_pack.py" check --library "$stage/sounds.json"
 python3 "$root/tools/meditejo/github_run.py" "$ref" "$flavor" "$mode" "$stage/artifact"
 apk="$stage/artifact/unsigned.apk"
 if "$build_tools/apksigner" verify "$apk" >/dev/null 2>&1; then

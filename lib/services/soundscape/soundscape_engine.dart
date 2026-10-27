@@ -33,6 +33,24 @@ class AssetLoopSource extends LayerSource {
   int get hashCode => Object.hash(asset, channels);
 }
 
+/// A downloaded recording (the sound pack), looped like a bundled one. Its
+/// file was checked against the library's SHA-256 when it arrived.
+class FileLoopSource extends LayerSource {
+  const FileLoopSource(this.path, {this.channels = 2});
+
+  final String path;
+  final int channels;
+
+  @override
+  bool operator ==(Object other) =>
+      other is FileLoopSource &&
+      other.path == path &&
+      other.channels == channels;
+
+  @override
+  int get hashCode => Object.hash(path, channels);
+}
+
 /// Generated noise (see [generateNoise]), built off the UI isolate and
 /// looped like a recording. Seamless by construction.
 class NoiseLoopSource extends LayerSource {
@@ -446,6 +464,9 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
       switch (source) {
         case AssetLoopSource(:final asset, :final channels):
           final audio = await _soloud.loadAsset(asset, mode: LoadMode.memory);
+          voices.add(_loopVoice(audio, at, stereo: channels == 2));
+        case FileLoopSource(:final path, :final channels):
+          final audio = await _soloud.loadFile(path, mode: LoadMode.memory);
           voices.add(_loopVoice(audio, at, stereo: channels == 2));
         case NoiseLoopSource(:final spec):
           final wav = await compute(generateNoiseWav, spec);

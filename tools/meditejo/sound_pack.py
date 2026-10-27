@@ -66,7 +66,8 @@ def base_url():
     return os.environ.get('MEDITEJO_SOUNDS_BASE', cat.DEFAULT_BASE).rstrip('/')
 
 
-def read_library(path=LIBRARY):
+def read_library(path=None):
+    path = path or LIBRARY
     library = cat.read_manifest(path)
     sounds = library.get('sounds')
     if not isinstance(sounds, list) or not sounds:
@@ -108,8 +109,9 @@ def digest_of(entries):
     return hashlib.sha256('\n'.join(lines).encode()).hexdigest()
 
 
-def pinned_pack(library, source=LIBRARY):
+def pinned_pack(library, source=None):
     """The library's `pack` section, validated; None when there is no pack."""
+    source = source or LIBRARY
     entries = packed(library)
     pack = library.get('pack')
     if not entries:

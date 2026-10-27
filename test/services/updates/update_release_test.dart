@@ -109,10 +109,13 @@ void main() {
     });
 
     test('refuses a release that is not tagged as an app release', () {
-      // The catalogue snapshot lives on `catalogue-YYYYMMDD` releases.
+      // The catalogue snapshot lives on `catalogue-YYYYMMDD` releases and the
+      // downloadable sounds on `sounds-YYYYMMDD` ones.
       for (final tag in [
         'catalogue-20261019',
         'catalogue-20261019-2',
+        'sounds-20261027',
+        'sounds-20261027-2',
         'v1',
         'v0.1',
         'v0.1.1-rc1',

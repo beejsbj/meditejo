@@ -28,6 +28,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Check the pinned sound pack is downloadable
+        # Bundled sounds are in git; the rest are files on the pinned
+        # sounds-YYYYMMDD prerelease, which the app fetches on request. A HEAD
+        # request per file, no download.
+        run: python3 -I tools/meditejo/sound_pack.py check
       - name: Fetch the pinned Dharma Seed catalogue
         # A release asset, not a file in git; the hash in catalogue.json is
         # checked, and a missing or different asset fails the build.
@@ -94,6 +99,16 @@ jobs:
         run: python3 -I tools/meditejo/check_apk_licenses.py "build/app/outputs/flutter-apk/app-$FLAVOR-$MODE.apk"
       - name: Verify the packaged Dharma Seed catalogue
         run: python3 -I tools/meditejo/catalogue.py verify-apk "build/app/outputs/flutter-apk/app-$FLAVOR-$MODE.apk"
+      - name: Verify the packaged sounds
+        # The APK carries exactly the bundled sounds and none of the sound pack.
+        run: python3 -I tools/meditejo/sound_pack.py verify-apk "build/app/outputs/flutter-apk/app-$FLAVOR-$MODE.apk"
+      - name: Report the APK size
+        run: |
+          apk="build/app/outputs/flutter-apk/app-$FLAVOR-$MODE.apk"
+          bytes=$(stat -c %s "$apk")
+          echo "APK size: $bytes bytes ($(( bytes / 1048576 )) MiB)"
+          echo "### APK size" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`$(basename "$apk")\`: $bytes bytes ($(( bytes / 1048576 )) MiB)" >> "$GITHUB_STEP_SUMMARY"
       - name: YouTube native unit tests
         run: |
           cd android

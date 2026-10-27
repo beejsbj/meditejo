@@ -7,11 +7,13 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/soundscape/sound_library.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/synth.dart';
+import 'package:medito/providers/soundscape/sound_pack_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/widgets/art/art_cover.dart';
 import 'package:medito/widgets/art/art_subject.dart';
 
 import 'sound_labels.dart';
+import 'sound_pack_widgets.dart';
 import 'synth_editors.dart';
 
 /// The level each muted layer had, to bring back on unmute. Muting sets the
@@ -89,7 +91,16 @@ class SoundsMixHeader extends ConsumerWidget {
     final state = ref.watch(soundscapeProvider);
     final library = ref.watch(soundLibraryProvider).value ?? SoundLibrary.empty;
     final controller = ref.read(soundscapeProvider.notifier);
-    final summary = mixSummary(l10n, state, library);
+    final pack = ref.watch(soundPackProvider);
+    // Sounds in the mix that are not on the phone: said in the line the dock
+    // always shows, so a thinner mix is never a surprise.
+    final missing = [
+      for (final layer in state.mix.layers)
+        if (SoundOffer.of(library[layer.soundId], pack) != null) layer.soundId,
+    ].length;
+    final summary = missing > 0
+        ? l10n.soundPackMixMissing(missing)
+        : mixSummary(l10n, state, library);
     const motion = MeditejoMotion.standardSpatial;
     return Row(
       children: [
@@ -166,7 +177,9 @@ class SoundsMixHeader extends ConsumerWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: type.baseline.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
+                    color: missing > 0
+                        ? scheme.tertiary
+                        : scheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -475,6 +488,7 @@ class _LayerTile extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(title, style: type.emphasized.titleMedium),
+                        MissingSoundLine(soundId: id, title: title),
                         if (failed)
                           Text(
                             l10n.soundsCouldNotPlay,

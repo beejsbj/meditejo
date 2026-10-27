@@ -45,6 +45,7 @@ import 'package:device_preview/device_preview.dart';
 import 'package:medito/config/debug_options.dart';
 
 import 'scaffold_messenger_key.dart';
+import 'package:medito/views/soundscape/sound_pack_widgets.dart';
 
 // Completer used as both the guard and the barrier for duplicate main() calls.
 // It is set synchronously before any await, so a second call always finds it non-null.
@@ -282,6 +283,9 @@ class _ParentWidgetState extends ConsumerState<ParentWidget>
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: AppLocalizations.supportedLocales,
+        // Says why a mix plays without sounds that are not downloaded yet.
+        builder: (context, child) =>
+            SoundMissingListener(child: child ?? const SizedBox.shrink()),
         initialRoute: '/',
         routes: {'/': (context) => const SplashView()},
       ),

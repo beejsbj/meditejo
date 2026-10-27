@@ -9,11 +9,15 @@ import 'package:medito/models/soundscape/starter_presets.dart';
 import 'package:medito/models/soundscape/synth.dart';
 import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
+import 'package:medito/providers/soundscape/sound_missing_notice.dart';
+import 'package:medito/providers/soundscape/sound_pack_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/services/soundscape/soundscape_engine.dart';
 import 'package:medito/services/soundscape/soundscape_keep_alive.dart';
 import 'package:medito/services/soundscape/soundscape_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers/soundscape_fakes.dart' show FakeSoundPack;
 
 class _Engine implements SoundscapeEngine {
   final playing = <String, double>{};
@@ -129,15 +133,20 @@ class _Audio extends AudioStateNotifier {
       state = state.copyWith(isPlaying: true, isCompleted: true);
 }
 
-SoundEntry _sound(String id, SoundCategory category) => SoundEntry(
-  id: id,
-  title: id,
-  category: category,
-  asset: 'assets/sounds/$id.opus',
-  license: SoundLicense.cc0,
-  author: 'Someone',
-  sourceUrl: 'https://example.org/$id',
-);
+SoundEntry _sound(String id, SoundCategory category, {bool bundled = true}) =>
+    SoundEntry(
+      id: id,
+      title: id,
+      category: category,
+      asset: 'assets/sounds/$id.opus',
+      license: SoundLicense.cc0,
+      author: 'Someone',
+      sourceUrl: 'https://example.org/$id',
+      file: '$id.opus',
+      bundled: bundled,
+      bytes: bundled ? 0 : 100,
+      sha256: bundled ? '' : 'a' * 64,
+    );
 
 final _library = SoundLibrary([
   for (final preset in kStarterPresets)
@@ -146,6 +155,9 @@ final _library = SoundLibrary([
       if (!isSynthId(layer.soundId)) _sound(layer.soundId, SoundCategory.rain),
   _sound('cafe', SoundCategory.room),
   _sound('river', SoundCategory.water),
+  // The sound pack: on the phone only once downloaded.
+  _sound('far-rain', SoundCategory.rain, bundled: false),
+  _sound('far-sea', SoundCategory.water, bundled: false),
   for (var i = 0; i < 8; i++) _sound('extra-$i', SoundCategory.night),
 ]);
 
@@ -155,8 +167,11 @@ void main() {
   late ProviderContainer container;
   late SharedPreferences prefs;
 
+  late FakeSoundPack pack;
+
   Future<ProviderContainer> make([
     Map<String, Object> values = const {},
+    Set<String> onPhone = const {},
   ]) async {
     SharedPreferences.setMockInitialValues(values);
     prefs = await SharedPreferences.getInstance();
@@ -169,6 +184,7 @@ void main() {
         soundscapeEngineProvider.overrideWithValue(engine),
         soundscapeKeepAliveProvider.overrideWithValue(keepAlive),
         audioStateProvider.overrideWith(_Audio.new),
+        soundPackProvider.overrideWith(() => pack = FakeSoundPack(onPhone)),
       ],
     );
     addTearDown(c.dispose);
@@ -670,6 +686,7 @@ void main() {
         soundscapeEngineProvider.overrideWithValue(engine),
         soundscapeKeepAliveProvider.overrideWithValue(keepAlive),
         audioStateProvider.overrideWith(_Audio.new),
+        soundPackProvider.overrideWith(() => FakeSoundPack(const {})),
       ],
     );
     addTearDown(container.dispose);
@@ -1323,5 +1340,138 @@ void main() {
     await ctl().play(SoundscapeSelection.none);
     await settle();
     expect(st().active, isFalse);
+  });
+
+  group('sounds that are not downloaded (the sound pack)', () {
+    SoundMissingNotice? notice() => container.read(soundMissingNoticeProvider);
+
+    SoundMix farMix() => const SoundMix([
+      SoundLayer(soundId: 'river', volume: 0.5),
+      SoundLayer(soundId: 'far-rain', volume: 0.6),
+      SoundLayer(soundId: 'far-sea', volume: 0.4),
+    ]);
+
+    Map<String, Object> withFarPreset() => {
+      SoundscapeStore.presetsKey: jsonEncode([
+        SoundPreset(id: 'user-far', name: 'Far', mix: farMix()).toJson(),
+      ]),
+    };
+
+    Future<void> playFar(Set<String> onPhone) async {
+      container = await make(withFarPreset(), onPhone);
+      await ctl().play(const SoundscapeSelection.preset('user-far'));
+      await settle();
+    }
+
+    test('a preset plays what is here and says what is not', () async {
+      await playFar({});
+      expect(engine.playing.keys, ['river']);
+      expect(st().owner, SoundscapeOwner.standalone);
+      // The preset's layers stay in the mix: nothing was dropped.
+      expect(st().mix, farMix());
+      expect(notice()!.ids, {'far-rain', 'far-sea'});
+      expect(notice()!.nothingPlays, isFalse);
+    });
+
+    test('a saved mix is not thinned by being played without them', () async {
+      await playFar({});
+      expect(
+        SoundMix.fromJson(jsonDecode(prefs.getString(SoundscapeStore.mixKey)!)),
+        farMix(),
+      );
+    });
+
+    test('a mix with nothing here is silent, and says why', () async {
+      container = await make({
+        SoundscapeStore.presetsKey: jsonEncode([
+          SoundPreset(
+            id: 'user-far',
+            name: 'Far',
+            mix: const SoundMix([
+              SoundLayer(soundId: 'far-rain'),
+              SoundLayer(soundId: 'far-sea'),
+            ]),
+          ).toJson(),
+        ]),
+      });
+      await ctl().play(const SoundscapeSelection.preset('user-far'));
+      await settle();
+      expect(engine.playing, isEmpty);
+      expect(st().active, isFalse);
+      expect(keepAlive.holds, 0);
+      expect(notice()!.ids, {'far-rain', 'far-sea'});
+      expect(notice()!.nothingPlays, isTrue);
+    });
+
+    test('everything on the phone plays, with no notice', () async {
+      await playFar({'far-rain', 'far-sea'});
+      expect(engine.playing.keys.toSet(), {'river', 'far-rain', 'far-sea'});
+      expect(notice(), isNull);
+      // A downloaded sound plays from its file, a bundled one from the APK.
+      expect(engine.sources['river'], isA<AssetLoopSource>());
+      expect(engine.sources['far-rain'], isA<FileLoopSource>());
+    });
+
+    test('a sound that finishes downloading joins the mix', () async {
+      await playFar({});
+      expect(engine.playing.keys, ['river']);
+      await pack.download(['far-rain']);
+      await settle();
+      expect(engine.playing.keys.toSet(), {'river', 'far-rain'});
+      await pack.download(['far-sea']);
+      await settle();
+      expect(engine.playing.keys.toSet(), {'river', 'far-rain', 'far-sea'});
+    });
+
+    test('a deleted pack takes its sounds out of a playing mix', () async {
+      await playFar({'far-rain', 'far-sea'});
+      expect(engine.playing.keys.toSet(), {'river', 'far-rain', 'far-sea'});
+      await pack.deleteAll();
+      await settle();
+      expect(engine.playing.keys, ['river']);
+      expect(st().mix, farMix());
+      expect(notice()!.ids, {'far-rain', 'far-sea'});
+    });
+
+    test('the notice is given once, not on every change to the mix', () async {
+      await playFar({});
+      container.read(soundMissingNoticeProvider.notifier).clear();
+      ctl().setLayerVolume('river', 0.3);
+      await settle();
+      ctl().setLayerVolume('far-rain', 0.9);
+      await settle();
+      expect(notice(), isNull);
+      // Stopped and started again, it is said again.
+      ctl().stop();
+      await settle();
+      ctl().resume();
+      await settle();
+      expect(notice()!.ids, {'far-rain', 'far-sea'});
+    });
+
+    test('a session plays what is here and says what is not', () async {
+      container = await make(withFarPreset());
+      ctl().setSessionDefault(
+        SoundscapeSessionKind.practice,
+        const SoundscapeSessionDefault(
+          enabled: true,
+          selection: SoundscapeSelection.preset('user-far'),
+        ),
+      );
+      await ctl().startSession(SoundscapeSessionKind.practice);
+      await settle();
+      expect(st().owner, SoundscapeOwner.session);
+      expect(engine.playing.keys, ['river']);
+      expect(notice()!.ids, {'far-rain', 'far-sea'});
+    });
+
+    test('picking one missing sound plays nothing and says so', () async {
+      container = await make();
+      await ctl().play(const SoundscapeSelection.sound('far-sea'));
+      await settle();
+      expect(engine.playing, isEmpty);
+      expect(notice()!.ids, {'far-sea'});
+      expect(notice()!.nothingPlays, isTrue);
+    });
   });
 }

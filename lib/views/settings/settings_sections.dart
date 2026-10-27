@@ -29,6 +29,7 @@ import 'package:medito/views/settings/widgets/dnd_setting_tile.dart';
 import 'package:medito/views/settings/widgets/identity_tiles.dart';
 import 'package:medito/views/settings/widgets/practice_default_tiles.dart';
 import 'package:medito/views/settings/widgets/reminder_tile.dart';
+import 'package:medito/views/settings/widgets/sound_pack_tiles.dart';
 import 'package:medito/views/settings/widgets/theme_tile.dart';
 import 'package:medito/views/settings/widgets/update_section.dart';
 import 'package:medito/views/settings/widgets/widget_option_tile.dart';
@@ -161,6 +162,8 @@ class SettingsSections extends ConsumerWidget {
             onTap: () => _push(context, const DownloadsView()),
           ),
           (last) => DharmaSeedSyncTile(hasUnderline: !last),
+          (last) => SoundPackTile(hasUnderline: !last),
+          (last) => SoundPackWifiTile(hasUnderline: !last),
         ],
       ),
       SettingsGroup.rows(

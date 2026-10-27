@@ -45,6 +45,13 @@ refresh fetches the pinned snapshot, takes a delta from it (a few requests),
 and only when Dharma Seed changed something uploads the result as a new
 prerelease and commits the manifest alone (tools/meditejo/catalogue.py). The
 app catches up on its own with a delta sync when Search or Explore opens.
+
+The sounds that are a download rather than part of the APK (the sound pack) are
+files on a sounds-YYYYMMDD prerelease, which assets/sounds/sounds.json pins. When
+the sounds changed since that pin, the release uploads a new pack prerelease
+and commits sounds.json alone (tools/meditejo/sound_pack.py); it needs the pack
+files that tools/meditejo/sounds/process_sounds.py built into build/sound-pack.
+The release refuses to go on while the pinned pack is not downloadable.
 EOF
 }
 
@@ -160,6 +167,21 @@ echo "catalogue snapshot: $snapshot_why"
 python3 -I tools/meditejo/catalogue.py check ||
   problem 'the pinned Dharma Seed catalogue is not downloadable (tools/meditejo/catalogue.py check)'
 
+# The sound pack: unchanged sounds keep their pinned release; changed ones need
+# a new prerelease (below). `status` is offline; a changed pack with no files to
+# upload is a problem to fix now, not after the version bump.
+sounds_stale=0
+if ! python3 -I tools/meditejo/sound_pack.py status >/dev/null 2>&1; then
+  sounds_stale=1
+  python3 -I tools/meditejo/sound_pack.py publish --dry-run >/dev/null ||
+    problem 'the sounds changed but the pack cannot be published (build it with tools/meditejo/sounds/process_sounds.py)'
+  echo 'sound pack: the sounds changed since the pinned release; a new pack prerelease will be published'
+else
+  python3 -I tools/meditejo/sound_pack.py check ||
+    problem 'the pinned sound pack is not downloadable (tools/meditejo/sound_pack.py check)'
+  echo "sound pack: $(python3 -I tools/meditejo/sound_pack.py status)"
+fi
+
 echo "branch: ${branch:-?}   commit: $(git rev-parse --short HEAD)   tag: $tag"
 
 online=1
@@ -268,6 +290,25 @@ else
   else
     echo 'unchanged: Dharma Seed has nothing new since the pinned snapshot'
   fi
+fi
+
+# --------------------------------------------------------------- sound pack
+# The downloadable sounds are release assets, not files in git: sounds.json pins
+# the prerelease that holds them. A release whose sounds changed uploads the new
+# pack first and commits the pin second, so a commit never pins a pack that is
+# not there. Nothing is uploaded when the pin is current.
+step 'Publish the sound pack if the sounds changed'
+if ((! sounds_stale)); then
+  echo 'unchanged: the pinned sound pack is current'
+elif ((dry)); then
+  echo '+ python3 -I tools/meditejo/sound_pack.py publish   # a new sounds-YYYYMMDD prerelease'
+  echo '+ git add assets/sounds/sounds.json && git commit   # the pin alone'
+else
+  python3 -I tools/meditejo/sound_pack.py publish
+  git add -- assets/sounds/sounds.json
+  pack_tag=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["pack"]["release"])' assets/sounds/sounds.json)
+  git commit -q -m 'chore(release): publish the changed sound pack' \
+    -m "Uploaded as the $pack_tag prerelease by tools/meditejo/sound_pack.py; sounds.json pins it by SHA-256."
 fi
 
 # --------------------------------------------------------------------- bump

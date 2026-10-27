@@ -3214,5 +3214,224 @@
   "libraryPinned": "Pinned to Home",
   "@libraryPinned": {
     "description": "Screen-reader label of the pin mark on a Library card"
+  },
+  "soundPackDownloadSound": "Download {title}, {size}",
+  "@soundPackDownloadSound": {
+    "description": "Sound card: download a sound that is not on this phone yet",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "soundPackCancelDownload": "Cancel the download of {title}",
+  "@soundPackCancelDownload": {
+    "description": "Sound card: stop downloading a sound",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "soundPackRetryDownload": "The download of {title} failed. Try again",
+  "@soundPackRetryDownload": {
+    "description": "Sound card: retry a failed download",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "soundPackQueued": "Waiting to download",
+  "@soundPackQueued": {
+    "description": "Sound card: queued behind other downloads"
+  },
+  "soundPackMoreTitle": "More sounds",
+  "@soundPackMoreTitle": {
+    "description": "Sounds screen: heading of the downloadable sounds banner"
+  },
+  "soundPackMoreBody": "{count, plural, one{1 more sound to download} other{{count} more sounds to download}} · {size}",
+  "@soundPackMoreBody": {
+    "description": "Sounds screen: how much is left to download",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "soundPackDownloadAll": "Download all",
+  "@soundPackDownloadAll": {
+    "description": "Sounds screen: download every sound that is not on this phone"
+  },
+  "soundPackDownloading": "Downloading {done} of {total}",
+  "@soundPackDownloading": {
+    "description": "Sounds screen: progress of the downloads",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "soundPackCancel": "Cancel",
+  "@soundPackCancel": {
+    "description": "Sounds screen: stop the downloads"
+  },
+  "soundPackWaitingForWifi": "Waiting for Wi-Fi",
+  "@soundPackWaitingForWifi": {
+    "description": "Sounds screen: downloads wait because the phone is on mobile data"
+  },
+  "soundPackWifiOnlyHint": "Downloads wait for Wi-Fi. You can change this in Settings.",
+  "@soundPackWifiOnlyHint": {
+    "description": "Sounds screen: why downloads wait"
+  },
+  "soundPackDownloadAnyway": "Download anyway",
+  "@soundPackDownloadAnyway": {
+    "description": "Sounds screen: download on mobile data this once"
+  },
+  "soundPackFailedCount": "{count, plural, one{1 download failed} other{{count} downloads failed}}",
+  "@soundPackFailedCount": {
+    "description": "Sounds screen: some downloads did not finish",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "soundPackRetry": "Retry",
+  "@soundPackRetry": {
+    "description": "Sounds screen: try the failed downloads again"
+  },
+  "soundPackFailureNetwork": "Check your connection",
+  "@soundPackFailureNetwork": {
+    "description": "Sounds screen: why a download failed (no network)"
+  },
+  "soundPackFailureServer": "The download is not available right now",
+  "@soundPackFailureServer": {
+    "description": "Sounds screen: why a download failed (the server)"
+  },
+  "soundPackFailureIntegrity": "The file did not match what Meditejo expects, so it was not kept",
+  "@soundPackFailureIntegrity": {
+    "description": "Sounds screen: why a download failed (the checksum)"
+  },
+  "soundPackFailureStorage": "Could not save it on this phone",
+  "@soundPackFailureStorage": {
+    "description": "Sounds screen: why a download failed (storage)"
+  },
+  "soundPackNeedsDownload": "Needs download · {size}",
+  "@soundPackNeedsDownload": {
+    "description": "Mix: a layer whose sound is not on this phone",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "soundPackDownload": "Download",
+  "@soundPackDownload": {
+    "description": "Download a sound"
+  },
+  "soundPackMixMissing": "{count, plural, one{1 sound in this mix needs downloading. The rest plays.} other{{count} sounds in this mix need downloading. The rest plays.}}",
+  "@soundPackMixMissing": {
+    "description": "Mix panel: sounds missing from the mix",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "soundPackPresetMissing": "{count, plural, one{1 sound needs downloading} other{{count} sounds need downloading}}",
+  "@soundPackPresetMissing": {
+    "description": "Preset card: sounds missing from a preset",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "soundPackMissingPartial": "Playing without {names}. {count, plural, one{It is} other{They are}} not downloaded yet.",
+  "@soundPackMissingPartial": {
+    "description": "Snackbar: a mix plays without some sounds",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "soundPackMissingAll": "Nothing to play yet: {names} {count, plural, one{needs} other{need}} downloading.",
+  "@soundPackMissingAll": {
+    "description": "Snackbar: a mix has no sound that is on this phone",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsSoundPackTitle": "Downloaded sounds",
+  "@settingsSoundPackTitle": {
+    "description": "Settings, Library and downloads: the sound pack row"
+  },
+  "settingsSoundPackSummary": "{count} of {total} on this phone · {size}",
+  "@settingsSoundPackSummary": {
+    "description": "Settings: how many sounds are downloaded and what they take",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSoundPackNone": "None downloaded · {size} available",
+  "@settingsSoundPackNone": {
+    "description": "Settings: no sound is downloaded",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSoundPackDelete": "Delete",
+  "@settingsSoundPackDelete": {
+    "description": "Settings: remove the downloaded sounds"
+  },
+  "settingsSoundPackDeleteTitle": "Delete downloaded sounds?",
+  "@settingsSoundPackDeleteTitle": {
+    "description": "Settings: dialog title"
+  },
+  "settingsSoundPackDeleteBody": "This frees {size}. The sounds stay in the library, and you can download them again any time.",
+  "@settingsSoundPackDeleteBody": {
+    "description": "Settings: dialog text",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSoundPackWifiOnly": "Download sounds on Wi-Fi only",
+  "@settingsSoundPackWifiOnly": {
+    "description": "Settings: sound downloads wait for Wi-Fi"
+  },
+  "settingsSoundPackWifiOnlyHint": "They are large. On mobile data a download only starts when you choose Download anyway.",
+  "@settingsSoundPackWifiOnlyHint": {
+    "description": "Settings: why Wi-Fi only"
   }
 }
