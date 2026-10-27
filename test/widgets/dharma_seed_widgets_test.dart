@@ -120,7 +120,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         _app(
-          const SizedBox(
+          SizedBox(
             width: 100,
             height: 100,
             child: NetworkImageWidget(

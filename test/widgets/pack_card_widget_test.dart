@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
-import 'package:medito/widgets/art/art_subject.dart';
 import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/pack_card_widget.dart';
 
