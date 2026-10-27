@@ -284,5 +284,5 @@ List<Override> soundscapeTestOverrides(
   soundscapeKeepAliveProvider.overrideWithValue(
     const NoopSoundscapeKeepAlive(),
   ),
-  ...?soundPack ?? [soundPackProvider.overrideWith(FakeSoundPack.new)],
+  ...soundPack ?? [soundPackProvider.overrideWith(FakeSoundPack.new)],
 ];

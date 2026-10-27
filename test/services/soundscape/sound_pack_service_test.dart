@@ -37,6 +37,12 @@ void main() {
   SoundPackDownloader downloader(MockClientHandler handler) =>
       SoundPackDownloader(client: MockClient(handler));
 
+  SoundPackDownloader streaming(
+    Future<http.StreamedResponse> Function() answer,
+  ) => SoundPackDownloader(
+    client: MockClient.streaming((request, body) => answer()),
+  );
+
   group('a download is checked against the library', () {
     test('the pinned bytes are kept, and progress ends at the total', () async {
       final data = List.generate(4096, (i) => i % 251);
@@ -140,8 +146,8 @@ void main() {
       }
 
       await expectLater(
-        downloader(
-          (_) async => http.StreamedResponse(broken(), 200),
+        streaming(
+          () async => http.StreamedResponse(broken(), 200),
         ).download(sound, _pin.urlFor(sound), files),
         throwsA(
           isA<SoundDownloadException>().having(
@@ -174,8 +180,8 @@ void main() {
       final cancel = SoundDownloadCancel();
       final stalled = StreamController<List<int>>();
       stalled.add(data.sublist(0, 500));
-      final future = downloader(
-        (_) async => http.StreamedResponse(stalled.stream, 200),
+      final future = streaming(
+        () async => http.StreamedResponse(stalled.stream, 200),
       ).download(sound, _pin.urlFor(sound), files, cancel: cancel);
       await Future<void>.delayed(const Duration(milliseconds: 50));
       cancel.cancel();
