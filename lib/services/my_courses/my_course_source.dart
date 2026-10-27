@@ -109,7 +109,33 @@ class MyCourseSource implements ContentSource {
     // finished), so they re-read; this pack is read again and finds nothing
     // new.
     if (availabilityChanged) _changed();
-    return _summary(course, rows).copyWith(items: items);
+    final current = await _followRefreshedCover(course, rows, fresh) ?? course;
+    return _summary(current, rows).copyWith(items: items);
+  }
+
+  /// A source changed the artwork of the session the course took its cover
+  /// from: the cover follows it, here and in the library snapshot. It stays
+  /// when another session still has the old artwork (still a choice) or when
+  /// the cover came from elsewhere. Returns the course as it now is, or null
+  /// when nothing moved.
+  Future<MyCourseRow?> _followRefreshedCover(
+    MyCourseRow course,
+    List<MyCourseItemRow> rows,
+    Map<int, MyCourseItemRow> fresh,
+  ) async {
+    final old = course.coverUrl;
+    if (old.isEmpty || fresh.values.any((r) => r.coverUrl == old)) return null;
+    for (final row in rows) {
+      final next = fresh[row.rowId];
+      if (next == null || row.coverUrl != old || next.coverUrl.isEmpty) {
+        continue;
+      }
+      await (db.update(db.myCourses)..where((c) => c.id.equals(course.id)))
+          .write(MyCoursesCompanion(coverUrl: Value(next.coverUrl)));
+      await _syncEntry(course.id);
+      return course.copyWith(coverUrl: next.coverUrl);
+    }
+    return null;
   }
 
   /// A source reported that it no longer has [itemIds]: asks the sources

@@ -455,6 +455,69 @@ void main() {
       expect((await source.edit(id))!.coverUrl, 'https://img.test/x-1.jpg');
     });
 
+    test('a refreshed session cover moves the course cover and its library '
+        'snapshot', () async {
+      final id = await source.create(
+        title: 'A',
+        lines: [
+          MyCourseLine.session(draft('x-1')),
+          MyCourseLine.session(draft('x-2')),
+        ],
+      );
+      final edit = (await source.edit(id))!;
+      await source.save(
+        id,
+        edit.copyWith(coverUrl: 'https://img.test/x-2.jpg'),
+      );
+      expect((await store.entry(id))!.coverUrl, 'https://img.test/x-2.jpg');
+
+      // The source changes x-2's artwork; the course had chosen the old one.
+      upstream.covers['x-2'] = 'https://img.test/x-2-new.jpg';
+      final pack = await source.pack(id);
+
+      expect(pack.coverUrl, 'https://img.test/x-2-new.jpg');
+      expect((await source.edit(id))!.coverUrl, 'https://img.test/x-2-new.jpg');
+      expect((await store.entry(id))!.coverUrl, 'https://img.test/x-2-new.jpg');
+    });
+
+    test(
+      'a refreshed session cover leaves the course cover alone when it '
+      'came from elsewhere or another session still has the old one',
+      () async {
+        final elsewhere = await source.create(
+          title: 'Copied',
+          coverUrl: 'https://img.test/retreat-photo.jpg',
+          lines: [MyCourseLine.session(draft('x-1'))],
+        );
+        upstream.covers['x-1'] = 'https://img.test/x-1-new.jpg';
+        expect(
+          (await source.pack(elsewhere)).coverUrl,
+          'https://img.test/retreat-photo.jpg',
+        );
+
+        // Two sessions share artwork; one changes, the other still offers it.
+        final shared = await source.create(
+          title: 'Shared',
+          lines: [
+            MyCourseLine.session(draft('x-3')),
+            MyCourseLine.session(draft('x-4')),
+          ],
+        );
+        var edit = (await source.edit(shared))!;
+        await source.save(
+          shared,
+          edit.copyWith(coverUrl: 'https://img.test/x-3.jpg'),
+        );
+        upstream.covers['x-3'] = 'https://img.test/x-3-new.jpg';
+        upstream.covers['x-4'] = 'https://img.test/x-3.jpg';
+        expect(
+          (await source.pack(shared)).coverUrl,
+          'https://img.test/x-3.jpg',
+          reason: 'x-4 now carries the old artwork, so it is still a choice',
+        );
+      },
+    );
+
     test('renaming changes the course\'s own title', () async {
       final id = await source.create(title: 'Old');
       await source.rename(id, 'New');

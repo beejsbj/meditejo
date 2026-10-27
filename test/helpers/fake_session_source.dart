@@ -20,14 +20,17 @@ class FakeSessionSource implements ContentSource, ParentedContentSource {
   /// Sessions' own titles, when a test renames one upstream.
   final Map<String, String> titles = {};
 
+  /// Sessions' own artwork, when a test changes one upstream.
+  final Map<String, String> covers = {};
+
   @override
   String get prefix => 'x-';
 
-  static Track session(String id, {String? title}) => Track(
+  static Track session(String id, {String? title, String? coverUrl}) => Track(
     id: id,
     title: title ?? 'Session $id',
     description: '',
-    coverUrl: 'https://img.test/$id.jpg',
+    coverUrl: coverUrl ?? 'https://img.test/$id.jpg',
     isPublished: true,
     hasBackgroundSound: true,
     voices: [
@@ -72,7 +75,7 @@ class FakeSessionSource implements ContentSource, ParentedContentSource {
     if (gone.contains(id) || id.startsWith('x-course-')) {
       throw CatalogueEntryUnavailable('track', id);
     }
-    return session(id, title: titles[id]);
+    return session(id, title: titles[id], coverUrl: covers[id]);
   }
 
   @override
