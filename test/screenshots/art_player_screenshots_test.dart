@@ -29,6 +29,7 @@ import 'package:medito/views/previews/preview_support.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// ignore: unused_element
 final _enabled = Platform.environment['MEDITEJO_SCREENSHOTS'] == '1';
 final _out =
     Platform.environment['MEDITEJO_SHOT_DIR'] ?? 'docs/fork/design/art/tide';
