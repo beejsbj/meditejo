@@ -79,8 +79,17 @@ void main() {
 
     // The app was in the background through midnight: no tick ran.
     now = DateTime(2026, 10, 28, 7);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    // The platform's own sequence: the framework asserts each step.
+    for (final state in [
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.paused,
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
     await tester.pump();
 
     expect(c.read(identityDayProvider), DateTime(2026, 10, 28));
