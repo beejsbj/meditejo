@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/models/pauses/media_spans.dart';
+import 'package:medito/models/pauses/pause_hold.dart';
 import 'package:medito/services/pauses/pause_distribution.dart';
 
 MediaSpan _silence(int startS, int lengthS) =>
