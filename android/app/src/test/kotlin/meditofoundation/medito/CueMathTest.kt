@@ -290,6 +290,134 @@ class CueMathTest {
         assertTrue(ringsWhilePlaying(cue, 0.0, 20 * min) { 20 * min }.isEmpty())
     }
 
+    // ---- Halfway bell: engine wiring ----------------------------------------------
+
+    private val tolerance = CueMath.INTERVAL_LATE_TOLERANCE_MS
+
+    @Test fun reArmingJustAfterItRangDoesNotRingItTwice() {
+        val bell = HalfwayBell()
+        val end = 20 * min
+        bell.rearm(true, 0.0, end)
+        assertTrue(bell.fire(10 * min, end)) // rang on time
+        // A settings change, a small seek, or an iOS jump over 750 ms lands inside the late tolerance.
+        listOf(1.0, 500.0, tolerance).forEach { after ->
+            bell.rearm(true, 10 * min + after, end)
+            assertFalse("re-armed ${after}ms after it rang", bell.pending)
+            assertFalse(bell.fire(10 * min + after, end))
+        }
+    }
+
+    @Test fun reArmingBeforeTheMidpointRingsItWhenCrossed() {
+        val bell = HalfwayBell()
+        val end = 20 * min
+        bell.rearm(true, 0.0, end)
+        assertTrue(bell.fire(10 * min, end))
+        bell.rearm(true, 5 * min, end) // seek back
+        assertTrue(bell.pending)
+        assertFalse(bell.fire(9 * min, end))
+        assertTrue(bell.fire(10 * min, end))
+        assertFalse(bell.pending)
+    }
+
+    @Test fun aReArmBetweenTicksDoesNotUseUpABellThatHasNotRung() {
+        val bell = HalfwayBell()
+        val end = 20 * min
+        bell.rearm(true, 0.0, end)
+        // The midpoint passes between two ticks and a settings change re-arms first.
+        bell.rearm(true, 10 * min + 300.0, end)
+        assertTrue(bell.pending)
+        assertTrue(bell.fire(10 * min + 300.0, end)) // still within the late tolerance: rings
+        assertFalse(bell.pending)
+        // Far too late is still consumed silently, as before.
+        val late = HalfwayBell()
+        late.rearm(true, 0.0, end)
+        late.rearm(true, 12 * min, end)
+        assertFalse(late.fire(12 * min, end))
+        assertFalse(late.pending)
+    }
+
+    @Test fun reArmingAtTheMidpointExactlyLeavesItUsedUp() {
+        val bell = HalfwayBell()
+        bell.rearm(true, 10 * min, 20 * min)
+        assertFalse(bell.pending)
+    }
+
+    @Test fun aSettingsChangeTurnsHalfwayOnAndOffMidSession() {
+        val bell = HalfwayBell()
+        val end = 20 * min
+        // Off at the start, switched on at 4 minutes: it rings at 10.
+        bell.rearm(false, 0.0, end)
+        assertFalse(bell.pending)
+        assertFalse(bell.fire(10 * min, end))
+        bell.rearm(true, 4 * min, end)
+        assertTrue(bell.fire(10 * min, end))
+        // Switched off again before it is due (or its sound removed: hasHalfway is false): silent.
+        bell.rearm(true, 4 * min, end)
+        bell.rearm(false, 6 * min, end)
+        assertFalse(bell.pending)
+        assertFalse(bell.fire(10 * min, end))
+        // Switched on after the midpoint: it is not due, and never rings late.
+        bell.rearm(true, 12 * min, end)
+        assertFalse(bell.pending)
+    }
+
+    @Test fun reArmingWithAnUnknownEndWaitsForTheEnd() {
+        val bell = HalfwayBell()
+        bell.rearm(true, 3 * min, null)
+        assertTrue(bell.pending)
+        assertFalse(bell.fire(3 * min, null))
+        assertTrue(bell.fire(10 * min, 20 * min))
+    }
+
+    @Test fun theExtensionPhaseUsesTheExtensionEnd() {
+        // A 10-minute recording heard in full, then a 30-minute extension: halfway at minute 20.
+        val extStart = 10 * min
+        val extMs = (30 * min).toLong()
+        val end = CueMath.extensionEndMs(extStart, extMs)
+        assertEquals(40 * min, end, 1e-9)
+        val bell = HalfwayBell()
+        bell.rearm(true, 0.0, end)
+        assertEquals(20 * min, bell.nextCheckMs(0.0, end), 1e-9)
+        assertEquals(listOf(20 * min), (0..40 * 60).map { it * 1000.0 }.filter { bell.fire(it, end) })
+    }
+
+    @Test fun anExtensionEditedAfterItRangRingsAgainOnlyWhenTheMidpointMovesAhead() {
+        val extStart = 10 * min
+        val end = CueMath.extensionEndMs(extStart, (30 * min).toLong()) // halfway at 20
+        val bell = HalfwayBell()
+        bell.rearm(true, 0.0, end)
+        assertTrue(bell.fire(20 * min, end))
+        // Same length re-applied right after it rang: silent.
+        val justAfter = 20 * min + 500
+        bell.rearm(true, justAfter, end)
+        assertFalse(bell.pending)
+        // Longer (60 minutes: end 70, halfway 35): the midpoint is ahead again, so it rings again.
+        val longer = CueMath.extensionEndMs(extStart, (60 * min).toLong())
+        bell.rearm(true, justAfter, longer)
+        assertEquals(35 * min, bell.nextCheckMs(justAfter, longer), 1e-9)
+        assertTrue(bell.fire(35 * min, longer))
+        // Shorter (10 minutes: end 20, halfway 10) once the session is past it: used up, silent.
+        val shorter = CueMath.extensionEndMs(extStart, (10 * min).toLong())
+        bell.rearm(true, 36 * min, shorter)
+        assertFalse(bell.pending)
+    }
+
+    @Test fun nextCheckFollowsTheMidpointAndStopsWhenNothingIsPending() {
+        val bell = HalfwayBell()
+        assertEquals(Double.MAX_VALUE, bell.nextCheckMs(0.0, 20 * min), 0.0) // never armed
+        bell.rearm(true, 0.0, 20 * min)
+        assertEquals(10 * min, bell.nextCheckMs(0.0, 20 * min), 1e-9)
+        // The end moves with speed: the next check follows it.
+        assertEquals(6 * min, bell.nextCheckMs(4 * min, 12 * min), 1e-9)
+        // End not known yet: look again a second on, rather than stop ticking.
+        assertEquals(4 * min + 1000.0, bell.nextCheckMs(4 * min, null), 1e-9)
+        // Crossed: nothing more to schedule.
+        assertTrue(bell.fire(10 * min, 20 * min))
+        assertEquals(Double.MAX_VALUE, bell.nextCheckMs(10 * min, 20 * min), 0.0)
+        bell.rearm(false, 0.0, 20 * min)
+        assertEquals(Double.MAX_VALUE, bell.nextCheckMs(0.0, 20 * min), 0.0)
+    }
+
     // ---- Real listening ---------------------------------------------------------
 
     private fun play(tracker: ListeningTracker, from: Long, to: Long, step: Long = 1000) {

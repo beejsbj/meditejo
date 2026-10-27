@@ -16,6 +16,46 @@ class WheelOption<T> {
   final String? semanticsLabel;
 }
 
+/// Lets a parent wait for the wheels beneath it to come to rest. A wheel
+/// reports only when it settles, so an action that reads the setting at once
+/// (a Start button) would read the value from before a fling. Put a
+/// [WheelSettleScope] above the wheels and `await group.settled()` first.
+class WheelSettleGroup {
+  final _wheels = <WheelPickerState<dynamic>>{};
+
+  /// Longest [settled] waits: a finger still holding a wheel must not leave
+  /// the caller waiting for ever.
+  static const patience = Duration(seconds: 2);
+
+  /// A wheel here is still turning (a finger on it, a fling, or a move).
+  bool get moving => _wheels.any((wheel) => wheel._moving);
+
+  /// Completes once every wheel here is at rest and has reported its value,
+  /// including a wheel that starts turning while this waits for another.
+  Future<void> settled() => Future.doWhile(() async {
+    await Future.wait([for (final wheel in _wheels.toList()) wheel.settled()]);
+    return moving;
+  }).timeout(patience, onTimeout: () {});
+}
+
+/// Provides a [WheelSettleGroup] to the [WheelPicker]s below it.
+class WheelSettleScope extends InheritedWidget {
+  const WheelSettleScope({
+    super.key,
+    required this.group,
+    required super.child,
+  });
+
+  final WheelSettleGroup group;
+
+  static WheelSettleGroup? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<WheelSettleScope>()?.group;
+
+  @override
+  bool updateShouldNotify(WheelSettleScope oldWidget) =>
+      group != oldWidget.group;
+}
+
 /// A scroll-wheel picker (BRIEF decision 18): the chosen value centred on a
 /// tonal band, its neighbours fading and shrinking above and below, as in the
 /// iOS time picker. It snaps to a value, ticks under the finger, and reports
@@ -81,6 +121,11 @@ class WheelPickerState<T> extends State<WheelPicker<T>> {
   /// A finger (or its fling) is moving the wheel: those ticks buzz.
   bool _userDriven = false;
 
+  WheelSettleGroup? _group;
+
+  /// Waiting callers; completed when the wheel next comes to rest.
+  final _atRest = <Completer<void>>[];
+
   // Computed once: the token re-runs its spring simulation on every read.
   static final _settle = MeditejoMotion.standardSpatial.duration;
   static final _settleCurve = MeditejoMotion.standardSpatial.curve;
@@ -101,16 +146,22 @@ class WheelPickerState<T> extends State<WheelPicker<T>> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final group = WheelSettleScope.maybeOf(context);
+    if (group == _group) return;
+    _group?._wheels.remove(this);
+    _group = group?.._wheels.add(this);
+  }
+
+  @override
   void didUpdateWidget(WheelPicker<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     final target = _indexOf(widget.value);
     _reported = widget.value;
-    final moving =
-        _controller.hasClients &&
-        _controller.position.isScrollingNotifier.value;
     // The value changed elsewhere (or the options did): follow it, unless the
     // user is in the middle of turning the wheel.
-    if (!moving && target != _selected) {
+    if (!_moving && target != _selected) {
       _selected = target;
       if (_controller.hasClients) _controller.jumpToItem(target);
     }
@@ -118,8 +169,32 @@ class WheelPickerState<T> extends State<WheelPicker<T>> {
 
   @override
   void dispose() {
+    _group?._wheels.remove(this);
+    _releaseWaiters();
     _controller.dispose();
     super.dispose();
+  }
+
+  bool get _moving =>
+      _controller.hasClients && _controller.position.isScrollingNotifier.value;
+
+  /// Completes once the wheel is at rest and has reported where it landed:
+  /// at once when it is already still, else when the motion ends.
+  Future<void> settled() {
+    if (!_moving) {
+      _report(_selected);
+      return Future.value();
+    }
+    final waiting = Completer<void>();
+    _atRest.add(waiting);
+    return waiting.future;
+  }
+
+  void _releaseWaiters() {
+    for (final waiting in _atRest) {
+      if (!waiting.isCompleted) waiting.complete();
+    }
+    _atRest.clear();
   }
 
   void _report(int index) {
@@ -169,6 +244,7 @@ class WheelPickerState<T> extends State<WheelPicker<T>> {
     } else if (n is ScrollEndNotification) {
       _userDriven = false;
       _report(_selected);
+      _releaseWaiters();
     }
     return false;
   }
