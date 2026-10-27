@@ -65,6 +65,9 @@ td code { font-size: 11px; }
 textarea { width: 100%; height: 140px; font: 11px var(--mono); border-radius: 10px; border: 1px solid color-mix(in srgb, var(--text) 15%, transparent); background: var(--surface); color: var(--text); padding: 8px; }
 footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent); color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
 .cell canvas.wide { aspect-ratio: 2 / 1; }
+.strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px 10px; }
+@media (max-width: 600px) { .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.strip .cell, .grid .cell { align-content: start; }
 .bells { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 10px; }
 @media (max-width: 600px) { .bells { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .bells .cell { cursor: pointer; }
@@ -121,8 +124,11 @@ pre.json { font: 11px/1.4 var(--mono); background: var(--surface); padding: 8px 
   </div>
 
   <section>
-    <div class="shead"><span class="eyebrow">01</span><h2>New grounds: places</h2><p>A window with rain on the glass and the room's light behind it; a balcony railing or a terrace floor against the city; a car's windscreen with drops that bead and slide; a metro window with lights passing; a room with a lamp's warm pool.</p></div>
+    <div class="shead"><span class="eyebrow">01</span><h2>New grounds: places</h2><p>A window with rain on the glass and the room's light behind it; a balcony railing against the city; a terrace's wet tiles seen from above, or the view from under its eave; a car's windscreen with drops that bead and slide; a metro window with lights passing; a room with a lamp's warm pool.</p></div>
     <div class="grid" id="grounds"></div>
+    <h3>Terrace, before and after</h3>
+    <p class="status" style="margin-bottom:8px">The balcony and the first terrace were too close: both a rail or parapet against a skyline. The terrace is now its own ground, looked down on.</p>
+    <div class="strip" id="terrace"></div>
   </section>
 
   <section>
@@ -1307,8 +1313,8 @@ var BellData = {"swell":{"knobs":{"pitch":220.7,"bright":0.03463,"ring":1.228,"s
 /* Round 5 additions, loaded after round 4's grounds.js and prims.js, which
  * stay untouched so every approved card is unchanged.
  *
- *   - grounds for the modern places: window, balcony (or terrace), car,
- *     metro carriage, room;
+ *   - grounds for the modern places: window, balcony, terrace, car, metro
+ *     carriage, room;
  *   - figures for them: lamp, window, cup, porthole, fan, umbrella, railing,
  *     droplets, strap, doorway;
  *   - a bell figure for each bell that ships (PR #34), drawn from the five
@@ -1366,8 +1372,10 @@ var BellData = {"swell":{"knobs":{"pitch":220.7,"bright":0.03463,"ring":1.228,"s
     },
   };
 
-  // A balcony railing or a terrace parapet against a rainy or dusk sky,
-  // with a far skyline; the terrace floor holds puddles.
+  // A balcony railing against a rainy or dusk sky, with a far skyline. Its
+  // "terrace" variant (a parapet over a floor with puddles) was too close to
+  // the balcony; no class uses it now, and the terrace has its own ground
+  // below. It stays so the variant field in frozen params keeps its meaning.
   G.balcony = {
     label: 'balcony or terrace', motion: 'rain falls past the rail; puddles and windows shimmer',
     build: (r, o) => ({ variant: o.variant || r.pick(['balcony', 'terrace']), sky: r.pick(['rain', 'rain', 'dusk']), rail: r.range(0.6, 0.68), bal: r.int(7, 12),
@@ -1392,6 +1400,136 @@ var BellData = {"swell":{"knobs":{"pitch":220.7,"bright":0.03463,"ring":1.228,"s
         ctx.fillStyle = vgrad(ctx, ry + 0.07, H, [[0, mix(c.form, c.deep, 0.55)], [1, mix(c.form, c.deep, 0.35)]]); ctx.fillRect(0, ry + 0.07, 1, H);
         ctx.strokeStyle = css(c.light, 0.12); ctx.lineWidth = 0.003; for (let i = 1; i < 6; i++) { const y = ry + 0.07 + (H - ry - 0.07) * Math.pow(i / 6, 1.4); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1, y); ctx.stroke(); }
         for (const q of p.pud) { ctx.beginPath(); ctx.ellipse(q.x, H * 0.9, q.w, 0.02, 0, 0, TAU); ctx.fillStyle = css(mix(sky[1], c.light, 0.2), still ? 0.45 : 0.35 + 0.15 * S(t, 8, q.ph)); ctx.fill(); }
+      }
+    },
+  };
+
+  // A terrace, its own place (round 5 follow-up; balcony keeps the skyline).
+  // Three ways to be there:
+  //   tiles: looking down on wet stone or terracotta, puddles with rings
+  //          opening in them, a potted plant or two;
+  //   eave:  under the eave, drops running off its edge in a line, a garden
+  //          beyond in the rain;
+  //   court: a walled roof garden at evening, rain on the paving, a lamp's
+  //          warm light in it.
+  const fr = (x) => x - Math.floor(x);
+  const hsh = (n) => fr(Math.sin(n * 127.1 + 311.7) * 43758.5453);
+  function pond(ctx, x, y, R, harm, sq = 1) { // a soft puddle outline
+    ctx.beginPath();
+    for (let i = 0; i <= 48; i++) { const a = (i / 48) * TAU; let r = R; for (const [k, amp, ph] of harm) r += R * amp * Math.sin(k * a + ph); const px = x + Math.cos(a) * r, py = y + Math.sin(a) * r * sq; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+    ctx.closePath();
+  }
+  // Rain rings: each slot opens a ring, fades, and reappears elsewhere in
+  // its puddle while unseen.
+  function rainRings(ctx, q, n, col, t, still, sq = 1, speed = 1) {
+    if (still) return;
+    for (let i = 0; i < n; i++) {
+      const per = 1.6 + hsh(q.seed + i) * 1.4, raw = t * speed / per + hsh(q.seed * 3 + i), cyc = Math.floor(raw), u = raw - cyc;
+      const a = hsh(q.seed + i * 7 + cyc * 13) * TAU, d = Math.sqrt(hsh(q.seed + i * 5 + cyc * 17)) * q.r * 0.65;
+      const x = q.x + Math.cos(a) * d, y = q.y + Math.sin(a) * d * sq, rr0 = q.r * (0.05 + 0.3 * u);
+      ctx.beginPath(); ctx.ellipse(x, y, rr0, rr0 * sq, 0, 0, TAU); stroke(ctx, col, 0.005, 0.9 * Math.pow(1 - u, 1.5));
+      if (u > 0.25) { const r1 = q.r * (0.05 + 0.3 * (u - 0.25)); ctx.beginPath(); ctx.ellipse(x, y, r1, r1 * sq, 0, 0, TAU); stroke(ctx, col, 0.0035, 0.65 * Math.pow(1 - u, 1.5)); }
+    }
+  }
+  function potFromAbove(ctx, x, y, R, leaves, c, t, still, ph) {
+    C.circle(ctx, x + R * 0.12, y + R * 0.14, R * 1.05); fill(ctx, c.deep, 0.3);
+    C.circle(ctx, x, y, R); fill(ctx, mix(c.accent, c.deep, 0.3));
+    C.circle(ctx, x, y, R * 0.82); fill(ctx, mix(c.deep, c.form, 0.15));
+    const sw = still ? 0 : 0.04 * S(t, 7, ph);
+    for (let i = 0; i < leaves; i++) {
+      const a = (i / leaves) * TAU + ph + sw * (i % 2 ? 1 : -1), L = R * (1.15 + 0.35 * hsh(ph * 10 + i));
+      ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+      ctx.beginPath(); ctx.ellipse(L * 0.55, 0, L * 0.55, R * 0.22, 0, 0, TAU); fill(ctx, mix(c.form, c.deep, 0.35 + 0.25 * (i % 2)));
+      ctx.beginPath(); ctx.moveTo(R * 0.1, 0); ctx.lineTo(L * 0.95, 0); stroke(ctx, c.light, 0.002, 0.25);
+      ctx.restore();
+    }
+  }
+  G.terrace = {
+    label: 'terrace', motion: 'rings open in the puddles; drops run off the eave; the garden breathes',
+    build: (r, o) => {
+      const variant = o.variant || r.pick(['tiles', 'eave', 'court']);
+      return {
+        variant, stone: r.chance(0.5), n: r.int(4, 6), ang: r.range(-0.22, 0.22), shade: Array.from({ length: 64 }, () => r.range(-1, 1)),
+        pud: Array.from({ length: r.int(2, 3) }, (_, i) => ({ x: r.range(0.2, 0.8), y: r.range(0.25, 0.85), r: r.range(0.1, 0.17), seed: r.range(1, 99) + i, harm: [[2, r.range(0.06, 0.14), r.range(0, TAU)], [3, r.range(0.04, 0.1), r.range(0, TAU)], [5, r.range(0.02, 0.05), r.range(0, TAU)]] })),
+        pots: Array.from({ length: 2 }, (_, i) => ({ x: i ? r.range(0.74, 0.84) : r.range(0.16, 0.26), y: i ? r.range(0.72, 0.82) : r.range(0.16, 0.26), r: i ? r.range(0.07, 0.09) : r.range(0.1, 0.13), leaves: r.int(7, 11), ph: r.range(0, TAU) })),
+        eave: r.range(0.2, 0.26), drips: r.int(11, 16), dseed: r.range(1, 99), beam: r.chance(0.5),
+        hedge: Array.from({ length: 7 }, () => ({ x: r.next(), w: r.range(0.12, 0.26), h: r.range(0.06, 0.16) })),
+        trees: Array.from({ length: r.int(2, 3) }, () => ({ x: r.range(0.1, 0.9), r: r.range(0.08, 0.14), h: r.range(0.12, 0.22) })),
+        drops: Array.from({ length: 40 }, () => ({ x: r.next(), y: r.next(), l: r.range(0.03, 0.07), v: r.range(0.07, 0.11), a: r.range(0.12, 0.3) })),
+        wall: r.range(0.5, 0.58), lamp: r.range(0.25, 0.75), cypress: r.range(0.1, 0.3), bushes: Array.from({ length: 4 }, () => ({ x: r.next(), r: r.range(0.04, 0.07) })),
+      };
+    },
+    tone: (c, p) => (p.variant === 'tiles' ? (p.stone ? mix(c.tile, c.form, 0.45) : mix(c.accent, c.deep, 0.35)) : p.variant === 'court' ? mix(c.accent, c.form, 0.45) : mix(c.tile, c.form, 0.45)),
+    draw(ctx, p, c, t, still, H) {
+      const ink = mix(c.deep, c.form, 0.1);
+      if (p.variant === 'tiles') {
+        const base = p.stone ? mix(c.tile, c.form, 0.45) : mix(c.accent, c.deep, 0.3), grout = mix(base, c.deep, 0.45), ts = 1 / p.n;
+        ctx.fillStyle = css(grout); ctx.fillRect(0, 0, 1, H);
+        ctx.save(); ctx.translate(0.5, H / 2); ctx.rotate(p.ang); ctx.translate(-0.5, -H / 2);
+        let k = 0;
+        for (let iy = -2; iy < p.n * H + 2; iy++) for (let ix = -2; ix < p.n + 2; ix++) {
+          const v = p.shade[(k++) % p.shade.length], off = !p.stone && iy % 2 ? ts / 2 : 0, x = ix * ts + off, y = iy * ts;
+          rr(ctx, x + 0.004, y + 0.004, ts - 0.008, ts - 0.008, 0.006); ctx.fillStyle = css(mix(base, v > 0 ? c.light : c.deep, Math.abs(v) * 0.12)); ctx.fill();
+        }
+        ctx.restore();
+        // the wet sheen: a slow broad light across the tiles
+        const g = ctx.createLinearGradient(0, 0, 1, H); g.addColorStop(0, css(c.light, 0)); g.addColorStop(0.45 + (still ? 0 : 0.05 * S(t, 12)), css(c.light, 0.12)); g.addColorStop(0.7, css(c.light, 0)); ctx.fillStyle = g; ctx.fillRect(0, 0, 1, H);
+        for (const q of p.pud) {
+          const Q = { ...q, y: q.y * H };
+          pond(ctx, Q.x, Q.y, q.r, q.harm); fill(ctx, mix(base, c.deep, 0.4), 0.55);
+          pond(ctx, Q.x, Q.y, q.r * 0.9, q.harm); fill(ctx, mix(c.tile, c.light, 0.35), 0.4);
+          pond(ctx, Q.x, Q.y, q.r, q.harm); stroke(ctx, mix(base, c.deep, 0.5), 0.004, 0.5);
+          ctx.save(); pond(ctx, Q.x, Q.y, q.r, q.harm); ctx.clip(); rainRings(ctx, Q, 3, c.light, t, still); ctx.restore();
+        }
+        // a few splashes on the open tiles
+        if (!still) for (let i = 0; i < 10; i++) { const raw = t / 0.9 + hsh(i + 3.3), cyc = Math.floor(raw), u = raw - cyc, x = hsh(i * 9 + cyc * 3.7), y = hsh(i * 4 + cyc * 5.1) * H; ctx.beginPath(); ctx.arc(x, y, 0.004 + 0.012 * u, 0, TAU); stroke(ctx, c.light, 0.002, 0.45 * (1 - u)); }
+        for (const q of p.pots) potFromAbove(ctx, q.x, q.y * H, q.r, q.leaves, c, t, still, q.ph);
+      } else if (p.variant === 'eave') {
+        const eY = p.eave * H, floor = H * 0.8, haze = mix(c.tile, c.form, 0.4);
+        ctx.fillStyle = vgrad(ctx, 0, H, [[0, mix(c.tile, c.form, 0.55)], [0.75, haze], [1, haze]]); ctx.fillRect(0, 0, 1, H);
+        for (const tr of p.trees) { const y = H * 0.7; ctx.beginPath(); ctx.moveTo(tr.x, y); ctx.lineTo(tr.x, y - tr.h * H); stroke(ctx, mix(c.form, c.deep, 0.5), 0.008, 0.6); ctx.beginPath(); ctx.ellipse(tr.x, y - tr.h * H * 1.3, tr.r, tr.h * H * 0.7, 0, 0, TAU); fill(ctx, mix(c.form, c.deep, 0.3), 0.6); }
+        for (const h of p.hedge) { ctx.beginPath(); ctx.ellipse(h.x, H * 0.7, h.w, h.h * H, 0, Math.PI, TAU); fill(ctx, mix(c.form, c.deep, 0.4), 0.75); }
+        ctx.fillStyle = css(mix(c.form, c.deep, 0.45)); ctx.fillRect(0, H * 0.7 - 0.002, 1, floor - H * 0.7);
+        ctx.lineCap = 'round';
+        for (const d of p.drops) { const y = eY + ((d.y + (still ? 0 : t * d.v)) % 1) * (floor - eY); ctx.strokeStyle = css(c.light, d.a * 0.8); ctx.lineWidth = 0.002; ctx.beginPath(); ctx.moveTo(d.x, y); ctx.lineTo(d.x - 0.004, y + d.l * H * 0.6); ctx.stroke(); }
+        // the terrace floor, wet, in perspective
+        ctx.fillStyle = vgrad(ctx, floor, H, [[0, mix(c.deep, c.form, 0.35)], [1, mix(c.deep, c.form, 0.15)]]); ctx.fillRect(0, floor, 1, H - floor);
+        for (let i = -6; i <= 6; i++) { ctx.beginPath(); ctx.moveTo(0.5 + i * 0.05, floor); ctx.lineTo(0.5 + i * 0.28, H); stroke(ctx, c.light, 0.002, 0.12); }
+        for (let i = 1; i < 4; i++) { const y = floor + (H - floor) * Math.pow(i / 4, 1.6); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1, y); stroke(ctx, c.light, 0.002, 0.12); }
+        // the eave and its line of drops
+        ctx.fillStyle = css(ink); ctx.fillRect(-0.05, 0, 1.1, eY);
+        if (p.beam) for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.moveTo((i + 0.5) / 6, 0); ctx.lineTo((i + 0.5) / 6, eY - 0.01); stroke(ctx, mix(ink, c.light, 0.12), 0.012); }
+        ctx.fillStyle = css(mix(ink, c.light, 0.2)); ctx.fillRect(-0.05, eY - 0.03, 1.1, 0.03);
+        ctx.beginPath(); ctx.moveTo(-0.05, eY - 0.03); ctx.lineTo(1.05, eY - 0.03); stroke(ctx, c.light, 0.003, 0.35);
+        const kk = { light: c.light, dark: c.deep };
+        for (let i = 0; i < p.drips; i++) {
+          const x = (i + 0.5 + (hsh(p.dseed + i) - 0.5) * 0.5) / p.drips, per = 1.1 + hsh(p.dseed + i * 3) * 1.2, raw = (still ? 0.3 : t / per) + hsh(p.dseed * 2 + i), u = fr(raw);
+          bead(ctx, x, eY + 0.008, 0.005 + 0.006 * Math.min(1, u / 0.6), kk, 1);
+          if (!still && u > 0.6) { const f = (u - 0.6) / 0.4, y = eY + 0.012 + f * f * (floor - eY + 0.06); ctx.beginPath(); ctx.moveTo(x, y - 0.07 * f); ctx.lineTo(x, y); stroke(ctx, c.light, 0.004, 0.85); bead(ctx, x, y, 0.006, kk, 1); }
+          if (!still && u < 0.25) { const f = u / 0.25; ctx.beginPath(); ctx.ellipse(x, floor + 0.06, 0.006 + 0.04 * f, (0.006 + 0.04 * f) * 0.3, 0, 0, TAU); stroke(ctx, c.light, 0.003, 0.7 * (1 - f)); }
+        }
+      } else {
+        const wy = p.wall * H, warm = mix(c.accent, c.light, 0.3);
+        ctx.fillStyle = vgrad(ctx, 0, wy, [[0, mix(c.form, c.deep, 0.35)], [1, mix(c.accent, c.form, 0.4)]]); ctx.fillRect(0, 0, 1, wy);
+        ctx.lineCap = 'round';
+        for (const d of p.drops) { const y = ((d.y + (still ? 0 : t * d.v)) % 1) * H; ctx.strokeStyle = css(c.light, d.a * 0.7); ctx.lineWidth = 0.002; ctx.beginPath(); ctx.moveTo(d.x, y); ctx.lineTo(d.x - 0.006, y + d.l * H * 0.6); ctx.stroke(); }
+        // a cypress and shrubs behind the low wall
+        ctx.beginPath(); ctx.ellipse(p.cypress, wy - 0.2, 0.045, 0.24, 0, 0, TAU); fill(ctx, mix(c.form, c.deep, 0.55));
+        for (const b of p.bushes) { C.circle(ctx, b.x, wy - b.r * 0.4, b.r); fill(ctx, mix(c.form, c.deep, 0.45)); }
+        // the low wall with its coping, and a lamp on it
+        ctx.fillStyle = css(mix(c.deep, c.accent, 0.2)); ctx.fillRect(0, wy, 1, 0.12);
+        ctx.fillStyle = css(mix(c.deep, c.light, 0.18)); ctx.fillRect(0, wy - 0.012, 1, 0.014);
+        const lx = p.lamp, br = still ? 1 : 0.9 + 0.1 * BR(t, false);
+        glow(ctx, lx, wy - 0.035, 0.22 * br, warm, 0.45);
+        rr(ctx, lx - 0.016, wy - 0.06, 0.032, 0.048, 0.006); fill(ctx, warm, 0.95);
+        // wet paving with the lamp's reflection
+        const fy = wy + 0.12;
+        ctx.fillStyle = vgrad(ctx, fy, H, [[0, mix(c.deep, c.form, 0.3)], [1, mix(c.deep, c.accent, 0.12)]]); ctx.fillRect(0, fy, 1, H - fy);
+        for (let i = 1; i < 5; i++) { const y = fy + (H - fy) * Math.pow(i / 5, 1.5); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1, y); stroke(ctx, c.light, 0.002, 0.1); }
+        for (let i = -5; i <= 5; i++) { ctx.beginPath(); ctx.moveTo(0.5 + i * 0.08, fy); ctx.lineTo(0.5 + i * 0.3, H); stroke(ctx, c.light, 0.002, 0.1); }
+        for (let j = 0; j < 9; j++) { const y = fy + 0.02 + j * (H - fy) / 10, w = 0.02 + 0.006 * j, a = 0.35 * (1 - j / 10) * (still ? 1 : 0.8 + 0.2 * S(t, 2.5, j)); ctx.fillStyle = css(warm, a); ctx.fillRect(lx - w / 2 + (still ? 0 : 0.004 * S(t, 1.7, j * 1.3)), y, w, 0.008); }
+        const Q = { x: 1 - lx * 0.8, y: fy + (H - fy) * 0.55, r: 0.12, seed: p.dseed };
+        rainRings(ctx, Q, 4, c.light, t, still, 0.3);
       }
     },
   };
@@ -1841,7 +1979,7 @@ const Compose = (() => {
   // ---------- the meaning map ----------
   const MAP = {
     // round 5: places, as (ground, figure) pairs
-    terrace: { label: 'Rain on a terrace', pairs: [['balcony:terrace', 'streaks'], ['balcony:terrace', null]], accents: [null] },
+    terrace: { label: 'Rain on a terrace', pairs: [['terrace:tiles', null], ['terrace:tiles', 'droplets'], ['terrace:eave', null], ['terrace:eave', 'streaks']], accents: [null] },
     umbrella: { label: 'Rain on an umbrella', pairs: [['rainfield', 'umbrella'], ['mist', 'umbrella']], accents: [null] },
     window: { label: 'Rain at the window', pairs: [['window', 'droplets'], ['room', 'window']], accents: [null] },
     car: { label: 'Rain on a car roof', pairs: [['car', 'droplets'], ['car', 'streaks']], accents: [null] },
@@ -2181,7 +2319,7 @@ const BellSynth = (() => {
   'use strict';
   const $ = (s, el = document) => el.querySelector(s), $$ = (s, el = document) => [...el.querySelectorAll(s)];
   const PAL = Marks.PAL, reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  const FIRST = {"rain-terrace":7,"rain-umbrella":6,"rain-window":6,"rain-car":2,"rain-indoors":4,"rain-balcony":4,"stream":6,"river":0,"waves":1,"sea":4,"ocean":5,"wind-trees":5,"wind-grass":4,"forest-birds":7,"dawn-chorus":4,"evening-birds":1,"forest-brook":0,"wood-thrush":0,"fire-crackle":7,"fire-stove":0,"room-house":5,"cafe":2,"train":2,"laundry-room":0,"fan":6,"train-yamanote":2,"night-meadow":2,"night-insects":3,"night-frogs":6,"night-shore":0,"noise-white":3,"noise-pink":2,"noise-brown":0,"drone":1,"binaural":5,"starter-rain-forest":3,"starter-night":0,"starter-hearth":2,"starter-shore":2,"starter-stillness":6,"ds-retreat-4496":2,"ds-retreat-1084":6,"ds-retreat-1183":0,"ds-retreat-1308":1,"yt-playlist-PLND1JCRq8VujAHvDA482SXF1cJTQrwlx3":3,"yt-playlist-PLbmYHvGI-YSvnpbh3ppQqcG72lpw4aQdE":1,"ds-talk-60864":3,"bell-swell":{"card":1,"icon":2},"bell-bowl-small":{"card":5,"icon":1},"bell-bowl-medium":{"card":7,"icon":1},"bell-bowl-deep":{"card":3,"icon":0},"bell-temple":{"card":2,"icon":1},"bell-handbell":{"card":3,"icon":0},"bell-chime":{"card":3,"icon":0},"bell-tingsha":{"card":2,"icon":0},"bell-wood-block":{"card":1,"icon":1},"bell-wooden-fish":{"card":0,"icon":1},"bell-gong":{"card":0,"icon":0}};
+  const FIRST = {"rain-terrace":6,"rain-umbrella":6,"rain-window":6,"rain-car":2,"rain-indoors":4,"rain-balcony":4,"stream":6,"river":0,"waves":1,"sea":4,"ocean":5,"wind-trees":5,"wind-grass":4,"forest-birds":7,"dawn-chorus":4,"evening-birds":1,"forest-brook":0,"wood-thrush":0,"fire-crackle":7,"fire-stove":0,"room-house":5,"cafe":2,"train":2,"laundry-room":0,"fan":6,"train-yamanote":2,"night-meadow":2,"night-insects":3,"night-frogs":6,"night-shore":0,"noise-white":3,"noise-pink":2,"noise-brown":0,"drone":1,"binaural":5,"starter-rain-forest":3,"starter-night":0,"starter-hearth":2,"starter-shore":2,"starter-stillness":6,"ds-retreat-4496":2,"ds-retreat-1084":6,"ds-retreat-1183":0,"ds-retreat-1308":1,"yt-playlist-PLND1JCRq8VujAHvDA482SXF1cJTQrwlx3":3,"yt-playlist-PLbmYHvGI-YSvnpbh3ppQqcG72lpw4aQdE":1,"ds-talk-60864":3,"bell-swell":{"card":1,"icon":2},"bell-bowl-small":{"card":5,"icon":1},"bell-bowl-medium":{"card":7,"icon":1},"bell-bowl-deep":{"card":3,"icon":0},"bell-temple":{"card":2,"icon":1},"bell-handbell":{"card":3,"icon":0},"bell-chime":{"card":3,"icon":0},"bell-tingsha":{"card":2,"icon":0},"bell-wood-block":{"card":1,"icon":1},"bell-wooden-fish":{"card":0,"icon":1},"bell-gong":{"card":0,"icon":0}};
   const RECURATED = ["rain-terrace","rain-umbrella","rain-window","rain-car","rain-indoors","rain-balcony","cafe","room-house","laundry-room","fan","train","train-yamanote","noise-white","noise-pink","noise-brown"];
   const T0 = +new URLSearchParams(location.search).get('t') || 0;
   const BELLS = Prims.bell.SHIPPED;
@@ -2240,8 +2378,8 @@ const BellSynth = (() => {
 
   // ---------- 01 grounds, 02 figures ----------
   const bare = (seed) => { const c = Compose.build('single', seed); c.figure = null; c.accent = null; return c; };
-  const NEWG = [['window', {}], ['balcony', { variant: 'balcony' }], ['balcony', { variant: 'terrace' }], ['car', {}], ['metro', {}], ['room', {}]];
-  $('#grounds').innerHTML = NEWG.map(([k, o]) => `<figure class="cell"><canvas></canvas><figcaption><b>${o.variant || Grounds[k].label}</b><br><small>${Grounds[k].motion}</small></figcaption></figure>`).join('');
+  const NEWG = [['window', {}], ['balcony', { variant: 'balcony' }], ['terrace', { variant: 'tiles' }], ['terrace', { variant: 'eave' }], ['car', {}], ['metro', {}], ['room', {}]];
+  $('#grounds').innerHTML = NEWG.map(([k, o]) => `<figure class="cell"><canvas></canvas><figcaption><b>${k === 'terrace' ? 'terrace, ' + o.variant : o.variant || Grounds[k].label}</b><br><small>${Grounds[k].motion}</small></figcaption></figure>`).join('');
   $$('#grounds canvas').forEach((cv, i) => { const [k, o] = NEWG[i], c = bare('g:' + k + i); c.ground = { name: k, p: Grounds[k].build(Core.makeRng('ground5:' + k + i), o) }; view(cv, card(c)); });
   const NEWF = ['lamp', 'window', 'cup', 'porthole', 'fan', 'umbrella', 'railing', 'droplets', 'strap', 'doorway'];
   const FLAY = { cup: 'low', railing: 'low', strap: 'high' };
@@ -2255,6 +2393,23 @@ const BellSynth = (() => {
   const bellCard = (b) => () => candsOf({ id: b.id, kind: 'bell' })[(state.picks[b.id] || {}).card ?? 0];
   const bellIcon = (b) => () => candsOf({ id: b.id, kind: 'bellicon' })[(state.picks[b.id] || {}).icon ?? 0];
   const byId = (id) => Shipped.all.find((x) => x.id === id);
+
+  // ---------- terrace, before and after ----------
+  // Before: the first round 5 pick, thawed from its frozen entry. After: the
+  // current pick. Then the three terrace ideas that were tried.
+  const TERRACE_BEFORE = {"title":"Rain on a terrace","kind":"sound","pick":7,"seed":"rain-terrace#7","cls":"terrace","ground":{"name":"balcony","params":{"variant":"terrace","sky":"dusk","rail":0.6166,"bal":9,"city":[{"w":0.0859,"h":0.2064,"lit":[[0.3134,0.2156,0.3009],[0.5317,0.3016,5.2344],[0.8069,0.6727,4.9665],[0.7257,0.6677,4.1933]]},{"w":0.0506,"h":0.123,"lit":[[0.1213,0.9359,0.3169],[0.3795,0.7517,0.4628],[0.4409,0.4637,1.1599],[0.6838,0.1293,0.8492]]},{"w":0.0518,"h":0.1487,"lit":[[0.5218,0.7563,1.1328],[0.1245,0.4902,0.1764],[0.5366,0.4031,0.7447],[0.1803,0.5624,1.4347]]},{"w":0.0656,"h":0.1629,"lit":[[0.1694,0.0463,1.9437],[0.1649,0.2091,5.9192],[0.4041,0.8014,4.4521],[0.9385,0.533,3.125]]},{"w":0.1118,"h":0.2081,"lit":[[0.3046,0.4479,0.4395],[0.7765,0.8827,2.7928],[0.6868,0.5292,5.9541],[0.8531,0.01,1.9268]]},{"w":0.0547,"h":0.2016,"lit":[[0.4035,0.2601,3.6058],[0.876,0.9104,6.121],[0.7383,0.8329,0.5107],[0.5164,0.7699,4.2152]]},{"w":0.0543,"h":0.2034,"lit":[[0.9584,0.0319,1.802],[0.2355,0.2899,2.0097],[0.2756,0.7194,3.4014],[0.6847,0.0617,4.7259]]},{"w":0.0668,"h":0.1864,"lit":[[0.8454,0.1154,3.1291],[0.0789,0.1961,2.7547],[0.75,0.9479,1.8161],[0.22,0.0118,2.3949]]},{"w":0.0601,"h":0.0974,"lit":[[0.1159,0.4003,4.5528],[0.2244,0.5811,2.656],[0.9845,0.1687,2.1622],[0.8675,0.1303,2.5326]]},{"w":0.105,"h":0.0985,"lit":[[0.434,0.7322,5.1358],[0.1309,0.1957,5.9065],[0.3229,0.9689,4.2714],[0.4438,0.5279,3.2102]]},{"w":0.0956,"h":0.2187,"lit":[[0.571,0.3418,1.7653],[0.8477,0.5957,6.0884],[0.7391,0.0059,4.0267],[0.2933,0.6808,2.3501]]},{"w":0.0641,"h":0.207,"lit":[[0.4379,0.7476,4.0221],[0.0566,0.1006,3.8978],[0.6368,0.2677,2.0238],[0.2671,0.5788,2.4087]]},{"w":0.0802,"h":0.199,"lit":[[0.2483,0.5129,2.8812],[0.9466,0.6636,2.0919],[0.4875,0.8755,0.9905],[0.8128,0.5835,5.9378]]}],"drops":[{"x":0.759,"y":0.3185,"l":0.0705,"v":0.0671,"a":0.1605},{"x":0.3514,"y":0.0008,"l":0.0709,"v":0.0822,"a":0.367},{"x":0.5417,"y":0.7666,"l":0.0426,"v":0.0977,"a":0.2827},{"x":0.76,"y":0.4219,"l":0.0683,"v":0.0824,"a":0.2965},{"x":0.0312,"y":0.6366,"l":0.0804,"v":0.0885,"a":0.1796},{"x":0.0619,"y":0.406,"l":0.0719,"v":0.0996,"a":0.2477},{"x":0.345,"y":0.0302,"l":0.0821,"v":0.0973,"a":0.3143},{"x":0.0066,"y":0.62,"l":0.0787,"v":0.0892,"a":0.1653},{"x":-0.0569,"y":0.2146,"l":0.0467,"v":0.0942,"a":0.2804},{"x":0.2568,"y":0.6142,"l":0.0668,"v":0.0777,"a":0.2929},{"x":0.0323,"y":0.6533,"l":0.0677,"v":0.0918,"a":0.2281},{"x":-0.0087,"y":0.2387,"l":0.0742,"v":0.0683,"a":0.3238},{"x":0.3141,"y":0.0812,"l":0.0588,"v":0.0742,"a":0.2128},{"x":0.881,"y":0.7278,"l":0.0614,"v":0.0757,"a":0.2099},{"x":0.1042,"y":0.1976,"l":0.0665,"v":0.0974,"a":0.3166},{"x":0.8487,"y":0.5608,"l":0.0424,"v":0.0723,"a":0.3455},{"x":0.742,"y":0.7927,"l":0.083,"v":0.0823,"a":0.1885},{"x":0.5852,"y":0.5143,"l":0.0455,"v":0.0787,"a":0.1696},{"x":0.5871,"y":0.0134,"l":0.0801,"v":0.092,"a":0.2798},{"x":0.2336,"y":0.9879,"l":0.0425,"v":0.0971,"a":0.1805},{"x":0.6456,"y":0.8767,"l":0.0451,"v":0.0781,"a":0.2522},{"x":0.1835,"y":0.0082,"l":0.0783,"v":0.0612,"a":0.2745},{"x":0.9265,"y":0.6632,"l":0.0863,"v":0.0833,"a":0.3296},{"x":1.0025,"y":0.9886,"l":0.0853,"v":0.0837,"a":0.1779},{"x":0.6035,"y":0.5983,"l":0.069,"v":0.07,"a":0.3936},{"x":1.0905,"y":0.9126,"l":0.0832,"v":0.0857,"a":0.2679},{"x":0.7392,"y":0.0911,"l":0.0808,"v":0.0608,"a":0.341},{"x":0.2818,"y":0.1223,"l":0.067,"v":0.0694,"a":0.2039},{"x":0.4588,"y":0.9554,"l":0.0876,"v":0.0986,"a":0.3818},{"x":0.792,"y":0.211,"l":0.0494,"v":0.0919,"a":0.1667},{"x":0.2685,"y":0.1098,"l":0.0508,"v":0.0974,"a":0.2414},{"x":0.6695,"y":0.8553,"l":0.0899,"v":0.0919,"a":0.3273},{"x":0.8394,"y":0.8972,"l":0.0725,"v":0.0745,"a":0.3921},{"x":0.1435,"y":0.0628,"l":0.0467,"v":0.0991,"a":0.3376},{"x":0.1883,"y":0.5169,"l":0.0712,"v":0.0765,"a":0.1557},{"x":0.326,"y":0.152,"l":0.0882,"v":0.0845,"a":0.3567},{"x":1.0881,"y":0.5701,"l":0.075,"v":0.0694,"a":0.267},{"x":0.3156,"y":0.2423,"l":0.0521,"v":0.0978,"a":0.2893},{"x":0.5826,"y":0.14,"l":0.0486,"v":0.0985,"a":0.3234},{"x":0.048,"y":0.6221,"l":0.0863,"v":0.064,"a":0.1726},{"x":-0.0238,"y":0.5501,"l":0.0891,"v":0.0953,"a":0.1877},{"x":0.8682,"y":0.2563,"l":0.0621,"v":0.0629,"a":0.2592},{"x":0.3949,"y":0.2304,"l":0.0739,"v":0.0805,"a":0.3305},{"x":0.4558,"y":0.3588,"l":0.0893,"v":0.0615,"a":0.2001},{"x":0.6866,"y":0.8554,"l":0.0465,"v":0.0998,"a":0.3174}],"pud":[{"x":0.6856,"w":0.1687,"ph":1.3568},{"x":0.5727,"w":0.236,"ph":4.3728},{"x":0.729,"w":0.148,"ph":4.5435}]}},"figure":{"name":"streaks","kind":null,"layout":"centre","params":{"cx":0.5,"cy":0.48,"s":0.3,"slant":-0.1861,"drops":[{"x":0.9302,"y":0.7855,"l":0.0844,"v":0.085,"a":0.4771},{"x":0.7773,"y":0.6081,"l":0.0539,"v":0.0787,"a":0.7049},{"x":0.1395,"y":0.0555,"l":0.0792,"v":0.0896,"a":0.5041},{"x":0.1655,"y":0.7173,"l":0.0819,"v":0.078,"a":0.4561},{"x":0.3912,"y":0.7745,"l":0.0735,"v":0.106,"a":0.4931},{"x":0.3773,"y":0.7453,"l":0.063,"v":0.0923,"a":0.4658},{"x":0.229,"y":0.0428,"l":0.0606,"v":0.0908,"a":0.7456},{"x":0.4224,"y":0.4257,"l":0.0955,"v":0.1142,"a":0.4617},{"x":0.4421,"y":0.0691,"l":0.085,"v":0.1178,"a":0.8727},{"x":0.1413,"y":0.5641,"l":0.1078,"v":0.1133,"a":0.5334},{"x":0.1886,"y":0.5956,"l":0.0821,"v":0.0849,"a":0.8327},{"x":0.6985,"y":0.5087,"l":0.0619,"v":0.0931,"a":0.6606},{"x":0.4784,"y":0.7945,"l":0.0807,"v":0.1067,"a":0.6918},{"x":0.5987,"y":0.3814,"l":0.0763,"v":0.079,"a":0.7882},{"x":0.6094,"y":0.7101,"l":0.0554,"v":0.1082,"a":0.9926},{"x":0.3919,"y":0.8109,"l":0.0993,"v":0.114,"a":0.9587},{"x":0.9131,"y":0.0656,"l":0.0954,"v":0.0763,"a":0.5248},{"x":0.105,"y":0.978,"l":0.0665,"v":0.0992,"a":0.8926},{"x":0.3652,"y":0.2735,"l":0.0779,"v":0.1085,"a":0.4862},{"x":0.2652,"y":0.0699,"l":0.0911,"v":0.1092,"a":0.7878},{"x":0.8201,"y":0.658,"l":0.0674,"v":0.0905,"a":0.6381},{"x":0.4476,"y":0.3074,"l":0.089,"v":0.1136,"a":0.8463},{"x":0.7725,"y":0.2268,"l":0.0989,"v":0.09,"a":0.8253},{"x":0.7691,"y":0.026,"l":0.0859,"v":0.0913,"a":0.7525},{"x":0.6597,"y":0.5398,"l":0.088,"v":0.0806,"a":0.4968},{"x":0.2536,"y":0.9096,"l":0.0797,"v":0.1065,"a":0.8275},{"x":0.9495,"y":0.9812,"l":0.106,"v":0.0725,"a":0.8078},{"x":0.2032,"y":0.6555,"l":0.0568,"v":0.0969,"a":0.5138},{"x":0.1472,"y":0.2509,"l":0.1039,"v":0.0992,"a":0.8201},{"x":0.3118,"y":0.7618,"l":0.0993,"v":0.0824,"a":0.6762},{"x":0.6565,"y":0.5416,"l":0.0859,"v":0.1071,"a":0.9453},{"x":0.9041,"y":0.0542,"l":0.1057,"v":0.1015,"a":0.7835}]}},"accent":null,"misregister":[-0.0024,0.0055],"inkSeed":"rain-terrace#7:ink"};
+  const thaw = (e) => ({ cls: e.cls, seed: e.seed, ground: { name: e.ground.name, p: e.ground.params }, figure: e.figure && { name: e.figure.name, kind: e.figure.kind, layout: e.figure.layout, p: e.figure.params }, accent: e.accent && { name: e.accent.name, kind: e.accent.kind, p: e.accent.params }, inkSeed: e.inkSeed, mis: e.misregister });
+  const terraceOnly = (variant) => { const c = bare('terrace:' + variant); c.ground = { name: 'terrace', p: Grounds.terrace.build(Core.makeRng('terrace-idea:' + variant), { variant }) }; return c; };
+  const STRIP = [
+    ['Before', 'the first round 5 pick: a parapet against the city, too close to the balcony', () => thaw(TERRACE_BEFORE), { scrim: true }],
+    ['After', 'looking down on wet tiles: puddles with rings opening, two potted plants', () => picked(byId('rain-terrace')), { scrim: true }],
+    ['Tried: tiles', 'the idea that won', () => terraceOnly('tiles'), {}],
+    ['Tried: under the eave', 'drops run off its edge in a line, a garden beyond; kept as a candidate', () => terraceOnly('eave'), {}],
+    ['Tried: courtyard', 'a low wall and a lamp at evening; dropped, its sky and wall still read as the balcony', () => terraceOnly('court'), {}],
+  ];
+  $('#terrace').innerHTML = STRIP.map(([h, d]) => `<figure class="cell"><canvas></canvas><figcaption><b>${h}</b><br><small>${d}</small></figcaption></figure>`).join('');
+  $$('#terrace canvas').forEach((cv, i) => { const [, , comp, o] = STRIP[i]; view(cv, card(comp, o)); });
+
 
   // ---------- 03 noise ----------
   const NOISE = ['noise-white', 'noise-pink', 'noise-brown'].map(byId);

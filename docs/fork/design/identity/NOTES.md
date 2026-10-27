@@ -236,9 +236,10 @@ Round 5 lives in `round5/`; `node round5/build.mjs` builds `identity-round5.html
 
 ### New grounds and figures
 
-- **Grounds (5):**
+- **Grounds (6):**
   - window (rain beads and trickles on the glass, with the room's light behind);
-  - balcony, with a `balcony` or `terrace` variant (a railing, or a tiled floor with puddles, against the city in rain or at dusk);
+  - balcony (a railing against the city, in rain or at dusk);
+  - terrace, its own place, in two variants: `tiles` (looking down on wet stone or terracotta, puddles with rain rings opening and closing, one or two potted plants with leaves stirring) and `eave` (under the eave, drops beading and running off its edge in a line onto the wet floor, a garden beyond in the rain);
   - car (the windscreen's curve, with drops beading and sliding);
   - metro (a window band with lights streaming past, and a pole; the carriage sways);
   - room (a wall, a floor and a lamp's warm pool).
@@ -301,7 +302,7 @@ Round 5's place classes list (ground, figure) pairs, because a place only reads 
 
 | Class | Ships as | Ground + figure pairs |
 |---|---|---|
-| Rain on a terrace | Rain on a terrace | balcony:terrace + streaks; balcony:terrace alone |
+| Rain on a terrace | Rain on a terrace | terrace:tiles alone; terrace:tiles + droplets; terrace:eave alone; terrace:eave + streaks |
 | Rain on an umbrella | Rain on an umbrella | rain field + umbrella; mist + umbrella |
 | Rain at the window | Rain at the window | window + droplets; room + window |
 | Rain on a car roof | Rain on a car roof | car + droplets; car + streaks |
@@ -332,3 +333,21 @@ All the other rows are as in round 4.
   - The icon is the same painter at 40 dp, in a 12 dp-radius rounded square, rasterised once per palette and redrawn only while it plays.
   - A custom bell (BJS-587) is the same painter fed the user's controls, so its art comes free.
 - **The picker mock** (page section 06) shows the Customize bell list: Off, the eleven bells with their icons, and a "Design your own…" row for BJS-587. Choosing a row strikes its icon once.
+
+### Follow-up: the terrace, reimagined
+
+The first terrace was the balcony ground's `terrace` variant: a parapet against the same skyline, so the two read as one place. The terrace is now its own ground, `terrace`. Three ideas were tried, and all three are shown on the page (section 01, "Terrace, before and after"):
+
+- **tiles, chosen:** looking down on wet tiles. Nothing else in the set is seen from above, which is what sets it apart.
+- **eave, kept as a candidate:** the drip line is a good motion, but the garden beyond is plain.
+- **court, dropped:** a walled roof garden at evening with a lamp. Its sky over a wall still reads as the balcony. The code stays in `places.js` for reference; no class uses it.
+
+"Rain on a terrace" is re-picked to `rain-terrace#6`: terracotta tiles, two puddles and two potted plants, with no extra figure. The balcony ground's own `terrace` variant is no longer used but stays, so the field keeps its meaning in frozen params.
+
+`curate.mjs` now runs two checks:
+
+- every item round 5 doesn't re-curate must match round 4's freeze, as before;
+- every item whose pick is unchanged must match this round's previous `curated_art.json`.
+
+Only "Rain on a terrace" changed. The first pick's frozen entry is kept in `terrace_before.json` for the page's strip.
+

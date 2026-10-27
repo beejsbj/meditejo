@@ -25,6 +25,7 @@ const html = read('page.html')
   .replace('/*@SYNTH@*/', () => read('bellsynth.js'))
   .replace('/*@APP@*/', () => read('app.js'))
   .replace('/*@PICKS@*/{}', () => JSON.stringify(picks))
-  .replace('/*@RECURATED@*/[]', () => JSON.stringify(recurated));
+  .replace('/*@RECURATED@*/[]', () => JSON.stringify(recurated))
+  .replace('/*@TERRACE_BEFORE@*/null', () => JSON.stringify(JSON.parse(read('terrace_before.json'))));
 writeFileSync(join(here, 'identity-round5.html'), html);
 console.log(`identity-round5.html ${(Buffer.byteLength(html) / 1024).toFixed(1)} KB, ${Object.keys(picks).length} curated picks, ${recurated.length} re-curated`);

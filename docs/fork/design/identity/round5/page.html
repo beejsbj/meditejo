@@ -65,6 +65,9 @@ td code { font-size: 11px; }
 textarea { width: 100%; height: 140px; font: 11px var(--mono); border-radius: 10px; border: 1px solid color-mix(in srgb, var(--text) 15%, transparent); background: var(--surface); color: var(--text); padding: 8px; }
 footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent); color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
 .cell canvas.wide { aspect-ratio: 2 / 1; }
+.strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px 10px; }
+@media (max-width: 600px) { .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.strip .cell, .grid .cell { align-content: start; }
 .bells { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 10px; }
 @media (max-width: 600px) { .bells { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .bells .cell { cursor: pointer; }
@@ -121,8 +124,11 @@ pre.json { font: 11px/1.4 var(--mono); background: var(--surface); padding: 8px 
   </div>
 
   <section>
-    <div class="shead"><span class="eyebrow">01</span><h2>New grounds: places</h2><p>A window with rain on the glass and the room's light behind it; a balcony railing or a terrace floor against the city; a car's windscreen with drops that bead and slide; a metro window with lights passing; a room with a lamp's warm pool.</p></div>
+    <div class="shead"><span class="eyebrow">01</span><h2>New grounds: places</h2><p>A window with rain on the glass and the room's light behind it; a balcony railing against the city; a terrace's wet tiles seen from above, or the view from under its eave; a car's windscreen with drops that bead and slide; a metro window with lights passing; a room with a lamp's warm pool.</p></div>
     <div class="grid" id="grounds"></div>
+    <h3>Terrace, before and after</h3>
+    <p class="status" style="margin-bottom:8px">The balcony and the first terrace were too close: both a rail or parapet against a skyline. The terrace is now its own ground, looked down on.</p>
+    <div class="strip" id="terrace"></div>
   </section>
 
   <section>

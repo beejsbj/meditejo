@@ -4,7 +4,7 @@
 // round 5 does not re-curate must freeze byte-identically to round 4's
 // curated_art.json, and this checks that it does.
 // Run from anywhere: node docs/fork/design/identity/round5/curate.mjs [picks.json]
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
@@ -25,6 +25,13 @@ for (const [id, v] of Object.entries(old)) {
   (JSON.stringify(out.items[id]) === JSON.stringify(v) ? same : moved).push(id);
 }
 if (moved.length) { console.error(`changed from round 4 without being re-curated: ${moved.join(', ')}`); process.exit(1); }
+// And against this round's previous freeze: an item whose pick is unchanged
+// must freeze identically, so a change to one item cannot move another.
+const prevFile = join(here, 'curated_art.json');
+const prev = existsSync(prevFile) ? JSON.parse(readFileSync(prevFile, 'utf8')).items : {};
+const drifted = Object.keys(prev).filter((id) => out.items[id] && JSON.stringify(prev[id].pick) === JSON.stringify(out.items[id].pick) && JSON.stringify(prev[id]) !== JSON.stringify(out.items[id]));
+if (drifted.length) { console.error(`changed from the previous freeze with the same pick: ${drifted.join(', ')}`); process.exit(1); }
+const repicked = Object.keys(prev).filter((id) => out.items[id] && JSON.stringify(prev[id].pick) !== JSON.stringify(out.items[id].pick));
 writeFileSync(join(here, 'curated_art.json'), JSON.stringify(out, null, 1) + '\n');
 const bells = Object.values(out.items).filter((v) => v.kind === 'bell').length;
-console.log(`curated_art.json: ${Object.keys(out.items).length} items (${same.length} identical to round 4, ${RECURATED.length} re-curated, ${bells} bells)`);
+console.log(`curated_art.json: ${Object.keys(out.items).length} items (${same.length} identical to round 4, ${RECURATED.length} re-curated, ${bells} bells)${repicked.length ? `; re-picked since the last freeze: ${repicked.join(', ')}` : ''}`);

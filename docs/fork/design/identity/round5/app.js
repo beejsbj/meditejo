@@ -63,8 +63,8 @@
 
   // ---------- 01 grounds, 02 figures ----------
   const bare = (seed) => { const c = Compose.build('single', seed); c.figure = null; c.accent = null; return c; };
-  const NEWG = [['window', {}], ['balcony', { variant: 'balcony' }], ['balcony', { variant: 'terrace' }], ['car', {}], ['metro', {}], ['room', {}]];
-  $('#grounds').innerHTML = NEWG.map(([k, o]) => `<figure class="cell"><canvas></canvas><figcaption><b>${o.variant || Grounds[k].label}</b><br><small>${Grounds[k].motion}</small></figcaption></figure>`).join('');
+  const NEWG = [['window', {}], ['balcony', { variant: 'balcony' }], ['terrace', { variant: 'tiles' }], ['terrace', { variant: 'eave' }], ['car', {}], ['metro', {}], ['room', {}]];
+  $('#grounds').innerHTML = NEWG.map(([k, o]) => `<figure class="cell"><canvas></canvas><figcaption><b>${k === 'terrace' ? 'terrace, ' + o.variant : o.variant || Grounds[k].label}</b><br><small>${Grounds[k].motion}</small></figcaption></figure>`).join('');
   $$('#grounds canvas').forEach((cv, i) => { const [k, o] = NEWG[i], c = bare('g:' + k + i); c.ground = { name: k, p: Grounds[k].build(Core.makeRng('ground5:' + k + i), o) }; view(cv, card(c)); });
   const NEWF = ['lamp', 'window', 'cup', 'porthole', 'fan', 'umbrella', 'railing', 'droplets', 'strap', 'doorway'];
   const FLAY = { cup: 'low', railing: 'low', strap: 'high' };
@@ -78,6 +78,23 @@
   const bellCard = (b) => () => candsOf({ id: b.id, kind: 'bell' })[(state.picks[b.id] || {}).card ?? 0];
   const bellIcon = (b) => () => candsOf({ id: b.id, kind: 'bellicon' })[(state.picks[b.id] || {}).icon ?? 0];
   const byId = (id) => Shipped.all.find((x) => x.id === id);
+
+  // ---------- terrace, before and after ----------
+  // Before: the first round 5 pick, thawed from its frozen entry. After: the
+  // current pick. Then the three terrace ideas that were tried.
+  const TERRACE_BEFORE = /*@TERRACE_BEFORE@*/null;
+  const thaw = (e) => ({ cls: e.cls, seed: e.seed, ground: { name: e.ground.name, p: e.ground.params }, figure: e.figure && { name: e.figure.name, kind: e.figure.kind, layout: e.figure.layout, p: e.figure.params }, accent: e.accent && { name: e.accent.name, kind: e.accent.kind, p: e.accent.params }, inkSeed: e.inkSeed, mis: e.misregister });
+  const terraceOnly = (variant) => { const c = bare('terrace:' + variant); c.ground = { name: 'terrace', p: Grounds.terrace.build(Core.makeRng('terrace-idea:' + variant), { variant }) }; return c; };
+  const STRIP = [
+    ['Before', 'the first round 5 pick: a parapet against the city, too close to the balcony', () => thaw(TERRACE_BEFORE), { scrim: true }],
+    ['After', 'looking down on wet tiles: puddles with rings opening, two potted plants', () => picked(byId('rain-terrace')), { scrim: true }],
+    ['Tried: tiles', 'the idea that won', () => terraceOnly('tiles'), {}],
+    ['Tried: under the eave', 'drops run off its edge in a line, a garden beyond; kept as a candidate', () => terraceOnly('eave'), {}],
+    ['Tried: courtyard', 'a low wall and a lamp at evening; dropped, its sky and wall still read as the balcony', () => terraceOnly('court'), {}],
+  ];
+  $('#terrace').innerHTML = STRIP.map(([h, d]) => `<figure class="cell"><canvas></canvas><figcaption><b>${h}</b><br><small>${d}</small></figcaption></figure>`).join('');
+  $$('#terrace canvas').forEach((cv, i) => { const [, , comp, o] = STRIP[i]; view(cv, card(comp, o)); });
+
 
   // ---------- 03 noise ----------
   const NOISE = ['noise-white', 'noise-pink', 'noise-brown'].map(byId);

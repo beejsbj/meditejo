@@ -1,8 +1,8 @@
 /* Round 5 additions, loaded after round 4's grounds.js and prims.js, which
  * stay untouched so every approved card is unchanged.
  *
- *   - grounds for the modern places: window, balcony (or terrace), car,
- *     metro carriage, room;
+ *   - grounds for the modern places: window, balcony, terrace, car, metro
+ *     carriage, room;
  *   - figures for them: lamp, window, cup, porthole, fan, umbrella, railing,
  *     droplets, strap, doorway;
  *   - a bell figure for each bell that ships (PR #34), drawn from the five
@@ -60,8 +60,10 @@
     },
   };
 
-  // A balcony railing or a terrace parapet against a rainy or dusk sky,
-  // with a far skyline; the terrace floor holds puddles.
+  // A balcony railing against a rainy or dusk sky, with a far skyline. Its
+  // "terrace" variant (a parapet over a floor with puddles) was too close to
+  // the balcony; no class uses it now, and the terrace has its own ground
+  // below. It stays so the variant field in frozen params keeps its meaning.
   G.balcony = {
     label: 'balcony or terrace', motion: 'rain falls past the rail; puddles and windows shimmer',
     build: (r, o) => ({ variant: o.variant || r.pick(['balcony', 'terrace']), sky: r.pick(['rain', 'rain', 'dusk']), rail: r.range(0.6, 0.68), bal: r.int(7, 12),
@@ -86,6 +88,136 @@
         ctx.fillStyle = vgrad(ctx, ry + 0.07, H, [[0, mix(c.form, c.deep, 0.55)], [1, mix(c.form, c.deep, 0.35)]]); ctx.fillRect(0, ry + 0.07, 1, H);
         ctx.strokeStyle = css(c.light, 0.12); ctx.lineWidth = 0.003; for (let i = 1; i < 6; i++) { const y = ry + 0.07 + (H - ry - 0.07) * Math.pow(i / 6, 1.4); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1, y); ctx.stroke(); }
         for (const q of p.pud) { ctx.beginPath(); ctx.ellipse(q.x, H * 0.9, q.w, 0.02, 0, 0, TAU); ctx.fillStyle = css(mix(sky[1], c.light, 0.2), still ? 0.45 : 0.35 + 0.15 * S(t, 8, q.ph)); ctx.fill(); }
+      }
+    },
+  };
+
+  // A terrace, its own place (round 5 follow-up; balcony keeps the skyline).
+  // Three ways to be there:
+  //   tiles: looking down on wet stone or terracotta, puddles with rings
+  //          opening in them, a potted plant or two;
+  //   eave:  under the eave, drops running off its edge in a line, a garden
+  //          beyond in the rain;
+  //   court: a walled roof garden at evening, rain on the paving, a lamp's
+  //          warm light in it.
+  const fr = (x) => x - Math.floor(x);
+  const hsh = (n) => fr(Math.sin(n * 127.1 + 311.7) * 43758.5453);
+  function pond(ctx, x, y, R, harm, sq = 1) { // a soft puddle outline
+    ctx.beginPath();
+    for (let i = 0; i <= 48; i++) { const a = (i / 48) * TAU; let r = R; for (const [k, amp, ph] of harm) r += R * amp * Math.sin(k * a + ph); const px = x + Math.cos(a) * r, py = y + Math.sin(a) * r * sq; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+    ctx.closePath();
+  }
+  // Rain rings: each slot opens a ring, fades, and reappears elsewhere in
+  // its puddle while unseen.
+  function rainRings(ctx, q, n, col, t, still, sq = 1, speed = 1) {
+    if (still) return;
+    for (let i = 0; i < n; i++) {
+      const per = 1.6 + hsh(q.seed + i) * 1.4, raw = t * speed / per + hsh(q.seed * 3 + i), cyc = Math.floor(raw), u = raw - cyc;
+      const a = hsh(q.seed + i * 7 + cyc * 13) * TAU, d = Math.sqrt(hsh(q.seed + i * 5 + cyc * 17)) * q.r * 0.65;
+      const x = q.x + Math.cos(a) * d, y = q.y + Math.sin(a) * d * sq, rr0 = q.r * (0.05 + 0.3 * u);
+      ctx.beginPath(); ctx.ellipse(x, y, rr0, rr0 * sq, 0, 0, TAU); stroke(ctx, col, 0.005, 0.9 * Math.pow(1 - u, 1.5));
+      if (u > 0.25) { const r1 = q.r * (0.05 + 0.3 * (u - 0.25)); ctx.beginPath(); ctx.ellipse(x, y, r1, r1 * sq, 0, 0, TAU); stroke(ctx, col, 0.0035, 0.65 * Math.pow(1 - u, 1.5)); }
+    }
+  }
+  function potFromAbove(ctx, x, y, R, leaves, c, t, still, ph) {
+    C.circle(ctx, x + R * 0.12, y + R * 0.14, R * 1.05); fill(ctx, c.deep, 0.3);
+    C.circle(ctx, x, y, R); fill(ctx, mix(c.accent, c.deep, 0.3));
+    C.circle(ctx, x, y, R * 0.82); fill(ctx, mix(c.deep, c.form, 0.15));
+    const sw = still ? 0 : 0.04 * S(t, 7, ph);
+    for (let i = 0; i < leaves; i++) {
+      const a = (i / leaves) * TAU + ph + sw * (i % 2 ? 1 : -1), L = R * (1.15 + 0.35 * hsh(ph * 10 + i));
+      ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+      ctx.beginPath(); ctx.ellipse(L * 0.55, 0, L * 0.55, R * 0.22, 0, 0, TAU); fill(ctx, mix(c.form, c.deep, 0.35 + 0.25 * (i % 2)));
+      ctx.beginPath(); ctx.moveTo(R * 0.1, 0); ctx.lineTo(L * 0.95, 0); stroke(ctx, c.light, 0.002, 0.25);
+      ctx.restore();
+    }
+  }
+  G.terrace = {
+    label: 'terrace', motion: 'rings open in the puddles; drops run off the eave; the garden breathes',
+    build: (r, o) => {
+      const variant = o.variant || r.pick(['tiles', 'eave', 'court']);
+      return {
+        variant, stone: r.chance(0.5), n: r.int(4, 6), ang: r.range(-0.22, 0.22), shade: Array.from({ length: 64 }, () => r.range(-1, 1)),
+        pud: Array.from({ length: r.int(2, 3) }, (_, i) => ({ x: r.range(0.2, 0.8), y: r.range(0.25, 0.85), r: r.range(0.1, 0.17), seed: r.range(1, 99) + i, harm: [[2, r.range(0.06, 0.14), r.range(0, TAU)], [3, r.range(0.04, 0.1), r.range(0, TAU)], [5, r.range(0.02, 0.05), r.range(0, TAU)]] })),
+        pots: Array.from({ length: 2 }, (_, i) => ({ x: i ? r.range(0.74, 0.84) : r.range(0.16, 0.26), y: i ? r.range(0.72, 0.82) : r.range(0.16, 0.26), r: i ? r.range(0.07, 0.09) : r.range(0.1, 0.13), leaves: r.int(7, 11), ph: r.range(0, TAU) })),
+        eave: r.range(0.2, 0.26), drips: r.int(11, 16), dseed: r.range(1, 99), beam: r.chance(0.5),
+        hedge: Array.from({ length: 7 }, () => ({ x: r.next(), w: r.range(0.12, 0.26), h: r.range(0.06, 0.16) })),
+        trees: Array.from({ length: r.int(2, 3) }, () => ({ x: r.range(0.1, 0.9), r: r.range(0.08, 0.14), h: r.range(0.12, 0.22) })),
+        drops: Array.from({ length: 40 }, () => ({ x: r.next(), y: r.next(), l: r.range(0.03, 0.07), v: r.range(0.07, 0.11), a: r.range(0.12, 0.3) })),
+        wall: r.range(0.5, 0.58), lamp: r.range(0.25, 0.75), cypress: r.range(0.1, 0.3), bushes: Array.from({ length: 4 }, () => ({ x: r.next(), r: r.range(0.04, 0.07) })),
+      };
+    },
+    tone: (c, p) => (p.variant === 'tiles' ? (p.stone ? mix(c.tile, c.form, 0.45) : mix(c.accent, c.deep, 0.35)) : p.variant === 'court' ? mix(c.accent, c.form, 0.45) : mix(c.tile, c.form, 0.45)),
+    draw(ctx, p, c, t, still, H) {
+      const ink = mix(c.deep, c.form, 0.1);
+      if (p.variant === 'tiles') {
+        const base = p.stone ? mix(c.tile, c.form, 0.45) : mix(c.accent, c.deep, 0.3), grout = mix(base, c.deep, 0.45), ts = 1 / p.n;
+        ctx.fillStyle = css(grout); ctx.fillRect(0, 0, 1, H);
+        ctx.save(); ctx.translate(0.5, H / 2); ctx.rotate(p.ang); ctx.translate(-0.5, -H / 2);
+        let k = 0;
+        for (let iy = -2; iy < p.n * H + 2; iy++) for (let ix = -2; ix < p.n + 2; ix++) {
+          const v = p.shade[(k++) % p.shade.length], off = !p.stone && iy % 2 ? ts / 2 : 0, x = ix * ts + off, y = iy * ts;
+          rr(ctx, x + 0.004, y + 0.004, ts - 0.008, ts - 0.008, 0.006); ctx.fillStyle = css(mix(base, v > 0 ? c.light : c.deep, Math.abs(v) * 0.12)); ctx.fill();
+        }
+        ctx.restore();
+        // the wet sheen: a slow broad light across the tiles
+        const g = ctx.createLinearGradient(0, 0, 1, H); g.addColorStop(0, css(c.light, 0)); g.addColorStop(0.45 + (still ? 0 : 0.05 * S(t, 12)), css(c.light, 0.12)); g.addColorStop(0.7, css(c.light, 0)); ctx.fillStyle = g; ctx.fillRect(0, 0, 1, H);
+        for (const q of p.pud) {
+          const Q = { ...q, y: q.y * H };
+          pond(ctx, Q.x, Q.y, q.r, q.harm); fill(ctx, mix(base, c.deep, 0.4), 0.55);
+          pond(ctx, Q.x, Q.y, q.r * 0.9, q.harm); fill(ctx, mix(c.tile, c.light, 0.35), 0.4);
+          pond(ctx, Q.x, Q.y, q.r, q.harm); stroke(ctx, mix(base, c.deep, 0.5), 0.004, 0.5);
+          ctx.save(); pond(ctx, Q.x, Q.y, q.r, q.harm); ctx.clip(); rainRings(ctx, Q, 3, c.light, t, still); ctx.restore();
+        }
+        // a few splashes on the open tiles
+        if (!still) for (let i = 0; i < 10; i++) { const raw = t / 0.9 + hsh(i + 3.3), cyc = Math.floor(raw), u = raw - cyc, x = hsh(i * 9 + cyc * 3.7), y = hsh(i * 4 + cyc * 5.1) * H; ctx.beginPath(); ctx.arc(x, y, 0.004 + 0.012 * u, 0, TAU); stroke(ctx, c.light, 0.002, 0.45 * (1 - u)); }
+        for (const q of p.pots) potFromAbove(ctx, q.x, q.y * H, q.r, q.leaves, c, t, still, q.ph);
+      } else if (p.variant === 'eave') {
+        const eY = p.eave * H, floor = H * 0.8, haze = mix(c.tile, c.form, 0.4);
+        ctx.fillStyle = vgrad(ctx, 0, H, [[0, mix(c.tile, c.form, 0.55)], [0.75, haze], [1, haze]]); ctx.fillRect(0, 0, 1, H);
+        for (const tr of p.trees) { const y = H * 0.7; ctx.beginPath(); ctx.moveTo(tr.x, y); ctx.lineTo(tr.x, y - tr.h * H); stroke(ctx, mix(c.form, c.deep, 0.5), 0.008, 0.6); ctx.beginPath(); ctx.ellipse(tr.x, y - tr.h * H * 1.3, tr.r, tr.h * H * 0.7, 0, 0, TAU); fill(ctx, mix(c.form, c.deep, 0.3), 0.6); }
+        for (const h of p.hedge) { ctx.beginPath(); ctx.ellipse(h.x, H * 0.7, h.w, h.h * H, 0, Math.PI, TAU); fill(ctx, mix(c.form, c.deep, 0.4), 0.75); }
+        ctx.fillStyle = css(mix(c.form, c.deep, 0.45)); ctx.fillRect(0, H * 0.7 - 0.002, 1, floor - H * 0.7);
+        ctx.lineCap = 'round';
+        for (const d of p.drops) { const y = eY + ((d.y + (still ? 0 : t * d.v)) % 1) * (floor - eY); ctx.strokeStyle = css(c.light, d.a * 0.8); ctx.lineWidth = 0.002; ctx.beginPath(); ctx.moveTo(d.x, y); ctx.lineTo(d.x - 0.004, y + d.l * H * 0.6); ctx.stroke(); }
+        // the terrace floor, wet, in perspective
+        ctx.fillStyle = vgrad(ctx, floor, H, [[0, mix(c.deep, c.form, 0.35)], [1, mix(c.deep, c.form, 0.15)]]); ctx.fillRect(0, floor, 1, H - floor);
+        for (let i = -6; i <= 6; i++) { ctx.beginPath(); ctx.moveTo(0.5 + i * 0.05, floor); ctx.lineTo(0.5 + i * 0.28, H); stroke(ctx, c.light, 0.002, 0.12); }
+        for (let i = 1; i < 4; i++) { const y = floor + (H - floor) * Math.pow(i / 4, 1.6); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1, y); stroke(ctx, c.light, 0.002, 0.12); }
+        // the eave and its line of drops
+        ctx.fillStyle = css(ink); ctx.fillRect(-0.05, 0, 1.1, eY);
+        if (p.beam) for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.moveTo((i + 0.5) / 6, 0); ctx.lineTo((i + 0.5) / 6, eY - 0.01); stroke(ctx, mix(ink, c.light, 0.12), 0.012); }
+        ctx.fillStyle = css(mix(ink, c.light, 0.2)); ctx.fillRect(-0.05, eY - 0.03, 1.1, 0.03);
+        ctx.beginPath(); ctx.moveTo(-0.05, eY - 0.03); ctx.lineTo(1.05, eY - 0.03); stroke(ctx, c.light, 0.003, 0.35);
+        const kk = { light: c.light, dark: c.deep };
+        for (let i = 0; i < p.drips; i++) {
+          const x = (i + 0.5 + (hsh(p.dseed + i) - 0.5) * 0.5) / p.drips, per = 1.1 + hsh(p.dseed + i * 3) * 1.2, raw = (still ? 0.3 : t / per) + hsh(p.dseed * 2 + i), u = fr(raw);
+          bead(ctx, x, eY + 0.008, 0.005 + 0.006 * Math.min(1, u / 0.6), kk, 1);
+          if (!still && u > 0.6) { const f = (u - 0.6) / 0.4, y = eY + 0.012 + f * f * (floor - eY + 0.06); ctx.beginPath(); ctx.moveTo(x, y - 0.07 * f); ctx.lineTo(x, y); stroke(ctx, c.light, 0.004, 0.85); bead(ctx, x, y, 0.006, kk, 1); }
+          if (!still && u < 0.25) { const f = u / 0.25; ctx.beginPath(); ctx.ellipse(x, floor + 0.06, 0.006 + 0.04 * f, (0.006 + 0.04 * f) * 0.3, 0, 0, TAU); stroke(ctx, c.light, 0.003, 0.7 * (1 - f)); }
+        }
+      } else {
+        const wy = p.wall * H, warm = mix(c.accent, c.light, 0.3);
+        ctx.fillStyle = vgrad(ctx, 0, wy, [[0, mix(c.form, c.deep, 0.35)], [1, mix(c.accent, c.form, 0.4)]]); ctx.fillRect(0, 0, 1, wy);
+        ctx.lineCap = 'round';
+        for (const d of p.drops) { const y = ((d.y + (still ? 0 : t * d.v)) % 1) * H; ctx.strokeStyle = css(c.light, d.a * 0.7); ctx.lineWidth = 0.002; ctx.beginPath(); ctx.moveTo(d.x, y); ctx.lineTo(d.x - 0.006, y + d.l * H * 0.6); ctx.stroke(); }
+        // a cypress and shrubs behind the low wall
+        ctx.beginPath(); ctx.ellipse(p.cypress, wy - 0.2, 0.045, 0.24, 0, 0, TAU); fill(ctx, mix(c.form, c.deep, 0.55));
+        for (const b of p.bushes) { C.circle(ctx, b.x, wy - b.r * 0.4, b.r); fill(ctx, mix(c.form, c.deep, 0.45)); }
+        // the low wall with its coping, and a lamp on it
+        ctx.fillStyle = css(mix(c.deep, c.accent, 0.2)); ctx.fillRect(0, wy, 1, 0.12);
+        ctx.fillStyle = css(mix(c.deep, c.light, 0.18)); ctx.fillRect(0, wy - 0.012, 1, 0.014);
+        const lx = p.lamp, br = still ? 1 : 0.9 + 0.1 * BR(t, false);
+        glow(ctx, lx, wy - 0.035, 0.22 * br, warm, 0.45);
+        rr(ctx, lx - 0.016, wy - 0.06, 0.032, 0.048, 0.006); fill(ctx, warm, 0.95);
+        // wet paving with the lamp's reflection
+        const fy = wy + 0.12;
+        ctx.fillStyle = vgrad(ctx, fy, H, [[0, mix(c.deep, c.form, 0.3)], [1, mix(c.deep, c.accent, 0.12)]]); ctx.fillRect(0, fy, 1, H - fy);
+        for (let i = 1; i < 5; i++) { const y = fy + (H - fy) * Math.pow(i / 5, 1.5); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1, y); stroke(ctx, c.light, 0.002, 0.1); }
+        for (let i = -5; i <= 5; i++) { ctx.beginPath(); ctx.moveTo(0.5 + i * 0.08, fy); ctx.lineTo(0.5 + i * 0.3, H); stroke(ctx, c.light, 0.002, 0.1); }
+        for (let j = 0; j < 9; j++) { const y = fy + 0.02 + j * (H - fy) / 10, w = 0.02 + 0.006 * j, a = 0.35 * (1 - j / 10) * (still ? 1 : 0.8 + 0.2 * S(t, 2.5, j)); ctx.fillStyle = css(warm, a); ctx.fillRect(lx - w / 2 + (still ? 0 : 0.004 * S(t, 1.7, j * 1.3)), y, w, 0.008); }
+        const Q = { x: 1 - lx * 0.8, y: fy + (H - fy) * 0.55, r: 0.12, seed: p.dseed };
+        rainRings(ctx, Q, 4, c.light, t, still, 0.3);
       }
     },
   };

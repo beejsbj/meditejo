@@ -17,7 +17,7 @@ const Compose = (() => {
   // ---------- the meaning map ----------
   const MAP = {
     // round 5: places, as (ground, figure) pairs
-    terrace: { label: 'Rain on a terrace', pairs: [['balcony:terrace', 'streaks'], ['balcony:terrace', null]], accents: [null] },
+    terrace: { label: 'Rain on a terrace', pairs: [['terrace:tiles', null], ['terrace:tiles', 'droplets'], ['terrace:eave', null], ['terrace:eave', 'streaks']], accents: [null] },
     umbrella: { label: 'Rain on an umbrella', pairs: [['rainfield', 'umbrella'], ['mist', 'umbrella']], accents: [null] },
     window: { label: 'Rain at the window', pairs: [['window', 'droplets'], ['room', 'window']], accents: [null] },
     car: { label: 'Rain on a car roof', pairs: [['car', 'droplets'], ['car', 'streaks']], accents: [null] },
