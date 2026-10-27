@@ -49,6 +49,8 @@ class SoundGridMetrics {
 /// foot, so this reads on light and dark grounds alike.
 const _onArt = Colors.white;
 
+Color _scrim(double alpha) => Colors.black.withValues(alpha: alpha);
+
 /// A card drawn on generated art that dips under the finger (Expressive's
 /// fast spatial spring) and outlines itself when [selected]. [live] lets
 /// the art move (it still stops off screen and under reduced motion).
@@ -68,9 +70,13 @@ class SoundArtSurface extends StatefulWidget {
     this.enabled = true,
     this.radius = kSoundCardRadius,
     this.action,
+    this.topScrim = false,
   });
 
   final ArtSubject art;
+
+  /// Darkens the top too, for text set at the top of the art.
+  final bool topScrim;
   final bool live;
   final String semanticsLabel;
   final VoidCallback onTap;
@@ -115,11 +121,17 @@ class _SoundArtSurfaceState extends State<SoundArtSurface> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    stops: const [0.4, 1],
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.5),
-                    ],
+                    stops: widget.topScrim
+                        ? const [0, 0.45, 0.6, 1]
+                        : const [0.4, 1],
+                    colors: widget.topScrim
+                        ? [
+                            _scrim(0.42),
+                            Colors.transparent,
+                            Colors.transparent,
+                            _scrim(0.5),
+                          ]
+                        : [Colors.transparent, _scrim(0.5)],
                   ),
                 ),
               ),
@@ -341,11 +353,6 @@ class PresetCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final still = MediaQuery.disableAnimationsOf(context);
     const swap = MeditejoMotion.expressiveFastSpatial;
-    const shown = 3;
-    final chips = [
-      ...layerTitles.take(shown),
-      if (layerTitles.length > shown) '+${layerTitles.length - shown}',
-    ];
     final radius = BorderRadius.circular(kPresetCardRadius);
     Widget print(double inset, double drop, Color color) => Positioned(
       left: inset,
@@ -359,6 +366,7 @@ class PresetCard extends StatelessWidget {
     final card = SoundArtSurface(
       art: ArtSubject.layers(presetId, layers),
       live: playing,
+      topScrim: true,
       radius: kPresetCardRadius,
       semanticsLabel: playing
           ? '${l10n.soundsPlayPreset(label)}, ${l10n.soundsPresetPlaying}'
@@ -404,38 +412,28 @@ class PresetCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                // One line of chips: each gives way (ellipsis) before the
-                // row would wrap.
+                // As many whole chips as fit on one line, then "+n".
                 Expanded(
-                  child: Row(
-                    children: [
-                      for (final chip in chips)
-                        Flexible(
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 4),
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.28),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 3,
-                                ),
-                                child: Text(
-                                  chip,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: type.baseline.labelSmall?.copyWith(
-                                    color: _onArt,
-                                  ),
-                                ),
-                              ),
+                  child: LayoutBuilder(
+                    builder: (context, box) => Row(
+                      children: [
+                        for (final (i, chip) in _fitChips(
+                          context,
+                          layerTitles,
+                          box.maxWidth,
+                          type.baseline.labelSmall,
+                        ).indexed)
+                          // Only the first gives way; the rest were measured
+                          // to fit beside it.
+                          Flexible(
+                            flex: i == 0 ? 1 : 0,
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: _Chip(chip),
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -478,6 +476,69 @@ class PresetCard extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Space a chip takes beyond its text: padding and the gap after it.
+const _chipChrome = 7.0 * 2 + 4;
+
+/// Which of [titles] fit on one line of [width] as whole chips, followed by
+/// "+n" for the rest. The first always shows (it ellipsises if it must).
+List<String> _fitChips(
+  BuildContext context,
+  List<String> titles,
+  double width,
+  TextStyle? style,
+) {
+  double measure(String text) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final w = painter.width + _chipChrome;
+    painter.dispose();
+    return w;
+  }
+
+  final out = <String>[];
+  var used = 0.0;
+  for (var i = 0; i < titles.length; i++) {
+    final rest = titles.length - i - 1;
+    final more = rest > 0 ? measure('+$rest') : 0.0;
+    final w = measure(titles[i]);
+    if (i > 0 && used + w + more > width) {
+      out.add('+${titles.length - i}');
+      return out;
+    }
+    out.add(titles[i]);
+    used += w;
+  }
+  return out;
+}
+
+/// A small label on art.
+class _Chip extends StatelessWidget {
+  const _Chip(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: Colors.black.withValues(alpha: 0.28),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: context.typography.baseline.labelSmall?.copyWith(color: _onArt),
+      ),
+    ),
+  );
 }
 
 /// The last card of the presets row: keeps the current mix as a preset.
