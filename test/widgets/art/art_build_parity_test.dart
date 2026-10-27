@@ -44,7 +44,8 @@ void _same(Object? a, Object? b, String path) {
 }
 
 void main() {
-  final dir = _dir == null ? null : Directory(_dir);
+  final path = _dir;
+  final dir = path == null ? null : Directory(path);
   final files = dir == null || !dir.existsSync()
       ? <File>[]
       : (dir
