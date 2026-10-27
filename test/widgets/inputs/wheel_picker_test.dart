@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
@@ -65,6 +67,86 @@ WheelPickerState<int> _state(WidgetTester tester) =>
     tester.state<WheelPickerState<int>>(find.byType(WheelPicker<int>));
 
 void main() {
+  group('WheelSettleGroup', () {
+    Future<(_Harness, WheelSettleGroup)> pumpInScope(
+      WidgetTester tester,
+    ) async {
+      final h = _Harness();
+      final group = WheelSettleGroup();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WheelSettleScope(
+              group: group,
+              child: StatefulBuilder(
+                builder: (context, setState) => WheelPicker<int>(
+                  label: 'Interval',
+                  options: _minutes,
+                  value: h.value,
+                  onChanged: (v) => setState(() {
+                    h.reported.add(v);
+                    h.value = v;
+                  }),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      return (h, group);
+    }
+
+    testWidgets('a still wheel is settled at once', (tester) async {
+      final (h, group) = await pumpInScope(tester);
+      expect(group.moving, isFalse);
+      var done = false;
+      unawaited(group.settled().then((_) => done = true));
+      await tester.pump();
+      expect(done, isTrue);
+      expect(h.reported, isEmpty);
+    });
+
+    testWidgets('a flung wheel settles after it has reported where it landed', (
+      tester,
+    ) async {
+      final (h, group) = await pumpInScope(tester);
+      await tester.fling(
+        find.byType(ListWheelScrollView),
+        const Offset(0, -300),
+        1200,
+      );
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(group.moving, isTrue);
+      expect(h.reported, isEmpty, reason: 'it reports once, at rest');
+      var done = false;
+      unawaited(group.settled().then((_) => done = true));
+      await tester.pump();
+      expect(done, isFalse);
+      await tester.pumpAndSettle();
+      expect(done, isTrue);
+      expect(h.reported, [_state(tester).selectedIndex]);
+      expect(group.moving, isFalse);
+    });
+
+    testWidgets('a wheel taken off the screen stops being waited for', (
+      tester,
+    ) async {
+      final (_, group) = await pumpInScope(tester);
+      await tester.fling(
+        find.byType(ListWheelScrollView),
+        const Offset(0, -300),
+        1200,
+      );
+      await tester.pump(const Duration(milliseconds: 60));
+      var done = false;
+      unawaited(group.settled().then((_) => done = true));
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      expect(done, isTrue);
+      expect(group.moving, isFalse);
+    });
+  });
+
   testWidgets('a drag snaps to a value and reports it once, at rest', (
     tester,
   ) async {

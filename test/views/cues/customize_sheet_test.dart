@@ -659,6 +659,95 @@ void main() {
     await _unmount(tester);
   });
 
+  group('Start during a wheel fling', () {
+    // The Timer's Duration wheel, flung toward longer: it is still turning
+    // when Start is tapped.
+    Future<ProviderContainer> flung(
+      WidgetTester tester,
+      void Function(int minutes) onStart,
+    ) async {
+      late ProviderContainer container;
+      container = await _pump(
+        tester,
+        isTimer: true,
+        onStart: () => onStart(_read(container).durationMinutes),
+      );
+      await _row(tester, 'Duration');
+      await tester.fling(
+        find.byType(ListWheelScrollView),
+        const Offset(0, -300),
+        1200,
+      );
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(_read(container).durationMinutes, 10, reason: 'still turning');
+      return container;
+    }
+
+    testWidgets('waits for the wheel to land and starts with that value', (
+      tester,
+    ) async {
+      final started = <int>[];
+      final container = await flung(tester, started.add);
+      await tester.tap(find.text('Start'));
+      await tester.pump();
+      expect(started, isEmpty, reason: 'the wheel has not landed yet');
+      await tester.pumpAndSettle();
+      final landed = tester
+          .state<WheelPickerState<dynamic>>(_wheel('Duration'))
+          .selectedIndex;
+      expect(landed, greaterThan(9), reason: 'the fling moved the wheel');
+      expect(started, [landed + 1], reason: 'started on the landed minutes');
+      expect(_read(container).durationMinutes, landed + 1);
+      await _unmount(tester);
+    });
+
+    testWidgets('a second tap while waiting does not start twice', (
+      tester,
+    ) async {
+      final started = <int>[];
+      await flung(tester, started.add);
+      await tester.tap(find.text('Start'));
+      await tester.pump(const Duration(milliseconds: 20));
+      await tester.tap(find.text('Start'));
+      await tester.pumpAndSettle();
+      expect(started, hasLength(1));
+      await _unmount(tester);
+    });
+
+    testWidgets('a wheel held by a finger does not hold Start for ever', (
+      tester,
+    ) async {
+      final started = <int>[];
+      await _pump(tester, isTimer: true, onStart: () => started.add(1));
+      await _row(tester, 'Duration');
+      final hold = await tester.startGesture(
+        tester.getCenter(find.byType(ListWheelScrollView)),
+      );
+      await hold.moveBy(const Offset(0, -30));
+      await tester.pump();
+      await tester.tap(find.text('Start'));
+      await tester.pump(const Duration(seconds: 1));
+      expect(started, isEmpty);
+      await tester.pump(WheelSettleGroup.patience);
+      expect(started, hasLength(1));
+      await hold.up();
+      await tester.pumpAndSettle();
+      await _unmount(tester);
+    });
+
+    testWidgets('leaving the sheet while waiting starts nothing', (
+      tester,
+    ) async {
+      final started = <int>[];
+      await flung(tester, started.add);
+      await tester.tap(find.text('Start'));
+      await tester.pump();
+      await _unmount(tester);
+      await tester.pumpAndSettle();
+      expect(started, isEmpty);
+    });
+  });
+
   testWidgets('Start button calls back', (tester) async {
     var started = false;
     await _pump(tester, onStart: () => started = true);

@@ -188,6 +188,8 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   late bool _courseOverride;
   late final SessionBellPreview _preview;
   _Part? _open;
+  final _wheels = WheelSettleGroup();
+  bool _startPending = false;
 
   CueScope get _scope => widget.scope;
   bool get _practice => _scope.kind == CueKind.practice;
@@ -456,57 +458,80 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
       flow,
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final media = MediaQuery.of(context);
-        // Tall enough to breathe; fills a page (the Timer) that gives less.
-        final height = math.min(
-          constraints.maxHeight,
-          media.size.height * 0.92,
-        );
-        return SafeArea(
-          top: false,
-          child: SizedBox(
-            height: height,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _Header(
-                  subtitle: _scopeLine,
-                  finishes: widget.showFinishes ? _finishes(context, s) : null,
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    key: const ValueKey('customize_list'),
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (final (i, section) in sections.indexed) ...[
-                          if (i > 0) const SizedBox(height: 20),
-                          section,
+    return WheelSettleScope(
+      group: _wheels,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final media = MediaQuery.of(context);
+          // Tall enough to breathe; fills a page (the Timer) that gives less.
+          final height = math.min(
+            constraints.maxHeight,
+            media.size.height * 0.92,
+          );
+          return SafeArea(
+            top: false,
+            child: SizedBox(
+              height: height,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _Header(
+                    subtitle: _scopeLine,
+                    finishes: widget.showFinishes
+                        ? _finishes(context, s)
+                        : null,
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      key: const ValueKey('customize_list'),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (final (i, section) in sections.indexed) ...[
+                            if (i > 0) const SizedBox(height: 20),
+                            section,
+                          ],
                         ],
-                      ],
-                    ),
-                  ),
-                ),
-                if (widget.onStart != null)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(56),
-                        shape: MeditejoShapes.stadium,
                       ),
-                      onPressed: widget.onStart,
-                      child: const Text('Start'),
                     ),
                   ),
-              ],
+                  if (widget.onStart != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(56),
+                          shape: MeditejoShapes.stadium,
+                        ),
+                        onPressed: _start,
+                        child: const Text('Start'),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
+    );
+  }
+
+  /// Start reads the settings at once, but a wheel reports only when it
+  /// comes to rest: a tap during a fling waits for the wheel to land, so the
+  /// session gets the value the wheel is settling on, not the one before.
+  void _start() {
+    if (_startPending) return;
+    if (!_wheels.moving) {
+      widget.onStart?.call();
+      return;
+    }
+    _startPending = true;
+    unawaited(
+      _wheels.settled().whenComplete(() {
+        _startPending = false;
+        if (mounted) widget.onStart?.call();
+      }),
     );
   }
 
