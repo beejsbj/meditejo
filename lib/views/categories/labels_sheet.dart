@@ -61,9 +61,7 @@ class _LabelsSheetState extends ConsumerState<LabelsSheet> {
         ref.watch(labelsOfProvider(widget.subject)).value ?? EntryLabels.none;
 
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
         child: Column(
@@ -103,6 +101,7 @@ class _LabelsSheetState extends ConsumerState<LabelsSheet> {
                           category.id,
                           on: on,
                           current: labels,
+                          title: widget.subject.title,
                         );
                       },
                     ),

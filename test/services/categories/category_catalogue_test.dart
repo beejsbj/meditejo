@@ -17,7 +17,11 @@ String _asset({
       'name': 'Metta',
       'aliases': ['Loving-kindness'],
     },
-    {'id': 'jhana', 'name': 'Jhāna', 'aliases': ['Jhanas']},
+    {
+      'id': 'jhana',
+      'name': 'Jhāna',
+      'aliases': ['Jhanas'],
+    },
     {'id': 'body', 'name': 'Body'},
   ],
   'curated': curated ?? [],
@@ -143,7 +147,9 @@ void main() {
       ),
     );
 
-    List<String> ids(Iterable<CategoryAssignment> a) => [for (final x in a) x.id];
+    List<String> ids(Iterable<CategoryAssignment> a) => [
+      for (final x in a) x.id,
+    ];
 
     test('the rules read the title', () {
       final result = catalogue.classify('ds-retreat-9', title: 'Mettā Retreat');
@@ -164,11 +170,13 @@ void main() {
     });
 
     test('a curated entry replaces the rules, even an empty one', () {
+      expect(catalogue.classify('ds-retreat-1', title: 'Metta Retreat'), [
+        const CategoryAssignment('jhana', CategorySource.curated),
+      ]);
       expect(
-        catalogue.classify('ds-retreat-1', title: 'Metta Retreat'),
-        [const CategoryAssignment('jhana', CategorySource.curated)],
+        catalogue.classify('ds-retreat-2', title: 'Metta Retreat'),
+        isEmpty,
       );
-      expect(catalogue.classify('ds-retreat-2', title: 'Metta Retreat'), isEmpty);
     });
 
     test('a talk takes its retreat\'s categories and its own', () {
@@ -209,10 +217,11 @@ void main() {
     });
 
     test('results follow the catalogue\'s order', () {
-      expect(
-        ids(catalogue.classify('x', title: 'Body and Jhāna and Metta')),
-        ['metta', 'jhana', 'body'],
-      );
+      expect(ids(catalogue.classify('x', title: 'Body and Jhāna and Metta')), [
+        'metta',
+        'jhana',
+        'body',
+      ]);
     });
 
     test('nothing matches nothing', () {

@@ -3,8 +3,13 @@ import 'package:medito/services/categories/category_catalogue.dart';
 import 'package:medito/services/categories/category_text.dart';
 
 /// The key a label of the user's own is stored under: its folded words.
-/// "Retreat prep" and "retreat  prep!" are one label.
-String customLabelKey(String text) => foldWords(text).join('-');
+/// "Retreat prep" and "retreat  prep!" are one label. Blank text has no key.
+String customLabelKey(String text) {
+  final words = foldWords(text);
+  // Text in a script the folding does not read (Devanagari, CJK, emoji) has
+  // no Latin words; keep it whole rather than lose the label.
+  return words.isNotEmpty ? words.join('-') : text.trim().toLowerCase();
+}
 
 /// What the user has said about one entry, as stored.
 @immutable
@@ -39,9 +44,8 @@ class EntryLabels {
   bool hasCategory(String id) => categories.any((c) => c.id == id);
 
   /// Whether the user, not the app, put [id] on this entry.
-  bool userChose(String id) => categories.any(
-    (c) => c.id == id && c.source == CategorySource.user,
-  );
+  bool userChose(String id) =>
+      categories.any((c) => c.id == id && c.source == CategorySource.user);
 
   /// Whether [key] is one of this entry's categories (by ID) or labels of the
   /// user's own (by [customLabelKey]); what a Library label chip filters on.
@@ -75,9 +79,7 @@ EntryLabels resolveLabels(
       custom.add(value.isEmpty ? key : value);
     }
   }
-  final order = {
-    for (final (i, c) in catalogue.categories.indexed) c.id: i,
-  };
+  final order = {for (final (i, c) in catalogue.categories.indexed) c.id: i};
   return EntryLabels(
     categories: categories.values.toList()
       ..sort((a, b) => (order[a.id] ?? 0).compareTo(order[b.id] ?? 0)),

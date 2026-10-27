@@ -54,8 +54,10 @@ void main() {
     });
 
     test('writes itself as an FTS5 phrase', () {
-      expect(CategoryTerm.parse('Loving kindness')!.ftsPhrase,
-          '"loving kindness"');
+      expect(
+        CategoryTerm.parse('Loving kindness')!.ftsPhrase,
+        '"loving kindness"',
+      );
       expect(CategoryTerm.parse('Jhān*')!.ftsPhrase, '"jhan"*');
     });
   });

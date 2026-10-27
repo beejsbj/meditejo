@@ -67,7 +67,10 @@ final libraryLabelOptionsProvider =
         for (final text in entry.custom) {
           final key = customLabelKey(text);
           final seen = customCounts[key];
-          customCounts[key] = (name: seen?.name ?? text, count: (seen?.count ?? 0) + 1);
+          customCounts[key] = (
+            name: seen?.name ?? text,
+            count: (seen?.count ?? 0) + 1,
+          );
         }
       }
       return [
@@ -78,12 +81,12 @@ final libraryLabelOptionsProvider =
               name: category.name,
               count: categoryCounts[category.id]!,
             ),
-        for (final MapEntry(:key, :value) in customCounts.entries.toList()
-          ..sort(
-            (a, b) => a.value.name.toLowerCase().compareTo(
-              b.value.name.toLowerCase(),
-            ),
-          ))
+        for (final MapEntry(:key, :value)
+            in customCounts.entries.toList()..sort(
+              (a, b) => a.value.name.toLowerCase().compareTo(
+                b.value.name.toLowerCase(),
+              ),
+            ))
           (key: key, name: value.name, count: value.count),
       ];
     });

@@ -257,7 +257,8 @@ class CategoryCatalogue {
     final curated = _curated[sourceId];
     if (curated != null) {
       return _ordered([
-        for (final id in curated) CategoryAssignment(id, CategorySource.curated),
+        for (final id in curated)
+          CategoryAssignment(id, CategorySource.curated),
       ]);
     }
     final titleWords = foldWords(title);
@@ -278,9 +279,7 @@ class CategoryCatalogue {
   }
 
   List<CategoryAssignment> _ordered(Iterable<CategoryAssignment> items) {
-    final order = {
-      for (final (i, c) in categories.indexed) c.id: i,
-    };
+    final order = {for (final (i, c) in categories.indexed) c.id: i};
     return items.toList()
       ..sort((a, b) => (order[a.id] ?? 0).compareTo(order[b.id] ?? 0));
   }

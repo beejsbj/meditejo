@@ -140,10 +140,10 @@ class CategoryService {
   /// are only ever on library entries, so a stranger shows the guesses.
   Future<EntryLabels> labelsOf(String sourceId, {String title = ''}) async =>
       resolveLabels(
-    catalogue,
-    automatic: await automatic(sourceId, title: title),
-    user: (await library.userLabels())[sourceId] ?? const UserLabels(),
-  );
+        catalogue,
+        automatic: await automatic(sourceId, title: title),
+        user: (await library.userLabels())[sourceId] ?? const UserLabels(),
+      );
 
   // ----------------------------------------------------------------- edits
 
@@ -156,6 +156,7 @@ class CategoryService {
     String categoryId, {
     required bool on,
     required EntryLabels current,
+    String title = '',
   }) async {
     if (on) {
       await library.addLabel(sourceId, categoryId);
@@ -168,7 +169,7 @@ class CategoryService {
       await library.excludeCategory(sourceId, categoryId);
     } else {
       // The user's own addition, or an excluded one that shows nowhere.
-      final automaticNow = await automatic(sourceId);
+      final automaticNow = await automatic(sourceId, title: title);
       if (automaticNow.any((a) => a.id == categoryId)) {
         await library.excludeCategory(sourceId, categoryId);
       } else {
@@ -188,11 +189,7 @@ class CategoryService {
       await library.addLabel(sourceId, category.id);
       return category;
     }
-    await library.addLabel(
-      sourceId,
-      customLabelKey(trimmed),
-      display: trimmed,
-    );
+    await library.addLabel(sourceId, customLabelKey(trimmed), display: trimmed);
     return null;
   }
 
@@ -218,13 +215,18 @@ class CategoryService {
         if (labels[e.sourceId]?.hasCategory(categoryId) ?? false) e,
     ];
     final owned = {for (final e in entries) e.sourceId};
+    // Retreats already shown at the top of the page: their sessions are not
+    // repeated below.
+    final shownRetreats = {
+      for (final e in inLibrary) ?parseDsRetreatId(e.sourceId),
+    };
 
     final db = dharmaSeed;
     var courses = <PackItemsModel>[];
     var practice = <PackItemsModel>[];
     var talks = <PackItemsModel>[];
     if (db != null) {
-      final found = await _dharmaSeedFor(category, db, owned);
+      final found = await _dharmaSeedFor(category, db, owned, shownRetreats);
       courses = found.courses;
       practice = found.practice;
       talks = found.talks;
@@ -257,6 +259,7 @@ class CategoryService {
     PracticeCategory category,
     DharmaSeedDatabase db,
     Set<String> owned,
+    Set<int> shownRetreats,
   ) async {
     Future<bool> belongs(String id, String title, String description) async {
       final result = catalogue.classify(
@@ -270,8 +273,7 @@ class CategoryService {
 
     // ---- Courses: curated retreats first, then what the rules find.
     final curatedRetreats = [
-      for (final id in catalogue.curatedIn(category.id))
-        ?parseDsRetreatId(id),
+      for (final id in catalogue.curatedIn(category.id)) ?parseDsRetreatId(id),
     ];
     final curatedRows = [
       for (final r in await db.retreatsById(curatedRetreats))
@@ -280,17 +282,19 @@ class CategoryService {
     final ruleRows = <DsRetreat>[];
     final match = _match(category.id, titleColumn: 'name');
     if (match != null) {
-      final rows = await db.customSelect(
-        'SELECT r.* FROM ds_retreats_fts f JOIN ds_retreats r '
-        'ON r.id = f.rowid WHERE ds_retreats_fts MATCH ? '
-        "AND r.talk_ids != '[]' "
-        'ORDER BY r.start_date DESC, r.id DESC LIMIT ?',
-        variables: [
-          Variable.withString(match),
-          Variable.withInt(ruleCourseLimit * 3),
-        ],
-        readsFrom: {db.dsRetreats},
-      ).get();
+      final rows = await db
+          .customSelect(
+            'SELECT r.* FROM ds_retreats_fts f JOIN ds_retreats r '
+            'ON r.id = f.rowid WHERE ds_retreats_fts MATCH ? '
+            "AND r.talk_ids != '[]' "
+            'ORDER BY r.start_date DESC, r.id DESC LIMIT ?',
+            variables: [
+              Variable.withString(match),
+              Variable.withInt(ruleCourseLimit * 3),
+            ],
+            readsFrom: {db.dsRetreats},
+          )
+          .get();
       for (final row in rows) {
         final retreat = db.dsRetreats.map(row.data);
         // The index is looser than the rules (and knows nothing of curated
@@ -306,11 +310,17 @@ class CategoryService {
       }
     }
     final seen = <int>{};
-    final retreats = [
+    final found = [
       for (final r in [...curatedRows, ...ruleRows])
-        if (seen.add(r.id) && !owned.contains(dsRetreatId(r.id))) r,
+        if (seen.add(r.id)) r,
     ];
-    final leads = await db.leadTeacherOfRetreats([for (final r in retreats) r.id]);
+    final retreats = [
+      for (final r in found)
+        if (!owned.contains(dsRetreatId(r.id))) r,
+    ];
+    final leads = await db.leadTeacherOfRetreats([
+      for (final r in retreats) r.id,
+    ]);
     final leadTeachers = await db.teachersById(leads.values);
     final courses = [
       for (final r in retreats)
@@ -318,18 +328,23 @@ class CategoryService {
     ];
 
     // ---- Sessions: curated talks, then keyword hits, Practice kinds apart.
-    final listedRetreats = {for (final r in retreats) r.id};
+    // Covered by a course on this page, whether it is the library's or the
+    // catalogue's.
+    final listedRetreats = {...shownRetreats, for (final r in retreats) r.id};
     final curatedTalkIds = [
       for (final id in catalogue.curatedIn(category.id)) ?parseDsTalkId(id),
     ];
     final talkRows = <DsTalk>[];
     final talkSeen = <int>{};
-    void addTalk(DsTalk t) {
-      if (!talkSeen.add(t.id)) return;
-      if (owned.contains(dsTalkId(t.id))) return;
+    bool addTalk(DsTalk t) {
+      if (!talkSeen.add(t.id)) return false;
+      if (owned.contains(dsTalkId(t.id))) return false;
       // A session already covered by a course on this page is not repeated.
-      if (t.retreatId != null && listedRetreats.contains(t.retreatId)) return;
+      if (t.retreatId != null && listedRetreats.contains(t.retreatId)) {
+        return false;
+      }
       talkRows.add(t);
+      return true;
     }
 
     for (final id in curatedTalkIds) {
@@ -339,17 +354,19 @@ class CategoryService {
     final talkMatch = _match(category.id, titleColumn: 'title');
     if (talkMatch != null) {
       for (final group in DsContentGroup.values) {
-        final rows = await db.customSelect(
-          'SELECT t.* FROM ds_talks_fts f JOIN ds_talks t ON t.id = f.rowid '
-          'WHERE ds_talks_fts MATCH ? AND '
-          '${DharmaSeedDatabase.groupCondition(group, 't')} '
-          'ORDER BY t.rec_date DESC, t.id DESC LIMIT ?',
-          variables: [
-            Variable.withString(talkMatch),
-            Variable.withInt(ruleSessionLimit * 3),
-          ],
-          readsFrom: {db.dsTalks},
-        ).get();
+        final rows = await db
+            .customSelect(
+              'SELECT t.* FROM ds_talks_fts f JOIN ds_talks t ON t.id = f.rowid '
+              'WHERE ds_talks_fts MATCH ? AND '
+              '${DharmaSeedDatabase.groupCondition(group, 't')} '
+              'ORDER BY t.rec_date DESC, t.id DESC LIMIT ?',
+              variables: [
+                Variable.withString(talkMatch),
+                Variable.withInt(ruleSessionLimit * 3),
+              ],
+              readsFrom: {db.dsTalks},
+            )
+            .get();
         var kept = 0;
         for (final row in rows) {
           final talk = db.dsTalks.map(row.data);
@@ -357,8 +374,7 @@ class CategoryService {
           if (!await belongs(dsTalkId(talk.id), talk.title, talk.description)) {
             continue;
           }
-          addTalk(talk);
-          kept++;
+          if (addTalk(talk)) kept++;
         }
       }
     }

@@ -368,10 +368,9 @@ class LibraryDatabase extends _$LibraryDatabase {
   Future<void> putLabel(LibraryLabelsCompanion label) =>
       into(libraryLabels).insertOnConflictUpdate(label);
 
-  Future<int> deleteLabel(String sourceId, String label) =>
-      (delete(libraryLabels)
-            ..where((l) => l.sourceId.equals(sourceId) & l.label.equals(label)))
-          .go();
+  Future<int> deleteLabel(String sourceId, String label) => (delete(
+    libraryLabels,
+  )..where((l) => l.sourceId.equals(sourceId) & l.label.equals(label))).go();
 
   // ----------------------------------------------------------- positions
 

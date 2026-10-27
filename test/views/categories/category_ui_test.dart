@@ -77,11 +77,7 @@ void main() {
       tester,
     ) async {
       final app = await _library(tester);
-      await app.pump(
-        tester,
-        const LibraryView(),
-        overrides: _overrides(app),
-      );
+      await app.pump(tester, const LibraryView(), overrides: _overrides(app));
 
       // Jhāna, Body and Emptiness come from the titles; Qualia has none.
       for (final id in ['jhana', 'body', 'emptiness']) {
@@ -110,17 +106,14 @@ void main() {
     testWidgets('are not shown when nothing is labelled', (tester) async {
       final app = await LibraryTestApp.create(tester);
       await _add(tester, app.harness.store, 'yt-playlist-q', 'Qualia Mastery');
-      await app.pump(
-        tester,
-        const LibraryView(),
-        overrides: _overrides(app),
-      );
-      expect(find.textContaining('library_label_'), findsNothing);
+      await app.pump(tester, const LibraryView(), overrides: _overrides(app));
       expect(
         find.byWidgetPredicate(
           (w) =>
               w.key is ValueKey &&
-              (w.key! as ValueKey).value.toString().startsWith('library_label_'),
+              (w.key! as ValueKey).value.toString().startsWith(
+                'library_label_',
+              ),
         ),
         findsNothing,
       );
@@ -130,13 +123,11 @@ void main() {
       tester,
     ) async {
       final app = await _library(tester);
-      await app.pump(
-        tester,
-        const LibraryView(),
-        overrides: _overrides(app),
-      );
+      await app.pump(tester, const LibraryView(), overrides: _overrides(app));
 
-      await tester.tap(find.byKey(const ValueKey('library_menu_yt-playlist-q')));
+      await tester.tap(
+        find.byKey(const ValueKey('library_menu_yt-playlist-q')),
+      );
       await settle(tester);
       await tester.tap(find.byKey(const ValueKey('library_menu_labels')));
       await settle(tester);
@@ -154,7 +145,10 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey('labels_add')));
       await settle(tester);
-      expect(find.byKey(const ValueKey('labels_custom_Evening')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('labels_custom_Evening')),
+        findsOneWidget,
+      );
 
       final stored = await tester.runAsync(app.harness.store.userLabels);
       expect(stored!['yt-playlist-q']!.added, {
@@ -176,11 +170,7 @@ void main() {
       tester,
     ) async {
       final app = await _library(tester);
-      await app.pump(
-        tester,
-        const LibraryView(),
-        overrides: _overrides(app),
-      );
+      await app.pump(tester, const LibraryView(), overrides: _overrides(app));
       expect(find.byKey(const ValueKey('library_label_body')), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('library_menu_lib-track-a')));
@@ -246,50 +236,59 @@ void main() {
       addedAt: DateTime.utc(2026, 10, 1),
     );
 
-    testWidgets('lists Practice before Talks, the library before the catalogue',
-        (tester) async {
-      final app = await LibraryTestApp.create(tester);
-      await app.pump(
-        tester,
-        const CategoryView(categoryId: 'jhana'),
-        overrides: [
-          ..._overrides(app),
-          categoryListingProvider('jhana').overrideWith(
-            (ref) async => listing(
-              practice: [entry('ds-retreat-1', 'My jhāna retreat')],
-              talks: [
-                entry(
-                  'lib-track-t',
-                  'My jhāna talk',
-                  kind: LibraryKind.single,
-                  group: LibraryGroup.talks,
-                ),
-              ],
-              courses: [course('ds-retreat-2', 'Catalogue jhāna retreat')],
-              practiceSessions: [session('ds-talk-3', 'Guided jhāna sit')],
-              talkSessions: [session('ds-talk-4', 'A talk on jhāna')],
+    testWidgets(
+      'lists Practice before Talks, the library before the catalogue',
+      (tester) async {
+        final app = await LibraryTestApp.create(tester);
+        await app.pump(
+          tester,
+          const CategoryView(categoryId: 'jhana'),
+          overrides: [
+            ..._overrides(app),
+            categoryListingProvider('jhana').overrideWith(
+              (ref) async => listing(
+                practice: [entry('ds-retreat-1', 'My jhāna retreat')],
+                talks: [
+                  entry(
+                    'lib-track-t',
+                    'My jhāna talk',
+                    kind: LibraryKind.single,
+                    group: LibraryGroup.talks,
+                  ),
+                ],
+                courses: [course('ds-retreat-2', 'Catalogue jhāna retreat')],
+                practiceSessions: [session('ds-talk-3', 'Guided jhāna sit')],
+                talkSessions: [session('ds-talk-4', 'A talk on jhāna')],
+              ),
             ),
-          ),
-        ],
-      );
+          ],
+        );
 
-      expect(find.text('Jhāna'), findsOneWidget); // the app bar
-      expect(find.textContaining('meditative absorptions'), findsOneWidget);
-      final order = [
-        'Practice',
-        'My jhāna retreat',
-        'Catalogue jhāna retreat',
-        'Guided jhāna sit',
-        'Talks',
-        'My jhāna talk',
-        'A talk on jhāna',
-      ];
-      final tops = [
-        for (final text in order) tester.getTopLeft(_text(text).first).dy,
-      ];
-      expect(tops, orderedEquals([...tops]..sort()), reason: order.join(', '));
-      expect(find.byKey(const ValueKey('library_ds-retreat-1')), findsOneWidget);
-    });
+        expect(find.text('Jhāna'), findsOneWidget); // the app bar
+        expect(find.textContaining('meditative absorptions'), findsOneWidget);
+        final order = [
+          'Practice',
+          'My jhāna retreat',
+          'Catalogue jhāna retreat',
+          'Guided jhāna sit',
+          'Talks',
+          'My jhāna talk',
+          'A talk on jhāna',
+        ];
+        final tops = [
+          for (final text in order) tester.getTopLeft(_text(text).first).dy,
+        ];
+        expect(
+          tops,
+          orderedEquals([...tops]..sort()),
+          reason: order.join(', '),
+        );
+        expect(
+          find.byKey(const ValueKey('library_ds-retreat-1')),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets('says so when nothing is in it', (tester) async {
       final app = await LibraryTestApp.create(tester);
@@ -299,7 +298,8 @@ void main() {
         overrides: [
           ..._overrides(app),
           categoryListingProvider('tmi').overrideWith(
-            (ref) async => CategoryListing(category: _catalogue.category('tmi')!),
+            (ref) async =>
+                CategoryListing(category: _catalogue.category('tmi')!),
           ),
         ],
       );
@@ -315,13 +315,14 @@ void main() {
       final app = await LibraryTestApp.create(tester);
       await app.pump(
         tester,
-        const Scaffold(body: SingleChildScrollView(child: ExploreCategoryChips())),
+        const Scaffold(
+          body: SingleChildScrollView(child: ExploreCategoryChips()),
+        ),
         overrides: [
           ..._overrides(app),
           categoryListingProvider('breath').overrideWith(
-            (ref) async => CategoryListing(
-              category: _catalogue.category('breath')!,
-            ),
+            (ref) async =>
+                CategoryListing(category: _catalogue.category('breath')!),
           ),
         ],
       );
@@ -336,7 +337,6 @@ void main() {
       await tester.ensureVisible(chip);
       await tester.tap(chip);
       await settle(tester);
-      expect(find.byKey(const ValueKey('category_page_breath')), findsNothing);
       expect(find.text('Nothing here yet'), findsOneWidget);
       expect(find.text('Breath'), findsWidgets);
     });

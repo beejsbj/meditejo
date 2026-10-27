@@ -65,19 +65,22 @@ void main() {
     }
   });
 
-  test('every category has a rule or a curated item, or says it has none yet', () {
-    // Sankalpa and TMI have nothing on Dharma Seed (checked 2026-10-27); they
-    // are filled by the user's labels and imports. Anything else must have
-    // something, or the page would be empty for no reason.
-    const knownEmpty = {'tmi', 'sankalpa'};
-    for (final c in catalogue.categories) {
-      if (knownEmpty.contains(c.id)) continue;
-      final reachable =
-          catalogue.curatedIn(c.id).isNotEmpty ||
-          catalogue.rulesFor(c.id).isNotEmpty;
-      expect(reachable, isTrue, reason: '${c.id} is unreachable');
-    }
-  });
+  test(
+    'every category has a rule or a curated item, or says it has none yet',
+    () {
+      // Sankalpa and TMI have nothing on Dharma Seed (checked 2026-10-27); they
+      // are filled by the user's labels and imports. Anything else must have
+      // something, or the page would be empty for no reason.
+      const knownEmpty = {'tmi', 'sankalpa'};
+      for (final c in catalogue.categories) {
+        if (knownEmpty.contains(c.id)) continue;
+        final reachable =
+            catalogue.curatedIn(c.id).isNotEmpty ||
+            catalogue.rulesFor(c.id).isNotEmpty;
+        expect(reachable, isTrue, reason: '${c.id} is unreachable');
+      }
+    },
+  );
 
   test('every curated item is a real Dharma Seed retreat or talk', () {
     for (final id in catalogue.curatedIds) {
@@ -90,10 +93,9 @@ void main() {
       }
       final table = retreat != null ? 'ds_retreats' : 'ds_talks';
       final number = int.parse((retreat ?? talk)![1]!);
-      final rows = snapshot.select(
-        'SELECT 1 FROM $table WHERE id = ?',
-        [number],
-      );
+      final rows = snapshot.select('SELECT 1 FROM $table WHERE id = ?', [
+        number,
+      ]);
       expect(rows, isNotEmpty, reason: '$id is not in the catalogue');
     }
   });

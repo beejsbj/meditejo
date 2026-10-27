@@ -19,12 +19,7 @@ LibraryDraft _draft(
   String title = 'A course',
   LibraryKind kind = LibraryKind.course,
   LibraryGroup group = LibraryGroup.practice,
-}) => LibraryDraft(
-  sourceId: id,
-  kind: kind,
-  title: title,
-  group: group,
-);
+}) => LibraryDraft(sourceId: id, kind: kind, title: title, group: group);
 
 void main() {
   late CategoryCatalogue catalogue;
@@ -52,8 +47,11 @@ void main() {
   group('stored labels', () {
     test('add, exclude and clear, per entry', () async {
       await store.addLabel('a', 'metta');
-      await store.addLabel('a', customLabelKey('Retreat prep'),
-          display: 'Retreat prep');
+      await store.addLabel(
+        'a',
+        customLabelKey('Retreat prep'),
+        display: 'Retreat prep',
+      );
       await store.excludeCategory('a', 'body');
       await store.addLabel('b', 'jhana');
 
@@ -74,14 +72,18 @@ void main() {
       expect(labels.excluded, isEmpty);
     });
 
-    test('survive removing the entry, so Undo and re-adding find them',
-        () async {
-      await store.add(_draft('ds-retreat-1'));
-      await store.addLabel('ds-retreat-1', 'metta');
-      await store.remove('ds-retreat-1');
-      await store.add(_draft('ds-retreat-1'));
-      expect((await store.userLabels())['ds-retreat-1']!.added.keys, ['metta']);
-    });
+    test(
+      'survive removing the entry, so Undo and re-adding find them',
+      () async {
+        await store.add(_draft('ds-retreat-1'));
+        await store.addLabel('ds-retreat-1', 'metta');
+        await store.remove('ds-retreat-1');
+        await store.add(_draft('ds-retreat-1'));
+        expect((await store.userLabels())['ds-retreat-1']!.added.keys, [
+          'metta',
+        ]);
+      },
+    );
 
     test('a label change tells the library to re-read', () async {
       final before = store.revision.value;
@@ -89,39 +91,43 @@ void main() {
       expect(store.revision.value, greaterThan(before));
     });
 
-    test('a library from before labels upgrades without losing anything',
-        () async {
-      final dir = Directory.systemTemp.createTempSync('labels_upgrade');
-      addTearDown(() => dir.deleteSync(recursive: true));
-      final file = File('${dir.path}/library.sqlite');
-      var fileDb = LibraryDatabase(NativeDatabase(file));
-      var fileStore = LibraryStore(fileDb);
-      await fileStore.add(_draft('ds-talk-1', title: 'Kept'));
-      fileStore.dispose();
-      await fileDb.close();
-
-      final old = raw.sqlite3.open(file.path);
-      old.execute('DROP TABLE library_labels');
-      old.execute('PRAGMA user_version = 4');
-      old.dispose();
-
-      fileDb = LibraryDatabase(NativeDatabase(file));
-      fileStore = LibraryStore(fileDb);
-      addTearDown(() async {
+    test(
+      'a library from before labels upgrades without losing anything',
+      () async {
+        final dir = Directory.systemTemp.createTempSync('labels_upgrade');
+        addTearDown(() => dir.deleteSync(recursive: true));
+        final file = File('${dir.path}/library.sqlite');
+        var fileDb = LibraryDatabase(NativeDatabase(file));
+        var fileStore = LibraryStore(fileDb);
+        await fileStore.add(_draft('ds-talk-1', title: 'Kept'));
         fileStore.dispose();
         await fileDb.close();
-      });
-      expect((await fileStore.entries()).single.title, 'Kept');
-      await fileStore.addLabel('ds-talk-1', 'breath');
-      expect((await fileStore.userLabels())['ds-talk-1']!.added.keys, [
-        'breath',
-      ]);
-    });
+
+        final old = raw.sqlite3.open(file.path);
+        old.execute('DROP TABLE library_labels');
+        old.execute('PRAGMA user_version = 4');
+        old.dispose();
+
+        fileDb = LibraryDatabase(NativeDatabase(file));
+        fileStore = LibraryStore(fileDb);
+        addTearDown(() async {
+          fileStore.dispose();
+          await fileDb.close();
+        });
+        expect((await fileStore.entries()).single.title, 'Kept');
+        await fileStore.addLabel('ds-talk-1', 'breath');
+        expect((await fileStore.userLabels())['ds-talk-1']!.added.keys, [
+          'breath',
+        ]);
+      },
+    );
   });
 
   group('labels of an entry', () {
     test('a curated item has its curated categories', () async {
-      await store.add(_draft('ds-retreat-4496', title: 'Practising the Jhānas'));
+      await store.add(
+        _draft('ds-retreat-4496', title: 'Practising the Jhānas'),
+      );
       final labels = await service().labelsOfEntries(await store.entries());
       expect(labels['ds-retreat-4496']!.categories, [
         const CategoryAssignment('jhana', CategorySource.curated),
@@ -136,7 +142,11 @@ void main() {
 
     test('teachers carry no labels', () async {
       await store.add(
-        _draft('ds-teacher-1', title: 'Metta Teacher', kind: LibraryKind.teacher),
+        _draft(
+          'ds-teacher-1',
+          title: 'Metta Teacher',
+          kind: LibraryKind.teacher,
+        ),
       );
       expect(await service().labelsOfEntries(await store.entries()), isEmpty);
     });
@@ -144,12 +154,21 @@ void main() {
     test('the user can take a guess off and put their own on', () async {
       await store.add(_draft('yt-playlist-x', title: 'Metta and breath'));
       final s = service();
-      var labels = (await s.labelsOfEntries(await store.entries()))['yt-playlist-x']!;
+      var labels = (await s.labelsOfEntries(
+        await store.entries(),
+      ))['yt-playlist-x']!;
       expect(labels.categories.map((c) => c.id), ['metta', 'breath']);
 
-      await s.setCategory('yt-playlist-x', 'breath', on: false, current: labels);
+      await s.setCategory(
+        'yt-playlist-x',
+        'breath',
+        on: false,
+        current: labels,
+      );
       await s.setCategory('yt-playlist-x', 'jhana', on: true, current: labels);
-      labels = (await s.labelsOfEntries(await store.entries()))['yt-playlist-x']!;
+      labels = (await s.labelsOfEntries(
+        await store.entries(),
+      ))['yt-playlist-x']!;
       expect(labels.categories, [
         const CategoryAssignment('metta', CategorySource.rule),
         const CategoryAssignment('jhana', CategorySource.user),
@@ -159,30 +178,80 @@ void main() {
       // the exclusion.
       await s.setCategory('yt-playlist-x', 'jhana', on: false, current: labels);
       await s.setCategory('yt-playlist-x', 'breath', on: true, current: labels);
-      labels = (await s.labelsOfEntries(await store.entries()))['yt-playlist-x']!;
+      labels = (await s.labelsOfEntries(
+        await store.entries(),
+      ))['yt-playlist-x']!;
       expect(labels.categories.map((c) => c.id), ['metta', 'breath']);
       expect((await store.userLabels())['yt-playlist-x']!.excluded, isEmpty);
     });
 
-    test('typed text becomes a category when it names one, else a label',
-        () async {
+    test(
+      'unticking a guess the user had ticked removes it, first time',
+      () async {
+        await store.add(_draft('yt-playlist-x', title: 'Metta and breath'));
+        final s = service();
+        var labels = await s.labelsOf(
+          'yt-playlist-x',
+          title: 'Metta and breath',
+        );
+        await s.setCategory(
+          'yt-playlist-x',
+          'breath',
+          on: true,
+          current: labels,
+          title: 'Metta and breath',
+        );
+        labels = await s.labelsOf('yt-playlist-x', title: 'Metta and breath');
+        expect(labels.userChose('breath'), isTrue);
+
+        await s.setCategory(
+          'yt-playlist-x',
+          'breath',
+          on: false,
+          current: labels,
+          title: 'Metta and breath',
+        );
+        labels = await s.labelsOf('yt-playlist-x', title: 'Metta and breath');
+        expect(labels.hasCategory('breath'), isFalse);
+        expect((await store.userLabels())['yt-playlist-x']!.excluded, {
+          'breath',
+        });
+      },
+    );
+
+    test('labels in other scripts are kept', () async {
       await store.add(_draft('a'));
       final s = service();
-      expect((await s.addLabel('a', ' Jhāna '))?.id, 'jhana');
-      expect(await s.addLabel('a', 'Retreat prep'), isNull);
-      expect(await s.addLabel('a', '  '), isNull);
-      final labels = await s.labelsOf('a');
-      expect(labels.categories, [
-        const CategoryAssignment('jhana', CategorySource.user),
-      ]);
-      expect(labels.custom, ['Retreat prep']);
-
-      await s.removeCustomLabel('a', 'retreat  PREP');
-      expect((await s.labelsOf('a')).custom, isEmpty);
+      expect(await s.addLabel('a', 'ध्यान'), isNull);
+      expect(await s.addLabel('a', '🪷'), isNull);
+      expect((await s.labelsOf('a')).custom, containsAll(['ध्यान', '🪷']));
+      await s.removeCustomLabel('a', 'ध्यान');
+      expect((await s.labelsOf('a')).custom, ['🪷']);
     });
 
+    test(
+      'typed text becomes a category when it names one, else a label',
+      () async {
+        await store.add(_draft('a'));
+        final s = service();
+        expect((await s.addLabel('a', ' Jhāna '))?.id, 'jhana');
+        expect(await s.addLabel('a', 'Retreat prep'), isNull);
+        expect(await s.addLabel('a', '  '), isNull);
+        final labels = await s.labelsOf('a');
+        expect(labels.categories, [
+          const CategoryAssignment('jhana', CategorySource.user),
+        ]);
+        expect(labels.custom, ['Retreat prep']);
+
+        await s.removeCustomLabel('a', 'retreat  PREP');
+        expect((await s.labelsOf('a')).custom, isEmpty);
+      },
+    );
+
     test('survive a new edition of the catalogue and outrank it', () async {
-      await store.add(_draft('ds-retreat-4496', title: 'Practising the Jhānas'));
+      await store.add(
+        _draft('ds-retreat-4496', title: 'Practising the Jhānas'),
+      );
       final first = service();
       await first.addLabel('ds-retreat-4496', 'emptiness');
       await first.addLabel('ds-retreat-4496', 'Evening');
@@ -243,16 +312,58 @@ void main() {
       expect(result.map((a) => a.id), contains('jhana'));
     });
 
-    test('a category page lists the library first and never repeats it',
-        () async {
-      await store.add(_draft('ds-retreat-4496', title: 'Practising the Jhānas'));
+    test(
+      'a category page lists the library first and never repeats it',
+      () async {
+        await store.add(
+          _draft('ds-retreat-4496', title: 'Practising the Jhānas'),
+        );
+        await store.add(
+          _draft(
+            'lib-track-mine',
+            title: 'My jhana notes',
+            kind: LibraryKind.single,
+            group: LibraryGroup.talks,
+          ),
+        );
+        final listing = await withCatalogue().listing(
+          'jhana',
+          entries: await store.entries(),
+        );
+        expect(listing.libraryPractice.map((e) => e.sourceId), [
+          'ds-retreat-4496',
+        ]);
+        expect(listing.libraryTalks.map((e) => e.sourceId), ['lib-track-mine']);
+        expect(listing.courses, isNotEmpty);
+        expect(
+          listing.courses.map((c) => c.id),
+          isNot(contains('ds-retreat-4496')),
+        );
+        // Curated retreats come before keyword matches.
+        expect(listing.courses.first.id, 'ds-retreat-603');
+        for (final course in listing.courses) {
+          expect(course.id, startsWith('ds-retreat-'));
+        }
+        for (final item in [
+          ...listing.practiceSessions,
+          ...listing.talkSessions,
+        ]) {
+          expect(item.id, startsWith('ds-talk-'));
+        }
+        final ids = [
+          ...listing.courses,
+          ...listing.practiceSessions,
+          ...listing.talkSessions,
+        ].map((i) => i.id).toList();
+        expect(ids.toSet(), hasLength(ids.length));
+      },
+    );
+
+    test('a session of a course in the library is not listed again', () async {
+      // Retreat 4496 is in the starter set; talk 60864 is curated Jhāna and
+      // belongs to it.
       await store.add(
-        _draft(
-          'lib-track-mine',
-          title: 'My jhana notes',
-          kind: LibraryKind.single,
-          group: LibraryGroup.talks,
-        ),
+        _draft('ds-retreat-4496', title: 'Practising the Jhānas'),
       );
       final listing = await withCatalogue().listing(
         'jhana',
@@ -261,30 +372,17 @@ void main() {
       expect(listing.libraryPractice.map((e) => e.sourceId), [
         'ds-retreat-4496',
       ]);
-      expect(listing.libraryTalks.map((e) => e.sourceId), ['lib-track-mine']);
-      expect(listing.courses, isNotEmpty);
-      expect(listing.courses.map((c) => c.id), isNot(contains('ds-retreat-4496')));
-      // Curated retreats come before keyword matches.
-      expect(listing.courses.first.id, 'ds-retreat-603');
-      for (final course in listing.courses) {
-        expect(course.id, startsWith('ds-retreat-'));
-      }
-      for (final item in [...listing.practiceSessions, ...listing.talkSessions]) {
-        expect(item.id, startsWith('ds-talk-'));
-      }
-      final ids = [
-        ...listing.courses,
+      for (final session in [
         ...listing.practiceSessions,
         ...listing.talkSessions,
-      ].map((i) => i.id).toList();
-      expect(ids.toSet(), hasLength(ids.length));
+      ]) {
+        final talk = await ds.talkById(int.parse(session.id.split('-').last));
+        expect(talk!.retreatId, isNot(4496), reason: session.id);
+      }
     });
 
     test('a session whose course is on the page is not listed again', () async {
-      final listing = await withCatalogue().listing(
-        'jhana',
-        entries: const [],
-      );
+      final listing = await withCatalogue().listing('jhana', entries: const []);
       final listed = {
         for (final c in listing.courses) int.parse(c.id.split('-').last),
       };
@@ -304,31 +402,32 @@ void main() {
       );
       for (final session in listing.practiceSessions) {
         final talk = await ds.talkById(int.parse(session.id.split('-').last));
-        expect(
-          ['meditation', 'guided meditation', 'chanting'],
-          contains(talk!.recordingType.toLowerCase().trim()),
-        );
+        expect([
+          'meditation',
+          'guided meditation',
+          'chanting',
+        ], contains(talk!.recordingType.toLowerCase().trim()));
       }
       for (final session in listing.talkSessions) {
         final talk = await ds.talkById(int.parse(session.id.split('-').last));
-        expect(
-          ['meditation', 'guided meditation', 'chanting'],
-          isNot(contains(talk!.recordingType.toLowerCase().trim())),
-        );
+        expect([
+          'meditation',
+          'guided meditation',
+          'chanting',
+        ], isNot(contains(talk!.recordingType.toLowerCase().trim())));
       }
       expect(listing.practiceSessions.length, lessThanOrEqualTo(30));
       expect(listing.talkSessions.length, lessThanOrEqualTo(30));
     });
 
-    test('a category with nothing on Dharma Seed is empty, not an error',
-        () async {
-      final listing = await withCatalogue().listing(
-        'tmi',
-        entries: const [],
-      );
-      expect(listing.courses, isEmpty);
-      expect(listing.isEmpty, isTrue);
-    });
+    test(
+      'a category with nothing on Dharma Seed is empty, not an error',
+      () async {
+        final listing = await withCatalogue().listing('tmi', entries: const []);
+        expect(listing.courses, isEmpty);
+        expect(listing.isEmpty, isTrue);
+      },
+    );
 
     test('an unknown category is refused', () {
       expect(

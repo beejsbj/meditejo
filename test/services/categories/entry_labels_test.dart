@@ -76,5 +76,6 @@ void main() {
   test('customLabelKey folds case, marks and spacing', () {
     expect(customLabelKey('Mettā  Practice!'), 'metta-practice');
     expect(customLabelKey('  '), '');
+    expect(customLabelKey(' ध्यान '), 'ध्यान');
   });
 }

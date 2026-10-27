@@ -197,11 +197,8 @@ class LibraryStore {
 
   /// Puts a label on an entry. [label] is a curated category's ID, or the
   /// [customLabelKey] of a label of the user's own with its [display] text.
-  Future<void> addLabel(
-    String sourceId,
-    String label, {
-    String display = '',
-  }) => _putLabel(sourceId, label, display: display, excluded: false);
+  Future<void> addLabel(String sourceId, String label, {String display = ''}) =>
+      _putLabel(sourceId, label, display: display, excluded: false);
 
   /// Says an automatic category does not belong on an entry.
   Future<void> excludeCategory(String sourceId, String categoryId) =>
