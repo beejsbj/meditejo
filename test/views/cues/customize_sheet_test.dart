@@ -838,8 +838,6 @@ void main() {
   );
 
   group('Extend placement', () {
-    tearDown(() => debugDefaultTargetPlatformOverride = null);
-
     testWidgets('Android can place Extend in the pauses; it is saved', (
       tester,
     ) async {
@@ -864,6 +862,7 @@ void main() {
       await _row(tester, 'Extend with silence');
       expect(_value(tester, 'Extend with silence'), '+10 min · In the pauses');
       await _unmount(tester);
+      debugDefaultTargetPlatformOverride = null;
     });
 
     testWidgets('and back to the end', (tester) async {
@@ -883,6 +882,7 @@ void main() {
       expect(_read(container).extendInPauses, isFalse);
       expect(_value(tester, 'Extend with silence'), '+6 min');
       await _unmount(tester);
+      debugDefaultTargetPlatformOverride = null;
     });
 
     testWidgets('where the voice cannot be held there is no choice', (
@@ -902,6 +902,7 @@ void main() {
       await _row(tester, 'Extend with silence');
       expect(find.byType(ChoiceChip), findsNothing);
       await _unmount(tester);
+      debugDefaultTargetPlatformOverride = null;
     });
 
     test(
