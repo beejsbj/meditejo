@@ -50,17 +50,27 @@ Future<Uint8List> _render(BellSpec spec) async {
   return Uint8List.fromList(spec.key.codeUnits);
 }
 
-/// Lets real file work finish (the fake clock does not run it).
+/// Lets the frames of a route or dialog play out. (The art keeps asking for
+/// frames while it loads, so `pumpAndSettle` would never see a quiet tree.)
+Future<void> _settle(WidgetTester tester) async {
+  for (var i = 0; i < 6; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
+/// Lets real file work finish: the fake clock does not run it, and what it
+/// finishes schedules more work on the fake one, so the two take turns.
 Future<void> _io(WidgetTester tester) async {
-  await tester.runAsync(
-    () => Future<void>.delayed(const Duration(milliseconds: 80)),
-  );
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 100));
+  for (var i = 0; i < 5; i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 40)),
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+  }
 }
 
 Future<void> _setUp(WidgetTester tester) async {
-  tester.view.physicalSize = const Size(420, 1000);
+  tester.view.physicalSize = const Size(420, 2200);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   SharedPreferences.setMockInitialValues({});
@@ -228,7 +238,7 @@ void main() {
       ),
     );
     await tester.tap(find.text('open'));
-    await tester.pumpAndSettle();
+    await _settle(tester);
     FilledButton save() => tester.widget<FilledButton>(
       find.byKey(const ValueKey('bell_maker_save')),
     );
@@ -248,7 +258,7 @@ void main() {
     expect(_renders, hasLength(1));
     save().onPressed!();
     await _io(tester);
-    await tester.pumpAndSettle();
+    await _settle(tester);
     expect(result?.name, 'Morning bowl');
     expect(result?.preset, 'temple');
     expect(result?.knobs.bright, closeTo(0.7, 1e-9));
@@ -281,9 +291,9 @@ void main() {
       ),
     );
     await tester.tap(find.text('open'));
-    await tester.pumpAndSettle();
+    await _settle(tester);
     await tester.tap(find.byTooltip('Close'));
-    await tester.pumpAndSettle();
+    await _settle(tester);
     expect(result, isNull);
     expect(_container.read(customBellsProvider), isEmpty);
     expect(_preview.stops, greaterThan(0), reason: 'nothing rings on');
@@ -310,7 +320,7 @@ void main() {
       final finder = find.text(row).first;
       await tester.ensureVisible(finder);
       await tester.tap(finder);
-      await tester.pumpAndSettle();
+      await _settle(tester);
     }
 
     Future<CustomBell> keep(String name) => _container
@@ -329,7 +339,7 @@ void main() {
       final row = find.byKey(ValueKey('bell_row_${bell.id}'));
       await tester.ensureVisible(row);
       await tester.tap(row);
-      await tester.pumpAndSettle();
+      await _settle(tester);
       const scope = CueScope(CueKind.practice);
       expect(_container.read(cueSettingsProvider(scope)).endSound, bell.id);
       expect(
@@ -356,18 +366,18 @@ void main() {
       await tester.pump();
       await open(tester, 'Starting bell');
       await tester.tap(find.byKey(ValueKey('bell_row_${bell.id}')));
-      await tester.pumpAndSettle();
+      await _settle(tester);
       await tester.tap(find.byKey(ValueKey('bell_menu_${bell.id}')));
-      await tester.pumpAndSettle();
+      await _settle(tester);
       await tester.tap(find.text('Rename'));
-      await tester.pumpAndSettle();
+      await _settle(tester);
       await tester.enterText(
         find.byKey(const ValueKey('bell_rename_field')),
         'Dawn',
       );
       await tester.tap(find.byKey(const ValueKey('bell_rename_confirm')));
       await _io(tester);
-      await tester.pumpAndSettle();
+      await _settle(tester);
       expect(_container.read(customBellsProvider).single.name, 'Dawn');
       expect(_container.read(customBellsProvider).single.id, bell.id);
       expect(
@@ -391,7 +401,7 @@ void main() {
         await tester.pump();
         await open(tester, 'Starting bell');
         await tester.tap(find.byKey(ValueKey('bell_row_${bell.id}')));
-        await tester.pumpAndSettle();
+        await _settle(tester);
         const scope = CueScope(CueKind.practice);
         expect(_container.read(cueSettingsProvider(scope)).startSound, bell.id);
         // The end cue rings it too: deleting from the start list moves both.
@@ -404,21 +414,21 @@ void main() {
             );
         await tester.pump();
         await tester.tap(find.byKey(ValueKey('bell_menu_${bell.id}')));
-        await tester.pumpAndSettle();
+        await _settle(tester);
         await tester.tap(find.text('Delete'));
-        await tester.pumpAndSettle();
+        await _settle(tester);
         // Asked first; cancelling keeps it.
         expect(find.text('Delete “Evening”?'), findsOneWidget);
         await tester.tap(find.text('Cancel'));
-        await tester.pumpAndSettle();
+        await _settle(tester);
         expect(_container.read(customBellsProvider), hasLength(1));
         await tester.tap(find.byKey(ValueKey('bell_menu_${bell.id}')));
-        await tester.pumpAndSettle();
+        await _settle(tester);
         await tester.tap(find.text('Delete'));
-        await tester.pumpAndSettle();
+        await _settle(tester);
         await tester.tap(find.byKey(const ValueKey('bell_delete_confirm')));
         await _io(tester);
-        await tester.pumpAndSettle();
+        await _settle(tester);
         expect(_container.read(customBellsProvider), isEmpty);
         expect(File(path).existsSync(), isFalse);
         expect(
@@ -442,7 +452,7 @@ void main() {
       final row = find.byKey(const ValueKey('bell_row_make'));
       await tester.ensureVisible(row);
       await tester.tap(row);
-      await tester.pumpAndSettle();
+      await _settle(tester);
       expect(find.byType(BellMakerView), findsOneWidget);
       // The cue rang the swell bell, so that is where the maker starts.
       expect(
@@ -456,7 +466,7 @@ void main() {
       // Saving returns to the picker with the new bell chosen.
       await tester.tap(find.byKey(const ValueKey('bell_maker_save')));
       await _io(tester);
-      await tester.pumpAndSettle();
+      await _settle(tester);
       final made = _container.read(customBellsProvider).single;
       expect(find.byType(BellMakerView), findsNothing);
       expect(
