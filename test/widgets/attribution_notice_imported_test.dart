@@ -56,6 +56,25 @@ void main() {
     expect(find.byType(InkWell), findsNothing);
   });
 
+  testWidgets('a lone episode shows the feed\'s licence, linked', (
+    tester,
+  ) async {
+    // What LibSource builds for a single episode added from a feed.
+    await pump(
+      tester,
+      const SourceAttribution(
+        source: 'example.org',
+        creator: 'Example Sangha',
+        url: 'https://example.org/evening',
+        licenseName: 'CC BY-NC 4.0',
+        licenseUrl: 'https://creativecommons.org/licenses/by-nc/4.0/',
+      ),
+    );
+    expect(find.text('Example Sangha · example.org'), findsOneWidget);
+    expect(find.textContaining('CC BY-NC 4.0'), findsOneWidget);
+    expect(find.byType(InkWell), findsNWidgets(2));
+  });
+
   testWidgets('a licensed source still shows its licence', (tester) async {
     await pump(
       tester,
