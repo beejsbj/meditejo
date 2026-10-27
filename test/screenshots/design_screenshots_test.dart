@@ -696,6 +696,20 @@ void main() {
       await _captureView(tester, 'customize-before-${brightness.name}');
     }, skip: !_enabled);
 
+    testWidgets('Customize bell picker, ${brightness.name}', (tester) async {
+      await _pumpCustomize(
+        tester,
+        brightness,
+        scope: const CueScope(CueKind.practice),
+        settings: practiceCues,
+        beforeStart: true,
+      );
+      // Open the starting bell's list: every bell with its icon.
+      await tester.tap(find.text('Starting bell'));
+      await tester.pumpAndSettle();
+      await _captureView(tester, 'customize-bells-${brightness.name}');
+    }, skip: !_enabled);
+
     testWidgets('Customize during a session, ${brightness.name}', (
       tester,
     ) async {
