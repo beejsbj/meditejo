@@ -602,7 +602,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   Widget _intervalWheels(CueSettings s) {
     // 0 is Off and -1 Halfway; the rest are minutes.
     const halfway = -1;
-    final every = !s.hasIntervalBell && !s.intervalHalfway
+    final every = !s.hasIntervalBell
         ? 0
         : s.intervalHalfway
         ? halfway
@@ -627,8 +627,14 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
           parse: _range(1, 60),
           hint: '1 to 60 minutes',
           onChanged: (v) {
+            // The bell list's Off leaves no sound; choosing a rhythm turns
+            // the bell back on with the default one, so the wheel and the
+            // row never disagree.
+            final sound = v != 0 && s.intervalSound.isEmpty
+                ? cueBellSounds['Swell bell']!
+                : s.intervalSound;
             if (v == halfway) {
-              _edit(s.copyWith(intervalHalfway: true));
+              _edit(s.copyWith(intervalHalfway: true, intervalSound: sound));
             } else {
               // A shorter interval pulls the random window in with it, so
               // the saved value never exceeds what the wheel can show.
@@ -636,6 +642,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
                 s.copyWith(
                   intervalHalfway: false,
                   intervalMinutes: v,
+                  intervalSound: sound,
                   randomWindowMinutes: s.randomWindowMinutes.clamp(0, v),
                 ),
               );

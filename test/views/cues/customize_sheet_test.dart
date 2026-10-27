@@ -376,6 +376,27 @@ void main() {
     await _unmount(tester);
   });
 
+  testWidgets(
+    'the wheel turns the interval bell back on after the list said Off',
+    (tester) async {
+      final container = await _pump(tester);
+      await _row(tester, 'Interval bell');
+      await container
+          .read(cueSettingsProvider(_practice).notifier)
+          .update(
+            CueSettings.defaults(
+              CueKind.practice,
+            ).copyWith(intervalSound: '', intervalMinutes: 10),
+          );
+      await tester.pumpAndSettle();
+      expect(_value(tester, 'Interval bell'), 'Off');
+      await _turn(tester, 'Every', 'Halfway');
+      expect(_read(container).hasIntervalBell, isTrue);
+      expect(_value(tester, 'Interval bell'), 'Halfway · Swell bell');
+      await _unmount(tester);
+    },
+  );
+
   testWidgets('shrinking the interval pulls the random window in', (
     tester,
   ) async {
