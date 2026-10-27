@@ -16,7 +16,7 @@ nothing else:
 It is a polite client: it fetches `/robots.txt` first and refuses any URL it
 disallows for our user agent, makes requests one at a time with at least three
 seconds between them (`--delay`, default 4), identifies itself, honours
-`Retry-After`, and stops on repeated failures. About 40 requests in all.
+`Retry-After`, and stops on repeated failures. About 47 requests in all.
 
 The output is `catalogue.json.gz` (titles, dates and file addresses; **no
 audio**) and `manifest.json` (counts, byte size and SHA-256 of the gzip, and
@@ -327,6 +327,28 @@ def build_snapshot(talk_pages, guided, collections, as_of):
     return {"schema": SCHEMA, "asOf": as_of, "talks": talks, "courses": courses}
 
 
+def ids_in_use(snapshot):
+    """The identities a user's library, stats or downloads can hold.
+
+    A talk is `(channel, key)`. A collection is its id. A collection file is
+    its key, unless the archive holds the same file, when the app uses the
+    archive talk instead (so the collection key is no longer an ID).
+    """
+    talks = {t[4].lower() for t in snapshot["talks"]}
+    ids = {("talk", t[0], t[1]) for t in snapshot["talks"]}
+    for course in snapshot["courses"]:
+        ids.add(("course", course["id"]))
+        for item in course["items"]:
+            if item[2].lower() not in talks:
+                ids.add(("file", item[0]))
+    return ids
+
+
+def vanished_ids(old, new):
+    """Identities in [old] that [new] no longer has, sorted for display."""
+    return sorted(ids_in_use(old) - ids_in_use(new))
+
+
 def encode(snapshot):
     raw = json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")).encode()
     # mtime 0 and a fixed level: the same snapshot always gzips to the same bytes.
@@ -421,7 +443,7 @@ def read_archive(polite, channel):
     return [item for page in pages for item in page]
 
 
-def build(out, delay):
+def build(out, delay, allow_id_loss=False):
     polite = Polite(delay)
     evening = read_archive(polite, "evening")
     morning = read_archive(polite, "morning")
@@ -433,6 +455,18 @@ def build(out, delay):
     )
     gz, raw = encode(snapshot)
     manifest = manifest_for(snapshot, gz, raw)
+    previous = out / ASSET
+    if previous.exists():
+        lost = vanished_ids(json.loads(gzip.decompress(previous.read_bytes())), snapshot)
+        if lost and not allow_id_loss:
+            for kind, *rest in lost[:20]:
+                print(f"  gone: {kind} {' '.join(rest)}", file=sys.stderr)
+            raise SystemExit(
+                f"{len(lost)} ID(s) in the committed snapshot are not in the new one. "
+                "IDs are stored in users' libraries, stats and downloads, so the "
+                "app would lose them. If the site really removed or renamed them, "
+                "rerun with --allow-id-loss and say so in DECISIONS.md."
+            )
     out.mkdir(parents=True, exist_ok=True)
     (out / ASSET).write_bytes(gz)
     (out / MANIFEST).write_text(json.dumps(manifest, indent=2) + "\n")
@@ -486,12 +520,17 @@ def main(argv=None):
     b = sub.add_parser("build", help="read dhammatalks.org and write the snapshot")
     b.add_argument("--delay", type=float, default=4.0, help="seconds between requests (min 3)")
     b.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    b.add_argument(
+        "--allow-id-loss",
+        action="store_true",
+        help="write the snapshot even though IDs of the committed one are gone",
+    )
     c = sub.add_parser("check", help="verify the committed snapshot")
     c.add_argument("--max-age-days", type=int, default=None)
     c.add_argument("--out", type=Path, default=DEFAULT_OUT)
     args = parser.parse_args(argv)
     if args.command == "build":
-        build(args.out, args.delay)
+        build(args.out, args.delay, args.allow_id_loss)
         return 0
     problems = check(args.out, args.max_age_days)
     for problem in problems:

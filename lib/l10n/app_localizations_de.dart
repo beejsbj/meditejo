@@ -2838,8 +2838,8 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get exploreSourceAll => 'All';
+  String get exploreSourceAll => 'Alle';
 
   @override
-  String get exploreArchives => 'Talks by year';
+  String get exploreArchives => 'Vorträge nach Jahr';
 }

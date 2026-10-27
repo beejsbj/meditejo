@@ -91,9 +91,23 @@ class DhammatalksSource
   /// Reads the evening and morning feeds (one request each, one after the
   /// other) unless they were read within [feedInterval], and merges what they
   /// hold. Offline or failing, it keeps what is on the device.
+  ///
+  /// A call made while a read is running joins it; a forced one (pull to
+  /// refresh) then reads again once it ends.
   @override
-  Future<void> catchUp({bool force = false}) =>
-      _catchingUp ??= _catchUp(force).whenComplete(() => _catchingUp = null);
+  Future<void> catchUp({bool force = false}) {
+    final running = _catchingUp;
+    if (running == null) return _start(force);
+    return force ? running.then((_) => _start(true)) : running;
+  }
+
+  Future<void> _start(bool force) {
+    late final Future<void> run;
+    run = _catchUp(force).whenComplete(() {
+      if (identical(_catchingUp, run)) _catchingUp = null;
+    });
+    return _catchingUp = run;
+  }
 
   Future<void> _catchUp(bool force) async {
     final client = http;
@@ -117,11 +131,14 @@ class DhammatalksSource
         fresh.addAll(dtTalksFromFeed(result.text, channel));
       }
       if (fresh.isEmpty) return;
-      final before = loaded.talks.length;
+      int measure(DtCatalogue c) =>
+          c.talks.length * 1000003 +
+          c.talks.fold(0, (n, t) => n + t.durationMs);
+      final before = measure(loaded);
       loaded = loaded.withFeed(fresh);
       _catalogue = loaded;
       _feedFetchedAt = _clock();
-      // Keep every talk the feeds added that the snapshot lacks, so a talk the
+      // Keep every talk the feeds have shown (about a hundred), so a talk the
       // user kept stays playable after the feed moves on.
       final remembered = await cache.read();
       final all = {
@@ -130,9 +147,8 @@ class DhammatalksSource
       await cache.write(
         DtFeedState(fetchedAt: _feedFetchedAt!, talks: all.values.toList()),
       );
-      if (loaded.talks.length != before || fresh.any((t) => t.durationMs > 0)) {
-        revision.value++;
-      }
+      // Screens re-read only when something they show changed.
+      if (measure(loaded) != before) revision.value++;
     } catch (e) {
       AppLogger.w('DHAMMATALKS', 'Feed catch-up skipped: $e');
     }

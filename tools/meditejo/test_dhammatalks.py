@@ -157,6 +157,65 @@ class SnapshotTest(unittest.TestCase):
         self.assertEqual(a, b)
 
 
+class IdStabilityTest(unittest.TestCase):
+    def snap(self, talk_keys, course_items):
+        return {
+            "talks": [
+                ["e", k, k, "2025-01-01", f"/Archive/y2025/{k}.mp3"] for k in talk_keys
+            ],
+            "courses": [
+                {"id": "basics", "items": [[k, k, a, 0] for k, a in course_items]}
+            ],
+        }
+
+    def test_a_removed_talk_is_reported(self):
+        old = self.snap(["a", "b"], [])
+        new = self.snap(["a"], [])
+        self.assertEqual(d.vanished_ids(old, new), [("talk", "e", "b")])
+        self.assertEqual(d.vanished_ids(new, old), [], "new talks are fine")
+
+    def test_a_collection_file_that_joins_the_archive_changes_id(self):
+        old = self.snap([], [("basics-01", "/Archive/y2025/x.mp3")])
+        new = self.snap(["x"], [("basics-01", "/Archive/y2025/x.mp3")])
+        self.assertEqual(d.vanished_ids(old, new), [("file", "basics-01")])
+
+    def test_a_renamed_collection_is_reported(self):
+        old = self.snap([], [("basics-01", "/a.mp3")])
+        new = self.snap([], [("basics-01", "/a.mp3")])
+        new["courses"][0]["id"] = "foundations"
+        self.assertEqual(d.vanished_ids(old, new), [("course", "basics")])
+
+
+class PoliteTest(unittest.TestCase):
+    def make(self, robots, delay=0.0):
+        pages = []
+
+        class Fake(d.Polite):
+            def _fetch(self, url):
+                if url.endswith("/robots.txt"):
+                    return robots
+                pages.append(url)
+                return "ok"
+
+        return Fake(delay), pages
+
+    def test_a_disallowed_path_is_refused(self):
+        polite, pages = self.make("User-agent: *\nDisallow: /audio/\n")
+        with self.assertRaises(SystemExit):
+            polite.get("/audio/evening/")
+        self.assertEqual(pages, [])
+        self.assertEqual(polite.get("/mp3_guidedMed_index.html"), "ok")
+
+    def test_the_delay_cannot_be_set_below_three_seconds(self):
+        polite, _ = self.make("", delay=0.1)
+        self.assertEqual(polite.delay, d.MIN_DELAY)
+        self.assertGreaterEqual(d.MIN_DELAY, 3.0)
+
+    def test_the_user_agent_identifies_the_project(self):
+        self.assertIn("Meditejo", d.USER_AGENT)
+        self.assertIn("github.com/beejsbj/meditejo", d.USER_AGENT)
+
+
 class CheckTest(unittest.TestCase):
     def write(self, snapshot):
         tmp = Path(tempfile.mkdtemp())

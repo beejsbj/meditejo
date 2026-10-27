@@ -74,11 +74,11 @@ are **committed**: unlike the Dharma Seed catalogue they are well under 1 MB, so
 there is no fetch step. Titles, dates and file addresses only, never audio. The
 app bridges the snapshot to today with the site's two RSS feeds (50 items each),
 so a snapshot more than 45 days old fails `dhammatalks_snapshot_test.dart`, and
-`release.sh` refuses it. Refresh and commit:
+`release.sh` refuses one more than 14 days old (users open a release for weeks). Refresh and commit:
 
 ```bash
-python3 -I tools/meditejo/dhammatalks.py build      # about 47 requests, 4 s apart (~4 min)
-python3 -I tools/meditejo/dhammatalks.py check --max-age-days 45
+python3 -I tools/meditejo/dhammatalks.py build      # about 47 requests, 4 s apart (~4 min); refuses to drop IDs
+python3 -I tools/meditejo/dhammatalks.py check --max-age-days 14
 python3 -I -m unittest discover -s tools/meditejo -p 'test_dhammatalks.py'
 ```
 

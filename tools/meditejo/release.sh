@@ -145,11 +145,13 @@ if [[ $branch != "$base" ]]; then
   fi
 fi
 [[ -z $notes_file || -s $notes_file ]] || problem "notes file '$notes_file' is missing or empty"
-# The dhammatalks.org snapshot is in git and the app only bridges it to today
-# with the site's RSS feeds (50 items each), so a release refuses one older than
-# 45 days. Refresh it with: python3 -I tools/meditejo/dhammatalks.py build
+# The dhammatalks.org snapshot is in git and the app bridges it to today with the
+# site's RSS feeds (50 items each, about 45 days). A user opens the release for
+# weeks after it ships, so a release refuses a snapshot older than 14 days: the
+# gap must still be bridged then. Refresh it with:
+#   python3 -I tools/meditejo/dhammatalks.py build
 [[ ! -f tools/meditejo/dhammatalks.py ]] ||
-  python3 -I tools/meditejo/dhammatalks.py check --max-age-days 45 ||
+  python3 -I tools/meditejo/dhammatalks.py check --max-age-days 14 ||
   problem 'the dhammatalks.org snapshot is stale or damaged (see above); rebuild it with tools/meditejo/dhammatalks.py build and commit assets/dhammatalks'
 
 # Decide whether this release refreshes the bundled catalogue: only when the

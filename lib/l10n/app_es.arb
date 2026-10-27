@@ -1136,6 +1136,6 @@
   "labelsAddHint": "Add a label",
   "labelsAddButton": "Add",
   "labelsRemoveTooltip": "Remove label {label}",
-  "exploreSourceAll": "All",
-  "exploreArchives": "Talks by year"
+  "exploreSourceAll": "Todos",
+  "exploreArchives": "Charlas por año"
 }

@@ -76,6 +76,14 @@ final dharmaSeedRevisionProvider =
       ),
     );
 
+/// Changes after a dhammatalks.org feed read lands talks; watch it to re-query.
+final dhammatalksRevisionProvider =
+    NotifierProvider<ValueListenableNotifier<int>, int>(
+      () => ValueListenableNotifier(
+        (ref) => ref.watch(dhammatalksSourceProvider).revision,
+      ),
+    );
+
 /// Exposes a [ValueListenable] owned by a service as provider state.
 class ValueListenableNotifier<T> extends Notifier<T> {
   ValueListenableNotifier(this._select);

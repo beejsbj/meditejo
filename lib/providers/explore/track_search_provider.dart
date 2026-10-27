@@ -14,6 +14,7 @@ final explorePacksProvider = FutureProvider.autoDispose<List<PackItem>>((
   final packRepo = ref.watch(packRepositoryProvider);
   // Re-list when a background sync lands new courses.
   ref.watch(dharmaSeedRevisionProvider);
+  ref.watch(dhammatalksRevisionProvider);
   final packs = await packRepo.fetchAllPacks();
 
   return packs

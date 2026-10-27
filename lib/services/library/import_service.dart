@@ -652,7 +652,9 @@ class ImportService {
         : dharmaSeed;
     final draft = await source?.libraryDraft(id);
     if (draft == null) {
-      throw const ImportFailure(ImportFailureReason.dharmaSeedMissing);
+      throw source is DharmaSeedSource || source == null
+          ? const ImportFailure(ImportFailureReason.dharmaSeedMissing)
+          : ImportFailure(ImportFailureReason.notFound, id);
     }
     return _finish(id, preview.kind, choice, preview, draft: draft);
   }

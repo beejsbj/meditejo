@@ -5,10 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:medito/models/catalogue/catalogue_models.dart';
 import 'package:medito/services/dhammatalks/dhammatalks_ids.dart';
 
-/// The snapshot may be this many days old before the RSS feeds (50 items
-/// each, about a month and a half) can no longer bridge it to today. The
-/// release tooling and a test both enforce it; refresh with
-/// `python3 -I tools/meditejo/dhammatalks.py build`.
+/// How far back the RSS feeds (50 items each) reach: past this many days a
+/// snapshot leaves a gap they cannot bridge. A test enforces it on `develop`;
+/// `release.sh` is stricter (14 days), since users open a release for weeks.
+/// Refresh with `python3 -I tools/meditejo/dhammatalks.py build`.
 const dtSnapshotMaxAgeDays = 45;
 
 /// Whether a snapshot made at [asOf] has aged past what the feeds can cover.

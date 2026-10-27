@@ -409,6 +409,39 @@ void main() {
     });
 
     test(
+      'a pull to refresh during a running read reads again after it',
+      () async {
+        var calls = 0;
+        final s = source(
+          client: ImportHttp(
+            client: MockClient((_) async {
+              calls++;
+              await Future<void>.delayed(const Duration(milliseconds: 20));
+              return http.Response(feed, 200);
+            }),
+          ),
+        );
+        final opened = s.catchUp();
+        final pulled = s.catchUp(force: true);
+        await Future.wait([opened, pulled]);
+        expect(calls, 4, reason: 'two feeds, twice');
+      },
+    );
+
+    test('the revision moves only when something shown changed', () async {
+      final s = source(
+        client: ImportHttp(
+          client: MockClient((_) async => http.Response(feed, 200)),
+        ),
+      );
+      await s.catchUp();
+      final after = s.revision.value;
+      expect(after, greaterThan(0));
+      await s.catchUp(force: true);
+      expect(s.revision.value, after, reason: 'the same feed adds nothing');
+    });
+
+    test(
       'nothing is fetched until asked, and a failure keeps what there is',
       () async {
         var calls = 0;

@@ -1376,6 +1376,6 @@
   "labelsAddHint": "Add a label",
   "labelsAddButton": "Add",
   "labelsRemoveTooltip": "Remove label {label}",
-  "exploreSourceAll": "All",
-  "exploreArchives": "Talks by year"
+  "exploreSourceAll": "Alle",
+  "exploreArchives": "Vorträge nach Jahr"
 }
