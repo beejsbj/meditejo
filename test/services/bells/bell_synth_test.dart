@@ -288,8 +288,19 @@ void main() {
       final bright = BellSynth.modes(
         BellSpec('temple', _knobs(196, 0.8, 3.2, 0.2, 1.3)),
       );
-      expect(BellRecipe.upperShare(bright), closeTo(0.8, 0.001));
-      expect(BellRecipe.upperShare(dark), closeTo(0.05, 0.001));
+      // Measured against the bell's own loudest mode (196 Hz), which the
+      // brighter bell's upper modes may out-shout.
+      double share(List<BellMode> modes) {
+        double e(BellMode m) => m.a * m.a * m.tau;
+        final total = modes.fold(0.0, (s, m) => s + e(m));
+        final upper = modes
+            .where((m) => m.f > 196 * 1.05)
+            .fold(0.0, (s, m) => s + e(m));
+        return upper / total;
+      }
+
+      expect(share(bright), closeTo(0.8, 0.001));
+      expect(share(dark), closeTo(0.05, 0.001));
     });
 
     test('shimmer: every mode beats in proportion', () {
