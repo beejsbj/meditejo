@@ -406,10 +406,8 @@ class SoundPackController extends Notifier<SoundPackState> {
       );
       _queue.remove(job);
       if (!ref.mounted) return;
-      if (cancel.isCancelled) {
-        _forget([id]);
-        return;
-      }
+      // Cancelled: [cancel] already forgot it.
+      if (cancel.isCancelled) return;
       final downloads = {...state.downloads}..remove(id);
       state = state.copyWith(
         downloaded: {...state.downloaded, id},
