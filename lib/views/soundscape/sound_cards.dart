@@ -404,29 +404,33 @@ class PresetCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                // One line of chips: each gives way (ellipsis) before the
+                // row would wrap.
                 Expanded(
-                  child: Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    clipBehavior: Clip.hardEdge,
+                  child: Row(
                     children: [
                       for (final chip in chips)
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.28),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                        Flexible(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 3,
-                            ),
-                            child: Text(
-                              chip,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: type.baseline.labelSmall?.copyWith(
-                                color: _onArt,
+                            padding: const EdgeInsets.only(right: 4),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.28),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 3,
+                                ),
+                                child: Text(
+                                  chip,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: type.baseline.labelSmall?.copyWith(
+                                    color: _onArt,
+                                  ),
+                                ),
                               ),
                             ),
                           ),

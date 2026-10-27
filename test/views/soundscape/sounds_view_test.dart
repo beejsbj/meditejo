@@ -11,6 +11,7 @@ import 'package:medito/models/soundscape/synth.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/views/soundscape/sound_credits_view.dart';
+import 'package:medito/views/soundscape/sound_cards.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:medito/views/soundscape/synth_editors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -171,13 +172,94 @@ void main() {
     await pump(tester);
     final night = find.byKey(const ValueKey('preset_starter-night'));
     await tester.ensureVisible(night);
-    await tester.tap(night);
+    // Presets are wide prints, so the second shows only in part: tap the
+    // part that's on screen.
+    final row = tester.getRect(
+      find.byKey(const PageStorageKey('sounds_presets')),
+    );
+    await tester.tapAt(tester.getRect(night).intersect(row).center);
     await tester.pumpAndSettle();
     final state = container.read(soundscapeProvider);
     expect(state.playing, isTrue);
     expect(state.matchingPreset?.id, 'starter-night');
     expect(engine.playing.keys.toSet(), {'night-meadow', 'stream'});
-    expect(find.text('Playing'), findsWidgets);
+    expect(
+      find.descendant(
+        of: night,
+        matching: find.byIcon(Symbols.equalizer_rounded),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('presets and sounds look different, and tap differently', (
+    tester,
+  ) async {
+    phone(tester);
+    await pump(tester);
+    final preset = find.byKey(const ValueKey('preset_starter-night'));
+    final sound = find.byKey(const ValueKey('sound_rain-car'));
+    await tester.ensureVisible(preset);
+    // A preset is a wide print: whose it is, its layers, and play.
+    final print = tester.getSize(preset);
+    expect(print.width / (print.height - kPresetStackDepth), closeTo(2, 0.01));
+    expect(
+      find.descendant(of: preset, matching: find.text('MEDITEJO')),
+      findsOneWidget,
+    );
+    for (final layer in ['Meadow at night', 'Mountain stream']) {
+      expect(
+        find.descendant(of: preset, matching: find.text(layer)),
+        findsOneWidget,
+      );
+    }
+    expect(
+      find.descendant(
+        of: preset,
+        matching: find.byIcon(Symbols.play_arrow_rounded),
+      ),
+      findsOneWidget,
+    );
+
+    // A sound is a square tile with a + while it's out of the mix.
+    await tester.scrollUntilVisible(
+      sound,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const PageStorageKey('sounds_library')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    final tile = tester.getSize(sound);
+    expect(tile.width, closeTo(tile.height, 0.5));
+    expect(
+      find.descendant(of: sound, matching: find.byIcon(Symbols.add_rounded)),
+      findsOneWidget,
+    );
+    final before = {for (final l in mix().layers) l.soundId};
+
+    // Tapping a sound adds one layer and keeps the rest; its + turns into a tick.
+    await tester.tap(sound);
+    await tester.pumpAndSettle();
+    expect({for (final l in mix().layers) l.soundId}, {...before, 'rain-car'});
+    expect(
+      find.descendant(of: sound, matching: find.byIcon(Symbols.check_rounded)),
+      findsOneWidget,
+    );
+
+    // Tapping a preset replaces the whole mix.
+    await reveal(tester, preset, delta: -200);
+    final row = tester.getRect(
+      find.byKey(const PageStorageKey('sounds_presets')),
+    );
+    await tester.tapAt(tester.getRect(preset).intersect(row).center);
+    await tester.pumpAndSettle();
+    expect(
+      {for (final l in mix().layers) l.soundId},
+      {'night-meadow', 'stream'},
+    );
   });
 
   testWidgets('layers: volume, mute, drift and remove', (tester) async {
