@@ -299,18 +299,8 @@ final class CueSoundBank {
 
     func preload(_ asset: String?) {
         guard let asset = asset, pools[asset] == nil else { return }
-        // A bell the user made arrives as an absolute path to a WAV in the app's own storage.
         let key = FlutterDartProject.lookupKey(forAsset: asset)
-        let url: URL
-        if asset.hasPrefix("/") {
-            guard FileManager.default.fileExists(atPath: asset) else {
-                NSLog("[Cues] missing bell file \(asset)")
-                return
-            }
-            url = URL(fileURLWithPath: asset)
-        } else if let bundled = Bundle.main.url(forResource: key, withExtension: nil) {
-            url = bundled
-        } else {
+        guard let url = Bundle.main.url(forResource: key, withExtension: nil) else {
             NSLog("[Cues] missing asset \(asset)")
             return
         }

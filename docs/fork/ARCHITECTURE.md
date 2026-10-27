@@ -805,10 +805,10 @@ the controls: a missing file is rendered again.
 Native engines play paths, so `NativeCueController.configure` swaps each
 `custom-bell:` id for the file's path on the way over
 (`nativeBellSound`); a bell that was deleted or cannot be made rings as the
-default bell. `CueSoundBank` (Android) and `CueSoundBank` in `CueScheduler.swift`
-open an absolute path as well as a Flutter asset; Android accepts only a plain
-file under 1 MiB inside the app's data directory
-(`CueSoundBank.resolveFile`, `CueCustomBellFileTest`). Deleting a bell moves
+default bell. Android's `CueSoundBank` opens an absolute path as well as a Flutter asset, and
+accepts only a plain file under 1 MiB inside the app's data directory
+(`CueSoundBank.resolveFile`, `CueCustomBellFileTest`); iOS is shelved
+(decision 24) and its bank still reads assets only. Deleting a bell moves
 every stored cue scope that rang it to the default bell
 (`CueSettingsStore.replaceSound`). The editor is `BellMakerView`, opened from the
 last row of the Customize sheet's `_BellList`, which also lists "Your bells"
