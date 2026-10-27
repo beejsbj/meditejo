@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/providers/categories/category_providers.dart';
 import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/library/library_view_provider.dart';
@@ -74,11 +75,18 @@ class _LibraryBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final options = ref.watch(libraryViewOptionsProvider);
+    // A label nothing carries any more (its last item was removed or
+    // unlabelled) filters nothing, rather than showing an empty library.
+    final labelOptions = ref.watch(libraryLabelOptionsProvider);
+    final stored = ref.watch(libraryViewOptionsProvider);
+    final options = labelOptions.any((o) => o.key == stored.label)
+        ? stored
+        : stored.copyWith(label: () => null);
     final inProgress = ref.watch(inProgressItemsProvider).value ?? const [];
     final arranged = arrangeLibrary(
       entries,
       options,
+      labels: ref.watch(libraryLabelsProvider).value ?? const {},
       progress: ref.watch(libraryProgressProvider),
       downloaded: options.filter == LibraryFilter.downloads
           ? ref.watch(libraryDownloadedIdsProvider)
@@ -97,7 +105,7 @@ class _LibraryBody extends ConsumerWidget {
               child: InProgressStrip(items: inProgress),
             ),
           ),
-        const SliverToBoxAdapter(child: _Controls()),
+        SliverToBoxAdapter(child: _Controls(labelOptions: labelOptions)),
         if (arranged.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
@@ -201,7 +209,9 @@ class _CardGrid extends StatelessWidget {
 
 /// The kind chips, then Practice or Talks, the sort and the layout switch.
 class _Controls extends ConsumerWidget {
-  const _Controls();
+  const _Controls({required this.labelOptions});
+
+  final List<LibraryLabelOption> labelOptions;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -230,6 +240,26 @@ class _Controls extends ConsumerWidget {
               }, key: ValueKey('library_filter_${filter.name}')),
           ],
         ),
+        if (labelOptions.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: FilterChipBar<String>(
+              semanticsLabel: l10n.libraryLabelFilterLabel,
+              selected: labelOptions.any((o) => o.key == options.label)
+                  ? options.label
+                  : null,
+              allowDeselect: true,
+              onSelected: notifier.setLabel,
+              options: [
+                for (final option in labelOptions)
+                  FilterOption(
+                    option.key,
+                    option.name,
+                    key: ValueKey('library_label_${option.key}'),
+                  ),
+              ],
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(kCardGutter, 8, 4, 0),
           // Wraps under large text: the switch keeps its line, the sort and

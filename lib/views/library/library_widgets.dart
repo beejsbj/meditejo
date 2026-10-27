@@ -11,6 +11,7 @@ import 'package:medito/services/library/lib_ids.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/views/home/widgets/continue/continue_section.dart';
+import 'package:medito/views/categories/labels_sheet.dart';
 import 'package:medito/views/library/library_actions.dart';
 import 'package:medito/views/library/library_format.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
@@ -311,6 +312,11 @@ class LibraryEntryMenu extends ConsumerWidget {
         ),
         _Action.toTalks => setLibraryGroup(ref, entry, LibraryGroup.talks),
         _Action.rename => renameLibraryEntry(context, ref, entry),
+        _Action.labels => showLabelsSheet(
+          context,
+          id: entry.sourceId,
+          title: entry.title,
+        ),
         _Action.pin => togglePinnedCourse(context, ref, entry.sourceId),
         _Action.remove => removeFromLibrary(context, ref, entry),
       },
@@ -345,6 +351,12 @@ class LibraryEntryMenu extends ConsumerWidget {
           ),
         if (!isTeacher)
           PopupMenuItem(value: _Action.rename, child: Text(l10n.libraryRename)),
+        if (!isTeacher)
+          PopupMenuItem(
+            key: const ValueKey('library_menu_labels'),
+            value: _Action.labels,
+            child: Text(l10n.libraryMenuLabels),
+          ),
         if (entry.isCourse)
           PopupMenuItem(
             key: const ValueKey('library_menu_pin'),
@@ -375,6 +387,7 @@ enum _Action {
   toPractice,
   toTalks,
   rename,
+  labels,
   pin,
   remove,
   delete,

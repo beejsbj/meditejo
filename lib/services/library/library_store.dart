@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
+import 'package:medito/services/categories/entry_labels.dart';
 import 'package:medito/services/library/library_database.dart';
 import 'package:medito/services/library/library_models.dart';
 
@@ -169,6 +170,66 @@ class LibraryStore {
     addedAt: row.addedAt,
     lastPlayedAt: row.lastPlayedAt,
   );
+
+  // ---------------------------------------------------------------- labels
+
+  /// Everything the user said about any entry, by content ID. Kept apart
+  /// from the entries so it outlives removing one and any catalogue refresh.
+  Future<Map<String, UserLabels>> userLabels() async {
+    await _ready();
+    final added = <String, Map<String, String>>{};
+    final excluded = <String, Set<String>>{};
+    for (final row in await db.allLabels()) {
+      if (row.excluded) {
+        (excluded[row.sourceId] ??= {}).add(row.label);
+      } else {
+        (added[row.sourceId] ??= {})[row.label] = row.display;
+      }
+    }
+    return {
+      for (final id in {...added.keys, ...excluded.keys})
+        id: UserLabels(
+          added: added[id] ?? const {},
+          excluded: excluded[id] ?? const {},
+        ),
+    };
+  }
+
+  /// Puts a label on an entry. [label] is a curated category's ID, or the
+  /// [customLabelKey] of a label of the user's own with its [display] text.
+  Future<void> addLabel(String sourceId, String label, {String display = ''}) =>
+      _putLabel(sourceId, label, display: display, excluded: false);
+
+  /// Says an automatic category does not belong on an entry.
+  Future<void> excludeCategory(String sourceId, String categoryId) =>
+      _putLabel(sourceId, categoryId, excluded: true);
+
+  /// Forgets what the user said about [label]: an added label goes, and an
+  /// excluded category returns to whatever the app thinks.
+  Future<void> clearLabel(String sourceId, String label) async {
+    await _ready();
+    if (await db.deleteLabel(sourceId, label) > 0) _changed();
+  }
+
+  Future<void> _putLabel(
+    String sourceId,
+    String label, {
+    String display = '',
+    required bool excluded,
+  }) async {
+    await _ready();
+    if (label.isEmpty) return;
+    await db.putLabel(
+      LibraryLabelsCompanion.insert(
+        sourceId: sourceId,
+        label: label,
+        display: Value(display.trim()),
+        excluded: Value(excluded),
+        createdAt: _clock(),
+      ),
+    );
+    _changed();
+  }
 
   // ------------------------------------------------------------- positions
 

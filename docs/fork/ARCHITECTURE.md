@@ -56,7 +56,6 @@ and URL) is what a licence asks to be shown where content is played or viewed.
 | `lib/repositories/track/track_repository.dart` | `TrackRepository`: source track lookup, then saved download metadata; current-track preferences |
 | `lib/repositories/home/home_repository.dart` | `HomeRepository`: home sections; announcements are currently absent |
 | `lib/repositories/explore/` | Pack and track search results across sources |
-| `lib/repositories/tags/tags_repository.dart` | Tag catalogue and tracks by tag (local catalogue only) |
 | `lib/repositories/background_sounds/` | Legacy single-sound catalogue (empty) and session-bell preferences; the bundled library and mixer are in `lib/providers/soundscape/` (see Sounds and the mixer) |
 
 ### Dharma Seed (`ds-`)
@@ -411,6 +410,68 @@ belong to `BackgroundSoundsRepository`.
 Catalogue metadata belongs behind these repositories. Remote audio download is
 separate: `lib/services/download_service.dart` streams generic URLs to a temporary
 file, then renames it only after success. It sends no Medito credentials.
+
+## Categories and labels
+
+Practices can be browsed and filtered by category (BJS-586). Two layers on one
+model: **categories** are a curated list the app ships; **labels** are the
+user's own words on library items. A label the user types that names a
+category *is* that category; anything else is a label of their own.
+
+- **The asset** (`assets/categories/categories.json`, parsed by
+  `CategoryCatalogue`, `lib/services/categories/`). `format` is the layout
+  this build reads, `version` and `updated` the edition of the curation (bump
+  `version` by hand whenever the mapping changes). It holds:
+  - `categories`: ID, name, a one-line blurb and aliases. Metta, Vipassanā,
+    Jhāna, Samatha, Open awareness, Breath, Body, TMI, Sankalpa, Emptiness.
+    Names are practice terms and live here, not in the `.arb` files.
+  - `curated`: content IDs (`ds-retreat-4496`, `ds-talk-60864`, or another
+    source's ID) with their categories and the item's name. A curated entry
+    **replaces** the keyword rules for that ID; `"categories": []` says "none of
+    the guesses apply" and is how a false positive is silenced. Names are a
+    typo guard: `categories_asset_test.dart` checks every `ds-` ID exists in the
+    bundled snapshot and that its name still matches.
+  - `rules`: per category, `title` terms and a stricter `description` list.
+    Terms are whole words after folding (case, diacritics and punctuation
+    ignored: Jhāna = jhana), phrases are consecutive words, and a trailing `*`
+    makes the last word a prefix (`jhan*`). Descriptions mention everything in
+    passing, so only distinctive words are allowed there (jhana, samatha,
+    anapanasati, …).
+- **Precedence, one rule everywhere:** the user's labels, then the curated
+  mapping, then the keyword rules. A talk with no entry of its own also takes
+  its retreat's categories (`classify(inherited:)`). The guesses are computed
+  on read, never stored, so a new catalogue or a new asset edition changes only
+  the guesses.
+- **The user's labels** are `LibraryLabels` in `meditejo_library.sqlite`
+  (schema 5), keyed by content ID: a row either *adds* a label (a category ID,
+  or the folded text of a label of their own with the text as typed) or
+  *excludes* an automatic category. `resolveLabels` (`entry_labels.dart`)
+  applies them: guesses, minus exclusions, plus additions (additions show
+  `CategorySource.user`). They sit in the user's own database, not the
+  replaceable Dharma Seed one, and removing an entry leaves them, so Undo and
+  re-adding find them again. `LibraryStore.userLabels / addLabel /
+  excludeCategory / clearLabel` are the only writers.
+- **`CategoryService`** reads and edits: `labelsOfEntries`, `labelsOf`,
+  `setCategory`, `addLabel`, and `listing(categoryId)`. A category page is the
+  library's entries with that category (exact, including the user's), plus
+  Dharma Seed: the curated retreats and talks, then what the rules find
+  through the on-device FTS index (title terms in `name` / `title`,
+  description terms in `description`; the rules re-check each hit, because the
+  index is looser and knows nothing of curated exclusions). Up to 30 rule
+  courses and 30 rule sessions per group, curated ones always. Retreats with
+  no stored talks are left out; a session whose retreat is already listed is
+  not repeated. Retreats are Practice; sessions follow `recording_type`.
+- **Screens, kept thin** (`lib/views/categories/`): `ExploreCategoryChips` (a
+  chip per category on Explore), `CategoryView` (Practice, then Talks: the
+  library's entries, then catalogue courses, then sessions), `LabelsSheet`
+  (opened from a library entry's menu: category chips, the user's own labels,
+  a field to add one) and `CategoryChips` (course and session pages). The
+  Library gets a row of category and label chips under the kind chips
+  (`libraryLabelOptionsProvider`; `LibraryViewOptions.label`, not kept between
+  visits); `arrangeLibrary` filters on it.
+- Medito's own tag system (server-sent tag catalogue, track → tag map, goal
+  tags like sleep and anxiety) was deleted with this: nothing fed it, and it
+  had no way to hold a user's label.
 
 ## Player
 
