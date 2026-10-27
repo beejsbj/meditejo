@@ -784,6 +784,37 @@ bell volume; a folded row's play button rings the chosen bell; folding the
 list or closing the sheet stops it. `CueBellCatalogueTest` (Kotlin)
 reads the Dart catalogue, so the native side and the list cannot drift.
 
+**Bells the user makes (BJS-587).** `lib/services/bells/` runs the generator's
+modal synthesis in Dart. `bell_recipes.dart` is **generated** from
+`generate_bells.py` by `tools/meditejo/bell_recipes.py` (`--check` in the Bells
+workflow): each bell's modes (frequency, amplitude, decay, beat, swell-in,
+phase, glide) and strike, the swell bell's two modes being the ones measured
+for identity round 5. `BellSynth.render(BellSpec)` moves a bell's modes with the
+five controls (pitch and ring and shimmer scale every mode, brightness sets the
+upper modes' share of the ring's energy, strike sets the mallet noise's
+low-pass), then scales to the session bell's momentary loudness under a
+-1 dBFS ceiling, as `finish()` in the generator does. It has no clock and no
+platform random, so a spec gives the same bytes every time;
+`renderBellWavInBackground` runs it in an isolate.
+`CustomBellStore` keeps the list (name, starting bell, controls: preferences key
+`bells.custom.v1`) and each WAV in `<app support>/custom_bells/<token>.wav`. A
+bell's id is `custom-bell:<token>`: random, never derived from its name, so a
+rename keeps every cue that rings it. `CueSettings` accepts a well-formed id for
+the three bell cues, whether or not the bell still exists. The WAV is a cache of
+the controls: a missing file is rendered again.
+Native engines play paths, so `NativeCueController.configure` swaps each
+`custom-bell:` id for the file's path on the way over
+(`nativeBellSound`); a bell that was deleted or cannot be made rings as the
+default bell. `CueSoundBank` (Android) and `CueSoundBank` in `CueScheduler.swift`
+open an absolute path as well as a Flutter asset; Android accepts only a plain
+file under 1 MiB inside the app's data directory
+(`CueSoundBank.resolveFile`, `CueCustomBellFileTest`). Deleting a bell moves
+every stored cue scope that rang it to the default bell
+(`CueSettingsStore.replaceSound`). The editor is `BellMakerView`, opened from the
+last row of the Customize sheet's `_BellList`, which also lists "Your bells"
+with rename and delete. A bell being made is drawn by
+`ArtSubject.customBell` (a `BellFigure` from the live controls, not cached).
+
 `NativeCueController` sends plain configuration over `meditejo/cues`.
 Android's `CueEngine` lives in `AudioPlayerService`, with predecoded SoundPool
 assets and pure scheduling/listening maths in `CueMath.kt`. It follows media
