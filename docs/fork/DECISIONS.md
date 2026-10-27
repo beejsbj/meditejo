@@ -738,7 +738,8 @@ ARCHITECTURE.md, "The sound pack", has the design; these are the calls.
 - **Test fixtures.** The widget tests' fake clock never lets file I/O finish, so the widget and mixer tests use a
   `FakeSoundPack`; the real controller and downloader are tested over a temp directory
   (`sound_pack_controller_test.dart`, `sound_pack_service_test.dart`).
-- **Follow-ups, not done here:** per-sound delete; a quiet "N sounds to download" line in the player's Customize
+- **Follow-ups, not done here:** a mix that stopped because nothing in it was downloaded does not start by itself when the download
+  finishes (the message says to press play; resuming is a product call); per-sound delete; a quiet "N sounds to download" line in the player's Customize
   sheet where the mix is chosen; resuming a half-finished download (it restarts, at most 1 MB lost); offering the
   pack on first launch (the brief says the opposite: nothing downloads unasked).
 
