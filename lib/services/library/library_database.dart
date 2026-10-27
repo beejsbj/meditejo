@@ -311,12 +311,19 @@ class LibraryDatabase extends _$LibraryDatabase {
         await m.addColumn(libTracks, libTracks.licenseName);
         await m.addColumn(libTracks, libTracks.licenseUrl);
       }
-      if (from < 5) {
+      if (from < 5 && !await _hasTable('library_labels')) {
+        // A file that already has the table (a build of this branch from
+        // before schema 4 was taken) only needs its version moved.
         await m.createTable(libraryLabels);
         await m.createIndex(libraryLabelsLabel);
       }
     },
   );
+
+  Future<bool> _hasTable(String name) async => (await customSelect(
+    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+    variables: [Variable.withString(name)],
+  ).get()).isNotEmpty;
 
   Future<YoutubeVideoRow?> youtubeVideo(String id) => (select(
     youtubeVideos,
