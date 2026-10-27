@@ -4983,6 +4983,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Daily · {name} today'**
   String paletteDailyToday(String name);
+
+  /// Library heading over what the user has started and not finished
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get libraryInProgress;
+
+  /// Library filter chip: everything
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get libraryFilterAll;
+
+  /// Library filter chip: courses from a source
+  ///
+  /// In en, this message translates to:
+  /// **'Courses'**
+  String get libraryFilterCourses;
+
+  /// Library filter chip: what the user made
+  ///
+  /// In en, this message translates to:
+  /// **'Playlists'**
+  String get libraryFilterPlaylists;
+
+  /// Library filter chip: single sessions
+  ///
+  /// In en, this message translates to:
+  /// **'Singles'**
+  String get libraryFilterSingles;
+
+  /// Library filter chip: what is downloaded
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads'**
+  String get libraryFilterDownloads;
+
+  /// Screen-reader label of the Library's filter chips
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get libraryFilterLabel;
+
+  /// Screen-reader label of the Library's Practice/Talks switch
+  ///
+  /// In en, this message translates to:
+  /// **'Practice or talks'**
+  String get libraryGroupLabel;
+
+  /// Tooltip of the Library's sort menu
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get librarySort;
+
+  /// Sort the Library by most recently played or added
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get librarySortRecent;
+
+  /// Sort the Library by name
+  ///
+  /// In en, this message translates to:
+  /// **'A–Z'**
+  String get librarySortTitle;
+
+  /// Sort the Library by how far along a course is
+  ///
+  /// In en, this message translates to:
+  /// **'Progress'**
+  String get librarySortProgress;
+
+  /// Tooltip: switch the Library to a grid of cards
+  ///
+  /// In en, this message translates to:
+  /// **'Show as grid'**
+  String get libraryShowGrid;
+
+  /// Tooltip: switch the Library to a list
+  ///
+  /// In en, this message translates to:
+  /// **'Show as list'**
+  String get libraryShowList;
+
+  /// Where a course came from, on its Library card: the user's own link or files
+  ///
+  /// In en, this message translates to:
+  /// **'Imported'**
+  String get librarySourceImported;
+
+  /// Library heading when a filter matches nothing
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here yet'**
+  String get libraryFilterEmpty;
+
+  /// Library text when a filter matches nothing
+  ///
+  /// In en, this message translates to:
+  /// **'Find something in Explore, or add a link or a file.'**
+  String get libraryFilterEmptyBody;
+
+  /// Button in an empty Library that opens the Explore tab
+  ///
+  /// In en, this message translates to:
+  /// **'Explore'**
+  String get libraryEmptyExplore;
+
+  /// Screen-reader label of the pin mark on a Library card
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned to Home'**
+  String get libraryPinned;
 }
 
 class _AppLocalizationsDelegate

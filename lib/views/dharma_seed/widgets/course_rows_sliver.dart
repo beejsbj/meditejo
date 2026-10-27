@@ -9,11 +9,13 @@ import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/my_courses/playlist_label.dart';
 import 'package:medito/widgets/add_to_library_icon.dart';
-import 'package:medito/widgets/network_image_widget.dart';
+import 'package:medito/widgets/cards/card_art.dart';
+import 'package:medito/widgets/cards/card_tokens.dart';
+import 'package:medito/widgets/cards/course_card.dart';
 
-/// Courses as compact rows: artwork, title, and "teacher · year · N talks".
-/// Used where a grid of cards would crowd the page (search results, a
-/// teacher's courses).
+/// Courses as wide row cards: art, title, and "teacher · year · N talks",
+/// with Add to library and the course's menu. Used where a strip of large
+/// cards would crowd the page (search results, a teacher's courses).
 class CourseRowsSliver extends ConsumerWidget {
   const CourseRowsSliver({
     super.key,
@@ -27,78 +29,48 @@ class CourseRowsSliver extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final completed = ref.watch(completedPackIdsProvider);
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     return SliverList.builder(
       itemCount: courses.length,
       itemBuilder: (context, index) {
         final course = courses[index];
-        final detail = playlistAwareDetail(l10n, course.id, course.subtitle);
-        return Semantics(
-          button: true,
-          child: InkWell(
-            key: ValueKey('course_${course.id}'),
-            onTap: () {
-              onBeforeNavigate?.call();
-              handleNavigation(
-                TypeConstants.pack,
-                [course.id, course.path],
-                context,
-                ref: ref,
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: padding16,
-                vertical: 10,
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(
+            kCardGutter,
+            0,
+            kCardGutter,
+            kCardGap / 2,
+          ),
+          child: Semantics(
+            button: true,
+            child: CourseRowCard(
+              key: ValueKey('course_${course.id}'),
+              title: course.title,
+              detail: playlistAwareDetail(l10n, course.id, course.subtitle),
+              art: CardArt(
+                url: course.coverUrl ?? '',
+                seed: course.title,
+                portrait: hasPortraitCover(course.id),
+                avatarSize: 28,
               ),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: SizedBox.square(
-                      dimension: 64,
-                      child: NetworkImageWidget(
-                        url: course.coverUrl ?? '',
-                        seed: course.title,
-                        shouldCache: true,
-                        alignment: Alignment.topCenter,
-                      ),
-                    ),
+              onTap: () {
+                onBeforeNavigate?.call();
+                handleNavigation(
+                  TypeConstants.pack,
+                  [course.id, course.path],
+                  context,
+                  ref: ref,
+                );
+              },
+              trailing: [
+                if (completed.contains(course.id))
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8),
+                    child: PackCompleteBadge(),
                   ),
-                  const SizedBox(width: padding16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          course.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.headlineMedium,
-                        ),
-                        if ((detail ?? '').isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Text(
-                              detail!,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleMedium,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  if (completed.contains(course.id))
-                    const Padding(
-                      padding: EdgeInsets.only(left: 8),
-                      child: PackCompleteBadge(),
-                    ),
-                  AddToLibraryIcon(id: course.id),
-                  ContentActionsButton(id: course.id, title: course.title),
-                ],
-              ),
+                AddToLibraryIcon(id: course.id),
+                ContentActionsButton(id: course.id, title: course.title),
+              ],
             ),
           ),
         );

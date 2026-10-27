@@ -3130,5 +3130,81 @@
         "type": "String"
       }
     }
+  },
+  "libraryInProgress": "In progress",
+  "@libraryInProgress": {
+    "description": "Library heading over what the user has started and not finished"
+  },
+  "libraryFilterAll": "All",
+  "@libraryFilterAll": {
+    "description": "Library filter chip: everything"
+  },
+  "libraryFilterCourses": "Courses",
+  "@libraryFilterCourses": {
+    "description": "Library filter chip: courses from a source"
+  },
+  "libraryFilterPlaylists": "Playlists",
+  "@libraryFilterPlaylists": {
+    "description": "Library filter chip: what the user made"
+  },
+  "libraryFilterSingles": "Singles",
+  "@libraryFilterSingles": {
+    "description": "Library filter chip: single sessions"
+  },
+  "libraryFilterDownloads": "Downloads",
+  "@libraryFilterDownloads": {
+    "description": "Library filter chip: what is downloaded"
+  },
+  "libraryFilterLabel": "Show",
+  "@libraryFilterLabel": {
+    "description": "Screen-reader label of the Library's filter chips"
+  },
+  "libraryGroupLabel": "Practice or talks",
+  "@libraryGroupLabel": {
+    "description": "Screen-reader label of the Library's Practice/Talks switch"
+  },
+  "librarySort": "Sort",
+  "@librarySort": {
+    "description": "Tooltip of the Library's sort menu"
+  },
+  "librarySortRecent": "Recent",
+  "@librarySortRecent": {
+    "description": "Sort the Library by most recently played or added"
+  },
+  "librarySortTitle": "A–Z",
+  "@librarySortTitle": {
+    "description": "Sort the Library by name"
+  },
+  "librarySortProgress": "Progress",
+  "@librarySortProgress": {
+    "description": "Sort the Library by how far along a course is"
+  },
+  "libraryShowGrid": "Show as grid",
+  "@libraryShowGrid": {
+    "description": "Tooltip: switch the Library to a grid of cards"
+  },
+  "libraryShowList": "Show as list",
+  "@libraryShowList": {
+    "description": "Tooltip: switch the Library to a list"
+  },
+  "librarySourceImported": "Imported",
+  "@librarySourceImported": {
+    "description": "Where a course came from, on its Library card: the user's own link or files"
+  },
+  "libraryFilterEmpty": "Nothing here yet",
+  "@libraryFilterEmpty": {
+    "description": "Library heading when a filter matches nothing"
+  },
+  "libraryFilterEmptyBody": "Find something in Explore, or add a link or a file.",
+  "@libraryFilterEmptyBody": {
+    "description": "Library text when a filter matches nothing"
+  },
+  "libraryEmptyExplore": "Explore",
+  "@libraryEmptyExplore": {
+    "description": "Button in an empty Library that opens the Explore tab"
+  },
+  "libraryPinned": "Pinned to Home",
+  "@libraryPinned": {
+    "description": "Screen-reader label of the pin mark on a Library card"
   }
 }

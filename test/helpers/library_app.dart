@@ -142,6 +142,7 @@ class LibraryTestApp {
     /// Open [page] on top of an empty root, so it can close itself.
     bool asRoute = false,
     List<String> played = const [],
+    Set<String> downloaded = const {},
     List<Override> overrides = const [],
     ImportService? importService,
   }) async {
@@ -162,7 +163,7 @@ class LibraryTestApp {
           shareIntakeProvider.overrideWithValue(share),
           clipboardLinkReaderProvider.overrideWithValue(() async => clipboard),
           statsProvider.overrideWith(() => _Stats(played)),
-          downloadedTrackIdsProvider.overrideWithValue(const {}),
+          downloadedTrackIdsProvider.overrideWithValue(downloaded),
           // An empty catalogue stands in for Dharma Seed.
           dharmaSeedSourceProvider.overrideWithValue(harness.dharmaSeed),
           ...overrides,

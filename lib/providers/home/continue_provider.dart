@@ -8,22 +8,35 @@ import 'package:medito/services/home/continue_rules.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/utils/logger.dart';
 
-/// What Home offers to carry on with: up to three sessions, from any source,
-/// that were started and not finished, practice first and then the most
-/// recently played. Two kinds count: a session left partway (it resumes where
-/// it stopped), and a course with some sessions done and some not (it offers
-/// its next one). A course shows once.
+/// Everything in progress, ranked as Home's Continue ranks it but with no
+/// limit: sessions from any source that were started and not finished,
+/// practice first and then the most recently played. Two kinds count: a
+/// session left partway (it resumes where it stopped), and a course with some
+/// sessions done and some not (it offers its next one). A course shows once.
+/// The Library's In progress shows the whole set; Home shows the first few.
+final inProgressItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>(
+  (ref) => _readContinue(ref, limit: null, fallback: false),
+);
+
+/// What Home offers to carry on with: the first three of
+/// [inProgressItemsProvider].
 ///
 /// With nothing in progress this is the next session of a pinned course, or
 /// else of the first course in the library (the starter set leads it on a
 /// fresh install), so Home is not empty while there is anything to start.
-final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
-  ref,
-) async {
+final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>(
+  (ref) => _readContinue(ref, limit: continueLimit, fallback: true),
+);
+
+Future<List<ContinueItem>> _readContinue(
+  Ref ref, {
+  required int? limit,
+  required bool fallback,
+}) async {
   ref.watch(libraryRevisionProvider);
   ref.watch(playbackPositionsRevisionProvider);
   final checked = {...?ref.watch(statsProvider).value?.tracksChecked};
-  final pinned = ref.watch(pinnedCoursesProvider);
+  final pinned = fallback ? ref.watch(pinnedCoursesProvider) : const <String>[];
   final store = ref.watch(libraryStoreProvider);
   final router = ref.watch(libraryContentRouterProvider);
 
@@ -145,8 +158,8 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
     candidates.add(fromItem(pack, next, entry));
   }
 
-  final ranked = rankContinue(candidates);
-  if (ranked.isNotEmpty) return ranked;
+  final ranked = rankContinue(candidates, limit: limit);
+  if (ranked.isNotEmpty || !fallback) return ranked;
 
   // Nothing in progress: the next session of a pinned course, else of the
   // first course in the library.
@@ -163,4 +176,4 @@ final continueItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>((
     }
   }
   return const [];
-});
+}

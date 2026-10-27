@@ -43,6 +43,10 @@ class SharedPreferenceConstants {
   static const String mainTabLayout = 'main_tab_layout';
   static const String homeWidgetHidden = 'homeWidgetHidden';
   static const String pinnedCourseIds = 'pinned_course_ids';
+
+  /// How the Library tab sorts and lays out what is kept.
+  static const String librarySort = 'library_sort';
+  static const String libraryLayout = 'library_layout';
   static const String installedVersionHistory = 'installed_version_history';
   static const String onboardingExperienceLevel = 'onboarding_experience_level';
   static const String timerMinutes = 'timer_minutes';

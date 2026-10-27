@@ -2854,4 +2854,62 @@ class AppLocalizationsEs extends AppLocalizations {
   String paletteDailyToday(String name) {
     return 'Diaria · hoy $name';
   }
+
+  @override
+  String get libraryInProgress => 'En curso';
+
+  @override
+  String get libraryFilterAll => 'Todo';
+
+  @override
+  String get libraryFilterCourses => 'Cursos';
+
+  @override
+  String get libraryFilterPlaylists => 'Listas';
+
+  @override
+  String get libraryFilterSingles => 'Sueltas';
+
+  @override
+  String get libraryFilterDownloads => 'Descargas';
+
+  @override
+  String get libraryFilterLabel => 'Mostrar';
+
+  @override
+  String get libraryGroupLabel => 'Práctica o charlas';
+
+  @override
+  String get librarySort => 'Ordenar';
+
+  @override
+  String get librarySortRecent => 'Recientes';
+
+  @override
+  String get librarySortTitle => 'A–Z';
+
+  @override
+  String get librarySortProgress => 'Progreso';
+
+  @override
+  String get libraryShowGrid => 'Ver en cuadrícula';
+
+  @override
+  String get libraryShowList => 'Ver en lista';
+
+  @override
+  String get librarySourceImported => 'Importado';
+
+  @override
+  String get libraryFilterEmpty => 'Aquí no hay nada todavía';
+
+  @override
+  String get libraryFilterEmptyBody =>
+      'Busca algo en Explorar, o añade un enlace o un archivo.';
+
+  @override
+  String get libraryEmptyExplore => 'Explorar';
+
+  @override
+  String get libraryPinned => 'Fijado en Inicio';
 }

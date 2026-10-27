@@ -15,6 +15,8 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/home/continue_provider.dart';
+import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
+import 'package:medito/views/explore/widgets/explore_view.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
@@ -41,6 +43,7 @@ import 'package:medito/views/stats/stats_screen.dart';
 import 'package:medito/views/you/you_view.dart';
 
 import '../helpers/dharma_seed_app.dart';
+import '../helpers/dharma_seed_catalogue.dart';
 import '../helpers/fake_session_source.dart';
 import '../helpers/library_app.dart';
 import '../helpers/stats_fixtures.dart';
@@ -180,6 +183,77 @@ final _pack = PackModel(
 class _FakePack extends Pack {
   @override
   AsyncValue<PackModel> build({required String packId}) => AsyncData(_pack);
+}
+
+/// A Dharma Seed catalogue that reads like the real one, for Explore.
+Future<void> _seedRealisticCatalogue(DharmaSeedDatabase db) async {
+  await db.upsertTeacherRecords({
+    1: {'name': 'Rob Burbea', 'bio': '', 'photo': ''},
+    2: {'name': 'Leigh Brasington', 'bio': '', 'photo': ''},
+    3: {'name': 'Sharon Salzberg', 'bio': '', 'photo': ''},
+    4: {'name': 'Gil Fronsdal', 'bio': '', 'photo': ''},
+    5: {'name': 'Ajahn Sucitto', 'bio': '', 'photo': ''},
+    6: {'name': 'Tara Brach', 'bio': '', 'photo': ''},
+  });
+  final retreats = <int, (String, String, int, String)>{
+    4496: ('Practising the Jhānas', '2019-03-01', 1, 'Meditation'),
+    1084: (
+      'The Loving Kindness (Metta) Retreat',
+      '2010-02-01',
+      3,
+      'Meditation',
+    ),
+    1183: ('The Art of Concentration', '2008-05-01', 2, 'Meditation'),
+    1308: ('Samatha Meditation', '2007-09-01', 4, 'Talk'),
+    2200: (
+      'Forest Refuge: Dwelling in the Body',
+      '2016-07-01',
+      5,
+      'Meditation',
+    ),
+  };
+  final talks = <int, Map<String, Object?>>{};
+  var id = 1;
+  final retreatTalks = <int, List<int>>{};
+  for (final MapEntry(key: r, value: (name, date, teacher, type))
+      in retreats.entries) {
+    for (var n = 1; n <= 6; n++) {
+      retreatTalks.putIfAbsent(r, () => []).add(id);
+      talks[id] = dsTalkRecord(
+        n.isEven ? '$name: talk $n' : 'Guided practice, day $n',
+        teacher: teacher,
+        retreat: r,
+        type: n.isEven ? 'Talk' : type,
+        minutes: 20.0 + n * 7,
+        date: '$date 0$n:00:00',
+      );
+      id++;
+    }
+  }
+  for (final (title, teacher, minutes) in [
+    ('Metta for a difficult person', 3, 32.0),
+    ('Settling the body, settling the mind', 4, 24.0),
+    ('Breath as a home', 6, 18.0),
+    ('Opening to what is here', 5, 41.0),
+  ]) {
+    talks[id++] = dsTalkRecord(
+      title,
+      teacher: teacher,
+      type: 'Guided Meditation',
+      minutes: minutes,
+      date: '2026-10-${10 + id % 9} 08:00:00',
+    );
+  }
+  await db.upsertRetreatRecords({
+    for (final MapEntry(key: r, value: (name, date, _, _)) in retreats.entries)
+      r: {
+        'name': name,
+        'description': '',
+        'start_date': date,
+        'talks': retreatTalks[r]!,
+      },
+  });
+  await db.upsertTalkRecords(talks);
 }
 
 class _Stats extends StatsNotifier {
@@ -492,9 +566,162 @@ void main() {
       await _captureView(tester, 'add-to-playlist-${brightness.name}');
     }, skip: !_enabled);
 
+    // Design pass PR 4: the Library with a realistic mix (two courses in
+    // progress, two playlists, three singles, a saved teacher), in the list
+    // and the grid.
+    for (final grid in [false, true]) {
+      testWidgets('Library mix${grid ? ' grid' : ''}, ${brightness.name}', (
+        tester,
+      ) async {
+        final app = await LibraryTestApp.create(tester);
+        final (source, morning) = await seedPlaylists(tester, app);
+        await tester.runAsync(() async {
+          final store = app.harness.store;
+          for (final (id, title, subtitle, group) in [
+            (
+              'ds-talk-60864',
+              'Developing Piti, Developing Focus, Developing Wellbeing',
+              'Guided Meditation · Rob Burbea · 89 min',
+              LibraryGroup.practice,
+            ),
+            (
+              'lib-track-body',
+              'Body scan, 20 minutes',
+              'My recording',
+              LibraryGroup.practice,
+            ),
+            (
+              'ds-talk-2',
+              'Emptiness and the middle way',
+              'Talk · Rob Burbea · 52 min',
+              LibraryGroup.talks,
+            ),
+          ]) {
+            await store.add(
+              LibraryDraft(
+                sourceId: id,
+                kind: LibraryKind.single,
+                title: title,
+                subtitle: subtitle,
+                group: group,
+              ),
+            );
+          }
+          await store.add(
+            const LibraryDraft(
+              sourceId: 'ds-teacher-210',
+              kind: LibraryKind.teacher,
+              title: 'Rob Burbea',
+              subtitle: '1,200 talks',
+            ),
+          );
+          if (grid) await app.prefs.setString('library_layout', 'grid');
+        });
+        await app.pump(
+          tester,
+          _frame(brightness, const LibraryView()),
+          played: const ['x-1', 'x-2', 'd-1', 'd-2', 'd-3', 'y-1'],
+          overrides: [
+            myCourseSourceProvider.overrideWithValue(source),
+            packTrackIdsProvider.overrideWith(
+              (ref) async => {
+                morning: ['x-1', 'x-2', 'x-3', 'x-4', 'x-5'],
+                'ds-retreat-1': ['d-1', 'd-2', 'd-3', 'd-4', 'd-5', 'd-6'],
+                'yt-playlist-a': ['y-1', 'y-2', 'y-3', 'y-4'],
+              },
+            ),
+            inProgressItemsProvider.overrideWith(
+              (ref) async => [
+                ContinueItem(
+                  trackId: 'd-4',
+                  path: '/tracks/d-4',
+                  title: 'Developing Piti, Developing Focus',
+                  group: LibraryGroup.practice,
+                  lastPlayed: DateTime(2026, 10, 25),
+                  courseId: 'ds-retreat-1',
+                  courseTitle: 'Jhāna Retreat',
+                  resume: const ResumePoint(
+                    positionMs: 1800000,
+                    durationMs: 5340000,
+                  ),
+                  sessionNumber: 4,
+                  sessionTotal: 6,
+                  completedSessions: 3,
+                ),
+                ContinueItem(
+                  trackId: 'y-2',
+                  path: '/tracks/y-2',
+                  title: 'Episode 2: Relevance realization',
+                  group: LibraryGroup.talks,
+                  lastPlayed: DateTime(2026, 10, 24),
+                  courseId: 'yt-playlist-a',
+                  courseTitle: 'Vervaeke: Awakening from the Meaning Crisis',
+                  sessionNumber: 2,
+                  sessionTotal: 4,
+                  completedSessions: 1,
+                ),
+              ],
+            ),
+          ],
+        );
+        await _phone(tester);
+        await tester.pump(const Duration(seconds: 1));
+        expect(tester.takeException(), isNull);
+        final name = 'library-mix${grid ? '-grid' : ''}-${brightness.name}';
+        await _capture(tester, name);
+        // The whole page.
+        tester.view.physicalSize = Size(1080, grid ? 5600 : 5000);
+        await tester.pump(const Duration(seconds: 1));
+        await _capture(
+          tester,
+          name.replaceFirst('library-mix', 'library-mix-full'),
+        );
+      }, skip: !_enabled);
+    }
+
+    // Explore: browse with nothing typed, and grouped search results.
+    for (final query in [null, 'jhāna']) {
+      testWidgets('Explore ${query == null ? 'browse' : 'search'}, '
+          '${brightness.name}', (tester) async {
+        final app = await DharmaSeedTestApp.create(tester, seed: false);
+        await tester.runAsync(() async {
+          await _seedRealisticCatalogue(app.db);
+          await app.source.setSaved('ds-retreat-1084', saved: true);
+          await app.source.setSaved('ds-teacher-1', saved: true);
+          await app.library.add(
+            const LibraryDraft(
+              sourceId: 'yt-playlist-a',
+              kind: LibraryKind.course,
+              title: 'Qualia Mastery',
+              subtitle: 'Qualia Research Institute',
+            ),
+          );
+        });
+        await app.pump(tester, _frame(brightness, const ExploreView()));
+        await _phone(tester);
+        if (query != null) {
+          await tester.enterText(find.byType(TextField), query);
+          await tester.pump(const Duration(milliseconds: 450));
+        }
+        await DharmaSeedTestApp.settle(tester);
+        expect(tester.takeException(), isNull);
+        final name =
+            'explore-${query == null ? 'browse' : 'search'}-${brightness.name}';
+        await _capture(tester, name);
+        tester.view.physicalSize = const Size(1080, 4400);
+        await DharmaSeedTestApp.settle(tester);
+        await _capture(
+          tester,
+          name
+              .replaceFirst('-browse', '-browse-full')
+              .replaceFirst('-search', '-search-full'),
+        );
+      }, skip: !_enabled);
+    }
+
     for (final (name, page) in [
       ('timer', const TimerView()),
-      ('library', const LibraryView()),
+      ('library-empty', const LibraryView()),
     ]) {
       testWidgets('$name (inherits the theme), ${brightness.name}', (
         tester,
