@@ -26,7 +26,7 @@ import 'package:medito/utils/logger.dart';
 /// shown from the snapshot taken when it was added. Deleting a course
 /// removes only the course: the sessions, their library entries and their
 /// downloads are left alone.
-class MyCourseSource implements ContentSource {
+class MyCourseSource implements ContentSource, CourseMembershipSource {
   MyCourseSource({
     required this.db,
     required this.library,
@@ -329,6 +329,10 @@ class MyCourseSource implements ContentSource {
         }(),
     ];
   }
+
+  @override
+  Future<bool> courseLists(String courseId, String trackId) async =>
+      (await coursesHolding(trackId)).contains(courseId);
 
   /// IDs of the personal courses that list the session [itemId].
   Future<List<String>> coursesHolding(String itemId) async {

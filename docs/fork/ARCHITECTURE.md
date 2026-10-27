@@ -801,7 +801,11 @@ classifier and preview. Whole-title talk/lecture words select Talks;
 otherwise Practice. Watch links with a playlist can keep the full ordered
 course or only the addressed video. Playlist attempts are throttled for 12 h,
 including failures; opening a course or the delayed feed-refresh pass checks
-when due, and the course's pull to refresh forces a check.
+when due, and the course's pull to refresh forces a check. Each playlist item
+stores its own channel (`YoutubePlaylistItem.uploader`), falling back to a
+stored one and then the playlist's. Signed stream addresses are redacted from
+Dart and Android logs (`lib/utils/signed_url_redaction.dart`,
+`youtube/SignedUrlRedaction.kt`).
 
 ## Session cues and Customize
 
@@ -950,7 +954,12 @@ play button) records that course in `SessionContexts`. Continue then credits
 the session ("Session 2 of 6", the course's title and progress) to that course
 while it still lists it, and otherwise to the session's own source course
 (`ParentedContentSource`). Playing it brings both courses to the front of the
-library.
+library. `ContentRouter.courseOfSession` is the one lookup (cue scope, the
+position tracker, the stats label, a YouTube track's group): the opened-from
+course while that course still lists the session (`CourseMembershipSource`,
+implemented by personal courses and YouTube playlists), else the source's
+`parentOf`. A YouTube video in two saved courses with no record follows the
+most recently active one; its group is that course's own.
 
 ## Theme and design tokens
 

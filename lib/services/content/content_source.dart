@@ -63,6 +63,14 @@ abstract interface class ParentedContentSource {
   Future<String?> parentOf(String trackId);
 }
 
+/// A source whose courses may list a session another course lists too (a
+/// personal course, a YouTube playlist), so "the course holding it" has more
+/// than one answer. Optional.
+abstract interface class CourseMembershipSource {
+  /// Whether the course [courseId] lists the session [trackId] now.
+  Future<bool> courseLists(String courseId, String trackId);
+}
+
 /// Dispatches by ID prefix to the owning [ContentSource], falling back to the
 /// bundled [LocalCatalogue] for IDs no source claims.
 class ContentRouter {
@@ -127,6 +135,30 @@ class ContentRouter {
     final ParentedContentSource source => await source.parentOf(id),
     _ => null,
   };
+
+  /// Whether the course [courseId] lists the session [trackId] now. A source
+  /// with single-parent sessions answers by [parentOf].
+  Future<bool> courseLists(String courseId, String trackId) async =>
+      switch (sourceFor(courseId)) {
+        final CourseMembershipSource source => await source.courseLists(
+          courseId,
+          trackId,
+        ),
+        _ => await parentOf(trackId) == courseId,
+      };
+
+  /// The course a session counts towards: [openedFrom], the course it was
+  /// last opened from, while that course still lists it; else the course its
+  /// source names. A session in several courses (a shared YouTube video, one
+  /// in a personal course) then follows the course it was started from. With
+  /// no usable context the source decides, which for YouTube is the most
+  /// recently active saved course.
+  Future<String?> courseOfSession(String trackId, {String? openedFrom}) async {
+    if (openedFrom != null && await courseLists(openedFrom, trackId)) {
+      return openedFrom;
+    }
+    return parentOf(trackId);
+  }
 
   /// Whether the owning source can save [id] at all; drives whether a Save
   /// button is shown.
