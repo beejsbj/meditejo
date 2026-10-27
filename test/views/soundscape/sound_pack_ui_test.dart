@@ -273,6 +273,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('Needs download'), findsOneWidget);
       expect(find.byKey(const ValueKey('layer_download_river')), findsNothing);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('layer_download_sea')),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('layer_download_sea')));
       await tester.pumpAndSettle();
       expect(pack.asked, ['sea']);
@@ -337,7 +341,7 @@ void main() {
     await pump(tester, downloaded: const {}, home: const SoundCreditsView());
     for (final sound in bundledSoundLibrary.sounds) {
       await tester.scrollUntilVisible(
-        find.text(sound.title).first,
+        find.text(sound.title),
         200,
         scrollable: find.byType(Scrollable).first,
       );
@@ -351,9 +355,15 @@ void main() {
       tester,
     ) async {
       await pump(tester, home: const SoundPackTile());
-      expect(find.text('Downloaded sounds'), findsOneWidget);
       expect(
-        find.textContaining('${have.length} of ${packIds.length}'),
+        find.text('Downloaded sounds', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining(
+          '${have.length} of ${packIds.length}',
+          findRichText: true,
+        ),
         findsOneWidget,
       );
       await tester.tap(
@@ -367,7 +377,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(pack.deletes, 1);
-      expect(find.textContaining('None downloaded'), findsOneWidget);
+      expect(
+        find.textContaining('None downloaded', findRichText: true),
+        findsOneWidget,
+      );
       expect(
         find.byKey(const ValueKey('settings_sound_pack_delete')),
         findsNothing,
