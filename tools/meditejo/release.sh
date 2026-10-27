@@ -133,11 +133,13 @@ else
 fi
 # The bump PR is cut from this commit and merged into develop, and the only
 # required check passes on a PR with no review threads. So a branch other than
-# develop may only be released once everything on it is already on origin/develop.
+# develop may only be released while it points exactly at origin/develop: any
+# extra commit would reach develop unreviewed, and an older one would plan the
+# version bump from a stale pubspec.yaml.
 if [[ $branch != "$base" ]]; then
   if git fetch --quiet origin "$base" 2>/dev/null; then
-    git merge-base --is-ancestor HEAD FETCH_HEAD ||
-      problem "'$branch' has commits that are not on origin/$base; merge them through their own PR first"
+    [[ $(git rev-parse HEAD) == "$(git rev-parse FETCH_HEAD)" ]] ||
+      problem "'$branch' is not at origin/$base (it has other commits or is behind); point it at the tip of origin/$base first"
   else
     problem "could not fetch origin/$base"
   fi

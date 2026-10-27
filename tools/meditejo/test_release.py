@@ -177,9 +177,19 @@ class ReleaseScriptTest(unittest.TestCase):
         git('commit', '-q', '-m', 'unreviewed work', cwd=self.repo)
         git('push', '-q', 'origin', 'feature', cwd=self.repo)
         proc = self.release('--dry-run', '--allow-branch')
-        self.assertIn("'feature' has commits that are not on origin/develop", proc.stderr)
+        self.assertIn("'feature' is not at origin/develop", proc.stderr)
 
-    def test_allow_branch_accepts_a_branch_already_on_develop(self):
+    def test_allow_branch_refuses_a_branch_behind_develop(self):
+        git('switch', '-q', '-c', 'feature', cwd=self.repo)
+        git('push', '-q', 'origin', 'feature', cwd=self.repo)
+        git('switch', '-q', 'develop', cwd=self.repo)
+        self.write_pubspec('0.1.0+26101799')
+        self.commit_and_push('develop moves on')
+        git('switch', '-q', 'feature', cwd=self.repo)
+        proc = self.release('--dry-run', '--allow-branch')
+        self.assertIn("'feature' is not at origin/develop", proc.stderr)
+
+    def test_allow_branch_accepts_a_branch_at_the_tip_of_develop(self):
         git('switch', '-q', '-c', 'feature', cwd=self.repo)
         git('push', '-q', 'origin', 'feature', cwd=self.repo)
         proc = self.release('--dry-run', '--allow-branch')
