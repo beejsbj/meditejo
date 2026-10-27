@@ -203,6 +203,26 @@ class CueSchedulerTests: XCTestCase {
         XCTAssertFalse(t.completed(durationMs: 600_000))
         XCTAssertEqual(t.heardMs, 60_000)
     }
+    func testARepeatPassMustBeNinetyPercentHeardOnItsOwn() {
+        let t = ListeningTracker()
+        t.rebase(0)
+        var p: Int64 = 0
+        while p < 600_000 { p += 1000; t.sample(p, playing: true) }
+        XCTAssertTrue(t.completed(durationMs: 600_000))
+        // Pass two: a jump to the end of the loop is not listening, although
+        // the whole recording was heard before.
+        t.startPass()
+        t.sample(599_000, playing: true)
+        t.sample(600_000, playing: true)
+        XCTAssertFalse(t.completed(durationMs: 600_000))
+        XCTAssertEqual(t.heardMs, 1_000) // only the last step after the jump
+        // A pass heard in full starts from the first step.
+        t.startPass()
+        p = 0
+        while p < 600_000 { p += 1000; t.sample(p, playing: true) }
+        XCTAssertTrue(t.completed(durationMs: 600_000))
+    }
+
     func testCoverageRestoresAcrossResumedSessions() {
         let first = ListeningTracker()
         first.restore([[0, 40_000], [30_000, 80_000]])

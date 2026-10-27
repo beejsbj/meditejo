@@ -1,6 +1,5 @@
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/exceptions/app_error.dart';
-import 'package:medito/utils/logger.dart';
 import 'package:medito/utils/youtube_error_message.dart';
 import 'package:medito/views/pack/widgets/youtube_playlist_empty.dart';
 
@@ -735,17 +734,16 @@ class _PackViewState extends ConsumerState<PackView>
     String type,
     BuildContext context,
   ) async {
-    if (type == TypeConstants.track) {
-      // A session several courses list counts towards the one it was opened
-      // from. Written first: the player reads it for its cue scope.
-      try {
-        await ref.read(libraryStoreProvider).noteSessionContext(id, widget.id);
-      } catch (e, st) {
-        AppLogger.e('PACK', 'Could not note the course of a session', e, st);
-      }
-      if (!context.mounted) return;
-    }
-    await handleNavigation(type, [id], context, ref: ref);
+    // A session several courses list counts towards the one it was opened
+    // from: handleNavigation writes it first, as the player reads it for its
+    // cue scope.
+    await handleNavigation(
+      type,
+      [id],
+      context,
+      ref: ref,
+      courseId: type == TypeConstants.track ? widget.id : null,
+    );
   }
 
   @override

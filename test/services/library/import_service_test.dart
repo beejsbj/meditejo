@@ -457,6 +457,26 @@ void main() {
       ),
     );
 
+    test('deleting an import reports the sessions it no longer has', () async {
+      final single = await h.service.add(
+        await h.service.resolve(h.writeAudio('Metta Practice.mp3').path),
+        const ImportChoice(
+          kind: LibraryKind.single,
+          group: LibraryGroup.practice,
+        ),
+      );
+      final removed = <List<String>>[];
+      final sub = h.lib.removals.listen(removed.add);
+      addTearDown(sub.cancel);
+
+      await h.lib.remove(single.entryId);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(removed, [
+        [single.entryId],
+      ]);
+    });
+
     test('one file is copied into app storage as a single', () async {
       final source = h.writeAudio('Metta Practice.mp3');
       final preview = await h.service.resolve(source.path);

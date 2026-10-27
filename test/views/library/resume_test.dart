@@ -52,7 +52,8 @@ void main() {
     Scaffold(
       body: PackPathButton(
         pack: pack,
-        onStartSession: (c, r, {required trackId, required path}) async {},
+        onStartSession:
+            (c, r, {required trackId, required path, courseId}) async {},
         child: const SizedBox(height: 40),
       ),
     ),
