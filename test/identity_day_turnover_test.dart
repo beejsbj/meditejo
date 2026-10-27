@@ -3,9 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/main.dart';
 import 'package:medito/providers/identity/identity_providers.dart';
+import 'package:medito/providers/notification/reminder_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/services/identity/daily_mark.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+// The resume handler clears the badge through reminderProvider before it
+// refreshes the day. Building the real one initialises the notifications
+// plugin, which has no platform in tests, so a stand-in does the badge.
+class _QuietReminder implements ReminderProvider {
+  @override
+  Future<void> clearBadge() async {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 // main.dart's once-a-minute day tick and its resume handler both call
 // identityDayProvider.refresh(). These tests run the real ParentWidget past
@@ -25,7 +37,10 @@ void main() {
         await tester.runAsync(SharedPreferences.getInstance) as SharedPreferences;
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          reminderProvider.overrideWithValue(_QuietReminder()),
+        ],
         child: const ParentWidget(),
       ),
     );
