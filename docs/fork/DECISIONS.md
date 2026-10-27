@@ -748,6 +748,7 @@ Burooj authorised Meditejo's Freesound app, so the picks that needed an account 
     - No test checks that every shipped sound, synth layer, preset and bell has art; `art_subject_test.dart` only counts 58 entries and 11 bells.
   - **Follow-ups (P3):**
     - Print-finish textures sit outside the 48 MB raster budget (up to about 96 MB worst case).
+    - `ArtTextures` drops an evicted print-finish image from its 24-entry map without disposing it (CodeRabbit, Major on its own scale). Declined for now: live painters share those images, so disposing on eviction is the use-after-dispose hazard fixed for rasters in 6d04f8b6, and a dropped handle is freed by the engine's finalizer once nothing holds it. If memory shows up, give painters their own clones as `ArtCover` now does, then dispose on eviction.
     - The `ArtRasters.still` doc comment says a missing finish is retried; it isn't, beyond `ArtTextures` notifying.
     - The raster request in `ArtCover` has no error handler.
     - `NetworkImageWidget` starts the curated-file load on every build.
