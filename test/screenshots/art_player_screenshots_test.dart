@@ -17,6 +17,8 @@ import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/models/track/track.dart' as model;
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/review_service_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
@@ -26,6 +28,10 @@ import 'package:medito/src/audio_pigeon.g.dart' as pigeon;
 import 'package:medito/views/home/previews/stats_fixtures.dart';
 import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/previews/preview_support.dart';
+// Both databases open through drift_flutter, which asks path_provider for a
+// temporary directory; a test has no such plugin. In-memory ones stand in.
+import '../helpers/dharma_seed_fake_api.dart';
+import '../helpers/library_fixtures.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -186,6 +192,16 @@ void main() {
                 ? ThemeMode.dark
                 : ThemeMode.light,
             overrides: [
+              dharmaSeedDatabaseProvider.overrideWith((ref) {
+                final db = memoryDharmaSeedDb();
+                ref.onDispose(db.close);
+                return db;
+              }),
+              libraryDatabaseProvider.overrideWith((ref) {
+                final db = memoryLibraryDb();
+                ref.onDispose(db.close);
+                return db;
+              }),
               playerProvider.overrideWith(
                 () => _FakePlayer(_request(attribution: _credit)),
               ),
