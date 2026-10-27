@@ -1,0 +1,28 @@
+{
+ "seed": "noise-brown#0",
+ "cls": "noise",
+ "ground": {
+  "name": "grain",
+  "params": {
+   "colour": "brown",
+   "kind": "bands",
+   "tint": -0.0029,
+   "bands": [
+    3.5354,
+    3.3714,
+    3.2198,
+    5.1541,
+    2.459,
+    3.4772
+   ],
+   "ang": 0.0794
+  }
+ },
+ "figure": null,
+ "accent": null,
+ "misregister": [
+  -0.0079,
+  0.0061
+ ],
+ "inkSeed": "noise-brown#0:ink"
+}

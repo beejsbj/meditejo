@@ -1,0 +1,31 @@
+{
+ "seed": "ds-teacher-412",
+ "cls": "teacher",
+ "ground": {
+  "name": "paper",
+  "params": {
+   "key": "light",
+   "k": 0.0243
+  }
+ },
+ "figure": {
+  "name": "lotus",
+  "kind": null,
+  "layout": "centre",
+  "params": {
+   "cx": 0.5,
+   "cy": 0.48,
+   "s": 0.3,
+   "n": 5,
+   "tiers": 1,
+   "spread": 1.028,
+   "water": true
+  }
+ },
+ "accent": null,
+ "misregister": [
+  -0.0098,
+  0.0071
+ ],
+ "inkSeed": "ds-teacher-412:ink"
+}

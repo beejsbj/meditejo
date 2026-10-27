@@ -1,0 +1,46 @@
+{
+ "seed": "my-course-0123456789abcdef",
+ "cls": "playlist",
+ "ground": {
+  "name": "paper",
+  "params": {
+   "key": "light",
+   "k": 0.0547
+  }
+ },
+ "figure": {
+  "name": "mandala",
+  "kind": null,
+  "layout": "left",
+  "params": {
+   "cx": 0.36,
+   "cy": 0.44,
+   "s": 0.25,
+   "n": 12,
+   "tiers": [
+    {
+     "el": "petal",
+     "rr": 0.4821,
+     "sz": 0.3137,
+     "off": 0,
+     "dir": 1
+    },
+    {
+     "el": "dot",
+     "rr": 0.698,
+     "sz": 0.2492,
+     "off": 0,
+     "dir": 1
+    }
+   ],
+   "core": 0.0932,
+   "ring": false
+  }
+ },
+ "accent": null,
+ "misregister": [
+  -0.0071,
+  0.0039
+ ],
+ "inkSeed": "my-course-0123456789abcdef:ink"
+}

@@ -1,0 +1,85 @@
+{
+ "seed": "starter-rain-forest#3",
+ "cls": "preset",
+ "ground": {
+  "name": "mist",
+  "params": {
+   "sun": true,
+   "sx": 0.6679,
+   "sy": 0.3526,
+   "layers": [
+    {
+     "y": 0.6353,
+     "amp": 0.0251,
+     "f": 1.0926,
+     "ph": 1.4758,
+     "per": 45.1038
+    },
+    {
+     "y": 0.7477,
+     "amp": 0.0238,
+     "f": 0.7808,
+     "ph": 1.9595,
+     "per": 40.5233
+    },
+    {
+     "y": 0.8667,
+     "amp": 0.0385,
+     "f": 0.6553,
+     "ph": 2.8954,
+     "per": 38.074
+    }
+   ]
+  }
+ },
+ "figure": {
+  "name": "rings",
+  "kind": "ripple",
+  "layout": "centre",
+  "params": {
+   "cx": 0.5,
+   "cy": 0.48,
+   "s": 0.3,
+   "kind": "ripple",
+   "n": 8,
+   "sq": 1,
+   "nzSeed": 0.0759,
+   "d": 0.2028,
+   "ang": 2.6067,
+   "w": 0.0061,
+   "per": 13.6203
+  }
+ },
+ "accent": {
+  "name": "flock",
+  "kind": "scatter",
+  "params": {
+   "cx": 0.76,
+   "cy": 0.28,
+   "s": 0.12,
+   "kind": "scatter",
+   "birds": [
+    {
+     "dx": -0.2835,
+     "dy": -0.4172,
+     "s": 1.0247,
+     "ph": 1.4642,
+     "per": 2.0378
+    },
+    {
+     "dx": -0.6955,
+     "dy": -0.1349,
+     "s": 1.0777,
+     "ph": 1.1375,
+     "per": 1.8523
+    }
+   ],
+   "loop": 18.5327
+  }
+ },
+ "misregister": [
+  0.0016,
+  0.0034
+ ],
+ "inkSeed": "starter-rain-forest#3:ink"
+}
