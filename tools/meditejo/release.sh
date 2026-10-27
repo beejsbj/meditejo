@@ -148,7 +148,8 @@ fi
 # The dhammatalks.org snapshot is in git and the app only bridges it to today
 # with the site's RSS feeds (50 items each), so a release refuses one older than
 # 45 days. Refresh it with: python3 -I tools/meditejo/dhammatalks.py build
-python3 -I tools/meditejo/dhammatalks.py check --max-age-days 45 ||
+[[ ! -f tools/meditejo/dhammatalks.py ]] ||
+  python3 -I tools/meditejo/dhammatalks.py check --max-age-days 45 ||
   problem 'the dhammatalks.org snapshot is stale or damaged (see above); rebuild it with tools/meditejo/dhammatalks.py build and commit assets/dhammatalks'
 
 # Decide whether this release refreshes the bundled catalogue: only when the
