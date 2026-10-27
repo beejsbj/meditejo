@@ -424,12 +424,9 @@ class SoundMissingListener extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Immediately too: a notice raised before this mounted is still owed.
-    ref.listen(
-      soundMissingNoticeProvider,
-      (_, _) => _show(ref),
-      fireImmediately: true,
-    );
+    ref.listen(soundMissingNoticeProvider, (_, _) => _show(ref));
+    // A notice raised before this mounted is still owed.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _show(ref));
     return child;
   }
 
