@@ -5,9 +5,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/widgets/attribution_notice.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/filter_pill.dart';
-import 'package:medito/widgets/generated_artwork.dart';
 import 'package:medito/widgets/network_image_widget.dart';
+
+import '../helpers/art_finders.dart';
 
 const _credit = SourceAttribution(
   source: 'Dharma Seed',
@@ -24,6 +26,8 @@ Widget _app(Widget child) => MaterialApp(
 );
 
 void main() {
+  setUpAll(holdCuratedArt);
+
   group('AttributionNotice', () {
     testWidgets('full: credit link, licence link and the unmodified note', (
       tester,
@@ -70,59 +74,23 @@ void main() {
     });
   });
 
-  group('GeneratedArtwork', () {
-    test('the hash is FNV-1a, stable across runs', () {
-      expect(GeneratedArtwork.hash(''), 0x811c9dc5);
-      expect(GeneratedArtwork.hash('a'), 0xe40c292c);
-    });
-
-    test('the same title always gets the same colours, from the palette', () {
-      expect(
-        GeneratedArtwork.colorsFor('Jhana Retreat'),
-        GeneratedArtwork.colorsFor('Jhana Retreat'),
-      );
-      for (final seed in ['Jhana Retreat', 'Rob Burbea', '', 'Ñāṇa']) {
-        expect(
-          GeneratedArtwork.palette,
-          contains(GeneratedArtwork.colorsFor(seed)),
-        );
-      }
-    });
-
-    test('titles spread over the palette', () {
-      final used = {
-        for (var i = 0; i < 60; i++) GeneratedArtwork.colorsFor('Course $i'),
-      };
-      expect(used.length, greaterThanOrEqualTo(6));
-    });
-
-    testWidgets('paints without an image or a size of its own', (tester) async {
-      await tester.pumpWidget(
-        _app(
-          const SizedBox(
-            width: 200,
-            height: 120,
-            child: GeneratedArtwork(seed: 'x'),
-          ),
-        ),
-      );
-      expect(find.byType(GeneratedArtwork), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
-
+  group('generated covers', () {
     testWidgets('stands in when an image has no usable address', (
       tester,
     ) async {
       await tester.pumpWidget(
         _app(
-          const SizedBox(
+          SizedBox(
             width: 100,
             height: 100,
-            child: NetworkImageWidget(url: '', seed: 'Sit'),
+            child: NetworkImageWidget(
+              url: '',
+              art: courseArt('lib-course-sit'),
+            ),
           ),
         ),
       );
-      expect(find.byType(GeneratedArtwork), findsOneWidget);
+      expect(findArt(courseArt('lib-course-sit')), findsOneWidget);
     });
   });
 

@@ -166,7 +166,9 @@ void main() {
         '<item><title>y</title><media:content url="https://cdn.example.org/v1" medium="video"/></item>'
         '</channel></rss>',
       );
-      expect(feed.episodes.map((e) => e.audioUrl), ['https://cdn.example.org/a1']);
+      expect(feed.episodes.map((e) => e.audioUrl), [
+        'https://cdn.example.org/a1',
+      ]);
       expect(feed.skippedItems, 1);
     });
 

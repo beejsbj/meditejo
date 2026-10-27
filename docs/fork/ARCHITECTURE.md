@@ -965,3 +965,23 @@ teacher's portrait, so it is drawn as generated art with the photo as an
 avatar), `SessionRow`, `TeacherTile` and `TeacherRow`, and `FilterChipBar`.
 Radii and spacing are in `card_tokens.dart`.
 
+
+## Generated art
+
+`lib/widgets/art/` draws Meditejo's generated art (identity rounds 4 and 5; decisions 20–22).
+
+- **Engine** (`engine/`), a port of the identity page:
+  - `canvas2d.dart`: a Canvas 2D context over Flutter's `Canvas`;
+  - `art_core.dart`: colour maths as the page does it, palette roles, inks, the params view `P`;
+  - `grounds.dart`, `place_grounds.dart`, `figures.dart`, `place_figures.dart`, `bell.dart`: one class per ground and figure, each with a seeded `build` (plain-data params) and a `draw`;
+  - `compose.dart`: the meaning map, `Compose.build/buildFor/buildPreset`, the frozen form (`freeze`/`thaw`) and `Compose.draw`;
+  - `art_textures.dart`: the noise grain and the baked print finish.
+  - **The order of random draws is part of the output.** Changing a builder changes what every generated item looks like, but never a curated one.
+- **Subjects** (`art_subject.dart`): `ArtSubject.sound`, `.layers` (a preset or the mix), `.cover(kind, id)` and `.bell(asset, icon:)`. `CuratedArt` loads `assets/art/curated_art.json` at start-up and resolves a subject to a composition: frozen when it ships, built from its id otherwise.
+- **Widget** (`art_cover.dart`): `ArtCover(subject:, live:, strike:, scrim:)`. It shows a still raster from `ArtRasters` (an LRU keyed by subject, palette and pixel size) or, when live and allowed, paints every frame at up to 30 fps.
+- **Covers** go through `NetworkImageWidget(art:)` and `CardArt(art:)`, with the precedence in `cover_art.dart` (`shownCoverUrl`).
+- **Checks:**
+  - `test/widgets/art/art_reference_test.dart` (goldens against the page);
+  - `art_build_parity_test.dart` (builder against the page; needs `MEDITEJO_ART_REF`);
+  - `art_subject_test.dart` (curated, stable by id, no forbidden pairs, the live mix card, reduced motion);
+  - `art_benchmark_test.dart` (gated by `MEDITEJO_ART_BENCH=1`).

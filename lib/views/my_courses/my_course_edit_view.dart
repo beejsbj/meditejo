@@ -6,6 +6,7 @@ import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/network_image_widget.dart';
 
 /// Edits a personal course: title, description, kind, cover, and its
@@ -320,7 +321,7 @@ class _MyCourseEditViewState extends ConsumerState<MyCourseEditView> {
                     dimension: 62,
                     child: NetworkImageWidget(
                       url: url,
-                      seed: widget.courseId,
+                      art: courseArt(widget.courseId),
                       shouldCache: true,
                     ),
                   ),
@@ -429,7 +430,7 @@ class _MyCourseEditViewState extends ConsumerState<MyCourseEditView> {
                 dimension: 40,
                 child: NetworkImageWidget(
                   url: item.coverUrl,
-                  seed: item.title,
+                  art: singleArt(item.id),
                   shouldCache: true,
                 ),
               ),

@@ -8,7 +8,8 @@ import 'package:medito/models/soundscape/sound_library.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/synth.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
-import 'package:medito/widgets/generated_artwork.dart';
+import 'package:medito/widgets/art/art_cover.dart';
+import 'package:medito/widgets/art/art_subject.dart';
 
 import 'sound_labels.dart';
 import 'synth_editors.dart';
@@ -92,21 +93,53 @@ class SoundsMixHeader extends ConsumerWidget {
     const motion = MeditejoMotion.standardSpatial;
     return Row(
       children: [
-        IconButton.filled(
-          key: const ValueKey('sounds_play'),
-          iconSize: 32,
-          style: IconButton.styleFrom(
-            minimumSize: const Size.square(56),
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
-            disabledBackgroundColor: scheme.onSurface.withValues(alpha: 0.12),
-            disabledForegroundColor: scheme.onSurface.withValues(alpha: 0.38),
-          ),
-          tooltip: state.playing ? l10n.soundsPause : l10n.soundsPlay,
-          onPressed: state.mix.isEmpty ? null : controller.togglePlay,
-          icon: Icon(
-            state.playing ? Symbols.pause_rounded : Symbols.play_arrow_rounded,
-            fill: 1,
+        // The live mix card: the mix's art, following its two loudest
+        // layers as they change, with play/pause on it.
+        SizedBox.square(
+          dimension: 56,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(MeditejoShapes.large),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (state.mix.isEmpty)
+                  ColoredBox(color: scheme.surfaceContainerHighest)
+                else
+                  ArtCover(
+                    key: const ValueKey('sounds_mix_art'),
+                    subject: ArtSubject.layers(
+                      state.matchingPreset?.id ?? MixArt.current,
+                      state.mix.layers,
+                    ),
+                    live: state.playing,
+                  ),
+                Center(
+                  child: IconButton.filled(
+                    key: const ValueKey('sounds_play'),
+                    iconSize: 24,
+                    style: IconButton.styleFrom(
+                      minimumSize: const Size.square(40),
+                      backgroundColor: scheme.primary.withValues(alpha: 0.92),
+                      foregroundColor: scheme.onPrimary,
+                      disabledBackgroundColor: scheme.onSurface.withValues(
+                        alpha: 0.12,
+                      ),
+                      disabledForegroundColor: scheme.onSurface.withValues(
+                        alpha: 0.38,
+                      ),
+                    ),
+                    tooltip: state.playing ? l10n.soundsPause : l10n.soundsPlay,
+                    onPressed: state.mix.isEmpty ? null : controller.togglePlay,
+                    icon: Icon(
+                      state.playing
+                          ? Symbols.pause_rounded
+                          : Symbols.play_arrow_rounded,
+                      fill: 1,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(width: 16),
@@ -409,10 +442,9 @@ class _LayerTile extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final type = context.typography;
     final mixer = ref.read(soundscapeProvider.notifier);
-    final library = ref.watch(soundLibraryProvider).value ?? SoundLibrary.empty;
-    final look = SoundLook.forSound(layer.soundId, library);
     final id = layer.soundId;
     final muted = layer.volume == 0;
+    final playing = ref.watch(soundscapeProvider.select((s) => s.playing));
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Material(
@@ -431,17 +463,9 @@ class _LayerTile extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(
                         MeditejoShapes.medium,
                       ),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          GeneratedArtwork(seed: id, colors: look.colors),
-                          Icon(
-                            look.icon,
-                            color: Colors.white,
-                            fill: 1,
-                            size: 24,
-                          ),
-                        ],
+                      child: ArtCover(
+                        subject: ArtSubject.sound(id, layer.params),
+                        live: playing && !muted,
                       ),
                     ),
                   ),

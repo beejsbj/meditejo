@@ -97,6 +97,7 @@ flutter:
     - assets/licenses/
     - assets/audio/
     - assets/sounds/
+    - assets/art/
     - assets/dharma_seed/
     - assets/
     - assets/images/

@@ -37,7 +37,9 @@ void main() {
     'tags': [
       {'id': 'sleep', 'group': 'goal', 'description': 'd'},
     ],
-    'trackTags': {'t1': ['sleep']},
+    'trackTags': {
+      't1': ['sleep'],
+    },
   });
 
   test('catalog is empty while loading', () {

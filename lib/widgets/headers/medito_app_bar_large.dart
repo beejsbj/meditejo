@@ -2,6 +2,7 @@ import 'package:medito/constants/constants.dart';
 import 'package:medito/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:medito/utils/utils.dart';
+import 'package:medito/widgets/art/art_subject.dart';
 
 class MeditoAppBarLarge extends StatefulWidget {
   const MeditoAppBarLarge({
@@ -9,6 +10,7 @@ class MeditoAppBarLarge extends StatefulWidget {
     required this.scrollController,
     required this.title,
     this.coverUrl,
+    this.art,
     this.bgColor = ColorConstants.onyx,
     this.hasLeading = false,
   });
@@ -16,6 +18,9 @@ class MeditoAppBarLarge extends StatefulWidget {
   final ScrollController scrollController;
   final String title;
   final String? coverUrl;
+
+  /// What the header stands for (by id); shown when there is no picture.
+  final ArtSubject? art;
   final Color bgColor;
   final bool hasLeading;
 
@@ -76,7 +81,7 @@ class _MeditoAppBarLargeState extends State<MeditoAppBarLarge> {
   }
 
   Opacity _topBarBackground(double scrollFactor, String? coverUrl) {
-    if (coverUrl != null) {
+    if (coverUrl != null || widget.art != null) {
       return Opacity(
         opacity: 1 - scrollFactor,
         child: NetworkImageWidget(
@@ -88,10 +93,9 @@ class _MeditoAppBarLargeState extends State<MeditoAppBarLarge> {
               ColorConstants.black.withOpacityValue(0.3),
             ],
           ),
-          url: coverUrl,
+          url: coverUrl ?? '',
           shouldCache: true,
-          // No picture: calm generated art seeded by the title.
-          seed: widget.title,
+          art: widget.art,
           alignment: Alignment.topCenter,
         ),
       );

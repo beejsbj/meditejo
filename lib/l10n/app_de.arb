@@ -1218,6 +1218,8 @@
   "soundsDriftHint": "Die Lautstärke langsam an- und abschwellen lassen",
   "soundsPresets": "Voreinstellungen",
   "soundsSavePreset": "Mix speichern",
+  "soundsPresetOurs": "Meditejo",
+  "soundsPresetYours": "Deins",
   "soundsPresetName": "Name der Voreinstellung",
   "soundsPresetSaved": "„{name}“ gespeichert",
   "soundsDeletePreset": "„{name}“ löschen?",

@@ -2350,6 +2350,14 @@
   "@soundsSavePreset": {
     "description": "Sounds screen: soundsSavePreset"
   },
+  "soundsPresetOurs": "Meditejo",
+  "@soundsPresetOurs": {
+    "description": "Sounds screen: the overline on a preset that ships with the app"
+  },
+  "soundsPresetYours": "Yours",
+  "@soundsPresetYours": {
+    "description": "Sounds screen: the overline on a preset the user saved"
+  },
   "soundsPresetName": "Preset name",
   "@soundsPresetName": {
     "description": "Sounds screen: soundsPresetName"

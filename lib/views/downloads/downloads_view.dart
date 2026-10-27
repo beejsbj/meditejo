@@ -248,6 +248,7 @@ class _DownloadsViewState extends ConsumerState<DownloadsView>
     var subTitle = guideName != null ? '$guideName · $duration' : duration;
 
     return DownloadListItemWidget(
+      id: item.id,
       title: item.title,
       subtitle: subTitle,
       coverUrl: item.coverUrl,

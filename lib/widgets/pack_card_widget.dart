@@ -1,5 +1,6 @@
 import 'package:medito/constants/constants.dart';
 import 'package:medito/views/home/widgets/home_gradient_border.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/network_image_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
@@ -7,6 +8,7 @@ import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 class PackCardWidget extends StatefulWidget {
   const PackCardWidget({
     super.key,
+    required this.id,
     required this.title,
     this.subTitle,
     this.coverUrlPath,
@@ -14,6 +16,8 @@ class PackCardWidget extends StatefulWidget {
     this.isCompleted = false,
   });
 
+  /// The pack's id, which its art is generated from when it has no picture.
+  final String id;
   final String title;
   final String? subTitle;
   final String? coverUrlPath;
@@ -128,8 +132,7 @@ class _PackCardWidgetState extends State<PackCardWidget> {
         child: NetworkImageWidget(
           url: widget.coverUrlPath ?? '',
           shouldCache: true,
-          // No picture: calm generated art, the same tile for the same title.
-          seed: widget.title,
+          art: courseArt(widget.id),
           alignment: Alignment.topCenter,
         ),
       ),

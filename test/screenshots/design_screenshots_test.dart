@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/constants/theme/app_theme.dart';
+import 'package:medito/services/identity/palettes.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
@@ -56,7 +57,13 @@ import '../helpers/stats_fixtures.dart';
 import '../helpers/update_fakes.dart';
 import '../helpers/soundscape_fakes.dart';
 
-const _out = 'docs/fork/design';
+/// Where captures go, and under which palette (the generated art's
+/// screenshots run this twice: MEDITEJO_SHOT_PALETTE=tide and another, into
+/// `docs/fork/design/art/<palette>`).
+final _out = Platform.environment['MEDITEJO_SHOT_DIR'] ?? 'docs/fork/design';
+final _palette = IdentityPalettes.byId(
+  Platform.environment['MEDITEJO_SHOT_PALETTE'],
+);
 final _enabled = Platform.environment['MEDITEJO_SCREENSHOTS'] == '1';
 
 Future<void> _loadFonts() async {
@@ -91,7 +98,19 @@ Future<void> _loadFonts() async {
 
 final _boundary = GlobalKey();
 
+/// Lets the generated art finish: its stills rasterise off the test's fake
+/// clock, then land on the next frame.
+Future<void> _settleArt(WidgetTester tester) async {
+  for (var i = 0; i < 8; i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 60)),
+    );
+    await tester.pump();
+  }
+}
+
 Future<void> _capture(WidgetTester tester, String name) async {
+  await _settleArt(tester);
   await tester.runAsync(() async {
     final render =
         _boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
@@ -108,6 +127,7 @@ Future<void> _capture(WidgetTester tester, String name) async {
 
 /// Everything on screen, including routes above the page (a bottom sheet).
 Future<void> _captureView(WidgetTester tester, String name) async {
+  await _settleArt(tester);
   await tester.runAsync(() async {
     var render = tester.element(find.byType(Navigator).first).renderObject!;
     while (!render.isRepaintBoundary) {
@@ -128,7 +148,7 @@ Future<void> _captureView(WidgetTester tester, String name) async {
 Widget _frame(Brightness brightness, Widget child) => RepaintBoundary(
   key: _boundary,
   child: Theme(
-    data: meditejoTheme(brightness),
+    data: meditejoTheme(brightness, _palette),
     child: Builder(
       builder: (context) => MediaQuery(
         data: MediaQuery.of(context).copyWith(disableAnimations: true),
@@ -298,7 +318,7 @@ Future<void> _pumpYou(
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        theme: meditejoTheme(brightness),
+        theme: meditejoTheme(brightness, _palette),
         home: _frame(brightness, page),
       ),
     ),
@@ -338,7 +358,7 @@ Future<ProviderContainer> _pumpCustomize(
         navigatorKey: navigator,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        theme: meditejoTheme(brightness),
+        theme: meditejoTheme(brightness, _palette),
         home: _frame(
           brightness,
           Builder(
@@ -676,6 +696,20 @@ void main() {
       await _captureView(tester, 'customize-before-${brightness.name}');
     }, skip: !_enabled);
 
+    testWidgets('Customize bell picker, ${brightness.name}', (tester) async {
+      await _pumpCustomize(
+        tester,
+        brightness,
+        scope: const CueScope(CueKind.practice),
+        settings: practiceCues,
+        beforeStart: true,
+      );
+      // Open the starting bell's list: every bell with its icon.
+      await tester.tap(find.text('Starting bell'));
+      await tester.pumpAndSettle();
+      await _captureView(tester, 'customize-bells-${brightness.name}');
+    }, skip: !_enabled);
+
     testWidgets('Customize during a session, ${brightness.name}', (
       tester,
     ) async {
@@ -909,7 +943,7 @@ void main() {
       DailyMark.forDay(DateTime(2026, 10, 26)).seed,
     );
     for (final brightness in Brightness.values) {
-      final theme = meditejoTheme(brightness);
+      final theme = meditejoTheme(brightness, _palette);
       final scheme = theme.colorScheme;
       final colors = theme.extension<MeditejoPalette>()!.markColors(scheme);
       for (var i = 0; i < frames; i++) {

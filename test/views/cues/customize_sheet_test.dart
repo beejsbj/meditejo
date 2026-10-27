@@ -430,7 +430,11 @@ void main() {
     for (final name in cueBellSounds.keys) {
       await tester.ensureVisible(find.text(name).last);
     }
-    expect(find.byIcon(Icons.radio_button_checked_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+    // Each bell carries its icon, drawn from its sound.
+    for (final asset in cueBellSounds.values.where((a) => a.isNotEmpty)) {
+      expect(find.byKey(ValueKey('bell_icon_$asset')), findsOneWidget);
+    }
     // Off is silent: it stops the preview rather than playing anything.
     final before = preview.played.length;
     final off = find.descendant(

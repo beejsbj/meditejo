@@ -16,6 +16,7 @@ import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
 import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 import 'package:medito/widgets/attribution_notice.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/save_button.dart';
 import 'package:medito/widgets/section_header.dart';
 import 'package:medito/widgets/widgets.dart';
@@ -131,6 +132,7 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
           title: teacher.name,
           hasLeading: false,
           coverUrl: teacher.photoUrl,
+          art: teacherArt(teacher.id),
         ),
         SliverToBoxAdapter(
           child: Column(

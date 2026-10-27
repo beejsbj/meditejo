@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
+import 'package:medito/widgets/art/art_subject.dart';
 import 'package:medito/widgets/cards/card_art.dart';
 import 'package:medito/widgets/cards/card_tokens.dart';
 
@@ -11,11 +12,10 @@ class SessionRow extends StatelessWidget {
   const SessionRow({
     super.key,
     required this.title,
+    required this.art,
     required this.onTap,
     this.detail,
     this.artUrl = '',
-    this.artSeed,
-    this.portrait = false,
     this.completed = false,
     this.downloaded = false,
     this.trailing = const [],
@@ -26,11 +26,8 @@ class SessionRow extends StatelessWidget {
   final String? detail;
   final String artUrl;
 
-  /// Seeds generated art when there is no picture; the title by default.
-  final String? artSeed;
-
-  /// The art is a teacher's photo: drawn as a circle.
-  final bool portrait;
+  /// The session's art, keyed by its id; shown when it has no picture.
+  final ArtSubject art;
   final bool completed;
   final bool downloaded;
   final List<Widget> trailing;
@@ -41,9 +38,9 @@ class SessionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final type = context.typography;
-    final art = SizedBox.square(
+    final cover = SizedBox.square(
       dimension: artSize,
-      child: CardArt(url: artUrl, seed: artSeed ?? title),
+      child: CardArt(url: artUrl, art: art, avatarSize: 20),
     );
     return InkWell(
       onTap: onTap,
@@ -58,12 +55,10 @@ class SessionRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              portrait
-                  ? ClipOval(child: art)
-                  : ClipRRect(
-                      borderRadius: BorderRadius.circular(kCardArtRadius - 4),
-                      child: art,
-                    ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(kCardArtRadius - 4),
+                child: cover,
+              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(

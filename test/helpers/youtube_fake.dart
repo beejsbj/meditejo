@@ -98,8 +98,7 @@ class FakeYoutubeApi extends YoutubeExtractorApi {
     audioCalls.add(videoId);
     await audioGate?.future;
     if (failure case final error?) throw error;
-    return streams[videoId] ??
-        (throw PlatformException(code: 'unavailable'));
+    return streams[videoId] ?? (throw PlatformException(code: 'unavailable'));
   }
 }
 

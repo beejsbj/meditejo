@@ -15,6 +15,7 @@ import 'package:medito/views/library/library_actions.dart';
 import 'package:medito/views/library/library_format.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/widgets/cards/card_art.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/cards/card_tokens.dart';
 import 'package:medito/widgets/cards/course_card.dart';
 import 'package:medito/widgets/cards/session_row.dart';
@@ -107,8 +108,7 @@ class LibraryEntryTile extends ConsumerWidget {
             progress: libraryProgress(ref, l10n, entry),
             art: CardArt(
               url: entry.coverUrl,
-              seed: entry.displayTitle,
-              portrait: hasPortraitCover(entry.sourceId),
+              art: libraryArt(entry.kind, entry.sourceId),
               avatarSize: 28,
             ),
             onTap: open,
@@ -124,8 +124,7 @@ class LibraryEntryTile extends ConsumerWidget {
           title: entry.displayTitle,
           detail: entry.subtitle,
           artUrl: entry.coverUrl,
-          artSeed: entry.displayTitle,
-          portrait: hasPortraitCover(entry.sourceId),
+          art: libraryArt(entry.kind, entry.sourceId),
           completed: played,
           downloaded: ref
               .watch(downloadedTrackIdsProvider)
@@ -136,6 +135,7 @@ class LibraryEntryTile extends ConsumerWidget {
       case LibraryKind.teacher:
         return TeacherRow(
           key: key,
+          id: entry.sourceId,
           name: entry.displayTitle,
           photoUrl: entry.coverUrl,
           detail: entry.subtitle,
@@ -165,8 +165,7 @@ class LibraryEntryCard extends ConsumerWidget {
       progress: libraryProgress(ref, l10n, entry),
       art: CardArt(
         url: entry.coverUrl,
-        seed: entry.displayTitle,
-        portrait: hasPortraitCover(entry.sourceId),
+        art: libraryArt(entry.kind, entry.sourceId),
         avatarSize: 32,
       ),
       onTap: () => openLibraryEntry(context, ref, entry),
@@ -225,8 +224,7 @@ class InProgressCard extends ConsumerWidget {
         progress: progress,
         art: CardArt(
           url: item.coverUrl,
-          seed: item.courseTitle.isEmpty ? item.title : item.courseTitle,
-          portrait: hasPortraitCover(courseId ?? item.trackId),
+          art: courseId != null ? courseArt(courseId) : singleArt(item.trackId),
         ),
         onTap: start,
         action: IconButton(

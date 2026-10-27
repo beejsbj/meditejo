@@ -1,17 +1,21 @@
 import 'package:medito/constants/constants.dart';
 import 'package:medito/views/home/widgets/home_gradient_border.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 
 class TrackCardWidget extends StatelessWidget {
   const TrackCardWidget({
     super.key,
+    required this.id,
     required this.title,
     this.subTitle,
     this.coverUrlPath,
     this.onTap,
   });
 
+  /// The track's id, which its art is generated from when it has no picture.
+  final String id;
   final String title;
   final String? subTitle;
   final String? coverUrlPath;
@@ -81,17 +85,17 @@ class TrackCardWidget extends StatelessWidget {
   }
 
   Widget _getCoverUrl() {
-    if (coverUrlPath != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(3),
-        child: SizedBox(
-          height: 80,
-          width: 80,
-          child: NetworkImageWidget(url: coverUrlPath ?? '', shouldCache: true),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(3),
+      child: SizedBox(
+        height: 80,
+        width: 80,
+        child: NetworkImageWidget(
+          url: coverUrlPath ?? '',
+          shouldCache: true,
+          art: singleArt(id),
         ),
-      );
-    }
-
-    return const SizedBox();
+      ),
+    );
   }
 }

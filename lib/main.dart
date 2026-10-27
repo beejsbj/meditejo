@@ -37,6 +37,8 @@ import 'package:medito/utils/bundled_licenses.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/utils/stats_updater.dart';
 import 'package:medito/views/splash_view.dart';
+import 'package:medito/widgets/art/art_subject.dart';
+import 'package:medito/widgets/art/engine/art_textures.dart';
 import 'package:medito/services/deep_link_service.dart';
 // ignore: depend_on_referenced_packages
 import 'package:device_preview/device_preview.dart';
@@ -66,6 +68,10 @@ void main() async {
   DevicePreview.enable(enabled: DebugOptions.enableDevicePreview);
 
   WidgetsFlutterBinding.ensureInitialized();
+  // The generated art's curated cards and textures, off the first frame's
+  // path: cards show their ground's tone until these are in.
+  unawaited(CuratedArt.instance.load());
+  unawaited(ArtTextures.instance.load());
 
   // Google Sans ships under the SIL Open Font License 1.1, which requires the
   // license notice to travel with the app. Register it so it's included in the

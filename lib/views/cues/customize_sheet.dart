@@ -16,6 +16,8 @@ import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
+import 'package:medito/widgets/art/art_cover.dart';
+import 'package:medito/widgets/art/art_subject.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/views/soundscape/sound_labels.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
@@ -1389,18 +1391,43 @@ class _SubLabel extends StatelessWidget {
   );
 }
 
-/// The bells a cue can ring. Tapping one selects it and rings it once, so
-/// what is heard is what a session will play.
-class _BellList extends StatelessWidget {
+/// The bells a cue can ring, each with its icon (the bell's figure,
+/// drawn from its sound). Tapping one selects it and rings it once, so what
+/// is heard is what a session will play, and its icon is struck with it.
+class _BellList extends StatefulWidget {
   const _BellList({required this.selected, required this.onSelected});
 
   final String selected;
   final ValueChanged<String> onSelected;
 
   @override
+  State<_BellList> createState() => _BellListState();
+}
+
+class _BellListState extends State<_BellList> {
+  final _strikes = <String, ValueNotifier<int>>{
+    for (final asset in cueBellSounds.values)
+      if (asset.isNotEmpty) asset: ValueNotifier(0),
+  };
+
+  @override
+  void dispose() {
+    for (final n in _strikes.values) {
+      n.dispose();
+    }
+    super.dispose();
+  }
+
+  void _pick(String asset) {
+    widget.onSelected(asset);
+    _strikes[asset]?.value++;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final type = context.typography;
+    final selected = widget.selected;
     return Material(
       color: scheme.surfaceContainerHighest,
       clipBehavior: Clip.antiAlias,
@@ -1413,24 +1440,42 @@ class _BellList extends StatelessWidget {
               selected: e.value == selected,
               label: e.value.isEmpty ? e.key : '${e.key}, plays a preview',
               excludeSemantics: true,
-              onTap: () => onSelected(e.value),
+              onTap: () => _pick(e.value),
               child: InkWell(
-                onTap: () => onSelected(e.value),
+                onTap: () => _pick(e.value),
                 child: Ink(
                   color: e.value == selected ? scheme.secondaryContainer : null,
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 48),
+                    constraints: const BoxConstraints(minHeight: 56),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       child: Row(
                         children: [
-                          Icon(
-                            e.value == selected
-                                ? Icons.radio_button_checked_rounded
-                                : Icons.radio_button_unchecked_rounded,
-                            color: e.value == selected
-                                ? scheme.primary
-                                : scheme.onSurfaceVariant,
+                          SizedBox.square(
+                            dimension: 40,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: e.value.isEmpty
+                                  ? ColoredBox(
+                                      color: scheme.surfaceContainerLow,
+                                      child: Icon(
+                                        Icons.notifications_off_outlined,
+                                        size: 20,
+                                        color: scheme.onSurfaceVariant,
+                                      ),
+                                    )
+                                  : ArtCover(
+                                      key: ValueKey('bell_icon_${e.value}'),
+                                      subject: ArtSubject.bell(
+                                        e.value,
+                                        icon: true,
+                                      ),
+                                      strike: _strikes[e.value],
+                                    ),
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -1447,7 +1492,9 @@ class _BellList extends StatelessWidget {
                                       ),
                             ),
                           ),
-                          if (e.value.isNotEmpty)
+                          if (e.value == selected)
+                            Icon(Icons.check_rounded, color: scheme.primary)
+                          else if (e.value.isNotEmpty)
                             Icon(
                               Icons.volume_up_rounded,
                               size: 20,

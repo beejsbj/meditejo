@@ -696,6 +696,74 @@ Burooj authorised Meditejo's Freesound app, so the picks that needed an account 
   - **Fixed from the same review:** the CI step ran with zero tests (pip's numpy was invisible to `python3 -I`, so the module skipped itself; now a venv, and a missing numpy fails when `CI` is set); a cached original now gets its licence checked when it is first pinned; NOTICE's header no longer says every file was crossfaded; a loop too short to measure stops with a message; the credits-screen test also asserts the source host and "Attribution required".
   - **From CodeRabbit on #41.** Fixed: a cached original that fails its SHA-256 pin is deleted, so the next run downloads it again instead of failing on the same file. Declined: making the true-peak retry fail the build when its last encode is still over the ceiling. The shipped `river` is over it already, so a hard failure would stop the pipeline reproducing the current library; the warning stays, and the limiter-threshold fix above is the real answer.
 
+## 2026-10-27 (identity PR 2: the generated art in the app)
+
+- **The engine is a port of the page, checked against the page.** `lib/widgets/art/engine/` ports identity rounds 4 and 5 (`fork/mark-explore`, a15aefda): 16 grounds, 27 figures, the bell, the meaning map, the seeded builder and the print finish. The ported code is over a small Canvas 2D context (`canvas2d.dart`), which keeps the browser's path, transform and arc semantics, so the drawing code ports line for line.
+  - `tools/meditejo/art/reference/render_reference.py` draws compositions with the page's own code in headless Chrome. `art_reference_test.dart` checks the Dart drawing against those PNGs, with #45's tolerances: mean under 1/255, and under 0.5% of pixels off by more than 64.
+  - `art_build_parity_test.dart` checks that the Dart builder freezes to the page's JSON.
+  - Fourteen goldens are committed (curated and generated, still and moving, square, 2:1 and 16:9). The broad dev set (`dev_specs.py`: eight seeds of every class, ground alone, figures alone, whole card, still and moving, about 1,800 cards) runs locally.
+  - References draw the frozen form (numbers rounded to 1e-4), as the app draws what ships. Drawing live params beside rounded JSON made noise seeds and the scales grid drift.
+- **Shipped art is `assets/art/curated_art.json`, byte for byte round 5's file** (58 items). Curated items are drawn from their frozen params and never rebuilt. Everything else is built from its **id**, never its title, so renaming keeps the art. Covers that were seeded by title are now seeded by id.
+- **App ids map onto the map's ids.** Generated layers are named for what they are: `synth-noise` becomes `noise-<colour>` from its settings, `synth-drone` becomes `drone`, `synth-binaural` becomes `binaural`. Bells are found by their asset path, through the curated entries.
+- **Presets and the mix.**
+  - A shipped preset keeps its curated card while its two loudest layers are the ones it was curated with.
+  - A user's preset is built from its id.
+  - The current mix (no preset) is built from its two loudest layers, so the same blend always reads the same, and the live mix card changes only when the leading pair does.
+- **The cover rule, in one place (`lib/widgets/cover_art.dart`):**
+  1. Curated art for a shipped id wins over any picture, so a starter YouTube course shows its curated card, not its thumbnail.
+  2. Otherwise a real cover wins (feed artwork, a YouTube thumbnail).
+  3. Otherwise art is generated from the id.
+
+  A teacher's photo wins only for teachers. **Dharma Seed courses and talks now show art instead of the lead teacher's portrait** (identity round 4: retreats follow the course rule). #43's small teacher avatar in the corner of those cards stays. Visible change: Explore's course strip is art now, not faces.
+- **Motion means sounding.** Covers are always still. A sound tile moves while its sound plays in the mix; a preset card moves while it plays; the live mix card moves while the mix plays. The player's background (a session without a cover) moves. A bell icon moves once when previewed.
+  - Everything else shows a cached still raster, rasterised once per (subject, palette, size) in a 48 MB LRU.
+  - Live art repaints at up to 30 fps. It stops off screen (checked every 15 frames against the window), under muted tickers (hidden tabs and routes) and under reduced motion, which keeps the still.
+  - This reads "focused" in the brief as "what's sounding". It also keeps the cost bounded: a full Sounds grid never animates more than the six layers a mix can hold.
+- **Sounds and presets look different (agreed with Burooj).**
+  - **Sounds:** square tiles on the three-across grid. A + in the corner while the sound is out of the mix, a tick while it's in.
+  - **Presets:** 2:1 prints on a small stack of two others. A "Meditejo" or "Yours" overline, chips naming the layers loudest first (whole while they fit, then "+n"), and a play button. Playing shows an equaliser and an outline.
+  - **Mix:** the dock's header is the live mix card (56 dp, play/pause on the art), and layer tiles carry each sound's art.
+  - The new strings are "Meditejo" and "Yours" in en, de and es; de "Deins" and es "Tuyo" are my translations, for Burooj to check.
+- **The art is the same in light and dark themes,** like album covers. It follows the palette, not the brightness.
+- **Bell icons in the Customize bell picker:** a 40 dp icon in a 12 dp-radius square. Picking a bell previews it and strikes its icon once, for 0.8 + 3 × (0.45 + 1.25 × ring) seconds, capped at 16. The chosen row shows a tick instead of a radio.
+- **Measured (host benchmark, `MEDITEJO_ART_BENCH=1 flutter test test/widgets/art/art_benchmark_test.dart`, flutter_tester's software renderer on bjslab, so relative, not a phone's):**
+  - Live frame at 168 px (record plus raster): median 2.1 ms across the curated cards. The heaviest are rain-terrace 8.4 ms, rain-window 6.4 ms and rain-car 5.2 ms.
+  - Still raster, paid once per palette and size and made asynchronously: 4.2 ms at 168 px (p95 7.2), 14.6 ms at 420 px, 90 ms at 1080 px.
+  - Scrolling over cached stills (build, layout and paint; the raster thread isn't measured here):
+    - a 30-card grid, 3 across: median 7.8 ms, p95 12.2;
+    - a 200-row list: median 12.7 ms, p95 16.4.
+- **Follow-ups:**
+  - Frame timings on a real mid-range phone in a profile build. Only host benchmarks were run; the place cards (rain-terrace, rain-window, rain-car) are the ones to watch when several are live at once.
+  - The player on a tall screen draws the square art cropped to the middle, so its figure sits behind the controls. It's legible under a 0.5 shade, but a composition made for tall screens (the figure above the title, or the ground alone) would be better.
+  - The playlist `scales` figure's moving frame is the reference check's closest case (mean 0.999 against a limit of 1.0).
+  - Whether live sound tiles should also move while merely in a paused mix.
+  - A custom bell (BJS-587) can feed `BellFigure` its own five controls.
+  - `GeneratedArtwork` is deleted; nothing draws it any more.
+- **Review of #46 (Opus 5.5 at 8320bbc; CodeRabbit), and what was done.**
+  - **Fixed:** the P1 both reviewers found (the raster cache disposed images that mounted tiles still held; each tile now holds its own clone, with a regression test in `art_cover_raster_test.dart`), a failed print-finish request staying in `_pending` for the session, the player screenshot capturing the Customize sheet, and a path-separator-dependent filter in the parity test.
+  - **Declined:** `pumpAndSettle` after starting playback in `sounds_view_test.dart`: the file passes at this head, locally and in CI, so no ticker is keeping it from settling. If it ever times out, bound those pumps.
+  - **Follow-ups (P2), not done:**
+    - Live art scrolled off screen stops painting but its ticker keeps running (`art_cover.dart`, `_tick`), so the app never idles while one is mounted. Stop or throttle the ticker when `_onScreen` is false.
+    - The print finish and the still rasters are computed on the UI isolate (90 ms for a 1080 px still): move `finishPixels` to `compute()` if the phone timings show a drop when the player opens under reduced motion.
+    - No test checks that every shipped sound, synth layer, preset and bell has art; `art_subject_test.dart` only counts 58 entries and 11 bells.
+  - **Follow-ups (P3):**
+    - Print-finish textures sit outside the 48 MB raster budget (up to about 96 MB worst case).
+    - `ArtTextures` drops an evicted print-finish image from its 24-entry map without disposing it (CodeRabbit, Major on its own scale). Declined for now: live painters share those images, so disposing on eviction is the use-after-dispose hazard fixed for rasters in 6d04f8b6, and a dropped handle is freed by the engine's finalizer once nothing holds it. If memory shows up, give painters their own clones as `ArtCover` now does, then dispose on eviction.
+    - The `ArtRasters.still` doc comment says a missing finish is retried; it isn't, beyond `ArtTextures` notifying.
+    - The raster request in `ArtCover` has no error handler.
+    - `NetworkImageWidget` starts the curated-file load on every build.
+    - Two seeds aren't the item's id: a failed Dharma Seed teacher avatar (seeded by the photo URL, `card_art.dart`) and an import preview with no address (seeded by its title, `import_view.dart`).
+    - Mix-dock tiles move at volume 0; grid tiles require volume above 0.
+    - Preset chips use an unstable `sort`, the art a stable order.
+    - Two weak tests: "renamed item keeps its art" compares two constants, and the reference test skips a golden whose ground or figure isn't registered instead of failing.
+    - Screen readers don't hear a preset's overline or chips.
+    - bf6565fa carries about 1,000 lines of formatting churn in unrelated tests.
+  - **Opus re-check of the fix at 6d04f8b6: nothing blocking.** Its P3s, not done:
+    - Under cache thrash (more than 48 MB of rasters on screen) a tile can clear its key and re-request in a loop, each round rendering on the UI thread. Hand the tile a clone from the cache's future, or cap the retries.
+    - A tile can show its previous key's image for one microtask if a build lands between the new raster entering the cache and its callback running. Compare which raster the clone came from, not only `_still == null`.
+    - Nothing tests a key change while a raster is pending, or an eviction before the callback runs.
+  - **PRODUCT, for Burooj:** in the player, a session inside a course shows the course's art, while its row in lists shows the session's own art.
+
 ## 2026-10-26 (design pass PR 5: the Customize sheet, the scroll-wheel picker, and the halfway bell)
 
 BRIEF decisions 18 (wheel picker, halfway) and 19 (the Timer starts silent). Screenshots, light and dark, are in `docs/fork/design/` (`customize-before-*`, `customize-during-*`, `customize-wheel-*`, `timer-*`, `timer-duration-*`); regenerate with `MEDITEJO_SCREENSHOTS=1 flutter test test/screenshots`.

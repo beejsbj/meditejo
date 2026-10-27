@@ -1,0 +1,45 @@
+{
+ "seed": "bell-gong#0",
+ "cls": "bell",
+ "ground": {
+  "name": "dawn",
+  "params": {
+   "h": 0.6991,
+   "sx": 0.4097,
+   "warm": 0.4696,
+   "bars": [
+    5.8468,
+    6.201,
+    3.4893,
+    4.9107,
+    5.1364
+   ]
+  }
+ },
+ "figure": {
+  "name": "bell",
+  "kind": "gong",
+  "layout": "centre",
+  "params": {
+   "cx": 0.5,
+   "cy": 0.48,
+   "s": 0.3,
+   "preset": "gong",
+   "kind": "gong",
+   "knobs": {
+    "pitch": 118,
+    "bright": 0.6498,
+    "ring": 4.2,
+    "shimmer": 0.8,
+    "strike": 0.1156
+   },
+   "tilt": -0.042
+  }
+ },
+ "accent": null,
+ "misregister": [
+  0.0077,
+  0.0049
+ ],
+ "inkSeed": "bell-gong#0:ink"
+}

@@ -53,6 +53,17 @@ String dsTeacherPhotoUrl(int teacherId, String photo, {int maxWidth = 400}) {
       '${Uri.encodeComponent(photo)}/?maxW=$maxWidth';
 }
 
+/// Whether [id]'s `coverUrl` is the lead teacher's photo rather than a cover:
+/// a Dharma Seed retreat or talk. Its art is its own; the photo is shown only
+/// as a small avatar on it.
+bool dsHasPortraitCover(String id) =>
+    id.startsWith(_retreatPrefix) || id.startsWith(_talkPrefix);
+
+/// The cover URL to draw for [id]: none for a retreat or talk, whose
+/// `coverUrl` is the lead teacher's photo (see [dsHasPortraitCover]).
+String dsCoverUrl(String id, String url) =>
+    dsHasPortraitCover(id) ? '' : url;
+
 /// The two content groups of the Explore chips. Practice is what you do along
 /// with the audio; Talks is everything you listen to, including `Other` and
 /// recordings with no type.

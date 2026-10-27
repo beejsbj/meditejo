@@ -38,10 +38,7 @@ void main() {
 
   test('a last check in the future (clock set back) counts as due', () {
     expect(
-      isAutoCheckDue(
-        lastCheckedAt: now.add(const Duration(days: 3)),
-        now: now,
-      ),
+      isAutoCheckDue(lastCheckedAt: now.add(const Duration(days: 3)), now: now),
       isTrue,
     );
   });

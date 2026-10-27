@@ -9,6 +9,7 @@ import 'package:medito/utils/logger.dart';
 import 'package:medito/views/home/home_styles.dart';
 import 'package:medito/views/library/library_format.dart';
 import 'package:medito/views/player/start_session.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/network_image_widget.dart';
 
 /// What is in progress, up to three, each one tap from playing. With nothing
@@ -141,9 +142,9 @@ class ContinueTile extends ConsumerWidget {
                   dimension: 64,
                   child: NetworkImageWidget(
                     url: item.coverUrl,
-                    seed: item.courseTitle.isEmpty
-                        ? item.title
-                        : item.courseTitle,
+                    art: item.courseId != null
+                        ? courseArt(item.courseId!)
+                        : singleArt(item.trackId),
                     shouldCache: true,
                   ),
                 ),

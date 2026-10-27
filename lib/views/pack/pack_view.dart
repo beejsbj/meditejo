@@ -27,6 +27,7 @@ import 'package:medito/views/player/widgets/bottom_actions/pack_view_bottom_bar.
 import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
 import 'package:medito/views/tags/widgets/tag_chips.dart';
 import 'package:medito/widgets/attribution_notice.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/inputs/medito_segmented_tabs.dart';
 import 'package:medito/widgets/save_button.dart';
 import 'package:medito/widgets/widgets.dart';
@@ -210,6 +211,7 @@ class _PackViewState extends ConsumerState<PackView>
             title: pack.title,
             hasLeading: false,
             coverUrl: pack.coverUrl ?? '',
+            art: courseArt(pack.id),
           ),
           SliverList(
             delegate: SliverChildListDelegate([
@@ -404,6 +406,7 @@ class _PackViewState extends ConsumerState<PackView>
           Row(
             children: [
               TeacherAvatar(
+                id: teacher.id,
                 name: teacher.name,
                 photoUrl: teacher.photoUrl,
                 size: 72,

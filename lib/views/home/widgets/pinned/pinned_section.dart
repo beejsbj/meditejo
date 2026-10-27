@@ -9,6 +9,7 @@ import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/views/home/home_styles.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/network_image_widget.dart';
 
 /// Up to three courses the user pinned, each with where they are in it.
@@ -83,7 +84,7 @@ class PinnedCourseTile extends ConsumerWidget {
                 dimension: 56,
                 child: NetworkImageWidget(
                   url: pack?.coverUrl ?? '',
-                  seed: title,
+                  art: courseArt(id),
                   shouldCache: true,
                 ),
               ),

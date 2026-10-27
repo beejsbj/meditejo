@@ -5,9 +5,9 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/constants/theme/tokens.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/widgets/generated_artwork.dart';
-
-import 'sound_labels.dart';
+import 'package:medito/models/soundscape/sound_mix.dart';
+import 'package:medito/widgets/art/art_cover.dart';
+import 'package:medito/widgets/art/art_subject.dart';
 
 /// Corner radius of the Sounds tab's cards and of the art inside its panel.
 const kSoundCardRadius = MeditejoShapes.largeIncreased;
@@ -45,32 +45,39 @@ class SoundGridMetrics {
   }
 }
 
-/// White text and icons on the generated art; the art's colours are muted
-/// and a scrim darkens the foot, so this reads in both themes.
+/// White text and icons on the generated art; a scrim darkens the art's
+/// foot, so this reads on light and dark grounds alike.
 const _onArt = Colors.white;
 
+Color _scrim(double alpha) => Colors.black.withValues(alpha: alpha);
+
 /// A card drawn on generated art that dips under the finger (Expressive's
-/// fast spatial spring) and outlines itself when [selected]. Content is
-/// decorative; the card is one button to screen readers, labelled
-/// [semanticsLabel]. [action], if any, sits top-right and stays its own
-/// button.
+/// fast spatial spring) and outlines itself when [selected]. [live] lets
+/// the art move (it still stops off screen and under reduced motion).
+/// Content is decorative; the card is one button to screen readers,
+/// labelled [semanticsLabel]. [action], if any, sits top-right and stays
+/// its own button.
 class SoundArtSurface extends StatefulWidget {
   const SoundArtSurface({
     super.key,
-    required this.seed,
-    required this.colors,
+    required this.art,
     required this.semanticsLabel,
     required this.onTap,
     required this.child,
+    this.live = false,
     this.onLongPress,
     this.selected = false,
     this.enabled = true,
     this.radius = kSoundCardRadius,
     this.action,
+    this.topScrim = false,
   });
 
-  final String seed;
-  final (Color, Color) colors;
+  final ArtSubject art;
+
+  /// Darkens the top too, for text set at the top of the art.
+  final bool topScrim;
+  final bool live;
   final String semanticsLabel;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
@@ -108,17 +115,23 @@ class _SoundArtSurfaceState extends State<SoundArtSurface> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              GeneratedArtwork(seed: widget.seed, colors: widget.colors),
+              ArtCover(subject: widget.art, live: widget.live),
               DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    stops: const [0.35, 1],
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.38),
-                    ],
+                    stops: widget.topScrim
+                        ? const [0, 0.45, 0.6, 1]
+                        : const [0.4, 1],
+                    colors: widget.topScrim
+                        ? [
+                            _scrim(0.42),
+                            Colors.transparent,
+                            Colors.transparent,
+                            _scrim(0.5),
+                          ]
+                        : [Colors.transparent, _scrim(0.5)],
                   ),
                 ),
               ),
@@ -175,7 +188,7 @@ class _SoundArtSurfaceState extends State<SoundArtSurface> {
   }
 }
 
-/// A sound's icon on a soft disc, as the art's top-left mark.
+/// A sound's icon on a soft disc, on art.
 class SoundIconBubble extends StatelessWidget {
   const SoundIconBubble(this.icon, {super.key, this.size = 20});
 
@@ -195,22 +208,30 @@ class SoundIconBubble extends StatelessWidget {
   );
 }
 
-/// One sound in the library: tap to layer it into the mix or take it out.
+/// One sound in the library, as a square tile: tap to layer it into the
+/// mix or take it out. Its corner says which: a quiet + while it's out, a
+/// tick while it's in. Its art moves while it sounds.
 class SoundCard extends StatelessWidget {
   const SoundCard({
     super.key,
     required this.soundId,
     required this.title,
-    required this.look,
     required this.selected,
     required this.enabled,
     required this.onTap,
+    this.params = const {},
+    this.sounding = false,
   });
 
   final String soundId;
   final String title;
-  final SoundLook look;
   final bool selected;
+
+  /// A generated layer's settings (the noise's colour draws its art).
+  final Map<String, Object?> params;
+
+  /// In the mix and playing: the art moves.
+  final bool sounding;
 
   /// False when the mix is full and this sound is not in it.
   final bool enabled;
@@ -222,43 +243,50 @@ class SoundCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     const pop = MeditejoMotion.expressiveFastSpatial;
     return SoundArtSurface(
-      seed: soundId,
-      colors: look.colors,
+      art: ArtSubject.sound(soundId, params),
+      live: sounding,
       semanticsLabel: title,
       selected: selected,
       enabled: enabled,
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SoundIconBubble(look.icon, size: 16),
-                const Spacer(),
-                AnimatedScale(
-                  scale: selected ? 1 : 0,
-                  duration: still ? Duration.zero : pop.duration,
-                  curve: pop.curve,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: scheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(3),
-                      child: Icon(
-                        Symbols.check_rounded,
-                        size: 16,
-                        weight: 600,
-                        color: scheme.onPrimary,
-                      ),
+            Align(
+              alignment: Alignment.topRight,
+              child: AnimatedSwitcher(
+                duration: still ? Duration.zero : pop.duration,
+                switchInCurve: pop.curve,
+                transitionBuilder: (child, animation) =>
+                    ScaleTransition(scale: animation, child: child),
+                child: DecoratedBox(
+                  key: ValueKey(selected),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? scheme.primary
+                        : Colors.black.withValues(alpha: 0.22),
+                    shape: BoxShape.circle,
+                    border: selected
+                        ? null
+                        : Border.all(
+                            color: _onArt.withValues(alpha: 0.7),
+                            width: 1.5,
+                          ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(3),
+                    child: Icon(
+                      selected ? Symbols.check_rounded : Symbols.add_rounded,
+                      key: ValueKey('sound_state_$soundId'),
+                      size: 16,
+                      weight: 600,
+                      color: selected ? scheme.onPrimary : _onArt,
                     ),
                   ),
                 ),
-              ],
+              ),
             ),
             const Spacer(),
             Text(
@@ -276,13 +304,28 @@ class SoundCard extends StatelessWidget {
   }
 }
 
-/// A preset as a large card: one tap plays it.
+/// A preset's card size: two to one, growing with large text.
+Size presetCardSize(BuildContext context) {
+  final factor = MediaQuery.textScalerOf(context).scale(14) / 14;
+  final h = 136 * (factor > 1.15 ? factor / 1.15 : 1.0);
+  return Size(h * 2, h);
+}
+
+/// How far the stacked prints show under a preset card.
+const kPresetStackDepth = 8.0;
+
+/// A preset as a wide print on a small stack of others (it is several
+/// sounds at once): tapping it replaces the mix, so it carries a play
+/// button where a sound carries its +. An overline says whose it is, and
+/// chips name its layers.
 class PresetCard extends StatelessWidget {
   const PresetCard({
     super.key,
     required this.presetId,
     required this.label,
-    required this.looks,
+    required this.layers,
+    required this.layerTitles,
+    required this.builtIn,
     required this.playing,
     required this.onTap,
     this.onDelete,
@@ -290,9 +333,13 @@ class PresetCard extends StatelessWidget {
 
   final String presetId;
   final String label;
+  final List<SoundLayer> layers;
 
-  /// The looks of its layers, in order: the first colours the card.
-  final List<SoundLook> looks;
+  /// Its layers' names, loudest first.
+  final List<String> layerTitles;
+
+  /// Meditejo's own, rather than the user's.
+  final bool builtIn;
   final bool playing;
   final VoidCallback onTap;
 
@@ -303,13 +350,23 @@ class PresetCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final type = context.typography;
+    final scheme = Theme.of(context).colorScheme;
     final still = MediaQuery.disableAnimationsOf(context);
     const swap = MeditejoMotion.expressiveFastSpatial;
-    final icons = <IconData>{for (final look in looks) look.icon}.take(4);
-    return SoundArtSurface(
-      seed: presetId,
-      colors:
-          (looks.isEmpty ? SoundLook.forCategory(null) : looks.first).colors,
+    final radius = BorderRadius.circular(kPresetCardRadius);
+    Widget print(double inset, double drop, Color color) => Positioned(
+      left: inset,
+      right: inset,
+      top: drop,
+      bottom: kPresetStackDepth - drop,
+      child: DecoratedBox(
+        decoration: BoxDecoration(color: color, borderRadius: radius),
+      ),
+    );
+    final card = SoundArtSurface(
+      art: ArtSubject.layers(presetId, layers),
+      live: playing,
+      topScrim: true,
       radius: kPresetCardRadius,
       semanticsLabel: playing
           ? '${l10n.soundsPlayPreset(label)}, ${l10n.soundsPresetPlaying}'
@@ -331,41 +388,55 @@ class PresetCard extends StatelessWidget {
               ],
             ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 12, 14),
+        padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                for (final icon in icons)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: SoundIconBubble(icon, size: 16),
-                  ),
-              ],
+            Text(
+              (builtIn ? l10n.soundsPresetOurs : l10n.soundsPresetYours)
+                  .toUpperCase(),
+              key: ValueKey('preset_overline_$presetId'),
+              style: type.baseline.labelSmall?.copyWith(
+                color: _onArt.withValues(alpha: 0.85),
+                letterSpacing: 1.4,
+              ),
             ),
-            const Spacer(),
+            const SizedBox(height: 2),
             Text(
               label,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: type.emphasized.titleMedium?.copyWith(color: _onArt),
             ),
-            const SizedBox(height: 2),
+            const Spacer(),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                // As many whole chips as fit on one line, then "+n".
                 Expanded(
-                  child: Text(
-                    playing
-                        ? l10n.soundsPresetPlaying
-                        : l10n.soundsLayerCount(looks.length),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: type.baseline.bodyMedium?.copyWith(
-                      color: _onArt.withValues(alpha: 0.85),
+                  child: LayoutBuilder(
+                    builder: (context, box) => Row(
+                      children: [
+                        for (final (i, chip) in _fitChips(
+                          context,
+                          layerTitles,
+                          box.maxWidth,
+                          type.baseline.labelSmall,
+                        ).indexed)
+                          // Only the first gives way; the rest were measured
+                          // to fit beside it.
+                          Flexible(
+                            flex: i == 0 ? 1 : 0,
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: _Chip(chip),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 AnimatedSwitcher(
                   duration: still ? Duration.zero : swap.duration,
                   switchInCurve: swap.curve,
@@ -374,7 +445,7 @@ class PresetCard extends StatelessWidget {
                   child: DecoratedBox(
                     key: ValueKey(playing),
                     decoration: BoxDecoration(
-                      color: _onArt.withValues(alpha: playing ? 1 : 0.9),
+                      color: playing ? scheme.primary : _onArt,
                       shape: BoxShape.circle,
                     ),
                     child: Padding(
@@ -383,9 +454,10 @@ class PresetCard extends StatelessWidget {
                         playing
                             ? Symbols.equalizer_rounded
                             : Symbols.play_arrow_rounded,
+                        key: ValueKey('preset_play_$presetId'),
                         fill: 1,
                         size: 24,
-                        color: Colors.black87,
+                        color: playing ? scheme.onPrimary : Colors.black87,
                       ),
                     ),
                   ),
@@ -396,7 +468,77 @@ class PresetCard extends StatelessWidget {
         ),
       ),
     );
+    return Stack(
+      children: [
+        print(16, kPresetStackDepth, scheme.surfaceContainerHighest),
+        print(8, kPresetStackDepth / 2, scheme.outlineVariant),
+        Positioned.fill(bottom: kPresetStackDepth, child: card),
+      ],
+    );
   }
+}
+
+/// Space a chip takes beyond its text: padding and the gap after it.
+const _chipChrome = 7.0 * 2 + 4;
+
+/// Which of [titles] fit on one line of [width] as whole chips, followed by
+/// "+n" for the rest. The first always shows (it ellipsises if it must).
+List<String> _fitChips(
+  BuildContext context,
+  List<String> titles,
+  double width,
+  TextStyle? style,
+) {
+  double measure(String text) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final w = painter.width + _chipChrome;
+    painter.dispose();
+    return w;
+  }
+
+  final out = <String>[];
+  var used = 0.0;
+  for (var i = 0; i < titles.length; i++) {
+    final rest = titles.length - i - 1;
+    final more = rest > 0 ? measure('+$rest') : 0.0;
+    final w = measure(titles[i]);
+    if (i > 0 && used + w + more > width) {
+      out.add('+${titles.length - i}');
+      return out;
+    }
+    out.add(titles[i]);
+    used += w;
+  }
+  return out;
+}
+
+/// A small label on art.
+class _Chip extends StatelessWidget {
+  const _Chip(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: Colors.black.withValues(alpha: 0.28),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: context.typography.baseline.labelSmall?.copyWith(color: _onArt),
+      ),
+    ),
+  );
 }
 
 /// The last card of the presets row: keeps the current mix as a preset.

@@ -30,6 +30,7 @@ class TeacherStrip extends ConsumerWidget {
           final teacher = teachers[index];
           return TeacherTile(
             key: ValueKey('teacher_${teacher.id}'),
+            id: teacher.id,
             name: teacher.name,
             photoUrl: teacher.photoUrl,
             onTap: () => openTeacher(context, ref, teacher),
@@ -55,6 +56,7 @@ class TeacherRows extends ConsumerWidget {
         for (final teacher in teachers)
           TeacherRow(
             key: ValueKey('teacher_row_${teacher.id}'),
+            id: teacher.id,
             name: teacher.name,
             photoUrl: teacher.photoUrl,
             detail: teacher.talkCount > 0

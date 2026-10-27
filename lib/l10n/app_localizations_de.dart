@@ -2278,6 +2278,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get soundsSavePreset => 'Mix speichern';
 
   @override
+  String get soundsPresetOurs => 'Meditejo';
+
+  @override
+  String get soundsPresetYours => 'Deins';
+
+  @override
   String get soundsPresetName => 'Name der Voreinstellung';
 
   @override

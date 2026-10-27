@@ -2281,6 +2281,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get soundsSavePreset => 'Guardar mezcla';
 
   @override
+  String get soundsPresetOurs => 'Meditejo';
+
+  @override
+  String get soundsPresetYours => 'Tuyo';
+
+  @override
   String get soundsPresetName => 'Nombre del preajuste';
 
   @override

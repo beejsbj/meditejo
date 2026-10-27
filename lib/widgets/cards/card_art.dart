@@ -1,52 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
-import 'package:medito/widgets/generated_artwork.dart';
+import 'package:medito/widgets/art/art_cover.dart';
+import 'package:medito/widgets/art/art_subject.dart';
 import 'package:medito/widgets/network_image_widget.dart';
 
-/// Whether [id]'s cover is a teacher's portrait rather than art made for it.
-/// Dharma Seed has no cover art: its courses and talks carry the lead
-/// teacher's photo.
-bool hasPortraitCover(String id) => id.startsWith(dharmaSeedPrefix);
-
-/// A course's or session's art. Its own picture when it has one; otherwise
-/// generated art seeded by [seed], the same tile everywhere it appears.
+/// A course's or session's art: curated art when it ships, else its own
+/// picture when it has one (a YouTube thumbnail, a feed's artwork), else art
+/// generated from its id, the same card everywhere it appears. See
+/// `shownCoverUrl` for the rule.
 ///
-/// A [portrait] cover (a teacher's photo, see [hasPortraitCover]) crops badly
-/// as a wide card's art, so it is drawn as generated art with the photo as a
-/// small avatar in the corner.
+/// A Dharma Seed course or talk's [url] is its lead teacher's photo, not a
+/// cover (`dsHasPortraitCover`): the art fills the card and the photo sits
+/// on it as a small avatar in the corner.
 class CardArt extends StatelessWidget {
   const CardArt({
     super.key,
-    required this.seed,
+    required this.art,
     this.url = '',
-    this.portrait = false,
     this.avatarSize = 40,
   });
 
-  final String seed;
+  final ArtSubject art;
   final String url;
-  final bool portrait;
   final double avatarSize;
 
   @override
   Widget build(BuildContext context) {
-    if (!portrait) {
+    final subject = art;
+    if (subject is! CoverArt || !dsHasPortraitCover(subject.id)) {
       return NetworkImageWidget(
         url: url,
-        seed: seed,
+        art: art,
         shouldCache: true,
         alignment: Alignment.topCenter,
       );
     }
     final scheme = Theme.of(context).colorScheme;
+    // A small row's art is small: keep the avatar close to its corner.
+    final inset = avatarSize >= 28 ? 10.0 : 4.0;
     return Stack(
       fit: StackFit.expand,
       children: [
-        GeneratedArtwork(seed: seed),
+        ArtCover(subject: art),
         if (url.isNotEmpty)
           Positioned(
-            left: 10,
-            bottom: 10,
+            left: inset,
+            bottom: inset,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -57,7 +56,7 @@ class CardArt extends StatelessWidget {
                   dimension: avatarSize,
                   child: NetworkImageWidget(
                     url: url,
-                    seed: url,
+                    art: ArtSubject.cover(ArtCoverKind.teacher, url),
                     shouldCache: true,
                     alignment: Alignment.topCenter,
                   ),
