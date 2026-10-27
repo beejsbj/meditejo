@@ -29,6 +29,7 @@ import 'package:medito/src/audio_pigeon.g.dart' as pigeon;
 import 'package:medito/views/home/previews/stats_fixtures.dart';
 import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/previews/preview_support.dart';
+import 'package:medito/widgets/errors/medito_error_widget.dart';
 // Both databases open through drift_flutter, which asks path_provider for a
 // temporary directory; a test has no such plugin. In-memory ones stand in.
 import '../helpers/dharma_seed_fake_api.dart';
@@ -232,6 +233,11 @@ void main() {
         );
         await tester.pump(const Duration(milliseconds: 100));
       }
+      // The player shows an error screen instead when it cannot start (an
+      // unknown track, or a failed start); that must fail here, not pass as
+      // a capture of the error.
+      expect(find.byType(MeditoErrorWidget), findsNothing);
+      expect(find.byType(PlayerView), findsOneWidget);
       if (_enabled) {
         await tester.runAsync(() async {
           final render =
