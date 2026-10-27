@@ -78,7 +78,9 @@ void main() {
     });
 
     test('a few minutes go to the longest pauses only', () {
-      // 30 s of extension: room for three 10 s holds, in the three longest.
+      // 30 s of extension: room for three 10 s holds, so the three longest
+      // are tried; by weight the 20 s pause would get under 10 s, so it
+      // drops and the 40 s and 30 s pauses share the 30 s.
       final d = distributeExtension(
         totalMs: 30000,
         pauses: [
@@ -89,7 +91,7 @@ void main() {
           _silence(500, 20),
         ],
       );
-      expect(d.holds.map((h) => h.atMs), [220000, 415000, 510000]);
+      expect(d.holds.map((h) => h.atMs), [220000, 415000]);
       for (final h in d.holds) {
         expect(h.holdMs, greaterThanOrEqualTo(10000));
       }
@@ -116,12 +118,16 @@ void main() {
     test('no pause takes more than the cap; the rest is shared again', () {
       final d = distributeExtension(
         totalMs: 12 * minute,
-        pauses: [_silence(100, 10), _silence(200, 300)],
+        pauses: [_silence(100, 10), _silence(200, 300), _silence(600, 20)],
         maxHoldMs: 5 * minute,
       );
-      // The long pause would get ~11.6 min: it takes 5, the other the rest.
-      expect(d.holds.last.holdMs, 5 * minute);
-      expect(d.holds.first.holdMs, 7 * minute);
+      // By weight the long pause would get ~10 min: it takes 5, and the
+      // other 7 are shared by length between the 10 s and 20 s pauses.
+      expect(d.holds, [
+        const PauseHold(105000, 140000),
+        const PauseHold(350000, 5 * minute),
+        const PauseHold(610000, 280000),
+      ]);
       expect(d.remainderMs, 0);
     });
 

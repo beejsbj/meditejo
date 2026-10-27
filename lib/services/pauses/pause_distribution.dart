@@ -26,7 +26,7 @@ List<MediaSpan> usablePauses(
         s.startMs >= edgeMs &&
         s.endMs <= map.durationMs - edgeMs)
       s,
-];
+]..sort((a, b) => a.startMs.compareTo(b.startMs));
 
 /// A pause must last this long to be worth holding in.
 const defaultMinPauseMs = 10000;
