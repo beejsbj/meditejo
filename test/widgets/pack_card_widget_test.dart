@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
-import 'package:medito/widgets/generated_artwork.dart';
+import 'package:medito/widgets/art/art_subject.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/pack_card_widget.dart';
 
+import '../helpers/art_finders.dart';
+
 void main() {
+  setUpAll(holdCuratedArt);
+
   Future<void> pump(
     WidgetTester tester, {
     required bool completed,
@@ -17,6 +22,7 @@ void main() {
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: PackCardWidget(
+            id: 'pack-sleep',
             title: 'Sleep',
             subTitle: 'Rest well',
             isCompleted: completed,
@@ -43,10 +49,10 @@ void main() {
     expect(taps, 1);
   });
 
-  testWidgets('a pack without a picture gets generated art, not a blank', (
+  testWidgets('a pack without a picture gets art made for its id', (
     tester,
   ) async {
     await pump(tester, completed: false);
-    expect(find.byType(GeneratedArtwork), findsOneWidget);
+    expect(findArt(courseArt('pack-sleep')), findsOneWidget);
   });
 }

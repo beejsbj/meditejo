@@ -5,9 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/widgets/attribution_notice.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/filter_pill.dart';
 import 'package:medito/widgets/generated_artwork.dart';
 import 'package:medito/widgets/network_image_widget.dart';
+
+import '../helpers/art_finders.dart';
 
 const _credit = SourceAttribution(
   source: 'Dharma Seed',
@@ -24,6 +27,8 @@ Widget _app(Widget child) => MaterialApp(
 );
 
 void main() {
+  setUpAll(holdCuratedArt);
+
   group('AttributionNotice', () {
     testWidgets('full: credit link, licence link and the unmodified note', (
       tester,
@@ -118,11 +123,14 @@ void main() {
           const SizedBox(
             width: 100,
             height: 100,
-            child: NetworkImageWidget(url: '', seed: 'Sit'),
+            child: NetworkImageWidget(
+              url: '',
+              art: courseArt('lib-course-sit'),
+            ),
           ),
         ),
       );
-      expect(find.byType(GeneratedArtwork), findsOneWidget);
+      expect(findArt(courseArt('lib-course-sit')), findsOneWidget);
     });
   });
 

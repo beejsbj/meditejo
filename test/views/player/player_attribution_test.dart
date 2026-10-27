@@ -19,8 +19,11 @@ import 'package:medito/views/home/previews/stats_fixtures.dart';
 import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/previews/preview_support.dart';
 import 'package:medito/widgets/attribution_notice.dart';
-import 'package:medito/widgets/generated_artwork.dart';
+import 'package:medito/widgets/art/art_cover.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers/art_finders.dart';
 
 const _credit = SourceAttribution(
   source: 'Dharma Seed',
@@ -30,12 +33,15 @@ const _credit = SourceAttribution(
   licenseUrl: 'https://creativecommons.org/licenses/by-nc-nd/4.0/',
 );
 
-PlaybackRequest _request({SourceAttribution? attribution}) => PlaybackRequest(
+PlaybackRequest _request({
+  SourceAttribution? attribution,
+  String coverUrl = '',
+}) => PlaybackRequest(
   trackId: 'ds-talk-2',
   fileId: 'ds-talk-2',
   title: 'Jhana basics',
   description: '',
-  coverUrl: '',
+  coverUrl: coverUrl,
   remoteUrl: 'https://dharmaseed.org/talks/2/file.mp3',
   duration: 3600000,
   hasBackgroundSound: false,
@@ -113,6 +119,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() {
+    holdCuratedArt();
     SharedPreferences.setMockInitialValues({});
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
@@ -188,11 +195,77 @@ void main() {
     await close(tester);
   });
 
-  testWidgets('a track with no cover gets its generated art behind it', (
+  testWidgets('a track with no cover plays over its live art, by track id', (
     tester,
   ) async {
-    await pumpPlayer(tester, _request(), const Size(430, 900));
-    expect(find.byType(GeneratedArtwork), findsOneWidget);
+    final request = _request();
+    await pumpPlayer(tester, request, const Size(430, 900));
+    final art = tester.widget<ArtCover>(find.byType(ArtCover));
+    expect(art.subject, singleArt(request.trackId));
+    expect(art.live, isTrue);
+    await close(tester);
+  });
+
+  testWidgets('a teacher\'s photo is not a talk\'s cover: the art plays', (
+    tester,
+  ) async {
+    final request = _request(
+      coverUrl: 'https://www.dharmaseed.org/api/1/teachers/1/p.png/?maxW=400',
+    );
+    await pumpPlayer(tester, request, const Size(430, 900));
+    expect(findArt(singleArt('ds-talk-2')), findsOneWidget);
+    expect(find.byType(Image), findsNothing);
+    await close(tester);
+  });
+
+  testWidgets('a real cover is the backdrop, not the art', (tester) async {
+    final request = PlaybackRequest(
+      trackId: 'yt-video-abc',
+      fileId: 'yt-video-abc',
+      title: 'A video',
+      description: '',
+      coverUrl: 'https://i.ytimg.com/vi/abc/hqdefault.jpg',
+      remoteUrl: 'https://example.com/a.mp3',
+      duration: 600000,
+      hasBackgroundSound: false,
+    );
+    await pumpPlayer(tester, request, const Size(430, 900));
+    expect(find.byType(ArtCover), findsNothing);
+    expect(find.byType(Image), findsWidgets);
+    await close(tester);
+  });
+
+  testWidgets('a session in a course plays over the course\'s art', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(430, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      PreviewShell(
+        prefs: prefsDark,
+        overrides: [
+          audioStateProvider.overrideWith(_IdleAudio.new),
+          backgroundSoundsNotifierProvider.overrideWith(
+            _SilentBackgroundSounds.new,
+          ),
+          statsProvider.overrideWith(_Stats.new),
+        ],
+        child: PlayerScreenLayout(
+          currentlyPlayingTrack: _request(),
+          isPlaying: false,
+          isAudioLoading: false,
+          isBackgroundSoundSelected: false,
+          onPlayPausePressed: () {},
+          onSpeedChanged: (_) {},
+          onClosePressed: () {},
+          courseId: 'ds-retreat-300',
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(findArt(courseArt('ds-retreat-300')), findsOneWidget);
     await close(tester);
   });
 

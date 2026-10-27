@@ -17,8 +17,9 @@ import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/teacher/teacher_view.dart';
 import 'package:medito/views/track/track_view.dart';
 import 'package:medito/widgets/attribution_notice.dart';
-import 'package:medito/widgets/generated_artwork.dart';
+import 'package:medito/widgets/cover_art.dart';
 
+import '../../helpers/art_finders.dart';
 import '../../helpers/dharma_seed_app.dart';
 import '../../helpers/dharma_seed_catalogue.dart';
 
@@ -62,6 +63,7 @@ void main() {
 
   late AppLocalizations l10n;
   setUpAll(() async {
+    holdCuratedArt();
     l10n = await AppLocalizations.delegate.load(const Locale('en'));
   });
 
@@ -235,13 +237,13 @@ void main() {
       expect(find.text('This course has no written summary.'), findsOneWidget);
     });
 
-    testWidgets('a course with no teacher photo gets generated art', (
+    testWidgets('a course header is the course\'s art, by its id', (
       tester,
     ) async {
       final app = await DharmaSeedTestApp.create(tester);
       await app.pump(tester, const PackView(id: 'ds-retreat-300'));
-      // Leigh Brasington has no photo: the header art is generated.
-      expect(find.byType(GeneratedArtwork), findsWidgets);
+      // Whatever the teacher's photo, the header is the course's own art.
+      expect(findArt(courseArt('ds-retreat-300')), findsWidgets);
     });
 
     testWidgets('opening a course, a talk or Start marks nothing played', (
