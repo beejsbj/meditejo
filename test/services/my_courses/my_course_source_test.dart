@@ -188,6 +188,52 @@ void main() {
       expect(await source.searchPacks('nothing like it'), isEmpty);
     });
 
+    test('a removal reported by a source updates availability without the '
+        'course page being opened', () async {
+      final id = await source.create(
+        title: 'C',
+        lines: [
+          MyCourseLine.session(draft('x-1')),
+          MyCourseLine.session(draft('x-2')),
+        ],
+      );
+      expect((await source.packTrackIds())[id], ['x-1', 'x-2']);
+      final changes = source.revision.value;
+
+      // The source drops x-2; stored flags still say it is playable.
+      upstream.gone.add('x-2');
+      expect((await source.packTrackIds())[id], ['x-1', 'x-2']);
+
+      await source.sessionsRemoved(['x-2']);
+
+      expect((await source.packTrackIds())[id], ['x-1']);
+      expect(source.revision.value, greaterThan(changes));
+      // The session stays in the course, marked unavailable.
+      expect((await source.pack(id)).items.last.unavailable, isTrue);
+    });
+
+    test('a removal asks only about the sessions removed, and an offline '
+        'source does not mark them gone', () async {
+      final id = await source.create(
+        title: 'C',
+        lines: [
+          MyCourseLine.session(draft('x-1')),
+          MyCourseLine.session(draft('x-2')),
+        ],
+      );
+      upstream.gone.add('x-1');
+      await source.sessionsRemoved(['x-2']);
+      expect(
+        (await source.packTrackIds())[id],
+        ['x-1', 'x-2'],
+        reason: 'x-1 was not reported, and x-2 is still there',
+      );
+
+      upstream.offline = true;
+      await source.sessionsRemoved(['x-2']);
+      expect((await source.packTrackIds())[id], ['x-1', 'x-2']);
+    });
+
     test('a session re-read from its source refreshes the snapshot', () async {
       final id = await source.create(
         title: 'C',

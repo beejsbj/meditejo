@@ -112,6 +112,26 @@ class MyCourseSource implements ContentSource {
     return _summary(course, rows).copyWith(items: items);
   }
 
+  /// A source reported that it no longer has [itemIds]: asks the sources
+  /// again about the rows of personal courses that list them, so a course's
+  /// progress in the Library follows without its page being opened.
+  /// Re-resolving every course for a list screen would cost a round trip per
+  /// row; this costs one per removed session.
+  Future<void> sessionsRemoved(Iterable<String> itemIds) async {
+    final ids = itemIds.toSet();
+    if (ids.isEmpty) return;
+    final rows = await (db.select(
+      db.myCourseItems,
+    )..where((r) => r.itemId.isIn(ids))).get();
+    var availabilityChanged = false;
+    for (final row in rows) {
+      if ((await _refresh(row)).unavailable != row.unavailable) {
+        availabilityChanged = true;
+      }
+    }
+    if (availabilityChanged) _changed();
+  }
+
   /// Sessions belong to their own sources; a course holds no tracks itself.
   @override
   Future<Track> track(String id) async =>
