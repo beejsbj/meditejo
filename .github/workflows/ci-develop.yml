@@ -97,6 +97,9 @@ jobs:
         # only the bundled ones, which are in git.
         run: python3 -I tools/meditejo/sound_pack.py verify
 
+      - name: Release script tests
+        run: python3 -I -m unittest discover -s tools/meditejo -p 'test_release.py'
+
       - name: Sound pipeline tests
         run: |
           python3 -m venv "$RUNNER_TEMP/sounds-venv"
