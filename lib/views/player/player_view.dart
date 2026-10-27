@@ -899,8 +899,12 @@ class PlayerScreenLayout extends StatelessWidget {
                     // fails to load) its art, sharp and moving.
                     if (!isTimer || imageUrl.isNotEmpty)
                       _PlayerBackdrop(imageUrl: imageUrl, art: art),
+                    // Sharp art needs more shade than a blurred cover for
+                    // the controls to read over it.
                     Container(
-                      color: ColorConstants.black.withOpacityValue(0.3),
+                      color: ColorConstants.black.withOpacityValue(
+                        !isTimer && imageUrl.isEmpty ? 0.5 : 0.3,
+                      ),
                     ),
                   ],
                 ),
