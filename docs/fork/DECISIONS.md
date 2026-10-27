@@ -730,7 +730,7 @@ Burooj authorised Meditejo's Freesound app, so the picks that needed an account 
   - Frame timings on a real mid-range phone in a profile build (see the PR; only host benchmarks were run).
   - Whether live sound tiles should also move while merely in a paused mix.
   - A custom bell (BJS-587) can feed `BellFigure` its own five controls.
-  - `GeneratedArtwork` is gone from every call site; the widget file can be deleted once nothing imports its palette.
+  - `GeneratedArtwork` is deleted; nothing draws it any more.
 
 ## 2026-10-26 (design pass PR 5: the Customize sheet, the scroll-wheel picker, and the halfway bell)
 
