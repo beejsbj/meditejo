@@ -61,11 +61,11 @@ Future<void> _settle(WidgetTester tester) async {
 /// Lets real file work finish: the fake clock does not run it, and what it
 /// finishes schedules more work on the fake one, so the two take turns.
 Future<void> _io(WidgetTester tester) async {
-  for (var i = 0; i < 5; i++) {
+  for (var i = 0; i < 25; i++) {
     await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 40)),
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
     );
-    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 20));
   }
 }
 
