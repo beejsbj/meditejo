@@ -223,11 +223,10 @@ void main() {
       );
       upstream.gone.add('x-1');
       await source.sessionsRemoved(['x-2']);
-      expect(
-        (await source.packTrackIds())[id],
-        ['x-1', 'x-2'],
-        reason: 'x-1 was not reported, and x-2 is still there',
-      );
+      expect((await source.packTrackIds())[id], [
+        'x-1',
+        'x-2',
+      ], reason: 'x-1 was not reported, and x-2 is still there');
 
       upstream.offline = true;
       await source.sessionsRemoved(['x-2']);
@@ -401,6 +400,59 @@ void main() {
       await source.removeItem(id, 'x-2');
       expect((await source.edit(id))!.coverUrl, isEmpty);
       expect((await store.entry(id))!.coverUrl, isNot(contains('x-2')));
+    });
+
+    test('Save drops a cover whose session the editor removed', () async {
+      final id = await source.create(
+        title: 'A',
+        lines: [
+          MyCourseLine.session(draft('x-1')),
+          MyCourseLine.session(draft('x-2')),
+        ],
+      );
+      var edit = (await source.edit(id))!;
+      await source.save(
+        id,
+        edit.copyWith(coverUrl: 'https://img.test/x-2.jpg'),
+      );
+
+      // The full editor takes x-2 out and saves; the cover field still holds
+      // its artwork, which is no longer one of the choices.
+      edit = (await source.edit(id))!;
+      expect(edit.coverUrl, 'https://img.test/x-2.jpg');
+      await source.save(id, edit.copyWith(lines: [edit.lines.first]));
+
+      expect((await source.edit(id))!.coverUrl, isEmpty);
+      expect((await store.entry(id))!.coverUrl, isNot(contains('x-2')));
+    });
+
+    test('Save keeps a cover carried from elsewhere, and one still offered, '
+        'when sessions are removed', () async {
+      final id = await source.create(
+        title: 'A',
+        coverUrl: 'https://img.test/retreat-photo.jpg',
+        lines: [
+          MyCourseLine.session(draft('x-1')),
+          MyCourseLine.session(draft('x-2')),
+        ],
+      );
+      var edit = (await source.edit(id))!;
+      expect(edit.coverUrl, 'https://img.test/retreat-photo.jpg');
+      await source.save(id, edit.copyWith(lines: [edit.lines.first]));
+      expect(
+        (await source.edit(id))!.coverUrl,
+        'https://img.test/retreat-photo.jpg',
+        reason: 'not session artwork, so no session takes it away',
+      );
+
+      edit = (await source.edit(id))!;
+      await source.save(
+        id,
+        edit.copyWith(coverUrl: 'https://img.test/x-1.jpg'),
+      );
+      edit = (await source.edit(id))!;
+      await source.save(id, edit.copyWith(title: 'B'));
+      expect((await source.edit(id))!.coverUrl, 'https://img.test/x-1.jpg');
     });
 
     test('renaming changes the course\'s own title', () async {

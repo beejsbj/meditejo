@@ -457,28 +457,31 @@ class MyCourseSource implements ContentSource {
   Future<MyCourseEdit?> edit(String id) async {
     final course = await _course(id);
     if (course == null) return null;
+    final lines = [
+      for (final row in await _rows(id))
+        if (row.itemId.isEmpty)
+          MyCourseLine.heading(row.heading)
+        else
+          MyCourseLine.session(
+            MyItemDraft(
+              id: row.itemId,
+              title: row.title,
+              subtitle: row.subtitle,
+              coverUrl: row.coverUrl,
+              durationMs: row.durationMs,
+              kind: row.kind,
+            ),
+            unavailable: row.unavailable,
+          ),
+    ];
+    final started = MyCourseEdit(title: course.title, lines: lines);
     return MyCourseEdit(
       title: course.title,
       description: course.description,
       coverUrl: course.coverUrl,
       group: await library.groupOf(id) ?? LibraryGroup.practice,
-      lines: [
-        for (final row in await _rows(id))
-          if (row.itemId.isEmpty)
-            MyCourseLine.heading(row.heading)
-          else
-            MyCourseLine.session(
-              MyItemDraft(
-                id: row.itemId,
-                title: row.title,
-                subtitle: row.subtitle,
-                coverUrl: row.coverUrl,
-                durationMs: row.durationMs,
-                kind: row.kind,
-              ),
-              unavailable: row.unavailable,
-            ),
-      ],
+      lines: lines,
+      offeredCovers: started.coverChoices,
     );
   }
 
@@ -493,7 +496,7 @@ class MyCourseSource implements ContentSource {
         MyCoursesCompanion(
           title: Value(_titleOr(edit.title)),
           description: Value(edit.description.trim()),
-          coverUrl: Value(edit.coverUrl),
+          coverUrl: Value(edit.effectiveCoverUrl),
           updatedAt: Value(_clock()),
         ),
       );
