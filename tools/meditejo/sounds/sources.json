@@ -1,7 +1,7 @@
 {
   "targetLufs": -27,
   "truePeakCeiling": -2,
-  "_doc": "Inputs for process_sounds.py. Licences were read on each primary page (licenseVerifiedOn) on licenseCheckedAt. start is chosen with find_steady.py; sha256 pins the downloaded original.",
+  "_doc": "Inputs for process_sounds.py. Licences were read on each primary page (licenseVerifiedOn) on licenseCheckedAt. start is chosen with find_steady.py; sha256 pins the downloaded original. bundled marks the core set that ships inside the APK (every layer of a starter preset, plus one sound for each shelf); the rest is the downloadable sound pack (docs/fork/ARCHITECTURE.md, \"The sound pack\").",
   "sounds": [
     {
       "id": "rain-terrace",
@@ -23,7 +23,8 @@
       "crossfade": 4,
       "channels": 2,
       "scoutNotes": "Big drops of a summer storm on a terrace, stereo, 2:37. Description says nothing about thunder. [HTTP 200 on 18906983 bytes; probed with ffprobe over HTTP]",
-      "sha256": "b702cdfd7cec24204c86f66249d2071a7b91308b603d2d74b9b3546014aac060"
+      "sha256": "b702cdfd7cec24204c86f66249d2071a7b91308b603d2d74b9b3546014aac060",
+      "bundled": true
     },
     {
       "id": "rain-umbrella",
@@ -69,7 +70,8 @@
       "scoutNotes": "ZIP (2.7 MB, HTTP 200) containing 1.ogg (27 s), 2.ogg (26 s), 3.ogg (45 s), 4.ogg (37.5 s), all stereo 44.1 kHz Vorbis (checked with ffprobe after extracting). Mono mic at a window, processed to pseudo-stereo, author says loopable. Use 3.ogg for longest.",
       "archiveMember": "3.ogg",
       "sha256": "e68f3e1c77493cf43bec84cebff5043bff6be9ce16d59b24caa988cd460aa75b",
-      "extraChanges": "took 3.ogg from the \"Rain OGG\" archive"
+      "extraChanges": "took 3.ogg from the \"Rain OGG\" archive",
+      "bundled": true
     },
     {
       "id": "rain-car",
@@ -156,7 +158,8 @@
       "crossfade": 4,
       "channels": 2,
       "scoutNotes": "Stream down a wooded mountainside, far from any busy road; description says \"no birds in the area\". 5:21 - plenty to cut from. [HTTP 200 on 50577828 bytes; probed with ffprobe over HTTP]",
-      "sha256": "78b3987f950a844bf6f5c723669861d1cb7f4df09f379ba944655f95aeaaff07"
+      "sha256": "78b3987f950a844bf6f5c723669861d1cb7f4df09f379ba944655f95aeaaff07",
+      "bundled": true
     },
     {
       "id": "river",
@@ -200,7 +203,8 @@
       "crossfade": 6,
       "channels": 2,
       "scoutNotes": "Small waves arriving on the beach at 2-3 m, 4:09. Gentle; description mentions nothing else. [HTTP 200 on 72089154 bytes; probed with ffprobe over HTTP]",
-      "sha256": "846e683d39ae3d850074f37388ef14f51492bb01e6566bc0adbe5f16454581cc"
+      "sha256": "846e683d39ae3d850074f37388ef14f51492bb01e6566bc0adbe5f16454581cc",
+      "bundled": true
     },
     {
       "id": "sea",
@@ -265,7 +269,8 @@
       "crossfade": 5,
       "channels": 2,
       "sha256": "5a5ebd64965082b04528522ae22e259c05ca3b86bf7f46e3d02f0e9d7ee255a0",
-      "filters": "highpass=f=60"
+      "filters": "highpass=f=60",
+      "bundled": true
     },
     {
       "id": "wind-grass",
@@ -287,7 +292,8 @@
       "crossfade": 5,
       "channels": 2,
       "sha256": "416358742301fa46f0a72b4b0d2d3979da28da1fb364b8d4cbb5cc56e2a8bf24",
-      "filters": "highpass=f=40"
+      "filters": "highpass=f=40",
+      "bundled": true
     },
     {
       "id": "forest-birds",
@@ -309,7 +315,8 @@
       "crossfade": 6,
       "channels": 2,
       "scoutNotes": "\"In the forest. Birds, wind.\" 3:46. [HTTP 200 on 53939886 bytes; probed with ffprobe over HTTP]",
-      "sha256": "70b5603f38344d614f9543e697bc41f9745c9b8fc5bf04b7f596408a061450ea"
+      "sha256": "70b5603f38344d614f9543e697bc41f9745c9b8fc5bf04b7f596408a061450ea",
+      "bundled": true
     },
     {
       "id": "dawn-chorus",
@@ -418,7 +425,8 @@
       "loop": 52,
       "crossfade": 4,
       "channels": 2,
-      "sha256": "0adade5e9632415475c124e47a7a924f6719b94a9034875ef70ce045b1195836"
+      "sha256": "0adade5e9632415475c124e47a7a924f6719b94a9034875ef70ce045b1195836",
+      "bundled": true
     },
     {
       "id": "fire-stove",
@@ -440,7 +448,8 @@
       "crossfade": 4,
       "channels": 1,
       "scoutNotes": "Log-fuelled wood boiler fire, 64 s mono; likely more roar than crackle. [HTTP 200 on 3032564 bytes; probed with ffprobe over HTTP]",
-      "sha256": "ba98eeb4ecd1395d88703e49b116b70934033317d8f7cd3ef668d11cc7805ead"
+      "sha256": "ba98eeb4ecd1395d88703e49b116b70934033317d8f7cd3ef668d11cc7805ead",
+      "bundled": true
     },
     {
       "id": "room-house",
@@ -462,7 +471,8 @@
       "crossfade": 4,
       "channels": 2,
       "scoutNotes": "\"Sound atmosphere in a house. This is an atmosphere to be put very low.\" 1:46; very quiet room tone - needs gain care when normalising. [HTTP 200 on 28498134 bytes; probed with ffprobe over HTTP]",
-      "sha256": "0b8a298b6d147d96953f87a630f99521c2c0fbb0a36ca1805d45b1f64693b390"
+      "sha256": "0b8a298b6d147d96953f87a630f99521c2c0fbb0a36ca1805d45b1f64693b390",
+      "bundled": true
     },
     {
       "id": "cafe",
@@ -592,7 +602,8 @@
       "crossfade": 6,
       "channels": 2,
       "scoutNotes": "Evening in a meadow, field crickets, rare frogs; 10 pm 5 May 2020, 4:59. [HTTP 200 on 66613419 bytes; probed with ffprobe over HTTP]",
-      "sha256": "419db33fb042a5c152913d9d9166148d1081cedc794cd19558052c53fbe8f844"
+      "sha256": "419db33fb042a5c152913d9d9166148d1081cedc794cd19558052c53fbe8f844",
+      "bundled": true
     },
     {
       "id": "night-insects",

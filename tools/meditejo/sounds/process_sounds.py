@@ -3,8 +3,13 @@
 
 For each sound: download the original (pinned by SHA-256), cut a loop,
 bake a seamless crossfade into it, normalise its loudness, and encode it as
-Ogg Opus into `assets/sounds/`. Then write `assets/sounds/sounds.json` (the
-licence-as-data the app reads), `assets/sounds/NOTICE`, and
+Ogg Opus. A sound marked `"bundled": true` in sources.json (the core set) goes
+into `assets/sounds/` and ships in the APK; every other sound goes into
+`build/sound-pack/`, which is not in git: it is the downloadable sound pack,
+uploaded by `tools/meditejo/sound_pack.py`. Then write
+`assets/sounds/sounds.json` (the licence-as-data the app reads, with each
+file's SHA-256 and size, and the pack release it was pinned to),
+`assets/sounds/NOTICE` (every sound, shipped or downloadable), and
 `tools/meditejo/sounds/commands.log` (every ffmpeg command run, exactly).
 
     python3 tools/meditejo/sounds/process_sounds.py            # all sounds
@@ -74,6 +79,7 @@ HERE = Path(__file__).resolve().parent
 SOURCES = HERE / 'sources.json'
 COMMANDS_LOG = HERE / 'commands.log'
 OUT_DIR = ROOT / 'assets/sounds'
+PACK_DIR = ROOT / 'build/sound-pack'
 RATE = 48000
 
 LICENSES = {
@@ -360,7 +366,8 @@ def process(sound: dict, src: Path, workdir: Path, target: float, ceiling: float
     pre = workdir / f'{sid}.loop.f32'
     loop.astype('<f4').tofile(pre)
     before = loudness(pre, channels, raw=True, target=target, ceiling=ceiling)
-    out = OUT_DIR / f'{sid}.opus'
+    out = (OUT_DIR if sound.get('bundled') else PACK_DIR) / f'{sid}.opus'
+    out.parent.mkdir(parents=True, exist_ok=True)
     bitrate = int(sound.get('bitrate', 64 if channels == 2 else 40))
     max_limit = float(sound.get('maxLimitDb', 6))
     base, extra = loop, 0.0
@@ -409,6 +416,7 @@ def process(sound: dict, src: Path, workdir: Path, target: float, ceiling: float
         'seam': seam_metrics(decode_asset(out, channels)),
         'bitrateKbps': bitrate,
         'bytes': out.stat().st_size,
+        'sha256': sha256_of(out),
         'durationMs': round(float(probe['format']['duration']) * 1000),
     }
 
@@ -434,7 +442,8 @@ def notice(entries: list[dict]) -> str:
         'Meditejo sound library: third-party recordings',
         '',
         'The recordings in this directory are separate works bundled with',
-        'Meditejo. Each keeps its own licence, listed below. They are not',
+        'Meditejo, or offered as a separate download inside it (the sound pack,',
+        'marked below). Each keeps its own licence, listed below. They are not',
         'covered by the AGPL-3.0 licence of the Meditejo source code.',
         '',
         'Every file was modified: cut to a loop (crossfaded at the seam unless',
@@ -446,7 +455,8 @@ def notice(entries: list[dict]) -> str:
     for e in entries:
         lic = e['license']
         lines += [
-            f"{Path(e['asset']).name}: \"{e['title']}\"",
+            f"{e['file']}: \"{e['title']}\""
+            + ('' if e['bundled'] else ' (downloadable sound pack)'),
             f"  Original: \"{e['originalTitle']}\" by {e['author']}"
             + (f" ({e['authorUrl']})" if e['authorUrl'] else ''),
             f"  Source: {e['sourceUrl']}",
@@ -484,7 +494,8 @@ def main() -> None:
     ap.add_argument('--recheck-licences', action='store_true',
                     help='ask Freesound (via meditejo-freesound-fetch info) about every '
                          'Freesound source, even when its original is already cached')
-    ap.add_argument('--budget-mb', type=float, default=15.0)
+    ap.add_argument('--budget-mb', type=float, default=6.0,
+                    help='ceiling for the sounds that ship inside the APK')
     args = ap.parse_args()
 
     manifest = json.loads(SOURCES.read_text())
@@ -494,9 +505,11 @@ def main() -> None:
     validate(sounds)
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    previous = {}
+    previous, previous_pack = {}, None
     if (OUT_DIR / 'sounds.json').exists():
-        previous = {e['id']: e for e in json.loads((OUT_DIR / 'sounds.json').read_text())['sounds']}
+        old = json.loads((OUT_DIR / 'sounds.json').read_text())
+        previous = {e['id']: e for e in old['sounds']}
+        previous_pack = old.get('pack')
 
     entries = []
     with tempfile.TemporaryDirectory(prefix='meditejo-sounds-') as tmp:
@@ -515,10 +528,12 @@ def main() -> None:
                 'id': s['id'],
                 'title': s['title'],
                 'category': s['category'],
-                'asset': f"assets/sounds/{s['id']}.opus",
+                'file': f"{s['id']}.opus",
+                'bundled': bool(s.get('bundled')),
                 'durationMs': rec['durationMs'],
                 'channels': int(s['channels']),
                 'bytes': rec['bytes'],
+                'sha256': rec['sha256'],
                 'originalTitle': s['originalTitle'],
                 'author': s['author'],
                 'authorUrl': s.get('authorUrl', ''),
@@ -532,7 +547,7 @@ def main() -> None:
                     'sourceSha256': s['sha256'],
                     'start': s['start'], 'loop': s['loop'], 'crossfade': s['crossfade'],
                     'filters': s.get('filters', ''),
-                    **rec,
+                    **{k: v for k, v in rec.items() if k != 'sha256'},
                 },
             })
             print(f"  {rec['measuredBefore']['lufs']} -> {rec['measuredAfter']['lufs']} LUFS, "
@@ -542,18 +557,30 @@ def main() -> None:
 
     order = {sid: i for i, sid in enumerate(ids)}
     entries.sort(key=lambda e: order[e['id']])
+    bundled_ids = {e['id'] for e in entries if e['bundled']}
     for stale in OUT_DIR.glob('*.opus'):
-        if stale.stem not in order:
-            stale.unlink()
+        if stale.stem not in bundled_ids:
+            stale.unlink()  # dropped, or moved into the pack
+    if PACK_DIR.is_dir():
+        for stale in PACK_DIR.glob('*.opus'):
+            if stale.stem in bundled_ids or stale.stem not in order:
+                stale.unlink()
     total = sum(e['bytes'] for e in entries)
-    if total > args.budget_mb * 1024 * 1024:
-        raise SystemExit(f'library is {total / 1048576:.2f} MiB, over the {args.budget_mb} MB budget')
+    bundled = sum(e['bytes'] for e in entries if e['bundled'])
+    if bundled > args.budget_mb * 1024 * 1024:
+        raise SystemExit(f'the bundled sounds are {bundled / 1048576:.2f} MiB, over the '
+                         f'{args.budget_mb} MB budget: move some into the sound pack')
 
     library = {
         'version': 1,
         'targetLufs': target,
         'generatedBy': 'tools/meditejo/sounds/process_sounds.py',
         'totalBytes': total,
+        'bundledBytes': bundled,
+        'packBytes': total - bundled,
+        # Which release holds the sound pack: written by sound_pack.py publish,
+        # and kept here when only the sounds change around it.
+        **({'pack': previous_pack} if previous_pack else {}),
         'sounds': entries,
     }
     (OUT_DIR / 'sounds.json').write_text(json.dumps(library, indent=2, ensure_ascii=False) + '\n')
@@ -564,7 +591,8 @@ def main() -> None:
         COMMANDS_LOG.write_text('\n'.join(
             c.replace(str(args.cache), '$CACHE').replace(tempfile.gettempdir(), '$TMP')
             for c in commands) + '\n')
-    print(f'{len(entries)} sounds, {total / 1048576:.2f} MiB')
+    print(f'{len(entries)} sounds, {total / 1048576:.2f} MiB '
+          f'({bundled / 1048576:.2f} MiB in the APK, {(total - bundled) / 1048576:.2f} MiB in the pack)')
 
 
 if __name__ == '__main__':
