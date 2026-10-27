@@ -146,6 +146,9 @@ void main() {
     );
   });
 
+  // The plain shelter misses the Clear V reference by 2.2/255 and 1.1% of
+  // pixels, twice what the cases below allow, so they cannot pass without
+  // the notch.
   testWidgets('the notch is a mark of its own, not the plain shelter', (
     tester,
   ) async {
@@ -154,7 +157,7 @@ void main() {
       final page = await _rgba(await _decode('$_dir/m-2026-10-26-clearv.png'));
       final plain = _compare(await _rgba(_render('m-2026-10-26')), page);
       expect(
-        plain.mean >= 0.2 || plain.off >= 0.0005,
+        plain.mean >= 1.0 || plain.off >= 0.005,
         isTrue,
         reason:
             'the plain shelter passed as Clear V: ${plain.mean}, ${plain.off}',

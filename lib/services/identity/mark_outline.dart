@@ -131,7 +131,8 @@ typedef PathCommand = (String, List<double>);
 /// the roof as first shipped): `notch`, how far the apex folds down below
 /// its two shoulders, and `nw`, how far each shoulder sits from the centre.
 /// The slopes stay the shipped ones; they stop at the shoulders and meet in
-/// a sharp V. This is the Clear V house mark (decision 21, round 6).
+/// a sharp V. This is the Clear V house mark (decision 21, round 6). Round 6's
+/// `soft` and `gap` are not read: a mark carrying them draws as a sharp V.
 List<PathCommand> shelterRoofCommands(MinimalMark m, [double open = 1]) {
   const ax = 0.5, thick = 0.07;
   final ay = m['ay'], ey = m['ey'];
