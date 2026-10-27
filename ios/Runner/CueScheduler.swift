@@ -192,6 +192,11 @@ enum CueMath {
         return media / max(speed, 0.05) + extensionMs
     }
 
+    /// Session time at which a session ends once its extension is under way.
+    static func extensionEndMs(extensionStartSessionMs: Double, extensionMs: Double) -> Double {
+        extensionStartSessionMs + extensionMs
+    }
+
     static func shouldRingStart(positionMs: Double) -> Bool { positionMs < 2000 }
 }
 
@@ -216,6 +221,37 @@ struct HalfwayCue {
         if sessionMs < due { return false }
         pending = false
         return sessionMs - due <= CueMath.intervalLateToleranceMs && CueMath.insideSession(due, end: endMs)
+    }
+}
+
+/// What the scheduler does around `HalfwayCue`: re-arm when the cues are
+/// re-armed (a seek, a settings change, the extension starting), and say when
+/// to look again. Kept out of the scheduler so it can be tested without a player.
+struct HalfwayBell {
+    private var cue = HalfwayCue()
+    var pending: Bool { cue.pending }
+
+    mutating func disarm() { cue.disarm() }
+
+    /// Arms the bell for a session now at `sessionMs` with `endMs` to go. A seek
+    /// back before the midpoint, or a longer extension that moves it ahead,
+    /// rings it again. A session already at or past the midpoint leaves it used
+    /// up: re-arming within the late tolerance after it rang must not ring it
+    /// twice. An unknown end arms it, to be judged once the end is known.
+    mutating func rearm(enabled: Bool, sessionMs: Double, endMs: Double?) {
+        let beforeMidpoint = CueMath.halfwayMs(endMs).map { sessionMs < $0 } ?? true
+        if enabled && beforeMidpoint { cue.arm() } else { cue.disarm() }
+    }
+
+    /// True when the bell should ring now.
+    mutating func fire(sessionMs: Double, endMs: Double?) -> Bool { cue.poll(sessionMs: sessionMs, endMs: endMs) }
+
+    /// Session time to look again at: the midpoint while pending, a second on
+    /// while pending with no known end yet (a stream whose length arrives late),
+    /// and never (`greatestFiniteMagnitude`) when nothing is pending.
+    func nextCheckMs(sessionMs: Double, endMs: Double?) -> Double {
+        guard cue.pending else { return .greatestFiniteMagnitude }
+        return cue.dueAt(endMs: endMs) ?? sessionMs + 1000
     }
 }
 
@@ -419,7 +455,7 @@ final class CueScheduler {
 
     private var intervalAtMs = Double.greatestFiniteMagnitude
     private var beatAtMs = Double.greatestFiniteMagnitude
-    private var halfway = HalfwayCue()
+    private var halfway = HalfwayBell()
 
     private static func uptimeMs() -> Double { ProcessInfo.processInfo.systemUptime * 1000 }
 
@@ -717,7 +753,7 @@ final class CueScheduler {
         case .extending:
             guard let cfg = config, holdAnchorMs != nil else { return }
             if heldRemaining() <= 0 { finishSession(extensionFinished: true); return }
-            fireDue(end: extensionStartSessionMs + cfg.extensionMs)
+            fireDue(end: CueMath.extensionEndMs(extensionStartSessionMs: extensionStartSessionMs, extensionMs: cfg.extensionMs))
             rearm()
         default:
             break
@@ -746,27 +782,28 @@ final class CueScheduler {
     private func armAll(at t: Double, fresh: Bool) {
         armInterval(at: t)
         armPulse(at: t, fresh: fresh)
-        armHalfway()
+        armHalfway(at: t)
     }
 
-    /// Re-armed by every arm (a seek back before the midpoint rings it again when crossed).
-    private func armHalfway() {
-        if config?.hasHalfway == true { halfway.arm() } else { halfway.disarm() }
+    /// Re-armed by every arm (a seek back before the midpoint rings it again when
+    /// crossed), but left used up when the session is already at or past it.
+    private func armHalfway(at t: Double) {
+        halfway.rearm(enabled: config?.hasHalfway == true, sessionMs: t, endMs: currentEndMs())
     }
 
-    /// When the halfway bell is due, against the session end as it stands now
-    /// (the end moves with speed). greatestFiniteMagnitude when nothing is pending.
-    private func halfwayDeadlineMs() -> Double {
-        let end: Double?
+    /// Session time at which the session ends as it stands now (it moves with
+    /// speed); nil when unknown.
+    private func currentEndMs() -> Double? {
         if phase == .extending, let cfg = config {
-            end = extensionStartSessionMs + cfg.extensionMs
-        } else {
-            end = sessionEndMs()
+            return CueMath.extensionEndMs(extensionStartSessionMs: extensionStartSessionMs, extensionMs: cfg.extensionMs)
         }
-        guard halfway.pending else { return .greatestFiniteMagnitude }
-        // Pending with no known end yet (a stream whose length arrives late):
-        // look again in a second rather than stop ticking.
-        return halfway.dueAt(endMs: end) ?? sessionNow() + 1000
+        return sessionEndMs()
+    }
+
+    /// When the halfway bell is due, against the session end as it stands now.
+    /// greatestFiniteMagnitude when nothing is pending.
+    private func halfwayDeadlineMs() -> Double {
+        halfway.nextCheckMs(sessionMs: sessionNow(), endMs: currentEndMs())
     }
 
     private func armInterval(at t: Double) {
@@ -800,7 +837,7 @@ final class CueScheduler {
             }
             armPulse(at: t, fresh: false)
         }
-        if halfway.poll(sessionMs: t, endMs: end) {
+        if halfway.fire(sessionMs: t, endMs: end) {
             bank.play(cfg.intervalSound, volume: cfg.bellVolume)
         }
     }
