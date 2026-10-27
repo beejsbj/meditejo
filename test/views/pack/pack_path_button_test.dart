@@ -43,6 +43,7 @@ void main() {
   late SharedPreferences prefs;
   late AppLocalizations l10n;
   late List<String> started;
+  late List<String?> courses;
   late MemorySessionStore store;
 
   final sleep = _pack('sleep', 'Sleep', tracks: 7, done: 3);
@@ -52,6 +53,7 @@ void main() {
     prefs = await SharedPreferences.getInstance();
     l10n = await AppLocalizations.delegate.load(const Locale('en'));
     started = [];
+    courses = [];
     store = MemorySessionStore();
   });
 
@@ -60,7 +62,11 @@ void main() {
     WidgetRef ref, {
     required String trackId,
     required String path,
-  }) async => started.add(trackId);
+    String? courseId,
+  }) async {
+    started.add(trackId);
+    courses.add(courseId);
+  }
 
   Future<void> pump(
     WidgetTester tester,
@@ -122,9 +128,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(started, ['sleep-3']);
-    // The session counts towards the course it was started from, written
-    // before it starts.
-    expect(store.contexts, {'sleep-3': 'sleep'});
+    // The session counts towards the course it was started from: the button
+    // says so, and startSession writes it before the session starts.
+    expect(courses, ['sleep']);
     // Home follows what is played; pinning is its own, deliberate action.
     expect(
       prefs.getStringList(SharedPreferenceConstants.pinnedCourseIds),

@@ -6,6 +6,8 @@ import 'dart:async';
 import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
+import 'package:medito/providers/library/library_providers.dart';
+import 'package:medito/providers/library/session_origin.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/repositories/repositories.dart';
 import 'package:medito/utils/duration_extensions.dart';
@@ -266,6 +268,10 @@ class _DownloadsViewState extends ConsumerState<DownloadsView>
       PlaybackRequest.fromTrack(track, voice, file),
     );
     if (!mounted) return;
+    // Downloads has no course: forget the one this was last opened from.
+    unawaited(
+      noteSessionOrigin(ref.read(libraryStoreProvider), track.id, null),
+    );
     // Prepare + open the player immediately; PlayerView starts playback and
     // shows its own loading state (no wait on this screen).
     ref.read(playerProvider.notifier).prepare(request);

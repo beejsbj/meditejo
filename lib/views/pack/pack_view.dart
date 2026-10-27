@@ -1,6 +1,5 @@
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/exceptions/app_error.dart';
-import 'package:medito/utils/logger.dart';
 import 'package:medito/utils/youtube_error_message.dart';
 import 'package:medito/views/pack/widgets/youtube_playlist_empty.dart';
 
@@ -25,7 +24,7 @@ import 'package:medito/views/pack/widgets/pack_item_widget.dart';
 import 'package:medito/views/pack/widgets/pack_path_button.dart';
 import 'package:medito/views/player/widgets/bottom_actions/pack_view_bottom_bar.dart';
 import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
-import 'package:medito/views/tags/widgets/tag_chips.dart';
+import 'package:medito/views/categories/category_chips.dart';
 import 'package:medito/widgets/attribution_notice.dart';
 import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/inputs/medito_segmented_tabs.dart';
@@ -442,17 +441,12 @@ class _PackViewState extends ConsumerState<PackView>
     );
   }
 
-  /// Tags shared by most of the pack's tracks; nothing when unavailable.
+  /// The course's categories and the user's labels; nothing when it has none.
   Widget _packTags(PackModel pack) {
-    final trackIds = pack.items
-        .where((item) => item.type == TypeConstants.track)
-        .map((item) => item.id)
-        .toList();
-    if (trackIds.isEmpty) return const SizedBox.shrink();
     return Align(
       alignment: Alignment.centerLeft,
-      child: PackTagChips(
-        trackIds: trackIds,
+      child: CategoryChips(
+        subject: (id: pack.id, title: pack.title),
         // Right inset clears the play button on the header's lower edge.
         padding: const EdgeInsets.fromLTRB(
           20,
@@ -740,17 +734,16 @@ class _PackViewState extends ConsumerState<PackView>
     String type,
     BuildContext context,
   ) async {
-    if (type == TypeConstants.track) {
-      // A session several courses list counts towards the one it was opened
-      // from. Written first: the player reads it for its cue scope.
-      try {
-        await ref.read(libraryStoreProvider).noteSessionContext(id, widget.id);
-      } catch (e, st) {
-        AppLogger.e('PACK', 'Could not note the course of a session', e, st);
-      }
-      if (!context.mounted) return;
-    }
-    await handleNavigation(type, [id], context, ref: ref);
+    // A session several courses list counts towards the one it was opened
+    // from: handleNavigation writes it first, as the player reads it for its
+    // cue scope.
+    await handleNavigation(
+      type,
+      [id],
+      context,
+      ref: ref,
+      courseId: type == TypeConstants.track ? widget.id : null,
+    );
   }
 
   @override

@@ -275,6 +275,9 @@ final class ListeningTracker {
     func rebase(_ positionMs: Int64) { last = positionMs }
     func markNotPlaying() { last = -1 }
 
+    /// A new pass of a looped recording: nothing heard yet, playback at the start.
+    func startPass() { ranges.removeAll(); last = 0 }
+
     func sample(_ positionMs: Int64, playing: Bool, realElapsedMs: Double? = nil, speed: Double = 1) {
         if !playing || positionMs < 0 { last = -1; return }
         let from = last
@@ -1045,6 +1048,15 @@ final class CueChannel {
             }
             persistListening(force: !playing)
             result(listeningCompleted)
+        case "endPass":
+            // A pass of a looped recording just finished, after its session was
+            // earned. A repeat counts only when 90% of that pass was heard, so
+            // the record starts fresh for the next one.
+            let duration = Int64(num(args, "durationMs"))
+            listening.sample(duration, playing: true)
+            let heardPass = listening.completed(durationMs: duration)
+            listening.startPass()
+            result(heardPass)
         case "resetListening":
             restoreListening(args)
             result(nil)

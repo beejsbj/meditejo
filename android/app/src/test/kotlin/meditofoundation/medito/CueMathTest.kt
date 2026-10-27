@@ -488,6 +488,37 @@ class CueMathTest {
         assertTrue(CueMath.earnsCompletion(isTimer = true, heardEnough = false, extensionFinished = false))
     }
 
+    @Test fun aRepeatPassMustBeNinetyPercentHeardOnItsOwn() {
+        val duration = 600_000L
+        val t = ListeningTracker()
+        // Pass one earns the session and is heard in full.
+        play(t, 0, duration)
+        assertTrue(t.completed(duration))
+        t.startPass()
+        // Pass two: a deliberate jump to the end of the loop is not listening,
+        // although the whole recording was heard before.
+        t.sample(599_000, true)
+        t.sample(600_000, true)
+        assertFalse(CueMath.earnsRepeat(isTimer = false, heardPassEnough = t.completed(duration)))
+        assertEquals(1_000L, t.heardMs()) // only the last step after the jump
+        // Pass three is heard in full: a repeat.
+        t.startPass()
+        play(t, 0, duration)
+        assertTrue(CueMath.earnsRepeat(isTimer = false, heardPassEnough = t.completed(duration)))
+    }
+
+    @Test fun aNewPassCountsFromTheStartWithoutLosingTheFirstStep() {
+        val t = ListeningTracker()
+        play(t, 0, 600_000)
+        t.startPass()
+        t.sample(1000, true)
+        assertEquals(1000L, t.heardMs())
+    }
+
+    @Test fun aTimersRepeatCountsAtItsNaturalEnd() {
+        assertTrue(CueMath.earnsRepeat(isTimer = true, heardPassEnough = false))
+    }
+
     @Test fun onlyRecentListeningReceiptsAreKept() {
         val day = 24 * 60 * 60 * 1000L
         val now = 1000 * day

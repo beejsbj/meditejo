@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/models/timer/timer_session.dart';
+import 'package:medito/providers/library/library_providers.dart';
+import 'package:medito/providers/library/session_origin.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/utils/utils.dart';
@@ -35,6 +37,11 @@ MainTab? tabForLink(String type) => switch (type) {
 };
 
 /// Source repositories supply track/pack IDs; navigation does not resolve media.
+///
+/// Opening a track says where from: [courseId] is the course the user is
+/// working through, and null (the default) is a surface with none, such as
+/// search, a library row, a teacher page or a link, which forgets the course
+/// the session was last opened from.
 Future<void> handleNavigation(
   String? type,
   List<String?> ids,
@@ -43,6 +50,7 @@ Future<void> handleNavigation(
   VoidCallback? onNavigationComplete,
   String? sourceRouteName,
   String? timerSource,
+  String? courseId,
 }) async {
   final values = ids.whereType<String>().where((id) => id.isNotEmpty).toList();
   if (type == null) return;
@@ -69,6 +77,16 @@ Future<void> handleNavigation(
   }
   Widget? page;
   if (type.contains('track') && values.isNotEmpty) {
+    if (values.first != kLegacyTimerTrackId && context.mounted) {
+      final store = ref != null
+          ? ref.read(libraryStoreProvider)
+          : ProviderScope.containerOf(
+              context,
+              listen: false,
+            ).read(libraryStoreProvider);
+      await noteSessionOrigin(store, values.first, courseId);
+      if (!context.mounted) return;
+    }
     page = values.first == kLegacyTimerTrackId
         ? const TimerView()
         : TrackView(trackId: values.first);
