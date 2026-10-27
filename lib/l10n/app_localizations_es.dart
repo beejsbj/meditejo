@@ -2797,7 +2797,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get exploreCategories => 'Categorías';
 
   @override
-  String get exploreCategoriesLabel => 'Buscar por categoría';
+  String get exploreCategoriesLabel => 'Navegar por categoría';
 
   @override
   String get categoryEmptyTitle => 'Todavía no hay nada aquí';

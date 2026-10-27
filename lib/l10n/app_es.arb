@@ -1124,7 +1124,7 @@
   "libraryEmptyExplore": "Explorar",
   "libraryPinned": "Fijado en Inicio",
   "exploreCategories": "Categorías",
-  "exploreCategoriesLabel": "Buscar por categoría",
+  "exploreCategoriesLabel": "Navegar por categoría",
   "categoryEmptyTitle": "Todavía no hay nada aquí",
   "categoryEmptyBody": "Pon una etiqueta a algo de tu biblioteca o añade un curso desde Explorar, y aparecerá aquí.",
   "categoryLoadFailed": "No se pudo cargar esta categoría",
