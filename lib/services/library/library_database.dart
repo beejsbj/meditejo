@@ -130,6 +130,11 @@ class LibTracks extends Table {
 
   /// Where the page for this session lives, for the credit link.
   TextColumn get pageUrl => text().withDefault(const Constant(''))();
+
+  /// The licence a stand-alone episode carries from its feed. A session in a
+  /// course reads the course's licence instead; these stay empty for it.
+  TextColumn get licenseName => text().withDefault(const Constant(''))();
+  TextColumn get licenseUrl => text().withDefault(const Constant(''))();
   DateTimeColumn get createdAt => dateTime()();
 
   @override
@@ -259,7 +264,7 @@ class LibraryDatabase extends _$LibraryDatabase {
   );
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -274,6 +279,10 @@ class LibraryDatabase extends _$LibraryDatabase {
         await m.createIndex(myCourseItemsOrder);
         await m.createIndex(myCourseItemsItem);
         await m.createTable(sessionContexts);
+      }
+      if (from < 4) {
+        await m.addColumn(libTracks, libTracks.licenseName);
+        await m.addColumn(libTracks, libTracks.licenseUrl);
       }
     },
   );
