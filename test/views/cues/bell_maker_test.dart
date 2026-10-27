@@ -264,9 +264,9 @@ void main() {
     expect(result?.preset, 'temple');
     expect(result?.knobs.bright, closeTo(0.7, 1e-9));
     expect(_renders, hasLength(1), reason: 'the sound heard is the one kept');
-    final path = await _container
-        .read(customBellStoreProvider)
-        .fileFor(result!.id);
+    final path = await tester.runAsync(
+      () => _container.read(customBellStoreProvider).fileFor(result!.id),
+    );
     expect(File(path!).readAsBytesSync(), _renders.single.key.codeUnits);
     expect(_container.read(customBellsProvider).single.id, result!.id);
     expect(find.byType(BellMakerView), findsNothing);
