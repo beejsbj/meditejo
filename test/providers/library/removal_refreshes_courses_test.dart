@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
@@ -43,8 +45,17 @@ void main() {
       );
       expect((await mine.packTrackIds())[id], [single.entryId]);
 
+      // The refresh runs after remove returns; wait for its own signal.
+      final refreshed = Completer<void>();
+      void onChange() {
+        if (!refreshed.isCompleted) refreshed.complete();
+      }
+
+      mine.revision.addListener(onChange);
+      addTearDown(() => mine.revision.removeListener(onChange));
+
       await h.lib.remove(single.entryId);
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await refreshed.future.timeout(const Duration(seconds: 10));
 
       expect((await mine.packTrackIds())[id], isEmpty);
     },
