@@ -23,6 +23,7 @@ import 'package:medito/views/library/library_actions.dart';
 import 'package:medito/views/library/library_format.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 import 'package:medito/widgets/attribution_notice.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/network_image_widget.dart';
 import 'package:medito/widgets/snackbar_widget.dart';
 
@@ -698,6 +699,17 @@ class _PreviewCard extends StatelessWidget {
     };
   }
 
+  /// What the preview's art is made from: the id it will be stored under, or
+  /// the source address when that isn't made until a file is copied.
+  String get _artId {
+    final id = ImportService.selectedId(preview, kind, episodeId: episodeId);
+    if (id.isNotEmpty) return id;
+    return preview.audioUrl ??
+        preview.feedUrl ??
+        preview.files.firstOrNull?.path ??
+        preview.title;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -751,7 +763,7 @@ class _PreviewCard extends StatelessWidget {
                   child: NetworkImageWidget(
                     url: selectedArtwork,
                     shouldCache: true,
-                    seed: title,
+                    art: libraryArt(kind, _artId),
                     alignment: Alignment.topCenter,
                   ),
                 ),

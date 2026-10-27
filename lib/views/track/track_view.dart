@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
+import 'package:medito/widgets/art/art_subject.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/l10n/app_localizations.dart';
@@ -22,6 +23,7 @@ import 'package:medito/views/home/widgets/home_gradient_border.dart';
 import 'package:medito/views/player/widgets/bottom_actions/track_view_bottom_bar.dart';
 import 'package:medito/views/tags/widgets/tag_chips.dart';
 import 'package:medito/widgets/attribution_notice.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -131,10 +133,10 @@ class _TrackViewState extends ConsumerState<TrackView>
   }
 
   Widget _buildCoverImage(Track track) {
-    return _buildImageWithData(track.coverUrl, seed: track.title);
+    return _buildImageWithData(track.coverUrl, art: singleArt(track.id));
   }
 
-  Widget _buildImageWithData(String url, {required String seed}) {
+  Widget _buildImageWithData(String url, {required ArtSubject art}) {
     return HomeGradientBorder(
       backgroundColor: Theme.of(context).cardColor,
       borderRadius: 20,
@@ -142,8 +144,7 @@ class _TrackViewState extends ConsumerState<TrackView>
       child: NetworkImageWidget(
         url: url,
         shouldCache: true,
-        // No picture: calm generated art, the same tile for the same title.
-        seed: seed,
+        art: art,
         alignment: Alignment.topCenter,
       ),
     );

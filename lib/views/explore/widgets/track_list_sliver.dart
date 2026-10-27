@@ -30,6 +30,7 @@ class TrackListSliver extends ConsumerWidget {
             key: ValueKey('track_${item.id}'),
             padding: const EdgeInsets.only(bottom: padding16),
             child: TrackCardWidget(
+              id: item.id,
               title: item.title,
               subTitle: item.subtitle,
               coverUrlPath: item.coverUrl,

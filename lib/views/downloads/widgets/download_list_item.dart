@@ -1,5 +1,6 @@
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/medito_icon.dart';
 import 'package:medito/widgets/shimmers/widgets/box_shimmer_widget.dart';
 import 'package:medito/widgets/widgets.dart';
@@ -13,12 +14,15 @@ const _rowPadding = EdgeInsets.fromLTRB(12, 12, 4, 12);
 class DownloadListItemWidget extends StatelessWidget {
   const DownloadListItemWidget({
     super.key,
+    required this.id,
     required this.title,
     required this.subtitle,
     required this.coverUrl,
     required this.index,
   });
 
+  /// The track's id, which its art is generated from when it has no picture.
+  final String id;
   final String title;
   final String subtitle;
   final String coverUrl;
@@ -42,7 +46,11 @@ class DownloadListItemWidget extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  NetworkImageWidget(url: coverUrl, shouldCache: true),
+                  NetworkImageWidget(
+                    url: coverUrl,
+                    shouldCache: true,
+                    art: singleArt(id),
+                  ),
                   Align(
                     alignment: Alignment.bottomRight,
                     child: Container(

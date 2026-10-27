@@ -103,6 +103,7 @@ void main() {
                     children: const [
                       DownloadListItemWidget(
                         key: ValueKey('long-track'),
+                        id: 'long-track',
                         title: 'A longer meditation title for a quiet evening',
                         subtitle: 'A guide with a longer name · 20 minutes',
                         coverUrl: '',

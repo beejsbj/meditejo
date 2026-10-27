@@ -12,6 +12,7 @@ import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/views/my_courses/my_course_edit_view.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/network_image_widget.dart';
 import 'package:medito/widgets/snackbar_widget.dart';
 
@@ -406,7 +407,7 @@ class _AddToCourseSheet extends StatelessWidget {
                           dimension: 48,
                           child: NetworkImageWidget(
                             url: course.coverUrl,
-                            seed: course.id,
+                            art: courseArt(course.id),
                           ),
                         ),
                       ),
