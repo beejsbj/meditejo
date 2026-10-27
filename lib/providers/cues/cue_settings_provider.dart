@@ -40,6 +40,30 @@ class CueSettingsStore {
     await prefs.setString(_key(scope), jsonEncode(settings.toJson()));
   }
 
+  /// Moves every stored scope's cues that ring bell [from] to bell [to]:
+  /// what happens to the cues of a bell when it is deleted.
+  Future<void> replaceSound(String from, String to) async {
+    for (final key in prefs.getKeys().toList()) {
+      if (!key.startsWith('cues.v1.')) continue;
+      final raw = prefs.getString(key);
+      if (raw == null) continue;
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is! Map<String, dynamic>) continue;
+        var changed = false;
+        for (final field in const ['startSound', 'intervalSound', 'endSound']) {
+          if (decoded[field] == from) {
+            decoded[field] = to;
+            changed = true;
+          }
+        }
+        if (changed) await prefs.setString(key, jsonEncode(decoded));
+      } catch (_) {
+        // A value that doesn't decode is read as defaults anyway.
+      }
+    }
+  }
+
   Future<void> removeOverride(CueScope scope) async {
     if (scope.courseId != null) await prefs.remove(_key(scope));
   }
