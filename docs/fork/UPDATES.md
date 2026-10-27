@@ -84,7 +84,7 @@ release branch → push the branch and **`gh pr create` against `develop`** → 
 digest) → independently re-verify the pinned digest on the staged APK → write the `.sha256`
 and `meditejo-release.json` → `gh release create v<version> --target <merge commit> --repo beejsbj/meditejo`.
 
-Nothing is pushed to `develop` directly. Before this, the script committed the bump and pushed it straight to
+Nothing is pushed to `develop` directly. The required check passes on a PR with no review threads, so on a bump PR it is a CI gate rather than a human read; `--allow-branch` is therefore refused unless the branch is already contained in `origin/develop`. Before this, the script committed the bump and pushed it straight to
 `develop`, which skipped the `review-evidence` required check (Burooj: "Go through a PR please"). The APK and
 the tag now come from the commit `develop` actually holds, so what ships is what was merged.
 

@@ -170,6 +170,22 @@ class ReleaseScriptTest(unittest.TestCase):
         proc = self.release('--dry-run')
         self.assertIn("WOULD REFUSE: on branch 'feature', not develop", proc.stderr)
 
+    def test_allow_branch_refuses_commits_that_are_not_on_develop(self):
+        git('switch', '-q', '-c', 'feature', cwd=self.repo)
+        (self.repo / 'feature.txt').write_text('unreviewed')
+        git('add', '-A', cwd=self.repo)
+        git('commit', '-q', '-m', 'unreviewed work', cwd=self.repo)
+        git('push', '-q', 'origin', 'feature', cwd=self.repo)
+        proc = self.release('--dry-run', '--allow-branch')
+        self.assertIn("'feature' has commits that are not on origin/develop", proc.stderr)
+
+    def test_allow_branch_accepts_a_branch_already_on_develop(self):
+        git('switch', '-q', '-c', 'feature', cwd=self.repo)
+        git('push', '-q', 'origin', 'feature', cwd=self.repo)
+        proc = self.release('--dry-run', '--allow-branch')
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertNotIn('WOULD REFUSE', proc.stderr)
+
     def test_refuses_when_the_release_branch_exists_on_origin(self):
         git('push', '-q', 'origin', 'HEAD:refs/heads/release/v0.2.0', cwd=self.repo)
         proc = self.release('--dry-run')

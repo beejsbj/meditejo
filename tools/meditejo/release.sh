@@ -30,8 +30,10 @@ release.sh <version> [--notes FILE] [--dry-run] [--yes] [--allow-branch]
                  previous release.
   --dry-run      Print the plan and every command; change nothing.
   --yes          Publish without the confirmation prompt.
-  --allow-branch Start from a branch other than develop. The bump PR still
-                 targets develop, and the build is of the merged commit there.
+  --allow-branch Start from a branch other than develop. Refused unless every
+                 commit on it is already on origin/develop, since the bump PR
+                 merges whatever the branch holds. The build is of the merged
+                 commit on develop.
   --refresh-catalogue
                  Refresh the bundled Dharma Seed catalogue even though the
                  pinned snapshot is under 30 days old.
@@ -128,6 +130,17 @@ if git fetch --quiet origin "$branch" 2>/dev/null; then
     problem "local $branch differs from origin/$branch (pull or push first)"
 else
   problem "could not fetch origin/$branch"
+fi
+# The bump PR is cut from this commit and merged into develop, and the only
+# required check passes on a PR with no review threads. So a branch other than
+# develop may only be released once everything on it is already on origin/develop.
+if [[ $branch != "$base" ]]; then
+  if git fetch --quiet origin "$base" 2>/dev/null; then
+    git merge-base --is-ancestor HEAD FETCH_HEAD ||
+      problem "'$branch' has commits that are not on origin/$base; merge them through their own PR first"
+  else
+    problem "could not fetch origin/$base"
+  fi
 fi
 [[ -z $notes_file || -s $notes_file ]] || problem "notes file '$notes_file' is missing or empty"
 # Decide whether this release refreshes the bundled catalogue: only when the
