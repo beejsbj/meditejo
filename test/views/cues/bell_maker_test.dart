@@ -59,14 +59,19 @@ Future<void> _settle(WidgetTester tester) async {
 }
 
 /// Lets real file work finish: the fake clock does not run it, and what it
-/// finishes schedules more work on the fake one, so the two take turns.
-Future<void> _io(WidgetTester tester) async {
-  for (var i = 0; i < 25; i++) {
+/// finishes schedules more work on the fake one, so the two take turns. With
+/// [until], it stops as soon as that is true and fails if it never is, rather
+/// than trusting a fixed delay on a slow machine.
+Future<void> _io(WidgetTester tester, {bool Function()? until}) async {
+  for (var i = 0; i < 200; i++) {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 20)),
     );
     await tester.pump(const Duration(milliseconds: 20));
+    if (until != null && until()) return;
+    if (until == null && i >= 24) return;
   }
+  fail('the file work never finished');
 }
 
 Future<void> _setUp(WidgetTester tester) async {
@@ -108,12 +113,18 @@ Widget _app(Widget home) => UncontrolledProviderScope(
 Slider _slider(WidgetTester tester, String name) =>
     tester.widget<Slider>(find.byKey(ValueKey('bell_maker_$name')));
 
-Future<void> _release(WidgetTester tester, String name, double at) async {
+/// Moves a control and lets go; waits for the bell to have rung [rings] times.
+Future<void> _release(
+  WidgetTester tester,
+  String name,
+  double at, {
+  required int rings,
+}) async {
   final slider = _slider(tester, name);
   slider.onChanged!(at);
   await tester.pump();
   slider.onChangeEnd!(at);
-  await _io(tester);
+  await _io(tester, until: () => _preview.files.length >= rings);
 }
 
 void main() {
@@ -171,7 +182,7 @@ void main() {
     final chip = find.byKey(const ValueKey('bell_maker_start_gong'));
     await tester.ensureVisible(chip);
     await tester.tap(chip);
-    await _io(tester);
+    await _io(tester, until: () => _preview.files.isNotEmpty);
     expect(_renders.single.preset, 'gong');
     expect(_renders.single.knobs, bellRecipes['gong']!.knobs);
     expect(_preview.files, ['${_dir.path}/p/preview.wav']);
@@ -190,7 +201,7 @@ void main() {
       await _setUp(tester);
       await tester.pumpWidget(_app(const BellMakerView(from: temple)));
       await tester.pump();
-      await _release(tester, 'strike', 0.9);
+      await _release(tester, 'strike', 0.9, rings: 1);
       expect(_renders, hasLength(1));
       expect(_renders.single.knobs.strike, closeTo(0.9, 1e-9));
       expect(
@@ -201,11 +212,11 @@ void main() {
       expect(_preview.files, hasLength(1));
       // Tapping the bell rings it again, without making it again.
       await tester.tap(find.byKey(const ValueKey('bell_maker_figure')));
-      await _io(tester);
+      await _io(tester, until: () => _preview.files.length >= 2);
       expect(_renders, hasLength(1));
       expect(_preview.files, hasLength(2));
       // A control moved to somewhere new makes a new sound.
-      await _release(tester, 'ring', 0.2);
+      await _release(tester, 'ring', 0.2, rings: 3);
       expect(_renders, hasLength(2));
       await tester.pumpWidget(const SizedBox.shrink());
     },
@@ -244,10 +255,10 @@ void main() {
       'Morning bowl',
     );
     await tester.pump();
-    await _release(tester, 'bright', 0.7);
+    await _release(tester, 'bright', 0.7, rings: 1);
     expect(_renders, hasLength(1));
     save().onPressed!();
-    await _io(tester);
+    await _io(tester, until: () => result != null);
     await _settle(tester);
     expect(result?.name, 'Morning bowl');
     expect(result?.preset, 'temple');
@@ -366,7 +377,10 @@ void main() {
         'Dawn',
       );
       await tester.tap(find.byKey(const ValueKey('bell_rename_confirm')));
-      await _io(tester);
+      await _io(
+        tester,
+        until: () => _container.read(customBellsProvider).single.name == 'Dawn',
+      );
       await _settle(tester);
       expect(_container.read(customBellsProvider).single.name, 'Dawn');
       expect(_container.read(customBellsProvider).single.id, bell.id);
@@ -417,7 +431,10 @@ void main() {
         await tester.tap(find.text('Delete'));
         await _settle(tester);
         await tester.tap(find.byKey(const ValueKey('bell_delete_confirm')));
-        await _io(tester);
+        await _io(
+          tester,
+          until: () => _container.read(customBellsProvider).isEmpty,
+        );
         await _settle(tester);
         expect(_container.read(customBellsProvider), isEmpty);
         expect(File(path).existsSync(), isFalse);
@@ -455,7 +472,10 @@ void main() {
       );
       // Saving returns to the picker with the new bell chosen.
       await tester.tap(find.byKey(const ValueKey('bell_maker_save')));
-      await _io(tester);
+      await _io(
+        tester,
+        until: () => _container.read(customBellsProvider).isNotEmpty,
+      );
       await _settle(tester);
       final made = _container.read(customBellsProvider).single;
       expect(find.byType(BellMakerView), findsNothing);
