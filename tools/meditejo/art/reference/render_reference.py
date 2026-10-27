@@ -22,6 +22,7 @@ tools/meditejo/branding/reference/; grounds.js and prims.js are round 4's,
 places.js, compose.js and bells.json round 5's.
 """
 import argparse
+import concurrent.futures
 import base64
 import html
 import json
@@ -59,12 +60,7 @@ const pre = document.createElement('pre'); pre.id = 'out'; pre.textContent = out
 """
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument('specs')
-    ap.add_argument('out')
-    a = ap.parse_args()
-    specs = json.loads(pathlib.Path(a.specs).read_text())
+def render(specs, out):
     page = PAGE % {
         'bells': (HERE / 'bells.json').read_text(),
         'core': (BRANDING / 'core.js').as_uri(),
@@ -75,22 +71,46 @@ def main():
         'compose': (HERE / 'compose.js').as_uri(),
         'specs': json.dumps(specs),
     }
-    out = pathlib.Path(a.out)
-    out.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         page_file = pathlib.Path(tmp) / 'render.html'
         page_file.write_text(page)
-        dom = subprocess.run(['google-chrome', '--headless=new', '--disable-gpu', '--allow-file-access-from-files',
-                              '--virtual-time-budget=60000', '--dump-dom', page_file.as_uri()],
-                             capture_output=True, text=True, check=True).stdout
+        # Headless Chrome now and then hangs under load: give each run a
+        # deadline and try again.
+        for attempt in range(3):
+            try:
+                dom = subprocess.run(['google-chrome', '--headless=new', '--disable-gpu', '--allow-file-access-from-files',
+                                      f'--user-data-dir={tmp}/profile{attempt}', '--dump-dom', page_file.as_uri()],
+                                     capture_output=True, text=True, check=True, timeout=120).stdout
+                break
+            except subprocess.TimeoutExpired:
+                if attempt == 2:
+                    raise
     found = re.search(r'<pre id="out">(.*?)</pre>', dom, re.S)
     if not found:
         raise SystemExit('the page drew nothing; open it in a browser to see the error')
+    names = []
     for line in html.unescape(found.group(1)).strip().splitlines():
         name, png, frozen = line.split(' ', 2)
         (out / f'{name}.png').write_bytes(base64.b64decode(png.split(',', 1)[1]))
         (out / f'{name}.json').write_text(json.dumps(json.loads(base64.b64decode(frozen)), indent=1) + '\n')
-        print(out / f'{name}.png')
+        names.append(name)
+    return names
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('specs')
+    ap.add_argument('out')
+    ap.add_argument('--batch', type=int, default=60, help='cards per browser run')
+    ap.add_argument('--jobs', type=int, default=3, help='browser runs at once')
+    a = ap.parse_args()
+    specs = json.loads(pathlib.Path(a.specs).read_text())
+    out = pathlib.Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    batches = [specs[i:i + a.batch] for i in range(0, len(specs), a.batch)]
+    with concurrent.futures.ThreadPoolExecutor(a.jobs) as pool:
+        for names in pool.map(lambda b: render(b, out), batches):
+            print(f'{len(names)} cards: {names[0]} .. {names[-1]}', flush=True)
 
 
 if __name__ == '__main__':
