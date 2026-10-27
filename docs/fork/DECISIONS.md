@@ -917,6 +917,28 @@ Decisions 16, 18 and 19. Layout and hierarchy, not final visuals: colours come f
     - Strings: de `libraryPinned` says "Auf Home angeheftet" where the other pin strings say "Start"; es `libraryTeachers` is "Maestros" where Explore and search say "Docentes". Both are my translations; Burooj to check.
     - Test helper `_visibleText` in `library_layout_test.dart` uses `skipOffstage: false`, so it proves a widget was built, not that it is visible; rename it `_builtText`.
 
+## 2026-10-27 (housekeeping batch E: dead code, the day turnover test, the player capture)
+
+Three small mechanical fixes from the review follow-ups above. CI is the verification route (see the last bullet); the local codegen could not run here.
+
+- **`TimerDurationWheels` is deleted** (`lib/views/timer/widgets/timer_duration_wheels.dart`). Nothing in `lib`, `test`, `widgetbook` or `tools` referenced it. This closes the follow-up from the Customize sheet section (2026-10-26, design pass PR 5).
+- **The daily mark's turnover is tested through `main.dart`** (`test/identity_day_turnover_test.dart`). Two tests run the real `ParentWidget` past local midnight: one through the once-a-minute tick, one through a resume. Both assert the day and the mark's seed change. This closes the follow-up from identity PR 1 (2026-10-26).
+  - **The resume test drives the platform's lifecycle sequence** (`inactive`, `hidden`, `paused`, `hidden`, `inactive`, `resumed`). The framework asserts that `resumed` follows `inactive`, so a direct `paused` to `resumed` throws.
+  - **`reminderProvider` is stood in for the test.** The resume handler clears the badge through it before it refreshes the day. The real provider initialises `flutter_local_notifications`, which has no platform in tests. The stand-in does only the badge.
+- **The player capture runs in every test pass** (`test/screenshots/art_player_screenshots_test.dart`). The `MissingPluginException` came from path_provider: the player's cue scope opens two drift databases (`dharmaSeedDatabaseProvider` and `libraryDatabaseProvider`), and each asks path_provider for a temporary directory. The test now stands in the in-memory databases the library tests already use.
+  - **Images are still written only with `MEDITEJO_SCREENSHOTS=1`.** Without it the test renders and fails CI on any plugin or layout error, but writes nothing into `docs/fork/design/`.
+  - **The other screenshot tests stay gated.** Only the player capture was un-gated here.
+  - **The capture asserts nothing beyond rendering.** A pixel check would be a separate change.
+- **Strings:** none added. No ARB files changed; `flutter gen-l10n` is clean. Burooj's rule (2026-10-27): any new string gets a real German and Spanish translation, not the English text.
+- **Verified in CI, not locally:**
+  - Run `40554661770` passed `flutter analyze` for the test file and deletion, and `focused`.
+  - Run `40552402254` failed the resume test on the lifecycle assertion (fixed in `55b84133`).
+  - Run `40557248597` passed `checks` and `focused` on the head. The unit run reported 1695 passed and 61 skipped, the two player captures among the passes, and no `MissingPluginException`.
+- **Follow-ups, for Burooj:**
+  - **The local codegen cannot run on bjslab under load.** `dart run build_runner build` is SIGKILLed during the riverpod generator, even when admitted through `cockpit resources run --profile local-small`, whose 2 GiB budget is probably too small for 600 analyzed inputs. The Daytona profiles have no Flutter image. Until one of those changes, analyze and the tests go to CI.
+  - **The other screenshot tests are still gated** on `MEDITEJO_SCREENSHOTS=1`. Un-gating them would write their images into the working tree on every CI run unless each gets the same write gate.
+  - **The branch keeps three diagnostic commits** on the way to the fix (the un-skip, the unused-gate silencing, the database stand-in). The final commit explains the state; a squash merge would hide them.
+
 ## 2026-10-27 (bug batch D: the lone episode's licence, and releases through a PR)
 
 **The lone episode keeps the feed's licence line**
