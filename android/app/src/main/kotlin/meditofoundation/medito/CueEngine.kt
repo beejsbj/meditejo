@@ -60,7 +60,6 @@ internal class CueEngine(
     // Holds inside the recording. [holdPlannedMs] is the length of the one under way,
     // [holdStartSessionMs] the session time it began at.
     private val holdPlan = HoldPlan()
-    private var currentHold: PauseHold? = null
     private var holdPlannedMs = 0L
     private var holdStartSessionMs = 0.0
     // The end extension's length while it runs (the Extend minutes holds did not use).
@@ -133,7 +132,6 @@ internal class CueEngine(
         if (config == null) return
         stopTimers()
         holdPlan.resetSession()
-        currentHold = null
         started = false
         sessionMs = 0.0
         phase = Phase.PLAYING
@@ -164,7 +162,6 @@ internal class CueEngine(
         stopTimers()
         halfway.disarm()
         holdPlan.clear()
-        currentHold = null
         phase = Phase.IDLE
         started = false
         config = null
@@ -381,7 +378,6 @@ internal class CueEngine(
         holdPlan.begin(hold)
         if (length <= 0L) return false // the Extend time is already spent
         handler.removeCallbacks(tick)
-        currentHold = hold
         holdPlannedMs = length
         holdStartSessionMs = sessionMs
         holdRemainingMs = length
@@ -417,7 +413,6 @@ internal class CueEngine(
         sessionMs = holdStartSessionMs + (holdPlannedMs - heldRemaining())
         holdAnchor = 0L
         holdRemainingMs = 0L
-        currentHold = null
         phase = Phase.PLAYING
         lastPositionMs = primary.currentPosition
         lastRealMs = SystemClock.elapsedRealtime()
