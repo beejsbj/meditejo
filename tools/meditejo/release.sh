@@ -92,6 +92,7 @@ done
 tag=v$version
 release_branch=release/$tag
 checks_timeout=${MEDITEJO_RELEASE_CHECKS_TIMEOUT:-1800} # seconds to wait for the required checks
+checks_interval=${MEDITEJO_RELEASE_CHECKS_INTERVAL:-15} # seconds between looks at them
 
 problems=0
 problem() {
@@ -378,7 +379,7 @@ else
     if [[ -n $states && $states != *=pending* ]]; then echo "required checks: $states"; break; fi
     ((SECONDS < deadline)) || {
       echo "Required checks did not finish within ${checks_timeout}s on #$pr (${states:-none reported}). The PR is left open: $pr_url" >&2; exit 1; }
-    sleep 15
+    sleep "$checks_interval"
   done
   gh pr merge "$pr" --repo "$repo" --merge --match-head-commit "$bump"
   sha=$(gh pr view "$pr" --repo "$repo" --json mergeCommit --jq .mergeCommit.oid)

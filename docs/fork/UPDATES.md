@@ -69,24 +69,42 @@ tools/meditejo/release.sh 0.1.0 --notes notes.md --dry-run   # print the plan
 tools/meditejo/release.sh 0.1.0 --notes notes.md --yes       # publish
 ```
 
-Steps: preflight (clean tree matching origin, `gh` auth, tag unused) → pick the next `versionCode` →
-**refresh the bundled Dharma Seed catalogue only if the pinned one is over 30 days old**
+Steps: preflight (clean tree matching origin, `gh` auth, tag unused, `release/v<version>` unused) → pick
+the next `versionCode` → **create `release/v<version>`** → **refresh the bundled Dharma Seed catalogue only if
+the pinned one is over 30 days old**
 (`tools/meditejo/dharma_seed_snapshot.dart`, a delta from the pinned snapshot; if it changed, the new
-snapshot is uploaded as a `catalogue-YYYYMMDD` prerelease and a commit pins it in `catalogue.json`, the
-manifest alone; `--refresh-catalogue` forces it, `--skip-snapshot` never does; the app's search-time delta
-covers the gap; see ARCHITECTURE.md) → bump
-`pubspec.yaml` and commit → push the commit → `build_apk.sh HEAD --flavor prod` (GitHub
-Actions builds unsigned, bjslab aligns and signs with the durable key and checks the pinned
+snapshot is uploaded as a `catalogue-YYYYMMDD` prerelease and a commit on the release branch pins it in
+`catalogue.json`, the manifest alone; `--refresh-catalogue` forces it, `--skip-snapshot` never does; the
+app's search-time delta covers the gap; see ARCHITECTURE.md) → bump `pubspec.yaml` and commit it on the
+release branch → push the branch and **`gh pr create` against `develop`** → **wait for the required checks**
+(`review-evidence`; polled for up to 30 minutes, `MEDITEJO_RELEASE_CHECKS_TIMEOUT` seconds) →
+**`gh pr merge --merge`** (pinned to the commit that was pushed, never `--admin`) → fast-forward local
+`develop` to the **merge commit**, delete the release branch → `build_apk.sh <merge commit> --flavor prod`
+(GitHub Actions builds unsigned, bjslab aligns and signs with the durable key and checks the pinned
 digest) → independently re-verify the pinned digest on the staged APK → write the `.sha256`
-and `meditejo-release.json` → `gh release create v<version> --repo beejsbj/meditejo`.
+and `meditejo-release.json` → `gh release create v<version> --target <merge commit> --repo beejsbj/meditejo`.
 
-If a run fails part-way: after a failed build a local manifest commit and version-bump commit are left (an uploaded
-`catalogue-…` prerelease stays; it is harmless and a re-run reuses it), so
-`git reset --hard origin/develop` before trying again; if it fails after the draft release
-exists, `gh release delete v<version> --repo beejsbj/meditejo --yes` first.
+Nothing is pushed to `develop` directly. Before this, the script committed the bump and pushed it straight to
+`develop`, which skipped the `review-evidence` required check (Burooj: "Go through a PR please"). The APK and
+the tag now come from the commit `develop` actually holds, so what ships is what was merged.
 
-`--dry-run` prints every command, changes nothing and contacts nothing except a `git fetch`, read-only
-`gh` lookups for the latest published code (skipped when offline) and a HEAD request for the pinned catalogue.
+If a run fails part-way:
+
+- **Before the merge** (the build has not started): the PR is left open and `develop` is untouched. A failed
+  required check or a timeout says so and stops. Close the PR, delete `release/v<version>` on origin and
+  locally (`git switch develop && git branch -D release/v<version>`), fix the cause, and run again. An uploaded
+  `catalogue-…` prerelease stays; it is harmless and a re-run reuses it.
+- **After the merge** (the build, signing or publish failed): `develop` already carries the bump. Run the same
+  version again: the script sees `pubspec.yaml` at `<version>+<code>` with a code nobody has published,
+  skips the branch, catalogue and PR, and builds `develop` as it stands.
+- **After the draft release exists**: `gh release delete v<version> --repo beejsbj/meditejo --yes` first.
+
+`--dry-run` prints every command (including the PR, the wait for checks, the merge and the build from the merge
+commit), changes nothing and contacts nothing except a `git fetch`, read-only `gh` lookups for the latest
+published code (skipped when offline) and a HEAD request for the pinned catalogue. The script is tested offline
+by `python3 -I -m unittest discover -s tools/meditejo -p 'test_release.py'` (a fake `gh` and a local bare
+`origin`: the dry-run plan, the refusals, a live run through the merge up to the build, a failed check, and the
+resume).
 
 Medito's `prepare_release.sh` and its `release` skill drove the App Store / Play pipeline
 (date-based names, `release_notes.txt`, fastlane). The skill is replaced by one that points at
