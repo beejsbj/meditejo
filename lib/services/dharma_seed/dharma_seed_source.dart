@@ -266,8 +266,8 @@ class DharmaSeedSource
 
   /// Explore for one content group, or both when [group] is null: saved
   /// courses and teachers first (unfiltered view only), then the newest
-  /// courses of that group, the busiest teachers, and, with a group chosen,
-  /// the latest single sessions.
+  /// courses of that group, the busiest teachers, and the latest single
+  /// sessions (guided practice when no group is chosen).
   Future<DsExplore> explore({DsContentGroup? group}) =>
       _quietly('explore', () async {
         // Courses in the library are shown by the Explore screen itself, so
