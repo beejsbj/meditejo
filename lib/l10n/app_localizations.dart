@@ -5289,6 +5289,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'More about {name}'**
   String bellMenu(String name);
+
+  /// Bell maker: the name suggested for a new bell
+  ///
+  /// In en, this message translates to:
+  /// **'My bell'**
+  String get bellMakerDefaultName;
 }
 
 class _AppLocalizationsDelegate

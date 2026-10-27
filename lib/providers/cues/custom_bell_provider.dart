@@ -1,12 +1,27 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/services/bells/bell_synth.dart';
 import 'package:medito/services/bells/custom_bell.dart';
 import 'package:medito/services/bells/custom_bell_store.dart';
+
+/// Makes a bell's sound off the UI thread. Tests swap in something quick.
+final bellRendererProvider = Provider<Future<Uint8List> Function(BellSpec)>(
+  (ref) => renderBellWavInBackground,
+);
+
+/// Where the bell being made is written for the player to open.
+final bellPreviewFileProvider = Provider<Future<File> Function()>(
+  (ref) =>
+      () async => File(
+        '${(await getTemporaryDirectory()).path}/bell_maker/preview.wav',
+      ),
+);
 
 final customBellStoreProvider = Provider<CustomBellStore>(
   (ref) => CustomBellStore(ref.watch(sharedPreferencesProvider)),

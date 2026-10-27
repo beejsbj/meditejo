@@ -3349,5 +3349,9 @@
         "type": "String"
       }
     }
+  },
+  "bellMakerDefaultName": "My bell",
+  "@bellMakerDefaultName": {
+    "description": "Bell maker: the name suggested for a new bell"
   }
 }

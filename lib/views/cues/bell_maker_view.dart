@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -19,7 +18,6 @@ import 'package:medito/utils/logger.dart';
 import 'package:medito/widgets/art/art_cover.dart';
 import 'package:medito/widgets/art/art_subject.dart';
 import 'package:medito/widgets/art/engine/bell.dart';
-import 'package:path_provider/path_provider.dart';
 
 /// Opens the bell maker, starting from the bell a cue rings now ([from] is a
 /// cue sound: a bundled bell's asset path or a made bell's id). Completes
@@ -39,25 +37,13 @@ Future<CustomBell?> showBellMaker(
 /// bell's figure drawn from the controls as they move and the sound a tap
 /// away. Nothing is kept until Save.
 class BellMakerView extends ConsumerStatefulWidget {
-  const BellMakerView({
-    super.key,
-    this.from = '',
-    this.volume = 0.5,
-    this.render,
-    this.previewFile,
-  });
+  const BellMakerView({super.key, this.from = '', this.volume = 0.5});
 
   /// A cue sound to start from; anything else starts from the singing bowl.
   final String from;
 
   /// How loudly the preview rings: the cue's own bell volume.
   final double volume;
-
-  /// Makes the sound (off the UI thread). Tests swap in something faster.
-  final Future<Uint8List> Function(BellSpec spec)? render;
-
-  /// Where the preview is written for the player to open.
-  final Future<File> Function()? previewFile;
 
   @override
   ConsumerState<BellMakerView> createState() => _BellMakerViewState();
@@ -67,6 +53,7 @@ class _BellMakerViewState extends ConsumerState<BellMakerView> {
   late String _preset;
   late BellKnobs _knobs;
   late final TextEditingController _name;
+  var _nameSet = false;
   late final SessionBellPreview _preview;
   final _strike = ValueNotifier<int>(0);
   var _making = false;
@@ -82,9 +69,19 @@ class _BellMakerViewState extends ConsumerState<BellMakerView> {
     final start = _startingPoint(widget.from);
     _preset = start.$1;
     _knobs = start.$2;
-    _name = TextEditingController(
-      text: ref.read(customBellStoreProvider).suggestName(),
-    );
+    _name = TextEditingController();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_nameSet) return;
+    _nameSet = true;
+    _name.text = ref
+        .read(customBellStoreProvider)
+        .suggestName(
+          AppLocalizations.of(context)?.bellMakerDefaultName ?? 'My bell',
+        );
   }
 
   @override
@@ -135,7 +132,7 @@ class _BellMakerViewState extends ConsumerState<BellMakerView> {
     final generation = ++_generation;
     setState(() => _making = true);
     try {
-      final wav = await (widget.render ?? renderBellWavInBackground)(spec);
+      final wav = await ref.read(bellRendererProvider)(spec);
       // The controls moved on while it was made: that sound is not wanted.
       if (!mounted || generation != _generation) return null;
       _renderedKey = spec.key;
@@ -152,7 +149,7 @@ class _BellMakerViewState extends ConsumerState<BellMakerView> {
     try {
       final wav = await _sound();
       if (wav == null || !mounted) return;
-      final file = await (widget.previewFile ?? _previewFile)();
+      final file = await ref.read(bellPreviewFileProvider)();
       await file.parent.create(recursive: true);
       await file.writeAsBytes(wav, flush: true);
       if (!mounted) return;
@@ -171,9 +168,6 @@ class _BellMakerViewState extends ConsumerState<BellMakerView> {
       );
     }
   }
-
-  static Future<File> _previewFile() async =>
-      File('${(await getTemporaryDirectory()).path}/bell_maker/preview.wav');
 
   bool get _canSave =>
       !_saving &&
@@ -207,7 +201,7 @@ class _BellMakerViewState extends ConsumerState<BellMakerView> {
   }
 
   Future<Uint8List> _render(BellSpec spec) =>
-      (widget.render ?? renderBellWavInBackground)(spec);
+      ref.read(bellRendererProvider)(spec);
 
   @override
   Widget build(BuildContext context) {

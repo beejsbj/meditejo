@@ -1194,5 +1194,6 @@
   "bellRenameTitle": "Rename bell",
   "bellDeleteTitle": "Delete “{name}”?",
   "bellDeleteBody": "Cues that ring it go back to the Swell bell.",
-  "bellMenu": "More about {name}"
+  "bellMenu": "More about {name}",
+  "bellMakerDefaultName": "My bell"
 }

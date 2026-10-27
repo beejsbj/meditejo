@@ -86,6 +86,10 @@ Future<void> _setUp(WidgetTester tester) async {
         CustomBellStore(_prefs, directory: () async => _dir, render: _render),
       ),
       sessionBellPreviewProvider.overrideWithValue(_preview),
+      bellRendererProvider.overrideWithValue(_render),
+      bellPreviewFileProvider.overrideWithValue(
+        () async => File('${_dir.path}/p/preview.wav'),
+      ),
       ...soundscapeTestOverrides(FakeSoundscapeEngine()),
     ],
   );
@@ -162,14 +166,7 @@ void main() {
     tester,
   ) async {
     await _setUp(tester);
-    await tester.pumpWidget(
-      _app(
-        BellMakerView(
-          from: temple,
-          previewFile: () async => File('${_dir.path}/p/preview.wav'),
-        ),
-      ),
-    );
+    await tester.pumpWidget(_app(const BellMakerView(from: temple)));
     await tester.pump();
     final chip = find.byKey(const ValueKey('bell_maker_start_gong'));
     await tester.ensureVisible(chip);
@@ -191,14 +188,7 @@ void main() {
     'letting go of a control makes and rings that bell, once per sound',
     (tester) async {
       await _setUp(tester);
-      await tester.pumpWidget(
-        _app(
-          BellMakerView(
-            from: temple,
-            previewFile: () async => File('${_dir.path}/p/preview.wav'),
-          ),
-        ),
-      );
+      await tester.pumpWidget(_app(const BellMakerView(from: temple)));
       await tester.pump();
       await _release(tester, 'strike', 0.9);
       expect(_renders, hasLength(1));

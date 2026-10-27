@@ -3015,4 +3015,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String bellMenu(String name) {
     return 'More about $name';
   }
+
+  @override
+  String get bellMakerDefaultName => 'My bell';
 }
