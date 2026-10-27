@@ -49,6 +49,9 @@ for (const s of SPECS) {
   else if (s.build) comp = Compose.buildFor(s.build.id, s.build.kind, s.build.seed);
   else if (s.preset) comp = Compose.buildPreset(s.preset, s.preset.seed);
   else comp = Compose.build(s.cls, s.seed);
+  // Draw what ships: the frozen form, every number rounded, as the app
+  // draws curated items (and as the JSON written beside the PNG holds).
+  comp = thaw(JSON.parse(JSON.stringify(Compose.freeze(comp))));
   const px = s.px || 256, H = s.H || 1, cv = document.createElement('canvas');
   cv.width = px; cv.height = Math.round(px * H);
   const ctx = cv.getContext('2d'); ctx.scale(px, px);
