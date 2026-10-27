@@ -96,7 +96,7 @@ class SoundsMixHeader extends ConsumerWidget {
         // The live mix card: the mix's art, following its two loudest
         // layers as they change, with play/pause on it.
         SizedBox.square(
-          dimension: 64,
+          dimension: 56,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(MeditejoShapes.large),
             child: Stack(
@@ -116,9 +116,9 @@ class SoundsMixHeader extends ConsumerWidget {
                 Center(
                   child: IconButton.filled(
                     key: const ValueKey('sounds_play'),
-                    iconSize: 28,
+                    iconSize: 24,
                     style: IconButton.styleFrom(
-                      minimumSize: const Size.square(44),
+                      minimumSize: const Size.square(40),
                       backgroundColor: scheme.primary.withValues(alpha: 0.92),
                       foregroundColor: scheme.onPrimary,
                       disabledBackgroundColor: scheme.onSurface.withValues(
