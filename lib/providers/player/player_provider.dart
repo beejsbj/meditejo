@@ -14,6 +14,7 @@ import '../../models/player/repeat_mode.dart' as app_repeat;
 import '../../src/audio_pigeon.g.dart' as pigeon;
 import '../../utils/utils.dart';
 import 'audio_state_provider.dart';
+import 'playback_source.dart';
 import 'download/audio_downloader_provider.dart';
 import 'ios_audio_handler.dart';
 import 'repeat_state_provider.dart';
@@ -107,16 +108,13 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
               .read(audioDownloaderProvider.notifier)
               .getTrackPath(_constructFileName(request));
 
-    if (downloadPath == null && request.trackId.startsWith('yt-video-')) {
-      final fresh = await ref
-          .read(youtubeSourceProvider)
-          .resolveTrack(request.trackId);
-      request = request.copyWith(
-        remoteUrl: fresh.voices.single.audioFiles.single.path,
-      );
-    }
+    final url = await playbackSource(
+      request,
+      downloadPath: downloadPath,
+      resolve: (id) => ref.read(youtubeSourceProvider).resolveTrack(id),
+    );
+    if (downloadPath == null) request = request.copyWith(remoteUrl: url);
     if (generation != _generation) return;
-    final url = downloadPath ?? request.remoteUrl;
     AppLogger.d('PLAYER', 'Will use path: $url');
 
     // Both engines outlive the player screen and keep their last repeat mode
