@@ -2836,4 +2836,29 @@ class AppLocalizationsDe extends AppLocalizations {
   String labelsRemoveTooltip(String label) {
     return 'Remove label $label';
   }
+
+  @override
+  String get extendPlacementEnd => 'At the end';
+
+  @override
+  String get extendPlacementPauses => 'In the pauses';
+
+  @override
+  String get extendPlacementCaptionEnd =>
+      'All the extra minutes come after the recording, then the ending bell.';
+
+  @override
+  String get extendPlacementCaptionPauses =>
+      'The voice rests in its own long pauses, in the order of the recording. What no pause takes comes after the recording, then the ending bell. Streamed recordings are read on Wi-Fi; until then it all comes at the end.';
+
+  @override
+  String get extendHoldTitle => 'Resting in silence';
+
+  @override
+  String extendHoldLeft(String time) {
+    return '$time left';
+  }
+
+  @override
+  String get extendSkipPause => 'Skip this pause';
 }

@@ -4935,6 +4935,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove label {label}'**
   String labelsRemoveTooltip(String label);
+
+  /// Extend with silence: all the extra minutes come after the recording
+  ///
+  /// In en, this message translates to:
+  /// **'At the end'**
+  String get extendPlacementEnd;
+
+  /// Extend with silence: the extra minutes are spread across the guide's own pauses
+  ///
+  /// In en, this message translates to:
+  /// **'In the pauses'**
+  String get extendPlacementPauses;
+
+  /// Caption under Extend when it is set to the end
+  ///
+  /// In en, this message translates to:
+  /// **'All the extra minutes come after the recording, then the ending bell.'**
+  String get extendPlacementCaptionEnd;
+
+  /// Caption under Extend when it is set to the pauses
+  ///
+  /// In en, this message translates to:
+  /// **'The voice rests in its own long pauses, in the order of the recording. What no pause takes comes after the recording, then the ending bell. Streamed recordings are read on Wi-Fi; until then it all comes at the end.'**
+  String get extendPlacementCaptionPauses;
+
+  /// Heading of the card shown while the voice rests in a pause
+  ///
+  /// In en, this message translates to:
+  /// **'Resting in silence'**
+  String get extendHoldTitle;
+
+  /// Time left of a rest in a pause, for example 1:45 left
+  ///
+  /// In en, this message translates to:
+  /// **'{time} left'**
+  String extendHoldLeft(String time);
+
+  /// Button that ends the rest in a pause and carries on with the voice
+  ///
+  /// In en, this message translates to:
+  /// **'Skip this pause'**
+  String get extendSkipPause;
 }
 
 class _AppLocalizationsDelegate
