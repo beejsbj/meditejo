@@ -55,12 +55,14 @@ final libraryStoreProvider = Provider<LibraryStore>((ref) {
 });
 
 /// Imported courses and singles, served as a content source.
-final libSourceProvider = Provider<LibSource>(
-  (ref) => LibSource(
+final libSourceProvider = Provider<LibSource>((ref) {
+  final source = LibSource(
     db: ref.watch(libraryDatabaseProvider),
     library: ref.watch(libraryStoreProvider),
-  ),
-);
+  );
+  ref.onDispose(source.dispose);
+  return source;
+});
 
 /// Courses the user made from sessions anywhere, served as a content source.
 /// It reads their sessions through the other sources.
@@ -72,7 +74,14 @@ final Provider<MyCourseSource> myCourseSourceProvider = Provider((ref) {
   );
   void changed() => ref.invalidate(packTrackIdsProvider);
   source.revision.addListener(changed);
+  // An import deleted from the library: the courses listing it learn now.
+  final removals = ref.watch(libSourceProvider).removals.listen((ids) {
+    source.sessionsRemoved(ids).catchError((Object e, StackTrace st) {
+      AppLogger.e('LIBRARY', 'Could not refresh availability', e, st);
+    });
+  });
   ref.onDispose(() {
+    removals.cancel();
     source.revision.removeListener(changed);
     source.dispose();
   });

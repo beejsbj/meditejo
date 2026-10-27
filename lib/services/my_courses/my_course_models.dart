@@ -98,6 +98,7 @@ class MyCourseEdit {
     this.coverUrl = '',
     this.group = LibraryGroup.practice,
     this.lines = const [],
+    this.offeredCovers = const [],
   });
 
   final String title;
@@ -109,6 +110,11 @@ class MyCourseEdit {
   /// Practice or Talks: where the course is filed, and how Home ranks it.
   final LibraryGroup group;
   final List<MyCourseLine> lines;
+
+  /// The session artwork the editor offered when the edit began. It tells a
+  /// cover that came from a session (which goes with it) from one carried
+  /// from elsewhere, such as a copied retreat's photo (which stays).
+  final List<String> offeredCovers;
 
   MyCourseEdit copyWith({
     String? title,
@@ -122,7 +128,18 @@ class MyCourseEdit {
     coverUrl: coverUrl ?? this.coverUrl,
     group: group ?? this.group,
     lines: lines ?? this.lines,
+    offeredCovers: offeredCovers,
   );
+
+  /// The cover Save writes: [coverUrl], unless it was one of the offered
+  /// session artworks and its session has since been taken out, in which
+  /// case it is no longer a choice and the course goes back to generated art.
+  String get effectiveCoverUrl =>
+      coverUrl.isNotEmpty &&
+          offeredCovers.contains(coverUrl) &&
+          !coverChoices.contains(coverUrl)
+      ? ''
+      : coverUrl;
 
   /// Artwork the cover can be chosen from: each session's, once.
   List<String> get coverChoices => {

@@ -382,9 +382,47 @@ void main() {
         expect((handler.sessions, handler.repeats), (1, 0));
 
         // Only a further full pass is a repeat.
+        swift['endPass'] = true;
         streams.loop();
         await _settle();
         expect((handler.sessions, handler.repeats), (1, 1));
+      },
+    );
+
+    test(
+      'repeat forever: a pass that was not 90% heard adds nothing',
+      () async {
+        await handler.setCustomRepeatMode(pigeon.RepeatMode.infinite);
+        await heardNinetyPercent();
+        streams.loop();
+        await _settle();
+        expect((handler.sessions, handler.repeats), (1, 0));
+
+        // Seeked to the end of the loop: Swift says the pass was not heard.
+        swift['endPass'] = false;
+        streams.loop();
+        streams.loop();
+        await _settle();
+        expect((handler.sessions, handler.repeats), (1, 0));
+
+        // The next pass is heard in full.
+        swift['endPass'] = true;
+        streams.loop();
+        await _settle();
+        expect((handler.sessions, handler.repeats), (1, 1));
+      },
+    );
+
+    test(
+      'every finished pass starts a fresh listening record in Swift',
+      () async {
+        final calls = _mockSwift(swift);
+        await handler.setCustomRepeatMode(pigeon.RepeatMode.infinite);
+        await heardNinetyPercent();
+        streams.loop();
+        streams.loop();
+        await _settle();
+        expect(calls.where((c) => c.method == 'endPass'), hasLength(2));
       },
     );
   });

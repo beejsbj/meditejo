@@ -315,6 +315,21 @@ class LibraryStore {
     await db.saveSessionContext(trackId, courseId);
   }
 
+  /// Forgets the course [trackId] was opened from, so a session started from
+  /// a surface with no course does not carry that course's autoplay and cue
+  /// defaults.
+  Future<void> clearSessionContext(String trackId) async {
+    await _ready();
+    await db.clearSessionContextOfTrack(trackId);
+  }
+
+  /// Records where a session is being opened from: the course [courseId], or
+  /// from no course at all (search, a library row, a teacher page) when null.
+  Future<void> noteSessionOrigin(String trackId, String? courseId) =>
+      courseId == null
+      ? clearSessionContext(trackId)
+      : noteSessionContext(trackId, courseId);
+
   /// The course [trackId] was last opened from, if any.
   Future<String?> sessionContext(String trackId) async {
     await _ready();
