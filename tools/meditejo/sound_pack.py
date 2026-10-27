@@ -298,6 +298,8 @@ def publish(args):
                 f'Pack digest: {digest}')
             done = cat.gh('release', 'create', tag,
                           *[str(PACK_DIR / e['file']) for e in entries], str(manifest_path),
+                          # The credits travel with the recordings (CC BY needs them).
+                          str(NOTICE),
                           '--repo', cat.REPO, '--prerelease', '--latest=false',
                           '--title', f'Sound pack {day}', '--notes', notes, check=False)
         if done.returncode != 0:

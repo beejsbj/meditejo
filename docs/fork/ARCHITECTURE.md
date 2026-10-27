@@ -525,7 +525,8 @@ Every other sound is a file on a `sounds-YYYYMMDD` **prerelease** of
   `verify` (library, NOTICE and `assets/sounds` agree, offline, run in CI),
   `status`, `check` (HEAD every pinned file), `fetch` (download the pack into
   `build/sound-pack`), `publish` (upload `build/sound-pack` as a new prerelease
-  with a copy of the manifest, read every file back, then pin it) and
+  with a copy of the manifest and `NOTICE`, so the credits travel with the recordings; read every file back, then
+  pin it) and
   `verify-apk` (the APK holds exactly the bundled sounds and none of the pack).
   `process_sounds.py` writes bundled loops to `assets/sounds/` and the others to
   `build/sound-pack/` (not in git), and keeps the `pack` pin.
