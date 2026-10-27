@@ -33,7 +33,9 @@ import 'package:medito/views/player/session_completion_gate.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/views/player/widgets/artist_title_widget.dart';
 import 'package:medito/widgets/attribution_notice.dart';
-import 'package:medito/widgets/generated_artwork.dart';
+import 'package:medito/widgets/art/art_cover.dart';
+import 'package:medito/widgets/art/art_subject.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/views/player/widgets/bottom_actions/player_action_bar.dart';
 import 'package:medito/views/player/widgets/duration_indicator_widget.dart';
 import 'package:medito/views/player/widgets/stopwatch_elapsed_widget.dart';
@@ -338,7 +340,12 @@ class _PlayerViewState extends ConsumerState<PlayerView>
   void _precacheCurrentTrackImage() {
     final currentlyPlayingTrack = ref.read(playerProvider);
     if (currentlyPlayingTrack != null) {
-      _precacheImage(currentlyPlayingTrack.coverUrl);
+      _precacheImage(
+        shownCoverUrl(
+          singleArt(currentlyPlayingTrack.trackId),
+          currentlyPlayingTrack.coverUrl,
+        ),
+      );
     }
   }
 
@@ -457,6 +464,7 @@ class _PlayerViewState extends ConsumerState<PlayerView>
                 ref.read(playerProvider.notifier).setSpeed(speed),
             onClosePressed: () => _handleClose(),
             onEndSession: _endTimerSession,
+            courseId: _cueScope?.courseId,
           ),
           if (_countdownMs > 0)
             Positioned.fill(
@@ -817,6 +825,7 @@ class PlayerScreenLayout extends StatelessWidget {
     required this.onSpeedChanged,
     required this.onClosePressed,
     this.onEndSession,
+    this.courseId,
   });
 
   final PlaybackRequest currentlyPlayingTrack;
@@ -830,12 +839,23 @@ class PlayerScreenLayout extends StatelessWidget {
   /// Ends a timer session early and records it. Unused for tracks.
   final VoidCallback? onEndSession;
 
+  /// The course the session is playing in, when it belongs to one; its art
+  /// is the backdrop when the session has no cover.
+  final String? courseId;
+
   @override
   Widget build(BuildContext context) {
     final title = currentlyPlayingTrack.title;
     final artistName = currentlyPlayingTrack.guideName;
     final artistUrl = currentlyPlayingTrack.artist?.path;
-    final imageUrl = currentlyPlayingTrack.coverUrl;
+    final trackArt = singleArt(currentlyPlayingTrack.trackId);
+    final art = courseId != null ? courseArt(courseId!) : trackArt;
+    // A cover the art outranks (a Dharma Seed teacher's photo, a shipped
+    // course or session) is no cover here.
+    final imageUrl = shownCoverUrl(
+      trackArt,
+      shownCoverUrl(art, currentlyPlayingTrack.coverUrl),
+    );
     final attribution = currentlyPlayingTrack.attribution;
     final isTimer = currentlyPlayingTrack.isTimer;
     final isStopwatch =
@@ -856,13 +876,6 @@ class PlayerScreenLayout extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    // A session with no picture: its calm generated art,
-                    // blurred like a cover.
-                    if (imageUrl.isEmpty && !isTimer)
-                      ImageFiltered(
-                        imageFilter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        child: GeneratedArtwork(seed: title),
-                      ),
                     // No cover (a timer): a dark backdrop so the white
                     // controls read the same as over a blurred cover.
                     if (imageUrl.isEmpty && isTimer)
@@ -878,16 +891,10 @@ class PlayerScreenLayout extends StatelessWidget {
                           ),
                         ),
                       ),
-                    if (imageUrl.isNotEmpty)
-                      // ImageFiltered (not BackdropFilter) — blurs only the
-                      // cover image itself, never the screen behind. Using
-                      // BackdropFilter here leaks the underlying route
-                      // during pop animations, blurring the previous screen
-                      // for a frame.
-                      ImageFiltered(
-                        imageFilter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        child: _FadingNetworkImage(imageUrl: imageUrl),
-                      ),
+                    // A session's cover, blurred; with none (or when it
+                    // fails to load) its art, sharp and moving.
+                    if (!isTimer || imageUrl.isNotEmpty)
+                      _PlayerBackdrop(imageUrl: imageUrl, art: art),
                     Container(
                       color: ColorConstants.black.withOpacityValue(0.3),
                     ),
@@ -1116,10 +1123,47 @@ class _PlayerAttribution extends StatelessWidget {
   }
 }
 
+/// The player's picture behind the controls: the cover, blurred, or the
+/// session's live art when it has no cover or the cover fails to load.
+class _PlayerBackdrop extends StatefulWidget {
+  const _PlayerBackdrop({required this.imageUrl, required this.art});
+
+  final String imageUrl;
+  final ArtSubject art;
+
+  @override
+  State<_PlayerBackdrop> createState() => _PlayerBackdropState();
+}
+
+class _PlayerBackdropState extends State<_PlayerBackdrop> {
+  String? _failedUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.imageUrl.isEmpty || _failedUrl == widget.imageUrl) {
+      return ArtCover(subject: widget.art, live: true);
+    }
+    // ImageFiltered (not BackdropFilter) — blurs only the cover image
+    // itself, never the screen behind. Using BackdropFilter here leaks the
+    // underlying route during pop animations, blurring the previous screen
+    // for a frame.
+    return ImageFiltered(
+      imageFilter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+      child: _FadingNetworkImage(
+        imageUrl: widget.imageUrl,
+        onError: () {
+          if (mounted) setState(() => _failedUrl = widget.imageUrl);
+        },
+      ),
+    );
+  }
+}
+
 class _FadingNetworkImage extends StatefulWidget {
   final String imageUrl;
+  final VoidCallback? onError;
 
-  const _FadingNetworkImage({required this.imageUrl});
+  const _FadingNetworkImage({required this.imageUrl, this.onError});
 
   @override
   State<_FadingNetworkImage> createState() => _FadingNetworkImageState();
@@ -1152,6 +1196,9 @@ class _FadingNetworkImageState extends State<_FadingNetworkImage> {
             excludeFromSemantics: true,
             cacheWidth: MediaQuery.of(context).size.width.toInt(),
             errorBuilder: (context, error, stackTrace) {
+              WidgetsBinding.instance.addPostFrameCallback(
+                (_) => widget.onError?.call(),
+              );
               return Container(color: backgroundColor);
             },
             frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
