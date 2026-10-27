@@ -69,14 +69,27 @@ class SoundscapeStore {
   /// explicitly, so the mix keeps playing.
   ///
   /// Runs once: the version key stops it from undoing a later explicit choice.
-  void migrateSessionDefaults() {
+  ///
+  /// The version key is written only after the Practice setting has been saved
+  /// (and only if that save succeeded), so a failed save leaves the next launch
+  /// to try again. The setting is written first and synchronously as far as the
+  /// preferences cache goes, so a read right after this call already sees it.
+  Future<void> migrateSessionDefaults() async {
     if ((_prefs.getInt(sessionDefaultsVersionKey) ?? 1) >=
         _sessionDefaultsVersion) {
       return;
     }
-    unawaited(
-      _prefs.setInt(sessionDefaultsVersionKey, _sessionDefaultsVersion),
-    );
+    final migrated = _migratedSessionDefaults();
+    if (migrated != null &&
+        !await _prefs.setString(sessionDefaultsKey, migrated)) {
+      return;
+    }
+    await _prefs.setInt(sessionDefaultsVersionKey, _sessionDefaultsVersion);
+  }
+
+  /// The session-defaults JSON the migration wants stored, or `null` when the
+  /// stored value already stands.
+  String? _migratedSessionDefaults() {
     final decoded = _decode(sessionDefaultsKey);
     final raw = decoded is Map ? decoded : const <Object?, Object?>{};
     final stored = raw[SoundscapeSessionKind.practice.name];
@@ -87,18 +100,14 @@ class SoundscapeStore {
       // under every session: keep that explicit before the new default (off)
       // would silently drop it.
       if (mix != null && !mix.isEmpty) {
-        unawaited(
-          _prefs.setString(
-            sessionDefaultsKey,
-            jsonEncode({
-              ...raw,
-              SoundscapeSessionKind.practice.name:
-                  const SoundscapeSessionDefault(enabled: true).toJson(),
-            }),
-          ),
-        );
+        return jsonEncode({
+          ...raw,
+          SoundscapeSessionKind.practice.name: const SoundscapeSessionDefault(
+            enabled: true,
+          ).toJson(),
+        });
       }
-      return;
+      return null;
     }
     final untouched =
         stored['enabled'] == true &&
@@ -110,16 +119,11 @@ class SoundscapeStore {
             SoundscapeSelection.currentMix &&
         (stored['volume'] ?? 0.5) == 0.5 &&
         (mix == null || mix.isEmpty);
-    if (!untouched) return;
-    unawaited(
-      _prefs.setString(
-        sessionDefaultsKey,
-        jsonEncode({
-          ...raw,
-          SoundscapeSessionKind.practice.name: {...stored, 'enabled': false},
-        }),
-      ),
-    );
+    if (!untouched) return null;
+    return jsonEncode({
+      ...raw,
+      SoundscapeSessionKind.practice.name: {...stored, 'enabled': false},
+    });
   }
 
   Map<SoundscapeSessionKind, SoundscapeSessionDefault> readSessionDefaults() {

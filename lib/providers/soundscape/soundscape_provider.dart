@@ -252,7 +252,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       },
     );
     unawaited(_dropVanishedSounds());
-    _store.migrateSessionDefaults();
+    unawaited(_store.migrateSessionDefaults());
     return SoundscapeState(
       mix: _currentMix(),
       volume: _store.readVolume(),
@@ -588,7 +588,12 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         : requested;
     final SoundMix mix = switch (selection.kind) {
       SoundscapeSelectionKind.none => SoundMix.empty,
-      SoundscapeSelectionKind.mix => switch (_currentMix()) {
+      // A mix whose sounds the library has all dropped is as good as empty:
+      // judged here, not left to _dropVanishedSounds, which empties the saved
+      // mix only once it has run.
+      SoundscapeSelectionKind.mix => switch (_currentMix().where(
+        (id) => _isKnown(id, library),
+      )) {
         final current when current.isEmpty => kStarterPresets.first.mix,
         final current => current,
       },
