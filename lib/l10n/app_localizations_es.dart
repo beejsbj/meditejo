@@ -2051,7 +2051,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get navLibrary => 'Biblioteca';
 
   @override
-  String get exploreSearchHint => 'Buscar en tu biblioteca y en Dharma Seed';
+  String get exploreSearchHint =>
+      'Buscar en tu biblioteca, en Dharma Seed y en Dhammatalks';
 
   @override
   String get homeShortcutsTitle => 'Atajos';

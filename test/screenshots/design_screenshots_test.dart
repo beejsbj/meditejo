@@ -945,7 +945,9 @@ void main() {
         );
         await _phone(tester);
         if (source != null) {
-          await tester.tap(find.byKey(ValueKey('explore_source_$source')));
+          final chip = find.byKey(ValueKey('explore_source_$source'));
+          await tester.ensureVisible(chip);
+          await tester.tap(chip);
         }
         await DharmaSeedTestApp.settle(tester);
         expect(tester.takeException(), isNull);

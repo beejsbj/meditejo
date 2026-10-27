@@ -2011,7 +2011,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navLibrary => 'Library';
 
   @override
-  String get exploreSearchHint => 'Search your library and Dharma Seed';
+  String get exploreSearchHint =>
+      'Search your library, Dharma Seed and Dhammatalks';
 
   @override
   String get homeShortcutsTitle => 'Shortcuts';

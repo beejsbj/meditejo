@@ -2080,7 +2080,7 @@
   "youtubeRateLimited": "YouTube is busy or asking for a bot check. Try again later",
   "youtubePlaylistEmpty": "Sessions aren't stored on this device yet. We'll try again shortly",
   "navLibrary": "Library",
-  "exploreSearchHint": "Search your library and Dharma Seed",
+  "exploreSearchHint": "Search your library, Dharma Seed and Dhammatalks",
   "homeShortcutsTitle": "Shortcuts",
   "@homeShortcutsTitle": {
     "description": "The shortcuts section's name in Customize, and its screen-reader heading on Home (not drawn)"
