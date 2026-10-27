@@ -235,6 +235,32 @@ class SessionContexts extends Table {
   Set<Column> get primaryKey => {trackId};
 }
 
+/// What the user says an item is about. A row either adds a label to an
+/// entry or, with [excluded], says an automatic category does not belong
+/// there; the entry's effective labels are the automatic ones plus the adds,
+/// minus the exclusions, so the user's word always outranks the guess.
+///
+/// [label] is a curated category's ID (`metta`) or, for a label of the
+/// user's own, its folded text. Rows are keyed by the content ID, not by
+/// anything in the Dharma Seed catalogue, so a refreshed catalogue never
+/// touches them; removing an entry leaves its labels, so adding it back (or
+/// Undo) finds them again.
+@DataClassName('LibraryLabelRow')
+@TableIndex(name: 'library_labels_label', columns: {#label})
+class LibraryLabels extends Table {
+  TextColumn get sourceId => text()();
+  TextColumn get label => text()();
+
+  /// The text as the user typed it, for a label of their own; empty for a
+  /// curated category, which the catalogue names.
+  TextColumn get display => text().withDefault(const Constant(''))();
+  BoolColumn get excluded => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {sourceId, label};
+}
+
 @DriftDatabase(
   tables: [
     LibraryEntries,
@@ -247,6 +273,7 @@ class SessionContexts extends Table {
     MyCourses,
     MyCourseItems,
     SessionContexts,
+    LibraryLabels,
   ],
 )
 class LibraryDatabase extends _$LibraryDatabase {
@@ -259,7 +286,7 @@ class LibraryDatabase extends _$LibraryDatabase {
   );
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -274,6 +301,10 @@ class LibraryDatabase extends _$LibraryDatabase {
         await m.createIndex(myCourseItemsOrder);
         await m.createIndex(myCourseItemsItem);
         await m.createTable(sessionContexts);
+      }
+      if (from < 4) {
+        await m.createTable(libraryLabels);
+        await m.createIndex(libraryLabelsLabel);
       }
     },
   );
@@ -320,6 +351,18 @@ class LibraryDatabase extends _$LibraryDatabase {
       (update(
         libraryEntries,
       )..where((e) => e.sourceId.equals(sourceId))).write(changes);
+
+  // -------------------------------------------------------------- labels
+
+  Future<List<LibraryLabelRow>> allLabels() => select(libraryLabels).get();
+
+  Future<void> putLabel(LibraryLabelsCompanion label) =>
+      into(libraryLabels).insertOnConflictUpdate(label);
+
+  Future<int> deleteLabel(String sourceId, String label) =>
+      (delete(libraryLabels)
+            ..where((l) => l.sourceId.equals(sourceId) & l.label.equals(label)))
+          .go();
 
   // ----------------------------------------------------------- positions
 
