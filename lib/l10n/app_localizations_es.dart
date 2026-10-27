@@ -2920,101 +2920,102 @@ class AppLocalizationsEs extends AppLocalizations {
   String get libraryPinned => 'Fijado en Inicio';
 
   @override
-  String get bellMakerTitle => 'Make a bell';
+  String get bellMakerTitle => 'Crear una campana';
 
   @override
-  String get bellMakerSave => 'Save';
+  String get bellMakerSave => 'Guardar';
 
   @override
-  String get bellMakerName => 'Name';
+  String get bellMakerName => 'Nombre';
 
   @override
-  String get bellMakerStartFrom => 'Start from';
+  String get bellMakerStartFrom => 'Partir de';
 
   @override
-  String get bellMakerHear => 'Hear it';
+  String get bellMakerHear => 'Escuchar';
 
   @override
-  String get bellMakerMaking => 'Making the sound';
+  String get bellMakerMaking => 'Creando el sonido';
 
   @override
-  String get bellMakerPlayFailed => 'The bell could not be played.';
+  String get bellMakerPlayFailed => 'No se pudo reproducir la campana.';
 
   @override
-  String get bellMakerSaveFailed => 'The bell could not be saved.';
+  String get bellMakerSaveFailed => 'No se pudo guardar la campana.';
 
   @override
   String bellMakerLimit(int count) {
-    return 'You can keep up to $count bells. Delete one to make another.';
+    return 'Puedes guardar hasta $count campanas. Borra una para crear otra.';
   }
 
   @override
-  String get bellPitch => 'Pitch';
+  String get bellPitch => 'Tono';
 
   @override
-  String get bellPitchLow => 'Deep';
+  String get bellPitchLow => 'Grave';
 
   @override
-  String get bellPitchHigh => 'High';
+  String get bellPitchHigh => 'Agudo';
 
   @override
-  String get bellBright => 'Brightness';
+  String get bellBright => 'Brillo';
 
   @override
-  String get bellBrightLow => 'Dark';
+  String get bellBrightLow => 'Oscuro';
 
   @override
-  String get bellBrightHigh => 'Bright';
+  String get bellBrightHigh => 'Brillante';
 
   @override
-  String get bellRing => 'Ring';
+  String get bellRing => 'Resonancia';
 
   @override
-  String get bellRingLow => 'Short';
+  String get bellRingLow => 'Corta';
 
   @override
-  String get bellRingHigh => 'Long';
+  String get bellRingHigh => 'Larga';
 
   @override
-  String get bellStrike => 'Strike';
+  String get bellStrike => 'Golpe';
 
   @override
-  String get bellStrikeLow => 'Soft';
+  String get bellStrikeLow => 'Suave';
 
   @override
-  String get bellStrikeHigh => 'Hard';
+  String get bellStrikeHigh => 'Fuerte';
 
   @override
-  String get bellShimmer => 'Shimmer';
+  String get bellShimmer => 'Vibración';
 
   @override
-  String get bellShimmerLow => 'Still';
+  String get bellShimmerLow => 'Quieta';
 
   @override
-  String get bellShimmerHigh => 'Wobbling';
+  String get bellShimmerHigh => 'Ondulante';
 
   @override
-  String get bellYours => 'Your bells';
+  String get bellYours => 'Tus campanas';
 
   @override
-  String get bellRename => 'Rename';
+  String get bellRename => 'Renombrar';
 
   @override
-  String get bellRenameTitle => 'Rename bell';
+  String get bellRenameTitle => 'Renombrar campana';
 
   @override
   String bellDeleteTitle(String name) {
-    return 'Delete “$name”?';
+    return '¿Borrar «$name»?';
   }
 
   @override
-  String get bellDeleteBody => 'Cues that ring it go back to the Swell bell.';
+  String get bellDeleteBody =>
+      'Las señales que la usan volverán a «Swell bell».';
 
   @override
   String bellMenu(String name) {
-    return 'More about $name';
+    return 'Más sobre $name';
   }
 
   @override
-  String get bellMakerDefaultName => 'My bell';
+  String get bellMakerDefaultName => 'Mi campana';
 }

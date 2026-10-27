@@ -2921,101 +2921,104 @@ class AppLocalizationsDe extends AppLocalizations {
   String get libraryPinned => 'Auf Home angeheftet';
 
   @override
-  String get bellMakerTitle => 'Make a bell';
+  String get bellMakerTitle => 'Glocke gestalten';
 
   @override
-  String get bellMakerSave => 'Save';
+  String get bellMakerSave => 'Speichern';
 
   @override
   String get bellMakerName => 'Name';
 
   @override
-  String get bellMakerStartFrom => 'Start from';
+  String get bellMakerStartFrom => 'Ausgehen von';
 
   @override
-  String get bellMakerHear => 'Hear it';
+  String get bellMakerHear => 'Anhören';
 
   @override
-  String get bellMakerMaking => 'Making the sound';
+  String get bellMakerMaking => 'Der Klang wird erzeugt';
 
   @override
-  String get bellMakerPlayFailed => 'The bell could not be played.';
+  String get bellMakerPlayFailed =>
+      'Die Glocke konnte nicht abgespielt werden.';
 
   @override
-  String get bellMakerSaveFailed => 'The bell could not be saved.';
+  String get bellMakerSaveFailed =>
+      'Die Glocke konnte nicht gespeichert werden.';
 
   @override
   String bellMakerLimit(int count) {
-    return 'You can keep up to $count bells. Delete one to make another.';
+    return 'Du kannst bis zu $count Glocken behalten. Lösche eine, um eine neue zu machen.';
   }
 
   @override
-  String get bellPitch => 'Pitch';
+  String get bellPitch => 'Tonhöhe';
 
   @override
-  String get bellPitchLow => 'Deep';
+  String get bellPitchLow => 'Tief';
 
   @override
-  String get bellPitchHigh => 'High';
+  String get bellPitchHigh => 'Hoch';
 
   @override
-  String get bellBright => 'Brightness';
+  String get bellBright => 'Helligkeit';
 
   @override
-  String get bellBrightLow => 'Dark';
+  String get bellBrightLow => 'Dunkel';
 
   @override
-  String get bellBrightHigh => 'Bright';
+  String get bellBrightHigh => 'Hell';
 
   @override
-  String get bellRing => 'Ring';
+  String get bellRing => 'Nachklang';
 
   @override
-  String get bellRingLow => 'Short';
+  String get bellRingLow => 'Kurz';
 
   @override
-  String get bellRingHigh => 'Long';
+  String get bellRingHigh => 'Lang';
 
   @override
-  String get bellStrike => 'Strike';
+  String get bellStrike => 'Anschlag';
 
   @override
-  String get bellStrikeLow => 'Soft';
+  String get bellStrikeLow => 'Weich';
 
   @override
-  String get bellStrikeHigh => 'Hard';
+  String get bellStrikeHigh => 'Hart';
 
   @override
-  String get bellShimmer => 'Shimmer';
+  String get bellShimmer => 'Schimmern';
 
   @override
-  String get bellShimmerLow => 'Still';
+  String get bellShimmerLow => 'Ruhig';
 
   @override
-  String get bellShimmerHigh => 'Wobbling';
+  String get bellShimmerHigh => 'Schwebend';
 
   @override
-  String get bellYours => 'Your bells';
+  String get bellYours => 'Deine Glocken';
 
   @override
-  String get bellRename => 'Rename';
+  String get bellRename => 'Umbenennen';
 
   @override
-  String get bellRenameTitle => 'Rename bell';
+  String get bellRenameTitle => 'Glocke umbenennen';
 
   @override
   String bellDeleteTitle(String name) {
-    return 'Delete “$name”?';
+    return '„$name“ löschen?';
   }
 
   @override
-  String get bellDeleteBody => 'Cues that ring it go back to the Swell bell.';
+  String get bellDeleteBody =>
+      'Signale, die sie läuten, wechseln zur „Swell bell“.';
 
   @override
   String bellMenu(String name) {
-    return 'More about $name';
+    return 'Mehr zu $name';
   }
 
   @override
-  String get bellMakerDefaultName => 'My bell';
+  String get bellMakerDefaultName => 'Meine Glocke';
 }
