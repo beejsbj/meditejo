@@ -5,6 +5,7 @@ import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/library/library_providers.dart';
+import 'package:medito/providers/library/session_origin.dart';
 import 'package:medito/services/library/library_database.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
@@ -107,5 +108,42 @@ void main() {
     await store.noteSessionContext('x-2', 'x-course-retreat');
     container.invalidate(cueScopeForRequestProvider);
     expect((await scopeOf('x-2')).courseId, 'x-course-retreat');
+  });
+
+  test('a session started from a surface with no course forgets the '
+      'course it was last opened from', () async {
+    final mine = await source.create(
+      title: 'Evening talks',
+      group: LibraryGroup.talks,
+      lines: [MyCourseLine.session(draft('x-2'))],
+    );
+    await noteSessionOrigin(store, 'x-2', mine);
+    expect((await scopeOf('x-2')).courseId, mine);
+
+    // Later, from search, a library row or a teacher page: no course.
+    await noteSessionOrigin(store, 'x-2', null);
+    await store.sessionContext('x-2'); // the store runs its calls in order
+    container.invalidate(cueScopeForRequestProvider);
+
+    expect(await store.sessionContext('x-2'), isNull);
+    expect(
+      (await scopeOf('x-2')).courseId,
+      'x-course-retreat',
+      reason: 'the personal course no longer leads',
+    );
+  });
+
+  test('opening a session from another course replaces the record', () async {
+    final a = await source.create(
+      title: 'A',
+      lines: [MyCourseLine.session(draft('x-1'))],
+    );
+    final b = await source.create(
+      title: 'B',
+      lines: [MyCourseLine.session(draft('x-1'))],
+    );
+    await noteSessionOrigin(store, 'x-1', a);
+    await noteSessionOrigin(store, 'x-1', b);
+    expect(await store.sessionContext('x-1'), b);
   });
 }
