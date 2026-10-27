@@ -30,6 +30,7 @@ import 'package:medito/views/tags/widgets/tag_chips.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 import 'package:medito/widgets/add_to_library_icon.dart';
 import 'package:medito/widgets/cards/card_art.dart';
+import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/cards/card_tokens.dart';
 import 'package:medito/widgets/cards/course_card.dart';
 import 'package:medito/widgets/cards/section_title.dart';
@@ -407,9 +408,7 @@ class _LibraryStrip extends ConsumerWidget {
               overline: librarySourceLabel(l10n, entry.sourceId),
               art: CardArt(
                 url: entry.coverUrl,
-                seed: entry.displayTitle,
-                portrait: hasPortraitCover(entry.sourceId),
-                avatarSize: 28,
+                art: libraryArt(entry.kind, entry.sourceId),
               ),
               onTap: () => openLibraryEntry(context, ref, entry),
             ),
@@ -420,9 +419,8 @@ class _LibraryStrip extends ConsumerWidget {
   }
 }
 
-/// Dharma Seed's courses as a strip of large cards: generated art with the
-/// teacher's photo, the name, "teacher · year · N talks", and a quiet Add to
-/// library on the art.
+/// Dharma Seed's courses as a strip of large cards: their art, the name,
+/// "teacher · year · N talks", and a quiet Add to library on the art.
 class _CourseStrip extends ConsumerWidget {
   const _CourseStrip({required this.courses});
 
@@ -462,8 +460,7 @@ class _CourseStrip extends ConsumerWidget {
               detail: course.subtitle,
               art: CardArt(
                 url: course.coverUrl ?? '',
-                seed: course.title,
-                portrait: hasPortraitCover(course.id),
+                art: courseArt(course.id),
               ),
               badge: completed.contains(course.id)
                   ? const PackCompleteBadge()

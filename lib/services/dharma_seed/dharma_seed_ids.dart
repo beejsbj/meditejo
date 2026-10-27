@@ -53,6 +53,12 @@ String dsTeacherPhotoUrl(int teacherId, String photo, {int maxWidth = 400}) {
       '${Uri.encodeComponent(photo)}/?maxW=$maxWidth';
 }
 
+/// The cover URL to show for [id]: none for a retreat or talk, whose art is
+/// its own. Library entries stored before that carry the lead teacher's photo
+/// as their cover; a teacher's photo is only for the teacher.
+String dsCoverUrl(String id, String url) =>
+    id.startsWith(_retreatPrefix) || id.startsWith(_talkPrefix) ? '' : url;
+
 /// The two content groups of the Explore chips. Practice is what you do along
 /// with the audio; Talks is everything you listen to, including `Other` and
 /// recordings with no type.

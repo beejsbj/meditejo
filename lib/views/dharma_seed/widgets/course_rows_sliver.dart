@@ -12,6 +12,7 @@ import 'package:medito/widgets/add_to_library_icon.dart';
 import 'package:medito/widgets/cards/card_art.dart';
 import 'package:medito/widgets/cards/card_tokens.dart';
 import 'package:medito/widgets/cards/course_card.dart';
+import 'package:medito/widgets/cover_art.dart';
 
 /// Courses as wide row cards: art, title, and "teacher · year · N talks",
 /// with Add to library and the course's menu. Used where a strip of large
@@ -49,9 +50,7 @@ class CourseRowsSliver extends ConsumerWidget {
               detail: playlistAwareDetail(l10n, course.id, course.subtitle),
               art: CardArt(
                 url: course.coverUrl ?? '',
-                seed: course.title,
-                portrait: hasPortraitCover(course.id),
-                avatarSize: 28,
+                art: courseArt(course.id),
               ),
               onTap: () {
                 onBeforeNavigate?.call();
