@@ -134,6 +134,7 @@ class LibraryEntryTile extends ConsumerWidget {
       case LibraryKind.teacher:
         return TeacherRow(
           key: key,
+          id: entry.sourceId,
           name: entry.displayTitle,
           photoUrl: entry.coverUrl,
           detail: entry.subtitle,

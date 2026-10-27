@@ -3,16 +3,18 @@ import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/views/dharma_seed/widgets/teacher_avatar.dart';
 import 'package:medito/widgets/cards/card_tokens.dart';
 
-/// A teacher in a strip: their photo (or generated art) in a circle, with
+/// A teacher in a strip: their photo (or art made for them) in a circle, with
 /// their name beneath. One button to screen readers, named for the teacher.
 class TeacherTile extends StatelessWidget {
   const TeacherTile({
     super.key,
+    required this.id,
     required this.name,
     required this.photoUrl,
     required this.onTap,
   });
 
+  final String id;
   final String name;
   final String photoUrl;
   final VoidCallback onTap;
@@ -47,7 +49,12 @@ class TeacherTile extends StatelessWidget {
           width: width,
           child: Column(
             children: [
-              TeacherAvatar(name: name, photoUrl: photoUrl, size: photo),
+              TeacherAvatar(
+                id: id,
+                name: name,
+                photoUrl: photoUrl,
+                size: photo,
+              ),
               const SizedBox(height: 8),
               Text(
                 name,
@@ -69,6 +76,7 @@ class TeacherTile extends StatelessWidget {
 class TeacherRow extends StatelessWidget {
   const TeacherRow({
     super.key,
+    required this.id,
     required this.name,
     required this.photoUrl,
     required this.onTap,
@@ -76,6 +84,7 @@ class TeacherRow extends StatelessWidget {
     this.trailing = const [],
   });
 
+  final String id;
   final String name;
   final String photoUrl;
   final VoidCallback onTap;
@@ -101,7 +110,12 @@ class TeacherRow extends StatelessWidget {
             ),
             child: Row(
               children: [
-                TeacherAvatar(name: name, photoUrl: photoUrl, size: 52),
+                TeacherAvatar(
+                  id: id,
+                  name: name,
+                  photoUrl: photoUrl,
+                  size: 52,
+                ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
