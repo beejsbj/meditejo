@@ -237,7 +237,30 @@ const Marks = (() => {
       }
       case 'shelter': {
         const ax = 0.5, w = m.w * (0.85 + 0.15 * e1);
-        ctx.beginPath(); ctx.moveTo(ax - w, m.ey); ctx.quadraticCurveTo(ax - w * 0.35, m.ay + 0.04, ax, m.ay); ctx.quadraticCurveTo(ax + w * 0.35, m.ay + 0.04, ax + w, m.ey); ctx.lineTo(ax + w - 0.05, m.ey); ctx.quadraticCurveTo(ax + w * 0.3, m.ay + 0.1, ax, m.ay + 0.07); ctx.quadraticCurveTo(ax - w * 0.3, m.ay + 0.1, ax - w + 0.05, m.ey); ctx.closePath(); fill('stroke');
+        ctx.beginPath();
+        if (m.notch && m.nw) {
+          // Round 6's Clear V (docs/fork/design/identity/round6/shelter.js
+          // roofCommands, the sharp V): the shipped slopes stop nw short of
+          // the apex and meet in a notch below their shoulders.
+          const lerp2 = (a, b, t) => a + (b - a) * t, tAtX = (p0, c, p2, X) => {
+            const A = p0[0] - 2 * c[0] + p2[0], B = 2 * (c[0] - p0[0]), K = p0[0] - X;
+            if (Math.abs(A) < 1e-12) return -K / B;
+            const D = Math.sqrt(Math.max(0, B * B - 4 * A * K)), r1 = (-B + D) / (2 * A), r2 = (-B - D) / (2 * A);
+            return r1 >= 0 && r1 <= 1 ? r1 : r2;
+          }, head = (p0, c, p2, t) => {
+            const q0 = [lerp2(p0[0], c[0], t), lerp2(p0[1], c[1], t)], q1 = [lerp2(c[0], p2[0], t), lerp2(c[1], p2[1], t)];
+            return [q0, [lerp2(q0[0], q1[0], t), lerp2(q0[1], q1[1], t)]];
+          }, mir = (p) => [1 - p[0], p[1]];
+          const oL = [ax - w, m.ey], oC = [ax - w * 0.35, m.ay + 0.04], oA = [ax, m.ay];
+          const iL = [ax - w + 0.05, m.ey], iC = [ax - w * 0.3, m.ay + 0.1], iA = [ax, m.ay + 0.07];
+          const [oc, oS] = head(oL, oC, oA, tAtX(oL, oC, oA, ax - m.nw)), oN = [ax, oS[1] + m.notch];
+          const [ic, iS] = head(iL, iC, iA, tAtX(iL, iC, iA, ax - m.nw)), iN = [ax, oN[1] + 0.07 * Math.hypot(m.nw, m.notch) / m.nw];
+          ctx.moveTo(...oL); ctx.quadraticCurveTo(...oc, ...oS); ctx.lineTo(...oN); ctx.lineTo(...mir(oS)); ctx.quadraticCurveTo(...mir(oc), ...mir(oL));
+          ctx.lineTo(...mir(iL)); ctx.quadraticCurveTo(...mir(ic), ...mir(iS)); ctx.lineTo(...iN); ctx.lineTo(...iS); ctx.quadraticCurveTo(...ic, ...iL);
+        } else {
+          ctx.moveTo(ax - w, m.ey); ctx.quadraticCurveTo(ax - w * 0.35, m.ay + 0.04, ax, m.ay); ctx.quadraticCurveTo(ax + w * 0.35, m.ay + 0.04, ax + w, m.ey); ctx.lineTo(ax + w - 0.05, m.ey); ctx.quadraticCurveTo(ax + w * 0.3, m.ay + 0.1, ax, m.ay + 0.07); ctx.quadraticCurveTo(ax - w * 0.3, m.ay + 0.1, ax - w + 0.05, m.ey);
+        }
+        ctx.closePath(); fill('stroke');
         blob(m.sitter, { grow: e2 * (1 + 0.02 * b) }); fill(r1 === 'stroke' ? 'form' : r1); break;
       }
     }

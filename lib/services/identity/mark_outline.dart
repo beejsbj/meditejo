@@ -126,18 +126,80 @@ List<OutlineShape> settledOutline(
 typedef PathCommand = (String, List<double>);
 
 /// The minimal shelter's roof, [open] of the way spread (1 when settled).
+///
+/// Two optional values fold the apex into an M (tile units; absent or 0 is
+/// the roof as first shipped): `notch`, how far the apex folds down below
+/// its two shoulders, and `nw`, how far each shoulder sits from the centre.
+/// The slopes stay the shipped ones; they stop at the shoulders and meet in
+/// a sharp V. This is the Clear V house mark (decision 21, round 6).
 List<PathCommand> shelterRoofCommands(MinimalMark m, [double open = 1]) {
-  const ax = 0.5;
+  const ax = 0.5, thick = 0.07;
   final ay = m['ay'], ey = m['ey'];
   final w = m['w'] * (0.85 + 0.15 * open);
-  return [
-    ('M', [ax - w, ey]),
-    ('Q', [ax - w * 0.35, ay + 0.04, ax, ay]),
-    ('Q', [ax + w * 0.35, ay + 0.04, ax + w, ey]),
-    ('L', [ax + w - 0.05, ey]),
-    ('Q', [ax + w * 0.3, ay + 0.1, ax, ay + 0.07]),
-    ('Q', [ax - w * 0.3, ay + 0.1, ax - w + 0.05, ey]),
+  final notch = m.values['notch'] ?? 0, nw = m.values['nw'] ?? 0;
+  if (notch == 0 || nw == 0) {
+    return [
+      ('M', [ax - w, ey]),
+      ('Q', [ax - w * 0.35, ay + 0.04, ax, ay]),
+      ('Q', [ax + w * 0.35, ay + 0.04, ax + w, ey]),
+      ('L', [ax + w - 0.05, ey]),
+      ('Q', [ax + w * 0.3, ay + 0.1, ax, ay + 0.07]),
+      ('Q', [ax - w * 0.3, ay + 0.1, ax - w + 0.05, ey]),
+    ];
+  }
+  (double, double) mirror((double, double) p) => (1 - p.$1, p.$2);
+  List<double> xy(List<(double, double)> ps) => [
+    for (final p in ps) ...[p.$1, p.$2],
   ];
+  final oL = (ax - w, ey), oC = (ax - w * 0.35, ay + 0.04), oA = (ax, ay);
+  final iL = (ax - w + 0.05, ey), iC = (ax - w * 0.3, ay + 0.1);
+  final iA = (ax, ay + 0.07);
+  // The shoulders: each slope up to nw from the centre.
+  final (oc, oS) = _quadHead(oL, oC, oA, _quadTAtX(oL, oC, oA, ax - nw));
+  final oN = (ax, oS.$2 + notch);
+  // The inside follows at the roof's thickness: under a V its notch is
+  // lower by the thickness across the V's arm.
+  final arm = math.sqrt(nw * nw + notch * notch) / nw;
+  final (ic, iS) = _quadHead(iL, iC, iA, _quadTAtX(iL, iC, iA, ax - nw));
+  final iN = (ax, oN.$2 + thick * arm);
+  return [
+    ('M', xy([oL])),
+    ('Q', xy([oc, oS])),
+    ('L', xy([oN])),
+    ('L', xy([mirror(oS)])),
+    ('Q', xy([mirror(oc), mirror(oL)])),
+    ('L', xy([mirror(iL)])),
+    ('Q', xy([mirror(ic), mirror(iS)])),
+    ('L', xy([iN])),
+    ('L', xy([iS])),
+    ('Q', xy([ic, iL])),
+  ];
+}
+
+/// The t in [0, 1] where a quadratic's x is [x].
+double _quadTAtX(
+  (double, double) p0,
+  (double, double) c,
+  (double, double) p2,
+  double x,
+) {
+  final a = p0.$1 - 2 * c.$1 + p2.$1, b = 2 * (c.$1 - p0.$1), k = p0.$1 - x;
+  if (a.abs() < 1e-12) return -k / b;
+  final d = math.sqrt(math.max(0.0, b * b - 4 * a * k));
+  final r1 = (-b + d) / (2 * a), r2 = (-b - d) / (2 * a);
+  return r1 >= 0 && r1 <= 1 ? r1 : r2;
+}
+
+/// The part of a quadratic from p0 to [t]: its control point and its end.
+((double, double), (double, double)) _quadHead(
+  (double, double) p0,
+  (double, double) c,
+  (double, double) p2,
+  double t,
+) {
+  final q0 = (lerp(p0.$1, c.$1, t), lerp(p0.$2, c.$2, t));
+  final q1 = (lerp(c.$1, p2.$1, t), lerp(c.$2, p2.$2, t));
+  return (q0, (lerp(q0.$1, q1.$1, t), lerp(q0.$2, q1.$2, t)));
 }
 
 String _commandsToSvg(

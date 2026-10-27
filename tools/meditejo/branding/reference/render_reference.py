@@ -2,6 +2,7 @@
 
     python3 -I tools/meditejo/branding/reference/render_reference.py OUT_DIR \
         --seeds g-1kq,m-2026-10-26 [--pal tide] [--px 256] [--t 60 --moving]
+        [--values notch=0.045,nw=0.065 --suffix -clearv]
 
 Needs Google Chrome (headless). Each seed is drawn on a tile, without the
 paper finish for gesture and minimal marks (the page's `finish: false`);
@@ -28,8 +29,10 @@ def main():
     ap.add_argument('--t', default='60')
     ap.add_argument('--moving', action='store_true', help='draw frame t, not the still frame')
     ap.add_argument('--suffix', default='')
+    ap.add_argument('--values', default='', help='numbers to set on each mark, e.g. notch=0.045,nw=0.065')
     a = ap.parse_args()
-    query = urllib.parse.urlencode({'seeds': a.seeds, 'pal': a.pal, 'px': a.px, 't': a.t, 'still': '0' if a.moving else '1'})
+    query = urllib.parse.urlencode({'seeds': a.seeds, 'pal': a.pal, 'px': a.px, 't': a.t, 'still': '0' if a.moving else '1',
+                                   'values': a.values.replace('=', ':')})
     url = (HERE / 'render.html').as_uri() + '?' + query
     dom = subprocess.run(['google-chrome', '--headless=new', '--disable-gpu', '--dump-dom', url],
                          capture_output=True, text=True, check=True).stdout

@@ -9,11 +9,14 @@ const q = new URLSearchParams(location.search);
 const seeds = (q.get('seeds') || 'g-1kq').split(',');
 const pal = Marks.PAL[q.get('pal') || 'tide'], px = +(q.get('px') || 256);
 const still = q.get('still') !== '0', t = +(q.get('t') || 60), bg = q.get('tile') !== '0';
+// values=k:v,k:v sets numbers on each built mark (round 6: notch, nw).
+const vals = (q.get('values') || '').split(',').filter(Boolean).map((kv) => kv.split(':'));
 const out = [];
 for (const s of seeds) {
   const cv = document.createElement('canvas'); cv.width = cv.height = px;
   const ctx = cv.getContext('2d'); ctx.scale(px, px);
-  Marks.draw(ctx, Marks.build(s), pal, t, { still, px, dpr: 1, bg, finish: false });
+  const mark = Marks.build(s); for (const [k, v] of vals) mark[k] = +v;
+  Marks.draw(ctx, mark, pal, t, { still, px, dpr: 1, bg, finish: false });
   out.push(s + ' ' + cv.toDataURL('image/png'));
 }
 const pre = document.createElement('pre'); pre.id = 'out'; pre.textContent = out.join('\n'); document.body.appendChild(pre);
