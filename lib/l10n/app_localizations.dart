@@ -3571,7 +3571,7 @@ abstract class AppLocalizations {
   /// No description provided for @exploreSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search your library, Dharma Seed and Dhammatalks'**
+  /// **'Search your library and catalogues'**
   String get exploreSearchHint;
 
   /// The shortcuts section's name in Customize, and its screen-reader heading on Home (not drawn)

@@ -2046,8 +2046,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get navLibrary => 'Bibliothek';
 
   @override
-  String get exploreSearchHint =>
-      'Bibliothek, Dharma Seed und Dhammatalks durchsuchen';
+  String get exploreSearchHint => 'Bibliothek und Kataloge durchsuchen';
 
   @override
   String get homeShortcutsTitle => 'Kurzbefehle';
