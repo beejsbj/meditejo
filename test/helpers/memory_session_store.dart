@@ -11,6 +11,16 @@ class MemorySessionStore implements LibraryStore {
       contexts[trackId] = courseId;
 
   @override
+  Future<void> clearSessionContext(String trackId) async =>
+      contexts.remove(trackId);
+
+  @override
+  Future<void> noteSessionOrigin(String trackId, String? courseId) =>
+      courseId == null
+      ? clearSessionContext(trackId)
+      : noteSessionContext(trackId, courseId);
+
+  @override
   Future<String?> sessionContext(String trackId) async => contexts[trackId];
 
   @override

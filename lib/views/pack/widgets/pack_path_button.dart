@@ -125,6 +125,7 @@ typedef StartSessionFn =
       WidgetRef ref, {
       required String trackId,
       required String path,
+      String? courseId,
     });
 
 /// Plays the pack's next unfinished session. Home's Continue follows what the
@@ -226,21 +227,14 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
     if (_starting) return;
     setState(() => _starting = true);
     try {
-      // A session several courses list counts towards this one. Written
-      // before the session starts, which reads it for its cue scope.
-      try {
-        await ref
-            .read(libraryStoreProvider)
-            .noteSessionContext(next.id, pack.id);
-      } catch (e, st) {
-        AppLogger.e('PACK', 'Could not note the course of a session', e, st);
-      }
-      if (!context.mounted) return;
+      // A session several courses list counts towards this one, and takes
+      // its cue scope: startSession writes it before the session starts.
       await widget.onStartSession(
         context,
         ref,
         trackId: next.id,
         path: next.path,
+        courseId: pack.id,
       );
     } finally {
       if (mounted) setState(() => _starting = false);
