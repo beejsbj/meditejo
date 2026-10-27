@@ -192,6 +192,21 @@ void main() {
     });
   });
 
+  test('cancelling while still connecting returns at once', () async {
+    final sound = _entry(List.filled(64, 1));
+    final cancel = SoundDownloadCancel();
+    final never = Completer<http.StreamedResponse>();
+    final future = streaming(
+      () => never.future,
+    ).download(sound, _pin.urlFor(sound), files, cancel: cancel);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    cancel.cancel();
+    // Well inside the 30 s connection timeout.
+    await future.timeout(const Duration(seconds: 2));
+    expect(files.fileFor(sound).existsSync(), isFalse);
+    expect(files.partFor(sound).existsSync(), isFalse);
+  });
+
   group('the files on disk', () {
     test('scan keeps whole files and tidies stale and partial ones', () async {
       final a = _entry(List.filled(100, 1), id: 'a-sound');

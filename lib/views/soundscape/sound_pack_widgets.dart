@@ -424,35 +424,51 @@ class SoundMissingListener extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.listen(soundMissingNoticeProvider, (_, notice) {
-      if (notice == null) return;
-      final messenger = scaffoldMessengerKey.currentState;
-      final localizations = _localizations();
-      if (messenger == null || localizations == null) return;
-      ref.read(soundMissingNoticeProvider.notifier).clear();
-      final library = ref.read(soundLibraryProvider).value;
-      final names = [
-        for (final id in notice.ids) library?[id]?.title ?? id,
-      ].join(', ');
-      final l10n = localizations;
-      messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        SnackBar(
-          key: const ValueKey('sound_missing_snackbar'),
-          duration: const Duration(seconds: 8),
-          content: Text(
-            notice.nothingPlays
-                ? l10n.soundPackMissingAll(names, notice.ids.length)
-                : l10n.soundPackMissingPartial(names, notice.ids.length),
-          ),
-          action: SnackBarAction(
-            label: l10n.soundPackDownload,
-            onPressed: () => _download(ref, notice.ids),
-          ),
-        ),
-      );
-    });
+    // Immediately too: a notice raised before this mounted is still owed.
+    ref.listen(
+      soundMissingNoticeProvider,
+      (_, _) => _show(ref),
+      fireImmediately: true,
+    );
     return child;
+  }
+
+  /// Shows the pending notice. The messenger may not exist yet at startup;
+  /// try again after the next frame rather than lose it.
+  void _show(WidgetRef ref, [int attempt = 0]) {
+    final notice = ref.read(soundMissingNoticeProvider);
+    if (notice == null) return;
+    final messenger = scaffoldMessengerKey.currentState;
+    final l10n = _localizations();
+    if (messenger == null || l10n == null) {
+      if (attempt < 20) {
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _show(ref, attempt + 1),
+        );
+      }
+      return;
+    }
+    ref.read(soundMissingNoticeProvider.notifier).clear();
+    final library = ref.read(soundLibraryProvider).value;
+    final names = [
+      for (final id in notice.ids) library?[id]?.title ?? id,
+    ].join(', ');
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        key: const ValueKey('sound_missing_snackbar'),
+        duration: const Duration(seconds: 8),
+        content: Text(
+          notice.nothingPlays
+              ? l10n.soundPackMissingAll(names, notice.ids.length)
+              : l10n.soundPackMissingPartial(names, notice.ids.length),
+        ),
+        action: SnackBarAction(
+          label: l10n.soundPackDownload,
+          onPressed: () => _download(ref, notice.ids),
+        ),
+      ),
+    );
   }
 
   /// Fetches [ids]; if the phone is on mobile data and downloads wait for

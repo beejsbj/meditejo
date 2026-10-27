@@ -112,6 +112,17 @@ class VerifyTest(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, r'NOTICE does not cover far\.opus'):
             repo.run('verify')
 
+    def test_notice_lines_are_matched_whole(self):
+        repo = Repo(self)
+        repo.library['sounds'][0]['id'] = 'rain'
+        repo.library['sounds'][0]['file'] = 'rain.opus'
+        (repo.sounds / 'near.opus').rename(repo.sounds / 'rain.opus')
+        repo.save()
+        # `heavy-rain.opus:` ends with `rain.opus:` but does not credit it.
+        (repo.sounds / 'NOTICE').write_text('heavy-rain.opus: "Heavy"\nfar.opus: "Far"\n')
+        with self.assertRaisesRegex(SystemExit, r'NOTICE does not cover rain\.opus'):
+            repo.run('verify')
+
     def test_a_changed_pack_sound_needs_a_new_release(self):
         repo = Repo(self)
         repo.library['sounds'][1]['sha256'] = sha(b'another far loop')
@@ -215,6 +226,24 @@ class PublishTest(unittest.TestCase):
             with self.assertRaisesRegex(SystemExit, 'is not the file the library pins'):
                 repo.run('publish')
         gh.assert_not_called()
+
+    def test_an_existing_release_is_read_back_before_it_is_pinned(self):
+        repo = Repo(self)
+        repo.library['sounds'][1] = entry('far', b'a new far loop', False)
+        repo.save()
+        pack = repo.dir / 'build' / 'sound-pack'
+        pack.mkdir(parents=True)
+        (pack / 'far.opus').write_bytes(b'a new far loop')
+        before = (repo.sounds / 'sounds.json').read_text()
+        # The tag exists and its manifest matches, but the file did not arrive.
+        with mock.patch.object(sp, 'PACK_DIR', pack), \
+                mock.patch.object(sp, 'release_state', return_value=True), \
+                mock.patch.object(sp.cat, 'gh') as gh, \
+                mock.patch.object(sp.cat, 'download', return_value=(3, 'f' * 64)):
+            with self.assertRaisesRegex(SystemExit, 'holds far.opus as 3 bytes'):
+                repo.run('publish')
+        gh.assert_not_called()
+        self.assertEqual((repo.sounds / 'sounds.json').read_text(), before)
 
     def test_a_dry_run_changes_nothing(self):
         repo = Repo(self)

@@ -193,6 +193,25 @@ void main() {
       expect(st().waitingForWifi, isFalse);
     });
 
+    test(
+      'a sound asked for anyway is not held back by one that waits',
+      () async {
+        container = await make();
+        await pack().download([packIds[0]]);
+        await settle();
+        await pack().download([packIds[1]], anyNetwork: true);
+        await settle();
+        expect(fixture.downloader.calls, [packIds[1]]);
+        expect(st().downloaded, {packIds[1]});
+        // The first still waits for Wi-Fi, and says so.
+        expect(st().downloadOf(packIds[0])!.phase, SoundDownloadPhase.queued);
+        expect(st().waitingForWifi, isTrue);
+        fixture.network.setUnmetered(true);
+        await settle();
+        expect(st().downloaded, {packIds[0], packIds[1]});
+      },
+    );
+
     test('switching the setting off releases the queue', () async {
       container = await make();
       await pack().download([packIds.first]);

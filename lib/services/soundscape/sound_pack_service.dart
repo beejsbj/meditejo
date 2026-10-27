@@ -156,9 +156,25 @@ class SoundPackDownloader {
     IOSink? sink;
     try {
       await files.directory.create(recursive: true);
-      final response = await _client
+      final pending = _client
           .send(http.Request('GET', url)..headers['User-Agent'] = userAgent)
           .timeout(timeout);
+      // A cancel while still connecting must not wait out the timeout.
+      final response = cancel == null
+          ? await pending
+          : await Future.any<http.StreamedResponse?>([
+              pending,
+              cancel.whenCancelled.then((_) => null),
+            ]);
+      if (response == null) {
+        // Whatever the connection yields later is not wanted.
+        unawaited(
+          pending
+              .then((r) => r.stream.drain<void>(), onError: (_) {})
+              .catchError((_) {}),
+        );
+        return;
+      }
       if (response.statusCode != 200) {
         await response.stream.drain<void>().catchError((_) {});
         throw SoundDownloadException(

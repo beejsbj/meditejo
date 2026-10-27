@@ -337,10 +337,12 @@ class SoundPackController extends Notifier<SoundPackState> {
     _pumping = true;
     try {
       while (ref.mounted && _queue.isNotEmpty) {
-        final job = _queue.first;
-        if (state.wifiOnly &&
-            !job.allowMobile &&
-            !await _network.onUnmetered()) {
+        // The first job that may run now: one waiting for Wi-Fi must not hold
+        // back another that was asked for despite the setting.
+        final unmetered = !state.wifiOnly || await _network.onUnmetered();
+        if (!ref.mounted) return;
+        final job = _queue.where((j) => unmetered || j.allowMobile).firstOrNull;
+        if (job == null) {
           _waitForWifi();
           return;
         }
@@ -405,15 +407,17 @@ class SoundPackController extends Notifier<SoundPackState> {
         },
       );
       _queue.remove(job);
-      if (!ref.mounted) return;
+      // Measured first: the state is read after this await, not before, so a
+      // download asked for, cancelled or deleted meanwhile is not overwritten.
+      final used = await files.usedBytes();
       // Cancelled: [cancel] already forgot it.
-      if (cancel.isCancelled) return;
+      if (!ref.mounted || cancel.isCancelled) return;
       final downloads = {...state.downloads}..remove(id);
       state = state.copyWith(
         downloaded: {...state.downloaded, id},
         downloads: downloads,
         batchDone: state.batchDone + 1,
-        usedBytes: await files.usedBytes(),
+        usedBytes: used,
       );
     } on SoundDownloadException catch (e) {
       AppLogger.w('SOUNDSCAPE', 'Could not download $id: $e');

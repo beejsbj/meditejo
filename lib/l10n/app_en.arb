@@ -3369,7 +3369,7 @@
       }
     }
   },
-  "soundPackMissingAll": "Nothing to play yet: {names} {count, plural, one{needs} other{need}} downloading.",
+  "soundPackMissingAll": "Nothing to play yet: {names} {count, plural, one{needs} other{need}} downloading. Press play when {count, plural, one{it is} other{they are}} here.",
   "@soundPackMissingAll": {
     "description": "Snackbar: a mix has no sound that is on this phone",
     "placeholders": {

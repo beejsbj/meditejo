@@ -156,8 +156,9 @@ def verify(args):
     known = {e['file'] for e in library['sounds']}
     problems += [f'assets/sounds/{name} is in no library entry' for name in sorted(on_disk - known)]
     notice = NOTICE.read_text() if NOTICE.is_file() else ''
+    # Whole lines: `rain.opus:` must not count as covered by `heavy-rain.opus:`.
     problems += [f"NOTICE does not cover {e['file']}" for e in library['sounds']
-                 if f"{e['file']}:" not in notice]
+                 if not re.search(rf"^{re.escape(e['file'])}:", notice, re.M)]
     if problems:
         raise Failure('the sound library is inconsistent:\n  ' + '\n  '.join(problems))
     pinned_pack(library, library_path)  # raises when the pack pin is stale
@@ -305,12 +306,15 @@ def publish(args):
         if done.returncode != 0:
             raise Failure(f'gh release create {tag} failed: {done.stderr.strip()}')
         print(done.stdout.strip())
-        # Prove the upload before pinning it: read every file back and compare.
-        for entry in entries:
-            with tempfile.TemporaryDirectory() as scratch:
-                size, got = cat.download(file_url(tag, entry), Path(scratch) / entry['file'])
-            if size != entry['bytes'] or got != entry['sha256']:
-                raise Failure(f"{tag} was created but {entry['file']} reads back as {size} bytes / {got}")
+    # Prove the release before pinning it: read every file back and compare. This
+    # runs for a release that already existed too, since an earlier upload may
+    # have stopped after the manifest and before every file.
+    for entry in entries:
+        with tempfile.TemporaryDirectory() as scratch:
+            size, got = cat.download(file_url(tag, entry), Path(scratch) / entry['file'])
+        if size != entry['bytes'] or got != entry['sha256']:
+            raise Failure(f"{tag} holds {entry['file']} as {size} bytes / {got}, "
+                          f"not the pinned {entry['bytes']} / {entry['sha256']}")
     library['pack'] = {'release': tag, 'digest': digest, 'files': len(entries), 'bytes': total}
     ordered = {k: library[k] for k in library if k not in ('pack', 'sounds')}
     ordered['pack'] = library['pack']

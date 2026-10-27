@@ -1188,7 +1188,7 @@
   "soundPackMixMissing": "{count, plural, one{1 sound in this mix needs downloading. The rest plays.} other{{count} sounds in this mix need downloading. The rest plays.}}",
   "soundPackPresetMissing": "{count, plural, one{1 sound needs downloading} other{{count} sounds need downloading}}",
   "soundPackMissingPartial": "Playing without {names}. {count, plural, one{It is} other{They are}} not downloaded yet.",
-  "soundPackMissingAll": "Nothing to play yet: {names} {count, plural, one{needs} other{need}} downloading.",
+  "soundPackMissingAll": "Nothing to play yet: {names} {count, plural, one{needs} other{need}} downloading. Press play when {count, plural, one{it is} other{they are}} here.",
   "settingsSoundPackTitle": "Downloaded sounds",
   "settingsSoundPackSummary": "{count} of {total} on this phone · {size}",
   "settingsSoundPackNone": "None downloaded · {size} available",
