@@ -1,5 +1,6 @@
-// The player over generated art, for the art PR's screenshots. Off by
-// default; written to docs/fork/design/art/<palette>/:
+// The player over generated art, for the art PR's screenshots. Every test run
+// renders it (so a plugin or layout failure fails CI); the PNGs are written
+// only when asked, to docs/fork/design/art/<palette>/:
 //
 //     MEDITEJO_SCREENSHOTS=1 MEDITEJO_SHOT_PALETTE=tide \
 //       MEDITEJO_SHOT_DIR=docs/fork/design/art/tide \
@@ -35,7 +36,6 @@ import '../helpers/library_fixtures.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// ignore: unused_element
 final _enabled = Platform.environment['MEDITEJO_SCREENSHOTS'] == '1';
 final _out =
     Platform.environment['MEDITEJO_SHOT_DIR'] ?? 'docs/fork/design/art/tide';
@@ -232,16 +232,18 @@ void main() {
         );
         await tester.pump(const Duration(milliseconds: 100));
       }
-      await tester.runAsync(() async {
-        final render =
-            _boundary.currentContext!.findRenderObject()!
-                as RenderRepaintBoundary;
-        final image = await render.toImage(pixelRatio: 2.625);
-        final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-        File('$_out/player-${brightness.name}.png')
-          ..parent.createSync(recursive: true)
-          ..writeAsBytesSync(bytes!.buffer.asUint8List());
-      });
+      if (_enabled) {
+        await tester.runAsync(() async {
+          final render =
+              _boundary.currentContext!.findRenderObject()!
+                  as RenderRepaintBoundary;
+          final image = await render.toImage(pixelRatio: 2.625);
+          final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+          File('$_out/player-${brightness.name}.png')
+            ..parent.createSync(recursive: true)
+            ..writeAsBytesSync(bytes!.buffer.asUint8List());
+        });
+      }
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 1));
     });
