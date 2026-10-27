@@ -231,7 +231,7 @@ class InProgressCard extends ConsumerWidget {
         onTap: start,
         action: IconButton(
           key: ValueKey('in_progress_play_${item.trackId}'),
-          tooltip: label,
+          tooltip: '$label · ${item.title}',
           onPressed: start,
           icon: const Icon(Icons.play_arrow_rounded),
         ),
