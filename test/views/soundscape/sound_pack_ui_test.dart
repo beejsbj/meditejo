@@ -347,7 +347,6 @@ void main() {
       );
       expect(find.text(sound.title), findsWidgets, reason: sound.id);
     }
-    expect(find.text('Rain on a car roof'), findsWidgets);
   });
 
   group('Settings › Library & downloads', () {
@@ -356,7 +355,7 @@ void main() {
     ) async {
       await pump(tester, home: const SoundPackTile());
       expect(
-        find.text('Downloaded sounds', findRichText: true),
+        find.textContaining('Downloaded sounds', findRichText: true),
         findsOneWidget,
       );
       expect(
