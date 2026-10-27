@@ -19,13 +19,11 @@ LibraryDraft _draft(
   String title = 'A course',
   LibraryKind kind = LibraryKind.course,
   LibraryGroup group = LibraryGroup.practice,
-  String subtitle = '',
 }) => LibraryDraft(
   sourceId: id,
   kind: kind,
   title: title,
   group: group,
-  subtitle: subtitle,
 );
 
 void main() {
@@ -130,10 +128,8 @@ void main() {
       ]);
     });
 
-    test('something else is read from its title and subtitle', () async {
-      await store.add(
-        _draft('yt-playlist-x', title: 'Metta for beginners', subtitle: 'Me'),
-      );
+    test('something else is read from its title', () async {
+      await store.add(_draft('yt-playlist-x', title: 'Metta for beginners'));
       final labels = await service().labelsOfEntries(await store.entries());
       expect(labels['yt-playlist-x']!.categories.map((c) => c.id), ['metta']);
     });

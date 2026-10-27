@@ -43,6 +43,11 @@ class EntryLabels {
     (c) => c.id == id && c.source == CategorySource.user,
   );
 
+  /// Whether [key] is one of this entry's categories (by ID) or labels of the
+  /// user's own (by [customLabelKey]); what a Library label chip filters on.
+  bool hasLabel(String key) =>
+      hasCategory(key) || custom.any((c) => customLabelKey(c) == key);
+
   bool hasCustom(String text) {
     final key = customLabelKey(text);
     return custom.any((c) => customLabelKey(c) == key);

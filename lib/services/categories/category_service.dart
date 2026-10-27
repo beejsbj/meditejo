@@ -65,26 +65,24 @@ class CategoryService {
   // ---------------------------------------------------------------- labels
 
   /// What the app itself thinks [sourceId] is about. Dharma Seed items are
-  /// read from the on-device catalogue (their description is not in the
-  /// library's snapshot); anything else uses the [title] and [subtitle] it is
-  /// shown with.
+  /// read from the on-device catalogue (title and description); anything
+  /// else is read from the [title] it is shown with, so a library entry and
+  /// its own page always agree.
   Future<List<CategoryAssignment>> automatic(
     String sourceId, {
     String title = '',
-    String subtitle = '',
     Map<String, List<CategoryAssignment>>? memo,
   }) async {
     final cache = memo ?? {};
     final cached = cache[sourceId];
     if (cached != null) return cached;
-    final result = await _automatic(sourceId, title, subtitle, cache);
+    final result = await _automatic(sourceId, title, cache);
     return cache[sourceId] = result;
   }
 
   Future<List<CategoryAssignment>> _automatic(
     String sourceId,
     String title,
-    String subtitle,
     Map<String, List<CategoryAssignment>> memo,
   ) async {
     final db = dharmaSeed;
@@ -113,7 +111,7 @@ class CategoryService {
         );
       }
     }
-    return catalogue.classify(sourceId, title: title, description: subtitle);
+    return catalogue.classify(sourceId, title: title);
   }
 
   /// The labels of every non-teacher entry in [entries], by content ID.
@@ -130,7 +128,6 @@ class CategoryService {
         automatic: await automatic(
           entry.sourceId,
           title: entry.title,
-          subtitle: entry.subtitle,
           memo: memo,
         ),
         user: user[entry.sourceId] ?? const UserLabels(),
@@ -141,13 +138,10 @@ class CategoryService {
 
   /// The labels of one thing, in the library or not. The user's own labels
   /// are only ever on library entries, so a stranger shows the guesses.
-  Future<EntryLabels> labelsOf(
-    String sourceId, {
-    String title = '',
-    String subtitle = '',
-  }) async => resolveLabels(
+  Future<EntryLabels> labelsOf(String sourceId, {String title = ''}) async =>
+      resolveLabels(
     catalogue,
-    automatic: await automatic(sourceId, title: title, subtitle: subtitle),
+    automatic: await automatic(sourceId, title: title),
     user: (await library.userLabels())[sourceId] ?? const UserLabels(),
   );
 
