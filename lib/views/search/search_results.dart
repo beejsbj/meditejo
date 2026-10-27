@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
+import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/explore/session_length.dart';
 import 'package:medito/providers/explore/explore_search_provider.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_models.dart';
-import 'package:medito/utils/utils.dart';
 import 'package:medito/views/dharma_seed/widgets/course_rows_sliver.dart';
 import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
 import 'package:medito/views/dharma_seed/widgets/teacher_widgets.dart';
-import 'package:medito/widgets/filter_pill.dart';
-import 'package:medito/widgets/section_header.dart';
+import 'package:medito/widgets/cards/filter_chip_bar.dart';
+import 'package:medito/widgets/cards/section_title.dart';
 import 'package:medito/widgets/widgets.dart';
 
 extension SessionLengthLabel on SessionLength {
@@ -29,17 +29,12 @@ extension SessionLengthLabel on SessionLength {
 /// within courses and talks), with a session-length
 /// filter that narrows the talks.
 class SearchResults extends ConsumerStatefulWidget {
-  const SearchResults({
-    super.key,
-    required this.query,
-    this.onBeforeNavigate,
-  });
+  const SearchResults({super.key, required this.query, this.onBeforeNavigate});
 
   final String query;
 
   /// Runs before a result navigates, e.g. to dismiss the keyboard.
   final VoidCallback? onBeforeNavigate;
-
 
   @override
   ConsumerState<SearchResults> createState() => _SearchResultsState();
@@ -113,8 +108,8 @@ class _SearchResultsState extends ConsumerState<SearchResults> {
               child: Text(
                 l10n.noResultsFound,
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacityValue(0.7),
+                style: context.typography.baseline.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -125,26 +120,22 @@ class _SearchResultsState extends ConsumerState<SearchResults> {
 
     return [
       if (results.teachers.isNotEmpty) ...[
-        SliverToBoxAdapter(child: SectionHeader(title: l10n.searchTeachers)),
+        _title(l10n.searchTeachers),
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.only(top: padding8),
-            child: TeacherRows(
-              teachers: results.teachers,
-              onBeforeNavigate: widget.onBeforeNavigate,
-            ),
+          child: TeacherRows(
+            teachers: results.teachers,
+            onBeforeNavigate: widget.onBeforeNavigate,
           ),
         ),
       ],
       if (results.courses.isNotEmpty) ...[
-        SliverToBoxAdapter(child: SectionHeader(title: l10n.searchCourses)),
-        const SliverPadding(padding: EdgeInsets.only(top: padding8)),
+        _title(l10n.searchCourses),
         CourseRowsSliver(
           courses: results.courses,
           onBeforeNavigate: widget.onBeforeNavigate,
         ),
       ],
-      SliverToBoxAdapter(child: SectionHeader(title: l10n.searchTalks)),
+      _title(l10n.searchTalks),
       SliverToBoxAdapter(child: _lengthFilter(l10n)),
       if (results.talks.isEmpty)
         SliverToBoxAdapter(
@@ -152,8 +143,8 @@ class _SearchResultsState extends ConsumerState<SearchResults> {
             padding: const EdgeInsets.all(padding16),
             child: Text(
               l10n.noResultsFound,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacityValue(0.7),
+              style: context.typography.baseline.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -171,41 +162,38 @@ class _SearchResultsState extends ConsumerState<SearchResults> {
     ];
   }
 
+  /// A section's heading, with the gap above it.
+  Widget _title(String text) => SliverToBoxAdapter(
+    child: Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: SectionTitle(text),
+    ),
+  );
+
   /// Any, under 10, 10–20, 20–30, 30–45 and over 45 minutes. It narrows the
   /// talks only; teachers and courses have no length.
   Widget _lengthFilter(AppLocalizations l10n) {
-    return Semantics(
-      label: l10n.searchTalkLength,
-      container: true,
-      child: SizedBox(
-        // Pill height (44 at normal size) follows the text scale.
-        height: MediaQuery.textScalerOf(context).scale(44) + 2 * padding8,
-        child: ListView(
-          key: const ValueKey('length_filter'),
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(
-            horizontal: padding16,
-            vertical: padding8,
+    return Padding(
+      key: const ValueKey('length_filter'),
+      padding: const EdgeInsets.only(bottom: 8),
+      child: FilterChipBar<SessionLength?>(
+        semanticsLabel: l10n.searchTalkLength,
+        selected: _length,
+        allowDeselect: true,
+        onSelected: (length) => setState(() => _length = length),
+        options: [
+          FilterOption(
+            null,
+            l10n.searchLengthAny,
+            key: const ValueKey('length_any'),
           ),
-          children: [
-            FilterPill(
-              key: const ValueKey('length_any'),
-              label: l10n.searchLengthAny,
-              selected: _length == null,
-              onTap: () => setState(() => _length = null),
+          for (final length in SessionLength.values)
+            FilterOption(
+              length,
+              length.label(l10n),
+              key: ValueKey('length_${length.name}'),
             ),
-            for (final length in SessionLength.values) ...[
-              const SizedBox(width: padding8),
-              FilterPill(
-                key: ValueKey('length_${length.name}'),
-                label: length.label(l10n),
-                selected: _length == length,
-                onTap: () =>
-                    setState(() => _length = _length == length ? null : length),
-              ),
-            ],
-          ],
-        ),
+        ],
       ),
     );
   }

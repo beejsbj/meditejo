@@ -50,10 +50,10 @@ class ContinueItem {
 const continueLimit = 3;
 
 /// Practice first, then the most recently played; one item per course (the
-/// best-ranked one), at most [limit].
+/// best-ranked one), at most [limit] (null for all of them).
 List<ContinueItem> rankContinue(
   Iterable<ContinueItem> items, {
-  int limit = continueLimit,
+  int? limit = continueLimit,
 }) {
   final sorted = items.toList()
     ..sort((a, b) {
@@ -63,8 +63,9 @@ List<ContinueItem> rankContinue(
       return byTime != 0 ? byTime : a.trackId.compareTo(b.trackId);
     });
   final seenCourses = <String>{};
-  return [
+  final ranked = [
     for (final item in sorted)
       if (item.courseId == null || seenCourses.add(item.courseId!)) item,
-  ].take(limit).toList();
+  ];
+  return limit == null ? ranked : ranked.take(limit).toList();
 }

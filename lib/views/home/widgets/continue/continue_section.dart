@@ -53,6 +53,29 @@ class ContinueSection extends ConsumerWidget {
   }
 }
 
+/// Plays [item] from where it stopped, or its course's next session. Home's
+/// Continue and the Library's In progress both start this way.
+Future<void> startContinueItem(
+  BuildContext context,
+  WidgetRef ref,
+  ContinueItem item,
+) async {
+  // The course Continue shows it under, for its cue scope and for where it
+  // counts: written before the session starts, which reads it.
+  final courseId = item.courseId;
+  if (courseId != null) {
+    try {
+      await ref
+          .read(libraryStoreProvider)
+          .noteSessionContext(item.trackId, courseId);
+    } catch (e, st) {
+      AppLogger.e('HOME', 'Could not note the course of a session', e, st);
+    }
+  }
+  if (!context.mounted) return;
+  await startSession(context, ref, trackId: item.trackId, path: item.path);
+}
+
 /// One thing in progress, as a card. The first ([lead]) is drawn on the
 /// primary container: it is what Home most expects the user to want.
 class ContinueTile extends ConsumerWidget {
@@ -83,22 +106,7 @@ class ContinueTile extends ConsumerWidget {
         ? l10n.homeContinueResume
         : l10n.homeContinueStart;
     final subtitle = _subtitle(l10n);
-    Future<void> start() async {
-      // The course Continue shows it under, for its cue scope and for where
-      // it counts: written before the session starts, which reads it.
-      final courseId = item.courseId;
-      if (courseId != null) {
-        try {
-          await ref
-              .read(libraryStoreProvider)
-              .noteSessionContext(item.trackId, courseId);
-        } catch (e, st) {
-          AppLogger.e('HOME', 'Could not note the course of a session', e, st);
-        }
-      }
-      if (!context.mounted) return;
-      await startSession(context, ref, trackId: item.trackId, path: item.path);
-    }
+    Future<void> start() => startContinueItem(context, ref, item);
 
     final scheme = theme.colorScheme;
     final type = context.typography;

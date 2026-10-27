@@ -33,7 +33,7 @@ void main() {
 
   group('explore', () {
     test(
-      'without a chip: newest courses, busiest teachers, no singles',
+      'without a chip: newest courses, busiest teachers, latest practice',
       () async {
         final explore = await source.explore();
         expect(explore.hasCatalogue, isTrue);
@@ -42,7 +42,14 @@ void main() {
           'ds-retreat-200',
           'ds-retreat-100',
         ]);
-        expect(explore.talks, isEmpty);
+        // Practice leads where nothing else decides (decision 11): the
+        // latest guided practice, newest first, and no talks.
+        expect(explore.talks.map((t) => t.title), [
+          'Sit',
+          'Metta',
+          'Breath meditation',
+          'Settling',
+        ]);
         // Burbea gave 5 talks and co-taught one more; Brasington gave 4.
         expect(explore.teachers.map((t) => t.name), [
           'Rob Burbea',

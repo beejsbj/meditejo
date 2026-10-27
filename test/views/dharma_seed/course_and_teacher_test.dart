@@ -380,6 +380,10 @@ void main() {
       );
       expect(find.text('Prolific talk 01'), findsNothing);
 
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('teacher_show_more')),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('teacher_show_more')));
       await DharmaSeedTestApp.settle(tester);
       await tester.scrollUntilVisible(
