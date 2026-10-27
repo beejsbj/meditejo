@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:medito/models/catalogue/catalogue_models.dart';
 import 'package:medito/models/explore/session_length.dart';
-import 'package:medito/services/dhammatalks/dhammatalks_catalogue.dart';
 import 'package:medito/services/dhammatalks/dhammatalks_feed.dart';
 import 'package:medito/services/dhammatalks/dhammatalks_ids.dart';
 import 'package:medito/services/dhammatalks/dhammatalks_source.dart';
@@ -338,16 +337,15 @@ void main() {
 
     test('items become talks with the date from their key', () {
       final talks = dtTalksFromFeed(feed, DtChannel.evening);
+      // The parser reads a feed oldest first.
       expect(talks.map((t) => t.id), [
-        'dt-talk-e-261026-intelligent-silence',
         'dt-talk-e-261025-appropriate-attention-to-the-breath',
+        'dt-talk-e-261026-intelligent-silence',
       ], reason: 'an item with no page cannot be given an ID');
-      expect(talks.first.date, '2026-10-26');
-      expect(talks.first.durationMs, 668000);
-      expect(
-        talks.first.audioPath,
-        '/Archive/y2026/261026_Intelligent_Silence.mp3',
-      );
+      final latest = talks.last;
+      expect(latest.date, '2026-10-26');
+      expect(latest.durationMs, 668000);
+      expect(latest.audioPath, '/Archive/y2026/261026_Intelligent_Silence.mp3');
     });
 
     test('Explore opens: both feeds read, merged, and kept', () async {

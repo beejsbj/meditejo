@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/providers/dhammatalks/dhammatalks_providers.dart';
+import 'package:medito/providers/hermes_amara/hermes_amara_providers.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/services/content/content_source.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_client.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_sync.dart';
+import 'package:medito/services/hermes_amara/hermes_amara_flag.dart';
 import 'package:medito/utils/logger.dart';
 
 final dharmaSeedDatabaseProvider = Provider<DharmaSeedDatabase>((ref) {
@@ -47,6 +49,8 @@ final Provider<List<ContentSource>> contentSourcesProvider = Provider(
   (ref) => [
     ref.watch(dharmaSeedSourceProvider),
     ref.watch(dhammatalksSourceProvider),
+    // Dormant until the foundation gives permission (DECISIONS.md, 2026-10-27).
+    if (hermesAmaraEnabled) ref.watch(hermesAmaraSourceProvider),
     ref.watch(libSourceProvider),
     if (ref.watch(youtubeAvailableProvider)) ref.watch(youtubeSourceProvider),
     ref.watch(myCourseSourceProvider),

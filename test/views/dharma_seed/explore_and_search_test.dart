@@ -170,6 +170,9 @@ void main() {
       );
       tester.view.physicalSize = const Size(430, 2400);
 
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('explore_source_dt-')),
+      );
       await tester.tap(find.byKey(const ValueKey('explore_source_dt-')));
       await DharmaSeedTestApp.settle(tester);
       expect(find.text('Mixed Weekend'), findsNothing);
@@ -181,6 +184,9 @@ void main() {
         findsOneWidget,
       );
 
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('explore_source_dt-')),
+      );
       await tester.tap(find.byKey(const ValueKey('explore_source_dt-')));
       await DharmaSeedTestApp.settle(tester);
       expect(find.text('Mixed Weekend'), findsOneWidget);
@@ -194,6 +200,9 @@ void main() {
         dhammatalks: dhammatalks(app),
       );
 
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('explore_source_ds-')),
+      );
       await tester.tap(find.byKey(const ValueKey('explore_source_ds-')));
       await DharmaSeedTestApp.settle(tester);
       expect(find.text('Mixed Weekend'), findsOneWidget);
@@ -236,6 +245,9 @@ void main() {
         dhammatalks: dhammatalks(app),
       );
       tester.view.physicalSize = const Size(430, 2400);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('explore_source_dt-')),
+      );
       await tester.tap(find.byKey(const ValueKey('explore_source_dt-')));
       await DharmaSeedTestApp.settle(tester);
 

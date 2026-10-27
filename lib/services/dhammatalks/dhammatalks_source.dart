@@ -58,7 +58,7 @@ class DhammatalksSource
   @override
   final ValueNotifier<int> revision = ValueNotifier(0);
 
-  Future<DtCatalogue>? _loading;
+  Future<void>? _loading;
   DtCatalogue? _catalogue;
   DateTime? _feedFetchedAt;
   Future<void>? _catchingUp;
@@ -73,15 +73,18 @@ class DhammatalksSource
   bool ownsTeacher(String id) => id == dtTeacherId;
 
   /// The snapshot with whatever the feeds added on earlier runs, loaded once.
-  Future<DtCatalogue> catalogue() => _loading ??= () async {
-    var loaded = await loadSnapshot();
-    final remembered = await cache.read();
-    if (remembered != null) {
-      _feedFetchedAt = remembered.fetchedAt;
-      loaded = loaded.withFeed(remembered.talks);
-    }
-    return _catalogue = loaded;
-  }();
+  Future<DtCatalogue> catalogue() async {
+    await (_loading ??= () async {
+      var loaded = await loadSnapshot();
+      final remembered = await cache.read();
+      if (remembered != null) {
+        _feedFetchedAt = remembered.fetchedAt;
+        loaded = loaded.withFeed(remembered.talks);
+      }
+      _catalogue = loaded;
+    }());
+    return _catalogue!;
+  }
 
   // ---------------------------------------------------------------- refresh
 
@@ -152,8 +155,9 @@ class DhammatalksSource
     }
     if (parseDtYearId(id) case final year?) {
       final talks = cat.yearTalks(year.channel, year.year);
-      if (talks.isNotEmpty)
+      if (talks.isNotEmpty) {
         return _yearPack(id, year.channel, year.year, talks);
+      }
     }
     throw CatalogueEntryUnavailable('pack', id);
   }
