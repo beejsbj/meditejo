@@ -86,6 +86,11 @@ void main() {
     tester,
   ) async {
     await pump(tester);
+    // Shelf order is stream, river, waves, sea: scroll down only.
+    await reveal(tester, card('stream'));
+    expect(offer('stream'), findsNothing);
+    expect(find.byKey(const ValueKey('sound_state_stream')), findsOneWidget);
+    expect(offer('river'), findsNothing);
     await reveal(tester, card('sea'));
     expect(offer('sea'), findsOneWidget);
     expect(
@@ -96,11 +101,6 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('sound_state_sea')), findsNothing);
-    // One on the phone, and a bundled one, are ordinary cards.
-    expect(offer('river'), findsNothing);
-    await reveal(tester, card('stream'));
-    expect(offer('stream'), findsNothing);
-    expect(find.byKey(const ValueKey('sound_state_stream')), findsOneWidget);
   });
 
   testWidgets('tapping it downloads rather than layering it in', (
@@ -258,11 +258,17 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('Playing without'), findsOneWidget);
-      expect(find.textContaining('sea'), findsWidgets);
+      expect(
+        find.textContaining(bundledSoundLibrary['sea']!.title),
+        findsWidgets,
+      );
     });
 
     testWidgets('its layer offers the download', (tester) async {
       await mixWithMissing(tester);
+      // The message sits over the dock; dismiss it to reach the dock.
+      scaffoldMessengerKey.currentState!.hideCurrentSnackBar();
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('sounds_mix_toggle')));
       await tester.pumpAndSettle();
       expect(find.textContaining('Needs download'), findsOneWidget);
@@ -276,7 +282,12 @@ void main() {
 
     testWidgets('the snackbar fetches them', (tester) async {
       await mixWithMissing(tester);
-      await tester.tap(find.text('Download'));
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('sound_missing_snackbar')),
+          matching: find.text('Download'),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(pack.asked, ['sea']);
     });

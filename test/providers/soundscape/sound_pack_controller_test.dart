@@ -39,10 +39,20 @@ void main() {
   SoundPackController pack() => container.read(soundPackProvider.notifier);
   SoundPackState st() => container.read(soundPackProvider);
 
+  /// Lets the queue run to rest: downloads write real files, so wait for the
+  /// work itself rather than for a number of event-loop turns.
   Future<void> settle() async {
     for (var i = 0; i < 20; i++) {
       await Future<void>.delayed(Duration.zero);
     }
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (st().busy &&
+        !st().waitingForWifi &&
+        fixture.downloader.held.isEmpty &&
+        DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 5));
   }
 
   setUp(() => fixture = SoundPackFixture());
