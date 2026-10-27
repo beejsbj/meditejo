@@ -41,6 +41,21 @@ void main() {
       expect('<redacted>'.allMatches(out), hasLength(1));
     });
 
+    test('a signed address joined to an ordinary one is still redacted', () {
+      final joined = redactSignedUrls(
+        'urls: https://example.org/a,$_signed done',
+      );
+      expect(joined, isNot(contains('SECRET')));
+      expect(joined, isNot(contains('sig=')));
+    });
+
+    test('a signed address that carries another address in its query', () {
+      final nested = redactSignedUrls(
+        'https://rr.googlevideo.com/videoplayback?redirect=https://example.org&sig=SECRET',
+      );
+      expect(nested, isNot(contains('SECRET')));
+    });
+
     test('redacting twice does not stack markers', () {
       final once = redactSignedUrls('uri = $_signed');
       expect(redactSignedUrls(once), once);

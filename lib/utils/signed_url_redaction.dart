@@ -11,11 +11,10 @@ String redactSignedUrls(String text) => text.replaceAllMapped(_address, (m) {
   // Already redacted (the logger and debugPrint both pass text through here).
   if (text.startsWith(_marker, m.end)) return m[0]!;
   final uri = Uri.tryParse(m[0]!);
-  if (uri == null) {
-    // Unparseable, so judge by its text rather than let it through.
-    return _looksSigned(m[0]!) ? 'https://unknown/$_marker' : m[0]!;
-  }
-  return _isSigned(uri) ? 'https://${uri.host}/$_marker' : m[0]!;
+  if (uri != null && _isSigned(uri)) return 'https://${uri.host}/$_marker';
+  // A signed address can sit later in the same token (two addresses joined by
+  // a comma, one nested in another's query), so judge the whole token.
+  return _looksSigned(m[0]!) ? 'https://unknown/$_marker' : m[0]!;
 });
 
 /// A stream address: a googlevideo.com host, or a `/videoplayback` path.

@@ -16,11 +16,20 @@ object SignedUrlRedaction {
     private const val MARKER = "<redacted>"
 
     fun redact(text: String): String = url.replace(text) { match ->
-        // Already redacted: a second pass must not stack markers.
-        if (text.startsWith(MARKER, match.range.last + 1)) match.value
-        else if (isSigned(match.value)) "https://${hostOf(match.value) ?: "unknown"}/$MARKER"
-        else match.value
+        when {
+            // Already redacted: a second pass must not stack markers.
+            text.startsWith(MARKER, match.range.last + 1) -> match.value
+            isSigned(match.value) -> "https://${hostOf(match.value) ?: "unknown"}/$MARKER"
+            // A signed address can sit later in the same token (two addresses
+            // joined by a comma, one nested in another's query): judge it whole.
+            looksSigned(match.value) -> "https://unknown/$MARKER"
+            else -> match.value
+        }
     }
+
+    private fun looksSigned(address: String): Boolean =
+        address.contains("googlevideo.com", ignoreCase = true) ||
+            address.contains("/videoplayback", ignoreCase = true)
 
     /** A stream address: a googlevideo.com host, or a youtube.com `/videoplayback` path. */
     internal fun isSigned(address: String): Boolean {

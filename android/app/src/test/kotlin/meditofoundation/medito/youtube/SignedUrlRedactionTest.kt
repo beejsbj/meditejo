@@ -40,6 +40,19 @@ class SignedUrlRedactionTest {
     }
 
     @Test
+    fun aSignedAddressJoinedToAnOrdinaryOneIsStillRedacted() {
+        val out = SignedUrlRedaction.redact("urls: https://example.org/a,$signed done")
+        assertFalse(out.contains("SECRET"))
+        assertFalse(out.contains("sig="))
+    }
+
+    @Test
+    fun aSignedAddressCarryingAnotherInItsQueryIsRedacted() {
+        val out = SignedUrlRedaction.redact("https://rr.googlevideo.com/videoplayback?redirect=https://example.org&sig=SECRET")
+        assertFalse(out.contains("SECRET"))
+    }
+
+    @Test
     fun redactingTwiceDoesNotStackMarkers() {
         val once = SignedUrlRedaction.redact("uri = $signed")
         assertEquals(once, SignedUrlRedaction.redact(once))
