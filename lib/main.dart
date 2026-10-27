@@ -15,6 +15,8 @@ import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/updates/update_providers.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/constants/theme/app_theme.dart';
+import 'package:medito/constants/theme/tokens.dart';
+import 'package:medito/providers/identity/identity_providers.dart';
 import 'package:medito/providers/notification/reminder_provider.dart';
 import 'package:medito/providers/locale_provider.dart';
 import 'package:medito/providers/providers.dart';
@@ -182,10 +184,11 @@ class _ParentWidgetState extends ConsumerState<ParentWidget>
     unawaited(startUpdateCheck(ref));
     // The stats page's Today and This week turn over at the day boundary
     // while the app stays open.
-    _dayTick = Timer.periodic(
-      const Duration(minutes: 1),
-      (_) => ref.read(practiceTickProvider.notifier).tick(),
-    );
+    // So do Home's daily mark and a daily palette, at local midnight.
+    _dayTick = Timer.periodic(const Duration(minutes: 1), (_) {
+      ref.read(practiceTickProvider.notifier).tick();
+      ref.read(identityDayProvider.notifier).refresh();
+    });
   }
 
   Timer? _dayTick;
@@ -248,6 +251,7 @@ class _ParentWidgetState extends ConsumerState<ParentWidget>
     // unless the locale changed.
     HomeWidgetService.setLocale(locale);
     final themeMode = ref.watch(themeProvider);
+    final palette = ref.watch(activePaletteProvider);
 
     // Update system UI to match current theme
     _updateSystemUiForTheme(context);
@@ -259,9 +263,10 @@ class _ParentWidgetState extends ConsumerState<ParentWidget>
         debugShowCheckedModeBanner: false,
         scaffoldMessengerKey: scaffoldMessengerKey,
         navigatorKey: navigatorKey,
-        theme: appTheme(context, ThemeMode.light),
-        darkTheme: appTheme(context, ThemeMode.dark),
+        theme: appTheme(context, ThemeMode.light, palette),
+        darkTheme: appTheme(context, ThemeMode.dark, palette),
         themeMode: themeMode,
+        themeAnimationDuration: MeditejoMotion.medium,
         title: ParentWidget._title,
         locale: locale,
         localizationsDelegates: const [
@@ -289,6 +294,8 @@ class _ParentWidgetState extends ConsumerState<ParentWidget>
     ref.read(reminderProvider).clearBadge();
     ref.read(statsProvider.notifier).refresh();
     ref.read(practiceTickProvider.notifier).tick();
+    // Today's mark and palette, if the day turned while the app slept.
+    ref.read(identityDayProvider.notifier).refresh();
     if (Platform.isIOS) {
       // Process any pending track completions when app comes back to foreground
       processPendingCompletedTracks().then((processedCount) {

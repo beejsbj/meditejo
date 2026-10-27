@@ -13,11 +13,7 @@ Scope: Android and iOS identity, branding, app strings and upstream credit. The 
 
 ## Mark
 
-Original source: `assets/branding/placeholder.svg` (cream circle on muted sage).
-
-```sh
-uv run scripts/regenerate_icons.py
-```
+Original source: `assets/branding/placeholder.svg` (cream circle on muted sage). *Superseded 2026-10-26 by the shelter house mark (decision 21): the source is now `assets/branding/house_mark.json`, regenerated with `uv run tools/meditejo/branding/make_icons.py`; see DECISIONS.md, identity PR 1.*
 
 One source drives the Flutter logo/preview, Android raster/adaptive/monochrome/notification/widget resources, iOS Icon Composer bundle (explicit 1024-point layer size), AppIcon rasters and widget logo. The script pins its user-local rendering dependency and uses no fonts or third-party art.
 

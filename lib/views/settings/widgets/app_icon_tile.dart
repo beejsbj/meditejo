@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
 
-/// One primary icon while the Meditejo mark is being chosen.
+/// The launcher icon: the shelter, fixed (decision 21). Android can only
+/// swap icons that ship as activity aliases, so the daily mark lives in the
+/// app and the icon stays one house mark.
 class AppIconTile extends StatelessWidget {
   const AppIconTile({
     super.key,
@@ -24,7 +26,7 @@ class AppIconTile extends StatelessWidget {
     trailing: ClipRRect(
       borderRadius: BorderRadius.circular(6),
       child: Image.asset(
-        'assets/images/app_icons/placeholder.png',
+        'assets/images/app_icons/meditejo.png',
         width: 28,
         height: 28,
       ),
