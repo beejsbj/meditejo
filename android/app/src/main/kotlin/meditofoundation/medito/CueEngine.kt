@@ -421,6 +421,7 @@ internal class CueEngine(
         phase = Phase.PLAYING
         lastPositionMs = primary.currentPosition
         lastRealMs = SystemClock.elapsedRealtime()
+        if (resume || primary.isPlaying) bank?.resumeAll()
         if (resume) host.resumeNarration()
         kick()
     }
