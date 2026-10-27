@@ -5251,7 +5251,7 @@ abstract class AppLocalizations {
   /// Snackbar: a mix has no sound that is on this phone
   ///
   /// In en, this message translates to:
-  /// **'Nothing to play yet: {names} {count, plural, one{needs} other{need}} downloading.'**
+  /// **'Nothing to play yet: {names} {count, plural, one{needs} other{need}} downloading. Press play when {count, plural, one{it is} other{they are}} here.'**
   String soundPackMissingAll(String names, int count);
 
   /// Settings, Library and downloads: the sound pack row

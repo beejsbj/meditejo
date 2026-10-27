@@ -3005,7 +3005,13 @@ class AppLocalizationsEn extends AppLocalizations {
       other: 'need',
       one: 'needs',
     );
-    return 'Nothing to play yet: $names $_temp0 downloading.';
+    String _temp1 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'they are',
+      one: 'it is',
+    );
+    return 'Nothing to play yet: $names $_temp0 downloading. Press play when $_temp1 here.';
   }
 
   @override
