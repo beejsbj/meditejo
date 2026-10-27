@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
@@ -25,8 +27,9 @@ class CustomBellsNotifier extends Notifier<List<CustomBell>> {
   Future<CustomBell> save({
     required String name,
     required BellSpec spec,
+    Uint8List? wav,
   }) async {
-    final bell = await _store.save(name: name, spec: spec);
+    final bell = await _store.save(name: name, spec: spec, wav: wav);
     state = _store.all();
     return bell;
   }
@@ -40,9 +43,7 @@ class CustomBellsNotifier extends Notifier<List<CustomBell>> {
   /// bell instead.
   Future<void> delete(String id) async {
     await _store.delete(id);
-    await ref
-        .read(cueSettingsStoreProvider)
-        .replaceSound(id, cueDefaultBell);
+    await ref.read(cueSettingsStoreProvider).replaceSound(id, cueDefaultBell);
     ref.invalidate(cueSettingsProvider);
     state = _store.all();
   }

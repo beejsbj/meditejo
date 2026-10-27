@@ -119,8 +119,7 @@ abstract final class BellSynth {
     final b = k.bright.clamp(0.001, 0.98);
     final g = math.sqrt(b * lo / ((1 - b) * hi));
     return [
-      for (final m in moved)
-        m.f > main.f * 1.05 ? m.copyWith(a: m.a * g) : m,
+      for (final m in moved) m.f > main.f * 1.05 ? m.copyWith(a: m.a * g) : m,
     ];
   }
 
@@ -163,9 +162,7 @@ abstract final class BellSynth {
     // The strike: its low-pass follows the control, its level grows with it.
     final lowpass = BellRecipe.lowpassOf(spec.knobs.strike);
     final level =
-        hit.level *
-        (0.6 + 0.8 * spec.knobs.strike) /
-        (0.6 + 0.8 * ref.strike);
+        hit.level * (0.6 + 0.8 * spec.knobs.strike) / (0.6 + 0.8 * ref.strike);
     _addStrike(x, rate, hit, lowpass, level, 0x9E3779B9);
     if (wash != null) _addWash(x, rate, wash, tk);
     return _finish(x, rate);

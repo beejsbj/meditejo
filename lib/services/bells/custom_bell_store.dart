@@ -56,9 +56,8 @@ class CustomBellStore {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! List) return const [];
-      final bells = [
-        for (final e in decoded) ?CustomBell.tryFromJson(e),
-      ]..sort((a, b) => a.createdAtMs.compareTo(b.createdAtMs));
+      final bells = [for (final e in decoded) ?CustomBell.tryFromJson(e)]
+        ..sort((a, b) => a.createdAtMs.compareTo(b.createdAtMs));
       return bells;
     } catch (_) {
       return const [];
@@ -82,27 +81,32 @@ class CustomBellStore {
     }
   }
 
-  /// Renders [spec] and keeps it as a new bell called [name].
-  Future<CustomBell> save({required String name, required BellSpec spec}) =>
-      _serial(() async {
-        final clean = cleanBellName(name);
-        if (clean == null) throw ArgumentError.value(name, 'name', 'empty');
-        final bells = _raw();
-        if (bells.length >= maxBells) {
-          throw StateError('Only $maxBells bells can be kept.');
-        }
-        final id = _newId({for (final b in bells) b['id']});
-        final bell = CustomBell(
-          id: id,
-          name: clean,
-          preset: spec.preset,
-          knobs: spec.knobs,
-          createdAtMs: _now().millisecondsSinceEpoch,
-        );
-        await _write(bell, await _render(spec));
-        await prefs.setString(prefsKey, jsonEncode([...bells, bell.toJson()]));
-        return bell;
-      });
+  /// Keeps [spec] as a new bell called [name]. [wav] is its sound when the
+  /// caller has already made it (it must be [spec]'s render); else it is made
+  /// here.
+  Future<CustomBell> save({
+    required String name,
+    required BellSpec spec,
+    Uint8List? wav,
+  }) => _serial(() async {
+    final clean = cleanBellName(name);
+    if (clean == null) throw ArgumentError.value(name, 'name', 'empty');
+    final bells = _raw();
+    if (bells.length >= maxBells) {
+      throw StateError('Only $maxBells bells can be kept.');
+    }
+    final id = _newId({for (final b in bells) b['id']});
+    final bell = CustomBell(
+      id: id,
+      name: clean,
+      preset: spec.preset,
+      knobs: spec.knobs,
+      createdAtMs: _now().millisecondsSinceEpoch,
+    );
+    await _write(bell, wav ?? await _render(spec));
+    await prefs.setString(prefsKey, jsonEncode([...bells, bell.toJson()]));
+    return bell;
+  });
 
   Future<void> rename(String id, String name) => _serial(() async {
     final clean = cleanBellName(name);

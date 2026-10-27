@@ -3214,5 +3214,140 @@
   "libraryPinned": "Pinned to Home",
   "@libraryPinned": {
     "description": "Screen-reader label of the pin mark on a Library card"
+  },
+  "bellMakerTitle": "Make a bell",
+  "@bellMakerTitle": {
+    "description": "Bell maker: the screen's title and the row that opens it"
+  },
+  "bellMakerSave": "Save",
+  "@bellMakerSave": {
+    "description": "Bell maker: saves the bell"
+  },
+  "bellMakerName": "Name",
+  "@bellMakerName": {
+    "description": "Bell maker: the bell's name field"
+  },
+  "bellMakerStartFrom": "Start from",
+  "@bellMakerStartFrom": {
+    "description": "Bell maker: the bells to start from"
+  },
+  "bellMakerHear": "Hear it",
+  "@bellMakerHear": {
+    "description": "Bell maker: plays the bell as it is now"
+  },
+  "bellMakerMaking": "Making the sound",
+  "@bellMakerMaking": {
+    "description": "Bell maker: shown while the sound is rendered"
+  },
+  "bellMakerPlayFailed": "The bell could not be played.",
+  "@bellMakerPlayFailed": {
+    "description": "Bell maker: the sound could not be made or played"
+  },
+  "bellMakerSaveFailed": "The bell could not be saved.",
+  "@bellMakerSaveFailed": {
+    "description": "Bell maker: saving failed"
+  },
+  "bellMakerLimit": "You can keep up to {count} bells. Delete one to make another.",
+  "@bellMakerLimit": {
+    "description": "Bell maker: the limit of saved bells",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bellPitch": "Pitch",
+  "@bellPitch": {
+    "description": "Bell maker: control"
+  },
+  "bellPitchLow": "Deep",
+  "@bellPitchLow": {
+    "description": "Bell maker: pitch, low end"
+  },
+  "bellPitchHigh": "High",
+  "@bellPitchHigh": {
+    "description": "Bell maker: pitch, high end"
+  },
+  "bellBright": "Brightness",
+  "@bellBright": {
+    "description": "Bell maker: control"
+  },
+  "bellBrightLow": "Dark",
+  "@bellBrightLow": {
+    "description": "Bell maker: brightness, low end"
+  },
+  "bellBrightHigh": "Bright",
+  "@bellBrightHigh": {
+    "description": "Bell maker: brightness, high end"
+  },
+  "bellRing": "Ring",
+  "@bellRing": {
+    "description": "Bell maker: control, how long it rings"
+  },
+  "bellRingLow": "Short",
+  "@bellRingLow": {
+    "description": "Bell maker: ring, short end"
+  },
+  "bellRingHigh": "Long",
+  "@bellRingHigh": {
+    "description": "Bell maker: ring, long end"
+  },
+  "bellStrike": "Strike",
+  "@bellStrike": {
+    "description": "Bell maker: control, soft mallet to hard"
+  },
+  "bellStrikeLow": "Soft",
+  "@bellStrikeLow": {
+    "description": "Bell maker: strike, soft end"
+  },
+  "bellStrikeHigh": "Hard",
+  "@bellStrikeHigh": {
+    "description": "Bell maker: strike, hard end"
+  },
+  "bellShimmer": "Shimmer",
+  "@bellShimmer": {
+    "description": "Bell maker: control, the slow wobble of a ring"
+  },
+  "bellShimmerLow": "Still",
+  "@bellShimmerLow": {
+    "description": "Bell maker: shimmer, still end"
+  },
+  "bellShimmerHigh": "Wobbling",
+  "@bellShimmerHigh": {
+    "description": "Bell maker: shimmer, wobbling end"
+  },
+  "bellYours": "Your bells",
+  "@bellYours": {
+    "description": "Bell picker: the bells the user made"
+  },
+  "bellRename": "Rename",
+  "@bellRename": {
+    "description": "Bell picker: renames a bell the user made"
+  },
+  "bellRenameTitle": "Rename bell",
+  "@bellRenameTitle": {
+    "description": "Bell picker: rename dialog title"
+  },
+  "bellDeleteTitle": "Delete “{name}”?",
+  "@bellDeleteTitle": {
+    "description": "Bell picker: delete confirmation title",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "bellDeleteBody": "Cues that ring it go back to the Swell bell.",
+  "@bellDeleteBody": {
+    "description": "Bell picker: delete confirmation body"
+  },
+  "bellMenu": "More about {name}",
+  "@bellMenu": {
+    "description": "Bell picker: screen-reader label of a made bell's menu",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   }
 }

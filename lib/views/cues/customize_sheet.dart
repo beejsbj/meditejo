@@ -13,9 +13,12 @@ import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/providers/cues/cue_runtime_provider.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
+import 'package:medito/providers/cues/custom_bell_provider.dart';
 import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
+import 'package:medito/services/bells/custom_bell.dart';
+import 'package:medito/views/cues/bell_maker_view.dart';
 import 'package:medito/widgets/art/art_cover.dart';
 import 'package:medito/widgets/art/art_subject.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
@@ -590,6 +593,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         ?above,
         _BellList(
           selected: part == _Part.intervalBell ? s.intervalSound : sound,
+          volume: s.bellVolume,
           onSelected: (v) {
             _edit(apply(v));
             _audition(v, s.bellVolume);
@@ -905,12 +909,21 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     return v != null && v >= low && v <= high ? v : null;
   };
 
-  String _bellName(String path) => cueBellSounds.entries
-      .firstWhere(
-        (e) => e.value == path,
-        orElse: () => cueBellSounds.entries.first,
-      )
-      .key;
+  String _bellName(String path) {
+    if (isCustomBellId(path)) {
+      // A bell that was deleted rings as the default bell.
+      for (final b in ref.watch(customBellsProvider)) {
+        if (b.id == path) return b.name;
+      }
+      return _bellName(cueDefaultBell);
+    }
+    return cueBellSounds.entries
+        .firstWhere(
+          (e) => e.value == path,
+          orElse: () => cueBellSounds.entries.first,
+        )
+        .key;
+  }
 
   String _intervalValue(CueSettings s) {
     if (!s.hasIntervalBell) return 'Off';
@@ -1392,23 +1405,32 @@ class _SubLabel extends StatelessWidget {
 }
 
 /// The bells a cue can ring, each with its icon (the bell's figure,
-/// drawn from its sound). Tapping one selects it and rings it once, so what
-/// is heard is what a session will play, and its icon is struck with it.
-class _BellList extends StatefulWidget {
-  const _BellList({required this.selected, required this.onSelected});
+/// drawn from its sound), then the ones the user made and a row to make
+/// another. Tapping one selects it and rings it once, so what is heard is
+/// what a session will play, and its icon is struck with it.
+class _BellList extends ConsumerStatefulWidget {
+  const _BellList({
+    required this.selected,
+    required this.onSelected,
+    required this.volume,
+  });
 
   final String selected;
   final ValueChanged<String> onSelected;
 
+  /// The cue's bell volume, which a bell being made is heard at.
+  final double volume;
+
   @override
-  State<_BellList> createState() => _BellListState();
+  ConsumerState<_BellList> createState() => _BellListState();
 }
 
-class _BellListState extends State<_BellList> {
-  final _strikes = <String, ValueNotifier<int>>{
-    for (final asset in cueBellSounds.values)
-      if (asset.isNotEmpty) asset: ValueNotifier(0),
-  };
+class _BellListState extends ConsumerState<_BellList> {
+  // One per bell, made when a bell first needs it.
+  final _strikes = <String, ValueNotifier<int>>{};
+
+  ValueNotifier<int> _strike(String id) =>
+      _strikes.putIfAbsent(id, () => ValueNotifier(0));
 
   @override
   void dispose() {
@@ -1418,16 +1440,66 @@ class _BellListState extends State<_BellList> {
     super.dispose();
   }
 
-  void _pick(String asset) {
-    widget.onSelected(asset);
-    _strikes[asset]?.value++;
+  void _pick(String sound) {
+    widget.onSelected(sound);
+    if (sound.isNotEmpty) _strike(sound).value++;
+  }
+
+  Future<void> _make() async {
+    final bell = await showBellMaker(
+      context,
+      from: widget.selected,
+      volume: widget.volume,
+    );
+    if (bell != null && mounted) _pick(bell.id);
+  }
+
+  Future<void> _rename(CustomBell bell) async {
+    final name = await showDialog<String>(
+      context: context,
+      builder: (_) => _BellNameDialog(initial: bell.name),
+    );
+    if (name == null || cleanBellName(name) == null || !mounted) return;
+    await ref.read(customBellsProvider.notifier).rename(bell.id, name);
+  }
+
+  Future<void> _delete(CustomBell bell) async {
+    final l10n = AppLocalizations.of(context);
+    final delete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          l10n?.bellDeleteTitle(bell.name) ?? 'Delete “${bell.name}”?',
+        ),
+        content: Text(
+          l10n?.bellDeleteBody ??
+              'Cues that ring it go back to the Swell bell.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n?.soundsCancel ?? 'Cancel'),
+          ),
+          TextButton(
+            key: const ValueKey('bell_delete_confirm'),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n?.soundsDelete ?? 'Delete'),
+          ),
+        ],
+      ),
+    );
+    if (delete != true || !mounted) return;
+    final wasSelected = widget.selected == bell.id;
+    await ref.read(customBellsProvider.notifier).delete(bell.id);
+    // The cue that rang it moved to the default bell; the list follows.
+    if (wasSelected && mounted) widget.onSelected(cueDefaultBell);
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final type = context.typography;
-    final selected = widget.selected;
+    final l10n = AppLocalizations.of(context);
+    final made = ref.watch(customBellsProvider);
     return Material(
       color: scheme.surfaceContainerHighest,
       clipBehavior: Clip.antiAlias,
@@ -1435,80 +1507,208 @@ class _BellListState extends State<_BellList> {
       child: Column(
         children: [
           for (final e in cueBellSounds.entries)
-            Semantics(
-              button: true,
-              selected: e.value == selected,
-              label: e.value.isEmpty ? e.key : '${e.key}, plays a preview',
-              excludeSemantics: true,
-              onTap: () => _pick(e.value),
-              child: InkWell(
-                onTap: () => _pick(e.value),
-                child: Ink(
-                  color: e.value == selected ? scheme.secondaryContainer : null,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 56),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+            _row(
+              key: e.value,
+              name: e.key,
+              selected: e.value == widget.selected,
+              icon: e.value.isEmpty
+                  ? ColoredBox(
+                      color: scheme.surfaceContainerLow,
+                      child: Icon(
+                        Icons.notifications_off_outlined,
+                        size: 20,
+                        color: scheme.onSurfaceVariant,
                       ),
-                      child: Row(
-                        children: [
-                          SizedBox.square(
-                            dimension: 40,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: e.value.isEmpty
-                                  ? ColoredBox(
-                                      color: scheme.surfaceContainerLow,
-                                      child: Icon(
-                                        Icons.notifications_off_outlined,
-                                        size: 20,
-                                        color: scheme.onSurfaceVariant,
-                                      ),
-                                    )
-                                  : ArtCover(
-                                      key: ValueKey('bell_icon_${e.value}'),
-                                      subject: ArtSubject.bell(
-                                        e.value,
-                                        icon: true,
-                                      ),
-                                      strike: _strikes[e.value],
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              e.key,
-                              style:
-                                  (e.value == selected
-                                          ? type.emphasized.bodyLarge
-                                          : type.baseline.bodyLarge)
-                                      ?.copyWith(
-                                        color: e.value == selected
-                                            ? scheme.onSecondaryContainer
-                                            : scheme.onSurface,
-                                      ),
-                            ),
-                          ),
-                          if (e.value == selected)
-                            Icon(Icons.check_rounded, color: scheme.primary)
-                          else if (e.value.isNotEmpty)
-                            Icon(
-                              Icons.volume_up_rounded,
-                              size: 20,
-                              color: scheme.onSurfaceVariant,
-                            ),
-                        ],
-                      ),
+                    )
+                  : ArtCover(
+                      key: ValueKey('bell_icon_${e.value}'),
+                      subject: ArtSubject.bell(e.value, icon: true),
+                      strike: _strike(e.value),
                     ),
-                  ),
+              onTap: () => _pick(e.value),
+            ),
+          if (made.isNotEmpty) _heading(l10n?.bellYours ?? 'Your bells'),
+          for (final b in made)
+            _row(
+              key: b.id,
+              name: b.name,
+              selected: b.id == widget.selected,
+              icon: ArtCover(
+                key: ValueKey('bell_icon_${b.id}'),
+                subject: ArtSubject.customBell(
+                  b.id,
+                  b.preset,
+                  b.knobs,
+                  icon: true,
                 ),
+                strike: _strike(b.id),
+              ),
+              onTap: () => _pick(b.id),
+              menu: PopupMenuButton<String>(
+                key: ValueKey('bell_menu_${b.id}'),
+                tooltip: l10n?.bellMenu(b.name) ?? 'More about ${b.name}',
+                onSelected: (v) => v == 'rename'
+                    ? unawaited(_rename(b))
+                    : unawaited(_delete(b)),
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: 'rename',
+                    child: Text(l10n?.bellRename ?? 'Rename'),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text(l10n?.soundsDelete ?? 'Delete'),
+                  ),
+                ],
               ),
             ),
+          _row(
+            key: 'make',
+            name: l10n?.bellMakerTitle ?? 'Make a bell',
+            selected: false,
+            icon: ColoredBox(
+              color: scheme.secondaryContainer,
+              child: Icon(
+                Icons.add_rounded,
+                size: 22,
+                color: scheme.onSecondaryContainer,
+              ),
+            ),
+            onTap: _make,
+            action: true,
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _heading(String text) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+    child: Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        text,
+        style: context.typography.baseline.labelLarge?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    ),
+  );
+
+  Widget _row({
+    required String key,
+    required String name,
+    required bool selected,
+    required Widget icon,
+    required VoidCallback onTap,
+    Widget? menu,
+    bool action = false,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    final type = context.typography;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: action || key.isEmpty ? name : '$name, plays a preview',
+      excludeSemantics: true,
+      onTap: onTap,
+      child: InkWell(
+        key: ValueKey('bell_row_$key'),
+        onTap: onTap,
+        child: Ink(
+          color: selected ? scheme.secondaryContainer : null,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 56),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                children: [
+                  SizedBox.square(
+                    dimension: 40,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: icon,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          (selected
+                                  ? type.emphasized.bodyLarge
+                                  : type.baseline.bodyLarge)
+                              ?.copyWith(
+                                color: selected
+                                    ? scheme.onSecondaryContainer
+                                    : scheme.onSurface,
+                              ),
+                    ),
+                  ),
+                  if (selected)
+                    Icon(Icons.check_rounded, color: scheme.primary)
+                  else if (!action && key.isNotEmpty && menu == null)
+                    Icon(
+                      Icons.volume_up_rounded,
+                      size: 20,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ?menu,
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Asks for a bell's new name.
+class _BellNameDialog extends StatefulWidget {
+  const _BellNameDialog({required this.initial});
+
+  final String initial;
+
+  @override
+  State<_BellNameDialog> createState() => _BellNameDialogState();
+}
+
+class _BellNameDialogState extends State<_BellNameDialog> {
+  late final _controller = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l10n?.bellRenameTitle ?? 'Rename bell'),
+      content: TextField(
+        key: const ValueKey('bell_rename_field'),
+        controller: _controller,
+        autofocus: true,
+        maxLength: maxCustomBellNameLength,
+        textCapitalization: TextCapitalization.sentences,
+        onSubmitted: (v) => Navigator.pop(context, v),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n?.soundsCancel ?? 'Cancel'),
+        ),
+        TextButton(
+          key: const ValueKey('bell_rename_confirm'),
+          onPressed: () => Navigator.pop(context, _controller.text),
+          child: Text(l10n?.bellMakerSave ?? 'Save'),
+        ),
+      ],
     );
   }
 }
