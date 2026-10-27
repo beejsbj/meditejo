@@ -69,7 +69,9 @@ void main() {
   test('a recording of another length is not the cached one', () async {
     answer = (_) => found();
     await service.analyse('k', 'a.mp3');
+    // A source that states minutes only is close enough.
     expect(await service.cached('k', durationMs: 2642000), isNotNull);
+    expect(await service.cached('k', durationMs: 2700000), isNotNull);
     expect(await service.cached('k', durationMs: 1800000), isNull);
     expect(await service.cached('k', durationMs: 0), isNotNull);
   });

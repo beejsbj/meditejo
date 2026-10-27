@@ -43,13 +43,18 @@ class PauseMapService {
   static bool canAnalyse(String trackId, String source) =>
       source.isNotEmpty && !trackId.startsWith('yt-');
 
+  /// A source's stated length can be rounded (Dharma Seed gives minutes), so
+  /// only a clearly different length means a different file.
+  static const durationTolerance = Duration(seconds: 90);
+
   /// What was found before, if the recording is still the same length.
   Future<MediaSpanMap?> cached(String key, {int? durationMs}) async {
     final map = await _store.read(key);
     if (map == null) return null;
     if (durationMs != null &&
         durationMs > 0 &&
-        (map.durationMs - durationMs).abs() > 5000) {
+        (map.durationMs - durationMs).abs() >
+            durationTolerance.inMilliseconds) {
       return null;
     }
     return map;

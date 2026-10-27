@@ -527,6 +527,12 @@ internal class CueEngine(
     // ---- Player events -----------------------------------------------------
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
+        // The voice started during a hold (a headset or lock screen button
+        // plays the player directly): the listener chose to carry on.
+        if (phase == Phase.HOLD) {
+            if (isPlaying) endHold(resume = false)
+            return
+        }
         if (phase != Phase.PLAYING) return
         if (isPlaying) {
             bank?.resumeAll()
