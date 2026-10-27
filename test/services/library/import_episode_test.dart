@@ -90,6 +90,28 @@ void main() {
       expect(track.attribution!.source, 'example.org');
     });
 
+    test('a single keeps the feed\'s licence line', () async {
+      final preview = await h.service.resolve(feedUrl);
+      final result = await h.service.add(
+        preview,
+        const ImportChoice(
+          kind: LibraryKind.single,
+          group: LibraryGroup.practice,
+          episodeId: 'ep-2',
+        ),
+      );
+      final row = (await h.db.trackById(result.entryId))!;
+      expect(row.licenseName, 'CC BY-NC 4.0');
+      expect(row.licenseUrl, 'https://creativecommons.org/licenses/by-nc/4.0/');
+
+      final track = await h.lib.track(result.entryId);
+      expect(track.attribution!.licenseName, 'CC BY-NC 4.0');
+      expect(
+        track.attribution!.licenseUrl,
+        'https://creativecommons.org/licenses/by-nc/4.0/',
+      );
+    });
+
     test('adding the same episode again finds the first', () async {
       final preview = await h.service.resolve(feedUrl);
       const pick = ImportChoice(

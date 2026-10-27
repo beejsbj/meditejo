@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:medito/models/timer/timer_session.dart';
@@ -10,6 +12,8 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/local_audio_completed.dart';
 import 'package:medito/providers/day_boundary_offset_provider.dart';
+import 'package:medito/providers/library/library_providers.dart';
+import 'package:medito/providers/library/session_origin.dart';
 import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/utils/calendar_range.dart';
@@ -1196,6 +1200,16 @@ class _SessionItemWidget extends ConsumerWidget {
     return withDeleteAction(
       InkWell(
         onTap: () {
+          // Opened from the calendar, which has no course.
+          if (!isTimer) {
+            unawaited(
+              noteSessionOrigin(
+                ref.read(libraryStoreProvider),
+                session.id,
+                null,
+              ),
+            );
+          }
           Navigator.push(
             context,
             MaterialPageRoute(

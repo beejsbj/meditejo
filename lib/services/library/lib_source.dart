@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -31,6 +32,15 @@ class LibSource
 
   final LibraryDatabase db;
   final LibraryStore library;
+
+  final _removals = StreamController<List<String>>.broadcast();
+
+  /// The sessions this source just stopped having (an import was deleted), so
+  /// a personal course listing one can mark it unavailable without waiting
+  /// for its page to be opened.
+  Stream<List<String>> get removals => _removals.stream;
+
+  void dispose() => _removals.close();
 
   @override
   String get prefix => libPrefix;
@@ -185,8 +195,8 @@ class LibSource
           : (uri != null && uri.hasScheme && !track.isLocalFile
                 ? track.audioUrl
                 : ''),
-      licenseName: '',
-      licenseUrl: '',
+      licenseName: track.licenseName,
+      licenseUrl: track.licenseUrl,
     );
   }
 
@@ -300,20 +310,25 @@ class LibSource
   Future<void> remove(String id) async {
     await library.remove(id);
     final paths = <String>[];
+    final removed = <String>[];
     if (isLibCourseId(id)) {
       // Sessions of the course that were also added on their own go too.
-      for (final child in await db.trackIdsOfCourse(id)) {
+      final children = await db.trackIdsOfCourse(id);
+      for (final child in children) {
         await library.remove(child);
       }
       paths.addAll(await db.deleteCourse(id));
+      removed.addAll(children);
     } else if (isLibTrackId(id)) {
       // A session inside a course belongs to the course: taking it out of the
       // library as its own entry leaves the course (and its audio) alone.
       if ((await db.trackById(id))?.courseId == null) {
         final path = await db.deleteTrack(id);
         if (path != null) paths.add(path);
+        removed.add(id);
       }
     }
+    if (removed.isNotEmpty && !_removals.isClosed) _removals.add(removed);
     for (final path in paths) {
       // Only ever our own copies, never a path from anywhere else.
       if (p.basename(p.dirname(path)) != 'library') continue;
@@ -407,6 +422,8 @@ class LibSource
     ParsedEpisode episode, {
     required String feedUrl,
     String? courseId,
+    String? licenseName,
+    String? licenseUrl,
     DateTime? now,
   }) async {
     final id = libEpisodeId(feedUrl, episode.guid);
@@ -428,6 +445,10 @@ class LibSource
         ),
         ordinal: Value(episode.ordinal),
         pageUrl: Value(episode.pageUrl),
+        // Inside a course the course carries the licence; alone, the episode
+        // keeps the feed's. Not given: keep what the row already says.
+        licenseName: Value(licenseName ?? existing?.licenseName ?? ''),
+        licenseUrl: Value(licenseUrl ?? existing?.licenseUrl ?? ''),
         createdAt: existing?.createdAt ?? now ?? DateTime.now(),
       ),
     );

@@ -103,6 +103,8 @@ void main() {
       old.execute('DROP TABLE my_course_items');
       old.execute('DROP TABLE my_courses');
       old.execute('DROP TABLE session_contexts');
+      old.execute('ALTER TABLE lib_tracks DROP COLUMN license_name');
+      old.execute('ALTER TABLE lib_tracks DROP COLUMN license_url');
       old.execute('PRAGMA user_version = 2');
       old.dispose();
 
@@ -186,6 +188,51 @@ void main() {
       expect((await source.packTrackIds())[id], ['x-1']);
       expect((await source.searchPacks('curric')).single.id, id);
       expect(await source.searchPacks('nothing like it'), isEmpty);
+    });
+
+    test('a removal reported by a source updates availability without the '
+        'course page being opened', () async {
+      final id = await source.create(
+        title: 'C',
+        lines: [
+          MyCourseLine.session(draft('x-1')),
+          MyCourseLine.session(draft('x-2')),
+        ],
+      );
+      expect((await source.packTrackIds())[id], ['x-1', 'x-2']);
+      final changes = source.revision.value;
+
+      // The source drops x-2; stored flags still say it is playable.
+      upstream.gone.add('x-2');
+      expect((await source.packTrackIds())[id], ['x-1', 'x-2']);
+
+      await source.sessionsRemoved(['x-2']);
+
+      expect((await source.packTrackIds())[id], ['x-1']);
+      expect(source.revision.value, greaterThan(changes));
+      // The session stays in the course, marked unavailable.
+      expect((await source.pack(id)).items.last.unavailable, isTrue);
+    });
+
+    test('a removal asks only about the sessions removed, and an offline '
+        'source does not mark them gone', () async {
+      final id = await source.create(
+        title: 'C',
+        lines: [
+          MyCourseLine.session(draft('x-1')),
+          MyCourseLine.session(draft('x-2')),
+        ],
+      );
+      upstream.gone.add('x-1');
+      await source.sessionsRemoved(['x-2']);
+      expect((await source.packTrackIds())[id], [
+        'x-1',
+        'x-2',
+      ], reason: 'x-1 was not reported, and x-2 is still there');
+
+      upstream.offline = true;
+      await source.sessionsRemoved(['x-2']);
+      expect((await source.packTrackIds())[id], ['x-1', 'x-2']);
     });
 
     test('a session re-read from its source refreshes the snapshot', () async {
@@ -356,6 +403,122 @@ void main() {
       expect((await source.edit(id))!.coverUrl, isEmpty);
       expect((await store.entry(id))!.coverUrl, isNot(contains('x-2')));
     });
+
+    test('Save drops a cover whose session the editor removed', () async {
+      final id = await source.create(
+        title: 'A',
+        lines: [
+          MyCourseLine.session(draft('x-1')),
+          MyCourseLine.session(draft('x-2')),
+        ],
+      );
+      var edit = (await source.edit(id))!;
+      await source.save(
+        id,
+        edit.copyWith(coverUrl: 'https://img.test/x-2.jpg'),
+      );
+
+      // The full editor takes x-2 out and saves; the cover field still holds
+      // its artwork, which is no longer one of the choices.
+      edit = (await source.edit(id))!;
+      expect(edit.coverUrl, 'https://img.test/x-2.jpg');
+      await source.save(id, edit.copyWith(lines: [edit.lines.first]));
+
+      expect((await source.edit(id))!.coverUrl, isEmpty);
+      expect((await store.entry(id))!.coverUrl, isNot(contains('x-2')));
+    });
+
+    test('Save keeps a cover carried from elsewhere, and one still offered, '
+        'when sessions are removed', () async {
+      final id = await source.create(
+        title: 'A',
+        coverUrl: 'https://img.test/retreat-photo.jpg',
+        lines: [
+          MyCourseLine.session(draft('x-1')),
+          MyCourseLine.session(draft('x-2')),
+        ],
+      );
+      var edit = (await source.edit(id))!;
+      expect(edit.coverUrl, 'https://img.test/retreat-photo.jpg');
+      await source.save(id, edit.copyWith(lines: [edit.lines.first]));
+      expect(
+        (await source.edit(id))!.coverUrl,
+        'https://img.test/retreat-photo.jpg',
+        reason: 'not session artwork, so no session takes it away',
+      );
+
+      edit = (await source.edit(id))!;
+      await source.save(
+        id,
+        edit.copyWith(coverUrl: 'https://img.test/x-1.jpg'),
+      );
+      edit = (await source.edit(id))!;
+      await source.save(id, edit.copyWith(title: 'B'));
+      expect((await source.edit(id))!.coverUrl, 'https://img.test/x-1.jpg');
+    });
+
+    test('a refreshed session cover moves the course cover and its library '
+        'snapshot', () async {
+      final id = await source.create(
+        title: 'A',
+        lines: [
+          MyCourseLine.session(draft('x-1')),
+          MyCourseLine.session(draft('x-2')),
+        ],
+      );
+      final edit = (await source.edit(id))!;
+      await source.save(
+        id,
+        edit.copyWith(coverUrl: 'https://img.test/x-2.jpg'),
+      );
+      expect((await store.entry(id))!.coverUrl, 'https://img.test/x-2.jpg');
+
+      // The source changes x-2's artwork; the course had chosen the old one.
+      upstream.covers['x-2'] = 'https://img.test/x-2-new.jpg';
+      final pack = await source.pack(id);
+
+      expect(pack.coverUrl, 'https://img.test/x-2-new.jpg');
+      expect((await source.edit(id))!.coverUrl, 'https://img.test/x-2-new.jpg');
+      expect((await store.entry(id))!.coverUrl, 'https://img.test/x-2-new.jpg');
+    });
+
+    test(
+      'a refreshed session cover leaves the course cover alone when it '
+      'came from elsewhere or another session still has the old one',
+      () async {
+        final elsewhere = await source.create(
+          title: 'Copied',
+          coverUrl: 'https://img.test/retreat-photo.jpg',
+          lines: [MyCourseLine.session(draft('x-1'))],
+        );
+        upstream.covers['x-1'] = 'https://img.test/x-1-new.jpg';
+        expect(
+          (await source.pack(elsewhere)).coverUrl,
+          'https://img.test/retreat-photo.jpg',
+        );
+
+        // Two sessions share artwork; one changes, the other still offers it.
+        final shared = await source.create(
+          title: 'Shared',
+          lines: [
+            MyCourseLine.session(draft('x-3')),
+            MyCourseLine.session(draft('x-4')),
+          ],
+        );
+        var edit = (await source.edit(shared))!;
+        await source.save(
+          shared,
+          edit.copyWith(coverUrl: 'https://img.test/x-3.jpg'),
+        );
+        upstream.covers['x-3'] = 'https://img.test/x-3-new.jpg';
+        upstream.covers['x-4'] = 'https://img.test/x-3.jpg';
+        expect(
+          (await source.pack(shared)).coverUrl,
+          'https://img.test/x-3.jpg',
+          reason: 'x-4 now carries the old artwork, so it is still a choice',
+        );
+      },
+    );
 
     test('renaming changes the course\'s own title', () async {
       final id = await source.create(title: 'Old');

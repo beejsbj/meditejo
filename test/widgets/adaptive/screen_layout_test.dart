@@ -15,8 +15,6 @@ import 'package:medito/providers/favorites/favorites_provider.dart';
 import 'package:medito/models/favorites/favorite_item.dart';
 import 'package:medito/models/explore/explore_list_item.dart';
 import 'package:medito/models/track/track.dart' as model;
-import 'package:medito/providers/tags/tags_provider.dart';
-import 'package:medito/models/tags/tag_model.dart';
 import 'package:medito/views/settings/settings_screen.dart';
 import 'dart:ui' as ui;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -814,31 +812,6 @@ void main() {
                 ).overrideWith(_JourneyTracks.new),
                 favoritesNotifierProvider.overrideWith(_JourneyFavorites.new),
                 statsProvider.overrideWith(_OnboardingStats.new),
-                tagCatalogProvider.overrideWithValue(
-                  TagCatalog(
-                    tags: const [
-                      TagModel(
-                        id: 'sleep',
-                        group: 'goal',
-                        description: 'Sleep',
-                      ),
-                      TagModel(
-                        id: 'anxiety',
-                        group: 'goal',
-                        description: 'Anxiety',
-                      ),
-                      TagModel(
-                        id: 'breathing',
-                        group: 'technique',
-                        description: 'Breathing',
-                      ),
-                    ],
-                    trackTags: {
-                      'preview': ['breathing'],
-                      'track-1': ['breathing'],
-                    },
-                  ),
-                ),
               ],
               child: RepaintBoundary(
                 key: const ValueKey('capture'),

@@ -235,6 +235,16 @@ internal object CueMath {
     @Suppress("UNUSED_PARAMETER")
     fun earnsCompletion(isTimer: Boolean, heardEnough: Boolean, extensionFinished: Boolean): Boolean =
         isTimer || heardEnough
+
+    /**
+     * Whether a further pass of a looped recording, after the session was
+     * earned, adds its minutes. Each pass must be 90% heard on its own (the
+     * listening record starts fresh with every pass), so seeking to the end
+     * of the loop does not count a full repeat. A timer's pass counts at its
+     * natural end, as its first one did.
+     */
+    fun earnsRepeat(isTimer: Boolean, heardPassEnough: Boolean): Boolean =
+        isTimer || heardPassEnough
 }
 
 /**
@@ -286,6 +296,9 @@ internal class ListeningTracker(private val maxStepMs: Long = CueMath.LISTENING_
     fun rebase(positionMs: Long) { last = positionMs }
 
     fun markNotPlaying() { last = -1L }
+
+    /** A new pass of a looped recording: nothing heard yet, playback at the start. */
+    fun startPass() { ranges.clear(); last = 0L }
 
     fun sample(positionMs: Long, playing: Boolean) {
         if (!playing || positionMs < 0) { last = -1L; return }
