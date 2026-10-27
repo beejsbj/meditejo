@@ -2838,27 +2838,27 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get extendPlacementEnd => 'At the end';
+  String get extendPlacementEnd => 'Am Ende';
 
   @override
-  String get extendPlacementPauses => 'In the pauses';
+  String get extendPlacementPauses => 'In den Pausen';
 
   @override
   String get extendPlacementCaptionEnd =>
-      'All the extra minutes come after the recording, then the ending bell.';
+      'Alle zusätzlichen Minuten folgen nach der Aufnahme, danach die Abschlussglocke.';
 
   @override
   String get extendPlacementCaptionPauses =>
-      'The voice rests in its own long pauses, in the order of the recording. What no pause takes comes after the recording, then the ending bell. Streamed recordings are read on Wi-Fi; until then it all comes at the end.';
+      'Die Stimme ruht in ihren eigenen langen Pausen, in der Reihenfolge der Aufnahme. Was keine Pause aufnimmt, folgt nach der Aufnahme, danach die Abschlussglocke. Gestreamte Aufnahmen werden im WLAN eingelesen; bis dahin kommt alles ans Ende.';
 
   @override
-  String get extendHoldTitle => 'Resting in silence';
+  String get extendHoldTitle => 'Ruhe in der Stille';
 
   @override
   String extendHoldLeft(String time) {
-    return '$time left';
+    return 'noch $time';
   }
 
   @override
-  String get extendSkipPause => 'Skip this pause';
+  String get extendSkipPause => 'Diese Pause überspringen';
 }

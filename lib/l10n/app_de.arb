@@ -1376,11 +1376,11 @@
   "labelsAddHint": "Add a label",
   "labelsAddButton": "Add",
   "labelsRemoveTooltip": "Remove label {label}",
-  "extendPlacementEnd": "At the end",
-  "extendPlacementPauses": "In the pauses",
-  "extendPlacementCaptionEnd": "All the extra minutes come after the recording, then the ending bell.",
-  "extendPlacementCaptionPauses": "The voice rests in its own long pauses, in the order of the recording. What no pause takes comes after the recording, then the ending bell. Streamed recordings are read on Wi-Fi; until then it all comes at the end.",
-  "extendHoldTitle": "Resting in silence",
-  "extendHoldLeft": "{time} left",
-  "extendSkipPause": "Skip this pause"
+  "extendPlacementEnd": "Am Ende",
+  "extendPlacementPauses": "In den Pausen",
+  "extendPlacementCaptionEnd": "Alle zusätzlichen Minuten folgen nach der Aufnahme, danach die Abschlussglocke.",
+  "extendPlacementCaptionPauses": "Die Stimme ruht in ihren eigenen langen Pausen, in der Reihenfolge der Aufnahme. Was keine Pause aufnimmt, folgt nach der Aufnahme, danach die Abschlussglocke. Gestreamte Aufnahmen werden im WLAN eingelesen; bis dahin kommt alles ans Ende.",
+  "extendHoldTitle": "Ruhe in der Stille",
+  "extendHoldLeft": "noch {time}",
+  "extendSkipPause": "Diese Pause überspringen"
 }
