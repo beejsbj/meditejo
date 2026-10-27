@@ -2,6 +2,7 @@
 // ignore_for_file: non_constant_identifier_names
 
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:medito/widgets/art/engine/art_core.dart';
 import 'package:medito/widgets/art/engine/primitives.dart';
@@ -600,9 +601,19 @@ class WavesFigure extends Figure {
   }
 }
 
-/// scales: drifts slowly sideways and back. The page paints the pattern into
-/// a raster cache and `drawImage`s it, shifted; here the same paint goes into
-/// a layer, shifted, inside the same clip.
+/// The page's `cached()` raster for scales: the pattern painted once at the
+/// card's pixel size, with a tenth of a unit around the unit square.
+class _ScalesCache {
+  _ScalesCache(this.key, this.image);
+  final String key;
+  final ui.Image image;
+}
+
+final Expando<_ScalesCache> _scalesCache = Expando('scales');
+
+/// scales: drifts slowly sideways and back. Painted into a raster cache and
+/// `drawImage`d, as the page does: the image lands on a fractional pixel, so
+/// the resampling softens the lines, as it does on the page.
 class ScalesFigure extends Figure {
   const ScalesFigure();
 
@@ -619,39 +630,52 @@ class ScalesFigure extends Figure {
   @override
   void draw(Ctx ctx, P p, Inks k, double t, bool still) {
     final R = p.d('R'), rings = p.i('rings');
-    void paint() {
+    void paint(Ctx g) {
       var row = 0;
       for (var y = -0.1 - R; y < 1.1 + R * 2; row++, y += R * 0.5) {
         for (var x = (row % 2) * R - R - 0.1; x < 1.1 + R; x += R * 2) {
-          ctx.beginPath();
-          ctx.arc(x, y, R, math.pi, tau);
-          ctx.lineTo(x + R, y + R);
-          ctx.lineTo(x - R, y + R);
-          ctx.closePath();
-          fillWith(ctx, k.paper);
+          g.beginPath();
+          g.arc(x, y, R, math.pi, tau);
+          g.lineTo(x + R, y + R);
+          g.lineTo(x - R, y + R);
+          g.closePath();
+          fillWith(g, k.paper);
           for (var i = 0; i < rings; i++) {
-            ctx.beginPath();
-            ctx.arc(x, y, R * (1 - i / rings), math.pi, tau);
-            strokeWith(ctx, i != 0 ? k.line : k.main, 0.005, 0.9);
+            g.beginPath();
+            g.arc(x, y, R * (1 - i / rings), math.pi, tau);
+            strokeWith(g, i != 0 ? k.line : k.main, 0.005, 0.9);
           }
         }
       }
     }
 
-    final dx = still ? 0.0 : 0.04 * S(t, 20);
+    final px = math.max(1, (ctx.canvas.getTransform()[0] + 0.5).floor());
+    final key = '$px|${k.paper.hex}|${k.main.hex}|${k.line.hex}';
+    var cache = _scalesCache[p.m];
+    if (cache == null || cache.key != key) {
+      cache?.image.dispose();
+      final side = (px * 1.2 + 0.5).floor();
+      final rec = ui.PictureRecorder();
+      final g = Ctx(ui.Canvas(rec));
+      g.translate(0.1 * px, 0.1 * px);
+      g.scale(px.toDouble(), px.toDouble());
+      paint(g);
+      final pic = rec.endRecording();
+      cache = _scalesCache[p.m] = _ScalesCache(
+        key,
+        pic.toImageSync(side, side),
+      );
+    }
     ctx.save();
     circle(ctx, p.d('cx'), p.d('cy'), p.d('s'));
     ctx.clip();
-    ctx.layer(() {
-      ctx.save();
-      ctx.translate(dx, 0);
-      // The page's cache holds only the unit square and a tenth around it.
-      ctx.beginPath();
-      ctx.rect(-0.1, -0.1, 1.2, 1.2);
-      ctx.clip();
-      paint();
-      ctx.restore();
-    });
+    ctx.drawImage(
+      cache.image,
+      -0.1 + (still ? 0 : 0.04 * S(t, 20)),
+      -0.1,
+      1.2,
+      1.2,
+    );
     ctx.restore();
   }
 }
