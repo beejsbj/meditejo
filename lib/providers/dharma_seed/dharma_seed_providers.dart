@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:medito/providers/dhammatalks/dhammatalks_providers.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/services/content/content_source.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_client.dart';
@@ -39,10 +40,13 @@ final dharmaSeedSourceProvider = Provider<DharmaSeedSource>(
   ),
 );
 
-/// Every built-in or imported source, consulted by stable ID prefix.
+/// Every built-in or imported source, consulted by stable ID prefix. The
+/// built-in catalogues come first, in the order the Explore source filter
+/// lists them.
 final Provider<List<ContentSource>> contentSourcesProvider = Provider(
   (ref) => [
     ref.watch(dharmaSeedSourceProvider),
+    ref.watch(dhammatalksSourceProvider),
     ref.watch(libSourceProvider),
     if (ref.watch(youtubeAvailableProvider)) ref.watch(youtubeSourceProvider),
     ref.watch(myCourseSourceProvider),

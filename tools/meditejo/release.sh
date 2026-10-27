@@ -113,6 +113,12 @@ else
   problem "could not fetch origin/$branch"
 fi
 [[ -z $notes_file || -s $notes_file ]] || problem "notes file '$notes_file' is missing or empty"
+# The dhammatalks.org snapshot is in git and the app only bridges it to today
+# with the site's RSS feeds (50 items each), so a release refuses one older than
+# 45 days. Refresh it with: python3 -I tools/meditejo/dhammatalks.py build
+python3 -I tools/meditejo/dhammatalks.py check --max-age-days 45 ||
+  problem 'the dhammatalks.org snapshot is stale or damaged (see above); rebuild it with tools/meditejo/dhammatalks.py build and commit assets/dhammatalks'
+
 # Decide whether this release refreshes the bundled catalogue: only when the
 # pinned snapshot is older than 30 days (by its asOf date, which travels with
 # the commit; file times do not) or when forced. A missing or unreadable

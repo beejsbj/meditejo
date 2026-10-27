@@ -5,7 +5,7 @@ import 'package:medito/models/explore/session_length.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
 import 'package:medito/services/content/content_source.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_models.dart';
+import 'package:medito/models/catalogue/catalogue_models.dart';
 import '../../helpers/fake_savable_source.dart';
 import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/track/track_view.dart';
@@ -714,8 +714,8 @@ void main() {
                 contentRouterProvider.overrideWithValue(
                   ContentRouter(sources: [FakeSavableSource()]),
                 ),
-                dharmaSeedExploreProvider(null).overrideWith(
-                  (ref) async => DsExplore(
+                catalogueExploreProvider(null).overrideWith(
+                  (ref) async => CatalogueExplore(
                     hasCatalogue: true,
                     courses: [
                       for (final pack in packs)
@@ -729,23 +729,26 @@ void main() {
                         ),
                     ],
                     teachers: [
-                      DsTeacherItem(
+                      CatalogueTeacher(
                         id: 'ds-teacher-1',
                         name: 'Rob Burbea',
                         photoUrl: request.coverUrl,
                       ),
-                      const DsTeacherItem(id: 'ds-teacher-2', name: 'No Photo'),
+                      const CatalogueTeacher(
+                        id: 'ds-teacher-2',
+                        name: 'No Photo',
+                      ),
                     ],
                   ),
                 ),
                 for (final length in [null, SessionLength.under10])
-                  dharmaSeedSearchProvider((
+                  catalogueSearchProvider((
                     query: 'mind',
                     length: length,
                   )).overrideWith(
-                    (ref) async => DsSearchResults(
+                    (ref) async => CatalogueSearchResults(
                       teachers: const [
-                        DsTeacherItem(
+                        CatalogueTeacher(
                           id: 'ds-teacher-1',
                           name: 'Mind Teacher',
                           talkCount: 12,
@@ -778,9 +781,9 @@ void main() {
                           : const [],
                     ),
                   ),
-                dharmaSeedTeacherProvider('ds-teacher-1').overrideWith(
-                  (ref) async => DsTeacherPage(
-                    teacher: DsTeacherItem(
+                catalogueTeacherProvider('ds-teacher-1').overrideWith(
+                  (ref) async => CatalogueTeacherPage(
+                    teacher: CatalogueTeacher(
                       id: 'ds-teacher-1',
                       name: 'Rob Burbea',
                       photoUrl: request.coverUrl,

@@ -5109,6 +5109,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pinned to Home'**
   String get libraryPinned;
+
+  /// Explore source chip: every built-in catalogue
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get exploreSourceAll;
+
+  /// Explore section title: a source's talks, year by year
+  ///
+  /// In en, this message translates to:
+  /// **'Talks by year'**
+  String get exploreArchives;
 }
 
 class _AppLocalizationsDelegate

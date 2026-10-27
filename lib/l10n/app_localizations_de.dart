@@ -2919,4 +2919,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get libraryPinned => 'Auf Home angeheftet';
+
+  @override
+  String get exploreSourceAll => 'All';
+
+  @override
+  String get exploreArchives => 'Talks by year';
 }

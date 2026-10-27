@@ -5,29 +5,32 @@ import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
 import 'package:medito/providers/library/library_providers.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_models.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
+import 'package:medito/models/catalogue/catalogue_models.dart';
 import 'package:medito/services/library/library_models.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
+import 'package:medito/services/content/catalogue_source.dart';
 import 'package:medito/utils/logger.dart';
 
-/// Explore's search: the user's library first, then Dharma Seed.
+/// Explore's search: the user's library first, then the built-in catalogues.
 ///
 /// Courses and talks from the library's own sources (imports, YouTube) lead,
 /// then anything else already in the library (a saved retreat), then the rest
-/// of Dharma Seed. An item appears once. Teachers are Dharma Seed's, with
+/// of the catalogues, merged across sources (or narrowed to the one chosen in
+/// Explore). An item appears once. Teachers come from the catalogues, with
 /// followed ones first.
 ///
-/// The length filter narrows talks by duration, which only Dharma Seed talks
+/// The length filter narrows talks by duration, which only catalogue talks
 /// carry, so while it is on the library's imports are left out.
 final exploreSearchProvider = FutureProvider.autoDispose
-    .family<DsSearchResults, DsSearchKey>((ref, key) async {
-      final dharmaSeed = await ref.watch(dharmaSeedSearchProvider(key).future);
+    .family<CatalogueSearchResults, CatalogueSearchKey>((ref, key) async {
+      final catalogue = await ref.watch(catalogueSearchProvider(key).future);
       ref.watch(libraryRevisionProvider);
       final library = {
         for (final e in await ref.watch(libraryStoreProvider).entries())
           e.sourceId: e,
       };
+      final cataloguePrefixes = [
+        for (final s in ref.watch(catalogueSourcesProvider)) s.prefix,
+      ];
       final needle = key.query.trim().toLowerCase();
       // Source search indexes retain the source title. Search renamed entries
       // as well, without changing that metadata or duplicating a source hit.
@@ -53,7 +56,7 @@ final exploreSearchProvider = FutureProvider.autoDispose
         for (final e in renamedMatches)
           if (e.kind == LibraryKind.single &&
               (key.length == null ||
-                  (e.sourceId.startsWith(dharmaSeedPrefix) &&
+                  (cataloguePrefixes.any(e.sourceId.startsWith) &&
                       e.durationMs > 0 &&
                       key.length!.matches(
                         Duration(milliseconds: e.durationMs),
@@ -61,7 +64,7 @@ final exploreSearchProvider = FutureProvider.autoDispose
             asItem(e),
       ];
       for (final source in ref.watch(contentSourcesProvider)) {
-        if (source is DharmaSeedSource) continue;
+        if (source is CatalogueSource) continue;
         try {
           ownCourses.addAll(await source.searchPacks(key.query));
           if (key.length == null) {
@@ -93,13 +96,13 @@ final exploreSearchProvider = FutureProvider.autoDispose
         ];
       }
 
-      return DsSearchResults(
+      return CatalogueSearchResults(
         teachers: [
-          ...dharmaSeed.teachers.where((t) => library.containsKey(t.id)),
-          ...dharmaSeed.teachers.where((t) => !library.containsKey(t.id)),
+          ...catalogue.teachers.where((t) => library.containsKey(t.id)),
+          ...catalogue.teachers.where((t) => !library.containsKey(t.id)),
         ],
-        courses: merge(ownCourses, dharmaSeed.courses),
-        talks: merge(ownTalks, dharmaSeed.talks),
+        courses: merge(ownCourses, catalogue.courses),
+        talks: merge(ownTalks, catalogue.talks),
       );
     });
 

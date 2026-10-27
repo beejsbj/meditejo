@@ -1404,5 +1404,7 @@
   "libraryFilterEmpty": "Hier ist noch nichts",
   "libraryFilterEmptyBody": "Finde etwas unter Entdecken, oder füge einen Link oder eine Datei hinzu.",
   "libraryEmptyExplore": "Entdecken",
-  "libraryPinned": "Auf Home angeheftet"
+  "libraryPinned": "Auf Home angeheftet",
+  "exploreSourceAll": "All",
+  "exploreArchives": "Talks by year"
 }

@@ -3214,5 +3214,13 @@
   "libraryPinned": "Pinned to Home",
   "@libraryPinned": {
     "description": "Screen-reader label of the pin mark on a Library card"
+  },
+  "exploreSourceAll": "All",
+  "@exploreSourceAll": {
+    "description": "Explore source chip: every built-in catalogue"
+  },
+  "exploreArchives": "Talks by year",
+  "@exploreArchives": {
+    "description": "Explore section title: a source's talks, year by year"
   }
 }
