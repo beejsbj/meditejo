@@ -3044,4 +3044,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsSoundPackWifiOnlyHint =>
       'They are large. On mobile data a download only starts when you choose Download anyway.';
+
+  @override
+  String soundPackMixAllMissing(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'All $count sounds in this mix need downloading.',
+      one: 'The sound in this mix needs downloading.',
+    );
+    return '$_temp0';
+  }
 }

@@ -2922,100 +2922,103 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String soundPackDownloadSound(String title, String size) {
-    return 'Download $title, $size';
+    return '$title herunterladen, $size';
   }
 
   @override
   String soundPackCancelDownload(String title) {
-    return 'Cancel the download of $title';
+    return 'Download von $title abbrechen';
   }
 
   @override
   String soundPackRetryDownload(String title) {
-    return 'The download of $title failed. Try again';
+    return 'Der Download von $title ist fehlgeschlagen. Erneut versuchen';
   }
 
   @override
-  String get soundPackQueued => 'Waiting to download';
+  String get soundPackQueued => 'Wartet auf den Download';
 
   @override
-  String get soundPackMoreTitle => 'More sounds';
+  String get soundPackMoreTitle => 'Weitere Geräusche';
 
   @override
   String soundPackMoreBody(int count, String size) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count more sounds to download',
-      one: '1 more sound to download',
+      other: '$count weitere Geräusche zum Herunterladen',
+      one: '1 weiteres Geräusch zum Herunterladen',
     );
     return '$_temp0 · $size';
   }
 
   @override
-  String get soundPackDownloadAll => 'Download all';
+  String get soundPackDownloadAll => 'Alle herunterladen';
 
   @override
   String soundPackDownloading(int done, int total) {
-    return 'Downloading $done of $total';
+    return 'Lade $done von $total herunter';
   }
 
   @override
-  String get soundPackCancel => 'Cancel';
+  String get soundPackCancel => 'Abbrechen';
 
   @override
-  String get soundPackWaitingForWifi => 'Waiting for Wi-Fi';
+  String get soundPackWaitingForWifi => 'Warte auf WLAN';
 
   @override
   String get soundPackWifiOnlyHint =>
-      'Downloads wait for Wi-Fi. You can change this in Settings.';
+      'Downloads warten auf WLAN. Das kannst du in den Einstellungen ändern.';
 
   @override
-  String get soundPackDownloadAnyway => 'Download anyway';
+  String get soundPackDownloadAnyway => 'Trotzdem herunterladen';
 
   @override
   String soundPackFailedCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count downloads failed',
-      one: '1 download failed',
+      other: '$count Downloads fehlgeschlagen',
+      one: '1 Download fehlgeschlagen',
     );
     return '$_temp0';
   }
 
   @override
-  String get soundPackRetry => 'Retry';
+  String get soundPackRetry => 'Erneut versuchen';
 
   @override
-  String get soundPackFailureNetwork => 'Check your connection';
+  String get soundPackFailureNetwork => 'Prüfe deine Verbindung';
 
   @override
   String get soundPackFailureServer =>
-      'The download is not available right now';
+      'Der Download ist gerade nicht verfügbar';
 
   @override
   String get soundPackFailureIntegrity =>
-      'The file did not match what Meditejo expects, so it was not kept';
+      'Die Datei entsprach nicht dem, was Meditejo erwartet, und wurde deshalb nicht behalten';
 
   @override
-  String get soundPackFailureStorage => 'Could not save it on this phone';
+  String get soundPackFailureStorage =>
+      'Konnte nicht auf diesem Telefon gespeichert werden';
 
   @override
   String soundPackNeedsDownload(String size) {
-    return 'Needs download · $size';
+    return 'Muss heruntergeladen werden · $size';
   }
 
   @override
-  String get soundPackDownload => 'Download';
+  String get soundPackDownload => 'Herunterladen';
 
   @override
   String soundPackMixMissing(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count sounds in this mix need downloading. The rest plays.',
-      one: '1 sound in this mix needs downloading. The rest plays.',
+      other:
+          '$count Geräusche in diesem Mix müssen heruntergeladen werden. Der Rest wird abgespielt.',
+      one:
+          '1 Geräusch in diesem Mix muss heruntergeladen werden. Der Rest wird abgespielt.',
     );
     return '$_temp0';
   }
@@ -3025,8 +3028,8 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count sounds need downloading',
-      one: '1 sound needs downloading',
+      other: '$count Geräusche müssen heruntergeladen werden',
+      one: '1 Geräusch muss heruntergeladen werden',
     );
     return '$_temp0';
   }
@@ -3036,10 +3039,10 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'They are',
-      one: 'It is',
+      other: 'Sie sind',
+      one: 'Es ist',
     );
-    return 'Playing without $names. $_temp0 not downloaded yet.';
+    return 'Wiedergabe ohne $names. $_temp0 noch nicht heruntergeladen.';
   }
 
   @override
@@ -3047,46 +3050,60 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'need',
-      one: 'needs',
+      other: 'müssen',
+      one: 'muss',
     );
     String _temp1 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'they are',
-      one: 'it is',
+      other: 'sie da sind',
+      one: 'es da ist',
     );
-    return 'Nothing to play yet: $names $_temp0 downloading. Press play when $_temp1 here.';
+    return 'Noch nichts zum Abspielen: $names $_temp0 heruntergeladen werden. Drücke Abspielen, sobald $_temp1.';
   }
 
   @override
-  String get settingsSoundPackTitle => 'Downloaded sounds';
+  String get settingsSoundPackTitle => 'Heruntergeladene Geräusche';
 
   @override
   String settingsSoundPackSummary(int count, int total, String size) {
-    return '$count of $total on this phone · $size';
+    return '$count von $total auf diesem Telefon · $size';
   }
 
   @override
   String settingsSoundPackNone(String size) {
-    return 'None downloaded · $size available';
+    return 'Nichts heruntergeladen · $size verfügbar';
   }
 
   @override
-  String get settingsSoundPackDelete => 'Delete';
+  String get settingsSoundPackDelete => 'Löschen';
 
   @override
-  String get settingsSoundPackDeleteTitle => 'Delete downloaded sounds?';
+  String get settingsSoundPackDeleteTitle =>
+      'Heruntergeladene Geräusche löschen?';
 
   @override
   String settingsSoundPackDeleteBody(String size) {
-    return 'This frees $size. The sounds stay in the library, and you can download them again any time.';
+    return 'Das gibt $size frei. Die Geräusche bleiben in der Bibliothek, und du kannst sie jederzeit erneut herunterladen.';
   }
 
   @override
-  String get settingsSoundPackWifiOnly => 'Download sounds on Wi-Fi only';
+  String get settingsSoundPackWifiOnly =>
+      'Geräusche nur über WLAN herunterladen';
 
   @override
   String get settingsSoundPackWifiOnlyHint =>
-      'They are large. On mobile data a download only starts when you choose Download anyway.';
+      'Sie sind groß. Über mobile Daten startet ein Download nur, wenn du „Trotzdem herunterladen“ wählst.';
+
+  @override
+  String soundPackMixAllMissing(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Alle $count Geräusche in diesem Mix müssen heruntergeladen werden.',
+      one: 'Das Geräusch in diesem Mix muss heruntergeladen werden.',
+    );
+    return '$_temp0';
+  }
 }

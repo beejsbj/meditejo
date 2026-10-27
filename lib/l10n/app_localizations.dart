@@ -5301,6 +5301,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'They are large. On mobile data a download only starts when you choose Download anyway.'**
   String get settingsSoundPackWifiOnlyHint;
+
+  /// Mix panel: no sound of the mix is on this phone
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{The sound in this mix needs downloading.} other{All {count} sounds in this mix need downloading.}}'**
+  String soundPackMixAllMissing(int count);
 }
 
 class _AppLocalizationsDelegate
