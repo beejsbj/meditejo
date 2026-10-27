@@ -726,8 +726,16 @@ Burooj authorised Meditejo's Freesound app, so the picks that needed an account 
   - The new strings are "Meditejo" and "Yours" in en, de and es; de "Deins" and es "Tuyo" are my translations, for Burooj to check.
 - **The art is the same in light and dark themes,** like album covers. It follows the palette, not the brightness.
 - **Bell icons in the Customize bell picker:** a 40 dp icon in a 12 dp-radius square. Picking a bell previews it and strikes its icon once, for 0.8 + 3 × (0.45 + 1.25 × ring) seconds, capped at 16. The chosen row shows a tick instead of a radio.
+- **Measured (host benchmark, `MEDITEJO_ART_BENCH=1 flutter test test/widgets/art/art_benchmark_test.dart`, flutter_tester's software renderer on bjslab, so relative, not a phone's):**
+  - Live frame at 168 px (record plus raster): median 2.1 ms across the curated cards. The heaviest are rain-terrace 8.4 ms, rain-window 6.4 ms and rain-car 5.2 ms.
+  - Still raster, paid once per palette and size and made asynchronously: 4.2 ms at 168 px (p95 7.2), 14.6 ms at 420 px, 90 ms at 1080 px.
+  - Scrolling over cached stills (build, layout and paint; the raster thread isn't measured here):
+    - a 30-card grid, 3 across: median 7.8 ms, p95 12.2;
+    - a 200-row list: median 12.7 ms, p95 16.4.
 - **Follow-ups:**
-  - Frame timings on a real mid-range phone in a profile build (see the PR; only host benchmarks were run).
+  - Frame timings on a real mid-range phone in a profile build. Only host benchmarks were run; the place cards (rain-terrace, rain-window, rain-car) are the ones to watch when several are live at once.
+  - The player on a tall screen draws the square art cropped to the middle, so its figure sits behind the controls. It's legible under a 0.5 shade, but a composition made for tall screens (the figure above the title, or the ground alone) would be better.
+  - The playlist `scales` figure's moving frame is the reference check's closest case (mean 0.999 against a limit of 1.0).
   - Whether live sound tiles should also move while merely in a paused mix.
   - A custom bell (BJS-587) can feed `BellFigure` its own five controls.
   - `GeneratedArtwork` is deleted; nothing draws it any more.
