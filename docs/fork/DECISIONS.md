@@ -757,6 +757,10 @@ Burooj authorised Meditejo's Freesound app, so the picks that needed an account 
     - Two weak tests: "renamed item keeps its art" compares two constants, and the reference test skips a golden whose ground or figure isn't registered instead of failing.
     - Screen readers don't hear a preset's overline or chips.
     - bf6565fa carries about 1,000 lines of formatting churn in unrelated tests.
+  - **Opus re-check of the fix at 6d04f8b6: nothing blocking.** Its P3s, not done:
+    - Under cache thrash (more than 48 MB of rasters on screen) a tile can clear its key and re-request in a loop, each round rendering on the UI thread. Hand the tile a clone from the cache's future, or cap the retries.
+    - A tile can show its previous key's image for one microtask if a build lands between the new raster entering the cache and its callback running. Compare which raster the clone came from, not only `_still == null`.
+    - Nothing tests a key change while a raster is pending, or an eviction before the callback runs.
   - **PRODUCT, for Burooj:** in the player, a session inside a course shows the course's art, while its row in lists shows the session's own art.
 
 ## 2026-10-26 (design pass PR 5: the Customize sheet, the scroll-wheel picker, and the halfway bell)

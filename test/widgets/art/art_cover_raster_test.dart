@@ -27,9 +27,12 @@ void main() {
           body: StatefulBuilder(
             builder: (context, setState) {
               rebuild = setState;
-              return const SizedBox(
+              // Not const: the rebuild has to reach the tile.
+              // ignore: prefer_const_constructors
+              return SizedBox(
                 width: 120,
                 height: 120,
+                // ignore: prefer_const_constructors
                 child: ArtCover(subject: subject),
               );
             },
