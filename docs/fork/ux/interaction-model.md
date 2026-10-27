@@ -1,6 +1,6 @@
 # Interaction model: what every card and row does
 
-The UX pass (BRIEF decision 23). The "now" half: what the code on `develop` does today (at `65ef9c36`), found by reading the code, **not yet checked on the phone**. Paths are relative to `lib/`. Strings come from `l10n/app_en.arb` unless marked hard-coded. The proposals live in `friction.md` once we have walked the journeys with Burooj.
+The UX pass (BRIEF decision 23). The "now" half: what the code on `develop` does, found by reading the code. Written against a pre-0.1.4 tree; the rows that 0.1.4 changed (the mark, Customize) were corrected after rebasing onto `1f0b81cc`. Burooj's first phone pass on 0.1.4 is in `field-notes-0.1.4.md`. Paths are relative to `lib/`. Strings come from `l10n/app_en.arb` unless marked hard-coded. The proposals live in `friction.md` once we have walked the journeys with Burooj.
 
 ## The shape of it
 
@@ -18,7 +18,7 @@ Long-press is almost unused: only user presets (delete), History rows (delete) a
 
 | Element | Code | Tap | Long-press | ⋮ | Feedback |
 |---|---|---|---|---|---|
-| Mark | `views/home/home_view.dart:60` | — | — | — | — (decision 20/21's pin does not exist yet) |
+| Mark | `views/home/home_view.dart:159` | — | Pin / unpin sheet (`branding/home_mark_sheet.dart`) | — | Not discoverable: no hint on screen |
 | Customize (tune icon) | `home_view.dart:69` | Home layout screen | — | — | — |
 | Update notice: View / ✕ | `home/widgets/update_notice.dart:34` | You tab / hide for this version | — | — | No Undo |
 | Continue card (≤3) | `home/widgets/continue/continue_section.dart:129` | **Plays** (`startContinueItem`); the Resume/Start button does the same | — | — | First card is filled with a filled button; the rest are tonal |
@@ -90,9 +90,9 @@ Long-press is almost unused: only user presets (delete), History rows (delete) a
 |---|---|---|
 | Customize before start | `player/player_view.dart:226` | Shown unless hidden or a timer. "Start" plays; dismissing it **closes the player** |
 | Action bar | `player/widgets/bottom_actions/player_action_bar.dart:37` | ✕, download (delete confirms), Sounds (**pushes Sounds as a page**), Customize, speed |
-| Customize rows | `cues/customize_sheet.dart:233` | Duration, Extend, Countdown, the three bells, Pulse, Background sound, Autoplay; "Hide these settings before practice"; "Use these only for this course/playlist". Each opens a sub-sheet, saved at once. **All hard-coded English** |
+| Customize rows | `cues/customize_sheet.dart:256-402` | Sections Bells · Rhythm · Time · Sound · Flow (Time first for a timer). Each row is an accordion, one open at a time, saved at once. Flow holds Autoplay and "Hide these settings before practice". **All hard-coded English** |
 | Customize › Background sound | `customize_sheet.dart:640` | Off / Current mix / each preset / **each single sound (replaces the choice)**, volume, "Edit your mix in Sounds" |
-| Timer | `timer/timer_view.dart:50` | Timer/Stopwatch, embedded Customize, Start |
+| Timer | `timer/timer_view.dart:50` | Timer/Stopwatch, then the embedded Customize sheet: the duration is one accordion row among the others. `timer/widgets/timer_duration_wheels.dart` is built but unused |
 | End screen | `end_screen/end_screen_view.dart:180` | ✕, Home, reminder card |
 
 ## You, Stats, Add, playlists
@@ -116,7 +116,7 @@ Ranked by how often Burooj will hit them. Proposals come after the journeys are 
 3. **Rows open a page; Continue plays.** Every single/session/talk row opens TrackView, and then you tap ▶. Continue, In progress and ▶ play directly. That's defensible (a row is "look", a card with a play affordance is "go"), but the rule isn't visible: the In progress card and the course card in the Library are the same size and shape.
 4. **Continue and In progress are one list in two looks.** The data and the action are the same, the cards differ, and the empty behaviour differs (Home falls back to a suggestion; the Library hides the strip).
 5. **Three add-to-library controls.** ⊕ adds with Undo and never removes. Save/In library toggles silently, and its remove is instant. Import offers "Open". Removing from the Library menu gives Undo; removing from the course page gives nothing.
-6. **Pin is lopsided.** Pinning confirms, unpinning is silent, and Home's pin icon unpins in one tap with no Undo. Pin is only offered on a course page when the course is in the library. The mark/palette pin doesn't exist yet.
+6. **Pin is lopsided.** Pinning confirms, unpinning is silent, and Home's pin icon unpins in one tap with no Undo. Pin is only offered on a course page when the course is in the library. The mark's pin hides behind a long-press with nothing on screen to suggest it.
 7. **Course cards carry different actions per screen.** Explore's big cards have only ⊕; search rows have ⊕ and ⋮; "In your library" cards have nothing.
 8. **Practice/Talks is four different controls:** chips (Explore), segments (Library), switches (Sounds), Settings rows. Changing a single item's label is a menu item in the Library, but the player doesn't offer it (decision 16, "this is actually a talk").
 9. **Destructive actions with no Undo:** Remove from playlist, Mark all, removing a layer, replacing the mix with a preset, deleting a preset, deleting History, Unpin.
