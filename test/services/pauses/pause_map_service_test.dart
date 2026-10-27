@@ -76,13 +76,20 @@ void main() {
     expect(await service.cached('k', durationMs: 0), isNotNull);
   });
 
-  test('a metered connection reads nothing and is not retried', () async {
-    answer = (_) => PlatformException(code: 'METERED');
-    expect(await service.analyse('k', 'https://example.org/a.mp3'), isNull);
-    expect(await service.analyse('k', 'https://example.org/a.mp3'), isNull);
-    expect(calls.length, 1);
-    expect(await service.cached('k'), isNull);
-  });
+  test(
+    'a metered connection reads nothing, and Wi-Fi later reads it',
+    () async {
+      answer = (_) => PlatformException(code: 'METERED');
+      expect(await service.analyse('k', 'https://example.org/a.mp3'), isNull);
+      expect(await service.cached('k'), isNull);
+      answer = (_) => found();
+      expect(
+        await service.analyse('k', 'https://example.org/a.mp3'),
+        isNotNull,
+      );
+      expect(calls.length, 2);
+    },
+  );
 
   test('a recording the phone cannot decode is not retried either', () async {
     answer = (_) => PlatformException(code: 'ANALYSIS_FAILED');

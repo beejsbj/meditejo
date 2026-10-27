@@ -31,8 +31,9 @@ class PauseMapService {
 
   final _running = <String, Future<MediaSpanMap?>>{};
 
-  /// Recordings that could not be read this run (a metered connection, a
-  /// format the phone cannot decode): not tried again until the app restarts.
+  /// Recordings that could not be read this run (a format the phone cannot
+  /// decode): not tried again until the app restarts. A metered connection is
+  /// not in this set: the same recording may be read once on Wi-Fi.
   final _unreadable = <String>{};
 
   /// The key one recording is kept under.
@@ -87,7 +88,8 @@ class PauseMapService {
       await _store.write(key, map);
       return map;
     } on PlatformException catch (e) {
-      if (e.code != 'CANCELLED') _unreadable.add(key);
+      // A metered connection or a cancelled read may be different next time.
+      if (e.code != 'CANCELLED' && e.code != 'METERED') _unreadable.add(key);
       AppLogger.d('PAUSES', 'No pause map for $key: ${e.code}');
       return null;
     } on MissingPluginException {

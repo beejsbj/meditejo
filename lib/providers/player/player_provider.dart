@@ -90,9 +90,15 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     final request = state;
     if (request == null) return;
     if (Platform.isAndroid || Platform.isIOS) {
+      final generation = _generation;
       final holds = await _holdsFor(settings, request);
-      // Edits that came while the holds were worked out are newer: theirs win.
-      if (!identical(_cues, settings)) return;
+      // Edits that came while the holds were worked out are newer: theirs
+      // win, and a session that began meanwhile is not configured by this one.
+      if (!identical(_cues, settings) ||
+          generation != _generation ||
+          !identical(state, request)) {
+        return;
+      }
       await NativeCueController.configure(
         settings,
         request,
@@ -139,6 +145,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
         if (current == null ||
             live == null ||
             live.trackId != request.trackId ||
+            live.fileId != request.fileId ||
             !current.extendInPauses) {
           return;
         }
