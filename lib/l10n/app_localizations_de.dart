@@ -2408,7 +2408,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get myCourseCoverLabel => 'Titelbild';
 
   @override
-  String get myCourseCoverGenerated => 'Erzeugtes Cover';
+  String get myCourseCoverGenerated => 'Erzeugtes Titelbild';
 
   @override
   String myCourseCoverChoice(int index) {

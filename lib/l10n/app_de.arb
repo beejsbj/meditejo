@@ -1250,7 +1250,7 @@
   "myCourseDescriptionLabel": "Beschreibung (optional)",
   "myCourseKindLabel": "Art",
   "myCourseCoverLabel": "Titelbild",
-  "myCourseCoverGenerated": "Erzeugtes Cover",
+  "myCourseCoverGenerated": "Erzeugtes Titelbild",
   "myCourseCoverChoice": "Titelbild {index}",
   "myCourseSessionsLabel": "Sitzungen",
   "myCourseAddHeading": "Überschrift hinzufügen",
