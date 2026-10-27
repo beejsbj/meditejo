@@ -666,7 +666,7 @@ class ImportService {
       orElse: () => feed.episodes.last,
     );
     // Alone, an episode has no course to take its credit from, so it carries
-    // the feed's author and page itself.
+    // the feed's author, page and licence itself.
     final episode = ParsedEpisode(
       guid: picked.guid,
       title: picked.title,
@@ -684,6 +684,8 @@ class ImportService {
     final id = await lib.storeEpisode(
       episode,
       feedUrl: preview.feedUrl!,
+      licenseName: feed.licenseName,
+      licenseUrl: feed.licenseUrl,
       now: _clock(),
     );
     return _finish(id, LibraryKind.single, choice, preview);
