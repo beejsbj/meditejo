@@ -2,19 +2,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/services/home/continue_rules.dart';
 import 'package:medito/services/library/library_models.dart';
 
-ContinueItem _item(
-  String id,
-  LibraryGroup group,
-  int day, {
-  String? course,
-}) => ContinueItem(
-  trackId: id,
-  path: '/tracks/$id',
-  title: id,
-  group: group,
-  lastPlayed: DateTime(2026, 10, day),
-  courseId: course,
-);
+ContinueItem _item(String id, LibraryGroup group, int day, {String? course}) =>
+    ContinueItem(
+      trackId: id,
+      path: '/tracks/$id',
+      title: id,
+      group: group,
+      lastPlayed: DateTime(2026, 10, day),
+      courseId: course,
+    );
 
 void main() {
   test('practice comes before talks, however recent the talk', () {

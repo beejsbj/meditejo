@@ -111,7 +111,10 @@ void main() {
     ]);
     // x_items removed the talk; the changed talk was refetched.
     expect(await db.talkById(95073), isNull);
-    expect((await db.talkById(99974))!.title, 'Ces teintes plaisantes (révisé)');
+    expect(
+      (await db.talkById(99974))!.title,
+      'Ces teintes plaisantes (révisé)',
+    );
     expect((await db.syncState(DsKind.talks))!.edition, dsSecondEdition);
     final hits = await db.searchTalks('révisé');
     expect(hits.map((h) => h.talk.id), [99974]);
@@ -154,10 +157,7 @@ void main() {
     expect(first.status.value.phase, DharmaSeedSyncPhase.failed);
     expect(await db.countOf(DsKind.talks), 4);
     expect(await db.queuedCount(DsKind.talks), 5);
-    expect(
-      (await db.syncState(DsKind.talks))!.pendingEdition,
-      dsFirstEdition,
-    );
+    expect((await db.syncState(DsKind.talks))!.pendingEdition, dsFirstEdition);
     expect((await db.syncState(DsKind.talks))!.edition, isNull);
 
     // A fresh service on the same database, as after a restart.

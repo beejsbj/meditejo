@@ -4,17 +4,24 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/widgets/attribution_notice.dart';
 
-Future<void> pump(WidgetTester tester, SourceAttribution a, {bool compact = false}) =>
-    tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(body: AttributionNotice(attribution: a, compact: compact)),
-      ),
-    );
+Future<void> pump(
+  WidgetTester tester,
+  SourceAttribution a, {
+  bool compact = false,
+}) => tester.pumpWidget(
+  MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: Scaffold(
+      body: AttributionNotice(attribution: a, compact: compact),
+    ),
+  ),
+);
 
 void main() {
-  testWidgets('imported material with no licence is still credited', (tester) async {
+  testWidgets('imported material with no licence is still credited', (
+    tester,
+  ) async {
     await pump(
       tester,
       const SourceAttribution(
@@ -27,13 +34,22 @@ void main() {
     );
     expect(find.text('Example Sangha · example.org'), findsOneWidget);
     expect(find.textContaining('Licence'), findsNothing);
-    expect(find.byType(InkWell), findsOneWidget, reason: 'only the credit is a link');
+    expect(
+      find.byType(InkWell),
+      findsOneWidget,
+      reason: 'only the credit is a link',
+    );
   });
 
   testWidgets('a file from this device has nothing to link to', (tester) async {
     await pump(
       tester,
-      const SourceAttribution(source: 'This device', url: '', licenseName: '', licenseUrl: ''),
+      const SourceAttribution(
+        source: 'This device',
+        url: '',
+        licenseName: '',
+        licenseUrl: '',
+      ),
       compact: true,
     );
     expect(find.text('This device'), findsOneWidget);

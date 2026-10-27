@@ -207,12 +207,20 @@ void main() {
       find.descendant(of: preset, matching: find.text('MEDITEJO')),
       findsOneWidget,
     );
-    for (final layer in ['Meadow at night', 'Mountain stream']) {
-      expect(
-        find.descendant(of: preset, matching: find.text(layer)),
-        findsOneWidget,
-      );
-    }
+    // Its loudest layer always shows; the next shows whole or as "+1".
+    expect(
+      find.descendant(of: preset, matching: find.text('Meadow at night')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: preset,
+        matching: find.byWidgetPredicate(
+          (w) => w is Text && (w.data == 'Mountain stream' || w.data == '+1'),
+        ),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.descendant(
         of: preset,

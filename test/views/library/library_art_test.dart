@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/widgets/network_image_widget.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
@@ -85,8 +86,17 @@ void main() {
       findsOneWidget,
     );
     expect(findArt(singleArt(_talk)), findsOneWidget);
-    // The teacher shows their photo; there is no art for them.
-    expect(findArt(teacherArt(_teacher)), findsNothing);
+    // The teacher shows their photo (art only if it fails to load, as it
+    // does in a test).
+    expect(
+      find.byWidgetPredicate(
+        (w) =>
+            w is NetworkImageWidget &&
+            w.url == _photo &&
+            w.art == teacherArt(_teacher),
+      ),
+      findsOneWidget,
+    );
     expect(
       artKeys(tester),
       containsAll([

@@ -3,9 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/widgets/inputs/medito_text_field.dart';
 
 void main() {
-  testWidgets('keeps focus while errorText appears and clears', (
-    tester,
-  ) async {
+  testWidgets('keeps focus while errorText appears and clears', (tester) async {
     final controller = TextEditingController();
     addTearDown(controller.dispose);
 

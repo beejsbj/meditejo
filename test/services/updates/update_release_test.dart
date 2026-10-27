@@ -138,10 +138,15 @@ void main() {
         {'apk': '../evil.apk'},
         {'apk': 'other.apk'},
       ]) {
-        expect(() => _parse(manifest: bad), throwsFormatException, reason: '$bad');
+        expect(
+          () => _parse(manifest: bad),
+          throwsFormatException,
+          reason: '$bad',
+        );
       }
       expect(
-        () => UpdateRelease.fromManifest(ReleaseListing.fromApi(_api()), 'text'),
+        () =>
+            UpdateRelease.fromManifest(ReleaseListing.fromApi(_api()), 'text'),
         throwsFormatException,
       );
     });
@@ -153,7 +158,8 @@ void main() {
             'assets': [
               {
                 'name': 'meditejo-0.1.1.apk',
-                'browser_download_url': 'https://example.com/meditejo-0.1.1.apk',
+                'browser_download_url':
+                    'https://example.com/meditejo-0.1.1.apk',
               },
             ],
           },

@@ -131,8 +131,9 @@ void main() {
   Future<void> pumpPlayer(
     WidgetTester tester,
     PlaybackRequest request,
-    Size size,
-  ) async {
+    Size size, {
+    bool settle = true,
+  }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -152,6 +153,7 @@ void main() {
         child: const PlayerView(),
       ),
     );
+    if (!settle) return;
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
   }
@@ -230,8 +232,16 @@ void main() {
       hasBackgroundSound: false,
     );
     await pumpPlayer(tester, request, const Size(430, 900));
-    expect(find.byType(ArtCover), findsNothing);
-    expect(find.byType(Image), findsWidgets);
+    // The backdrop is given the real cover; the art only stands in if it
+    // fails to load (as a network image does in a test).
+    expect(
+      find.byWidgetPredicate(
+        (w) =>
+            w.runtimeType.toString() == '_PlayerBackdrop' &&
+            (w as dynamic).imageUrl == request.coverUrl,
+      ),
+      findsOneWidget,
+    );
     await close(tester);
   });
 

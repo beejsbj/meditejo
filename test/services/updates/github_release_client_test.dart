@@ -67,18 +67,21 @@ void main() {
     expect(seen.length, 2);
   });
 
-  test('sends the stored ETag and treats 304 as unchanged, with no manifest fetch', () async {
-    final seen = <http.Request>[];
-    final client = _client((request) async {
-      seen.add(request);
-      return http.Response('', 304);
-    });
+  test(
+    'sends the stored ETag and treats 304 as unchanged, with no manifest fetch',
+    () async {
+      final seen = <http.Request>[];
+      final client = _client((request) async {
+        seen.add(request);
+        return http.Response('', 304);
+      });
 
-    final result = await client.latest(etag: 'W/"abc"');
+      final result = await client.latest(etag: 'W/"abc"');
 
-    expect(result, isA<LatestUnchanged>());
-    expect(seen.single.headers['If-None-Match'], 'W/"abc"');
-  });
+      expect(result, isA<LatestUnchanged>());
+      expect(seen.single.headers['If-None-Match'], 'W/"abc"');
+    },
+  );
 
   test('a repository without releases is not an error', () async {
     final client = _client((_) async => http.Response('{}', 404));
@@ -87,11 +90,8 @@ void main() {
 
   test('maps rate limiting', () async {
     final limited = _client(
-      (_) async => http.Response(
-        '{}',
-        403,
-        headers: {'x-ratelimit-remaining': '0'},
-      ),
+      (_) async =>
+          http.Response('{}', 403, headers: {'x-ratelimit-remaining': '0'}),
     );
     await expectLater(
       limited.latest(),
@@ -116,22 +116,25 @@ void main() {
     );
   });
 
-  test('other 403s and server errors are unavailable, not rate limits', () async {
-    for (final status in [403, 500, 502]) {
-      final client = _client((_) async => http.Response('{}', status));
-      await expectLater(
-        client.latest(),
-        throwsA(
-          isA<UpdateException>().having(
-            (e) => e.failure,
-            'failure',
-            UpdateFailure.unavailable,
+  test(
+    'other 403s and server errors are unavailable, not rate limits',
+    () async {
+      for (final status in [403, 500, 502]) {
+        final client = _client((_) async => http.Response('{}', status));
+        await expectLater(
+          client.latest(),
+          throwsA(
+            isA<UpdateException>().having(
+              (e) => e.failure,
+              'failure',
+              UpdateFailure.unavailable,
+            ),
           ),
-        ),
-        reason: 'HTTP $status',
-      );
-    }
-  });
+          reason: 'HTTP $status',
+        );
+      }
+    },
+  );
 
   test('network failures read as offline', () async {
     for (final error in <Object>[

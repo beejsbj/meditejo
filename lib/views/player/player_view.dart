@@ -353,13 +353,17 @@ class _PlayerViewState extends ConsumerState<PlayerView>
     if (imageUrl.isNotEmpty && Uri.tryParse(imageUrl)?.hasScheme == true) {
       try {
         final networkImage = NetworkImage(imageUrl);
+        // onError, not catchError: without it a failed load is reported to
+        // FlutterError, and the backdrop falls back to the art anyway.
         unawaited(
-          precacheImage(networkImage, context).catchError((error) {
-            AppLogger.d(
+          precacheImage(
+            networkImage,
+            context,
+            onError: (error, _) => AppLogger.d(
               'PlayerView',
               'Failed to precache image: \$imageUrl, error: \$error',
-            );
-          }),
+            ),
+          ),
         );
       } catch (e) {
         AppLogger.d(

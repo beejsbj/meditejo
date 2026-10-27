@@ -72,11 +72,7 @@ class FakeDharmaSeedApi {
 
   late final http.Client httpClient = MockClient((request) async {
     final kind = request.url.pathSegments.where((s) => s.isNotEmpty).last;
-    final parsed = DsRequest(
-      kind,
-      _multipartFields(request),
-      request.headers,
-    );
+    final parsed = DsRequest(kind, _multipartFields(request), request.headers);
     requests.add(parsed);
     final injected = fail?.call(parsed, requests.length - 1);
     if (injected != null) return injected;
@@ -88,10 +84,8 @@ class FakeDharmaSeedApi {
     );
   });
 
-  DharmaSeedClient client() => DharmaSeedClient(
-    httpClient: httpClient,
-    sleep: (_) async {},
-  );
+  DharmaSeedClient client() =>
+      DharmaSeedClient(httpClient: httpClient, sleep: (_) async {});
 
   Map<String, Object?> _respond(DsRequest request) {
     final since = request.fields['edition'];
