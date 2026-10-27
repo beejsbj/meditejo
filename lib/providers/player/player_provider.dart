@@ -82,6 +82,9 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
   /// or a URL (fetched only on an unmetered connection). Set by [_playTrack].
   String? _analysisSource;
 
+  /// The recording whose pause map a configure is waiting for.
+  String? _waitingForMap;
+
   Future<void> updateCueSettings(CueSettings settings) async {
     _cues = settings;
     final request = state;
@@ -119,9 +122,13 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     if (map != null) {
       return PauseMapService.holdsFor(map, settings.extendMinutes);
     }
+    // One waiter per recording, however many settings edits ask meanwhile.
+    if (_waitingForMap == key) return const [];
+    _waitingForMap = key;
     final generation = _generation;
     unawaited(
       service.analyse(key, source).then((found) async {
+        if (_waitingForMap == key) _waitingForMap = null;
         if (found == null || generation != _generation) return;
         // The session may have moved on, or the setting been turned off.
         final current = _cues;
@@ -132,12 +139,16 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
             !current.extendInPauses) {
           return;
         }
-        await NativeCueController.configure(
-          current,
-          live,
-          update: true,
-          holds: PauseMapService.holdsFor(found, current.extendMinutes),
-        );
+        try {
+          await NativeCueController.configure(
+            current,
+            live,
+            update: true,
+            holds: PauseMapService.holdsFor(found, current.extendMinutes),
+          );
+        } catch (e) {
+          AppLogger.w('PLAYER', 'Could not apply the pause map: $e');
+        }
       }),
     );
     return const [];
