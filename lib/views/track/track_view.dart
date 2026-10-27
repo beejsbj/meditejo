@@ -21,7 +21,7 @@ import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
 import 'package:medito/views/home/widgets/home_gradient_border.dart';
 import 'package:medito/views/player/widgets/bottom_actions/track_view_bottom_bar.dart';
-import 'package:medito/views/tags/widgets/tag_chips.dart';
+import 'package:medito/views/categories/category_chips.dart';
 import 'package:medito/widgets/attribution_notice.dart';
 import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/widgets.dart';
@@ -325,10 +325,11 @@ class _TrackViewState extends ConsumerState<TrackView>
     );
   }
 
-  /// The track's tags as chips. Empty (zero height) when tags are unavailable.
+  /// The track's categories and labels as chips. Empty (zero height) when it
+  /// has none.
   Widget _tags(Track track) {
-    return TrackTagChips(
-      trackId: track.id,
+    return CategoryChips(
+      subject: (id: track.id, title: track.title),
       padding: const EdgeInsets.only(top: 12),
     );
   }

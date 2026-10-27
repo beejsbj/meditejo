@@ -185,8 +185,8 @@ class LibSource
           : (uri != null && uri.hasScheme && !track.isLocalFile
                 ? track.audioUrl
                 : ''),
-      licenseName: '',
-      licenseUrl: '',
+      licenseName: track.licenseName,
+      licenseUrl: track.licenseUrl,
     );
   }
 
@@ -407,6 +407,8 @@ class LibSource
     ParsedEpisode episode, {
     required String feedUrl,
     String? courseId,
+    String? licenseName,
+    String? licenseUrl,
     DateTime? now,
   }) async {
     final id = libEpisodeId(feedUrl, episode.guid);
@@ -428,6 +430,10 @@ class LibSource
         ),
         ordinal: Value(episode.ordinal),
         pageUrl: Value(episode.pageUrl),
+        // Inside a course the course carries the licence; alone, the episode
+        // keeps the feed's. Not given: keep what the row already says.
+        licenseName: Value(licenseName ?? existing?.licenseName ?? ''),
+        licenseUrl: Value(licenseUrl ?? existing?.licenseUrl ?? ''),
         createdAt: existing?.createdAt ?? now ?? DateTime.now(),
       ),
     );

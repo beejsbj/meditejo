@@ -1,0 +1,231 @@
+import 'dart:convert';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/services/categories/category_catalogue.dart';
+
+String _asset({
+  List<Map<String, Object?>>? curated,
+  List<Map<String, Object?>>? rules,
+  Object format = 1,
+}) => jsonEncode({
+  'format': format,
+  'version': 3,
+  'updated': '2026-10-27',
+  'categories': [
+    {
+      'id': 'metta',
+      'name': 'Metta',
+      'aliases': ['Loving-kindness'],
+    },
+    {
+      'id': 'jhana',
+      'name': 'Jhāna',
+      'aliases': ['Jhanas'],
+    },
+    {'id': 'body', 'name': 'Body'},
+  ],
+  'curated': curated ?? [],
+  'rules': rules ?? [],
+});
+
+void main() {
+  group('parse', () {
+    test('reads categories, curated items and rules', () {
+      final catalogue = CategoryCatalogue.parse(
+        _asset(
+          curated: [
+            {
+              'id': 'ds-retreat-1',
+              'categories': ['metta'],
+              'name': 'Retreat',
+            },
+          ],
+          rules: [
+            {
+              'category': 'metta',
+              'title': ['metta'],
+            },
+          ],
+        ),
+      );
+      expect(catalogue.version, 3);
+      expect(catalogue.categories.map((c) => c.id), ['metta', 'jhana', 'body']);
+      expect(catalogue.curatedFor('ds-retreat-1'), ['metta']);
+      expect(catalogue.curatedFor('ds-retreat-2'), isNull);
+      expect(catalogue.curatedNames['ds-retreat-1'], 'Retreat');
+      expect(catalogue.rulesFor('metta'), hasLength(1));
+    });
+
+    test('refuses a category nothing defines', () {
+      expect(
+        () => CategoryCatalogue.parse(
+          _asset(
+            curated: [
+              {
+                'id': 'ds-retreat-1',
+                'categories': ['nope'],
+              },
+            ],
+          ),
+        ),
+        throwsFormatException,
+      );
+      expect(
+        () => CategoryCatalogue.parse(
+          _asset(
+            rules: [
+              {
+                'category': 'nope',
+                'title': ['x'],
+              },
+            ],
+          ),
+        ),
+        throwsFormatException,
+      );
+    });
+
+    test('refuses a layout from the future, and a repeated item', () {
+      expect(
+        () => CategoryCatalogue.parse(_asset(format: categoriesFormat + 1)),
+        throwsFormatException,
+      );
+      expect(
+        () => CategoryCatalogue.parse(
+          _asset(
+            curated: [
+              {'id': 'ds-talk-1', 'categories': <String>[]},
+              {'id': 'ds-talk-1', 'categories': <String>[]},
+            ],
+          ),
+        ),
+        throwsFormatException,
+      );
+    });
+  });
+
+  group('categoryNamed', () {
+    final catalogue = CategoryCatalogue.parse(_asset());
+
+    test('finds a category by id, name or alias, ignoring case and marks', () {
+      expect(catalogue.categoryNamed('Jhāna')?.id, 'jhana');
+      expect(catalogue.categoryNamed('JHANAS')?.id, 'jhana');
+      expect(catalogue.categoryNamed('loving kindness')?.id, 'metta');
+      expect(catalogue.categoryNamed('metta')?.id, 'metta');
+    });
+
+    test('a label of the user\'s own is not a category', () {
+      expect(catalogue.categoryNamed('retreat prep'), isNull);
+    });
+  });
+
+  group('classify', () {
+    final catalogue = CategoryCatalogue.parse(
+      _asset(
+        curated: [
+          {
+            'id': 'ds-retreat-1',
+            'categories': ['jhana'],
+          },
+          {'id': 'ds-retreat-2', 'categories': <String>[]},
+        ],
+        rules: [
+          {
+            'category': 'metta',
+            'title': ['metta', 'loving kindness'],
+            'description': ['metta'],
+          },
+          {
+            'category': 'jhana',
+            'title': ['jhan*'],
+          },
+          {
+            'category': 'body',
+            'title': ['body'],
+          },
+        ],
+      ),
+    );
+
+    List<String> ids(Iterable<CategoryAssignment> a) => [
+      for (final x in a) x.id,
+    ];
+
+    test('the rules read the title', () {
+      final result = catalogue.classify('ds-retreat-9', title: 'Mettā Retreat');
+      expect(result, [const CategoryAssignment('metta', CategorySource.rule)]);
+    });
+
+    test('the rules read the description only where a rule says to', () {
+      expect(
+        ids(
+          catalogue.classify(
+            'ds-retreat-9',
+            title: 'Retreat',
+            description: 'We practise metta and body scans.',
+          ),
+        ),
+        ['metta'],
+      );
+    });
+
+    test('a curated entry replaces the rules, even an empty one', () {
+      expect(catalogue.classify('ds-retreat-1', title: 'Metta Retreat'), [
+        const CategoryAssignment('jhana', CategorySource.curated),
+      ]);
+      expect(
+        catalogue.classify('ds-retreat-2', title: 'Metta Retreat'),
+        isEmpty,
+      );
+    });
+
+    test('a talk takes its retreat\'s categories and its own', () {
+      const retreat = [CategoryAssignment('jhana', CategorySource.curated)];
+      final result = catalogue.classify(
+        'ds-talk-9',
+        title: 'Body awareness',
+        inherited: retreat,
+      );
+      expect(result, [
+        const CategoryAssignment('jhana', CategorySource.curated),
+        const CategoryAssignment('body', CategorySource.rule),
+      ]);
+    });
+
+    test('a curated talk ignores its retreat', () {
+      final withEntry = CategoryCatalogue.parse(
+        _asset(
+          curated: [
+            {
+              'id': 'ds-talk-5',
+              'categories': ['body'],
+            },
+          ],
+        ),
+      );
+      expect(
+        ids(
+          withEntry.classify(
+            'ds-talk-5',
+            inherited: const [
+              CategoryAssignment('jhana', CategorySource.curated),
+            ],
+          ),
+        ),
+        ['body'],
+      );
+    });
+
+    test('results follow the catalogue\'s order', () {
+      expect(ids(catalogue.classify('x', title: 'Body and Jhāna and Metta')), [
+        'metta',
+        'jhana',
+        'body',
+      ]);
+    });
+
+    test('nothing matches nothing', () {
+      expect(catalogue.classify('x', title: 'Dependent origination'), isEmpty);
+    });
+  });
+}
