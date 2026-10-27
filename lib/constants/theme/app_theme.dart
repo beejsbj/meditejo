@@ -2,32 +2,47 @@ import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
+import 'package:medito/constants/theme/palette_theme.dart';
 import 'package:medito/constants/theme/text_theme.dart';
 import 'package:medito/constants/theme/tokens.dart';
+import 'package:medito/services/identity/palettes.dart';
 
 import 'input_theme.dart';
 
-/// The app's colour scheme for [brightness], grown from the seed token.
-ColorScheme meditejoColorScheme(Brightness brightness) => ColorScheme.fromSeed(
-  seedColor: MeditejoColorTokens.seed,
-  brightness: brightness,
-  dynamicSchemeVariant: MeditejoColorTokens.variant,
-);
+/// The app's colour scheme for [brightness] under [palette] (the default
+/// palette when none is given). See `palette_theme.dart`.
+ColorScheme meditejoColorScheme(
+  Brightness brightness, [
+  IdentityPalette? palette,
+]) => paletteColorScheme(palette ?? IdentityPalettes.fallback, brightness);
 
 /// Material 3 Expressive, built from the tokens in `tokens.dart`. Screens
 /// not yet redesigned keep the text roles they were laid out with
 /// (`text_theme.dart`) but take their colours, shapes and components from
 /// here.
-ThemeData appTheme(BuildContext context, [ThemeMode? themeMode]) {
+ThemeData appTheme(
+  BuildContext context, [
+  ThemeMode? themeMode,
+  IdentityPalette? palette,
+]) {
   final brightness = MediaQuery.of(context).platformBrightness;
   final isDark =
       themeMode == ThemeMode.dark ||
       (themeMode == ThemeMode.system && brightness == Brightness.dark);
-  return meditejoTheme(isDark ? Brightness.dark : Brightness.light);
+  return meditejoTheme(isDark ? Brightness.dark : Brightness.light, palette);
 }
 
-ThemeData meditejoTheme(Brightness brightness) {
-  final scheme = meditejoColorScheme(brightness);
+/// The theme for [brightness] under [palette] (the default when none).
+/// Built once per pair: the palette picker draws a dozen of them.
+ThemeData meditejoTheme(Brightness brightness, [IdentityPalette? palette]) {
+  final active = palette ?? IdentityPalettes.fallback;
+  return _themes[(brightness, active.id)] ??= _buildTheme(brightness, active);
+}
+
+final _themes = <(Brightness, String), ThemeData>{};
+
+ThemeData _buildTheme(Brightness brightness, IdentityPalette active) {
+  final scheme = meditejoColorScheme(brightness, active);
   final isDark = brightness == Brightness.dark;
   final typography = ExpressiveTypography.from(scheme);
   final type = typography.baseline;
@@ -48,7 +63,7 @@ ThemeData meditejoTheme(Brightness brightness) {
     cardColor: scheme.surfaceContainerHigh,
     dividerColor: scheme.outlineVariant,
     textTheme: legacyTextTheme(scheme),
-    extensions: [typography],
+    extensions: [typography, MeditejoPalette(active)],
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: {
         TargetPlatform.android: PredictiveBackPageTransitionsBuilder(),

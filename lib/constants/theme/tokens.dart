@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
+import 'package:medito/services/identity/palettes.dart';
 
 /// Meditejo's design tokens, Material 3 Expressive, in one place. The theme
 /// (`app_theme.dart`) and new screens read these; change a value here and
@@ -9,20 +10,29 @@ import 'package:flutter/physics.dart';
 /// See docs/fork/DECISIONS.md (2026-10-26, design pass PR 1) for why each
 /// value was chosen.
 abstract final class MeditejoColorTokens {
-  /// The one colour the whole palette grows from: a calm sage, between
-  /// green and teal. Change it and every role (primary, containers,
-  /// surfaces, the logo mark) follows, in light and dark.
-  static const seed = Color(0xFF55796D);
+  /// The palette the app starts with (decision 21: Tidewater). Every colour
+  /// role grows from the active identity palette
+  /// (`services/identity/palettes.dart`), which the user can change in
+  /// Settings › Appearance, or let the date choose. See `palette_theme.dart`
+  /// for how a palette maps onto the scheme.
+  static const defaultPalette = IdentityPalettes.defaultId;
 
-  /// Material's tonal-spot scheme: low-chroma, pastel roles, the calmest of
-  /// Flutter's native variants. `DynamicSchemeVariant.expressive` shifts the
-  /// primary's hue away from the seed and is louder than this app wants.
-  static const variant = DynamicSchemeVariant.tonalSpot;
+  /// The scheme variant the palette's form colour grows its ramps with:
+  /// Material's neutral variant, low chroma. The palettes are already
+  /// tuned (Tidewater's fog, Sumi's paper); tonal spot lifts every seed to
+  /// the same chroma, which turned Sumi gold and Tidewater cyan. With
+  /// neutral, the containers are quiet tints of the palette and the mark
+  /// stays the most colourful thing on screen. See DECISIONS.md, identity
+  /// PR 1, for the comparison.
+  static const variant = DynamicSchemeVariant.neutral;
+
+  /// The tertiary roles grow from the palette's accent with tonal spot, so
+  /// the palette's one float of colour (Tidewater's coral) stays alive.
+  static const accentVariant = DynamicSchemeVariant.tonalSpot;
 
   /// Dynamic colour (Material You, the wallpaper's palette) is off: the mark
-  /// and the art are tuned against this palette, and it needs the
-  /// `dynamic_color` plugin. Flip by building the scheme from the platform's
-  /// palette instead of [seed].
+  /// and the art are tuned against the identity palettes, and it needs the
+  /// `dynamic_color` plugin.
   static const dynamicColor = false;
 }
 
@@ -127,10 +137,10 @@ abstract final class MeditejoMotion {
   static const medium = Duration(milliseconds: 400);
   static const long = Duration(milliseconds: 500);
 
-  /// The logo mark's loop. Every motion in it repeats a whole number of
-  /// times per loop, so it is seamless: one turn, six breaths (one every
-  /// 10 s, a resting pace). See `widgets/branding/mark_geometry.dart`.
-  static const markLoop = Duration(seconds: 60);
+  /// One breath of the logo mark: six a minute, a resting pace. Its round
+  /// shapes ease from their organic form to a true circle and back. See
+  /// `services/identity/seeded_random.dart` (`breathAt`).
+  static const markBreath = Duration(seconds: 10);
 }
 
 /// The M3 type scale (baseline and Expressive's emphasized styles) in

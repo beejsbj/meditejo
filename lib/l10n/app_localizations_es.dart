@@ -2819,6 +2819,43 @@ class AppLocalizationsEs extends AppLocalizations {
   String get statsConsistency => 'Constancia';
 
   @override
+  String get homeMarkTitle => 'Símbolo de Inicio';
+
+  @override
+  String get homeMarkToday => 'Símbolo del día';
+
+  @override
+  String get homeMarkPinned => 'Fijado';
+
+  @override
+  String get homeMarkTodayBody =>
+      'Cada día llega un símbolo nuevo. Fija este para conservarlo en Inicio.';
+
+  @override
+  String get homeMarkPinnedBody =>
+      'Este símbolo se queda en Inicio hasta que vuelvas al símbolo del día.';
+
+  @override
+  String get homeMarkPin => 'Fijar este símbolo';
+
+  @override
+  String get homeMarkUnpin => 'Volver al símbolo del día';
+
+  @override
+  String get homeMarkPinHint => 'fijar o soltar';
+
+  @override
+  String get paletteTitle => 'Paleta';
+
+  @override
+  String get paletteDaily => 'Diaria';
+
+  @override
+  String paletteDailyToday(String name) {
+    return 'Diaria · hoy $name';
+  }
+
+  @override
   String get libraryInProgress => 'En curso';
 
   @override

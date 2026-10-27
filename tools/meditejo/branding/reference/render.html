@@ -1,0 +1,20 @@
+<!doctype html>
+<!-- Draws marks with the exploration page's own generator (round 2, copied
+     from fork/mark-explore d040d58f) and writes each canvas as a data URL into
+     <pre id="out">. Driven by render_reference.py; see its docstring. -->
+<html><body style="margin:0">
+<script src="core.js"></script><script src="marks.js"></script>
+<script>
+const q = new URLSearchParams(location.search);
+const seeds = (q.get('seeds') || 'g-1kq').split(',');
+const pal = Marks.PAL[q.get('pal') || 'tide'], px = +(q.get('px') || 256);
+const still = q.get('still') !== '0', t = +(q.get('t') || 60), bg = q.get('tile') !== '0';
+const out = [];
+for (const s of seeds) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = px;
+  const ctx = cv.getContext('2d'); ctx.scale(px, px);
+  Marks.draw(ctx, Marks.build(s), pal, t, { still, px, dpr: 1, bg, finish: false });
+  out.push(s + ' ' + cv.toDataURL('image/png'));
+}
+const pre = document.createElement('pre'); pre.id = 'out'; pre.textContent = out.join('\n'); document.body.appendChild(pre);
+</script></body></html>

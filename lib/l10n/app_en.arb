@@ -3082,6 +3082,55 @@
   "@statsConsistency": {
     "description": "Streak card label"
   },
+  "homeMarkTitle": "Home mark",
+  "@homeMarkTitle": {
+    "description": "Settings row and sheet: the mark at the top of Home"
+  },
+  "homeMarkToday": "Today's mark",
+  "@homeMarkToday": {
+    "description": "The Home mark when it changes daily"
+  },
+  "homeMarkPinned": "Pinned",
+  "@homeMarkPinned": {
+    "description": "The Home mark when the user pinned it"
+  },
+  "homeMarkTodayBody": "A new mark arrives each day. Pin this one to keep it on Home.",
+  "@homeMarkTodayBody": {
+    "description": "Home mark sheet, daily"
+  },
+  "homeMarkPinnedBody": "This mark stays on Home until you go back to the daily mark.",
+  "@homeMarkPinnedBody": {
+    "description": "Home mark sheet, pinned"
+  },
+  "homeMarkPin": "Pin this mark",
+  "@homeMarkPin": {
+    "description": "Button: keep today's mark on Home"
+  },
+  "homeMarkUnpin": "Back to the daily mark",
+  "@homeMarkUnpin": {
+    "description": "Button: unpin the Home mark"
+  },
+  "homeMarkPinHint": "pin or unpin",
+  "@homeMarkPinHint": {
+    "description": "Screen reader hint for long-pressing Home's mark"
+  },
+  "paletteTitle": "Palette",
+  "@paletteTitle": {
+    "description": "Settings row and screen: the app's colour palette"
+  },
+  "paletteDaily": "Daily",
+  "@paletteDaily": {
+    "description": "Palette option: a different palette each day"
+  },
+  "paletteDailyToday": "Daily · {name} today",
+  "@paletteDailyToday": {
+    "description": "Settings subtitle when the palette is daily; name is today's palette",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "libraryInProgress": "In progress",
   "@libraryInProgress": {
     "description": "Library heading over what the user has started and not finished"
