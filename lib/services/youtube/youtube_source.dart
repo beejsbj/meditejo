@@ -387,7 +387,9 @@ class YoutubeSource
     YoutubePlaylist playlist,
   ) => item.uploader.isNotEmpty
       ? item.uploader
-      : previous?.uploader ?? playlist.uploader;
+      : (previous?.uploader.isNotEmpty ?? false)
+      ? previous!.uploader
+      : playlist.uploader;
 
   Future<void> storeVideo(YoutubeVideo video) => db
       .into(db.youtubeVideos)

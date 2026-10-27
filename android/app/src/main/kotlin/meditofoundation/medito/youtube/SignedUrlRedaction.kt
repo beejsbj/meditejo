@@ -10,7 +10,9 @@ import java.util.Locale
  * reports. Only the host survives, so a log still says which server failed.
  */
 object SignedUrlRedaction {
-    private val url = Regex("""https?://[^\s"'<>)\]]+""", RegexOption.IGNORE_CASE)
+    // Up to whitespace, a quote or the marker's own `<`: a signed address may hold
+    // `)` and `]`, and stopping at one would leave the rest of it in the log.
+    private val url = Regex("""https?://[^\s"'<>]+""", RegexOption.IGNORE_CASE)
     private const val MARKER = "<redacted>"
 
     fun redact(text: String): String = url.replace(text) { match ->

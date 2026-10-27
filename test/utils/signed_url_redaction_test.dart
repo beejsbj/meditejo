@@ -32,6 +32,15 @@ void main() {
       );
     });
 
+    test('a signed address holding brackets is redacted to its end', () {
+      final out = redactSignedUrls(
+        'uri = https://rr.googlevideo.com/videoplayback?n=(x)&p=[1]&sig=SECRET.',
+      );
+      expect(out, isNot(contains('SECRET')));
+      expect(out, isNot(contains('&p=')));
+      expect('<redacted>'.allMatches(out), hasLength(1));
+    });
+
     test('redacting twice does not stack markers', () {
       final once = redactSignedUrls('uri = $_signed');
       expect(redactSignedUrls(once), once);

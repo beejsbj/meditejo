@@ -1,7 +1,9 @@
 /// Keeps signed YouTube stream addresses out of logs. One works for anyone who
 /// holds it until it expires, and logcat is pasted into bug reports. Only the
 /// host survives, so a log still says which server failed.
-final _address = RegExp(r'''https?://[^\s"'<>)\]]+''', caseSensitive: false);
+// Up to whitespace, a quote or the marker's own `<`: a signed address may
+// hold `)` and `]`, and stopping at one would leave the rest of it in the log.
+final _address = RegExp(r'''https?://[^\s"'<>]+''', caseSensitive: false);
 
 const _marker = '<redacted>';
 

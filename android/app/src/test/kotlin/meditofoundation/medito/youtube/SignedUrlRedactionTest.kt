@@ -32,6 +32,14 @@ class SignedUrlRedactionTest {
     }
 
     @Test
+    fun aSignedAddressHoldingBracketsIsRedactedToItsEnd() {
+        val out = SignedUrlRedaction.redact("uri = https://rr.googlevideo.com/videoplayback?n=(x)&p=[1]&sig=SECRET.")
+        assertFalse(out.contains("SECRET"))
+        assertFalse(out.contains("&p="))
+        assertEquals(1, Regex("<redacted>").findAll(out).count())
+    }
+
+    @Test
     fun redactingTwiceDoesNotStackMarkers() {
         val once = SignedUrlRedaction.redact("uri = $signed")
         assertEquals(once, SignedUrlRedaction.redact(once))

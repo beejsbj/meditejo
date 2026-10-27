@@ -1291,6 +1291,17 @@ void main() {
       expect((await source.pack(id)).items.single.teacher, 'Quiet Channel');
     });
 
+    test('an empty stored channel falls back to the playlist', () async {
+      api.videos[videoA] = video(videoA, uploader: '');
+      await addCourse(watchA, choice: single); // stores an empty channel
+      api.playlists[playlistOne] = playlist([
+        item(videoA),
+      ], uploader: 'Curator');
+      await addCourse(listOne);
+
+      expect((await source.pack(id)).items.single.teacher, 'Curator');
+    });
+
     test('a refresh corrects a row stored under the playlist owner', () async {
       api.playlists[playlistOne] = playlist([
         item(videoA, title: 'First sit'),
