@@ -98,9 +98,13 @@ class SoundsMixHeader extends ConsumerWidget {
       for (final layer in state.mix.layers)
         if (SoundOffer.of(library[layer.soundId], pack) != null) layer.soundId,
     ].length;
-    final summary = missing > 0
-        ? l10n.soundPackMixMissing(missing)
-        : mixSummary(l10n, state, library);
+    final summary = missing == 0
+        ? mixSummary(l10n, state, library)
+        // When nothing in the mix is on the phone, "the rest plays" would be
+        // untrue.
+        : missing == state.mix.layers.length
+        ? l10n.soundPackMixAllMissing(missing)
+        : l10n.soundPackMixMissing(missing);
     const motion = MeditejoMotion.standardSpatial;
     return Row(
       children: [

@@ -264,6 +264,21 @@ void main() {
       );
     });
 
+    testWidgets('a mix with nothing here does not claim the rest plays', (
+      tester,
+    ) async {
+      await pump(tester);
+      container.read(soundscapeProvider.notifier)
+        ..toggleSound('sea')
+        ..toggleSound('ocean');
+      await tester.pumpAndSettle();
+      expect(
+        find.text('All 2 sounds in this mix need downloading.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('The rest plays'), findsNothing);
+    });
+
     testWidgets('its layer offers the download', (tester) async {
       await mixWithMissing(tester);
       // The message sits over the dock; dismiss it to reach the dock.
@@ -399,12 +414,21 @@ void main() {
 
     testWidgets('Wi-Fi only is on until it is switched off', (tester) async {
       await pump(tester, home: const SoundPackWifiTile());
+      // The hint about mobile data is only true while the setting is on.
+      expect(
+        find.textContaining('mobile data', findRichText: true),
+        findsOneWidget,
+      );
       Switch toggle() => tester.widget<Switch>(find.byType(Switch));
       expect(toggle().value, isTrue);
       await tester.tap(find.byType(Switch));
       await tester.pumpAndSettle();
       expect(toggle().value, isFalse);
       expect(container.read(soundPackProvider).wifiOnly, isFalse);
+      expect(
+        find.textContaining('mobile data', findRichText: true),
+        findsNothing,
+      );
     });
   });
 }

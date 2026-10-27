@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/models/soundscape/sound_library.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/soundscape/sound_pack_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
@@ -252,6 +253,30 @@ void main() {
     final again = await make();
     expect(again.read(soundPackProvider).downloaded, isEmpty);
   });
+
+  test(
+    'a library that failed to load never tidies the downloads away',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      prefs = await SharedPreferences.getInstance();
+      fixture.stage(bundledSoundLibrary, {packIds[0]});
+      final c = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          // What the provider returns when the asset cannot be read.
+          soundLibraryProvider.overrideWith((ref) async => SoundLibrary.empty),
+          ...fixture.overrides,
+        ],
+      );
+      addTearDown(c.dispose);
+      await c.read(soundPackProvider.notifier).ready;
+      final files = SoundPackFiles(Directory('${fixture.directory.path}/pack'));
+      expect(
+        files.fileFor(bundledSoundLibrary[packIds[0]]!).existsSync(),
+        isTrue,
+      );
+    },
+  );
 
   test('a stale or partial file is tidied away on the next start', () async {
     container = await make(onPhone: {packIds[0]});

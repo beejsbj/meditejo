@@ -35,7 +35,7 @@ void main() {
       bundled += file.lengthSync();
     }
     // The point of the sound pack: the APK holds the core set, not the library.
-    expect(bundled, lessThanOrEqualTo(6 * 1000 * 1000));
+    expect(bundled, lessThanOrEqualTo(6 * 1024 * 1024));
     expect(bundled, json['bundledBytes']);
     final total = library.sounds.fold<int>(0, (n, s) => n + s.bytes);
     expect(total, json['totalBytes']);

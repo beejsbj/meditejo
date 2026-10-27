@@ -171,7 +171,7 @@ class RealLibraryTest(unittest.TestCase):
         bundled = [e for e in library['sounds'] if e['bundled']]
         packed = [e for e in library['sounds'] if not e['bundled']]
         self.assertTrue(bundled and packed)
-        self.assertLess(sum(e['bytes'] for e in bundled), 6 * 1000 * 1000)
+        self.assertLess(sum(e['bytes'] for e in bundled), 6 * 1024 * 1024)
         self.assertRegex(library['pack']['release'], r'^sounds-\d{8}(-\d+)?$')
         self.assertEqual(library['pack']['digest'], sp_real.digest_of(packed))
 

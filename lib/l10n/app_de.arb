@@ -1436,5 +1436,6 @@
   "settingsSoundPackDeleteTitle": "Delete downloaded sounds?",
   "settingsSoundPackDeleteBody": "This frees {size}. The sounds stay in the library, and you can download them again any time.",
   "settingsSoundPackWifiOnly": "Download sounds on Wi-Fi only",
-  "settingsSoundPackWifiOnlyHint": "They are large. On mobile data a download only starts when you choose Download anyway."
+  "settingsSoundPackWifiOnlyHint": "They are large. On mobile data a download only starts when you choose Download anyway.",
+  "soundPackMixAllMissing": "{count, plural, one{The sound in this mix needs downloading.} other{All {count} sounds in this mix need downloading.}}"
 }

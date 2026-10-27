@@ -100,14 +100,14 @@ class SoundPackWifiTile extends ConsumerWidget {
         color: Theme.of(context).colorScheme.onSurface,
       ),
       title: l10n.settingsSoundPackWifiOnly,
-      subTitle: l10n.settingsSoundPackWifiOnlyHint,
+      // Only true while the setting is on.
+      subTitle: wifiOnly ? l10n.settingsSoundPackWifiOnlyHint : null,
       hasUnderline: hasUnderline,
       isSwitch: true,
       switchValue: wifiOnly,
       onSwitchChanged: (value) =>
           ref.read(soundPackProvider.notifier).setWifiOnly(value),
-      onTap: () =>
-          ref.read(soundPackProvider.notifier).setWifiOnly(!wifiOnly),
+      onTap: () => ref.read(soundPackProvider.notifier).setWifiOnly(!wifiOnly),
     );
   }
 }

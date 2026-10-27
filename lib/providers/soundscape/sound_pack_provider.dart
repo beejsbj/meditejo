@@ -204,9 +204,11 @@ class SoundPackController extends Notifier<SoundPackState> {
     try {
       _library = await ref.read(soundLibraryProvider.future);
       final files = await _filesOnDisk();
+      // An empty list is a library that failed to load, not a pack that
+      // lost everything: never tidy (delete) on that.
       final present = await files.scan(
         _library.packSounds,
-        tidy: _queue.isEmpty,
+        tidy: _queue.isEmpty && _library.packSounds.isNotEmpty,
       );
       if (!ref.mounted) return;
       state = state.copyWith(

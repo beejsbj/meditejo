@@ -3433,5 +3433,14 @@
   "settingsSoundPackWifiOnlyHint": "They are large. On mobile data a download only starts when you choose Download anyway.",
   "@settingsSoundPackWifiOnlyHint": {
     "description": "Settings: why Wi-Fi only"
+  },
+  "soundPackMixAllMissing": "{count, plural, one{The sound in this mix needs downloading.} other{All {count} sounds in this mix need downloading.}}",
+  "@soundPackMixAllMissing": {
+    "description": "Mix panel: no sound of the mix is on this phone",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }
