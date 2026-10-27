@@ -2240,6 +2240,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get soundsSavePreset => 'Save mix';
 
   @override
+  String get soundsPresetOurs => 'Meditejo';
+
+  @override
+  String get soundsPresetYours => 'Yours';
+
+  @override
   String get soundsPresetName => 'Preset name';
 
   @override

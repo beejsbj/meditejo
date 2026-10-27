@@ -978,6 +978,8 @@
   "soundsDriftHint": "Deja que el volumen suba y baje despacio",
   "soundsPresets": "Preajustes",
   "soundsSavePreset": "Guardar mezcla",
+  "soundsPresetOurs": "Meditejo",
+  "soundsPresetYours": "Tuyo",
   "soundsPresetName": "Nombre del preajuste",
   "soundsPresetSaved": "“{name}” guardado",
   "soundsDeletePreset": "¿Eliminar “{name}”?",

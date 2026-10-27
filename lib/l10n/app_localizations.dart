@@ -3988,6 +3988,18 @@ abstract class AppLocalizations {
   /// **'Save mix'**
   String get soundsSavePreset;
 
+  /// Sounds screen: the overline on a preset that ships with the app
+  ///
+  /// In en, this message translates to:
+  /// **'Meditejo'**
+  String get soundsPresetOurs;
+
+  /// Sounds screen: the overline on a preset the user saved
+  ///
+  /// In en, this message translates to:
+  /// **'Yours'**
+  String get soundsPresetYours;
+
   /// Sounds screen: soundsPresetName
   ///
   /// In en, this message translates to:

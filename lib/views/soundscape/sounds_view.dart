@@ -357,14 +357,16 @@ class _SoundsLibrary extends ConsumerWidget {
     final full = !mixer.canAddLayer;
     final grid = SoundGridMetrics.of(context);
 
-    Widget card(String id, String title, SoundLook look) {
-      final inMix = state.mix.contains(id);
+    Widget card(String id, String title) {
+      final layer = state.mix.layers.where((l) => l.soundId == id).firstOrNull;
+      final inMix = layer != null;
       return SoundCard(
         key: ValueKey('sound_$id'),
         soundId: id,
         title: title,
-        look: look,
+        params: layer?.params ?? defaultSynthParams(id),
         selected: inMix,
+        sounding: inMix && state.playing && layer.volume > 0,
         enabled: inMix || !full,
         onTap: () => mixer.toggleSound(id),
       );
@@ -381,16 +383,28 @@ class _SoundsLibrary extends ConsumerWidget {
       ),
       SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        sliver: SliverGrid(
-          // As many columns as fit at up to [maxCardWidth] each: three on a
-          // phone, fewer once large text needs the room.
-          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: grid.maxCardWidth,
-            mainAxisExtent: grid.cardHeight,
-            mainAxisSpacing: kSoundGridGap,
-            crossAxisSpacing: kSoundGridGap,
-          ),
-          delegate: SliverChildListDelegate(cards),
+        // Square tiles, as many across as fit at up to [maxCardWidth]
+        // each: three on a phone, fewer once large text needs the room,
+        // and never shorter than the title needs.
+        sliver: SliverLayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.crossAxisExtent;
+            final columns = math.max(
+              1,
+              ((width + kSoundGridGap) / (grid.maxCardWidth + kSoundGridGap))
+                  .ceil(),
+            );
+            final cell = (width - kSoundGridGap * (columns - 1)) / columns;
+            return SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                mainAxisExtent: math.max(cell, grid.cardHeight),
+                mainAxisSpacing: kSoundGridGap,
+                crossAxisSpacing: kSoundGridGap,
+              ),
+              delegate: SliverChildListDelegate(cards),
+            );
+          },
         ),
       ),
     ];
@@ -424,10 +438,7 @@ class _SoundsLibrary extends ConsumerWidget {
             'generated',
             l10n.soundCategoryGenerated,
             SoundLook.forCategory(null).icon,
-            [
-              for (final id in kSynthIds)
-                card(id, synthTitle(l10n, id), SoundLook.forSound(id, library)),
-            ],
+            [for (final id in kSynthIds) card(id, synthTitle(l10n, id))],
           ),
           for (final category in library.categories)
             ...shelf(
@@ -436,7 +447,7 @@ class _SoundsLibrary extends ConsumerWidget {
               SoundLook.forCategory(category).icon,
               [
                 for (final sound in library.inCategory(category))
-                  card(sound.id, sound.title, SoundLook.forCategory(category)),
+                  card(sound.id, sound.title),
               ],
             ),
         ],
@@ -461,18 +472,25 @@ class _PresetRow extends ConsumerWidget {
     final library = ref.watch(soundLibraryProvider).value ?? SoundLibrary.empty;
     final mixer = ref.read(soundscapeProvider.notifier);
     final current = state.matchingPreset;
-    final height = 116 + MediaQuery.textScalerOf(context).scale(52);
+    final size = presetCardSize(context);
     final canSave = !state.mix.isEmpty && current == null;
+    List<String> titles(SoundPreset preset) {
+      final layers = [...preset.mix.layers]
+        ..sort((a, b) => b.volume.compareTo(a.volume));
+      return [
+        for (final layer in layers) ?soundTitle(l10n, layer.soundId, library),
+      ];
+    }
+
     final cards = <Widget>[
       for (final preset in state.presets)
         PresetCard(
           key: ValueKey('preset_${preset.id}'),
           presetId: preset.id,
           label: soundPresetLabel(l10n, preset),
-          looks: [
-            for (final layer in preset.mix.layers)
-              SoundLook.forSound(layer.soundId, library),
-          ],
+          layers: preset.mix.layers,
+          layerTitles: titles(preset),
+          builtIn: preset.builtIn,
           playing: state.playing && current?.id == preset.id,
           onTap: () => mixer.applyPreset(preset.id),
           onDelete: preset.builtIn
@@ -480,20 +498,27 @@ class _PresetRow extends ConsumerWidget {
               : () => confirmDeletePreset(context, ref, preset),
         ),
       if (canSave)
-        SavePresetCard(
-          key: const ValueKey('preset_save'),
-          onTap: () => saveMixAsPreset(context, ref),
+        Padding(
+          padding: const EdgeInsets.only(bottom: kPresetStackDepth),
+          child: SavePresetCard(
+            key: const ValueKey('preset_save'),
+            onTap: () => saveMixAsPreset(context, ref),
+          ),
         ),
     ];
     return SizedBox(
-      height: height,
+      height: size.height + kPresetStackDepth,
       child: ListView.separated(
         key: const PageStorageKey('sounds_presets'),
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: cards.length,
         separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (_, i) => SizedBox(width: 200, child: cards[i]),
+        itemBuilder: (_, i) => SizedBox(
+          // Save mix is a square beside the wide prints.
+          width: i < state.presets.length ? size.width : size.height,
+          child: cards[i],
+        ),
       ),
     );
   }

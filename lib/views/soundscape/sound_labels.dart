@@ -4,7 +4,6 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/soundscape/sound_library.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/synth.dart';
-import 'package:medito/widgets/generated_artwork.dart';
 
 /// Localised names for the shelves of the library.
 String soundCategoryLabel(AppLocalizations l10n, SoundCategory category) =>
@@ -29,39 +28,35 @@ String soundPresetLabel(AppLocalizations l10n, SoundPreset preset) =>
       _ => preset.name,
     };
 
-/// How a sound looks on its card: a Material Symbol and the generated
-/// art's colours, shared by its shelf. A null [category] is the generated
-/// shelf (noise, drone, binaural beats).
+/// A sound's Material Symbol, shared by its shelf. A null [category] is
+/// the generated shelf (noise, drone, binaural beats). The art itself comes
+/// from the art engine (`ArtSubject.sound`).
 class SoundLook {
-  const SoundLook(this.icon, this.colors);
+  const SoundLook(this.icon);
 
   final IconData icon;
-  final (Color, Color) colors;
-
-  static (Color, Color) _palette(int i) => GeneratedArtwork.palette[i];
 
   static SoundLook forCategory(SoundCategory? category) => switch (category) {
-    SoundCategory.rain => SoundLook(Symbols.rainy_rounded, _palette(1)),
-    SoundCategory.water => SoundLook(Symbols.water_rounded, _palette(6)),
-    SoundCategory.wind => SoundLook(Symbols.air_rounded, _palette(0)),
-    SoundCategory.forest => SoundLook(Symbols.forest_rounded, _palette(5)),
-    SoundCategory.fire => SoundLook(
+    SoundCategory.rain => const SoundLook(Symbols.rainy_rounded),
+    SoundCategory.water => const SoundLook(Symbols.water_rounded),
+    SoundCategory.wind => const SoundLook(Symbols.air_rounded),
+    SoundCategory.forest => const SoundLook(Symbols.forest_rounded),
+    SoundCategory.fire => const SoundLook(
       Symbols.local_fire_department_rounded,
-      _palette(2),
     ),
-    SoundCategory.room => SoundLook(Symbols.chair_rounded, _palette(4)),
-    SoundCategory.night => SoundLook(Symbols.bedtime_rounded, _palette(3)),
-    null => SoundLook(Symbols.graphic_eq_rounded, _palette(7)),
+    SoundCategory.room => const SoundLook(Symbols.chair_rounded),
+    SoundCategory.night => const SoundLook(Symbols.bedtime_rounded),
+    null => const SoundLook(Symbols.graphic_eq_rounded),
   };
 
-  /// One sound: its shelf's colours, and for a generated layer its own icon.
+  /// One sound: its shelf's icon, and for a generated layer its own.
   static SoundLook forSound(String soundId, SoundLibrary library) {
     if (isSynthId(soundId)) {
       return SoundLook(switch (soundId) {
         kSynthNoiseId => Symbols.grain_rounded,
         kSynthDroneId => Symbols.waves_rounded,
         _ => Symbols.headphones_rounded,
-      }, forCategory(null).colors);
+      });
     }
     return forCategory(library[soundId]?.category);
   }
