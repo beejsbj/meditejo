@@ -5,6 +5,7 @@ import 'package:medito/providers/meditation/downloaded_track_ids_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
+import 'package:medito/services/categories/entry_labels.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 
@@ -35,9 +36,14 @@ class LibraryViewOptions {
     this.group,
     this.sort = LibrarySort.recent,
     this.layout = LibraryLayout.list,
+    this.label,
   });
 
   final LibraryFilter filter;
+
+  /// A category's ID or a label of the user's own (its key), or null for
+  /// everything. It narrows what the kind filter shows; teachers have none.
+  final String? label;
 
   /// Practice or Talks; null for both.
   final LibraryGroup? group;
@@ -49,11 +55,13 @@ class LibraryViewOptions {
     ValueGetter<LibraryGroup?>? group,
     LibrarySort? sort,
     LibraryLayout? layout,
+    ValueGetter<String?>? label,
   }) => LibraryViewOptions(
     filter: filter ?? this.filter,
     group: group == null ? this.group : group(),
     sort: sort ?? this.sort,
     layout: layout ?? this.layout,
+    label: label == null ? this.label : label(),
   );
 }
 
@@ -90,6 +98,8 @@ class LibraryViewOptionsNotifier extends Notifier<LibraryViewOptions> {
 
   void setGroup(LibraryGroup? group) =>
       state = state.copyWith(group: () => group);
+
+  void setLabel(String? label) => state = state.copyWith(label: () => label);
 
   void setSort(LibrarySort sort) {
     state = state.copyWith(sort: sort);
@@ -174,22 +184,29 @@ LibraryArrangement arrangeLibrary(
   LibraryViewOptions options, {
   Map<String, CourseProgress> progress = const {},
   Set<String> downloaded = const {},
+  Map<String, EntryLabels> labels = const {},
 }) {
-  bool shows(LibraryEntry e) => switch (options.filter) {
-    LibraryFilter.all => e.kind != LibraryKind.teacher,
-    LibraryFilter.courses => e.isCourse && !isMyCourseId(e.sourceId),
-    LibraryFilter.playlists => e.isCourse && isMyCourseId(e.sourceId),
-    LibraryFilter.singles => e.kind == LibraryKind.single,
-    LibraryFilter.teachers => false,
-    LibraryFilter.downloads =>
-      e.kind != LibraryKind.teacher && downloaded.contains(e.sourceId),
-  };
+  final label = options.label;
+  bool labelled(LibraryEntry e) =>
+      label == null || (labels[e.sourceId]?.hasLabel(label) ?? false);
+  bool shows(LibraryEntry e) =>
+      labelled(e) &&
+      switch (options.filter) {
+        LibraryFilter.all => e.kind != LibraryKind.teacher,
+        LibraryFilter.courses => e.isCourse && !isMyCourseId(e.sourceId),
+        LibraryFilter.playlists => e.isCourse && isMyCourseId(e.sourceId),
+        LibraryFilter.singles => e.kind == LibraryKind.single,
+        LibraryFilter.teachers => false,
+        LibraryFilter.downloads =>
+          e.kind != LibraryKind.teacher && downloaded.contains(e.sourceId),
+      };
 
   final sorted = _sorted(entries, options.sort, progress);
   final groups = options.group == null ? LibraryGroup.values : [options.group!];
   final teachersShown =
-      options.filter == LibraryFilter.teachers ||
-      (options.filter == LibraryFilter.all && options.group == null);
+      label == null &&
+      (options.filter == LibraryFilter.teachers ||
+          (options.filter == LibraryFilter.all && options.group == null));
   return LibraryArrangement(
     shelves: [
       for (final group in groups)
