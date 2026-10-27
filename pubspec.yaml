@@ -99,6 +99,7 @@ flutter:
     - assets/sounds/
     - assets/art/
     - assets/dharma_seed/
+    - assets/categories/
     - assets/
     - assets/images/
     - assets/images/app_icons/

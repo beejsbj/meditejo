@@ -1175,132 +1175,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get markTrackIncomplete => 'Als nicht abgeschlossen markieren';
 
   @override
-  String get tagSleep => 'Schlaf';
-
-  @override
-  String get tagStress => 'Stress';
-
-  @override
-  String get tagAnxiety => 'Angst';
-
-  @override
-  String get tagLowMood => 'Niedergeschlagenheit';
-
-  @override
-  String get tagFocus => 'Fokus';
-
-  @override
-  String get tagCalm => 'Ruhe';
-
-  @override
-  String get tagSelfCompassion => 'Selbstmitgefühl';
-
-  @override
-  String get tagGratitude => 'Dankbarkeit';
-
-  @override
-  String get tagEmotions => 'Schwierige Gefühle';
-
-  @override
-  String get tagPain => 'Schmerz';
-
-  @override
-  String get tagConfidence => 'Selbstvertrauen';
-
-  @override
-  String get tagRelationships => 'Beziehungen';
-
-  @override
-  String get tagGrief => 'Trauer';
-
-  @override
-  String get tagHabitBuilding => 'Gewohnheiten aufbauen';
-
-  @override
-  String get tagBreathing => 'Atmung';
-
-  @override
-  String get tagBodyScan => 'Bodyscan';
-
-  @override
-  String get tagLovingKindness => 'Liebende Güte';
-
-  @override
-  String get tagOpenAwareness => 'Offenes Gewahrsein';
-
-  @override
-  String get tagVisualization => 'Visualisierung';
-
-  @override
-  String get tagMantra => 'Mantra';
-
-  @override
-  String get tagWalking => 'Gehmeditation';
-
-  @override
-  String get tagReflection => 'Reflexion';
-
-  @override
-  String get tagSound => 'Klang';
-
-  @override
-  String get tagGuidedMeditation => 'Geführte Meditation';
-
-  @override
-  String get tagTalk => 'Vorträge';
-
-  @override
-  String get tagSleepStory => 'Einschlafgeschichten';
-
-  @override
-  String get tagMusic => 'Musik';
-
-  @override
-  String get tagNatureSounds => 'Naturklänge';
-
-  @override
-  String get tagCourseLesson => 'Kurslektionen';
-
-  @override
-  String get tagBeginners => 'Für Anfänger';
-
-  @override
-  String get tagExperienced => 'Erfahrene';
-
-  @override
-  String get tagTeensStudents => 'Jugendliche & Studierende';
-
-  @override
-  String get tagTeachers => 'Lehrkräfte';
-
-  @override
-  String get tagWorkplace => 'Arbeit';
-
-  @override
-  String get tagKids => 'Kinder';
-
-  @override
-  String get tagMorning => 'Morgen';
-
-  @override
-  String get tagEvening => 'Abend';
-
-  @override
-  String get tagSos => 'SOS';
-
-  @override
-  String get tagOnTheGo => 'Unterwegs';
-
-  @override
-  String get tagCrisis => 'Krisenzeiten';
-
-  @override
-  String get tagSpanish => 'Español';
-
-  @override
-  String get tagNoTracks => 'Noch keine Sitzungen mit diesem Tag';
-
-  @override
   String get sessionBells => 'Sitzungsglocken';
 
   @override
@@ -2919,6 +2793,175 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get libraryPinned => 'Auf Home angeheftet';
+
+  @override
+  String get exploreCategories => 'Categories';
+
+  @override
+  String get exploreCategoriesLabel => 'Browse by category';
+
+  @override
+  String get categoryEmptyTitle => 'Nothing here yet';
+
+  @override
+  String get categoryEmptyBody =>
+      'Label something in your library, or add a course from Explore, and it will appear here.';
+
+  @override
+  String get categoryLoadFailed => 'Could not load this category';
+
+  @override
+  String get libraryLabelFilterLabel => 'Category or label';
+
+  @override
+  String get libraryMenuLabels => 'Categories and labels';
+
+  @override
+  String get labelsTitle => 'Categories and labels';
+
+  @override
+  String get labelsExplain =>
+      'Ticked categories are Meditejo\'s best guess or your own choice. Your choice always wins.';
+
+  @override
+  String get labelsCustomHeading => 'Your labels';
+
+  @override
+  String get labelsAddHint => 'Add a label';
+
+  @override
+  String get labelsAddButton => 'Add';
+
+  @override
+  String labelsRemoveTooltip(String label) {
+    return 'Remove label $label';
+  }
+
+  @override
+  String get tagSleep => 'Schlaf';
+
+  @override
+  String get tagStress => 'Stress';
+
+  @override
+  String get tagAnxiety => 'Angst';
+
+  @override
+  String get tagLowMood => 'Niedergeschlagenheit';
+
+  @override
+  String get tagFocus => 'Fokus';
+
+  @override
+  String get tagCalm => 'Ruhe';
+
+  @override
+  String get tagSelfCompassion => 'Selbstmitgefühl';
+
+  @override
+  String get tagGratitude => 'Dankbarkeit';
+
+  @override
+  String get tagEmotions => 'Schwierige Gefühle';
+
+  @override
+  String get tagPain => 'Schmerz';
+
+  @override
+  String get tagConfidence => 'Selbstvertrauen';
+
+  @override
+  String get tagRelationships => 'Beziehungen';
+
+  @override
+  String get tagGrief => 'Trauer';
+
+  @override
+  String get tagHabitBuilding => 'Gewohnheiten aufbauen';
+
+  @override
+  String get tagBreathing => 'Atmung';
+
+  @override
+  String get tagBodyScan => 'Bodyscan';
+
+  @override
+  String get tagLovingKindness => 'Liebende Güte';
+
+  @override
+  String get tagOpenAwareness => 'Offenes Gewahrsein';
+
+  @override
+  String get tagVisualization => 'Visualisierung';
+
+  @override
+  String get tagMantra => 'Mantra';
+
+  @override
+  String get tagWalking => 'Gehmeditation';
+
+  @override
+  String get tagReflection => 'Reflexion';
+
+  @override
+  String get tagSound => 'Klang';
+
+  @override
+  String get tagGuidedMeditation => 'Geführte Meditation';
+
+  @override
+  String get tagTalk => 'Vorträge';
+
+  @override
+  String get tagSleepStory => 'Einschlafgeschichten';
+
+  @override
+  String get tagMusic => 'Musik';
+
+  @override
+  String get tagNatureSounds => 'Naturklänge';
+
+  @override
+  String get tagCourseLesson => 'Kurslektionen';
+
+  @override
+  String get tagBeginners => 'Für Anfänger';
+
+  @override
+  String get tagExperienced => 'Erfahrene';
+
+  @override
+  String get tagTeensStudents => 'Jugendliche & Studierende';
+
+  @override
+  String get tagTeachers => 'Lehrkräfte';
+
+  @override
+  String get tagWorkplace => 'Arbeit';
+
+  @override
+  String get tagKids => 'Kinder';
+
+  @override
+  String get tagMorning => 'Morgen';
+
+  @override
+  String get tagEvening => 'Abend';
+
+  @override
+  String get tagSos => 'SOS';
+
+  @override
+  String get tagOnTheGo => 'Unterwegs';
+
+  @override
+  String get tagCrisis => 'Krisenzeiten';
+
+  @override
+  String get tagSpanish => 'Español';
+
+  @override
+  String get tagNoTracks => 'Noch keine Sitzungen mit diesem Tag';
 
   @override
   String get bellMakerTitle => 'Glocke gestalten';
