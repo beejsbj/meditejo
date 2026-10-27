@@ -2919,4 +2919,168 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get libraryPinned => 'Auf Home angeheftet';
+
+  @override
+  String soundPackDownloadSound(String title, String size) {
+    return 'Download $title, $size';
+  }
+
+  @override
+  String soundPackCancelDownload(String title) {
+    return 'Cancel the download of $title';
+  }
+
+  @override
+  String soundPackRetryDownload(String title) {
+    return 'The download of $title failed. Try again';
+  }
+
+  @override
+  String get soundPackQueued => 'Waiting to download';
+
+  @override
+  String get soundPackMoreTitle => 'More sounds';
+
+  @override
+  String soundPackMoreBody(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count more sounds to download',
+      one: '1 more sound to download',
+    );
+    return '$_temp0 · $size';
+  }
+
+  @override
+  String get soundPackDownloadAll => 'Download all';
+
+  @override
+  String soundPackDownloading(int done, int total) {
+    return 'Downloading $done of $total';
+  }
+
+  @override
+  String get soundPackCancel => 'Cancel';
+
+  @override
+  String get soundPackWaitingForWifi => 'Waiting for Wi-Fi';
+
+  @override
+  String get soundPackWifiOnlyHint =>
+      'Downloads wait for Wi-Fi. You can change this in Settings.';
+
+  @override
+  String get soundPackDownloadAnyway => 'Download anyway';
+
+  @override
+  String soundPackFailedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count downloads failed',
+      one: '1 download failed',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get soundPackRetry => 'Retry';
+
+  @override
+  String get soundPackFailureNetwork => 'Check your connection';
+
+  @override
+  String get soundPackFailureServer =>
+      'The download is not available right now';
+
+  @override
+  String get soundPackFailureIntegrity =>
+      'The file did not match what Meditejo expects, so it was not kept';
+
+  @override
+  String get soundPackFailureStorage => 'Could not save it on this phone';
+
+  @override
+  String soundPackNeedsDownload(String size) {
+    return 'Needs download · $size';
+  }
+
+  @override
+  String get soundPackDownload => 'Download';
+
+  @override
+  String soundPackMixMissing(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sounds in this mix need downloading. The rest plays.',
+      one: '1 sound in this mix needs downloading. The rest plays.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String soundPackPresetMissing(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sounds need downloading',
+      one: '1 sound needs downloading',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String soundPackMissingPartial(String names, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'They are',
+      one: 'It is',
+    );
+    return 'Playing without $names. $_temp0 not downloaded yet.';
+  }
+
+  @override
+  String soundPackMissingAll(String names, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'need',
+      one: 'needs',
+    );
+    return 'Nothing to play yet: $names $_temp0 downloading.';
+  }
+
+  @override
+  String get settingsSoundPackTitle => 'Downloaded sounds';
+
+  @override
+  String settingsSoundPackSummary(int count, int total, String size) {
+    return '$count of $total on this phone · $size';
+  }
+
+  @override
+  String settingsSoundPackNone(String size) {
+    return 'None downloaded · $size available';
+  }
+
+  @override
+  String get settingsSoundPackDelete => 'Delete';
+
+  @override
+  String get settingsSoundPackDeleteTitle => 'Delete downloaded sounds?';
+
+  @override
+  String settingsSoundPackDeleteBody(String size) {
+    return 'This frees $size. The sounds stay in the library, and you can download them again any time.';
+  }
+
+  @override
+  String get settingsSoundPackWifiOnly => 'Download sounds on Wi-Fi only';
+
+  @override
+  String get settingsSoundPackWifiOnlyHint =>
+      'They are large. On mobile data a download only starts when you choose Download anyway.';
 }

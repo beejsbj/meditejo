@@ -5109,6 +5109,198 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pinned to Home'**
   String get libraryPinned;
+
+  /// Sound card: download a sound that is not on this phone yet
+  ///
+  /// In en, this message translates to:
+  /// **'Download {title}, {size}'**
+  String soundPackDownloadSound(String title, String size);
+
+  /// Sound card: stop downloading a sound
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel the download of {title}'**
+  String soundPackCancelDownload(String title);
+
+  /// Sound card: retry a failed download
+  ///
+  /// In en, this message translates to:
+  /// **'The download of {title} failed. Try again'**
+  String soundPackRetryDownload(String title);
+
+  /// Sound card: queued behind other downloads
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting to download'**
+  String get soundPackQueued;
+
+  /// Sounds screen: heading of the downloadable sounds banner
+  ///
+  /// In en, this message translates to:
+  /// **'More sounds'**
+  String get soundPackMoreTitle;
+
+  /// Sounds screen: how much is left to download
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 more sound to download} other{{count} more sounds to download}} · {size}'**
+  String soundPackMoreBody(int count, String size);
+
+  /// Sounds screen: download every sound that is not on this phone
+  ///
+  /// In en, this message translates to:
+  /// **'Download all'**
+  String get soundPackDownloadAll;
+
+  /// Sounds screen: progress of the downloads
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {done} of {total}'**
+  String soundPackDownloading(int done, int total);
+
+  /// Sounds screen: stop the downloads
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get soundPackCancel;
+
+  /// Sounds screen: downloads wait because the phone is on mobile data
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for Wi-Fi'**
+  String get soundPackWaitingForWifi;
+
+  /// Sounds screen: why downloads wait
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads wait for Wi-Fi. You can change this in Settings.'**
+  String get soundPackWifiOnlyHint;
+
+  /// Sounds screen: download on mobile data this once
+  ///
+  /// In en, this message translates to:
+  /// **'Download anyway'**
+  String get soundPackDownloadAnyway;
+
+  /// Sounds screen: some downloads did not finish
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 download failed} other{{count} downloads failed}}'**
+  String soundPackFailedCount(int count);
+
+  /// Sounds screen: try the failed downloads again
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get soundPackRetry;
+
+  /// Sounds screen: why a download failed (no network)
+  ///
+  /// In en, this message translates to:
+  /// **'Check your connection'**
+  String get soundPackFailureNetwork;
+
+  /// Sounds screen: why a download failed (the server)
+  ///
+  /// In en, this message translates to:
+  /// **'The download is not available right now'**
+  String get soundPackFailureServer;
+
+  /// Sounds screen: why a download failed (the checksum)
+  ///
+  /// In en, this message translates to:
+  /// **'The file did not match what Meditejo expects, so it was not kept'**
+  String get soundPackFailureIntegrity;
+
+  /// Sounds screen: why a download failed (storage)
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save it on this phone'**
+  String get soundPackFailureStorage;
+
+  /// Mix: a layer whose sound is not on this phone
+  ///
+  /// In en, this message translates to:
+  /// **'Needs download · {size}'**
+  String soundPackNeedsDownload(String size);
+
+  /// Download a sound
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get soundPackDownload;
+
+  /// Mix panel: sounds missing from the mix
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 sound in this mix needs downloading. The rest plays.} other{{count} sounds in this mix need downloading. The rest plays.}}'**
+  String soundPackMixMissing(int count);
+
+  /// Preset card: sounds missing from a preset
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 sound needs downloading} other{{count} sounds need downloading}}'**
+  String soundPackPresetMissing(int count);
+
+  /// Snackbar: a mix plays without some sounds
+  ///
+  /// In en, this message translates to:
+  /// **'Playing without {names}. {count, plural, one{It is} other{They are}} not downloaded yet.'**
+  String soundPackMissingPartial(String names, int count);
+
+  /// Snackbar: a mix has no sound that is on this phone
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to play yet: {names} {count, plural, one{needs} other{need}} downloading.'**
+  String soundPackMissingAll(String names, int count);
+
+  /// Settings, Library and downloads: the sound pack row
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded sounds'**
+  String get settingsSoundPackTitle;
+
+  /// Settings: how many sounds are downloaded and what they take
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {total} on this phone · {size}'**
+  String settingsSoundPackSummary(int count, int total, String size);
+
+  /// Settings: no sound is downloaded
+  ///
+  /// In en, this message translates to:
+  /// **'None downloaded · {size} available'**
+  String settingsSoundPackNone(String size);
+
+  /// Settings: remove the downloaded sounds
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get settingsSoundPackDelete;
+
+  /// Settings: dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Delete downloaded sounds?'**
+  String get settingsSoundPackDeleteTitle;
+
+  /// Settings: dialog text
+  ///
+  /// In en, this message translates to:
+  /// **'This frees {size}. The sounds stay in the library, and you can download them again any time.'**
+  String settingsSoundPackDeleteBody(String size);
+
+  /// Settings: sound downloads wait for Wi-Fi
+  ///
+  /// In en, this message translates to:
+  /// **'Download sounds on Wi-Fi only'**
+  String get settingsSoundPackWifiOnly;
+
+  /// Settings: why Wi-Fi only
+  ///
+  /// In en, this message translates to:
+  /// **'They are large. On mobile data a download only starts when you choose Download anyway.'**
+  String get settingsSoundPackWifiOnlyHint;
 }
 
 class _AppLocalizationsDelegate
