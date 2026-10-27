@@ -389,8 +389,11 @@ class IosAudioHandler extends BaseAudioHandler {
       if (!_nativeCompletionEarned) return;
       _thresholdRecorded = true;
       _completionPlaythroughIndex = _completedPlaythroughs - 1;
+      // Recorded before the pass is closed: the next session's cues may be
+      // configured while Swift answers, and the completion is this track's.
+      final recorded = recordSessionCompletion();
       await _endNativePass();
-      return recordSessionCompletion();
+      return recorded;
     }
     final heardPass = await _endNativePass();
     if (_completedPlaythroughs > _completionPlaythroughIndex + 1 &&

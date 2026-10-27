@@ -130,8 +130,13 @@ class MyCourseSource implements ContentSource {
       if (next == null || row.coverUrl != old || next.coverUrl.isEmpty) {
         continue;
       }
-      await (db.update(db.myCourses)..where((c) => c.id.equals(course.id)))
-          .write(MyCoursesCompanion(coverUrl: Value(next.coverUrl)));
+      // Only while it is still the cover seen before the refresh: a cover the
+      // editor saved in the meantime is left alone.
+      final moved =
+          await (db.update(db.myCourses)
+                ..where((c) => c.id.equals(course.id) & c.coverUrl.equals(old)))
+              .write(MyCoursesCompanion(coverUrl: Value(next.coverUrl)));
+      if (moved == 0) return null;
       await _syncEntry(course.id);
       return course.copyWith(coverUrl: next.coverUrl);
     }
