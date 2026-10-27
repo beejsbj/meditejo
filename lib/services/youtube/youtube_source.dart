@@ -145,6 +145,9 @@ class YoutubeSource
                       durationMs: item.durationSeconds > 0
                           ? item.durationSeconds * 1000
                           : null,
+                      subtitle: item.uploader == playlist.uploader
+                          ? ''
+                          : item.uploader,
                       artworkUrl: item.thumbnail,
                     ),
             ];
@@ -295,6 +298,7 @@ class YoutubeSource
                   YoutubePlaylistItem(
                     videoId: video.videoId,
                     title: video.title,
+                    uploader: video.uploader,
                     durationSeconds: video.durationSeconds,
                     thumbnail: video.thumbnail,
                   ),
@@ -353,7 +357,7 @@ class YoutubeSource
       return YoutubeVideo(
         videoId: item.videoId,
         title: item.title,
-        uploader: previous?.uploader ?? playlist!.uploader,
+        uploader: _uploaderOf(item, previous, playlist!),
         // What a full resolve found outranks the list's summary.
         durationSeconds: previous?.durationSeconds ?? item.durationSeconds,
         thumbnail: previous?.thumbnail ?? item.thumbnail,
@@ -362,6 +366,17 @@ class YoutubeSource
     }
     return video;
   }
+
+  /// A row's own channel, which the playlist's owner does not stand in for.
+  /// Only when the extractor names none do we keep a channel already stored,
+  /// then fall back to the playlist's.
+  static String _uploaderOf(
+    YoutubePlaylistItem item,
+    YoutubeVideoRow? previous,
+    YoutubePlaylist playlist,
+  ) => item.uploader.isNotEmpty
+      ? item.uploader
+      : previous?.uploader ?? playlist.uploader;
 
   Future<void> storeVideo(YoutubeVideo video) => db
       .into(db.youtubeVideos)
@@ -385,7 +400,7 @@ class YoutubeSource
             YoutubeVideo(
               videoId: item.videoId,
               title: item.title,
-              uploader: previous?.uploader ?? playlist.uploader,
+              uploader: _uploaderOf(item, previous, playlist),
               durationSeconds: item.durationSeconds,
               thumbnail: item.thumbnail,
               description: previous?.description ?? '',

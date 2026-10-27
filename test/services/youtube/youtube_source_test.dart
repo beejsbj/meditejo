@@ -1237,4 +1237,98 @@ void main() {
       expect((await store.entry(ytPlaylistId(playlistTwo)))!.itemCount, 1);
     });
   });
+
+  group('who made each video', () {
+    final id = ytPlaylistId(playlistOne);
+
+    setUp(() {
+      api.playlists[playlistOne] = playlist([
+        item(videoA, title: 'First sit', uploader: 'Guest Channel'),
+        item(videoB, title: 'Second sit', uploader: 'Host Channel'),
+      ], uploader: 'Curator');
+    });
+
+    test('a course lists each session under its own channel', () async {
+      await addCourse(listOne);
+      final pack = await source.pack(id);
+
+      expect(
+        [for (final i in pack.items) i.teacher],
+        ['Guest Channel', 'Host Channel'],
+      );
+      expect(pack.subtitle, 'Curator', reason: 'the course keeps its owner');
+    });
+
+    test('a session is credited to its own channel', () async {
+      await addCourse(listOne);
+      final track = await source.track(ytVideoId(videoA));
+
+      expect(track.artist?.name, 'Guest Channel');
+      expect(track.attribution?.creator, 'Guest Channel');
+      expect(track.voices.single.guideName, 'Guest Channel');
+    });
+
+    test('a row that names no channel falls back to the playlist', () async {
+      api.playlists[playlistOne] = playlist([
+        item(videoA),
+      ], uploader: 'Curator');
+      await addCourse(listOne);
+
+      expect((await source.pack(id)).items.single.teacher, 'Curator');
+    });
+
+    test('a row that names no channel keeps one already stored', () async {
+      await addCourse(watchA, choice: single); // a full resolve: Quiet Channel
+      api.playlists[playlistOne] = playlist([
+        item(videoA),
+      ], uploader: 'Curator');
+      await addCourse(listOne);
+
+      expect((await source.pack(id)).items.single.teacher, 'Quiet Channel');
+    });
+
+    test('a refresh corrects a row stored under the playlist owner', () async {
+      api.playlists[playlistOne] = playlist([
+        item(videoA, title: 'First sit'),
+      ], uploader: 'Curator');
+      await addCourse(listOne);
+      expect((await source.pack(id)).items.single.teacher, 'Curator');
+
+      clock.advance(const Duration(hours: 13));
+      api.playlists[playlistOne] = playlist([
+        item(videoA, title: 'First sit', uploader: 'Guest Channel'),
+      ], uploader: 'Curator');
+      expect(await source.refresh(id), isTrue);
+
+      expect((await source.pack(id)).items.single.teacher, 'Guest Channel');
+    });
+
+    test('a Single picked from the list keeps the row\'s channel', () async {
+      final preview = await previewOf(listOne);
+      await source.add(
+        preview,
+        const ImportChoice(
+          kind: LibraryKind.single,
+          group: LibraryGroup.practice,
+          episodeId: videoB,
+        ),
+      );
+
+      expect((await db.youtubeVideo(videoB))!.uploader, 'Host Channel');
+      expect((await store.entry(ytVideoId(videoB)))!.subtitle, 'Host Channel');
+    });
+
+    test('the picker names a channel only where it differs', () async {
+      api.playlists[playlistOne] = playlist([
+        item(videoA, uploader: 'Curator'),
+        item(videoB, uploader: 'Host Channel'),
+      ], uploader: 'Curator');
+      final preview = await previewOf(listOne);
+
+      expect(
+        [for (final e in preview.episodes) e.subtitle],
+        ['', 'Host Channel'],
+      );
+    });
+  });
 }

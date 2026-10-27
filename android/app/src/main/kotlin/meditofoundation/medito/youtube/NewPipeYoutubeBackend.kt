@@ -16,6 +16,7 @@ import org.schabi.newpipe.extractor.stream.AudioStream
 import org.schabi.newpipe.extractor.stream.AudioTrackType
 import org.schabi.newpipe.extractor.stream.Description
 import org.schabi.newpipe.extractor.stream.DeliveryMethod
+import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import org.schabi.newpipe.extractor.stream.StreamType
 import java.util.Locale
 
@@ -54,11 +55,11 @@ class NewPipeYoutubeBackend(
 
         val firstPage = extractor.initialPage
         val items = YoutubePaging.collect(
-            first = PageResult(firstPage.items.mapNotNull(::toItem), firstPage.nextPage.takeIf(Page::isValid)),
+            first = PageResult(firstPage.items.mapNotNull { toItem(it) }, firstPage.nextPage.takeIf(Page::isValid)),
             keyOf = ::pageKey,
             fetch = { token ->
                 val page = extractor.getPage(token)
-                PageResult(page.items.mapNotNull(::toItem), page.nextPage.takeIf(Page::isValid))
+                PageResult(page.items.mapNotNull { toItem(it) }, page.nextPage.takeIf(Page::isValid))
             },
         )
         return YoutubePlaylist(title = title, uploader = uploader, thumbnail = thumbnail, items = items)
@@ -97,16 +98,6 @@ class NewPipeYoutubeBackend(
             mimeType = best.mimeType,
             bitrate = best.bitrate.toLong(),
             expiresAt = YoutubeSelection.expiresAtMillis(best.url),
-        )
-    }
-
-    private fun toItem(item: org.schabi.newpipe.extractor.stream.StreamInfoItem): YoutubePlaylistItem? {
-        val id = YoutubeSelection.videoIdOf(item.url) ?: return null
-        return YoutubePlaylistItem(
-            videoId = id,
-            title = item.name ?: "",
-            durationSeconds = item.duration.coerceAtLeast(0L),
-            thumbnail = YoutubeSelection.bestThumbnail(thumbnails(item.thumbnails)),
         )
     }
 
@@ -151,6 +142,19 @@ class NewPipeYoutubeBackend(
 
         internal fun thumbnails(images: List<Image>?): List<ThumbnailCandidate> =
             images.orEmpty().map { ThumbnailCandidate(it.url, it.width, it.height) }
+
+        /** A playlist row, or null for one that is not a plain video link. */
+        internal fun toItem(item: StreamInfoItem): YoutubePlaylistItem? {
+            val id = YoutubeSelection.videoIdOf(item.url) ?: return null
+            return YoutubePlaylistItem(
+                videoId = id,
+                title = item.name ?: "",
+                // The video's own channel, not the playlist owner's.
+                uploader = item.uploaderName ?: "",
+                durationSeconds = item.duration.coerceAtLeast(0L),
+                thumbnail = YoutubeSelection.bestThumbnail(thumbnails(item.thumbnails)),
+            )
+        }
 
         /** Null for anything that is not one plain, directly fetchable audio file. */
         internal fun toCandidate(stream: AudioStream): AudioCandidate? {
