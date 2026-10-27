@@ -17,6 +17,7 @@ import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/utils/logger.dart';
+import 'package:medito/views/categories/category_chips.dart';
 import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
 import 'package:medito/views/dharma_seed/widgets/teacher_widgets.dart';
 import 'package:medito/views/explore/widgets/kind_chips.dart';
@@ -25,7 +26,6 @@ import 'package:medito/views/library/library_actions.dart';
 import 'package:medito/views/library/library_widgets.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/search/search_results.dart';
-import 'package:medito/views/tags/widgets/tag_chips.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 import 'package:medito/widgets/add_to_library_icon.dart';
 import 'package:medito/widgets/cards/card_art.dart';
@@ -258,10 +258,8 @@ class ExploreViewState extends ConsumerState<ExploreView> {
               ),
             ),
           ),
-          // Browse-by-tag strip, hidden when the local catalog has no tags.
-          const SliverToBoxAdapter(
-            child: ExploreTagChips(padding: EdgeInsets.only(top: 4)),
-          ),
+          // Category entry points: each opens that category's page.
+          const SliverToBoxAdapter(child: ExploreCategoryChips()),
           ..._buildContent(),
           SliverPadding(
             padding: EdgeInsets.only(

@@ -1,9 +1,7 @@
 import 'package:medito/models/background_sounds/background_sounds_model.dart';
-import 'package:medito/models/explore/explore_list_item.dart';
 import 'package:medito/models/explore/track_search_model.dart';
 import 'package:medito/models/home/home_model.dart';
 import 'package:medito/models/pack/pack_model.dart';
-import 'package:medito/models/tags/tag_model.dart';
 import 'package:medito/models/track/track.dart';
 
 /// Local source boundary for the existing pack/track UI.
@@ -17,7 +15,6 @@ class LocalCatalogue {
   List<PackModel> get packs => const [];
   Map<String, List<String>> get packTrackIds => const {};
   HomeModel get home => const HomeModel();
-  TagCatalog get tags => TagCatalog.empty;
 
   // The bundled session bell is a timer cue, not an ambient recording.
   List<BackgroundSoundsModel> get backgroundSounds => const [];
@@ -26,7 +23,6 @@ class LocalCatalogue {
   Track track(String id) => throw CatalogueEntryUnavailable('track', id);
   List<PackItemsModel> searchPacks(String query) => const [];
   List<TrackSearchModel> searchTracks(String query) => const [];
-  List<TrackItem> tracksForTag(String tagId) => const [];
 }
 
 /// A saved link can outlive the catalogue entry it points to.
