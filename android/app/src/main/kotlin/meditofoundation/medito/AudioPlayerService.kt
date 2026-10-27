@@ -274,9 +274,16 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
                 completionPlaythroughIndex = completedPlaythroughs - 1
                 saveAndSendCompletionData(completionData, finish = false)
             }
-        } else if (completedPlaythroughs > completionPlaythroughIndex + 1) {
+        } else if (completedPlaythroughs > completionPlaythroughIndex + 1 &&
+            CueMath.earnsRepeat(
+                isTimer = ::cues.isInitialized && cues.isTimer,
+                heardPassEnough = listening.completed(currentDurationMs()),
+            )
+        ) {
             saveAndSendRepeatPlaythrough(completionData)
         }
+        // Once earned, every pass is judged on its own: the next starts fresh.
+        if (completionSent) listening.startPass()
     }
 
     // Persists the completion as soon as 90% has been heard, without the

@@ -10,6 +10,8 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/providers/duration_preference_provider.dart';
 import 'package:medito/providers/guide_name_preference_provider.dart';
+import 'package:medito/providers/library/library_providers.dart';
+import 'package:medito/providers/library/session_origin.dart';
 import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/routes/routes.dart';
@@ -23,12 +25,20 @@ import 'package:medito/views/player/player_view.dart';
 /// are known (resuming where they left off), otherwise via the track screen so
 /// they can pick. Shared by Up Next and the pack screen's
 /// Your Path button so both start sessions the same way.
+///
+/// [courseId] is the course the session is opened from (a session several
+/// courses list counts towards it, and takes its cue scope); null is a
+/// surface with none, which forgets the course it was last opened from.
+/// Written first: the player reads it for its cue scope.
 Future<void> startSession(
   BuildContext context,
   WidgetRef ref, {
   required String trackId,
   required String path,
+  String? courseId,
 }) async {
+  await noteSessionOrigin(ref.read(libraryStoreProvider), trackId, courseId);
+  if (!context.mounted) return;
   final guideName = ref.read(guideNamePreferenceProvider);
   final preferredDuration = ref.read(durationPreferenceProvider);
 
@@ -44,7 +54,13 @@ Future<void> startSession(
         track.voices.length == 1 && track.voices.first.audioFiles.length == 1;
     if (!onlyChoice && (guideName == null || preferredDuration == null)) {
       if (!context.mounted) return;
-      handleNavigation(TypeConstants.track, [trackId, path], context, ref: ref);
+      handleNavigation(
+        TypeConstants.track,
+        [trackId, path],
+        context,
+        ref: ref,
+        courseId: courseId,
+      );
       return;
     }
     final selection = onlyChoice
