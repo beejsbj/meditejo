@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'dart:ui' show Tristate;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -733,6 +735,67 @@ void main() {
       await hold.up();
       await tester.pumpAndSettle();
       await _unmount(tester);
+    });
+
+    testWidgets('a sheet dismissed while Start waits starts nothing', (
+      tester,
+    ) async {
+      // A real route: the sheet stays mounted through its exit animation, so
+      // `mounted` alone would still be true when the wheel lands.
+      var started = 0;
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          ...soundscapeTestOverrides(FakeSoundscapeEngine()),
+        ],
+      );
+      addTearDown(container.dispose);
+      late BuildContext host;
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: Builder(
+                builder: (context) {
+                  host = context;
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      unawaited(
+        showModalBottomSheet<void>(
+          context: host,
+          isScrollControlled: true,
+          builder: (_) => CustomizeSheet(
+            scope: _practice,
+            isTimer: true,
+            onStart: () => started++,
+            clock: () => DateTime(2026, 1, 1, 9, 0),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _row(tester, 'Duration');
+      await tester.fling(
+        find.byType(ListWheelScrollView),
+        const Offset(0, -300),
+        1200,
+      );
+      await tester.pump(const Duration(milliseconds: 60));
+      await tester.tap(find.text('Start'));
+      await tester.pump();
+      Navigator.of(host).pop();
+      await tester.pump(const Duration(milliseconds: 30));
+      await tester.pumpAndSettle();
+      expect(started, 0);
     });
 
     testWidgets('leaving the sheet while waiting starts nothing', (

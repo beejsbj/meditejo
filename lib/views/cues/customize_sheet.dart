@@ -530,7 +530,11 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     unawaited(
       _wheels.settled().whenComplete(() {
         _startPending = false;
-        if (mounted) widget.onStart?.call();
+        // A sheet dismissed while the wheel was landing is still mounted for
+        // its exit animation: starting then would pop whatever is beneath.
+        if (mounted && (ModalRoute.of(context)?.isCurrent ?? true)) {
+          widget.onStart?.call();
+        }
       }),
     );
   }

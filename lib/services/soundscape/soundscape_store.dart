@@ -82,6 +82,10 @@ class SoundscapeStore {
     final migrated = _migratedSessionDefaults();
     if (migrated != null &&
         !await _prefs.setString(sessionDefaultsKey, migrated)) {
+      // The plugin keeps the value in its cache even when the save failed: a
+      // later call in this process would find nothing left to migrate and
+      // write the version without the setting. Drop the cache's copy.
+      await _prefs.reload();
       return;
     }
     await _prefs.setInt(sessionDefaultsVersionKey, _sessionDefaultsVersion);

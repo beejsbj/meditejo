@@ -14,11 +14,18 @@ class _Prefs extends Fake implements SharedPreferences {
   final writes = <String>[];
   bool failDefaults = false;
 
+  /// Like the plugin, a save that fails still lands in the cache, until the
+  /// cache is reloaded from disk.
+  final _cacheOnly = <String, String>{};
+
   @override
   int? getInt(String key) => _inner.getInt(key);
 
   @override
-  String? getString(String key) => _inner.getString(key);
+  String? getString(String key) => _cacheOnly[key] ?? _inner.getString(key);
+
+  @override
+  Future<void> reload() async => _cacheOnly.clear();
 
   @override
   Future<bool> setInt(String key, int value) async {
@@ -29,6 +36,7 @@ class _Prefs extends Fake implements SharedPreferences {
   @override
   Future<bool> setString(String key, String value) async {
     if (key == SoundscapeStore.sessionDefaultsKey && failDefaults) {
+      _cacheOnly[key] = value;
       return false;
     }
     writes.add(key);
@@ -92,6 +100,25 @@ void main() {
       await SoundscapeStore(prefs).migrateSessionDefaults();
       expect(_practiceEnabled(prefs), isFalse);
       expect(prefs.getInt(SoundscapeStore.sessionDefaultsVersionKey), 2);
+    });
+
+    test('a failed save is not forgotten by a second call in the same '
+        'process', () async {
+      final prefs =
+          await _prefs({SoundscapeStore.sessionDefaultsKey: _oldFactory})
+            ..failDefaults = true;
+      final store = SoundscapeStore(prefs);
+      await store.migrateSessionDefaults();
+      // The controller can be rebuilt in the same process: it must try again,
+      // not find the cache already migrated and write the version.
+      prefs.failDefaults = false;
+      await store.migrateSessionDefaults();
+      expect(_practiceEnabled(prefs), isFalse);
+      expect(prefs.getInt(SoundscapeStore.sessionDefaultsVersionKey), 2);
+      expect(prefs.writes, [
+        SoundscapeStore.sessionDefaultsKey,
+        SoundscapeStore.sessionDefaultsVersionKey,
+      ]);
     });
 
     test('a setting that needs no move still gets its version', () async {

@@ -975,6 +975,40 @@ void main() {
       expect(SoundscapeStore(prefs).readMix(), mine);
     });
 
+    test('a preset whose sounds the library dropped plays the current mix, '
+        'not silence', () async {
+      final gone = SoundPreset(
+        id: 'user-gone-sounds',
+        name: 'Gone',
+        mix: SoundMix([SoundLayer(soundId: 'gone-sound')]),
+      );
+      container.dispose();
+      container = await make({
+        SoundscapeStore.presetsKey: jsonEncode([gone.toJson()]),
+        SoundscapeStore.sessionDefaultsKey: jsonEncode({
+          'practice': {
+            'enabled': true,
+            'selection': SoundscapeSelection.preset(gone.id).encode(),
+            'volume': 0.5,
+          },
+        }),
+        SoundscapeStore.sessionDefaultsVersionKey: 2,
+      });
+      expect(
+        st().playable(SoundscapeSelection.preset(gone.id), _library),
+        SoundscapeSelection.currentMix,
+      );
+      // Still loading: taken on trust.
+      expect(
+        st().playable(SoundscapeSelection.preset(gone.id), null),
+        SoundscapeSelection.preset(gone.id),
+      );
+      await ctl().startSession(SoundscapeSessionKind.practice);
+      await settle();
+      expect(st().owner, SoundscapeOwner.session);
+      expect(engine.playing, isNotEmpty);
+    });
+
     test('a deleted preset or a dropped sound plays the current mix', () async {
       final evening = ctl().savePreset('Evening')!;
       ctl().setSessionDefault(
