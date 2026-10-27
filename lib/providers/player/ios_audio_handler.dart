@@ -374,7 +374,11 @@ class IosAudioHandler extends BaseAudioHandler {
   /// earns it is the session (a timer at its end; a recording once 90% was
   /// heard, usually already recorded mid-play), and only passes after that
   /// one count as repeats, as on Android.
-  Future<void> _recordPlaythrough() {
+  ///
+  /// Once the session is earned, each pass starts a fresh listening record in
+  /// Swift, and a repeat counts only when 90% of its own pass was heard (a
+  /// timer's repeat, like its first pass, counts at its natural end).
+  Future<void> _recordPlaythrough() async {
     _completedPlaythroughs++;
     if (!_nativeCues) {
       return _completedPlaythroughs == 1
@@ -382,15 +386,33 @@ class IosAudioHandler extends BaseAudioHandler {
           : recordRepeatPlaythrough();
     }
     if (!_thresholdRecorded) {
-      if (!_nativeCompletionEarned) return Future<void>.value();
+      if (!_nativeCompletionEarned) return;
       _thresholdRecorded = true;
       _completionPlaythroughIndex = _completedPlaythroughs - 1;
+      await _endNativePass();
       return recordSessionCompletion();
     }
-    if (_completedPlaythroughs > _completionPlaythroughIndex + 1) {
+    final heardPass = await _endNativePass();
+    if (_completedPlaythroughs > _completionPlaythroughIndex + 1 &&
+        (heardPass || _isTimer)) {
       return recordRepeatPlaythrough();
     }
-    return Future<void>.value();
+  }
+
+  /// Closes the pass that just finished in Swift's listening record and starts
+  /// the next one fresh. Whether 90% of the finished pass was heard.
+  Future<bool> _endNativePass() async {
+    final generation = _cueGeneration;
+    try {
+      final heard = await NativeCueController.channel.invokeMethod<bool>(
+        'endPass',
+        {'durationMs': _player.duration?.inMilliseconds ?? 0},
+      );
+      return generation == _cueGeneration && (heard ?? false);
+    } catch (e) {
+      AppLogger.e('CUES', 'Could not close the listening pass: $e');
+      return false;
+    }
   }
 
   @visibleForTesting
