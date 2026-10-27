@@ -739,6 +739,25 @@ Burooj authorised Meditejo's Freesound app, so the picks that needed an account 
   - Whether live sound tiles should also move while merely in a paused mix.
   - A custom bell (BJS-587) can feed `BellFigure` its own five controls.
   - `GeneratedArtwork` is deleted; nothing draws it any more.
+- **Review of #46 (Opus 5.5 at 8320bbc; CodeRabbit), and what was done.**
+  - **Fixed:** the P1 both reviewers found (the raster cache disposed images that mounted tiles still held; each tile now holds its own clone, with a regression test in `art_cover_raster_test.dart`), a failed print-finish request staying in `_pending` for the session, the player screenshot capturing the Customize sheet, and a path-separator-dependent filter in the parity test.
+  - **Declined:** `pumpAndSettle` after starting playback in `sounds_view_test.dart`: the file passes at this head, locally and in CI, so no ticker is keeping it from settling. If it ever times out, bound those pumps.
+  - **Follow-ups (P2), not done:**
+    - Live art scrolled off screen stops painting but its ticker keeps running (`art_cover.dart`, `_tick`), so the app never idles while one is mounted. Stop or throttle the ticker when `_onScreen` is false.
+    - The print finish and the still rasters are computed on the UI isolate (90 ms for a 1080 px still): move `finishPixels` to `compute()` if the phone timings show a drop when the player opens under reduced motion.
+    - No test checks that every shipped sound, synth layer, preset and bell has art; `art_subject_test.dart` only counts 58 entries and 11 bells.
+  - **Follow-ups (P3):**
+    - Print-finish textures sit outside the 48 MB raster budget (up to about 96 MB worst case).
+    - The `ArtRasters.still` doc comment says a missing finish is retried; it isn't, beyond `ArtTextures` notifying.
+    - The raster request in `ArtCover` has no error handler.
+    - `NetworkImageWidget` starts the curated-file load on every build.
+    - Two seeds aren't the item's id: a failed Dharma Seed teacher avatar (seeded by the photo URL, `card_art.dart`) and an import preview with no address (seeded by its title, `import_view.dart`).
+    - Mix-dock tiles move at volume 0; grid tiles require volume above 0.
+    - Preset chips use an unstable `sort`, the art a stable order.
+    - Two weak tests: "renamed item keeps its art" compares two constants, and the reference test skips a golden whose ground or figure isn't registered instead of failing.
+    - Screen readers don't hear a preset's overline or chips.
+    - bf6565fa carries about 1,000 lines of formatting churn in unrelated tests.
+  - **PRODUCT, for Burooj:** in the player, a session inside a course shows the course's art, while its row in lists shows the session's own art.
 
 ## 2026-10-26 (design pass PR 5: the Customize sheet, the scroll-wheel picker, and the halfway bell)
 

@@ -94,17 +94,20 @@ class ArtTextures extends ChangeNotifier {
     final have = finish(c, px, H);
     if (have != null) return SynchronousFuture(have);
     return _pending[key] ??= () async {
-      await load();
-      final paper = _paper;
-      if (paper == null) return null;
-      final image = await _fromPixels(finishPixels(c, px, H, paper), px, ph);
-      _finishes[key] = image;
-      while (_finishes.length > _maxFinishes) {
-        _finishes.remove(_finishes.keys.first);
+      try {
+        await load();
+        final paper = _paper;
+        if (paper == null) return null;
+        final image = await _fromPixels(finishPixels(c, px, H, paper), px, ph);
+        _finishes[key] = image;
+        while (_finishes.length > _maxFinishes) {
+          _finishes.remove(_finishes.keys.first);
+        }
+        notifyListeners();
+        return image;
+      } finally {
+        _pending.remove(key);
       }
-      _pending.remove(key);
-      notifyListeners();
-      return image;
     }();
   }
 

@@ -51,7 +51,11 @@ void main() {
       : (dir
             .listSync()
             .whereType<File>()
-            .where((f) => RegExp(r'/[a-z]+-\d+\.json$').hasMatch(f.path))
+            .where(
+              (f) => RegExp(
+                r'^[a-z]+-\d+\.json$',
+              ).hasMatch(f.uri.pathSegments.last),
+            )
             .toList()
           ..sort((a, b) => a.path.compareTo(b.path)));
 

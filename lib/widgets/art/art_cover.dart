@@ -224,11 +224,19 @@ class _ArtCoverState extends State<ArtCover>
     widget.strike?.removeListener(_struck);
     _ticker.dispose();
     _time.dispose();
+    _still?.dispose();
     super.dispose();
   }
 
   void _changed() {
     if (mounted) setState(() {});
+  }
+
+  // The tile keeps its own handle: the cache disposes what it evicts, and a
+  // tile still showing that raster must not be left holding a dead image.
+  void _adopt(ui.Image image) {
+    _still?.dispose();
+    _still = image.clone();
   }
 
   // Stamped with the ticker's clock on its next tick.
@@ -357,15 +365,23 @@ class _ArtCoverState extends State<ArtCover>
     final rasters = ArtRasters.instance;
     final image = rasters.peek(key);
     if (image != null) {
-      _still = image;
+      if (_stillKey != key || _still == null) _adopt(image);
       _stillKey = key;
     } else if (_stillKey != key) {
       _stillKey = key;
       unawaited(
-        rasters.still(key, comp, roles, w, h, scrim: widget.scrim).then((img) {
-          if (mounted && img != null && _stillKey == key) {
-            setState(() => _still = img);
-          }
+        rasters.still(key, comp, roles, w, h, scrim: widget.scrim).then((_) {
+          if (!mounted || _stillKey != key) return;
+          // Re-read the cache: a later raster may already have evicted it,
+          // in which case the next build asks again.
+          final live = rasters.peek(key);
+          setState(() {
+            if (live != null) {
+              _adopt(live);
+            } else {
+              _stillKey = null;
+            }
+          });
         }),
       );
     }

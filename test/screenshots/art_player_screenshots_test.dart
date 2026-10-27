@@ -202,7 +202,7 @@ void main() {
                   data: MediaQuery.of(
                     context,
                   ).copyWith(disableAnimations: true),
-                  child: const PlayerView(),
+                  child: const PlayerView(skipCustomize: true),
                 ),
               ),
             ),
