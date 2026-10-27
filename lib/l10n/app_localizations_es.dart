@@ -70,13 +70,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get id => 'id';
 
   @override
-  String get email => 'email';
+  String get email => 'correo electrónico';
 
   @override
-  String get appVersion => 'appVersion';
+  String get appVersion => 'Versión de la app';
 
   @override
-  String get buildNumber => 'buildNumber';
+  String get buildNumber => 'Número de compilación';
 
   @override
   String get debugInfo => 'Información de depuración';
@@ -1003,7 +1003,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String upNextPackCompletedTitle(String packTitle) {
-    return 'You finished $packTitle';
+    return 'Terminaste $packTitle';
   }
 
   @override
@@ -1011,18 +1011,18 @@ class AppLocalizationsEs extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count sessions complete',
-      one: '1 session complete',
+      other: '$count sesiones completadas',
+      one: '1 sesión completada',
     );
     return '$_temp0';
   }
 
   @override
-  String get upNextPackCompletedCta => 'Start the next pack';
+  String get upNextPackCompletedCta => 'Empezar el siguiente pack';
 
   @override
   String upNextPackCompletedCtaNamed(String packTitle) {
-    return 'Start $packTitle';
+    return 'Empezar $packTitle';
   }
 
   @override
@@ -2794,45 +2794,45 @@ class AppLocalizationsEs extends AppLocalizations {
   String get libraryPinned => 'Fijado en Inicio';
 
   @override
-  String get exploreCategories => 'Categories';
+  String get exploreCategories => 'Categorías';
 
   @override
-  String get exploreCategoriesLabel => 'Browse by category';
+  String get exploreCategoriesLabel => 'Navegar por categoría';
 
   @override
-  String get categoryEmptyTitle => 'Nothing here yet';
+  String get categoryEmptyTitle => 'Todavía no hay nada aquí';
 
   @override
   String get categoryEmptyBody =>
-      'Label something in your library, or add a course from Explore, and it will appear here.';
+      'Pon una etiqueta a algo de tu biblioteca o añade un curso desde Explorar, y aparecerá aquí.';
 
   @override
-  String get categoryLoadFailed => 'Could not load this category';
+  String get categoryLoadFailed => 'No se pudo cargar esta categoría';
 
   @override
-  String get libraryLabelFilterLabel => 'Category or label';
+  String get libraryLabelFilterLabel => 'Categoría o etiqueta';
 
   @override
-  String get libraryMenuLabels => 'Categories and labels';
+  String get libraryMenuLabels => 'Categorías y etiquetas';
 
   @override
-  String get labelsTitle => 'Categories and labels';
+  String get labelsTitle => 'Categorías y etiquetas';
 
   @override
   String get labelsExplain =>
-      'Ticked categories are Meditejo\'s best guess or your own choice. Your choice always wins.';
+      'Las categorías marcadas son la mejor suposición de Meditejo o tu propia elección. Tu elección siempre tiene prioridad.';
 
   @override
-  String get labelsCustomHeading => 'Your labels';
+  String get labelsCustomHeading => 'Tus etiquetas';
 
   @override
-  String get labelsAddHint => 'Add a label';
+  String get labelsAddHint => 'Añadir una etiqueta';
 
   @override
-  String get labelsAddButton => 'Add';
+  String get labelsAddButton => 'Añadir';
 
   @override
   String labelsRemoveTooltip(String label) {
-    return 'Remove label $label';
+    return 'Quitar la etiqueta $label';
   }
 }

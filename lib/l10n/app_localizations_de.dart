@@ -71,13 +71,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get id => 'id';
 
   @override
-  String get email => 'email';
+  String get email => 'E-Mail';
 
   @override
-  String get appVersion => 'appVersion';
+  String get appVersion => 'App-Version';
 
   @override
-  String get buildNumber => 'buildNumber';
+  String get buildNumber => 'Build-Nummer';
 
   @override
   String get debugInfo => 'Debug-Informationen';
@@ -2264,7 +2264,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get synthNoise => 'Rauschen';
 
   @override
-  String get synthDrone => 'Drone';
+  String get synthDrone => 'Bordun';
 
   @override
   String get synthBinaural => 'Binaurale Beats';
@@ -2405,14 +2405,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get myCourseKindLabel => 'Art';
 
   @override
-  String get myCourseCoverLabel => 'Cover';
+  String get myCourseCoverLabel => 'Titelbild';
 
   @override
-  String get myCourseCoverGenerated => 'Erzeugtes Cover';
+  String get myCourseCoverGenerated => 'Erzeugtes Titelbild';
 
   @override
   String myCourseCoverChoice(int index) {
-    return 'Cover $index';
+    return 'Titelbild $index';
   }
 
   @override
@@ -2795,45 +2795,46 @@ class AppLocalizationsDe extends AppLocalizations {
   String get libraryPinned => 'Auf Home angeheftet';
 
   @override
-  String get exploreCategories => 'Categories';
+  String get exploreCategories => 'Kategorien';
 
   @override
-  String get exploreCategoriesLabel => 'Browse by category';
+  String get exploreCategoriesLabel => 'Nach Kategorie durchsuchen';
 
   @override
-  String get categoryEmptyTitle => 'Nothing here yet';
+  String get categoryEmptyTitle => 'Hier ist noch nichts';
 
   @override
   String get categoryEmptyBody =>
-      'Label something in your library, or add a course from Explore, and it will appear here.';
+      'Vergib in deiner Bibliothek ein Label oder füge einen Kurs aus Entdecken hinzu, und er erscheint hier.';
 
   @override
-  String get categoryLoadFailed => 'Could not load this category';
+  String get categoryLoadFailed =>
+      'Diese Kategorie konnte nicht geladen werden';
 
   @override
-  String get libraryLabelFilterLabel => 'Category or label';
+  String get libraryLabelFilterLabel => 'Kategorie oder Label';
 
   @override
-  String get libraryMenuLabels => 'Categories and labels';
+  String get libraryMenuLabels => 'Kategorien und Labels';
 
   @override
-  String get labelsTitle => 'Categories and labels';
+  String get labelsTitle => 'Kategorien und Labels';
 
   @override
   String get labelsExplain =>
-      'Ticked categories are Meditejo\'s best guess or your own choice. Your choice always wins.';
+      'Angekreuzte Kategorien sind Meditejos beste Vermutung oder deine eigene Wahl. Deine Wahl hat immer Vorrang.';
 
   @override
-  String get labelsCustomHeading => 'Your labels';
+  String get labelsCustomHeading => 'Deine Labels';
 
   @override
-  String get labelsAddHint => 'Add a label';
+  String get labelsAddHint => 'Label hinzufügen';
 
   @override
-  String get labelsAddButton => 'Add';
+  String get labelsAddButton => 'Hinzufügen';
 
   @override
   String labelsRemoveTooltip(String label) {
-    return 'Remove label $label';
+    return 'Label $label entfernen';
   }
 }
