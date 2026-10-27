@@ -3,6 +3,7 @@ import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/services/categories/category_catalogue.dart';
 import 'package:medito/services/categories/entry_labels.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
+import 'package:medito/models/catalogue/catalogue_models.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
 import 'package:medito/services/library/library_models.dart';
@@ -353,7 +354,7 @@ class CategoryService {
     }
     final talkMatch = _match(category.id, titleColumn: 'title');
     if (talkMatch != null) {
-      for (final group in DsContentGroup.values) {
+      for (final group in ContentGroup.values) {
         final rows = await db
             .customSelect(
               'SELECT t.* FROM ds_talks_fts f JOIN ds_talks t ON t.id = f.rowid '
