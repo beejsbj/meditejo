@@ -2,6 +2,7 @@ import 'package:medito/src/youtube_api.g.dart';
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/exceptions/app_error.dart';
@@ -1329,6 +1330,66 @@ void main() {
         [for (final e in preview.episodes) e.subtitle],
         ['', 'Host Channel'],
       );
+    });
+  });
+
+  group('a video in two saved courses', () {
+    final one = ytPlaylistId(playlistOne);
+    final two = ytPlaylistId(playlistTwo);
+    final shared = ytVideoId(videoA);
+
+    /// Stored times are whole seconds, so activity is set well apart.
+    Future<void> played(String id, DateTime at) =>
+        db.updateEntry(id, LibraryEntriesCompanion(lastPlayedAt: Value(at)));
+
+    setUp(() async {
+      await addCourse(listOne);
+      await addCourse('https://www.youtube.com/playlist?list=$playlistTwo');
+      // Each course has its own group; the video itself has none.
+      await store.setGroup(one, LibraryGroup.talks);
+      await store.setGroup(two, LibraryGroup.practice);
+    });
+
+    test('its group is the one of the course it was opened from', () async {
+      await store.noteSessionContext(shared, one);
+      expect((await source.track(shared)).hasBackgroundSound, isFalse);
+
+      await store.noteSessionContext(shared, two);
+      expect((await source.track(shared)).hasBackgroundSound, isTrue);
+    });
+
+    test('with no context, the most recently active course decides', () async {
+      await played(two, DateTime(2031));
+      expect(await source.parentOf(shared), two);
+      expect((await source.track(shared)).hasBackgroundSound, isTrue);
+
+      await played(one, DateTime(2032));
+      expect(await source.parentOf(shared), one);
+      expect((await source.track(shared)).hasBackgroundSound, isFalse);
+    });
+
+    test('a context that no longer lists the video is ignored', () async {
+      await store.noteSessionContext(shared, one);
+      clock.advance(const Duration(hours: 13));
+      api.playlists[playlistOne] = playlist([item(videoB)]);
+      await source.refresh(one);
+
+      expect(await source.courseLists(one, shared), isFalse);
+      expect(await source.courseLists(two, shared), isTrue);
+      expect((await source.track(shared)).hasBackgroundSound, isTrue);
+    });
+
+    test('a course that left the library is not asked', () async {
+      await store.noteSessionContext(shared, one);
+      await store.remove(one);
+
+      expect(await source.courseLists(one, shared), isFalse);
+      expect(await source.parentOf(shared), two);
+    });
+
+    test('only its own courses and videos are claimed', () async {
+      expect(await source.courseLists('ds-retreat-1', shared), isFalse);
+      expect(await source.courseLists(one, 'ds-talk-1'), isFalse);
     });
   });
 }

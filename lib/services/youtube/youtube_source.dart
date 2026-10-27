@@ -42,7 +42,11 @@ SourceAttribution youtubeAttribution(String url, String uploader) =>
 /// Metadata stays in the user's database. Only this source's memory holds
 /// expiring audio URLs; one extraction serves overlapping play requests.
 class YoutubeSource
-    implements ContentSource, SavableContentSource, ParentedContentSource {
+    implements
+        ContentSource,
+        SavableContentSource,
+        ParentedContentSource,
+        CourseMembershipSource {
   YoutubeSource({
     required this.db,
     required this.library,
@@ -619,7 +623,9 @@ class YoutubeSource
     final videoId = id.substring('yt-video-'.length);
     final video = await db.youtubeVideo(videoId);
     if (video == null) throw CatalogueEntryUnavailable('track', id);
-    final parent = await parentOf(id);
+    // A video in two saved courses takes the group of the one it was opened
+    // from; with no such context, the most recently active one.
+    final parent = await _courseOf(id);
     final group =
         await library.groupOf(id) ??
         (parent == null ? null : await library.groupOf(parent)) ??
@@ -709,6 +715,29 @@ class YoutubeSource
     ];
   }
 
+  /// The saved course a session counts towards: the one it was last opened
+  /// from while that course still lists it, else [parentOf].
+  Future<String?> _courseOf(String trackId) async {
+    final opened = await library.sessionContext(trackId);
+    if (opened != null && await courseLists(opened, trackId)) return opened;
+    return parentOf(trackId);
+  }
+
+  @override
+  Future<bool> courseLists(String courseId, String trackId) async {
+    if (!courseId.startsWith('yt-playlist-') ||
+        !trackId.startsWith('yt-video-') ||
+        !await library.contains(courseId)) {
+      return false;
+    }
+    final row = await db.youtubePlaylist(
+      courseId.substring('yt-playlist-'.length),
+    );
+    return row != null && _ids(row).map(ytVideoId).contains(trackId);
+  }
+
+  /// The most recently active saved course that lists [trackId] (the library
+  /// is ordered by activity), for a session with no known context.
   @override
   Future<String?> parentOf(String trackId) async {
     for (final entry in await library.entries()) {
