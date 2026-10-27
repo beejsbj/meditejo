@@ -40,7 +40,7 @@ class SessionRow extends StatelessWidget {
     final type = context.typography;
     final cover = SizedBox.square(
       dimension: artSize,
-      child: CardArt(url: artUrl, art: art),
+      child: CardArt(url: artUrl, art: art, avatarSize: 20),
     );
     return InkWell(
       onTap: onTap,

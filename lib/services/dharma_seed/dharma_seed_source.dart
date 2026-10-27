@@ -566,6 +566,9 @@ class DharmaSeedSource
     ].join(' · ');
   }
 
+  /// A teacher's photo. A retreat's or talk's `coverUrl` carries its lead
+  /// teacher's, which the app shows only as a small avatar on the item's own
+  /// art (`dsCoverUrl`), never as its cover.
   static String teacherPhoto(DsTeacher? teacher) =>
       teacher == null ? '' : dsTeacherPhotoUrl(teacher.id, teacher.photo);
 }

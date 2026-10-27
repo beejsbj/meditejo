@@ -10,9 +10,11 @@ import 'package:medito/widgets/add_to_library_icon.dart';
 import 'package:medito/widgets/cards/session_row.dart';
 import 'package:medito/widgets/cover_art.dart';
 
-/// Single sessions as compact rows: art, title, a line of kind, teacher and length, and their played and
-/// downloaded state, with Add to library and the session's menu. Tapping
-/// opens the session's own page, where the credit and licence are shown.
+/// Single sessions as compact rows: art (with the teacher's photo as a small
+/// avatar for Dharma Seed), title, a line of kind, teacher and length, and
+/// their played and downloaded state, with Add to library and the session's
+/// menu. Tapping opens the session's own page, where the credit and licence
+/// are shown.
 class SessionRowsSliver extends ConsumerWidget {
   const SessionRowsSliver({
     super.key,

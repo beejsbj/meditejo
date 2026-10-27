@@ -109,6 +109,7 @@ class LibraryEntryTile extends ConsumerWidget {
             art: CardArt(
               url: entry.coverUrl,
               art: libraryArt(entry.kind, entry.sourceId),
+              avatarSize: 28,
             ),
             onTap: open,
             trailing: [if (pinned) const _PinMark(), menu],
@@ -165,6 +166,7 @@ class LibraryEntryCard extends ConsumerWidget {
       art: CardArt(
         url: entry.coverUrl,
         art: libraryArt(entry.kind, entry.sourceId),
+        avatarSize: 32,
       ),
       onTap: () => openLibraryEntry(context, ref, entry),
       action: LibraryEntryMenu(entry: entry),

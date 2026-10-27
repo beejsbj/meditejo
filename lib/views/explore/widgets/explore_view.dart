@@ -409,6 +409,7 @@ class _LibraryStrip extends ConsumerWidget {
               art: CardArt(
                 url: entry.coverUrl,
                 art: libraryArt(entry.kind, entry.sourceId),
+                avatarSize: 28,
               ),
               onTap: () => openLibraryEntry(context, ref, entry),
             ),
@@ -419,8 +420,9 @@ class _LibraryStrip extends ConsumerWidget {
   }
 }
 
-/// Dharma Seed's courses as a strip of large cards: their art, the name,
-/// "teacher · year · N talks", and a quiet Add to library on the art.
+/// Dharma Seed's courses as a strip of large cards: their art with the
+/// teacher's photo as a small avatar, the name, "teacher · year · N talks",
+/// and a quiet Add to library on the art.
 class _CourseStrip extends ConsumerWidget {
   const _CourseStrip({required this.courses});
 

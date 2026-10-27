@@ -51,6 +51,7 @@ class CourseRowsSliver extends ConsumerWidget {
               art: CardArt(
                 url: course.coverUrl ?? '',
                 art: courseArt(course.id),
+                avatarSize: 28,
               ),
               onTap: () {
                 onBeforeNavigate?.call();
