@@ -197,7 +197,11 @@ catalogue database: that one is a replaceable copy of someone else's catalogue
   kind `course | single | teacher`, detected and overridden Practice/Talks group,
   title and a title override, subtitle, artwork, item count, length, added and
   last-played time), `PlaybackPositions` (Resume), `LibCourses` and `LibTracks`
-  (imported content), `LibraryMeta` (flags).
+  (imported content; a track has `license_name` / `license_url` too, since schema 4,
+  for an episode added on its own: a session in a course reads its course's licence),
+  `LibraryMeta` (flags). Schema changes are `onUpgrade` steps in `library_database.dart`;
+  `test/services/library/lone_episode_licence_test.dart` shows how to test one against an
+  older file.
 - `library_store.dart`: `LibraryStore` over it. Entries are listed most recently
   added or played first; `revision` and `positionsRevision` notifiers drive the
   providers. Its `prepare` hook runs once before first use: the app passes
@@ -213,7 +217,8 @@ catalogue database: that one is a replaceable copy of someone else's catalogue
   per-course setting); `track()` returns one voice with the original audio
   address or the path of the copy in app storage. Every course carries an
   attribution (feed site, author, licence when the feed states one), so the page
-  reads as a course. Removing an entry deletes the imported content and any
+  reads as a course; a lone episode carries the feed's licence on its own row
+  and `trackAttribution` uses it when there is no course. Removing an entry deletes the imported content and any
   copied file.
 - IDs (`lib_ids.dart`) are stable: a feed or URL hashes its address (adding it
   twice finds the first), an episode hashes feed address plus the feed's own
