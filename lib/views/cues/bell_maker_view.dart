@@ -480,6 +480,7 @@ class _Figure extends StatelessWidget {
                     spec.knobs,
                   ),
                   strike: strike,
+                  holdWhileChanging: true,
                 ),
                 Positioned(
                   right: 12,
