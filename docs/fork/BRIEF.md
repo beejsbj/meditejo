@@ -138,6 +138,7 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
 21. **Identity picks** (Burooj, 2026-10-26, after round 2 of the identity exploration on `fork/mark-explore`):
     - **App icon: the shelter mark** (a roof line over a resting pebble). It is the fixed launcher icon and house mark.
       - *2026-10-27:* Burooj chose the **minimal** shelter (`m-2026-10-26`) over the gesture one. A variant whose apex bends inward into a subtle "M" is being explored (round 6 on `fork/mark-explore`).
+      - *2026-10-27:* Clear V (round 6), the minimal shelter with an M-notch; it also reads as a mountain.
     - **On Home, the mark changes daily and can be pinned.** It breathes between perfect and imperfect.
     - **The palette is fixed by default: Tidewater.** "Daily palette" is an option in Settings, and the mark and palette are pinned separately.
     - **Generated art is the right direction but needs more primitives.** Sound cards and covers read too alike. Add breaths, fire, concentric circles and minimal mandalas, among others.

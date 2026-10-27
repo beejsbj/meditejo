@@ -12,6 +12,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/services/identity/mark_generator.dart';
+import 'package:medito/services/identity/mark_spec.dart';
 import 'package:medito/services/identity/palettes.dart';
 import 'package:medito/widgets/branding/mark_painter.dart';
 import 'package:medito/widgets/branding/mark_textures.dart';
@@ -28,7 +29,17 @@ Future<ui.Image> _decode(String path) async {
   return (await codec.getNextFrame()).image;
 }
 
-ui.Image _render(String seed, {double t = 60, bool still = true}) {
+/// The house mark as frozen in assets/branding/house_mark.json (Clear V:
+/// the minimal shelter with its M-notch), as an app pin would carry it.
+MarkSpec _houseMark() =>
+    MarkSpec.decode(File('assets/branding/house_mark.json').readAsStringSync());
+
+ui.Image _render(
+  String seed, {
+  double t = 60,
+  bool still = true,
+  MarkSpec? mark,
+}) {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder)..scale(_px.toDouble());
   MarkRenderer(
@@ -36,7 +47,7 @@ ui.Image _render(String seed, {double t = 60, bool still = true}) {
     MarkColors.of(IdentityPalettes.byId('tide')),
     textures: MarkTextures.instance,
     texel: 1 / _px,
-  ).draw(MarkGenerator.build(seed), t, still: still, finish: false);
+  ).draw(mark ?? MarkGenerator.build(seed), t, still: still, finish: false);
   return recorder.endRecording().toImageSync(_px, _px);
 }
 
@@ -114,6 +125,68 @@ void main() {
     ('a-3q', 7.3, false),
     ('a-dq', 7.3, false),
   ];
+
+  // The house mark, drawn from its frozen JSON, against the page drawing the
+  // same shelter with round 6's notch (render_reference.py --values
+  // notch=0.045,nw=0.065): settled, mid-draw and mid-breath.
+  const houseCases = <(String, double, bool)>[
+    ('m-2026-10-26-clearv', 60, true),
+    ('m-2026-10-26-clearv@1.6s', 1.6, false),
+    ('m-2026-10-26-clearv@7.3s', 7.3, false),
+  ];
+
+  testWidgets('the frozen house mark carries the notch', (tester) async {
+    final house = _houseMark() as MinimalMark;
+    expect(house.values['notch'], 0.045);
+    expect(house.values['nw'], 0.065);
+    // The seed alone still draws the shelter as first shipped.
+    expect(
+      (MarkGenerator.build(house.seed) as MinimalMark).values['notch'],
+      isNull,
+    );
+  });
+
+  // The plain shelter misses the Clear V reference by 2.2/255 and 1.1% of
+  // pixels, twice what the cases below allow, so they cannot pass without
+  // the notch.
+  testWidgets('the notch is a mark of its own, not the plain shelter', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      await MarkTextures.instance.load();
+      final page = await _rgba(await _decode('$_dir/m-2026-10-26-clearv.png'));
+      final plain = _compare(await _rgba(_render('m-2026-10-26')), page);
+      expect(
+        plain.mean >= 1.0 || plain.off >= 0.005,
+        isTrue,
+        reason:
+            'the plain shelter passed as Clear V: ${plain.mean}, ${plain.off}',
+      );
+    });
+  });
+
+  for (final (name, t, still) in houseCases) {
+    testWidgets('$name (the house mark) draws as on the exploration page', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        await MarkTextures.instance.load();
+        final dart = await _rgba(
+          _render('', t: t, still: still, mark: _houseMark()),
+        );
+        final page = await _rgba(await _decode('$_dir/$name.png'));
+        await _writeDiff(name, dart, page);
+        final r = _compare(dart, page);
+        // ignore: avoid_print
+        print(
+          '$name: mean ${r.mean.toStringAsFixed(3)}, '
+          '${(r.off * 100).toStringAsFixed(3)}% off',
+        );
+        expect(r.mean, lessThan(1.0), reason: '$name: ${r.mean}');
+        expect(r.off, lessThan(0.005), reason: '$name: ${r.off}');
+      });
+    });
+  }
 
   testWidgets('the comparison tells two marks apart', (tester) async {
     await tester.runAsync(() async {
