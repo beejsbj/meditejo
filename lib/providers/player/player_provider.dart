@@ -90,11 +90,14 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     final request = state;
     if (request == null) return;
     if (Platform.isAndroid || Platform.isIOS) {
+      final holds = await _holdsFor(settings, request);
+      // Edits that came while the holds were worked out are newer: theirs win.
+      if (!identical(_cues, settings)) return;
       await NativeCueController.configure(
         settings,
         request,
         update: true,
-        holds: await _holdsFor(settings, request),
+        holds: holds,
       );
     }
   }
@@ -125,12 +128,12 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     // One waiter per recording, however many settings edits ask meanwhile.
     if (_waitingForMap == key) return const [];
     _waitingForMap = key;
-    final generation = _generation;
     unawaited(
       service.analyse(key, source).then((found) async {
         if (_waitingForMap == key) _waitingForMap = null;
-        if (found == null || generation != _generation) return;
-        // The session may have moved on, or the setting been turned off.
+        if (found == null) return;
+        // The session may have moved on, or the setting been turned off. A
+        // restart of the same recording is still the one waiting for it.
         final current = _cues;
         final live = state;
         if (current == null ||
@@ -239,11 +242,9 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
       if (generation != _generation) return;
       setRepeatMode(repeatMode);
       setSpeed(1.0);
-      await NativeCueController.configure(
-        _cues!,
-        request,
-        holds: await _holdsFor(_cues!, request),
-      );
+      final holds = await _holdsFor(_cues!, request);
+      if (generation != _generation) return;
+      await NativeCueController.configure(_cues!, request, holds: holds);
       if (generation != _generation) return;
       await _playAudioWithRetry(url, trackData, generation);
     } else {

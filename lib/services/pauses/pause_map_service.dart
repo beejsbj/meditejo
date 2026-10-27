@@ -99,7 +99,8 @@ class PauseMapService {
     }
   }
 
-  /// Stops the reading under way (the session ended or moved on).
+  /// Stops the reading under way. The player does not call it when a session
+  /// ends: a read that finishes is cached for the next one.
   Future<void> cancel() async {
     try {
       await _channel.invokeMethod<void>('cancel');

@@ -588,7 +588,12 @@ internal class CueEngine(
             Phase.HOLD -> {
                 // The listener moved the playhead during a hold: the hold is over, the voice follows.
                 if (reason == Player.DISCONTINUITY_REASON_SEEK) {
+                    // A seek to where the hold already is (the player re-preparing after
+                    // an error) is not the listener moving the playhead.
+                    if (kotlin.math.abs(newPosition.positionMs - oldPosition.positionMs) < SAME_POSITION_MS) return
                     endHold(resume = holdAnchor != 0L)
+                    // As while playing, a seek moves session time by the distance it jumped.
+                    sessionMs = CueMath.advance(sessionMs, oldPosition.positionMs, newPosition.positionMs, speed)
                     started = true
                     armAll(sessionMs, fresh = false)
                     kick()
@@ -678,5 +683,6 @@ internal class CueEngine(
     private companion object {
         const val TAG = "CueEngine"
         const val WAKE_SLACK_MS = 30_000L
+        const val SAME_POSITION_MS = 1000L
     }
 }

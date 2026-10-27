@@ -110,8 +110,14 @@ internal object PauseMapAnalyzer {
                     val f = codec.outputFormat
                     sampleRate = f.getInteger(MediaFormat.KEY_SAMPLE_RATE)
                     channels = f.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
-                    floatPcm = f.containsKey(MediaFormat.KEY_PCM_ENCODING) &&
-                        f.getInteger(MediaFormat.KEY_PCM_ENCODING) == AudioFormat.ENCODING_PCM_FLOAT
+                    val encoding = if (f.containsKey(MediaFormat.KEY_PCM_ENCODING)) {
+                        f.getInteger(MediaFormat.KEY_PCM_ENCODING)
+                    } else AudioFormat.ENCODING_PCM_16BIT
+                    // Anything else would read as noise and could put a hold in speech.
+                    if (encoding != AudioFormat.ENCODING_PCM_16BIT && encoding != AudioFormat.ENCODING_PCM_FLOAT) {
+                        throw IllegalStateException("Unsupported PCM encoding $encoding")
+                    }
+                    floatPcm = encoding == AudioFormat.ENCODING_PCM_FLOAT
                     windowSamples = windowSize(sampleRate, channels)
                 }
                 out >= 0 -> {

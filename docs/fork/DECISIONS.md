@@ -731,6 +731,13 @@ Android first. iOS stays at "At the end": the Customize choice is not shown ther
   - If skipped time should go to the end, or a "skip all remaining pauses" control.
   - Real Dharma Seed recordings through `PauseMapAnalyzer` to tune the threshold fraction and the 12 dB range test; the issue's probe used ffmpeg at -45 dB, and the app's relative threshold has not been compared with it on the phone.
 
+- **Independent review of this PR (Claude Opus 5.5, read-only, head 5b2ad25a; verdict approve with P2s):**
+  - **Fixed:** a player-error re-seek to where a hold already is no longer ends the hold (F1); a restart of the same recording while its map is read still gets the holds (F3); settings edits and the first configure can no longer land out of order behind the holds lookup (F4); a seek during a hold moves session time by the distance, like a seek while playing (F6), and spends the hold's remainder like a skip; a PCM encoding other than 16-bit or float stops the read, so a decoder that outputs something else cannot invent holds in speech; the player polls at 200 ms again when the voice is at its end (F8).
+  - **Declined (F5), known limit:** after switching to "At the end" mid-session, "Finishes at" can be late by the Extend already spent in holds. Using the engine's number in both placements would trade this for a stale reading (the player only polls while Extend is in the pauses), and the switch after a hold is rare.
+  - **Follow-up (F2, F7): lock-screen, Bluetooth and headset play/pause during a hold.** The MediaSession sits on the raw player, which is paused during a hold, so those controls show Play, and a press starts the voice and ends the hold (the in-app and notification buttons freeze the hold instead). The fix is a `ForwardingPlayer` that reports playing during a running hold and routes play/pause to `playPauseAudio`; it would also keep Media3 from treating a hold as idle. Left for the phone result: step 4 and the three added steps below show whether it matters.
+  - **Follow-up (F8 and others):** re-check the metered connection during a long streamed read; a higher speaking-level percentile for recordings that are mostly silence; a transient focus loss during a hold resumes the voice at full volume; keep the last map in memory when the store fails.
+  - **Follow-up (tests):** make `CueEngine` take small seams (voice, clock, scheduler, wake, bells) so the HOLD phase can have a JVM test; test the Dart late-map paths with a provider test; pull the PCM-to-level accumulator out as a pure function.
+
 ### Phone checklist (S23+, screen off)
 
 1. Download *Metta Instructions and Guided Meditation 3* (Burbea, ds-talk 9985, 44 min) or *Breathing with the Energy Body* (ds-talk 60862).
@@ -744,6 +751,9 @@ Android first. iOS stays at "At the end": the Customize choice is not shown ther
 9. Seek back over a hold already taken: it does not repeat. Seek past one: its time comes at the end.
 10. A streamed (not downloaded) recording on Wi-Fi: it is read (watch data), then holds begin. On mobile data: no holds, everything at the end, no data used for the map.
 11. A YouTube session with Extend in the pauses: all at the end.
+12. A hold of at least 2 minutes with the screen off; mid-hold, `adb shell dumpsys activity services <package> | grep isForeground` should still show foreground.
+13. Lock-screen media control and a Bluetooth headset press during a hold: record what happens (expected today: the press starts the voice and ends the hold).
+14. Switch to "At the end" after one hold and compare "Finishes at" with the actual end bell.
 
 ## 2026-10-27 (identity PR 2: the generated art in the app)
 

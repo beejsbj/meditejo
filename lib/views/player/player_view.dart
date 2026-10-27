@@ -190,9 +190,13 @@ class _PlayerViewState extends ConsumerState<PlayerView>
               audio.duration > 0 && audio.position >= audio.duration - 1000,
           holdsPlanned: _holdsPlanned,
         );
-    final every = phase == 'countdown' || _countdownExpected
-        ? const Duration(milliseconds: 200)
-        : phase == 'extension'
+    final voiceAtEnd =
+        audio.duration > 0 && audio.position >= audio.duration - 1000;
+    final every =
+        phase == 'countdown' ||
+            phase == 'extension' ||
+            _countdownExpected ||
+            voiceAtEnd
         ? const Duration(milliseconds: 200)
         : const Duration(seconds: 1);
     if (!wanted) {
