@@ -31,9 +31,16 @@ internal class CueEngine(
 
         /** The session reached its true end. [tailMs] is how long the end bell still rings. */
         fun onSessionEnded(extensionFinished: Boolean, tailMs: Long)
+
+        /** A hold in the recording begins: stop the voice where it is (keeping focus and the background sound). */
+        fun holdNarration()
+
+        /** The hold is over (or skipped): the voice carries on from where it stopped. */
+        fun resumeNarration()
     }
 
-    enum class Phase { IDLE, COUNTDOWN, PLAYING, EXTENSION, ENDED }
+    /** HOLD is a silent stretch inside the recording (Extend placed in its pauses). */
+    enum class Phase { IDLE, COUNTDOWN, PLAYING, HOLD, EXTENSION, ENDED }
 
     private val handler = Handler(Looper.getMainLooper())
     private val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -46,9 +53,18 @@ internal class CueEngine(
     var phase = Phase.IDLE
         private set
 
-    // Countdown and extension run on the monotonic clock. A zero anchor means held.
+    // Countdown, holds and extension run on the monotonic clock. A zero anchor means held.
     private var holdRemainingMs = 0L
     private var holdAnchor = 0L
+
+    // Holds inside the recording. [holdPlannedMs] is the length of the one under way,
+    // [holdStartSessionMs] the session time it began at.
+    private val holdPlan = HoldPlan()
+    private var currentHold: PauseHold? = null
+    private var holdPlannedMs = 0L
+    private var holdStartSessionMs = 0.0
+    // The end extension's length while it runs (the Extend minutes holds did not use).
+    private var endExtensionPlannedMs = 0L
 
     // Session time.
     private var started = false
@@ -87,11 +103,13 @@ internal class CueEngine(
 
     /** Applies a configuration. Mid-session it re-arms the cues from where the session is. */
     fun configure(cfg: CueConfig) {
-        val live = phase == Phase.PLAYING || phase == Phase.EXTENSION || phase == Phase.COUNTDOWN
-        if (!live) stopTimers()
+        val live = phase == Phase.PLAYING || phase == Phase.EXTENSION || phase == Phase.COUNTDOWN || phase == Phase.HOLD
+        if (!live) { stopTimers(); holdPlan.clear() }
+        holdPlan.configure(cfg.holds)
         if (phase == Phase.EXTENSION) {
-            val elapsed = (config?.extensionMs ?: 0L) - heldRemaining()
-            holdRemainingMs = (cfg.extensionMs - elapsed).coerceAtLeast(0L)
+            val elapsed = endExtensionPlannedMs - heldRemaining()
+            endExtensionPlannedMs = (cfg.extensionMs - holdPlan.spentMs).coerceAtLeast(0L)
+            holdRemainingMs = (endExtensionPlannedMs - elapsed).coerceAtLeast(0L)
             if (holdAnchor != 0L) {
                 holdAnchor = SystemClock.elapsedRealtime()
                 // The lock was sized for the old length: re-time it to the new one.
@@ -114,6 +132,8 @@ internal class CueEngine(
     fun prepareSession() {
         if (config == null) return
         stopTimers()
+        holdPlan.resetSession()
+        currentHold = null
         started = false
         sessionMs = 0.0
         phase = Phase.PLAYING
@@ -143,6 +163,8 @@ internal class CueEngine(
     fun stop() {
         stopTimers()
         halfway.disarm()
+        holdPlan.clear()
+        currentHold = null
         phase = Phase.IDLE
         started = false
         config = null
@@ -215,12 +237,39 @@ internal class CueEngine(
 
     fun countdownRemainingMs(): Long = if (phase == Phase.COUNTDOWN) heldRemaining() else 0L
     fun extensionRemainingMs(): Long = if (phase == Phase.EXTENSION) heldRemaining() else 0L
+    fun holdRemainingMs(): Long = if (phase == Phase.HOLD) heldRemaining() else 0L
 
-    /** True during the countdown or extension while their clock is actually running. */
-    fun isHoldRunning(): Boolean = (phase == Phase.COUNTDOWN || phase == Phase.EXTENSION) && holdAnchor != 0L
+    /** True during the countdown, a hold or the extension while their clock is actually running. */
+    fun isHoldRunning(): Boolean =
+        (phase == Phase.COUNTDOWN || phase == Phase.HOLD || phase == Phase.EXTENSION) && holdAnchor != 0L
 
-    /** The session has an extension still to come or under way. */
-    fun hasExtension(): Boolean = (config?.extensionMs ?: 0L) > 0L && phase != Phase.ENDED
+    /** The voice is stopped inside the recording for a hold (running or paused by the listener). */
+    val isHolding: Boolean get() = phase == Phase.HOLD
+
+    /**
+     * The session has silence still to come or under way: a hold now, or an
+     * extension after the recording (what the holds do not use of it).
+     */
+    fun hasExtension(): Boolean {
+        val cfg = config ?: return false
+        if (phase == Phase.ENDED || phase == Phase.IDLE) return false
+        if (phase == Phase.HOLD || phase == Phase.EXTENSION) return true
+        return holdPlan.endExtensionMs(cfg.extensionMs, primary.currentPosition) > 0L
+    }
+
+    /**
+     * Extend time still to come, wherever it will be spent: what a hold under
+     * way has left, holds ahead, and the end. Zero without a session.
+     */
+    fun extensionLeftMs(): Long {
+        val cfg = config ?: return 0L
+        return when (phase) {
+            Phase.PLAYING -> (cfg.extensionMs - holdPlan.spentMs).coerceAtLeast(0L)
+            Phase.HOLD -> heldRemaining() + (cfg.extensionMs - holdPlan.spentMs - holdPlannedMs).coerceAtLeast(0L)
+            Phase.EXTENSION -> heldRemaining()
+            else -> 0L
+        }
+    }
 
     fun endTailMs(): Long = bank?.tailMs(config?.endSound) ?: 0L
 
@@ -228,8 +277,10 @@ internal class CueEngine(
         "phase" to phase.name.lowercase(),
         "countdownRemainingMs" to countdownRemainingMs(),
         "extensionRemainingMs" to extensionRemainingMs(),
+        "holdRemainingMs" to holdRemainingMs(),
+        "extensionLeftMs" to extensionLeftMs(),
         "sessionMs" to sessionMs.toLong(),
-        "paused" to ((phase == Phase.COUNTDOWN || phase == Phase.EXTENSION) && holdAnchor == 0L),
+        "paused" to ((phase == Phase.COUNTDOWN || phase == Phase.HOLD || phase == Phase.EXTENSION) && holdAnchor == 0L),
     )
 
     /**
@@ -237,7 +288,7 @@ internal class CueEngine(
      * pause button cannot reach. Returns false when neither is running.
      */
     fun toggleHold(): Boolean {
-        if (phase != Phase.COUNTDOWN && phase != Phase.EXTENSION) return false
+        if (phase != Phase.COUNTDOWN && phase != Phase.EXTENSION && phase != Phase.HOLD) return false
         if (holdAnchor != 0L) {
             holdRemainingMs = heldRemaining()
             holdAnchor = 0L
@@ -253,6 +304,16 @@ internal class CueEngine(
         return true
     }
 
+    /**
+     * Ends the hold under way now, spending its planned time (it does not move
+     * to the end), and the voice carries on. False when no hold is under way.
+     */
+    fun skipHold(): Boolean {
+        if (phase != Phase.HOLD) return false
+        endHold()
+        return true
+    }
+
     // ---- The loop --------------------------------------------------------
 
     private fun kick() {
@@ -265,6 +326,7 @@ internal class CueEngine(
             when (phase) {
                 Phase.COUNTDOWN -> runCountdown()
                 Phase.PLAYING -> runPlaying()
+                Phase.HOLD -> runHold()
                 Phase.EXTENSION -> runExtension()
                 else -> Unit
             }
@@ -307,19 +369,72 @@ internal class CueEngine(
         lastPositionMs = position
         lastRealMs = now
         fireDue(remainingEndMs(speed))
+        val due = holdPlan.dueAt(position)
+        if (due != null && beginHold(due)) return
         scheduleNext()
+    }
+
+    /** Stops the voice at [hold]'s position and counts its length out on the monotonic clock. */
+    private fun beginHold(hold: PauseHold): Boolean {
+        val cfg = config ?: return false
+        val length = holdPlan.lengthOf(hold, cfg.extensionMs)
+        holdPlan.begin(hold)
+        if (length <= 0L) return false // the Extend time is already spent
+        handler.removeCallbacks(tick)
+        currentHold = hold
+        holdPlannedMs = length
+        holdStartSessionMs = sessionMs
+        holdRemainingMs = length
+        holdAnchor = SystemClock.elapsedRealtime()
+        phase = Phase.HOLD
+        acquireWake(length + WAKE_SLACK_MS)
+        host.holdNarration()
+        kick()
+        return true
+    }
+
+    private fun runHold() {
+        if (holdAnchor == 0L) return
+        val remaining = heldRemaining()
+        sessionMs = holdStartSessionMs + (holdPlannedMs - remaining)
+        if (remaining <= 0) {
+            endHold()
+            return
+        }
+        fireDue(remainingEndMs(primary.playbackParameters.speed.toDouble()))
+        scheduleNext(maxDelayMs = remaining)
+    }
+
+    /**
+     * A hold ran out, was skipped, or the playhead moved: its planned time is
+     * spent, and the voice resumes unless the listener had paused it.
+     */
+    private fun endHold(resume: Boolean = true) {
+        handler.removeCallbacks(tick)
+        releaseWake()
+        holdPlan.spend(holdPlannedMs)
+        // Session time only includes the part of the hold that was waited out.
+        sessionMs = holdStartSessionMs + (holdPlannedMs - heldRemaining())
+        holdAnchor = 0L
+        holdRemainingMs = 0L
+        currentHold = null
+        phase = Phase.PLAYING
+        lastPositionMs = primary.currentPosition
+        lastRealMs = SystemClock.elapsedRealtime()
+        if (resume) host.resumeNarration()
+        kick()
     }
 
     private fun runExtension() {
         val cfg = config ?: return
         if (holdAnchor == 0L) return
         val remaining = heldRemaining()
-        sessionMs = extensionStartSessionMs + (cfg.extensionMs - remaining)
+        sessionMs = extensionStartSessionMs + (endExtensionPlannedMs - remaining)
         if (remaining <= 0) {
             finishSession(extensionFinished = true)
             return
         }
-        fireDue(extensionStartSessionMs + cfg.extensionMs)
+        fireDue(extensionStartSessionMs + endExtensionPlannedMs)
         scheduleNext(maxDelayMs = remaining)
     }
 
@@ -331,7 +446,7 @@ internal class CueEngine(
         val after = if (items > 0) items - 1 - primary.currentMediaItemIndex else 0
         val endless = primary.repeatMode == Player.REPEAT_MODE_ONE
         val remaining = CueMath.remainingSessionMs(
-            primary.currentPosition, duration, speed, after.coerceAtLeast(0), endless, cfg.extensionMs,
+            primary.currentPosition, duration, speed, after.coerceAtLeast(0), endless, extensionLeftMs(),
         ) ?: return null
         return sessionMs + remaining
     }
@@ -395,11 +510,18 @@ internal class CueEngine(
     }
 
     private fun scheduleNext(maxDelayMs: Long = Long.MAX_VALUE) {
-        val next = minOf(intervalAtMs, beatAtMs, halfwayAtMs)
+        val next = minOf(intervalAtMs, beatAtMs, halfwayAtMs, nextHoldAtMs())
         if (next == Double.MAX_VALUE && maxDelayMs == Long.MAX_VALUE) return
         val wait = if (next == Double.MAX_VALUE) Double.MAX_VALUE else (next - sessionMs)
         val delay = minOf(maxOf(wait, 1.0), 1000.0, maxDelayMs.toDouble()).toLong()
         handler.postDelayed(tick, maxOf(delay, 1L))
+    }
+
+    /** Session time the next hold is reached at (at the current speed), or none. */
+    private fun nextHoldAtMs(): Double {
+        if (phase != Phase.PLAYING || holdPlan.isEmpty) return Double.MAX_VALUE
+        val next = holdPlan.nextAfter(lastPositionMs) ?: return Double.MAX_VALUE
+        return sessionMs + (next.atMs - lastPositionMs) / maxOf(primary.playbackParameters.speed.toDouble(), 0.05)
     }
 
     // ---- Player events -----------------------------------------------------
@@ -461,6 +583,15 @@ internal class CueEngine(
                 }
                 kick()
             }
+            Phase.HOLD -> {
+                // The listener moved the playhead during a hold: the hold is over, the voice follows.
+                if (reason == Player.DISCONTINUITY_REASON_SEEK) {
+                    endHold(resume = holdAnchor != 0L)
+                    started = true
+                    armAll(sessionMs, fresh = false)
+                    kick()
+                }
+            }
             Phase.EXTENSION -> {
                 // The listener moved the voice back during the extension: it is playing again.
                 if (reason == Player.DISCONTINUITY_REASON_SEEK) {
@@ -497,12 +628,14 @@ internal class CueEngine(
                 primary.playbackParameters.speed.toDouble(),
             )
         }
-        if (cfg.extensionMs > 0) {
+        val endExtensionMs = holdPlan.endExtensionMs(cfg.extensionMs, Long.MAX_VALUE)
+        if (endExtensionMs > 0) {
             phase = Phase.EXTENSION
             extensionStartSessionMs = sessionMs
-            holdRemainingMs = cfg.extensionMs
+            endExtensionPlannedMs = endExtensionMs
+            holdRemainingMs = endExtensionMs
             holdAnchor = SystemClock.elapsedRealtime()
-            acquireWake(cfg.extensionMs + WAKE_SLACK_MS)
+            acquireWake(endExtensionMs + WAKE_SLACK_MS)
             kick()
         } else {
             finishSession(extensionFinished = false)
