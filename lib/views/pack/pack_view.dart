@@ -1,6 +1,5 @@
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/exceptions/app_error.dart';
-import 'package:medito/utils/logger.dart';
 import 'package:medito/utils/youtube_error_message.dart';
 import 'package:medito/views/pack/widgets/youtube_playlist_empty.dart';
 

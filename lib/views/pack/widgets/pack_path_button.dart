@@ -6,7 +6,6 @@ import 'package:medito/constants/colors/color_constants.dart';
 import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
-import 'package:medito/utils/logger.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/views/player/start_session.dart';
 
