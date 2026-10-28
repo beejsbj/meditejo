@@ -201,8 +201,8 @@ in the order their results are merged), `catalogueRevisionProvider`
 `catalogueSearchProvider` (merged), `catalogueTeacherProvider` (routed by
 `ownsTeacher`) and `catchUpCatalogues(ref)`. A source that throws is skipped,
 so one failing catalogue does not blank the others. Adding a catalogue is:
-implement the interface, add it to `contentSourcesProvider`; the filter chip,
-merged Explore and search, teacher routing and import need nothing else.
+implement the interface, add it to `contentSourcesProvider`; merged Explore and
+search, teacher routing and import need nothing else.
 
 ### dhammatalks.org (`dt-`)
 
@@ -217,7 +217,7 @@ built-in catalogue (BRIEF decision 3; research in `content-sources.md`).
   memory over folded title words. A collection item whose file the archive also
   holds is that archive talk, so a talk has one ID wherever it is listed.
 - **Staleness.** `dtSnapshotMaxAgeDays` (45) is how far the RSS feeds (50 items
-  each) reach back; `dhammatalks_snapshot_test.dart` fails the build past it, and
+  each) reach back; `dhammatalks_snapshot_test.dart` and a CI step only warn past it, and
   `release.sh` refuses a snapshot over 14 days old. A rebuild refuses to drop IDs.
 - **Runtime additions** (`dhammatalks_feed.dart`): `catchUp` reads
   `/rss/evening.xml` and `/rss/morning.xml` (one request each, serially, via

@@ -8,8 +8,8 @@ import 'package:medito/services/dhammatalks/dhammatalks_catalogue.dart';
 import 'package:medito/services/dhammatalks/dhammatalks_ids.dart';
 
 /// The bundled dhammatalks.org snapshot and its manifest, as committed. The
-/// hard rule is the last test: a snapshot older than the RSS feeds can bridge
-/// fails the build until it is refreshed.
+/// last test only warns when the snapshot is older than the RSS feeds can
+/// bridge; `release.sh` is where a stale snapshot is refused.
 void main() {
   final asset = File('assets/dhammatalks/catalogue.json.gz');
   final manifestFile = File('assets/dhammatalks/manifest.json');
