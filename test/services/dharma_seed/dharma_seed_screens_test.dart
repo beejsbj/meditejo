@@ -1,8 +1,8 @@
+import 'package:medito/models/catalogue/catalogue_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/models/explore/session_length.dart';
 import 'package:medito/services/content/content_source.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
 import 'package:medito/services/library/library_database.dart';
 import 'package:medito/services/library/library_models.dart';
@@ -67,7 +67,7 @@ void main() {
     test(
       'Practice shows courses that are at least half guided practice',
       () async {
-        final explore = await source.explore(group: DsContentGroup.practice);
+        final explore = await source.explore(group: ContentGroup.practice);
         expect(explore.courses.map((c) => c.id), [
           'ds-retreat-300',
           'ds-retreat-100',
@@ -88,7 +88,7 @@ void main() {
     );
 
     test('Talks includes Q & A and untyped recordings', () async {
-      final explore = await source.explore(group: DsContentGroup.talks);
+      final explore = await source.explore(group: ContentGroup.talks);
       expect(explore.courses.map((c) => c.id), ['ds-retreat-200']);
       expect(explore.talks.map((t) => t.title), [
         'Untyped talk about jhana',
@@ -116,7 +116,7 @@ void main() {
         expect(all.teachers.map((t) => t.name), ['Rob Burbea']);
 
         // A chip never hides what the user kept.
-        final practice = await source.explore(group: DsContentGroup.practice);
+        final practice = await source.explore(group: ContentGroup.practice);
         expect(practice.courses.map((c) => c.id), ['ds-retreat-300']);
         expect(practice.savedTeachers.map((t) => t.name), ['Leigh Brasington']);
       },
@@ -136,7 +136,7 @@ void main() {
       );
       expect(
         (await source.explore(
-          group: DsContentGroup.talks,
+          group: ContentGroup.talks,
         )).courses.map((c) => c.id),
         isNot(contains('ds-retreat-400')),
       );
@@ -157,7 +157,7 @@ void main() {
         final early = DharmaSeedSource(db: fresh);
         expect((await early.explore()).hasCatalogue, isTrue);
         expect(
-          (await early.explore(group: DsContentGroup.practice)).hasCatalogue,
+          (await early.explore(group: ContentGroup.practice)).hasCatalogue,
           isFalse,
         );
       },

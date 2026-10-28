@@ -1,3 +1,4 @@
+import 'package:medito/models/catalogue/catalogue_models.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -146,7 +147,7 @@ class DsTalkFilter {
   final Set<String>? recordingTypes;
 
   /// Practice or Talks, as the Explore chips choose; null for both.
-  final DsContentGroup? group;
+  final ContentGroup? group;
 
   /// SQL conditions on a `ds_talks` row aliased [alias], with their values.
   /// Null when the filter can match nothing.
@@ -666,22 +667,22 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
 
   /// SQL for "this talk is in [group]" on a `ds_talks` row aliased [alias].
   /// Untyped and unknown recordings are Talks.
-  static String groupCondition(DsContentGroup group, String alias) {
+  static String groupCondition(ContentGroup group, String alias) {
     final types = dsPracticeRecordingTypes.map((t) => "'$t'").join(',');
     final practice = "lower(trim($alias.recording_type)) IN ($types)";
-    return group == DsContentGroup.practice ? practice : 'NOT ($practice)';
+    return group == ContentGroup.practice ? practice : 'NOT ($practice)';
   }
 
   /// Retreats with talks, newest first, optionally only those that are mostly
   /// [group] (at least half of their stored talks). Retreats whose talks have
   /// not synced yet cannot be classified and only appear without a group.
   Future<List<DsRetreat>> recentRetreatsOf(
-    DsContentGroup? group, {
+    ContentGroup? group, {
     int limit = 40,
   }) async {
     if (group == null) return recentRetreats(limit: limit);
     final practiceShare = dsPracticeRecordingTypes.map((t) => "'$t'").join(',');
-    final comparison = group == DsContentGroup.practice ? '>=' : '<';
+    final comparison = group == ContentGroup.practice ? '>=' : '<';
     final rows = await customSelect(
       'SELECT r.* FROM ds_retreats r JOIN ('
       'SELECT retreat_id, COUNT(*) AS n, SUM('
@@ -726,7 +727,7 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
   /// Co-teaching counts for every teacher of a talk, as on a teacher's page;
   /// teachers marked non-public are left out.
   Future<List<DsTeacherSummary>> topTeachers({
-    DsContentGroup? group,
+    ContentGroup? group,
     int limit = 20,
   }) async {
     final rows = await customSelect(

@@ -3,13 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/models/pack/pack_model.dart';
-import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 import 'package:medito/services/local_catalogue.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_models.dart';
+import 'package:medito/models/catalogue/catalogue_models.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/dharma_seed/widgets/course_rows_sliver.dart';
 import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
@@ -21,12 +18,13 @@ import 'package:medito/widgets/save_button.dart';
 import 'package:medito/widgets/section_header.dart';
 import 'package:medito/widgets/widgets.dart';
 
-/// A teacher: photo, biography, their courses and their talks, with Save.
+/// A teacher of any built-in catalogue: photo, biography, their courses and
+/// their talks, with Save.
 /// Talks load a page at a time, newest first.
 class TeacherView extends ConsumerStatefulWidget {
   const TeacherView({super.key, required this.teacherId});
 
-  /// The app ID, `ds-teacher-<id>`.
+  /// The app ID, `ds-teacher-<id>` or `dt-teacher-thanissaro`.
   final String teacherId;
 
   @override
@@ -41,7 +39,7 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
   /// Talks loaded beyond the first page, and the first page they follow:
   /// a fresh first page (after a sync) makes them stale.
   final List<PackItemsModel> _more = [];
-  DsTeacherPage? _basePage;
+  CatalogueTeacherPage? _basePage;
   bool _hasMore = true;
   bool _loadingMore = false;
 
@@ -58,7 +56,7 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
     // page loads, that page would land on the wrong base.
     final base = _basePage;
     final next = await ref
-        .read(dharmaSeedSourceProvider)
+        .read(catalogueSourceForTeacherProvider(widget.teacherId))
         .teacherTalks(widget.teacherId, offset: shown);
     if (!mounted) return;
     if (!identical(base, _basePage)) {
@@ -74,7 +72,7 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
 
   @override
   Widget build(BuildContext context) {
-    final async = ref.watch(dharmaSeedTeacherProvider(widget.teacherId));
+    final async = ref.watch(catalogueTeacherProvider(widget.teacherId));
     final page = async.value;
     final backBar = SingleBackButtonActionBar(
       onBackPressed: () => Navigator.pop(context),
@@ -103,7 +101,7 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
                     ? async.error! as AppError
                     : const UnknownError(),
                 onTap: () =>
-                    ref.invalidate(dharmaSeedTeacherProvider(widget.teacherId)),
+                    ref.invalidate(catalogueTeacherProvider(widget.teacherId)),
                 isLoading: async.isLoading,
               )
             : const FolderShimmerWidget(),
@@ -111,7 +109,7 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
     );
   }
 
-  Widget _content(DsTeacherPage page) {
+  Widget _content(CatalogueTeacherPage page) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final teacher = page.teacher;
@@ -210,16 +208,12 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
             ),
           ),
         SliverToBoxAdapter(
-          child: AttributionNotice(
-            attribution: SourceAttribution(
-              source: 'Dharma Seed',
-              creator: teacher.name,
-              url: teacher.pageUrl,
-              licenseName: dharmaSeedLicenceName,
-              licenseUrl: dharmaSeedLicenceUrl,
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-          ),
+          child: teacher.attribution == null
+              ? const SizedBox(height: 32)
+              : AttributionNotice(
+                  attribution: teacher.attribution!,
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+                ),
         ),
       ],
     );

@@ -2046,7 +2046,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get navLibrary => 'Bibliothek';
 
   @override
-  String get exploreSearchHint => 'Bibliothek und Dharma Seed durchsuchen';
+  String get exploreSearchHint => 'Bibliothek und Kataloge durchsuchen';
 
   @override
   String get homeShortcutsTitle => 'Kurzbefehle';
@@ -2837,4 +2837,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String labelsRemoveTooltip(String label) {
     return 'Label $label entfernen';
   }
+
+  @override
+  String get exploreArchives => 'Vorträge nach Jahr';
 }

@@ -1,3 +1,4 @@
+import 'package:medito/models/catalogue/catalogue_models.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -9,13 +10,11 @@ import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/pack/pack_model.dart';
-import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/routes/routes.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/views/categories/category_chips.dart';
@@ -84,7 +83,7 @@ class ExploreViewState extends ConsumerState<ExploreView> {
   void loadData() {
     if (_hasLoadedData) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.invalidate(dharmaSeedExploreProvider);
+      ref.invalidate(catalogueExploreProvider);
       _hasLoadedData = true;
     });
   }
@@ -131,15 +130,15 @@ class ExploreViewState extends ConsumerState<ExploreView> {
     _focusNode.requestFocus();
   }
 
-  /// Pulling down re-reads the lists and asks Dharma Seed for what changed
-  /// (an incremental sync: a few requests), without waiting for it.
+  /// Pulling down re-reads the lists and asks every catalogue for what changed
+  /// (a few small requests), without waiting for them.
   Future<void> _refresh() async {
     AppLogger.d('ExploreView', 'Refreshing explore lists');
-    unawaited(ref.read(dharmaSeedSyncProvider).sync(force: true));
+    catchUpCatalogues(ref, force: true);
     final group = ref.read(exploreGroupProvider);
-    ref.invalidate(dharmaSeedExploreProvider(group));
+    ref.invalidate(catalogueExploreProvider(group));
     try {
-      await ref.read(dharmaSeedExploreProvider(group).future);
+      await ref.read(catalogueExploreProvider(group).future);
     } catch (_) {
       // The error state below shows it.
     }
@@ -282,7 +281,7 @@ class ExploreViewState extends ConsumerState<ExploreView> {
 
   List<Widget> _buildContent() {
     final group = ref.watch(exploreGroupProvider);
-    final async = ref.watch(dharmaSeedExploreProvider(group));
+    final async = ref.watch(catalogueExploreProvider(group));
     final explore = async.value;
 
     if (explore == null) {
@@ -293,7 +292,7 @@ class ExploreViewState extends ConsumerState<ExploreView> {
             child: MeditoErrorWidget(
               error: err is AppError ? err : const UnknownError(),
               isScaffold: false,
-              onTap: () => ref.invalidate(dharmaSeedExploreProvider(group)),
+              onTap: () => ref.invalidate(catalogueExploreProvider(group)),
             ),
           ),
         ];
@@ -348,6 +347,10 @@ class ExploreViewState extends ConsumerState<ExploreView> {
         _title(l10n.exploreCourses),
         SliverToBoxAdapter(child: _CourseStrip(courses: explore.courses)),
       ],
+      if (explore.archives.isNotEmpty) ...[
+        _title(l10n.exploreArchives),
+        SliverToBoxAdapter(child: _ArchiveStrip(archives: explore.archives)),
+      ],
       if (explore.savedTeachers.isNotEmpty) ...[
         _title(l10n.exploreSavedTeachers),
         SliverToBoxAdapter(
@@ -360,7 +363,7 @@ class ExploreViewState extends ConsumerState<ExploreView> {
       ],
       if (explore.talks.isNotEmpty) ...[
         _title(
-          group == DsContentGroup.talks
+          group == ContentGroup.talks
               ? l10n.exploreLatestTalks
               : l10n.exploreLatestPractice,
         ),
@@ -475,6 +478,40 @@ class _CourseStrip extends ConsumerWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// A source's lists to browse by, such as its talks year by year: a row of
+/// chips, each opening the list as a course page.
+class _ArchiveStrip extends ConsumerWidget {
+  const _ArchiveStrip({required this.archives});
+
+  final List<PackItemsModel> archives;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SingleChildScrollView(
+      key: const ValueKey('explore_archive_strip'),
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: kCardGutter),
+      child: Row(
+        children: [
+          for (final (i, archive) in archives.indexed) ...[
+            if (i > 0) const SizedBox(width: 8),
+            ActionChip(
+              key: ValueKey('archive_${archive.id}'),
+              label: Text(archive.title),
+              onPressed: () => handleNavigation(
+                TypeConstants.pack,
+                [archive.id, archive.path],
+                context,
+                ref: ref,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
