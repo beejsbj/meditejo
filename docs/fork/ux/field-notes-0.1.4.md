@@ -103,3 +103,38 @@ The alternative is to fold bells and pulse into Sounds. That's simpler to name, 
 1. Do you want different bells or sounds for talks than for practice? If not, Customize defaults collapse to one set.
 2. Should a Home tile save the whole sit (length, bells, pulse, mix)? I think that's what the tiles already promise.
 3. Back at the bottom: does it bother you everywhere, or mainly on the course page where it shares a bar with the ⋮?
+
+## Burooj's answers (2026-10-28)
+
+- **Presets:** every preset should be a timer preset (a sit), and the timer should allow "infinite" so a sound mix on its own is a sit too. My reading: the stopwatch already *is* an infinite timer, so Timer and Stopwatch merge into one duration that runs up to ∞. Mixes still exist as the ingredient a talk plays under. "Preset" means a sit.
+- **Practice vs Talks defaults:** no difference wanted. What might differ is which preset plays under a particular course, and that's what the per-course override already does. So it's one set of defaults plus per-course overrides.
+- **"Under sessions":** reaching the same setting from more than one place is fine, but this one is confusing and doesn't line up. Replace it.
+- **Per-sound controls:** make them customisable, with one shared vocabulary.
+- **Drone chord, Swell rename, removing Default guide name, Default duration and App icon:** agreed.
+- **Leftovers:** reimagine or discard each one; don't keep any as it is.
+- **Sources:** keep the art hierarchy. A YouTube import should carry the channel as its "teacher" (avatar included), and import the playlist, channel and video descriptions.
+- **Retreat days:** not headings at all; visual groups instead, like a bordered box with the day as small text inside.
+- **Bottom bar:** follow M3 Expressive. Back at the bottom is fine. The problem is Share, ⋮ and ♥ sitting in that bar instead of with the course's own actions beside Pin, and Pin should be an icon, not a three-word sentence.
+- **Sound, one drawer:** agreed exactly.
+
+## Screenshots: course page and episode page (0.1.4)
+
+**Course page (Practising the Jhānas):**
+- The header art is cropped to a strip behind the title.
+- The meta line says "32 talks" for a mix of talks and guided meditations (Dharma Seed's word for any recording).
+- "32 of 32 left" is a sentence where a progress bar would do.
+- "In library" (outlined button) and "Unpin from Home" (text row) are two ways of showing a toggle.
+- The ▶ FAB straddles the panel edge and is clipped at the right.
+- Every row repeats "Rob Burbea" although the course has one teacher.
+- The kind overline (TALK / GUIDED MEDITATION) is loud for metadata.
+- Share, ⋮ and ♥ live in the bottom bar.
+- Favourite, In library and Pin are three different ways to keep the same thing.
+
+**Episode page (Vervaeke, YouTube):**
+- The raw YouTube title runs to four lines, including the playlist name and "Livestream Mon-Fri 09:30 EST".
+- The channel name appears three times: subtitle, attribution link, and a *guide picker*.
+- The guide and duration pickers each have one option but still look like inputs (Medito's multi-voice pickers).
+- There's no description, because the importer didn't store one.
+- There's no way to reach the course.
+- The Play pill has no label.
+- Below Play there's dead space.
