@@ -21,7 +21,7 @@ import 'package:medito/services/library/library_models.dart';
 /// - Each item carries its own [SourceAttribution] where one is shown, with
 ///   the licence link the source's terms ask for.
 abstract interface class CatalogueSource implements ContentSource {
-  /// The name the source filter shows ("Dharma Seed").
+  /// The name the source goes by ("Dharma Seed"), for example in an import.
   String get name;
 
   /// Whether [id] names one of this source's teachers (`ds-teacher-…`).

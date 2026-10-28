@@ -7,9 +7,7 @@ import 'package:medito/widgets/cards/card_tokens.dart';
 
 /// Explore's filter row. First the content kinds: Practice (guided
 /// meditations, chanting) and Talks (talks, Q & A, other); neither selected
-/// shows everything, and tapping the chosen chip again clears it. Then, once
-/// more than one catalogue is built in, the source: All, Dharma Seed,
-/// Dhammatalks.
+/// shows everything, and tapping the chosen chip again clears it.
 class ExploreKindChips extends ConsumerWidget {
   const ExploreKindChips({super.key});
 
@@ -18,9 +16,6 @@ class ExploreKindChips extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final group = ref.watch(exploreGroupProvider);
     final groupNotifier = ref.read(exploreGroupProvider.notifier);
-    final sources = ref.watch(catalogueSourcesProvider);
-    final source = ref.watch(exploreSourceProvider);
-    final sourceNotifier = ref.read(exploreSourceProvider.notifier);
 
     Widget kind(ContentGroup value, String label, String key) => ChoiceChip(
       key: ValueKey(key),
@@ -47,32 +42,6 @@ class ExploreKindChips extends ConsumerWidget {
               l10n.exploreKindTalks,
               'explore_chip_talks',
             ),
-            if (sources.length > 1) ...[
-              const SizedBox(width: 12),
-              SizedBox(
-                height: 24,
-                child: VerticalDivider(
-                  width: 1,
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
-              ),
-              const SizedBox(width: 12),
-              ChoiceChip(
-                key: const ValueKey('explore_source_all'),
-                label: Text(l10n.exploreSourceAll),
-                selected: source == null,
-                onSelected: (_) => sourceNotifier.select(null),
-              ),
-              for (final s in sources) ...[
-                const SizedBox(width: 8),
-                ChoiceChip(
-                  key: ValueKey('explore_source_${s.prefix}'),
-                  label: Text(s.name),
-                  selected: source == s.prefix,
-                  onSelected: (_) => sourceNotifier.select(s.prefix),
-                ),
-              ],
-            ],
           ],
         ),
       ),

@@ -58,35 +58,11 @@ class SavedNotifier extends AsyncNotifier<bool> {
   }
 }
 
-/// The built-in catalogues, in the order the source filter lists them.
+/// The built-in catalogues, in the order their results are merged.
 final catalogueSourcesProvider = Provider<List<CatalogueSource>>(
   (ref) =>
       ref.watch(contentSourcesProvider).whereType<CatalogueSource>().toList(),
 );
-
-/// The source Explore is narrowed to: its ID prefix (`ds-`), or null for all
-/// of them. Tapping the chosen source again clears it.
-final exploreSourceProvider = NotifierProvider<ExploreSourceNotifier, String?>(
-  ExploreSourceNotifier.new,
-);
-
-class ExploreSourceNotifier extends Notifier<String?> {
-  @override
-  String? build() => null;
-
-  void select(String? prefix) => state = prefix == state ? null : prefix;
-}
-
-/// The catalogues Explore and search read now: the chosen source, or all.
-final activeCataloguesProvider = Provider<List<CatalogueSource>>((ref) {
-  final all = ref.watch(catalogueSourcesProvider);
-  final chosen = ref.watch(exploreSourceProvider);
-  final narrowed = [
-    for (final source in all)
-      if (source.prefix == chosen) source,
-  ];
-  return narrowed.isEmpty ? all : narrowed;
-});
 
 /// Changes after any catalogue lands records; watch it to re-query.
 final catalogueRevisionProvider =
@@ -128,7 +104,7 @@ Future<List<R>> _readEach<R>(
   return parts;
 }
 
-/// The Explore tab's content, from the chosen source or every catalogue,
+/// The Explore tab's content, from every catalogue,
 /// merged. Re-reads when a refresh lands records or the user saves something;
 /// the previous result stays on screen meanwhile.
 final catalogueExploreProvider = FutureProvider.autoDispose
@@ -136,7 +112,7 @@ final catalogueExploreProvider = FutureProvider.autoDispose
       ref.watch(catalogueRevisionProvider);
       ref.watch(libraryRevisionProvider);
       final parts = await _readEach(
-        ref.watch(activeCataloguesProvider),
+        ref.watch(catalogueSourcesProvider),
         (source) => source.explore(group: group),
       );
       return parts.isEmpty ? const CatalogueExplore() : mergeExplores(parts);
@@ -144,7 +120,7 @@ final catalogueExploreProvider = FutureProvider.autoDispose
 
 typedef CatalogueSearchKey = ({String query, SessionLength? length});
 
-/// Grouped local search over the chosen source or every catalogue. The query
+/// Grouped local search over every catalogue. The query
 /// is already debounced by the search field.
 final catalogueSearchProvider = FutureProvider.autoDispose
     .family<CatalogueSearchResults, CatalogueSearchKey>((ref, key) async {
@@ -152,7 +128,7 @@ final catalogueSearchProvider = FutureProvider.autoDispose
       // first sync does not stay stale.
       ref.watch(catalogueRevisionProvider);
       final parts = await _readEach(
-        ref.watch(activeCataloguesProvider),
+        ref.watch(catalogueSourcesProvider),
         (source) => source.search(key.query, length: key.length),
       );
       return parts.isEmpty

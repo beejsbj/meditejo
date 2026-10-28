@@ -196,8 +196,7 @@ between sources, teachers rank by talk count, followed teachers lead.
 
 `lib/providers/dharma_seed/dharma_seed_ui_providers.dart` holds the wiring:
 `catalogueSourcesProvider` (the `CatalogueSource`s in `contentSourcesProvider`,
-in the order the filter lists them), `exploreSourceProvider` (the filter: a
-prefix, or null for All), `activeCataloguesProvider`, `catalogueRevisionProvider`
+in the order their results are merged), `catalogueRevisionProvider`
 (bumps when any source lands records), `catalogueExploreProvider(group)`,
 `catalogueSearchProvider` (merged), `catalogueTeacherProvider` (routed by
 `ownsTeacher`) and `catchUpCatalogues(ref)`. A source that throws is skipped,
@@ -445,10 +444,9 @@ clipboard reader and share intake as providers, so tests need no platform.
   large cards with Add to library on the art, saved teachers and teachers
   (`TeacherStrip`), and the latest sessions (`SessionRowsSliver`): guided
   practice unless Talks is chosen. `LibraryStateCard` explains the first sync.
-  Beside the Practice and Talks chips, once more than one catalogue is built in,
-  a **source filter** (All · Dharma Seed · Dhammatalks, `exploreSourceProvider`)
-  narrows browse and search to one catalogue; All merges them (see "The
-  catalogue seam"), and a "Talks by year" chip strip opens a year of dhammatalks.
+  Browse and search always read every built-in catalogue, merged (see "The
+  catalogue seam"; there is no source filter, each item carries its own source
+  attribution), and a "Talks by year" chip strip opens a year of dhammatalks.
   Pull to refresh runs an incremental sync. Typing (400 ms debounce, not
   ASCII-filtered) replaces that with `SearchResults` (`lib/views/search/`):
   Teachers, Courses, Talks, with the length chips over the talks, and the

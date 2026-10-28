@@ -14,8 +14,7 @@ import 'package:medito/utils/logger.dart';
 ///
 /// Courses and talks from the library's own sources (imports, YouTube) lead,
 /// then anything else already in the library (a saved retreat), then the rest
-/// of the catalogues, merged across sources (or narrowed to the one chosen in
-/// Explore). An item appears once. Teachers come from the catalogues, with
+/// of the catalogues, merged across sources. An item appears once. Teachers come from the catalogues, with
 /// followed ones first.
 ///
 /// The length filter narrows talks by duration, which only catalogue talks

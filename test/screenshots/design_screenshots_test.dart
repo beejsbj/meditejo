@@ -922,43 +922,36 @@ void main() {
 
     // Explore with two catalogues: every source, then only Dhammatalks (the
     // real bundled snapshot).
-    for (final source in [null, 'dt-']) {
-      testWidgets('Explore ${source == null ? 'all sources' : 'Dhammatalks'}, '
-          '${brightness.name}', (tester) async {
-        final app = await DharmaSeedTestApp.create(tester, seed: false);
-        await tester.runAsync(() async {
-          await _seedRealisticCatalogue(app.db);
-          await app.source.setSaved('ds-retreat-1084', saved: true);
-        });
-        final snapshot = DtCatalogue.fromJson(
-          DtCatalogue.decode(
-            File('assets/dhammatalks/catalogue.json.gz').readAsBytesSync(),
-          ),
-        );
-        await app.pump(
-          tester,
-          _frame(brightness, const ExploreView()),
-          dhammatalks: DhammatalksSource(
-            loadSnapshot: () async => snapshot,
-            library: app.library,
-          ),
-        );
-        await _phone(tester);
-        if (source != null) {
-          final chip = find.byKey(ValueKey('explore_source_$source'));
-          await tester.ensureVisible(chip);
-          await tester.tap(chip);
-        }
-        await DharmaSeedTestApp.settle(tester);
-        expect(tester.takeException(), isNull);
-        final name =
-            'explore-${source == null ? 'all' : 'dhammatalks'}-${brightness.name}';
-        await _capture(tester, name);
-        tester.view.physicalSize = const Size(1080, 4400);
-        await DharmaSeedTestApp.settle(tester);
-        await _capture(tester, '$name-full');
-      }, skip: !_enabled);
-    }
+    testWidgets('Explore with both catalogues, ${brightness.name}', (
+      tester,
+    ) async {
+      final app = await DharmaSeedTestApp.create(tester, seed: false);
+      await tester.runAsync(() async {
+        await _seedRealisticCatalogue(app.db);
+        await app.source.setSaved('ds-retreat-1084', saved: true);
+      });
+      final snapshot = DtCatalogue.fromJson(
+        DtCatalogue.decode(
+          File('assets/dhammatalks/catalogue.json.gz').readAsBytesSync(),
+        ),
+      );
+      await app.pump(
+        tester,
+        _frame(brightness, const ExploreView()),
+        dhammatalks: DhammatalksSource(
+          loadSnapshot: () async => snapshot,
+          library: app.library,
+        ),
+      );
+      await _phone(tester);
+      await DharmaSeedTestApp.settle(tester);
+      expect(tester.takeException(), isNull);
+      final name = 'explore-catalogues-${brightness.name}';
+      await _capture(tester, name);
+      tester.view.physicalSize = const Size(1080, 4400);
+      await DharmaSeedTestApp.settle(tester);
+      await _capture(tester, '$name-full');
+    }, skip: !_enabled);
 
     for (final (name, page) in [
       ('timer', const TimerView()),

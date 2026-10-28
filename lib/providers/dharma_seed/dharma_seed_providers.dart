@@ -43,8 +43,7 @@ final dharmaSeedSourceProvider = Provider<DharmaSeedSource>(
 );
 
 /// Every built-in or imported source, consulted by stable ID prefix. The
-/// built-in catalogues come first, in the order the Explore source filter
-/// lists them.
+/// built-in catalogues come first, in the order their results are merged.
 final Provider<List<ContentSource>> contentSourcesProvider = Provider(
   (ref) => [
     ref.watch(dharmaSeedSourceProvider),

@@ -2837,8 +2837,5 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get exploreSourceAll => 'All';
-
-  @override
   String get exploreArchives => 'Charlas por año';
 }

@@ -73,8 +73,11 @@ See ARCHITECTURE.md ("The bundled catalogue") for the rest.
 are **committed**: unlike the Dharma Seed catalogue they are well under 1 MB, so
 there is no fetch step. Titles, dates and file addresses only, never audio. The
 app bridges the snapshot to today with the site's two RSS feeds (50 items each),
-so a snapshot more than 45 days old fails `dhammatalks_snapshot_test.dart`, and
-`release.sh` refuses one more than 14 days old (users open a release for weeks). Refresh and commit:
+so a snapshot more than 45 days old leaves a gap. The calendar must not turn CI
+red, so past 45 days `dhammatalks_snapshot_test.dart` prints a warning and
+reports itself skipped, and a CI step annotates the run with a warning;
+`release.sh` is the hard rule and refuses a snapshot more than 14 days old (users
+open a release for weeks). Refresh and commit:
 
 ```bash
 python3 -I tools/meditejo/dhammatalks.py build      # about 47 requests, 4 s apart (~4 min); refuses to drop IDs

@@ -92,17 +92,21 @@ void main() {
       );
     });
 
+    // A warning, not a failure: the snapshot ages with the calendar, so an
+    // assertion here would turn CI red on a day no code changed (and fail old
+    // commits when bisecting). `release.sh` refuses a stale snapshot; this
+    // test only says so in the log and reports itself skipped.
     test('the bundled snapshot is fresh enough for the RSS feeds to bridge', () {
       final asOf = DateTime.parse(manifest['asOf']! as String);
-      expect(
-        dtSnapshotIsStale(asOf, DateTime.now().toUtc()),
-        isFalse,
-        reason:
-            'The dhammatalks.org snapshot was made $asOf, more than '
-            '$dtSnapshotMaxAgeDays days ago, so talks given since fall in a gap '
-            'the feeds (50 items each) no longer cover. Refresh it with: '
-            'python3 -I tools/meditejo/dhammatalks.py build',
-      );
+      if (!dtSnapshotIsStale(asOf, DateTime.now().toUtc())) return;
+      final warning =
+          'The dhammatalks.org snapshot was made $asOf, more than '
+          '$dtSnapshotMaxAgeDays days ago, so talks given since fall in a gap '
+          'the feeds (50 items each) no longer cover. Refresh it with: '
+          'python3 -I tools/meditejo/dhammatalks.py build';
+      // ignore: avoid_print
+      print('WARNING: $warning');
+      markTestSkipped(warning);
     });
   });
 }

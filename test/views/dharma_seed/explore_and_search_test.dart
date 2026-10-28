@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/services/dhammatalks/dhammatalks_catalogue.dart';
 import 'package:medito/services/dhammatalks/dhammatalks_source.dart';
@@ -132,36 +131,9 @@ void main() {
       );
     }
 
-    testWidgets('the source chips list All, Dharma Seed and Dhammatalks, '
-        'All chosen', (tester) async {
-      final app = await DharmaSeedTestApp.create(tester);
-      await app.pump(
-        tester,
-        const ExploreView(),
-        dhammatalks: dhammatalks(app),
-      );
-
-      for (final key in ['all', 'ds-', 'dt-']) {
-        expect(find.byKey(ValueKey('explore_source_$key')), findsOneWidget);
-      }
-      expect(
-        tester
-            .widget<ChoiceChip>(
-              find.byKey(const ValueKey('explore_source_all')),
-            )
-            .selected,
-        isTrue,
-      );
-      // Both catalogues' courses are on the page.
-      expect(find.text('Mixed Weekend'), findsOneWidget);
-      expect(
-        find.text('Guided meditations', skipOffstage: false),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('Dhammatalks narrows Explore to its courses, teacher and '
-        'years; a second tap returns to All', (tester) async {
+    testWidgets('Explore merges both catalogues with no source chips', (
+      tester,
+    ) async {
       final app = await DharmaSeedTestApp.create(tester);
       await app.pump(
         tester,
@@ -169,13 +141,14 @@ void main() {
         dhammatalks: dhammatalks(app),
       );
       tester.view.physicalSize = const Size(430, 2400);
-
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('explore_source_dt-')),
-      );
-      await tester.tap(find.byKey(const ValueKey('explore_source_dt-')));
       await DharmaSeedTestApp.settle(tester);
-      expect(find.text('Mixed Weekend'), findsNothing);
+
+      expect(find.byKey(const ValueKey('explore_chip_practice')), findsOne);
+      for (final key in ['all', 'ds-', 'dt-']) {
+        expect(find.byKey(ValueKey('explore_source_$key')), findsNothing);
+      }
+      // Both catalogues' courses, the Dhammatalks teacher and its years.
+      expect(find.text('Mixed Weekend'), findsOneWidget);
       expect(find.text('Guided meditations'), findsOneWidget);
       expect(find.text('Thanissaro Bhikkhu'), findsOneWidget);
       expect(find.text('Talks by year'), findsOneWidget);
@@ -183,36 +156,9 @@ void main() {
         find.byKey(const ValueKey('archive_dt-year-e-2025')),
         findsOneWidget,
       );
-
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('explore_source_dt-')),
-      );
-      await tester.tap(find.byKey(const ValueKey('explore_source_dt-')));
-      await DharmaSeedTestApp.settle(tester);
-      expect(find.text('Mixed Weekend'), findsOneWidget);
     });
 
-    testWidgets('Dharma Seed narrows it the other way', (tester) async {
-      final app = await DharmaSeedTestApp.create(tester);
-      await app.pump(
-        tester,
-        const ExploreView(),
-        dhammatalks: dhammatalks(app),
-      );
-
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('explore_source_ds-')),
-      );
-      await tester.tap(find.byKey(const ValueKey('explore_source_ds-')));
-      await DharmaSeedTestApp.settle(tester);
-      expect(find.text('Mixed Weekend'), findsOneWidget);
-      expect(find.text('Guided meditations'), findsNothing);
-      expect(find.text('Talks by year'), findsNothing);
-    });
-
-    testWidgets('search is merged across sources, and narrowed by the chip', (
-      tester,
-    ) async {
+    testWidgets('search is merged across sources', (tester) async {
       final app = await DharmaSeedTestApp.create(tester);
       await app.pump(
         tester,
@@ -225,16 +171,6 @@ void main() {
       await DharmaSeedTestApp.settle(tester);
       expect(find.text('Jhana basics'), findsOneWidget); // Dharma Seed
       expect(find.text('Jhana and the Breath'), findsOneWidget); // Dhammatalks
-
-      // The chips are replaced by results while searching; choose the source
-      // first, then search again.
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(MaterialApp)),
-      );
-      container.read(exploreSourceProvider.notifier).select('dt-');
-      await DharmaSeedTestApp.settle(tester);
-      expect(find.text('Jhana basics'), findsNothing);
-      expect(find.text('Jhana and the Breath'), findsOneWidget);
     });
 
     testWidgets('a year opens as a list of its talks', (tester) async {
@@ -245,10 +181,6 @@ void main() {
         dhammatalks: dhammatalks(app),
       );
       tester.view.physicalSize = const Size(430, 2400);
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('explore_source_dt-')),
-      );
-      await tester.tap(find.byKey(const ValueKey('explore_source_dt-')));
       await DharmaSeedTestApp.settle(tester);
 
       await tester.tap(find.byKey(const ValueKey('archive_dt-year-e-2025')));
