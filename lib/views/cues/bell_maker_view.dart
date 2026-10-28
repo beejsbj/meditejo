@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -18,6 +17,7 @@ import 'package:medito/utils/logger.dart';
 import 'package:medito/widgets/art/art_cover.dart';
 import 'package:medito/widgets/art/art_subject.dart';
 import 'package:medito/widgets/art/engine/bell.dart';
+import 'package:medito/widgets/inputs/range_control.dart';
 
 /// Opens the bell maker, starting from the bell a cue rings now ([from] is a
 /// cue sound: a bundled bell's asset path or a made bell's id). Completes
@@ -261,9 +261,16 @@ class _BellMakerViewState extends ConsumerState<BellMakerView> {
             ),
             const SizedBox(height: 16),
             for (final c in _controls(l10n))
-              _Control(
-                spec: c,
+              RangeControl(
+                sliderKey: ValueKey('bell_maker_${c.name}'),
+                label: c.label,
+                low: c.low,
+                high: c.high,
+                min: BellFigure.knobs[c.name]!.min,
+                max: BellFigure.knobs[c.name]!.max,
+                logarithmic: BellFigure.knobs[c.name]!.scale == 'log',
                 value: _knobs[c.name],
+                format: c.format,
                 onChanged: (v) => _move(c.name, v),
                 onChangeEnd: (_) => _hear(),
               ),
@@ -342,77 +349,6 @@ class _ControlSpec {
 
   final String name, label, low, high;
   final String Function(double) format;
-}
-
-/// A control as a slider: 0..1 along the control's own scale (`KNOBS`,
-/// logarithmic for pitch and ring).
-class _Control extends StatelessWidget {
-  const _Control({
-    required this.spec,
-    required this.value,
-    required this.onChanged,
-    required this.onChangeEnd,
-  });
-
-  final _ControlSpec spec;
-  final double value;
-  final ValueChanged<double> onChanged;
-  final ValueChanged<double> onChangeEnd;
-
-  BellKnob get _range => BellFigure.knobs[spec.name]!;
-
-  double _toSlider(double v) => _range.scale == 'log'
-      ? math.log(v / _range.min) / math.log(_range.max / _range.min)
-      : (v - _range.min) / (_range.max - _range.min);
-
-  double _fromSlider(double t) => _range.scale == 'log'
-      ? _range.min * math.pow(_range.max / _range.min, t)
-      : _range.min + t * (_range.max - _range.min);
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final type = context.typography;
-    final muted = type.baseline.labelMedium?.copyWith(
-      color: scheme.onSurfaceVariant,
-    );
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(spec.label, style: type.emphasized.titleSmall),
-              ),
-              Text(spec.format(value), style: muted),
-            ],
-          ),
-          Semantics(
-            label: spec.label,
-            value: spec.format(value),
-            child: Slider(
-              key: ValueKey('bell_maker_${spec.name}'),
-              value: _toSlider(value).clamp(0.0, 1.0),
-              onChanged: (t) => onChanged(_fromSlider(t)),
-              onChangeEnd: (t) => onChangeEnd(_fromSlider(t)),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(spec.low, style: muted),
-                Text(spec.high, style: muted),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _Label extends StatelessWidget {

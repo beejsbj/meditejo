@@ -391,5 +391,47 @@ void main() {
         'assets/audio/bell_gong.wav',
       );
     });
+
+    test(
+      'moves a bell wherever a store keeps it, and leaves the rest',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          // A store a later feature adds to the list of stores that hold bells.
+          'sits.v1': jsonEncode({
+            'sits': [
+              {
+                'name': 'Morning',
+                'bells': {'start': 'custom-bell:abc123xyz9', 'end': 'x.wav'},
+              },
+              {'name': 'Night', 'note': 'custom-bell:abc123xyz9 is a bell'},
+            ],
+          }),
+          // Not a store of bells: left alone even though it names the id.
+          'other': jsonEncode({'start': 'custom-bell:abc123xyz9'}),
+          'sits.broken': 'not json',
+        });
+        final prefs = await SharedPreferences.getInstance();
+        final cues = CueSettingsStore(prefs);
+        await cues.replaceSound(
+          'custom-bell:abc123xyz9',
+          cueDefaultBell,
+          prefixes: ['sits.'],
+        );
+        expect(jsonDecode(prefs.getString('sits.v1')!), {
+          'sits': [
+            {
+              'name': 'Morning',
+              'bells': {'start': cueDefaultBell, 'end': 'x.wav'},
+            },
+            {'name': 'Night', 'note': 'custom-bell:abc123xyz9 is a bell'},
+          ],
+        });
+        expect(
+          jsonDecode(prefs.getString('other')!)['start'],
+          'custom-bell:abc123xyz9',
+        );
+        expect(prefs.getString('sits.broken'), 'not json');
+      },
+    );
   });
 }

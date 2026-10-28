@@ -487,5 +487,30 @@ void main() {
       );
       await tester.pumpWidget(const SizedBox.shrink());
     });
+
+    testWidgets('a cue that names a bell that is gone shows the default', (
+      tester,
+    ) async {
+      await pumpSheet(tester);
+      const scope = CueScope(CueKind.practice);
+      await _container
+          .read(cueSettingsProvider(scope).notifier)
+          .update(
+            _container
+                .read(cueSettingsProvider(scope))
+                .copyWith(endSound: 'custom-bell:gone123456'),
+          );
+      await tester.pump();
+      await open(tester, 'Ending bell');
+      // What rings is the default bell, so that is the row that is ticked.
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey('bell_row_$cueDefaultBell')),
+          matching: find.byIcon(Icons.check_rounded),
+        ),
+        findsOneWidget,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
   });
 }
