@@ -233,36 +233,13 @@ class CategoryService {
       final talk = parseDsTalkId(id);
       if (talk != null && await db.talkById(talk) != null) return true;
     }
-    // The rules: a few index hits, re-checked, are enough to know.
-    for (final (table, column) in [
-      ('ds_retreats', 'name'),
-      ('ds_talks', 'title'),
-    ]) {
-      final match = _match(category.id, titleColumn: column);
-      if (match == null) continue;
-      final rows = await db
-          .customSelect(
-            'SELECT x.id, x.$column AS t, x.description AS d '
-            'FROM ${table}_fts f JOIN $table x ON x.id = f.rowid '
-            'WHERE ${table}_fts MATCH ? '
-            // A retreat with no stored talks is never listed.
-            "${table == 'ds_retreats' ? "AND x.talk_ids != '[]' " : ''}"
-            'LIMIT 20',
-            variables: [Variable.withString(match)],
-            readsFrom: {db.dsRetreats, db.dsTalks},
-          )
-          .get();
-      for (final row in rows) {
-        final id = row.read<int>('id');
-        final result = catalogue.classify(
-          table == 'ds_retreats' ? dsRetreatId(id) : dsTalkId(id),
-          title: row.read<String>('t'),
-          description: row.read<String>('d'),
-        );
-        if (result.any((a) => a.id == category.id)) return true;
-      }
-    }
-    return false;
+    // The rules: ask exactly what the category page would list, so a chip
+    // never opens an empty page and a page with something on it always has
+    // a chip. Only the sparse categories get this far.
+    final page = await _dharmaSeedFor(category, db, const {}, const {});
+    return page.courses.isNotEmpty ||
+        page.practice.isNotEmpty ||
+        page.talks.isNotEmpty;
   }
 
   /// Everything the app knows for [categoryId]. Library entries are exact

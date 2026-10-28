@@ -143,21 +143,44 @@ def cmd_batches(_):
     print(f'{len(items)} retreats in {n} batches under {INPUT}')
 
 
+def eligible_ids():
+    """The snapshot's retreats with talks: what the pass must cover."""
+    con, tmp = open_snapshot()
+    try:
+        return {
+            rid for (rid,) in con.execute(
+                "SELECT id FROM ds_retreats WHERE talk_ids != '[]'"
+            )
+        }
+    finally:
+        con.close()
+        shutil.rmtree(tmp)
+
+
 def cmd_check(_):
     expected = {}
     for path in sorted(INPUT.glob('batch-*.jsonl')):
         expected[path.name] = [r['id'] for r in read_jsonl(path)]
+    inputs = {rid for ids in expected.values() for rid in ids}
+    if expected and inputs != eligible_ids():
+        raise SystemExit(
+            f'The input batches cover {len(inputs)} retreats, not the '
+            "snapshot's retreats with talks: run `batches` again"
+        )
     done, missing = 0, []
     for name, ids in expected.items():
         out = WORK / 'haiku' / name
         if not out.exists():
             missing.append(name)
             continue
-        got = {int(r['id']) for r in read_jsonl(out)}
+        listed = [int(r['id']) for r in read_jsonl(out)]
+        got = set(listed)
         lost = set(ids) - got
         extra = got - set(ids)
-        if lost or extra:
-            print(f'{name}: missing {sorted(lost)[:10]} extra {sorted(extra)[:10]}')
+        twice = len(listed) - len(got)
+        if lost or extra or twice:
+            print(f'{name}: missing {sorted(lost)[:10]} extra '
+                  f'{sorted(extra)[:10]} repeated {twice}')
         else:
             done += 1
     proposals(WORK / 'haiku')
@@ -215,16 +238,7 @@ def final():
 
 def cmd_build(_):
     result, audited = final()
-    con, tmp = open_snapshot()
-    try:
-        eligible = {
-            rid for (rid,) in con.execute(
-                "SELECT id FROM ds_retreats WHERE talk_ids != '[]'"
-            )
-        }
-    finally:
-        con.close()
-        shutil.rmtree(tmp)
+    eligible = eligible_ids()
     if set(result) != eligible:
         raise SystemExit(
             f'The proposals cover {len(set(result) & eligible)} of '
