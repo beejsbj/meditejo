@@ -446,12 +446,15 @@ void main() {
     for (final asset in cueBellSounds.values.where((a) => a.isNotEmpty)) {
       expect(find.byKey(ValueKey('bell_icon_$asset')), findsOneWidget);
     }
-    // Off is silent: it stops the preview rather than playing anything.
+    // Off is silent: it stops the preview rather than playing anything. The
+    // list's Off is the last: the silence wheel above it has one too.
     final before = preview.played.length;
-    final off = find.descendant(
-      of: find.byKey(const ValueKey('customize_endBell')),
-      matching: find.text('Off'),
-    );
+    final off = find
+        .descendant(
+          of: find.byKey(const ValueKey('customize_endBell')),
+          matching: find.text('Off'),
+        )
+        .last;
     await tester.ensureVisible(off);
     await tester.tap(off);
     await tester.pumpAndSettle();
