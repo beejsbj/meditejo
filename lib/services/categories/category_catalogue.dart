@@ -218,8 +218,11 @@ class CategoryCatalogue {
         }
         model[dsRetreatId(id)] = [];
       }
-      final byCategory = pass['categories'];
-      if (byCategory is Map<String, dynamic>) {
+      final byCategory = pass['categories'] ?? const <String, dynamic>{};
+      if (byCategory is! Map<String, dynamic>) {
+        throw const FormatException('Model pass "categories" is not a map');
+      }
+      {
         checkKnown(byCategory.keys, 'the model pass');
         for (final MapEntry(:key, :value) in byCategory.entries) {
           for (final id in _ids(value, key)) {

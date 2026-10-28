@@ -249,7 +249,8 @@ def cmd_build(_):
     by_category = {c: [] for c in order}
     none = []
     for rid in sorted(result):
-        cats = result[rid]
+        # A category named twice in a working file is still one category.
+        cats = list(dict.fromkeys(result[rid]))
         if not cats:
             none.append(rid)
         for c in cats:

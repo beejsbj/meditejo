@@ -46,11 +46,7 @@ final browsableCategoriesProvider = FutureProvider.autoDispose<Set<String>>((
 ) async {
   final labels = await ref.watch(libraryLabelsProvider.future);
   final dharmaSeed = await ref.watch(dharmaSeedCategoriesProvider.future);
-  return {
-    for (final entry in labels.values)
-      for (final c in entry.categories) c.id,
-    ...dharmaSeed,
-  };
+  return browsableCategories(labels, dharmaSeed);
 });
 
 /// What a page needs to know to ask about one thing's labels.

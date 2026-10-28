@@ -8,6 +8,17 @@ import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
 
+/// The categories browsing offers: those a library entry carries (guessed
+/// or the user's), and those Dharma Seed fills ([dharmaSeed]).
+Set<String> browsableCategories(
+  Map<String, EntryLabels> labels,
+  Set<String> dharmaSeed,
+) => {
+  for (final entry in labels.values)
+    for (final c in entry.categories) c.id,
+  ...dharmaSeed,
+};
+
 /// What a category page lists: the user's own library first, then Dharma
 /// Seed, each split into Practice and Talks (decision 11).
 class CategoryListing {
@@ -203,11 +214,11 @@ class CategoryService {
   /// (guessed or the user's), or Dharma Seed has a retreat or talk in it.
   /// Browsing offers only these; the labels sheet still offers every one, so
   /// an empty category can be filled.
-  Future<Set<String>> nonEmpty({required List<LibraryEntry> entries}) async => {
-    for (final labels in (await labelsOfEntries(entries)).values)
-      for (final c in labels.categories) c.id,
-    ...await dharmaSeedCategories(),
-  };
+  Future<Set<String>> nonEmpty({required List<LibraryEntry> entries}) async =>
+      browsableCategories(
+        await labelsOfEntries(entries),
+        await dharmaSeedCategories(),
+      );
 
   /// The categories with a Dharma Seed retreat or talk on their page. It does
   /// not depend on the library, so it is worked out once per catalogue
