@@ -698,9 +698,11 @@ Burooj authorised Meditejo's Freesound app, so the picks that needed an account 
 
 ## 2026-10-27 (BJS-583: Extend with silence in the guide's own pauses)
 
-Android first. iOS stays at "At the end": the Customize choice is not shown there, and the Swift engine ignores the `holds` it is sent. Completion rules are unchanged: a hold is the player paused, so it is never listening and never counts toward the 90% heard.
+**Reworked on 2026-10-28 after Burooj's review (next section): there is no placement choice any more. "Rest in the pauses" is its own setting beside the silence after the recording, which joins the Ending bell. Where this section and the next disagree, the next wins.**
 
-- **The setting.** `CueSettings.extendInPauses` (default false; an older app ignores the key). Customize's Extend row, in the Time section, has "At the end / In the pauses" chips above the wheel. The folded row reads "+10 min · In the pauses". The caption says streamed recordings are read on Wi-Fi and that, until then, it all comes at the end.
+Android first. iOS holds it all at the end: the Customize choice is not shown there, and the Swift engine ignores the `holds` it is sent. Completion rules are unchanged: a hold is the player paused, so it is never listening and never counts toward the 90% heard.
+
+- **The setting (superseded 2026-10-28 by `pauseMinutes`).** `CueSettings.extendInPauses` (default false; an older app ignores the key). Customize's Extend row, in the Time section, has "At the end / In the pauses" chips above the wheel. The folded row reads "+10 min · In the pauses". The caption says streamed recordings are read on Wi-Fi and that, until then, it all comes at the end.
 - **The pause map is general on purpose.** `MediaSpanMap` (`lib/models/pauses/media_spans.dart`) is time ranges with a **kind** (`silence` today), per recording, with the analyser version and the recording's length. Section markers for mixed recordings (practice versus talk) can add kinds to `MediaSpanKind` and reuse the same detection, store and channel. They are not built here; an unknown kind in a stored map is dropped, and an analyser version that has changed re-reads the recording.
   - The native analyser keeps every quiet stretch of 5 s or more. The app asks for its own minimum (10 s, `defaultMinPauseMs`), so the threshold can move without re-reading anything.
   - Kept as one JSON file per recording under `<app support>/media_spans/`, written whole then renamed, at most 300 (the oldest go). Keyed by track and file; a cached map whose length is more than 90 s off the request's (a source can state minutes only) is not used.
@@ -733,28 +735,43 @@ Android first. iOS stays at "At the end": the Customize choice is not shown ther
 
 - **Independent review of this PR (Claude Opus 5.5, read-only, head 5b2ad25a; verdict approve with P2s):**
   - **Fixed:** a player-error re-seek to where a hold already is no longer ends the hold (F1); a restart of the same recording while its map is read still gets the holds (F3); settings edits and the first configure can no longer land out of order behind the holds lookup (F4); a seek during a hold moves session time by the distance, like a seek while playing (F6), and spends the hold's remainder like a skip; a PCM encoding other than 16-bit or float stops the read, so a decoder that outputs something else cannot invent holds in speech; the player polls at 200 ms again when the voice is at its end (F8).
-  - **Declined (F5), known limit:** after switching to "At the end" mid-session, "Finishes at" can be late by the Extend already spent in holds. Using the engine's number in both placements would trade this for a stale reading (the player only polls while Extend is in the pauses), and the switch after a hold is rare.
+  - **Declined (F5), known limit (the switch is gone since 2026-10-28; the same gap remains when Rest in the pauses is turned Off mid-session):** after switching to "At the end" mid-session, "Finishes at" can be late by the Extend already spent in holds. Using the engine's number in both placements would trade this for a stale reading (the player only polls while Extend is in the pauses), and the switch after a hold is rare.
   - **Follow-up (F2, F7): lock-screen, Bluetooth and headset play/pause during a hold.** The MediaSession sits on the raw player, which is paused during a hold, so those controls show Play, and a press starts the voice and ends the hold (the in-app and notification buttons freeze the hold instead). The fix is a `ForwardingPlayer` that reports playing during a running hold and routes play/pause to `playPauseAudio`; it would also keep Media3 from treating a hold as idle. Left for the phone result: step 4 and the three added steps below show whether it matters.
   - **CodeRabbit (inline):** a late pause map is applied only to the same track *and* file, and a settings update from an earlier session cannot configure a later one; a metered refusal is no longer remembered for the run. Its German and Spanish translations were first declined (Burooj was undecided), then taken: Burooj said to include them, "even if it's poor, it's better than having English when someone switches language". The seven new strings are translated in `app_de.arb` and `app_es.arb`; a native speaker should read them.
   - **Follow-up (F8 and others):** re-check the metered connection during a long streamed read; a higher speaking-level percentile for recordings that are mostly silence; a transient focus loss during a hold resumes the voice at full volume; keep the last map in memory when the store fails.
   - **Follow-up (tests):** make `CueEngine` take small seams (voice, clock, scheduler, wake, bells) so the HOLD phase can have a JVM test; test the Dart late-map paths with a provider test; pull the PCM-to-level accumulator out as a pure function.
 
+## 2026-10-28 (BJS-583 rework: Rest in the pauses is its own setting)
+
+Burooj's review of #49: "no extend at end is becoming a part of ending bell. so this extend is always part of in the pauses. see issue #72". In #72 the silence after the recording becomes part of the **Ending bell** ("optional silence after the audio + bell"). So resting in the guide's pauses is not a choice of where Extend goes; it is a setting of its own.
+
+- **Two settings, one extension in the engines.** `CueSettings.pauseMinutes` (0 to 60, "Rest in the pauses") sits beside `extendMinutes` (0 to 60, the silence after the recording). `extraMinutes` is their sum, and the session length, "Finishes at" and the iOS background-sound fade use it. The native configuration's `extendMinutes` is the sum, and its `holds` are drawn from `pauseMinutes` only. So `HoldPlan` and `CueEngine` did not change: whatever the holds do not use is held after the recording, with the silence set there, before the ending bell. The native clamps rise from 60 to 120 minutes to carry both (`CueConfig.MAX_EXTEND_MINUTES` in Kotlin, `CueConfig` in Swift), with a config test on each side; the Swift one has no CI runner.
+- **Decided (Burooj, 2026-10-28): minutes the pauses cannot take go at the end.** That covers a recording with no usable pauses, the 5-minute cap per pause, iOS, YouTube, a stream on mobile data or not read yet, and a pause seeked past.
+- **`extendInPauses` is dropped without a migration.** It never shipped (0.1.4 does not have it; #49 is unmerged), so a stored key is ignored. A dev build that had "In the pauses" set comes back with those minutes as silence after the recording.
+- **Customize.** The "At the end / In the pauses" chips are gone.
+  - On Android, for a guided session, **Time** holds "Rest in the pauses" (Off, +1 to +60 min) and Countdown. Its caption says where leftover minutes go and that streams are read on Wi-Fi. The row is hidden on iOS and on the Timer.
+  - **The silence after the audio moved into the Ending bell editor**, a wheel above the bell list (guided sessions only; a timer has no recording to follow). The folded row reads "+12 min · Gong": silence first, then the bell. This is the one control #72 moves into the Ending bell; it was cheap because `_bellRow` already takes an `above` widget, as the interval bell's wheels do. The rest of #72 (countdown into the Starting bell, Time with only Duration, Autoplay to the player, no Flow, the slot tiles) is not built here.
+- **Strings.** The four placement strings are gone; `pauseRestTitle`, `pauseRestCaption`, `extendEndLabel` and `extendEndCaption` are new in English, German and Spanish. The rest of the sheet is still hard-coded English (#74, after #72). Every German and Spanish string on the branch is translated; the values that equal English are cognates or names (Pause, Timer, Wind, Timbre, YouTube).
+- **Kept as is, still for Burooj:** skipping a hold spends its time; it does not move it to the end.
+- **Merged `develop` first** (bug batches #54/#55/#58/#59, categories #56, translations #60, release via PR #52). In `CueEngine`, develop's `CueMath.extensionEndMs` is fed this branch's planned end extension (the extension less what holds used), so the halfway bell measures the end the engine really reaches.
+
 ### Phone checklist (S23+, screen off)
 
 1. Download *Metta Instructions and Guided Meditation 3* (Burbea, ds-talk 9985, 44 min) or *Breathing with the Energy Body* (ds-talk 60862).
-2. Customize, Extend with silence: +10 min, **In the pauses**. Start the session and lock the screen at once.
+2. Customize: **Rest in the pauses** +10 min; **Ending bell**, silence after the audio, Off. Start the session and lock the screen at once.
 3. Within about a minute the pause map should be made (the first hold is at least 7 minutes in on 60862, 22 minutes in on 9985). Logcat tag `PauseMapAnalyzer` and `CueEngine`; the file appears under `files/media_spans/` (app support).
 4. At each pause the voice stops for the hold and starts again by itself, with the screen off, and the background sound, interval bell and (if on) pulse carry on through it. Notification shows playing throughout.
 5. Unlock mid-hold: the "Resting in silence" card shows the time left. **Skip this pause** carries on with the voice at once. The pause button freezes the hold and the card.
-6. With interval bells every 5 min and again with Halfway: they ring on time, through holds. The halfway bell rings at half of recording + Extend.
-7. The end bell rings at recording length + Extend (less anything skipped) from the start of the session. Compare the clock with "Finishes at" in the sheet, which should hold steady across holds.
+6. With interval bells every 5 min and again with Halfway: they ring on time, through holds. The halfway bell rings at half of recording + both kinds of silence.
+7. The end bell rings at recording length + Rest in the pauses + silence after (less anything skipped) from the start of the session. Compare the clock with "Finishes at" in the sheet, which should hold steady across holds.
 8. Stats: the session counts once, 90% of the recording heard; holds add nothing to time heard.
 9. Seek back over a hold already taken: it does not repeat. Seek past one: its time comes at the end.
 10. A streamed (not downloaded) recording on Wi-Fi: it is read (watch data), then holds begin. On mobile data: no holds, everything at the end, no data used for the map.
-11. A YouTube session with Extend in the pauses: all at the end.
+11. A YouTube session with Rest in the pauses: all of it at the end.
 12. A hold of at least 2 minutes with the screen off; mid-hold, `adb shell dumpsys activity services <package> | grep isForeground` should still show foreground.
 13. Lock-screen media control and a Bluetooth headset press during a hold: record what happens (expected today: the press starts the voice and ends the hold).
-14. Switch to "At the end" after one hold and compare "Finishes at" with the actual end bell.
+14. **Both at once:** Rest in the pauses +10 and silence after +3. The holds add up to at most 10 minutes; after the recording comes 3 minutes plus whatever the pauses could not take, then the ending bell, at the time "Finishes at" said.
+15. Customize looks right: the Ending bell row reads "+3 min · <bell>" and opens to the silence wheel above the bells; on the Timer, the Ending bell has no wheel.
 
 ## 2026-10-27 (bug batch A: cues and sounds)
 
