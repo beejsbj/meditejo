@@ -664,7 +664,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
             // the bell back on with the default one, so the wheel and the
             // row never disagree.
             final sound = v != 0 && s.intervalSound.isEmpty
-                ? cueBellSounds['Swell bell']!
+                ? cueDefaultBell
                 : s.intervalSound;
             if (v == halfway) {
               _edit(s.copyWith(intervalHalfway: true, intervalSound: sound));

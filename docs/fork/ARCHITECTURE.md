@@ -848,7 +848,7 @@ WAV under `assets/audio/`, an entry in the map, a line in `assets/audio/NOTICE`.
 The ten new bells are synthesised by `tools/meditejo/generate_bells.py`
 (`--check` proves byte-identical regeneration; `tools/meditejo/bells_report.py`
 prints per-file numbers and builds the sampler). A bell the build does not know
-reads as the default. The Customize sheet's three bell rows share `_BellList`:
+reads as the default. The Customize sheet's three bell rows share `BellList` (`lib/views/cues/bell_list.dart`):
 tapping a row selects it and rings it once through `SessionBellPreview` at the
 bell volume; a folded row's play button rings the chosen bell; folding the
 list or closing the sheet stops it. `CueBellCatalogueTest` (Kotlin)
@@ -879,10 +879,11 @@ default bell. Android's `CueSoundBank` opens an absolute path as well as a Flutt
 accepts only a plain file under 1 MiB inside the app's data directory
 (`CueSoundBank.resolveFile`, `CueCustomBellFileTest`); iOS is shelved
 (decision 24) and its bank still reads assets only. Deleting a bell moves
-every stored cue scope that rang it to the default bell
-(`CueSettingsStore.replaceSound`). The editor is `BellMakerView`, opened from the
-last row of the Customize sheet's `_BellList`, which also lists "Your bells"
-with rename and delete. A bell being made is drawn by
+every stored bell id under `CueSettingsStore.bellReferenceKeyPrefixes` (today the cue
+scopes) to the default bell (`CueSettingsStore.replaceSound`). The editor is
+`BellMakerView`, opened from the last row of `BellList`, which also lists "Your
+bells" with rename and delete. Its five sliders are `RangeControl`
+(`lib/widgets/inputs/range_control.dart`), which knows nothing of bells. A bell being made is drawn by
 `ArtSubject.customBell` (a `BellFigure` from the live controls, not cached).
 
 `NativeCueController` sends plain configuration over `meditejo/cues`.
