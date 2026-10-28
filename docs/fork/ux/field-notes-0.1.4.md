@@ -1,6 +1,6 @@
 # Field notes: Burooj on 0.1.4
 
-Burooj's first pass through 0.1.4 on the S23+ (2026-10-27), with what the code does behind each note and a first proposal. Code facts are from `develop` at `1f0b81cc` (0.1.4 plus release tooling). Proposals are for discussion; the ranked list goes to `friction.md` once we've agreed on them.
+Tracked in issue #88 (one issue per change, label `ux-pass`). Burooj's first pass through 0.1.4 on the S23+ (2026-10-27), with what the code does behind each note and a first proposal. Code facts are from `develop` at `1f0b81cc` (0.1.4 plus release tooling). Proposals are for discussion; the ranked list goes to `friction.md` once we've agreed on them.
 
 ## The threads under the notes
 
