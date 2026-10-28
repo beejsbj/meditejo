@@ -445,8 +445,22 @@ void main() {
         'vipassana',
         entries: const [],
       );
-      final curated = catalogue.curatedIn('vipassana').length;
+      // The hand-picked Dharma Seed retreats (a YouTube playlist is too).
+      final curatedIds = [
+        for (final id in catalogue.curatedIn('vipassana'))
+          if (id.startsWith('ds-retreat-')) id,
+      ];
+      final curated = curatedIds.length;
       expect(listing.courses.length, greaterThan(curated));
+      // Hand-picked first, in the asset's order; then the guesses, newest
+      // first.
+      expect([for (final c in listing.courses.take(curated)) c.id], curatedIds);
+      final guessed = await ds.retreatsById([
+        for (final c in listing.courses.skip(curated))
+          int.parse(c.id.split('-').last),
+      ]);
+      final dates = [for (final r in guessed) r.startDate];
+      expect(dates, [...dates]..sort((a, b) => b.compareTo(a)));
       expect(
         listing.courses.length,
         lessThanOrEqualTo(curated + CategoryService.guessCourseLimit),

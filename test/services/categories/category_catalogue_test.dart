@@ -104,6 +104,19 @@ void main() {
     });
   });
 
+  test('refuses a name or alias that names two categories', () {
+    final json = jsonDecode(_asset()) as Map<String, dynamic>;
+    (json['categories'] as List).add({
+      'id': 'absorption',
+      'name': 'Absorption',
+      'aliases': ['Jhānas'],
+    });
+    expect(
+      () => CategoryCatalogue.parse(jsonEncode(json)),
+      throwsFormatException,
+    );
+  });
+
   group('categoryNamed', () {
     final catalogue = CategoryCatalogue.parse(_asset());
 
@@ -324,6 +337,36 @@ void main() {
         ),
         throwsFormatException,
       );
+    });
+
+    test('refuses a retreat both none and in a category, or listed twice', () {
+      for (final bad in [
+        pass(
+          categories: {
+            'jhana': [1],
+          },
+          none: [1],
+        ),
+        pass(
+          categories: {
+            'jhana': [1, 1],
+          },
+        ),
+        pass(none: [2, 2]),
+        jsonEncode({'format': 1, 'version': '2', 'categories': {}, 'none': []}),
+        jsonEncode({
+          'format': 1,
+          'categories': {
+            'jhana': ['1'],
+          },
+        }),
+      ]) {
+        expect(
+          () => CategoryCatalogue.parse(_asset(), modelPass: bad),
+          throwsFormatException,
+          reason: bad,
+        );
+      }
     });
 
     test('ranks between the rules and the hand-picked mapping', () {

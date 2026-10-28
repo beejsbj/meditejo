@@ -119,7 +119,12 @@ class CategoryCatalogue {
        _byId = {for (final c in categories) c.id: c} {
     for (final c in categories) {
       for (final name in [c.id, c.name, ...c.aliases]) {
-        _byName[foldWords(name).join(' ')] = c;
+        final key = foldWords(name).join(' ');
+        final other = _byName[key];
+        if (other != null && other.id != c.id) {
+          throw FormatException('"$name" names both ${other.id} and ${c.id}');
+        }
+        _byName[key] = c;
       }
     }
   }
@@ -201,16 +206,31 @@ class CategoryCatalogue {
       if (passFormat is! int || passFormat > categoriesFormat) {
         throw FormatException('Unsupported model pass format: $passFormat');
       }
-      passVersion = pass['version'] as int? ?? 0;
-      for (final id in _ints(pass['none'])) {
+      final version = pass['version'] ?? 0;
+      if (version is! int) {
+        throw FormatException('Model pass version is not a number: $version');
+      }
+      passVersion = version;
+      final none = <String>{};
+      for (final id in _ids(pass['none'], 'none')) {
+        if (!none.add(dsRetreatId(id))) {
+          throw FormatException('Retreat $id is listed twice as none');
+        }
         model[dsRetreatId(id)] = [];
       }
       final byCategory = pass['categories'];
       if (byCategory is Map<String, dynamic>) {
         checkKnown(byCategory.keys, 'the model pass');
         for (final MapEntry(:key, :value) in byCategory.entries) {
-          for (final id in _ints(value)) {
-            (model[dsRetreatId(id)] ??= []).add(key);
+          for (final id in _ids(value, key)) {
+            final itemId = dsRetreatId(id);
+            final cats = model[itemId] ??= [];
+            if (none.contains(itemId) || cats.contains(key)) {
+              throw FormatException(
+                'Retreat $id is in $key and none, or twice',
+              );
+            }
+            cats.add(key);
           }
         }
       }
@@ -236,8 +256,13 @@ class CategoryCatalogue {
     );
   }
 
-  static List<int> _ints(Object? value) =>
-      value is List ? value.whereType<int>().toList() : [];
+  static List<int> _ids(Object? value, String where) {
+    if (value == null) return const [];
+    if (value is! List || value.any((id) => id is! int)) {
+      throw FormatException('Model pass "$where" is not a list of retreat ids');
+    }
+    return value.cast<int>();
+  }
 
   static List<Map<String, dynamic>> _list(Object? value) =>
       value is List ? value.whereType<Map<String, dynamic>>().toList() : [];

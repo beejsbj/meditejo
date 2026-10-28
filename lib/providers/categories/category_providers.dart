@@ -28,15 +28,29 @@ final libraryLabelsProvider =
       return service.labelsOfEntries(entries);
     });
 
+/// The categories with a Dharma Seed retreat or talk on their page. Re-read
+/// when the catalogue changes (a sync), not when the library does.
+final dharmaSeedCategoriesProvider = FutureProvider.autoDispose<Set<String>>((
+  ref,
+) async {
+  ref.watch(dharmaSeedRevisionProvider);
+  final service = await ref.watch(categoryServiceProvider.future);
+  return service.dharmaSeedCategories();
+});
+
 /// The categories with something in them (the library's entries, guessed or
 /// labelled by the user, or a Dharma Seed retreat or talk). Browsing shows
 /// only these; the labels sheet offers every category.
 final browsableCategoriesProvider = FutureProvider.autoDispose<Set<String>>((
   ref,
 ) async {
-  final service = await ref.watch(categoryServiceProvider.future);
-  final entries = await ref.watch(libraryEntriesProvider.future);
-  return service.nonEmpty(entries: entries);
+  final labels = await ref.watch(libraryLabelsProvider.future);
+  final dharmaSeed = await ref.watch(dharmaSeedCategoriesProvider.future);
+  return {
+    for (final entry in labels.values)
+      for (final c in entry.categories) c.id,
+    ...dharmaSeed,
+  };
 });
 
 /// What a page needs to know to ask about one thing's labels.
@@ -53,6 +67,7 @@ final labelsOfProvider = FutureProvider.autoDispose
 /// A category's page: library items, then Dharma Seed, Practice first.
 final categoryListingProvider = FutureProvider.autoDispose
     .family<CategoryListing, String>((ref, categoryId) async {
+      ref.watch(dharmaSeedRevisionProvider);
       final service = await ref.watch(categoryServiceProvider.future);
       final entries = await ref.watch(libraryEntriesProvider.future);
       return service.listing(categoryId, entries: entries);
