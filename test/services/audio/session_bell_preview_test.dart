@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show FileSystemException;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:mocktail/mocktail.dart';
@@ -30,6 +31,48 @@ void main() {
       () => player.play(),
     ]);
   });
+
+  const made = 'custom-bell:abc123xyz9';
+
+  test('a made bell rings from its file', () async {
+    when(
+      () => player.setFilePath('/bells/a.wav'),
+    ).thenAnswer((_) async => null);
+    preview = SessionBellPreview(
+      player: player,
+      bellFile: (id) async => id == made ? '/bells/a.wav' : null,
+    );
+    await preview.play(.4, asset: made);
+    verifyInOrder([
+      () => player.setFilePath('/bells/a.wav'),
+      () => player.setVolume(.4),
+      () => player.play(),
+    ]);
+    verifyNever(() => player.setAsset(any()));
+  });
+
+  test('a made bell that is gone rings the default bell', () async {
+    preview = SessionBellPreview(player: player, bellFile: (_) async => null);
+    await preview.play(.4, asset: made);
+    verifyInOrder([
+      () => player.setAsset(kSessionBellAsset),
+      () => player.setVolume(.4),
+      () => player.play(),
+    ]);
+  });
+
+  test(
+    'a made bell that cannot be made again rings the default bell',
+    () async {
+      preview = SessionBellPreview(
+        player: player,
+        bellFile: (_) async => throw const FileSystemException('disk'),
+      );
+      await preview.play(.4, asset: made);
+      verify(() => player.setAsset(kSessionBellAsset)).called(1);
+      verify(() => player.play()).called(1);
+    },
+  );
 
   test('switching sounds during load cancels stale audition', () async {
     final loaded = Completer<Duration?>();

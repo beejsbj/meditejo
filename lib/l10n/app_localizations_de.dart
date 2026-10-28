@@ -2837,4 +2837,106 @@ class AppLocalizationsDe extends AppLocalizations {
   String labelsRemoveTooltip(String label) {
     return 'Label $label entfernen';
   }
+
+  @override
+  String get bellMakerTitle => 'Glocke gestalten';
+
+  @override
+  String get bellMakerSave => 'Speichern';
+
+  @override
+  String get bellMakerName => 'Name';
+
+  @override
+  String get bellMakerStartFrom => 'Ausgehen von';
+
+  @override
+  String get bellMakerHear => 'Anhören';
+
+  @override
+  String get bellMakerMaking => 'Der Klang wird erzeugt';
+
+  @override
+  String get bellMakerPlayFailed =>
+      'Die Glocke konnte nicht abgespielt werden.';
+
+  @override
+  String get bellMakerSaveFailed =>
+      'Die Glocke konnte nicht gespeichert werden.';
+
+  @override
+  String bellMakerLimit(int count) {
+    return 'Du kannst bis zu $count Glocken behalten. Lösche eine, um eine neue zu machen.';
+  }
+
+  @override
+  String get bellPitch => 'Tonhöhe';
+
+  @override
+  String get bellPitchLow => 'Tief';
+
+  @override
+  String get bellPitchHigh => 'Hoch';
+
+  @override
+  String get bellBright => 'Helligkeit';
+
+  @override
+  String get bellBrightLow => 'Dunkel';
+
+  @override
+  String get bellBrightHigh => 'Hell';
+
+  @override
+  String get bellRing => 'Nachklang';
+
+  @override
+  String get bellRingLow => 'Kurz';
+
+  @override
+  String get bellRingHigh => 'Lang';
+
+  @override
+  String get bellStrike => 'Anschlag';
+
+  @override
+  String get bellStrikeLow => 'Weich';
+
+  @override
+  String get bellStrikeHigh => 'Hart';
+
+  @override
+  String get bellShimmer => 'Schimmern';
+
+  @override
+  String get bellShimmerLow => 'Ruhig';
+
+  @override
+  String get bellShimmerHigh => 'Schwebend';
+
+  @override
+  String get bellYours => 'Deine Glocken';
+
+  @override
+  String get bellRename => 'Umbenennen';
+
+  @override
+  String get bellRenameTitle => 'Glocke umbenennen';
+
+  @override
+  String bellDeleteTitle(String name) {
+    return '„$name“ löschen?';
+  }
+
+  @override
+  String get bellDeleteBody =>
+      'Signale, die sie läuten, wechseln zur „Swell bell“.';
+
+  @override
+  String bellMenu(String name) {
+    return 'Mehr zu $name';
+  }
+
+  @override
+  String get bellMakerDefaultName => 'Meine Glocke';
 }
