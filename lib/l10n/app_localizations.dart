@@ -4936,30 +4936,6 @@ abstract class AppLocalizations {
   /// **'Remove label {label}'**
   String labelsRemoveTooltip(String label);
 
-  /// Extend with silence: all the extra minutes come after the recording
-  ///
-  /// In en, this message translates to:
-  /// **'At the end'**
-  String get extendPlacementEnd;
-
-  /// Extend with silence: the extra minutes are spread across the guide's own pauses
-  ///
-  /// In en, this message translates to:
-  /// **'In the pauses'**
-  String get extendPlacementPauses;
-
-  /// Caption under Extend when it is set to the end
-  ///
-  /// In en, this message translates to:
-  /// **'All the extra minutes come after the recording, then the ending bell.'**
-  String get extendPlacementCaptionEnd;
-
-  /// Caption under Extend when it is set to the pauses
-  ///
-  /// In en, this message translates to:
-  /// **'The voice rests in its own long pauses, in the order of the recording. What no pause takes comes after the recording, then the ending bell. Streamed recordings are read on Wi-Fi; until then it all comes at the end.'**
-  String get extendPlacementCaptionPauses;
-
   /// Heading of the card shown while the voice rests in a pause
   ///
   /// In en, this message translates to:
@@ -4977,6 +4953,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Skip this pause'**
   String get extendSkipPause;
+
+  /// Customize row: minutes of silence spread across the guide's own long pauses
+  ///
+  /// In en, this message translates to:
+  /// **'Rest in the pauses'**
+  String get pauseRestTitle;
+
+  /// Caption under Rest in the pauses
+  ///
+  /// In en, this message translates to:
+  /// **'Adds silence inside the guide\'s own long pauses, in the order of the recording. What the pauses can\'t take comes after the recording, before the ending bell. Streamed recordings are read on Wi-Fi; until then, it all comes at the end.'**
+  String get pauseRestCaption;
+
+  /// Ending bell: wheel for minutes of silence after the recording, before the bell
+  ///
+  /// In en, this message translates to:
+  /// **'Silence after the audio'**
+  String get extendEndLabel;
+
+  /// Caption above the Silence after the audio wheel
+  ///
+  /// In en, this message translates to:
+  /// **'Keep going in silence (with any background sound) after the audio ends, then ring the ending bell.'**
+  String get extendEndCaption;
 }
 
 class _AppLocalizationsDelegate

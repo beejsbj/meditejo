@@ -16,8 +16,8 @@ class CueRuntimeState {
   /// Time left of the rest in a pause under way (phase `hold`).
   final int holdMs;
 
-  /// Extend time still to come wherever it will be spent: this rest, the ones
-  /// ahead, and the end. Null before the native side has said.
+  /// Added silence still to come wherever it will be spent: this rest, the
+  /// ones ahead, and the end. Null before the native side has said.
   final int? extensionLeftMs;
   final bool paused;
 
@@ -49,7 +49,7 @@ class CueRuntimeNotifier extends Notifier<CueRuntimeState> {
 
 /// Whether the player screen should read the native cue state: only in the
 /// foreground, while a countdown, a rest in a pause or the extension runs or
-/// may be about to (a countdown at the start, a rest when Extend is placed in
+/// may be about to (a countdown at the start, a rest when the session rests in
 /// the pauses and the recording has any, an extension once the voice reaches
 /// its end).
 bool shouldPollCueState({

@@ -109,9 +109,9 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     }
   }
 
-  /// Extend's holds for [request]: in its pauses when the setting says so and
-  /// the recording has been read. Without a pause map the silence all goes to
-  /// the end, and the reading starts in the background; when it lands the
+  /// The holds for [request]: Rest in the pauses, once the recording has been
+  /// read. Without a pause map those minutes go to the end with the rest of
+  /// the silence, and the reading starts in the background; when it lands the
   /// native cues are configured again with the holds that follow from it.
   Future<List<PauseHold>> _holdsFor(
     CueSettings settings,
@@ -119,8 +119,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
   ) async {
     final source = _analysisSource;
     if (!Platform.isAndroid ||
-        !settings.extendInPauses ||
-        settings.extendMinutes <= 0 ||
+        settings.pauseMinutes <= 0 ||
         request.isTimer ||
         source == null ||
         !PauseMapService.canAnalyse(request.trackId, source)) {
@@ -130,7 +129,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     final key = PauseMapService.keyFor(request.trackId, request.fileId);
     final map = await service.cached(key, durationMs: request.duration);
     if (map != null) {
-      return PauseMapService.holdsFor(map, settings.extendMinutes);
+      return PauseMapService.holdsFor(map, settings.pauseMinutes);
     }
     // One waiter per recording, however many settings edits ask meanwhile.
     if (_waitingForMap == key) return const [];
@@ -147,7 +146,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
             live == null ||
             live.trackId != request.trackId ||
             live.fileId != request.fileId ||
-            !current.extendInPauses) {
+            current.pauseMinutes <= 0) {
           return;
         }
         try {
@@ -155,7 +154,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
             current,
             live,
             update: true,
-            holds: PauseMapService.holdsFor(found, current.extendMinutes),
+            holds: PauseMapService.holdsFor(found, current.pauseMinutes),
           );
         } catch (e) {
           AppLogger.w('PLAYER', 'Could not apply the pause map: $e');

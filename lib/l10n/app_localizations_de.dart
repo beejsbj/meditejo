@@ -2839,20 +2839,6 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get extendPlacementEnd => 'Am Ende';
-
-  @override
-  String get extendPlacementPauses => 'In den Pausen';
-
-  @override
-  String get extendPlacementCaptionEnd =>
-      'Alle zusätzlichen Minuten folgen nach der Aufnahme, danach die Abschlussglocke.';
-
-  @override
-  String get extendPlacementCaptionPauses =>
-      'Die Stimme ruht in ihren eigenen langen Pausen, in der Reihenfolge der Aufnahme. Was keine Pause aufnimmt, folgt nach der Aufnahme, danach die Abschlussglocke. Gestreamte Aufnahmen werden im WLAN eingelesen; bis dahin kommt alles ans Ende.';
-
-  @override
   String get extendHoldTitle => 'Ruhe in der Stille';
 
   @override
@@ -2862,4 +2848,18 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get extendSkipPause => 'Diese Pause überspringen';
+
+  @override
+  String get pauseRestTitle => 'Ruhe in den Pausen';
+
+  @override
+  String get pauseRestCaption =>
+      'Fügt Stille in die eigenen langen Pausen der Anleitung ein, in der Reihenfolge der Aufnahme. Was die Pausen nicht aufnehmen, kommt nach der Aufnahme, vor der Abschlussglocke. Gestreamte Aufnahmen werden im WLAN eingelesen; bis dahin kommt alles ans Ende.';
+
+  @override
+  String get extendEndLabel => 'Stille nach der Aufnahme';
+
+  @override
+  String get extendEndCaption =>
+      'Nach dem Ende der Aufnahme in Stille weitermachen (mit Hintergrundklang, falls an), dann läutet die Abschlussglocke.';
 }

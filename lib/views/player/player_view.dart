@@ -158,16 +158,14 @@ class _PlayerViewState extends ConsumerState<PlayerView>
     _syncCuePoll();
   }
 
-  /// Whether Extend is placed in the guide's pauses for this session, so a
-  /// rest may begin at any moment and the screen has to notice it.
+  /// Whether this session rests in the guide's pauses, so a rest may begin
+  /// at any moment and the screen has to notice it.
   bool get _holdsPlanned {
     final scope = _cueScope;
     final request = ref.read(playerProvider);
     if (!Platform.isAndroid || scope == null || request == null) return false;
     final settings = ref.read(cueSettingsProvider(scope));
-    return !request.isTimer &&
-        settings.extendInPauses &&
-        settings.extendMinutes > 0;
+    return !request.isTimer && settings.pauseMinutes > 0;
   }
 
   /// Polls the native cue state only while this screen is in the foreground

@@ -247,18 +247,18 @@ void main() {
     expect(_value(tester, 'Ending bell'), 'Swell bell');
     expect(_value(tester, 'Pulse'), 'Off');
     expect(_value(tester, 'Countdown'), 'Off');
-    expect(_value(tester, 'Extend with silence'), 'Off');
+    expect(_value(tester, 'Rest in the pauses'), 'Off');
     expect(_value(tester, 'Background sound'), 'Off');
     expect(_value(tester, 'Autoplay'), 'Off');
     // Folded: no wheels until a row opens, and one row at a time.
     expect(find.byType(WheelPicker<int>), findsNothing);
     await _row(tester, 'Countdown');
     expect(_wheel('Countdown'), findsOneWidget);
-    await _row(tester, 'Extend with silence');
+    await _row(tester, 'Rest in the pauses');
     expect(_wheel('Countdown'), findsNothing);
-    expect(_wheel('Extra minutes'), findsOneWidget);
-    await _row(tester, 'Extend with silence');
-    expect(_wheel('Extra minutes'), findsNothing);
+    expect(_wheel('Rest in the pauses'), findsOneWidget);
+    await _row(tester, 'Rest in the pauses');
+    expect(_wheel('Rest in the pauses'), findsNothing);
     await _unmount(tester);
   });
 
@@ -307,9 +307,13 @@ void main() {
     await _row(tester, 'Countdown');
     await _turn(tester, 'Countdown', '10 sec');
     await _row(tester, 'Countdown');
-    await _row(tester, 'Extend with silence');
-    await _type(tester, 'Extra minutes', '12');
-    await _row(tester, 'Extend with silence');
+    // The silence after the audio is part of the Ending bell (#72).
+    await _row(tester, 'Ending bell');
+    await _type(tester, 'Silence after the audio', '12');
+    await _row(tester, 'Ending bell');
+    await _row(tester, 'Rest in the pauses');
+    await _type(tester, 'Rest in the pauses', '3');
+    await _row(tester, 'Rest in the pauses');
 
     await _row(tester, 'Autoplay');
     await tester.tap(find.text('Play the next session automatically'));
@@ -338,6 +342,7 @@ void main() {
             pulseVolume: 0.6,
             countdownSeconds: 10,
             extendMinutes: 12,
+            pauseMinutes: 3,
             autoplay: true,
             interludeSeconds: 30,
             hideBeforePractice: true,
@@ -349,10 +354,12 @@ void main() {
     // The folded rows say it all.
     expect(_value(tester, 'Interval bell'), 'Every 30 min ± 20 · Chime');
     expect(_value(tester, 'Pulse'), 'Heartbeat · 90→30 BPM');
-    expect(_value(tester, 'Extend with silence'), '+12 min');
+    expect(_value(tester, 'Ending bell'), '+12 min · Gong');
+    expect(_value(tester, 'Rest in the pauses'), '+3 min');
     expect(_value(tester, 'Autoplay'), 'On · 30 sec pause');
-    // 9:00, a 10 s countdown, 20 min of audio and 12 min of silence.
-    expect(find.text('Finishes at 9:32 AM'), findsOneWidget);
+    // 9:00, a 10 s countdown, 20 min of audio, 12 min of silence after it
+    // and 3 in its pauses.
+    expect(find.text('Finishes at 9:35 AM'), findsOneWidget);
     await _unmount(tester);
   });
 
@@ -468,7 +475,11 @@ void main() {
     final container = await _pump(tester, isTimer: true, onStart: () {});
     expect(find.text('Timer · all practice'), findsOneWidget);
     expect(find.text('Autoplay'), findsNothing);
-    expect(find.text('Extend with silence'), findsNothing);
+    // A timer has no recording to rest in, and no silence after one.
+    expect(find.text('Rest in the pauses'), findsNothing);
+    await _row(tester, 'Ending bell');
+    expect(_wheel('Silence after the audio'), findsNothing);
+    await _row(tester, 'Ending bell');
     double y(String t) => tester.getTopLeft(find.text(t).first).dy;
     expect(y('Time'), lessThan(y('Bells')));
     expect(_value(tester, 'Duration'), '10 min');
@@ -989,55 +1000,27 @@ void main() {
     },
   );
 
-  group('Extend placement', () {
-    testWidgets('Android can place Extend in the pauses; it is saved', (
+  group('Rest in the pauses', () {
+    testWidgets('Android sets it apart from the silence after the audio', (
       tester,
     ) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       final container = await _pump(tester);
-      expect(_value(tester, 'Extend with silence'), 'Off');
-      await _row(tester, 'Extend with silence');
-      expect(find.widgetWithText(ChoiceChip, 'At the end'), findsOneWidget);
-      expect(find.widgetWithText(ChoiceChip, 'In the pauses'), findsOneWidget);
-      expect(_read(container).extendInPauses, isFalse);
-      expect(
-        tester
-            .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'At the end'))
-            .selected,
-        isTrue,
-      );
-      await tester.tap(find.widgetWithText(ChoiceChip, 'In the pauses'));
-      await tester.pumpAndSettle();
-      expect(_read(container).extendInPauses, isTrue);
-      await _turn(tester, 'Extra minutes', '+10 min');
-      expect(_read(container).extendMinutes, 10);
-      await _row(tester, 'Extend with silence');
-      expect(_value(tester, 'Extend with silence'), '+10 min · In the pauses');
+      expect(_value(tester, 'Rest in the pauses'), 'Off');
+      await _row(tester, 'Rest in the pauses');
+      // One setting: no choice between the end and the pauses any more.
+      expect(find.byType(ChoiceChip), findsNothing);
+      await _turn(tester, 'Rest in the pauses', '+10 min');
+      expect(_read(container).pauseMinutes, 10);
+      expect(_read(container).extendMinutes, 0);
+      await _row(tester, 'Rest in the pauses');
+      expect(_value(tester, 'Rest in the pauses'), '+10 min');
+      expect(_value(tester, 'Ending bell'), 'Swell bell');
       await _unmount(tester);
       debugDefaultTargetPlatformOverride = null;
     });
 
-    testWidgets('and back to the end', (tester) async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.android;
-      final container = await _pump(tester);
-      await container
-          .read(cueSettingsProvider(_practice).notifier)
-          .update(
-            const CueSettings(extendMinutes: 6, extendInPauses: true),
-            courseOverride: false,
-          );
-      await tester.pumpAndSettle();
-      expect(_value(tester, 'Extend with silence'), '+6 min · In the pauses');
-      await _row(tester, 'Extend with silence');
-      await tester.tap(find.widgetWithText(ChoiceChip, 'At the end'));
-      await tester.pumpAndSettle();
-      expect(_read(container).extendInPauses, isFalse);
-      expect(_value(tester, 'Extend with silence'), '+6 min');
-      await _unmount(tester);
-      debugDefaultTargetPlatformOverride = null;
-    });
-
-    testWidgets('where the voice cannot be held there is no choice', (
+    testWidgets('where the voice cannot be held the row is hidden', (
       tester,
     ) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
@@ -1045,49 +1028,45 @@ void main() {
       await container
           .read(cueSettingsProvider(_practice).notifier)
           .update(
-            const CueSettings(extendMinutes: 6, extendInPauses: true),
+            const CueSettings(extendMinutes: 6, pauseMinutes: 4),
             courseOverride: false,
           );
       await tester.pumpAndSettle();
-      // The stored choice is kept, but nothing says it applies here.
-      expect(_value(tester, 'Extend with silence'), '+6 min');
-      await _row(tester, 'Extend with silence');
-      expect(find.byType(ChoiceChip), findsNothing);
+      expect(find.text('Rest in the pauses'), findsNothing);
+      // The silence after the audio is still set in the Ending bell.
+      expect(_value(tester, 'Ending bell'), '+6 min · Swell bell');
       await _unmount(tester);
       debugDefaultTargetPlatformOverride = null;
     });
 
-    test(
-      'finish time uses what is left to rest when Extend is in the pauses',
-      () {
-        const s = CueSettings(extendMinutes: 10, extendInPauses: true);
-        final now = DateTime(2026, 1, 1, 9);
-        // 4 of 10 minutes already rested: 6 left, 5 minutes of audio.
-        expect(
-          customizeFinishesAt(
-            now,
-            s,
-            isTimer: false,
-            audioDurationMs: 20 * 60000,
-            positionMs: 15 * 60000,
-            isActive: true,
-            extensionLeftMs: 6 * 60000,
-          ),
-          now.add(const Duration(minutes: 11)),
-        );
-        // Without a reading from the engine it is the setting, as before.
-        expect(
-          customizeFinishesAt(
-            now,
-            s,
-            isTimer: false,
-            audioDurationMs: 20 * 60000,
-            positionMs: 15 * 60000,
-            isActive: true,
-          ),
-          now.add(const Duration(minutes: 15)),
-        );
-      },
-    );
+    test('finish time uses what is left of both kinds of silence', () {
+      const s = CueSettings(extendMinutes: 4, pauseMinutes: 6);
+      final now = DateTime(2026, 1, 1, 9);
+      // 4 of 10 minutes already rested: 6 left, 5 minutes of audio.
+      expect(
+        customizeFinishesAt(
+          now,
+          s,
+          isTimer: false,
+          audioDurationMs: 20 * 60000,
+          positionMs: 15 * 60000,
+          isActive: true,
+          extensionLeftMs: 6 * 60000,
+        ),
+        now.add(const Duration(minutes: 11)),
+      );
+      // Without a reading from the engine it is the settings, as before.
+      expect(
+        customizeFinishesAt(
+          now,
+          s,
+          isTimer: false,
+          audioDurationMs: 20 * 60000,
+          positionMs: 15 * 60000,
+          isActive: true,
+        ),
+        now.add(const Duration(minutes: 15)),
+      );
+    });
   });
 }

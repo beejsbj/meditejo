@@ -3104,22 +3104,6 @@
       }
     }
   },
-  "extendPlacementEnd": "At the end",
-  "@extendPlacementEnd": {
-    "description": "Extend with silence: all the extra minutes come after the recording"
-  },
-  "extendPlacementPauses": "In the pauses",
-  "@extendPlacementPauses": {
-    "description": "Extend with silence: the extra minutes are spread across the guide's own pauses"
-  },
-  "extendPlacementCaptionEnd": "All the extra minutes come after the recording, then the ending bell.",
-  "@extendPlacementCaptionEnd": {
-    "description": "Caption under Extend when it is set to the end"
-  },
-  "extendPlacementCaptionPauses": "The voice rests in its own long pauses, in the order of the recording. What no pause takes comes after the recording, then the ending bell. Streamed recordings are read on Wi-Fi; until then it all comes at the end.",
-  "@extendPlacementCaptionPauses": {
-    "description": "Caption under Extend when it is set to the pauses"
-  },
   "extendHoldTitle": "Resting in silence",
   "@extendHoldTitle": {
     "description": "Heading of the card shown while the voice rests in a pause"
@@ -3137,5 +3121,21 @@
   "extendSkipPause": "Skip this pause",
   "@extendSkipPause": {
     "description": "Button that ends the rest in a pause and carries on with the voice"
+  },
+  "pauseRestTitle": "Rest in the pauses",
+  "@pauseRestTitle": {
+    "description": "Customize row: minutes of silence spread across the guide's own long pauses"
+  },
+  "pauseRestCaption": "Adds silence inside the guide's own long pauses, in the order of the recording. What the pauses can't take comes after the recording, before the ending bell. Streamed recordings are read on Wi-Fi; until then, it all comes at the end.",
+  "@pauseRestCaption": {
+    "description": "Caption under Rest in the pauses"
+  },
+  "extendEndLabel": "Silence after the audio",
+  "@extendEndLabel": {
+    "description": "Ending bell: wheel for minutes of silence after the recording, before the bell"
+  },
+  "extendEndCaption": "Keep going in silence (with any background sound) after the audio ends, then ring the ending bell.",
+  "@extendEndCaption": {
+    "description": "Caption above the Silence after the audio wheel"
   }
 }

@@ -209,41 +209,51 @@ void main() {
     },
   );
 
-  group('Extend placement', () {
+  group('Rest in the pauses', () {
     const holds = [PauseHold(105000, 60000), PauseHold(215000, 120000)];
 
-    test('is at the end unless chosen, and survives a round trip', () {
-      expect(const CueSettings().extendInPauses, isFalse);
-      const s = CueSettings(extendMinutes: 10, extendInPauses: true);
-      expect(CueSettings.fromJson(s.toJson()).extendInPauses, isTrue);
-      expect(CueSettings.fromJson(const {}).extendInPauses, isFalse);
+    test('is off unless set, apart from the silence after, and survives a round trip', () {
+      expect(const CueSettings().pauseMinutes, 0);
+      const s = CueSettings(extendMinutes: 5, pauseMinutes: 10);
+      final back = CueSettings.fromJson(s.toJson());
+      expect(back.pauseMinutes, 10);
+      expect(back.extendMinutes, 5);
+      expect(CueSettings.fromJson(const {}).pauseMinutes, 0);
+      expect(CueSettings.fromJson({'pauseMinutes': 'ten'}).pauseMinutes, 0);
+      expect(CueSettings.fromJson({'pauseMinutes': 500}).pauseMinutes, 60);
+      expect(s.copyWith(extendMinutes: 0).pauseMinutes, 10);
+      expect(s.copyWith(pauseMinutes: 0).extendMinutes, 5);
+      // The toggle this branch first had never shipped; its key is ignored.
       expect(
-        CueSettings.fromJson({'extendInPauses': 'yes'}).extendInPauses,
-        isFalse,
+        CueSettings.fromJson({
+          'extendMinutes': 6,
+          'extendInPauses': true,
+        }).pauseMinutes,
+        0,
       );
-      expect(s.copyWith(extendInPauses: false).extendInPauses, isFalse);
-      expect(s.copyWith(extendMinutes: 5).extendInPauses, isTrue);
     });
 
-    test('the native configuration carries the holds only when asked for', () {
-      const inPauses = CueSettings(extendMinutes: 10, extendInPauses: true);
-      final sent = inPauses.nativeConfiguration(
+    test('the engines get both kinds of silence as one extension, and holds only from the pauses', () {
+      const s = CueSettings(extendMinutes: 5, pauseMinutes: 10);
+      final sent = s.nativeConfiguration(
         durationMs: 600000,
         isTimer: false,
         holds: holds,
       );
-      expect(sent['extendMinutes'], 10);
+      expect(sent['extendMinutes'], 15);
       expect(sent['holds'], [
         {'atMs': 105000, 'holdMs': 60000},
         {'atMs': 215000, 'holdMs': 120000},
       ]);
-      // At the end: whatever was computed, nothing is held in the recording.
+      // No rest in the pauses: whatever was computed, nothing is held in
+      // the recording.
       final atEnd = const CueSettings(
         extendMinutes: 10,
       ).nativeConfiguration(durationMs: 600000, isTimer: false, holds: holds);
       expect(atEnd['holds'], isEmpty);
-      // A timer has no recording to rest in.
-      final timer = inPauses.nativeConfiguration(
+      expect(atEnd['extendMinutes'], 10);
+      // A timer has no recording to rest in, and no silence after it.
+      final timer = s.nativeConfiguration(
         durationMs: 600000,
         isTimer: true,
         holds: holds,
@@ -252,11 +262,17 @@ void main() {
       expect(timer['extendMinutes'], 0);
     });
 
-    test('the session still lasts the recording plus Extend', () {
-      const s = CueSettings(extendMinutes: 10, extendInPauses: true);
+    test('the session lasts the recording plus both kinds of silence', () {
+      const s = CueSettings(extendMinutes: 5, pauseMinutes: 10);
+      expect(s.extraMinutes, 15);
       expect(
         s.sessionDuration(const Duration(minutes: 30), isTimer: false),
-        const Duration(minutes: 40),
+        const Duration(minutes: 45),
+      );
+      final now = DateTime(2026, 10, 28, 9);
+      expect(
+        s.finishesAt(now, const Duration(minutes: 30), isTimer: false),
+        now.add(const Duration(minutes: 45)),
       );
     });
   });

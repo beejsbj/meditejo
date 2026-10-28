@@ -36,7 +36,7 @@ class CueSettings {
   const CueSettings({
     this.durationMinutes = 10,
     this.extendMinutes = 0,
-    this.extendInPauses = false,
+    this.pauseMinutes = 0,
     this.countdownSeconds = 0,
     this.startSound = 'assets/audio/session_bell_v2.wav',
     this.endSound = 'assets/audio/session_bell_v2.wav',
@@ -68,10 +68,16 @@ class CueSettings {
 
   final int durationMinutes, extendMinutes, countdownSeconds;
 
-  /// Where Extend's silence goes: spread over the guide's own pauses (the
-  /// rest, and everything when none is found, after the recording) instead of
-  /// all after it. An older app ignores the key and extends at the end.
-  final bool extendInPauses;
+  /// Minutes of silence taken inside the guide's own long pauses, separate
+  /// from [extendMinutes] (the silence after the recording, before the ending
+  /// bell). What the pauses cannot take, and all of it where they cannot be
+  /// used (no usable pauses, iOS, YouTube, a stream not yet read), is held
+  /// after the recording too. An older app ignores the key.
+  final int pauseMinutes;
+
+  /// All the silence a guided session adds: after the recording and in its
+  /// pauses. The session is this much longer than the recording either way.
+  int get extraMinutes => extendMinutes + pauseMinutes;
   final String startSound, endSound, intervalSound;
   final int intervalMinutes, randomWindowMinutes;
 
@@ -105,7 +111,7 @@ class CueSettings {
   CueSettings copyWith({
     int? durationMinutes,
     int? extendMinutes,
-    bool? extendInPauses,
+    int? pauseMinutes,
     int? countdownSeconds,
     String? startSound,
     String? endSound,
@@ -130,7 +136,7 @@ class CueSettings {
     ...toJson(),
     'durationMinutes': durationMinutes ?? this.durationMinutes,
     'extendMinutes': extendMinutes ?? this.extendMinutes,
-    'extendInPauses': extendInPauses ?? this.extendInPauses,
+    'pauseMinutes': pauseMinutes ?? this.pauseMinutes,
     'countdownSeconds': countdownSeconds ?? this.countdownSeconds,
     'startSound': startSound ?? this.startSound,
     'endSound': endSound ?? this.endSound,
@@ -157,7 +163,7 @@ class CueSettings {
     'version': formatVersion,
     'durationMinutes': durationMinutes,
     'extendMinutes': extendMinutes,
-    'extendInPauses': extendInPauses,
+    'pauseMinutes': pauseMinutes,
     'countdownSeconds': countdownSeconds,
     'startSound': startSound,
     'endSound': endSound,
@@ -218,7 +224,7 @@ class CueSettings {
     return CueSettings(
       durationMinutes: integer('durationMinutes', 10, 1, 299),
       extendMinutes: integer('extendMinutes', 0, 0, 60),
-      extendInPauses: flag('extendInPauses', false),
+      pauseMinutes: integer('pauseMinutes', 0, 0, 60),
       countdownSeconds: [0, 5, 10].contains(countdown) ? countdown : 0,
       startSound: sound('startSound', defaults.startSound, cueBellSounds),
       endSound: sound('endSound', defaults.endSound, cueBellSounds),
@@ -266,7 +272,7 @@ class CueSettings {
   Duration sessionDuration(Duration audioDuration, {required bool isTimer}) =>
       isTimer
       ? Duration(minutes: durationMinutes)
-      : audioDuration + Duration(minutes: extendMinutes);
+      : audioDuration + Duration(minutes: extraMinutes);
 
   DateTime finishesAt(
     DateTime now,
@@ -282,11 +288,12 @@ class CueSettings {
                     microseconds: (remainingAudio.inMicroseconds / speed)
                         .round(),
                   ) +
-                  Duration(minutes: extendMinutes),
+                  Duration(minutes: extraMinutes),
       );
 
-  /// [holds] are the silences to take inside the recording (see
-  /// `distributeExtension`); what they leave of Extend is held after it.
+  /// The engines know one extension: all of [extraMinutes]. [holds] are the
+  /// silences to take inside the recording, drawn from [pauseMinutes] (see
+  /// `distributeExtension`); whatever they leave is held after it.
   Map<String, Object?> nativeConfiguration({
     required int durationMs,
     required bool isTimer,
@@ -297,8 +304,8 @@ class CueSettings {
     'durationMs': durationMs,
     'isTimer': isTimer,
     'randomSeed': randomSeed,
-    'extendMinutes': isTimer ? 0 : extendMinutes,
-    'holds': isTimer || !extendInPauses
+    'extendMinutes': isTimer ? 0 : extraMinutes,
+    'holds': isTimer || pauseMinutes <= 0
         ? const <Map<String, Object?>>[]
         : [for (final h in holds) h.toJson()],
     'startSound': startSound.isEmpty ? null : startSound,

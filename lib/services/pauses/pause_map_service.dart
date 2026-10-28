@@ -21,7 +21,7 @@ final pauseMapServiceProvider = Provider<PauseMapService>((ref) {
 
 /// Where a recording is quiet, found once on the device (Android only) and
 /// kept. The reading itself is native (`meditejo/pauses`); this is the cache,
-/// the policy for when to read, and the plan for Extend that follows from it.
+/// the policy for when to read, and the plan for Rest in the pauses that follows from it.
 class PauseMapService {
   PauseMapService(this._store, {MethodChannel? channel})
     : _channel = channel ?? const MethodChannel('meditejo/pauses');
@@ -109,12 +109,12 @@ class PauseMapService {
     } catch (_) {}
   }
 
-  /// Where [extendMinutes] go for the recording in [map]: holds in its pauses,
+  /// Where [pauseMinutes] go for the recording in [map]: holds in its pauses,
   /// the rest after it. Without a map, none: everything at the end.
-  static List<PauseHold> holdsFor(MediaSpanMap? map, int extendMinutes) {
-    if (map == null || extendMinutes <= 0) return const [];
+  static List<PauseHold> holdsFor(MediaSpanMap? map, int pauseMinutes) {
+    if (map == null || pauseMinutes <= 0) return const [];
     return distributeExtension(
-      totalMs: extendMinutes * 60000,
+      totalMs: pauseMinutes * 60000,
       pauses: usablePauses(map),
     ).holds;
   }
