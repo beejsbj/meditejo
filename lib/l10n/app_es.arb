@@ -1135,5 +1135,12 @@
   "labelsCustomHeading": "Tus etiquetas",
   "labelsAddHint": "Añadir una etiqueta",
   "labelsAddButton": "Añadir",
-  "labelsRemoveTooltip": "Quitar la etiqueta {label}"
+  "labelsRemoveTooltip": "Quitar la etiqueta {label}",
+  "extendHoldTitle": "Descansando en silencio",
+  "extendHoldLeft": "quedan {time}",
+  "extendSkipPause": "Omitir esta pausa",
+  "pauseRestTitle": "Descanso en las pausas",
+  "pauseRestCaption": "Añade silencio dentro de las pausas largas de la propia guía, en el orden de la grabación. Lo que las pausas no pueden tomar llega después de la grabación, antes de la campana final. Las grabaciones en streaming se leen con Wi-Fi; hasta entonces, todo llega al final.",
+  "extendEndLabel": "Silencio después del audio",
+  "extendEndCaption": "Sigue en silencio (con el sonido de fondo, si lo hay) cuando termina el audio, y luego suena la campana final."
 }

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/models/pauses/pause_hold.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -207,4 +208,72 @@ void main() {
       expect(container.read(cueSettingsProvider(course)).extendMinutes, 10);
     },
   );
+
+  group('Rest in the pauses', () {
+    const holds = [PauseHold(105000, 60000), PauseHold(215000, 120000)];
+
+    test('is off unless set, apart from the silence after, and survives a round trip', () {
+      expect(const CueSettings().pauseMinutes, 0);
+      const s = CueSettings(extendMinutes: 5, pauseMinutes: 10);
+      final back = CueSettings.fromJson(s.toJson());
+      expect(back.pauseMinutes, 10);
+      expect(back.extendMinutes, 5);
+      expect(CueSettings.fromJson(const {}).pauseMinutes, 0);
+      expect(CueSettings.fromJson({'pauseMinutes': 'ten'}).pauseMinutes, 0);
+      expect(CueSettings.fromJson({'pauseMinutes': 500}).pauseMinutes, 60);
+      expect(s.copyWith(extendMinutes: 0).pauseMinutes, 10);
+      expect(s.copyWith(pauseMinutes: 0).extendMinutes, 5);
+      // The toggle this branch first had never shipped; its key is ignored.
+      expect(
+        CueSettings.fromJson({
+          'extendMinutes': 6,
+          'extendInPauses': true,
+        }).pauseMinutes,
+        0,
+      );
+    });
+
+    test('the engines get both kinds of silence as one extension, and holds only from the pauses', () {
+      const s = CueSettings(extendMinutes: 5, pauseMinutes: 10);
+      final sent = s.nativeConfiguration(
+        durationMs: 600000,
+        isTimer: false,
+        holds: holds,
+      );
+      expect(sent['extendMinutes'], 15);
+      expect(sent['holds'], [
+        {'atMs': 105000, 'holdMs': 60000},
+        {'atMs': 215000, 'holdMs': 120000},
+      ]);
+      // No rest in the pauses: whatever was computed, nothing is held in
+      // the recording.
+      final atEnd = const CueSettings(
+        extendMinutes: 10,
+      ).nativeConfiguration(durationMs: 600000, isTimer: false, holds: holds);
+      expect(atEnd['holds'], isEmpty);
+      expect(atEnd['extendMinutes'], 10);
+      // A timer has no recording to rest in, and no silence after it.
+      final timer = s.nativeConfiguration(
+        durationMs: 600000,
+        isTimer: true,
+        holds: holds,
+      );
+      expect(timer['holds'], isEmpty);
+      expect(timer['extendMinutes'], 0);
+    });
+
+    test('the session lasts the recording plus both kinds of silence', () {
+      const s = CueSettings(extendMinutes: 5, pauseMinutes: 10);
+      expect(s.extraMinutes, 15);
+      expect(
+        s.sessionDuration(const Duration(minutes: 30), isTimer: false),
+        const Duration(minutes: 45),
+      );
+      final now = DateTime(2026, 10, 28, 9);
+      expect(
+        s.finishesAt(now, const Duration(minutes: 30), isTimer: false),
+        now.add(const Duration(minutes: 45)),
+      );
+    });
+  });
 }

@@ -4935,6 +4935,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove label {label}'**
   String labelsRemoveTooltip(String label);
+
+  /// Heading of the card shown while the voice rests in a pause
+  ///
+  /// In en, this message translates to:
+  /// **'Resting in silence'**
+  String get extendHoldTitle;
+
+  /// Time left of a rest in a pause, for example 1:45 left
+  ///
+  /// In en, this message translates to:
+  /// **'{time} left'**
+  String extendHoldLeft(String time);
+
+  /// Button that ends the rest in a pause and carries on with the voice
+  ///
+  /// In en, this message translates to:
+  /// **'Skip this pause'**
+  String get extendSkipPause;
+
+  /// Customize row: minutes of silence spread across the guide's own long pauses
+  ///
+  /// In en, this message translates to:
+  /// **'Rest in the pauses'**
+  String get pauseRestTitle;
+
+  /// Caption under Rest in the pauses
+  ///
+  /// In en, this message translates to:
+  /// **'Adds silence inside the guide\'s own long pauses, in the order of the recording. What the pauses can\'t take comes after the recording, before the ending bell. Streamed recordings are read on Wi-Fi; until then, it all comes at the end.'**
+  String get pauseRestCaption;
+
+  /// Ending bell: wheel for minutes of silence after the recording, before the bell
+  ///
+  /// In en, this message translates to:
+  /// **'Silence after the audio'**
+  String get extendEndLabel;
+
+  /// Caption above the Silence after the audio wheel
+  ///
+  /// In en, this message translates to:
+  /// **'Keep going in silence (with any background sound) after the audio ends, then ring the ending bell.'**
+  String get extendEndCaption;
 }
 
 class _AppLocalizationsDelegate

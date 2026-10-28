@@ -2791,4 +2791,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String labelsRemoveTooltip(String label) {
     return 'Remove label $label';
   }
+
+  @override
+  String get extendHoldTitle => 'Resting in silence';
+
+  @override
+  String extendHoldLeft(String time) {
+    return '$time left';
+  }
+
+  @override
+  String get extendSkipPause => 'Skip this pause';
+
+  @override
+  String get pauseRestTitle => 'Rest in the pauses';
+
+  @override
+  String get pauseRestCaption =>
+      'Adds silence inside the guide\'s own long pauses, in the order of the recording. What the pauses can\'t take comes after the recording, before the ending bell. Streamed recordings are read on Wi-Fi; until then, it all comes at the end.';
+
+  @override
+  String get extendEndLabel => 'Silence after the audio';
+
+  @override
+  String get extendEndCaption =>
+      'Keep going in silence (with any background sound) after the audio ends, then ring the ending bell.';
 }

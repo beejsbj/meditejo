@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/models/pauses/pause_hold.dart';
 import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/models/timer/timer_session.dart';
 
@@ -11,11 +12,13 @@ class NativeCueController {
     CueSettings settings,
     PlaybackRequest request, {
     bool update = false,
+    List<PauseHold> holds = const [],
   }) async {
     await channel.invokeMethod<void>('configure', {
       ...settings.nativeConfiguration(
         durationMs: request.duration,
         isTimer: request.isTimer,
+        holds: holds,
       ),
       'trackId': request.trackId,
       'fileId': request.fileId,
@@ -36,6 +39,11 @@ class NativeCueController {
 
   static Future<void> skipCountdown() =>
       channel.invokeMethod<void>('skipCountdown');
+
+  /// Ends the hold in the recording that is under way and carries on with the
+  /// voice. False when no hold was under way.
+  static Future<bool> skipHold() async =>
+      await channel.invokeMethod<bool>('skipHold') ?? false;
   static Future<Map<Object?, Object?>> state() async =>
       await channel.invokeMapMethod<Object?, Object?>('state') ?? const {};
 
