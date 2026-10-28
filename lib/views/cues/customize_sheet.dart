@@ -643,7 +643,9 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         ? null
         : IconButton(
             key: ValueKey('customize_play_${part.name}'),
-            tooltip: 'Play $value',
+            // The bell itself: the folded value can carry an interval or the
+            // silence before it.
+            tooltip: 'Play ${_bellName(sound)}',
             icon: const Icon(Icons.play_arrow_rounded),
             onPressed: () => _audition(sound, s.bellVolume),
           ),

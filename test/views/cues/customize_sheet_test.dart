@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart'
-    show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
 import 'dart:ui' show Tristate;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -355,6 +353,8 @@ void main() {
     expect(_value(tester, 'Interval bell'), 'Every 30 min ± 20 · Chime');
     expect(_value(tester, 'Pulse'), 'Heartbeat · 90→30 BPM');
     expect(_value(tester, 'Ending bell'), '+12 min · Gong');
+    // Its play button names the bell, not the silence before it.
+    expect(find.byTooltip('Play Gong'), findsOneWidget);
     expect(_value(tester, 'Rest in the pauses'), '+3 min');
     expect(_value(tester, 'Autoplay'), 'On · 30 sec pause');
     // 9:00, a 10 s countdown, 20 min of audio, 12 min of silence after it
@@ -1007,7 +1007,6 @@ void main() {
     testWidgets('Android sets it apart from the silence after the audio', (
       tester,
     ) async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.android;
       final container = await _pump(tester);
       expect(_value(tester, 'Rest in the pauses'), 'Off');
       await _row(tester, 'Rest in the pauses');
@@ -1020,13 +1019,11 @@ void main() {
       expect(_value(tester, 'Rest in the pauses'), '+10 min');
       expect(_value(tester, 'Ending bell'), 'Swell bell');
       await _unmount(tester);
-      debugDefaultTargetPlatformOverride = null;
-    });
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
     testWidgets('where the voice cannot be held the row is hidden', (
       tester,
     ) async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
       final container = await _pump(tester);
       await container
           .read(cueSettingsProvider(_practice).notifier)
@@ -1039,8 +1036,7 @@ void main() {
       // The silence after the audio is still set in the Ending bell.
       expect(_value(tester, 'Ending bell'), '+6 min · Swell bell');
       await _unmount(tester);
-      debugDefaultTargetPlatformOverride = null;
-    });
+    }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
 
     test('finish time uses what is left of both kinds of silence', () {
       const s = CueSettings(extendMinutes: 4, pauseMinutes: 6);

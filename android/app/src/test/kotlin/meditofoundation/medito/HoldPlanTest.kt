@@ -129,6 +129,20 @@ class HoldPlanTest {
         assertEquals(300 * sec, p.dueAt(300 * sec)?.atMs)
     }
 
+    @Test fun aHoldOnlyJumpedOverIsDueAgainAfterSeekingBackBeforeIt() {
+        val p = plan(PauseHold(100 * sec, 30 * sec), PauseHold(300 * sec, 30 * sec))
+        // A scrub forward past both holds, then back to 50 s.
+        p.passOver(10 * sec, 350 * sec)
+        assertEquals(0L, p.plannedAheadMs(350 * sec))
+        p.passOver(350 * sec, 50 * sec)
+        assertEquals(60 * sec, p.plannedAheadMs(50 * sec))
+        assertEquals(100 * sec, p.dueAt(100 * sec)?.atMs)
+        // A hold actually taken stays taken, whatever the seeks.
+        p.begin(PauseHold(100 * sec, 30 * sec))
+        p.passOver(150 * sec, 50 * sec)
+        assertNull(p.dueAt(100 * sec))
+    }
+
     @Test fun skippingAHoldSpendsItsTimeWithoutMovingItToTheEnd() {
         val p = plan(PauseHold(100 * sec, 60 * sec))
         val hold = p.dueAt(100 * sec)!!

@@ -577,7 +577,8 @@ internal class CueEngine(
                         // Catch up to where the seek began, then jump by the distance.
                         sessionMs = CueMath.advance(sessionMs, lastPositionMs, oldPosition.positionMs, speed)
                         sessionMs = CueMath.advance(sessionMs, oldPosition.positionMs, newPosition.positionMs, speed)
-                        // Holds jumped over are not taken, even one just behind the landing.
+                        // Holds jumped over are not taken, even one just behind the
+                        // landing; a seek back makes them due again.
                         holdPlan.passOver(oldPosition.positionMs, newPosition.positionMs)
                         lastPositionMs = newPosition.positionMs
                         lastRealMs = SystemClock.elapsedRealtime()
@@ -600,6 +601,7 @@ internal class CueEngine(
                     // an error) is not the listener moving the playhead.
                     if (kotlin.math.abs(newPosition.positionMs - oldPosition.positionMs) < SAME_POSITION_MS) return
                     endHold(resume = holdAnchor != 0L)
+                    holdPlan.passOver(oldPosition.positionMs, newPosition.positionMs)
                     // As while playing, a seek moves session time by the distance it jumped.
                     sessionMs = CueMath.advance(sessionMs, oldPosition.positionMs, newPosition.positionMs, speed)
                     started = true

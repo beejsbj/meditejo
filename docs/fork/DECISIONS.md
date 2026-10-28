@@ -755,6 +755,13 @@ Burooj's review of #49: "no extend at end is becoming a part of ending bell. so 
 - **Kept as is, still for Burooj:** skipping a hold spends its time; it does not move it to the end.
 - **Merged `develop` first** (bug batches #54/#55/#58/#59, categories #56, translations #60, release via PR #52). In `CueEngine`, develop's `CueMath.extensionEndMs` is fed this branch's planned end extension (the extension less what holds used), so the halfway bell measures the end the engine really reaches.
 
+- **A seek past a hold does not take it** (CodeRabbit). `dueAt`'s 2 s late tolerance is for playback arriving late; a seek that landed within it used to take the hold. Seeks (while playing and during a hold) now mark the holds they jump over (`HoldPlan.passOver`), and a seek back before one makes it due again, so scrubbing forward and back loses nothing.
+- **Independent review of the rework (Claude Opus 5.5, read-only, head 5514b1d7; approve with P2s):**
+  - **Fixed:** `passOver` during a hold too; jumped holds are reversible, not taken for good; the Ending bell's play button names the bell, not "+12 min · Gong"; the platform tests use `TargetPlatformVariant`.
+  - **With the Skip question (P2):** skipping a hold spends its time, so the session end and its midpoint move earlier. A skip just past the new midpoint uses up the halfway bell without ringing it. If skipped time moves to the end, this goes away; if not, ring a still-pending halfway bell when the skip puts the midpoint behind.
+  - **Known gap, widened (was F5):** the engines know one combined extension. Turning Rest in the pauses down or Off mid-session after a hold takes the time already rested out of the silence after the recording (10 after + 10 in the pauses, 5 rested, then Off: 5 at the end, not 10), and turning it Off mid-hold does not end that hold. The fix is to send `pauseMinutes` natively as its own budget; left for after Burooj's answers, since it only bites when the setting changes mid-session.
+  - **Kotlin compiled here:** the pure files (`CueMath.kt`, `SilenceDetector.kt`) and their tests were compiled with the Gradle distribution's embedded Kotlin compiler and run under JUnit on bjslab (80 tests). `CueEngine.kt` and the service need the Android build: the APK workflow.
+
 ### Phone checklist (S23+, screen off)
 
 1. Download *Metta Instructions and Guided Meditation 3* (Burbea, ds-talk 9985, 44 min) or *Breathing with the Energy Body* (ds-talk 60862).
@@ -772,6 +779,7 @@ Burooj's review of #49: "no extend at end is becoming a part of ending bell. so 
 13. Lock-screen media control and a Bluetooth headset press during a hold: record what happens (expected today: the press starts the voice and ends the hold).
 14. **Both at once:** Rest in the pauses +10 and silence after +3. The holds add up to at most 10 minutes; after the recording comes 3 minutes plus whatever the pauses could not take, then the ending bell, at the time "Finishes at" said.
 15. Customize looks right: the Ending bell row reads "+3 min · <bell>" and opens to the silence wheel above the bells; on the Timer, the Ending bell has no wheel.
+16. Seek forward from before a hold to just past it (within 2 s): no hold. Seek back before it and play on: the hold is taken.
 
 ## 2026-10-27 (bug batch A: cues and sounds)
 
