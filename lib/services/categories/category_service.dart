@@ -244,7 +244,10 @@ class CategoryService {
           .customSelect(
             'SELECT x.id, x.$column AS t, x.description AS d '
             'FROM ${table}_fts f JOIN $table x ON x.id = f.rowid '
-            'WHERE ${table}_fts MATCH ? LIMIT 20',
+            'WHERE ${table}_fts MATCH ? '
+            // A retreat with no stored talks is never listed.
+            "${table == 'ds_retreats' ? "AND x.talk_ids != '[]' " : ''}"
+            'LIMIT 20',
             variables: [Variable.withString(match)],
             readsFrom: {db.dsRetreats, db.dsTalks},
           )

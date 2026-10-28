@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/native.dart';
@@ -30,6 +31,7 @@ void main() {
     useSystemSqlite();
     catalogue = CategoryCatalogue.parse(
       File(categoriesAsset).readAsStringSync(),
+      modelPass: File(categoriesPassAsset).readAsStringSync(),
     );
   });
   setUp(() {
@@ -428,6 +430,58 @@ void main() {
         expect(listing.isEmpty, isTrue);
       },
     );
+
+    test('a retreat the model pass read carries its reading', () async {
+      final id = catalogue.modelIn('metta').first;
+      final result = await withCatalogue().automatic(id);
+      expect(
+        result,
+        contains(const CategoryAssignment('metta', CategorySource.model)),
+      );
+    });
+
+    test('a page lists every hand-picked retreat and a bounded tail', () async {
+      final listing = await withCatalogue().listing(
+        'vipassana',
+        entries: const [],
+      );
+      final curated = catalogue.curatedIn('vipassana').length;
+      expect(listing.courses.length, greaterThan(curated));
+      expect(
+        listing.courses.length,
+        lessThanOrEqualTo(curated + CategoryService.guessCourseLimit),
+      );
+    });
+
+    test('browsing offers only categories with something in them', () async {
+      // The shipped list plus one that nothing on Dharma Seed can match.
+      final json =
+          jsonDecode(File(categoriesAsset).readAsStringSync())
+              as Map<String, dynamic>;
+      (json['categories'] as List).add({'id': 'unseen', 'name': 'Unseen'});
+      final withUnseen = CategoryCatalogue.parse(
+        jsonEncode(json),
+        modelPass: File(categoriesPassAsset).readAsStringSync(),
+      );
+      CategoryService service() => CategoryService(
+        catalogue: withUnseen,
+        library: store,
+        dharmaSeed: ds,
+      );
+
+      final shown = await service().nonEmpty(entries: const []);
+      expect(shown, containsAll(['metta', 'jhana', 'vipassana', 'walking']));
+      // A talk: "On Having No Head: A Simple, Effective Anatta Practice".
+      expect(shown, contains('headless'));
+      // Culadasa's retreat page is hand-picked as TMI but has no talks.
+      expect(shown, isNot(contains('tmi')));
+      expect(shown, isNot(contains('unseen')));
+
+      await store.add(_draft('yt-video-x', title: 'Something new'));
+      await store.addLabel('yt-video-x', 'unseen');
+      final entries = await store.entries();
+      expect(await service().nonEmpty(entries: entries), contains('unseen'));
+    });
 
     test('an unknown category is refused', () {
       expect(
