@@ -57,9 +57,10 @@ class CategoryService {
   final LibraryStore library;
   final DharmaSeedDatabase? dharmaSeed;
 
-  /// How many keyword-matched courses and sessions a page asks Dharma Seed
-  /// for. Curated ones are always listed; this bounds the long tail.
-  static const ruleCourseLimit = 30;
+  /// How many guessed courses (the model pass's and the keyword rules',
+  /// newest first) and keyword-matched sessions a page lists. Hand-picked
+  /// ones are always listed; this bounds the long tail.
+  static const guessCourseLimit = 50;
   static const ruleSessionLimit = 30;
 
   // ---------------------------------------------------------------- labels
@@ -198,6 +199,69 @@ class CategoryService {
 
   // --------------------------------------------------------------- listing
 
+  /// The categories with something to show: a library entry carries it
+  /// (guessed or the user's), or Dharma Seed has a retreat or talk in it.
+  /// Browsing offers only these; the labels sheet still offers every one, so
+  /// an empty category can be filled.
+  Future<Set<String>> nonEmpty({required List<LibraryEntry> entries}) async {
+    final found = <String>{
+      for (final labels in (await labelsOfEntries(entries)).values)
+        for (final c in labels.categories) c.id,
+    };
+    final db = dharmaSeed;
+    if (db == null) return found;
+    for (final category in catalogue.categories) {
+      if (found.contains(category.id)) continue;
+      if (await _dharmaSeedHas(category, db)) found.add(category.id);
+    }
+    return found;
+  }
+
+  Future<bool> _dharmaSeedHas(
+    PracticeCategory category,
+    DharmaSeedDatabase db,
+  ) async {
+    final listed = [
+      ...catalogue.curatedIn(category.id),
+      ...catalogue.modelIn(category.id),
+    ];
+    final retreats = [for (final id in listed) ?parseDsRetreatId(id)];
+    for (final r in await db.retreatsById(retreats)) {
+      if (DharmaSeedDatabase.talkIdsOf(r).isNotEmpty) return true;
+    }
+    for (final id in listed) {
+      final talk = parseDsTalkId(id);
+      if (talk != null && await db.talkById(talk) != null) return true;
+    }
+    // The rules: a few index hits, re-checked, are enough to know.
+    for (final (table, column) in [
+      ('ds_retreats', 'name'),
+      ('ds_talks', 'title'),
+    ]) {
+      final match = _match(category.id, titleColumn: column);
+      if (match == null) continue;
+      final rows = await db
+          .customSelect(
+            'SELECT x.id, x.$column AS t, x.description AS d '
+            'FROM ${table}_fts f JOIN $table x ON x.id = f.rowid '
+            'WHERE ${table}_fts MATCH ? LIMIT 20',
+            variables: [Variable.withString(match)],
+            readsFrom: {db.dsRetreats, db.dsTalks},
+          )
+          .get();
+      for (final row in rows) {
+        final id = row.read<int>('id');
+        final result = catalogue.classify(
+          table == 'ds_retreats' ? dsRetreatId(id) : dsTalkId(id),
+          title: row.read<String>('t'),
+          description: row.read<String>('d'),
+        );
+        if (result.any((a) => a.id == category.id)) return true;
+      }
+    }
+    return false;
+  }
+
   /// Everything the app knows for [categoryId]. Library entries are exact
   /// (their labels, including the user's); Dharma Seed is the curated items
   /// plus what the keyword rules find in the on-device index.
@@ -271,14 +335,16 @@ class CategoryService {
       return result.any((a) => a.id == category.id);
     }
 
-    // ---- Courses: curated retreats first, then what the rules find.
-    final curatedRetreats = [
-      for (final id in catalogue.curatedIn(category.id)) ?parseDsRetreatId(id),
-    ];
-    final curatedRows = [
-      for (final r in await db.retreatsById(curatedRetreats))
+    // ---- Courses: hand-picked retreats first, then the guesses (the model
+    // pass's and what the rules find), newest first.
+    Future<List<DsRetreat>> withTalks(Iterable<String> ids) async => [
+      for (final r in await db.retreatsById([
+        for (final id in ids) ?parseDsRetreatId(id),
+      ]))
         if (DharmaSeedDatabase.talkIdsOf(r).isNotEmpty) r,
     ];
+    final curatedRows = await withTalks(catalogue.curatedIn(category.id));
+    final modelRows = await withTalks(catalogue.modelIn(category.id));
     final ruleRows = <DsRetreat>[];
     final match = _match(category.id, titleColumn: 'name');
     if (match != null) {
@@ -290,7 +356,7 @@ class CategoryService {
             'ORDER BY r.start_date DESC, r.id DESC LIMIT ?',
             variables: [
               Variable.withString(match),
-              Variable.withInt(ruleCourseLimit * 3),
+              Variable.withInt(guessCourseLimit * 3),
             ],
             readsFrom: {db.dsRetreats},
           )
@@ -306,14 +372,19 @@ class CategoryService {
         )) {
           ruleRows.add(retreat);
         }
-        if (ruleRows.length >= ruleCourseLimit) break;
+        if (ruleRows.length >= guessCourseLimit) break;
       }
     }
-    final seen = <int>{};
-    final found = [
-      for (final r in [...curatedRows, ...ruleRows])
-        if (seen.add(r.id)) r,
-    ];
+    final seen = <int>{for (final r in curatedRows) r.id};
+    final guessed =
+        [
+          for (final r in [...modelRows, ...ruleRows])
+            if (seen.add(r.id)) r,
+        ]..sort((a, b) {
+          final byDate = b.startDate.compareTo(a.startDate);
+          return byDate != 0 ? byDate : b.id.compareTo(a.id);
+        });
+    final found = [...curatedRows, ...guessed.take(guessCourseLimit)];
     final retreats = [
       for (final r in found)
         if (!owned.contains(dsRetreatId(r.id))) r,

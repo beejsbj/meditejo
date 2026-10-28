@@ -228,4 +228,108 @@ void main() {
       expect(catalogue.classify('x', title: 'Dependent origination'), isEmpty);
     });
   });
+
+  group('the model pass', () {
+    String pass({
+      Map<String, List<int>> categories = const {},
+      List<int> none = const [],
+      Object format = 1,
+    }) => jsonEncode({
+      'format': format,
+      'version': 2,
+      'categories': categories,
+      'none': none,
+    });
+
+    final catalogue = CategoryCatalogue.parse(
+      _asset(
+        curated: [
+          {
+            'id': 'ds-retreat-1',
+            'categories': ['metta'],
+          },
+        ],
+        rules: [
+          {
+            'category': 'body',
+            'title': ['body'],
+          },
+          {
+            'category': 'metta',
+            'title': ['metta'],
+          },
+        ],
+      ),
+      modelPass: pass(
+        categories: {
+          'jhana': [1, 2, 3],
+          'body': [3],
+        },
+        none: [4],
+      ),
+    );
+
+    test('reads each retreat\'s categories and its edition', () {
+      expect(catalogue.passVersion, 2);
+      expect(catalogue.modelFor('ds-retreat-3'), ['jhana', 'body']);
+      expect(catalogue.modelFor('ds-retreat-4'), isEmpty);
+      expect(catalogue.modelFor('ds-retreat-9'), isNull);
+    });
+
+    test('outranks the rules, and a retreat read as none stays none', () {
+      expect(catalogue.classify('ds-retreat-2', title: 'Body and Metta'), [
+        const CategoryAssignment('jhana', CategorySource.model),
+      ]);
+      expect(catalogue.classify('ds-retreat-4', title: 'Metta'), isEmpty);
+      // Not read by the pass: the rules decide.
+      expect(catalogue.classify('ds-retreat-9', title: 'Metta'), [
+        const CategoryAssignment('metta', CategorySource.rule),
+      ]);
+    });
+
+    test('is outranked by a hand-picked entry', () {
+      expect(catalogue.classify('ds-retreat-1'), [
+        const CategoryAssignment('metta', CategorySource.curated),
+      ]);
+      expect(catalogue.modelIn('jhana'), ['ds-retreat-2', 'ds-retreat-3']);
+    });
+
+    test('a talk takes its retreat\'s reading and adds its own matches', () {
+      final retreat = catalogue.classify('ds-retreat-2');
+      expect(
+        catalogue.classify('ds-talk-7', title: 'Body scan', inherited: retreat),
+        [
+          const CategoryAssignment('jhana', CategorySource.model),
+          const CategoryAssignment('body', CategorySource.rule),
+        ],
+      );
+    });
+
+    test('refuses a category nothing defines, or a newer layout', () {
+      expect(
+        () => CategoryCatalogue.parse(
+          _asset(),
+          modelPass: pass(
+            categories: {
+              'nope': [1],
+            },
+          ),
+        ),
+        throwsFormatException,
+      );
+      expect(
+        () => CategoryCatalogue.parse(
+          _asset(),
+          modelPass: pass(format: categoriesFormat + 1),
+        ),
+        throwsFormatException,
+      );
+    });
+
+    test('ranks between the rules and the hand-picked mapping', () {
+      expect(CategorySource.model.outranks(CategorySource.rule), isTrue);
+      expect(CategorySource.curated.outranks(CategorySource.model), isTrue);
+      expect(CategorySource.user.outranks(CategorySource.curated), isTrue);
+    });
+  });
 }

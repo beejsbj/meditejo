@@ -215,7 +215,7 @@ def cmd_build(_):
         '  "format": 1,',
         f'  "version": {meta["version"]},',
         f'  "updated": {json.dumps(meta["updated"])},',
-        f'  "snapshot": {json.dumps(manifest["asset"]["tag"])},',
+        f'  "snapshot": {json.dumps(manifest["asset"]["release"])},',
         f'  "method": {json.dumps(meta["method"], ensure_ascii=False)},',
         f'  "retreats": {len(result)},',
         f'  "none": {json.dumps(none)},',

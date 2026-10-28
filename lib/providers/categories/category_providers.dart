@@ -28,6 +28,17 @@ final libraryLabelsProvider =
       return service.labelsOfEntries(entries);
     });
 
+/// The categories with something in them (the library's entries, guessed or
+/// labelled by the user, or a Dharma Seed retreat or talk). Browsing shows
+/// only these; the labels sheet offers every category.
+final browsableCategoriesProvider = FutureProvider.autoDispose<Set<String>>((
+  ref,
+) async {
+  final service = await ref.watch(categoryServiceProvider.future);
+  final entries = await ref.watch(libraryEntriesProvider.future);
+  return service.nonEmpty(entries: entries);
+});
+
 /// What a page needs to know to ask about one thing's labels.
 typedef LabelSubject = ({String id, String title});
 
