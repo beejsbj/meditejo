@@ -26,14 +26,24 @@ class SessionBellPreview {
   int _generation = 0;
 
   /// Rings [asset]: a bundled bell's asset path, or the id of a bell the user
-  /// made (nothing rings for one that no longer exists).
+  /// made. A made bell that no longer exists, or cannot be made again, rings
+  /// the default bell, as it does on the native side (`nativeBellSound`).
   Future<void> play(double volume, {String asset = kSessionBellAsset}) async {
     final generation = ++_generation;
     final player = _player ??= newPlayer();
     if (isCustomBellId(asset)) {
-      final path = await _bellFile?.call(asset);
-      if (path == null || generation != _generation) return;
-      await player.setFilePath(path);
+      String? path;
+      try {
+        path = await _bellFile?.call(asset);
+      } catch (_) {
+        // Rings the default bell below.
+      }
+      if (generation != _generation) return;
+      if (path == null) {
+        await player.setAsset(kSessionBellAsset);
+      } else {
+        await player.setFilePath(path);
+      }
     } else {
       await player.setAsset(asset);
     }

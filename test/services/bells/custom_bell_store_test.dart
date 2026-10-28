@@ -378,7 +378,13 @@ void main() {
         const CueScope(CueKind.talks),
         const CueSettings(startSound: 'assets/audio/bell_gong.wav'),
       );
+      final kept = prefs.getString(CustomBellStore.prefsKey);
       await cues.replaceSound(bell.id, cueDefaultBell);
+      expect(
+        prefs.getString(CustomBellStore.prefsKey),
+        kept,
+        reason: 'the list of made bells is not a store of cues',
+      );
       final practice = cues.read(const CueScope(CueKind.practice));
       expect(practice.startSound, cueDefaultBell);
       expect(practice.endSound, cueDefaultBell);

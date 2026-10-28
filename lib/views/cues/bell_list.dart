@@ -57,10 +57,18 @@ class _BellListState extends ConsumerState<BellList> {
     if (sound.isNotEmpty) _strike(sound).value++;
   }
 
+  /// [BellList.selected] as the list shows it: a made bell that is gone is
+  /// the default bell.
+  String _shown(List<CustomBell> made) =>
+      isCustomBellId(widget.selected) &&
+          !made.any((b) => b.id == widget.selected)
+      ? cueDefaultBell
+      : widget.selected;
+
   Future<void> _make() async {
     final bell = await showBellMaker(
       context,
-      from: widget.selected,
+      from: _shown(ref.read(customBellsProvider)),
       volume: widget.volume,
     );
     if (bell != null && mounted) _pick(bell.id);
@@ -111,11 +119,7 @@ class _BellListState extends ConsumerState<BellList> {
     final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
     final made = ref.watch(customBellsProvider);
-    final selected =
-        isCustomBellId(widget.selected) &&
-            !made.any((b) => b.id == widget.selected)
-        ? cueDefaultBell
-        : widget.selected;
+    final selected = _shown(made);
     return Material(
       color: scheme.surfaceContainerHighest,
       clipBehavior: Clip.antiAlias,
