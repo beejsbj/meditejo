@@ -3,9 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/home/continue_provider.dart';
-import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/services/home/continue_rules.dart';
-import 'package:medito/utils/logger.dart';
 import 'package:medito/views/home/home_styles.dart';
 import 'package:medito/views/library/library_format.dart';
 import 'package:medito/views/player/start_session.dart';
@@ -62,19 +60,15 @@ Future<void> startContinueItem(
   ContinueItem item,
 ) async {
   // The course Continue shows it under, for its cue scope and for where it
-  // counts: written before the session starts, which reads it.
-  final courseId = item.courseId;
-  if (courseId != null) {
-    try {
-      await ref
-          .read(libraryStoreProvider)
-          .noteSessionContext(item.trackId, courseId);
-    } catch (e, st) {
-      AppLogger.e('HOME', 'Could not note the course of a session', e, st);
-    }
-  }
-  if (!context.mounted) return;
-  await startSession(context, ref, trackId: item.trackId, path: item.path);
+  // counts: startSession writes it before the session starts, which reads it.
+  // An item with no course forgets the one it was last opened from.
+  await startSession(
+    context,
+    ref,
+    trackId: item.trackId,
+    path: item.path,
+    courseId: item.courseId,
+  );
 }
 
 /// One thing in progress, as a card. The first ([lead]) is drawn on the

@@ -61,7 +61,7 @@ internal class CueEngine(
     private var intervalAtMs = Double.MAX_VALUE
     private var beatNumber = Long.MAX_VALUE
     private var beatAtMs = Double.MAX_VALUE
-    private val halfway = HalfwayCue()
+    private val halfway = HalfwayBell()
     // The halfway deadline as of the last fireDue (the end is only known there).
     private var halfwayAtMs = Double.MAX_VALUE
 
@@ -319,7 +319,7 @@ internal class CueEngine(
             finishSession(extensionFinished = true)
             return
         }
-        fireDue(extensionStartSessionMs + cfg.extensionMs)
+        fireDue(CueMath.extensionEndMs(extensionStartSessionMs, cfg.extensionMs))
         scheduleNext(maxDelayMs = remaining)
     }
 
@@ -339,13 +339,24 @@ internal class CueEngine(
     private fun armAll(atMs: Double, fresh: Boolean) {
         armInterval(atMs)
         armPulse(atMs, fresh)
-        armHalfway()
+        armHalfway(atMs)
     }
 
-    /** Re-armed by every arm (a seek back before the midpoint rings it again when crossed). */
-    private fun armHalfway() {
-        if (config?.hasHalfway == true) halfway.arm() else halfway.disarm()
+    /**
+     * Re-armed by every arm (a seek back before the midpoint rings it again when
+     * crossed), but left used up when the session is already at or past it.
+     */
+    private fun armHalfway(atMs: Double) {
+        val cfg = config
+        halfway.rearm(cfg?.hasHalfway == true, atMs, currentEndMs())
         halfwayAtMs = Double.MAX_VALUE // recomputed by the next fireDue
+    }
+
+    /** Session time at which the session ends as it stands now; null when unknown. */
+    private fun currentEndMs(): Double? {
+        val cfg = config ?: return null
+        return if (phase == Phase.EXTENSION) CueMath.extensionEndMs(extensionStartSessionMs, cfg.extensionMs)
+        else remainingEndMs(primary.playbackParameters.speed.toDouble())
     }
 
     private fun armInterval(atMs: Double) {
@@ -385,13 +396,8 @@ internal class CueEngine(
             }
             armPulse(sessionMs, fresh = false)
         }
-        if (halfway.poll(sessionMs, endMs)) bank?.play(cfg.intervalSound, cfg.bellVolume)
-        // Pending with no known end yet (a stream whose length arrives late):
-        // look again in a second rather than stop ticking.
-        halfwayAtMs = when {
-            !halfway.pending -> Double.MAX_VALUE
-            else -> halfway.dueAt(endMs) ?: (sessionMs + 1000.0)
-        }
+        if (halfway.fire(sessionMs, endMs)) bank?.play(cfg.intervalSound, cfg.bellVolume)
+        halfwayAtMs = halfway.nextCheckMs(sessionMs, endMs)
     }
 
     private fun scheduleNext(maxDelayMs: Long = Long.MAX_VALUE) {

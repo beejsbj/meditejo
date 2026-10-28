@@ -197,6 +197,10 @@ internal object CueMath {
      */
     fun halfwayMs(endMs: Double?): Double? = endMs?.takeIf { it > 0 }?.let { it / 2 }
 
+    /** Session time at which a session ends once its extension is under way. */
+    fun extensionEndMs(extensionStartSessionMs: Double, extensionMs: Long): Double =
+        extensionStartSessionMs + extensionMs
+
     /**
      * Session time left in the voice, from media position and speed. Null for
      * an endless or unknown-length track. Later items in a repeat playlist add
@@ -235,6 +239,16 @@ internal object CueMath {
     @Suppress("UNUSED_PARAMETER")
     fun earnsCompletion(isTimer: Boolean, heardEnough: Boolean, extensionFinished: Boolean): Boolean =
         isTimer || heardEnough
+
+    /**
+     * Whether a further pass of a looped recording, after the session was
+     * earned, adds its minutes. Each pass must be 90% heard on its own (the
+     * listening record starts fresh with every pass), so seeking to the end
+     * of the loop does not count a full repeat. A timer's pass counts at its
+     * natural end, as its first one did.
+     */
+    fun earnsRepeat(isTimer: Boolean, heardPassEnough: Boolean): Boolean =
+        isTimer || heardPassEnough
 }
 
 /**
@@ -265,6 +279,45 @@ internal class HalfwayCue {
 }
 
 /**
+ * What the engine does around [HalfwayCue]: re-arm when the cues are re-armed
+ * (a seek, a settings change, the extension starting), and say when to look
+ * again. Kept out of the engine so it can be tested without a player.
+ */
+internal class HalfwayBell {
+    private val cue = HalfwayCue()
+    val pending: Boolean get() = cue.pending
+
+    fun disarm() = cue.disarm()
+
+    /**
+     * Arms the bell for a session now at [sessionMs] with [endMs] to go. A bell
+     * that is still pending stays pending, so a re-arm between ticks cannot use
+     * up a bell that has not rung yet ([fire] still consumes a late one
+     * silently). A bell that has rung rings again only if the session is back
+     * before the midpoint (a seek back, or a longer extension that moves it
+     * ahead): re-arming within the late tolerance after it rang must not ring
+     * it twice. An unknown end arms it, to be judged once the end is known.
+     */
+    fun rearm(enabled: Boolean, sessionMs: Double, endMs: Double?) {
+        if (!enabled) { cue.disarm(); return }
+        if (cue.pending) return
+        val due = CueMath.halfwayMs(endMs)
+        if (due == null || sessionMs < due) cue.arm()
+    }
+
+    /** True when the bell should ring now. */
+    fun fire(sessionMs: Double, endMs: Double?): Boolean = cue.poll(sessionMs, endMs)
+
+    /**
+     * Session time to look again at: the midpoint while pending, a second on
+     * while pending with no known end yet (a stream whose length arrives late),
+     * and never ([Double.MAX_VALUE]) when nothing is pending.
+     */
+    fun nextCheckMs(sessionMs: Double, endMs: Double?): Double =
+        if (!cue.pending) Double.MAX_VALUE else cue.dueAt(endMs) ?: (sessionMs + 1000.0)
+}
+
+/**
  * Real listening. Counts each stretch of the media once, only when playback
  * walked through it in small steps: a seek (forward or back) is never listening,
  * and hearing a stretch again adds nothing.
@@ -286,6 +339,9 @@ internal class ListeningTracker(private val maxStepMs: Long = CueMath.LISTENING_
     fun rebase(positionMs: Long) { last = positionMs }
 
     fun markNotPlaying() { last = -1L }
+
+    /** A new pass of a looped recording: nothing heard yet, playback at the start. */
+    fun startPass() { ranges.clear(); last = 0L }
 
     fun sample(positionMs: Long, playing: Boolean) {
         if (!playing || positionMs < 0) { last = -1L; return }

@@ -24,13 +24,19 @@ YoutubeVideo video(
   description: description,
 );
 
-YoutubePlaylistItem item(String id, {String? title, int seconds = 600}) =>
-    YoutubePlaylistItem(
-      videoId: id,
-      title: title ?? 'Item $id',
-      durationSeconds: seconds,
-      thumbnail: '',
-    );
+/// [uploader] empty is the extractor saying nothing about the channel.
+YoutubePlaylistItem item(
+  String id, {
+  String? title,
+  int seconds = 600,
+  String uploader = '',
+}) => YoutubePlaylistItem(
+  videoId: id,
+  title: title ?? 'Item $id',
+  uploader: uploader,
+  durationSeconds: seconds,
+  thumbnail: '',
+);
 
 YoutubePlaylist playlist(
   List<YoutubePlaylistItem> items, {

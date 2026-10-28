@@ -85,7 +85,10 @@ Future<SessionLabel> labelSessionCompletion(String trackId) async {
     var kind = remembered?.kind;
     var courseId = remembered?.courseId;
     if (remembered == null) {
-      courseId = await router.parentOf(trackId);
+      courseId = await router.courseOfSession(
+        trackId,
+        openedFrom: await store.sessionContext(trackId),
+      );
       final group =
           (courseId == null ? null : await store.groupOf(courseId)) ??
           await store.groupOf(trackId);

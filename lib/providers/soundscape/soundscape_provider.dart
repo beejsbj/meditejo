@@ -113,16 +113,16 @@ class SoundscapeState {
   SoundscapeSessionDefault sessionDefault(SoundscapeSessionKind kind) =>
       sessionDefaults[kind] ?? SoundscapeSessionDefault.initial(kind);
 
-  /// [selection] as it will play: a preset that was deleted, or a sound a
-  /// later library dropped, means the current mix rather than silence.
+  /// [selection] as it will play: a preset that was deleted (or whose sounds
+  /// the library has all dropped), or a sound a later library dropped, means
+  /// the current mix rather than silence.
   /// [library] null (still loading) takes sounds on trust; generated layers
   /// are never in it and never dropped.
   SoundscapeSelection playable(
     SoundscapeSelection selection,
     SoundLibrary? library,
   ) => switch (selection.kind) {
-    SoundscapeSelectionKind.preset
-        when !presets.any((p) => p.id == selection.id) =>
+    SoundscapeSelectionKind.preset when !_presetPlays(selection.id, library) =>
       SoundscapeSelection.currentMix,
     SoundscapeSelectionKind.sound
         when library != null &&
@@ -131,6 +131,18 @@ class SoundscapeState {
       SoundscapeSelection.currentMix,
     _ => selection,
   };
+
+  /// Whether preset [id] exists and still has something to play (a preset with
+  /// no sounds left, or none to begin with, does not). [library] null (still
+  /// loading) takes its sounds on trust.
+  bool _presetPlays(String id, SoundLibrary? library) {
+    final preset = presets.where((p) => p.id == id).firstOrNull;
+    if (preset == null) return false;
+    if (library == null) return true;
+    return preset.mix.layers.any(
+      (l) => library.contains(l.soundId) || isSynthId(l.soundId),
+    );
+  }
 
   SoundscapeState copyWith({
     SoundMix? mix,
@@ -252,7 +264,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       },
     );
     unawaited(_dropVanishedSounds());
-    _store.migrateSessionDefaults();
+    unawaited(_store.migrateSessionDefaults());
     return SoundscapeState(
       mix: _currentMix(),
       volume: _store.readVolume(),

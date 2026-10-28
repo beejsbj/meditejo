@@ -274,9 +274,16 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
                 completionPlaythroughIndex = completedPlaythroughs - 1
                 saveAndSendCompletionData(completionData, finish = false)
             }
-        } else if (completedPlaythroughs > completionPlaythroughIndex + 1) {
+        } else if (completedPlaythroughs > completionPlaythroughIndex + 1 &&
+            CueMath.earnsRepeat(
+                isTimer = ::cues.isInitialized && cues.isTimer,
+                heardPassEnough = listening.completed(currentDurationMs()),
+            )
+        ) {
             saveAndSendRepeatPlaythrough(completionData)
         }
+        // Once earned, every pass is judged on its own: the next starts fresh.
+        if (completionSent) listening.startPass()
     }
 
     // Persists the completion as soon as 90% has been heard, without the
@@ -514,6 +521,9 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
 
     override fun onCreate() {
         super.onCreate()
+        // Media3 logs failed requests with their address; keep signed stream
+        // addresses out of logcat.
+        androidx.media3.common.util.Log.setLogger(meditofoundation.medito.youtube.RedactingMedia3Logger)
         println("🔊 [AudioPlayerService] onCreate called")
         Log.d(TAG, "🔊 Service onCreate called")
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -699,7 +709,12 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     }
 
     override fun onPlayerError(error: PlaybackException) {
-        Log.e(TAG, "❌ Player error: ${error.errorCodeName} — ${error.message}", error)
+        Log.e(
+            TAG,
+            meditofoundation.medito.youtube.SignedUrlRedaction.redact(
+                "❌ Player error: ${error.errorCodeName} — ${error.message}\n${Log.getStackTraceString(error)}",
+            ),
+        )
         if (!::primaryPlayer.isInitialized) return
         val resumePos = primaryPlayer.currentPosition.takeIf { it > 0 } ?: 0L
         val duration = primaryPlayer.duration.takeIf { it != C.TIME_UNSET } ?: -1L

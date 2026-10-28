@@ -42,17 +42,28 @@ SourceAttribution youtubeAttribution(String url, String uploader) =>
 /// Metadata stays in the user's database. Only this source's memory holds
 /// expiring audio URLs; one extraction serves overlapping play requests.
 class YoutubeSource
-    implements ContentSource, SavableContentSource, ParentedContentSource {
+    implements
+        ContentSource,
+        SavableContentSource,
+        ParentedContentSource,
+        CourseMembershipSource {
   YoutubeSource({
     required this.db,
     required this.library,
     required this.api,
     DateTime Function()? clock,
+    this.sessionCourse,
   }) : _clock = clock ?? DateTime.now;
 
   final LibraryDatabase db;
   final LibraryStore library;
   final YoutubeExtractorApi api;
+
+  /// The course a session counts towards across every source (a personal
+  /// course can hold a YouTube video too), wired to
+  /// `ContentRouter.courseOfSession`. Without it only saved YouTube courses
+  /// are considered.
+  final Future<String?> Function(String trackId)? sessionCourse;
   final DateTime Function() _clock;
   final _streams = <String, ({YoutubeAudioStream stream, DateTime until})>{};
   final _resolving = <String, Future<YoutubeAudioStream>>{};
@@ -145,6 +156,9 @@ class YoutubeSource
                       durationMs: item.durationSeconds > 0
                           ? item.durationSeconds * 1000
                           : null,
+                      subtitle: item.uploader == playlist.uploader
+                          ? ''
+                          : item.uploader,
                       artworkUrl: item.thumbnail,
                     ),
             ];
@@ -295,6 +309,7 @@ class YoutubeSource
                   YoutubePlaylistItem(
                     videoId: video.videoId,
                     title: video.title,
+                    uploader: video.uploader,
                     durationSeconds: video.durationSeconds,
                     thumbnail: video.thumbnail,
                   ),
@@ -353,7 +368,7 @@ class YoutubeSource
       return YoutubeVideo(
         videoId: item.videoId,
         title: item.title,
-        uploader: previous?.uploader ?? playlist!.uploader,
+        uploader: _uploaderOf(item, previous, playlist!),
         // What a full resolve found outranks the list's summary.
         durationSeconds: previous?.durationSeconds ?? item.durationSeconds,
         thumbnail: previous?.thumbnail ?? item.thumbnail,
@@ -362,6 +377,19 @@ class YoutubeSource
     }
     return video;
   }
+
+  /// A row's own channel, which the playlist's owner does not stand in for.
+  /// Only when the extractor names none do we keep a channel already stored,
+  /// then fall back to the playlist's.
+  static String _uploaderOf(
+    YoutubePlaylistItem item,
+    YoutubeVideoRow? previous,
+    YoutubePlaylist playlist,
+  ) => item.uploader.isNotEmpty
+      ? item.uploader
+      : (previous?.uploader.isNotEmpty ?? false)
+      ? previous!.uploader
+      : playlist.uploader;
 
   Future<void> storeVideo(YoutubeVideo video) => db
       .into(db.youtubeVideos)
@@ -385,7 +413,7 @@ class YoutubeSource
             YoutubeVideo(
               videoId: item.videoId,
               title: item.title,
-              uploader: previous?.uploader ?? playlist.uploader,
+              uploader: _uploaderOf(item, previous, playlist),
               durationSeconds: item.durationSeconds,
               thumbnail: item.thumbnail,
               description: previous?.description ?? '',
@@ -604,10 +632,13 @@ class YoutubeSource
     final videoId = id.substring('yt-video-'.length);
     final video = await db.youtubeVideo(videoId);
     if (video == null) throw CatalogueEntryUnavailable('track', id);
-    final parent = await parentOf(id);
+    // The course decides, as it does for the cues: the one the session was
+    // opened from, else the most recently active. The video's own label
+    // applies only when no course has one.
+    final parent = await _courseOf(id);
     final group =
-        await library.groupOf(id) ??
         (parent == null ? null : await library.groupOf(parent)) ??
+        await library.groupOf(id) ??
         youtubeGroup(video.title);
     final url = 'https://www.youtube.com/watch?v=$videoId';
     return Track(
@@ -694,6 +725,31 @@ class YoutubeSource
     ];
   }
 
+  /// The saved course a session counts towards: the one it was last opened
+  /// from while that course still lists it, else [parentOf].
+  Future<String?> _courseOf(String trackId) async {
+    final lookup = sessionCourse;
+    if (lookup != null) return lookup(trackId);
+    final opened = await library.sessionContext(trackId);
+    if (opened != null && await courseLists(opened, trackId)) return opened;
+    return parentOf(trackId);
+  }
+
+  @override
+  Future<bool> courseLists(String courseId, String trackId) async {
+    if (!courseId.startsWith('yt-playlist-') ||
+        !trackId.startsWith('yt-video-') ||
+        !await library.contains(courseId)) {
+      return false;
+    }
+    final row = await db.youtubePlaylist(
+      courseId.substring('yt-playlist-'.length),
+    );
+    return row != null && _ids(row).map(ytVideoId).contains(trackId);
+  }
+
+  /// The most recently active saved course that lists [trackId] (the library
+  /// is ordered by activity), for a session with no known context.
   @override
   Future<String?> parentOf(String trackId) async {
     for (final entry in await library.entries()) {

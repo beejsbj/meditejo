@@ -11,7 +11,6 @@ import 'package:just_audio/just_audio.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/dhammatalks/dhammatalks_providers.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
-import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/services/library/feed_refresher.dart';
 import 'package:medito/services/library/import_http.dart';
 import 'package:medito/services/library/import_service.dart';
@@ -56,12 +55,14 @@ final libraryStoreProvider = Provider<LibraryStore>((ref) {
 });
 
 /// Imported courses and singles, served as a content source.
-final libSourceProvider = Provider<LibSource>(
-  (ref) => LibSource(
+final libSourceProvider = Provider<LibSource>((ref) {
+  final source = LibSource(
     db: ref.watch(libraryDatabaseProvider),
     library: ref.watch(libraryStoreProvider),
-  ),
-);
+  );
+  ref.onDispose(source.dispose);
+  return source;
+});
 
 /// Courses the user made from sessions anywhere, served as a content source.
 /// It reads their sessions through the other sources.
@@ -73,7 +74,14 @@ final Provider<MyCourseSource> myCourseSourceProvider = Provider((ref) {
   );
   void changed() => ref.invalidate(packTrackIdsProvider);
   source.revision.addListener(changed);
+  // An import deleted from the library: the courses listing it learn now.
+  final removals = ref.watch(libSourceProvider).removals.listen((ids) {
+    source.sessionsRemoved(ids).catchError((Object e, StackTrace st) {
+      AppLogger.e('LIBRARY', 'Could not refresh availability', e, st);
+    });
+  });
   ref.onDispose(() {
+    removals.cancel();
     source.revision.removeListener(changed);
     source.dispose();
   });
@@ -101,6 +109,15 @@ final youtubeSourceProvider = Provider<YoutubeSource>((ref) {
     db: ref.watch(libraryDatabaseProvider),
     library: ref.watch(libraryStoreProvider),
     api: ref.watch(youtubeExtractorProvider),
+    // Read when asked: the router includes this very source.
+    sessionCourse: (trackId) async => ref
+        .read(libraryContentRouterProvider)
+        .courseOfSession(
+          trackId,
+          openedFrom: await ref
+              .read(libraryStoreProvider)
+              .sessionContext(trackId),
+        ),
   );
   void refreshCompleted() => ref.invalidate(packTrackIdsProvider);
   source.refreshRevision.addListener(refreshCompleted);
@@ -307,17 +324,13 @@ final playbackPositionTrackerProvider = Provider<PlaybackPositionTracker>((
   final store = ref.watch(libraryStoreProvider);
   return PlaybackPositionTracker(
     store,
-    // The personal course the session was opened from, while it still lists
-    // it; else the course its source names.
-    parentsOf: (trackId) async {
-      final opened = await store.sessionContext(trackId);
-      if (opened != null &&
-          isMyCourseId(opened) &&
-          (await ref.read(myCourseSourceProvider).coursesHolding(trackId))
-              .contains(opened)) {
-        return {opened};
-      }
-      return {?await router.parentOf(trackId)};
+    // The course the session was opened from, while it still lists it; else
+    // the course its source names.
+    parentsOf: (trackId) async => {
+      ?await router.courseOfSession(
+        trackId,
+        openedFrom: await store.sessionContext(trackId),
+      ),
     },
     ignore: (id) => id == kLegacyTimerTrackId || isTimerSessionId(id),
   );

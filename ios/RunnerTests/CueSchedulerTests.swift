@@ -184,6 +184,120 @@ class CueSchedulerTests: XCTestCase {
         XCTAssertTrue(cue.poll(sessionMs: 10 * minute, endMs: 20 * minute))
     }
 
+    // MARK: Halfway bell: scheduler wiring
+
+    private let tolerance = CueMath.intervalLateToleranceMs
+
+    func testReArmingJustAfterItRangDoesNotRingItTwice() {
+        var bell = HalfwayBell()
+        let end = 20 * minute
+        bell.rearm(enabled: true, sessionMs: 0, endMs: end)
+        XCTAssertTrue(bell.fire(sessionMs: 10 * minute, endMs: end))
+        for after in [1.0, 500.0, tolerance] {
+            bell.rearm(enabled: true, sessionMs: 10 * minute + after, endMs: end)
+            XCTAssertFalse(bell.pending, "re-armed \(after)ms after it rang")
+            XCTAssertFalse(bell.fire(sessionMs: 10 * minute + after, endMs: end))
+        }
+    }
+
+    func testReArmingBeforeTheMidpointRingsItWhenCrossed() {
+        var bell = HalfwayBell()
+        let end = 20 * minute
+        bell.rearm(enabled: true, sessionMs: 0, endMs: end)
+        XCTAssertTrue(bell.fire(sessionMs: 10 * minute, endMs: end))
+        bell.rearm(enabled: true, sessionMs: 5 * minute, endMs: end)
+        XCTAssertTrue(bell.pending)
+        XCTAssertFalse(bell.fire(sessionMs: 9 * minute, endMs: end))
+        XCTAssertTrue(bell.fire(sessionMs: 10 * minute, endMs: end))
+        XCTAssertFalse(bell.pending)
+    }
+
+    func testAReArmBetweenTicksDoesNotUseUpABellThatHasNotRung() {
+        var bell = HalfwayBell()
+        let end = 20 * minute
+        bell.rearm(enabled: true, sessionMs: 0, endMs: end)
+        bell.rearm(enabled: true, sessionMs: 10 * minute + 300, endMs: end)
+        XCTAssertTrue(bell.pending)
+        XCTAssertTrue(bell.fire(sessionMs: 10 * minute + 300, endMs: end))
+        XCTAssertFalse(bell.pending)
+        var late = HalfwayBell()
+        late.rearm(enabled: true, sessionMs: 0, endMs: end)
+        late.rearm(enabled: true, sessionMs: 12 * minute, endMs: end)
+        XCTAssertFalse(late.fire(sessionMs: 12 * minute, endMs: end))
+        XCTAssertFalse(late.pending)
+    }
+
+    func testReArmingAtTheMidpointExactlyLeavesItUsedUp() {
+        var bell = HalfwayBell()
+        bell.rearm(enabled: true, sessionMs: 10 * minute, endMs: 20 * minute)
+        XCTAssertFalse(bell.pending)
+    }
+
+    func testASettingsChangeTurnsHalfwayOnAndOffMidSession() {
+        var bell = HalfwayBell()
+        let end = 20 * minute
+        bell.rearm(enabled: false, sessionMs: 0, endMs: end)
+        XCTAssertFalse(bell.pending)
+        XCTAssertFalse(bell.fire(sessionMs: 10 * minute, endMs: end))
+        bell.rearm(enabled: true, sessionMs: 4 * minute, endMs: end)
+        XCTAssertTrue(bell.fire(sessionMs: 10 * minute, endMs: end))
+        bell.rearm(enabled: true, sessionMs: 4 * minute, endMs: end)
+        bell.rearm(enabled: false, sessionMs: 6 * minute, endMs: end)
+        XCTAssertFalse(bell.pending)
+        XCTAssertFalse(bell.fire(sessionMs: 10 * minute, endMs: end))
+        bell.rearm(enabled: true, sessionMs: 12 * minute, endMs: end)
+        XCTAssertFalse(bell.pending)
+    }
+
+    func testReArmingWithAnUnknownEndWaitsForTheEnd() {
+        var bell = HalfwayBell()
+        bell.rearm(enabled: true, sessionMs: 3 * minute, endMs: nil)
+        XCTAssertTrue(bell.pending)
+        XCTAssertFalse(bell.fire(sessionMs: 3 * minute, endMs: nil))
+        XCTAssertTrue(bell.fire(sessionMs: 10 * minute, endMs: 20 * minute))
+    }
+
+    func testTheExtensionPhaseUsesTheExtensionEnd() {
+        let end = CueMath.extensionEndMs(extensionStartSessionMs: 10 * minute, extensionMs: 30 * minute)
+        XCTAssertEqual(end, 40 * minute, accuracy: 1e-9)
+        var bell = HalfwayBell()
+        bell.rearm(enabled: true, sessionMs: 0, endMs: end)
+        XCTAssertEqual(bell.nextCheckMs(sessionMs: 0, endMs: end), 20 * minute, accuracy: 1e-9)
+        let rang = stride(from: 0.0, through: 40 * minute, by: 1000).filter { bell.fire(sessionMs: $0, endMs: end) }
+        XCTAssertEqual(rang, [20 * minute])
+    }
+
+    func testAnExtensionEditedAfterItRangRingsAgainOnlyWhenTheMidpointMovesAhead() {
+        let start = 10 * minute
+        let end = CueMath.extensionEndMs(extensionStartSessionMs: start, extensionMs: 30 * minute)
+        var bell = HalfwayBell()
+        bell.rearm(enabled: true, sessionMs: 0, endMs: end)
+        XCTAssertTrue(bell.fire(sessionMs: 20 * minute, endMs: end))
+        let justAfter = 20 * minute + 500
+        bell.rearm(enabled: true, sessionMs: justAfter, endMs: end)
+        XCTAssertFalse(bell.pending)
+        let longer = CueMath.extensionEndMs(extensionStartSessionMs: start, extensionMs: 60 * minute)
+        bell.rearm(enabled: true, sessionMs: justAfter, endMs: longer)
+        XCTAssertEqual(bell.nextCheckMs(sessionMs: justAfter, endMs: longer), 35 * minute, accuracy: 1e-9)
+        XCTAssertTrue(bell.fire(sessionMs: 35 * minute, endMs: longer))
+        let shorter = CueMath.extensionEndMs(extensionStartSessionMs: start, extensionMs: 10 * minute)
+        bell.rearm(enabled: true, sessionMs: 36 * minute, endMs: shorter)
+        XCTAssertFalse(bell.pending)
+    }
+
+    func testNextCheckFollowsTheMidpointAndStopsWhenNothingIsPending() {
+        var bell = HalfwayBell()
+        XCTAssertEqual(bell.nextCheckMs(sessionMs: 0, endMs: 20 * minute), .greatestFiniteMagnitude)
+        bell.rearm(enabled: true, sessionMs: 0, endMs: 20 * minute)
+        XCTAssertEqual(bell.nextCheckMs(sessionMs: 0, endMs: 20 * minute), 10 * minute, accuracy: 1e-9)
+        XCTAssertEqual(bell.nextCheckMs(sessionMs: 4 * minute, endMs: 12 * minute), 6 * minute, accuracy: 1e-9)
+        XCTAssertEqual(bell.nextCheckMs(sessionMs: 4 * minute, endMs: nil), 4 * minute + 1000, accuracy: 1e-9)
+        XCTAssertTrue(bell.fire(sessionMs: 10 * minute, endMs: 20 * minute))
+        XCTAssertEqual(bell.nextCheckMs(sessionMs: 10 * minute, endMs: 20 * minute), .greatestFiniteMagnitude)
+        bell.rearm(enabled: false, sessionMs: 0, endMs: 20 * minute)
+        XCTAssertEqual(bell.nextCheckMs(sessionMs: 0, endMs: 20 * minute), .greatestFiniteMagnitude)
+    }
+
     func testNinetyPercentListenedCompletes() {
         let t = ListeningTracker()
         var p: Int64 = 0
@@ -203,6 +317,26 @@ class CueSchedulerTests: XCTestCase {
         XCTAssertFalse(t.completed(durationMs: 600_000))
         XCTAssertEqual(t.heardMs, 60_000)
     }
+    func testARepeatPassMustBeNinetyPercentHeardOnItsOwn() {
+        let t = ListeningTracker()
+        t.rebase(0)
+        var p: Int64 = 0
+        while p < 600_000 { p += 1000; t.sample(p, playing: true) }
+        XCTAssertTrue(t.completed(durationMs: 600_000))
+        // Pass two: a jump to the end of the loop is not listening, although
+        // the whole recording was heard before.
+        t.startPass()
+        t.sample(599_000, playing: true)
+        t.sample(600_000, playing: true)
+        XCTAssertFalse(t.completed(durationMs: 600_000))
+        XCTAssertEqual(t.heardMs, 1_000) // only the last step after the jump
+        // A pass heard in full starts from the first step.
+        t.startPass()
+        p = 0
+        while p < 600_000 { p += 1000; t.sample(p, playing: true) }
+        XCTAssertTrue(t.completed(durationMs: 600_000))
+    }
+
     func testCoverageRestoresAcrossResumedSessions() {
         let first = ListeningTracker()
         first.restore([[0, 40_000], [30_000, 80_000]])

@@ -5,6 +5,7 @@ import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/library/library_providers.dart';
+import 'package:medito/providers/library/session_origin.dart';
 import 'package:medito/services/library/library_database.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
@@ -12,7 +13,11 @@ import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/services/my_courses/my_course_source.dart';
 
 import '../../helpers/fake_session_source.dart';
+import 'package:medito/services/youtube/youtube_ids.dart';
+import 'package:medito/services/youtube/youtube_source.dart';
+
 import '../../helpers/library_fixtures.dart';
+import '../../helpers/youtube_fake.dart';
 
 PlaybackRequest request(String trackId) => PlaybackRequest(
   trackId: trackId,
@@ -33,6 +38,7 @@ void main() {
   late LibraryStore store;
   late FakeSessionSource upstream;
   late MyCourseSource source;
+  late YoutubeSource youtube;
   late ProviderContainer container;
 
   setUp(() {
@@ -40,11 +46,12 @@ void main() {
     store = LibraryStore(db);
     upstream = FakeSessionSource()..addCourse('retreat', ['x-1', 'x-2']);
     source = MyCourseSource(db: db, library: store, sources: () => [upstream]);
+    youtube = YoutubeSource(db: db, library: store, api: FakeYoutubeApi());
     container = ProviderContainer(
       overrides: [
         libraryStoreProvider.overrideWithValue(store),
         myCourseSourceProvider.overrideWithValue(source),
-        contentSourcesProvider.overrideWithValue([upstream, source]),
+        contentSourcesProvider.overrideWithValue([upstream, source, youtube]),
       ],
     );
   });
@@ -107,5 +114,96 @@ void main() {
     await store.noteSessionContext('x-2', 'x-course-retreat');
     container.invalidate(cueScopeForRequestProvider);
     expect((await scopeOf('x-2')).courseId, 'x-course-retreat');
+  });
+
+  group('a video shared by two saved YouTube courses', () {
+    final talks = ytPlaylistId(playlistOne);
+    final sits = ytPlaylistId(playlistTwo);
+    final shared = ytVideoId(videoA);
+
+    setUp(() async {
+      await youtube.storePlaylist(
+        playlistOne,
+        playlist([item(videoA), item(videoB)]),
+      );
+      await youtube.storePlaylist(
+        playlistTwo,
+        playlist([item(videoA), item(videoC)]),
+      );
+      await youtube.setSaved(talks, saved: true);
+      await youtube.setSaved(sits, saved: true);
+      await store.setGroup(talks, LibraryGroup.talks);
+      await store.setGroup(sits, LibraryGroup.practice);
+    });
+
+    test('the cues follow the course it was opened from', () async {
+      await store.noteSessionContext(shared, talks);
+      expect(await scopeOf(shared), CueScope(CueKind.talks, courseId: talks));
+
+      await store.noteSessionContext(shared, sits);
+      container.invalidate(cueScopeForRequestProvider);
+      expect(await scopeOf(shared), CueScope(CueKind.practice, courseId: sits));
+    });
+
+    test('with no context, the most recently active course leads', () async {
+      final first = (await store.entries())
+          .firstWhere((e) => {talks, sits}.contains(e.sourceId))
+          .sourceId;
+      expect((await scopeOf(shared)).courseId, first);
+    });
+
+    test('a course that dropped the video, or was removed, no longer '
+        'leads', () async {
+      await store.noteSessionContext(shared, talks);
+      await youtube.storePlaylist(playlistOne, playlist([item(videoB)]));
+      container.invalidate(cueScopeForRequestProvider);
+      expect((await scopeOf(shared)).courseId, sits);
+
+      await store.noteSessionContext(shared, sits);
+      await store.remove(sits);
+      container.invalidate(cueScopeForRequestProvider);
+      expect(
+        (await scopeOf(shared)).courseId,
+        isNull,
+        reason: 'the removed course keeps no sessions and the other dropped it',
+      );
+    });
+  });
+
+  test('a session started from a surface with no course forgets the '
+      'course it was last opened from', () async {
+    final mine = await source.create(
+      title: 'Evening talks',
+      group: LibraryGroup.talks,
+      lines: [MyCourseLine.session(draft('x-2'))],
+    );
+    await noteSessionOrigin(store, 'x-2', mine);
+    expect((await scopeOf('x-2')).courseId, mine);
+
+    // Later, from search, a library row or a teacher page: no course.
+    await noteSessionOrigin(store, 'x-2', null);
+    await store.sessionContext('x-2'); // the store runs its calls in order
+    container.invalidate(cueScopeForRequestProvider);
+
+    expect(await store.sessionContext('x-2'), isNull);
+    expect(
+      (await scopeOf('x-2')).courseId,
+      'x-course-retreat',
+      reason: 'the personal course no longer leads',
+    );
+  });
+
+  test('opening a session from another course replaces the record', () async {
+    final a = await source.create(
+      title: 'A',
+      lines: [MyCourseLine.session(draft('x-1'))],
+    );
+    final b = await source.create(
+      title: 'B',
+      lines: [MyCourseLine.session(draft('x-1'))],
+    );
+    await noteSessionOrigin(store, 'x-1', a);
+    await noteSessionOrigin(store, 'x-1', b);
+    expect(await store.sessionContext('x-1'), b);
   });
 }

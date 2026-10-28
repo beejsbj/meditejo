@@ -284,7 +284,8 @@ class _MyCourseEditViewState extends ConsumerState<MyCourseEditView> {
   /// Generated art first, then each session's artwork.
   Widget _coverPicker(BuildContext context, MyCourseEdit edit) {
     final l10n = AppLocalizations.of(context)!;
-    final choices = ['', ..._current.coverChoices];
+    final current = _current;
+    final choices = ['', ...current.coverChoices];
     return SizedBox(
       height: 72,
       child: ListView.separated(
@@ -293,7 +294,7 @@ class _MyCourseEditViewState extends ConsumerState<MyCourseEditView> {
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final url = choices[index];
-          final selected = edit.coverUrl == url;
+          final selected = current.effectiveCoverUrl == url;
           return Semantics(
             button: true,
             selected: selected,

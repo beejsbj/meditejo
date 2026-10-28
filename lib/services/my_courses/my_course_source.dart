@@ -26,7 +26,7 @@ import 'package:medito/utils/logger.dart';
 /// shown from the snapshot taken when it was added. Deleting a course
 /// removes only the course: the sessions, their library entries and their
 /// downloads are left alone.
-class MyCourseSource implements ContentSource {
+class MyCourseSource implements ContentSource, CourseMembershipSource {
   MyCourseSource({
     required this.db,
     required this.library,
@@ -109,7 +109,58 @@ class MyCourseSource implements ContentSource {
     // finished), so they re-read; this pack is read again and finds nothing
     // new.
     if (availabilityChanged) _changed();
-    return _summary(course, rows).copyWith(items: items);
+    final current = await _followRefreshedCover(course, rows, fresh) ?? course;
+    return _summary(current, rows).copyWith(items: items);
+  }
+
+  /// A source changed the artwork of the session the course took its cover
+  /// from: the cover follows it, here and in the library snapshot. It stays
+  /// when another session still has the old artwork (still a choice) or when
+  /// the cover came from elsewhere. Returns the course as it now is, or null
+  /// when nothing moved.
+  Future<MyCourseRow?> _followRefreshedCover(
+    MyCourseRow course,
+    List<MyCourseItemRow> rows,
+    Map<int, MyCourseItemRow> fresh,
+  ) async {
+    final old = course.coverUrl;
+    if (old.isEmpty || fresh.values.any((r) => r.coverUrl == old)) return null;
+    for (final row in rows) {
+      final next = fresh[row.rowId];
+      if (next == null || row.coverUrl != old || next.coverUrl.isEmpty) {
+        continue;
+      }
+      // Only while it is still the cover seen before the refresh: a cover the
+      // editor saved in the meantime is left alone.
+      final moved =
+          await (db.update(db.myCourses)
+                ..where((c) => c.id.equals(course.id) & c.coverUrl.equals(old)))
+              .write(MyCoursesCompanion(coverUrl: Value(next.coverUrl)));
+      if (moved == 0) return null;
+      await _syncEntry(course.id);
+      return course.copyWith(coverUrl: next.coverUrl);
+    }
+    return null;
+  }
+
+  /// A source reported that it no longer has [itemIds]: asks the sources
+  /// again about the rows of personal courses that list them, so a course's
+  /// progress in the Library follows without its page being opened.
+  /// Re-resolving every course for a list screen would cost a round trip per
+  /// row; this costs one per removed session.
+  Future<void> sessionsRemoved(Iterable<String> itemIds) async {
+    final ids = itemIds.toSet();
+    if (ids.isEmpty) return;
+    final rows = await (db.select(
+      db.myCourseItems,
+    )..where((r) => r.itemId.isIn(ids))).get();
+    var availabilityChanged = false;
+    for (final row in rows) {
+      if ((await _refresh(row)).unavailable != row.unavailable) {
+        availabilityChanged = true;
+      }
+    }
+    if (availabilityChanged) _changed();
   }
 
   /// Sessions belong to their own sources; a course holds no tracks itself.
@@ -279,6 +330,10 @@ class MyCourseSource implements ContentSource {
     ];
   }
 
+  @override
+  Future<bool> courseLists(String courseId, String trackId) async =>
+      (await coursesHolding(trackId)).contains(courseId);
+
   /// IDs of the personal courses that list the session [itemId].
   Future<List<String>> coursesHolding(String itemId) async {
     final rows = await (db.select(
@@ -437,28 +492,31 @@ class MyCourseSource implements ContentSource {
   Future<MyCourseEdit?> edit(String id) async {
     final course = await _course(id);
     if (course == null) return null;
+    final lines = [
+      for (final row in await _rows(id))
+        if (row.itemId.isEmpty)
+          MyCourseLine.heading(row.heading)
+        else
+          MyCourseLine.session(
+            MyItemDraft(
+              id: row.itemId,
+              title: row.title,
+              subtitle: row.subtitle,
+              coverUrl: row.coverUrl,
+              durationMs: row.durationMs,
+              kind: row.kind,
+            ),
+            unavailable: row.unavailable,
+          ),
+    ];
+    final started = MyCourseEdit(title: course.title, lines: lines);
     return MyCourseEdit(
       title: course.title,
       description: course.description,
       coverUrl: course.coverUrl,
       group: await library.groupOf(id) ?? LibraryGroup.practice,
-      lines: [
-        for (final row in await _rows(id))
-          if (row.itemId.isEmpty)
-            MyCourseLine.heading(row.heading)
-          else
-            MyCourseLine.session(
-              MyItemDraft(
-                id: row.itemId,
-                title: row.title,
-                subtitle: row.subtitle,
-                coverUrl: row.coverUrl,
-                durationMs: row.durationMs,
-                kind: row.kind,
-              ),
-              unavailable: row.unavailable,
-            ),
-      ],
+      lines: lines,
+      offeredCovers: started.coverChoices,
     );
   }
 
@@ -473,7 +531,7 @@ class MyCourseSource implements ContentSource {
         MyCoursesCompanion(
           title: Value(_titleOr(edit.title)),
           description: Value(edit.description.trim()),
-          coverUrl: Value(edit.coverUrl),
+          coverUrl: Value(edit.effectiveCoverUrl),
           updatedAt: Value(_clock()),
         ),
       );
