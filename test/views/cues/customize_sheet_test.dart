@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'dart:ui' show Tristate;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -657,6 +659,156 @@ void main() {
     await tester.pumpAndSettle();
     expect(_value(tester, 'Background sound'), 'Current mix');
     await _unmount(tester);
+  });
+
+  group('Start during a wheel fling', () {
+    // The Timer's Duration wheel, flung toward longer: it is still turning
+    // when Start is tapped.
+    Future<ProviderContainer> flung(
+      WidgetTester tester,
+      void Function(int minutes) onStart,
+    ) async {
+      late ProviderContainer container;
+      container = await _pump(
+        tester,
+        isTimer: true,
+        onStart: () => onStart(_read(container).durationMinutes),
+      );
+      await _row(tester, 'Duration');
+      await tester.fling(
+        find.byType(ListWheelScrollView),
+        const Offset(0, -300),
+        1200,
+      );
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(_read(container).durationMinutes, 10, reason: 'still turning');
+      return container;
+    }
+
+    testWidgets('waits for the wheel to land and starts with that value', (
+      tester,
+    ) async {
+      final started = <int>[];
+      final container = await flung(tester, started.add);
+      await tester.tap(find.text('Start'));
+      await tester.pump();
+      expect(started, isEmpty, reason: 'the wheel has not landed yet');
+      await tester.pumpAndSettle();
+      final landed = tester
+          .state<WheelPickerState<dynamic>>(_wheel('Duration'))
+          .selectedIndex;
+      expect(landed, greaterThan(9), reason: 'the fling moved the wheel');
+      expect(started, [landed + 1], reason: 'started on the landed minutes');
+      expect(_read(container).durationMinutes, landed + 1);
+      await _unmount(tester);
+    });
+
+    testWidgets('a second tap while waiting does not start twice', (
+      tester,
+    ) async {
+      final started = <int>[];
+      await flung(tester, started.add);
+      await tester.tap(find.text('Start'));
+      await tester.pump(const Duration(milliseconds: 20));
+      await tester.tap(find.text('Start'));
+      await tester.pumpAndSettle();
+      expect(started, hasLength(1));
+      await _unmount(tester);
+    });
+
+    testWidgets('a wheel held by a finger does not hold Start for ever', (
+      tester,
+    ) async {
+      final started = <int>[];
+      await _pump(tester, isTimer: true, onStart: () => started.add(1));
+      await _row(tester, 'Duration');
+      final hold = await tester.startGesture(
+        tester.getCenter(find.byType(ListWheelScrollView)),
+      );
+      await hold.moveBy(const Offset(0, -30));
+      await tester.pump();
+      await tester.tap(find.text('Start'));
+      await tester.pump(const Duration(seconds: 1));
+      expect(started, isEmpty);
+      await tester.pump(WheelSettleGroup.patience);
+      expect(started, hasLength(1));
+      await hold.up();
+      await tester.pumpAndSettle();
+      await _unmount(tester);
+    });
+
+    testWidgets('a sheet dismissed while Start waits starts nothing', (
+      tester,
+    ) async {
+      // A real route: the sheet stays mounted through its exit animation, so
+      // `mounted` alone would still be true when the wheel lands.
+      var started = 0;
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          ...soundscapeTestOverrides(FakeSoundscapeEngine()),
+        ],
+      );
+      addTearDown(container.dispose);
+      late BuildContext host;
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: Builder(
+                builder: (context) {
+                  host = context;
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      unawaited(
+        showModalBottomSheet<void>(
+          context: host,
+          isScrollControlled: true,
+          builder: (_) => CustomizeSheet(
+            scope: _practice,
+            isTimer: true,
+            onStart: () => started++,
+            clock: () => DateTime(2026, 1, 1, 9, 0),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _row(tester, 'Duration');
+      await tester.fling(
+        find.byType(ListWheelScrollView),
+        const Offset(0, -300),
+        1200,
+      );
+      await tester.pump(const Duration(milliseconds: 60));
+      await tester.tap(find.text('Start'));
+      await tester.pump();
+      Navigator.of(host).pop();
+      await tester.pump(const Duration(milliseconds: 30));
+      await tester.pumpAndSettle();
+      expect(started, 0);
+    });
+
+    testWidgets('leaving the sheet while waiting starts nothing', (
+      tester,
+    ) async {
+      final started = <int>[];
+      await flung(tester, started.add);
+      await tester.tap(find.text('Start'));
+      await tester.pump();
+      await _unmount(tester);
+      await tester.pumpAndSettle();
+      expect(started, isEmpty);
+    });
   });
 
   testWidgets('Start button calls back', (tester) async {

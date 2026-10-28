@@ -1,0 +1,120 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/utils/logger.dart';
+import 'package:medito/utils/signed_url_redaction.dart';
+
+const _signed =
+    'https://rr1---sn-abc.googlevideo.com/videoplayback?expire=1&sig=SECRET&ip=1.2.3.4';
+
+void main() {
+  group('redactSignedUrls', () {
+    test('a stream address keeps only its host', () {
+      expect(
+        redactSignedUrls('Will use path: $_signed'),
+        'Will use path: https://rr1---sn-abc.googlevideo.com/<redacted>',
+      );
+    });
+
+    test('every address in a long message goes, wherever it sits', () {
+      final out = redactSignedUrls(
+        'HttpException: Connection closed, uri = $_signed\n'
+        '(retry: "$_signed")',
+      );
+      expect(out, isNot(contains('SECRET')));
+      expect(out, isNot(contains('sig=')));
+      expect('<redacted>'.allMatches(out), hasLength(2));
+    });
+
+    test('a videoplayback path is signed on any host', () {
+      expect(
+        redactSignedUrls('https://www.youtube.com/videoplayback?sig=SECRET'),
+        'https://www.youtube.com/<redacted>',
+      );
+    });
+
+    test('a signed address holding brackets is redacted to its end', () {
+      final out = redactSignedUrls(
+        'uri = https://rr.googlevideo.com/videoplayback?n=(x)&p=[1]&sig=SECRET.',
+      );
+      expect(out, isNot(contains('SECRET')));
+      expect(out, isNot(contains('&p=')));
+      expect('<redacted>'.allMatches(out), hasLength(1));
+    });
+
+    test('a signed address joined to an ordinary one is still redacted', () {
+      final joined = redactSignedUrls(
+        'urls: https://example.org/a,$_signed done',
+      );
+      expect(joined, isNot(contains('SECRET')));
+      expect(joined, isNot(contains('sig=')));
+    });
+
+    test('a signed address that carries another address in its query', () {
+      final nested = redactSignedUrls(
+        'https://rr.googlevideo.com/videoplayback?redirect=https://example.org&sig=SECRET',
+      );
+      expect(nested, isNot(contains('SECRET')));
+    });
+
+    test('redacting twice does not stack markers', () {
+      final once = redactSignedUrls('uri = $_signed');
+      expect(redactSignedUrls(once), once);
+      expect('<redacted>'.allMatches(once), hasLength(1));
+    });
+
+    test('the scheme and host match whatever their case', () {
+      expect(
+        redactSignedUrls('HTTPS://RR1.GoogleVideo.com/videoplayback?sig=S'),
+        isNot(contains('sig=')),
+      );
+    });
+
+    test('ordinary addresses and plain text are untouched', () {
+      const text =
+          'Opened https://www.youtube.com/watch?v=aaaaaaaaaaa, '
+          'https://example.org/a.mp3?token=1 and no network';
+      expect(redactSignedUrls(text), text);
+    });
+  });
+
+  group('logging', () {
+    late DebugPrintCallback original;
+    late List<String> lines;
+
+    setUp(() {
+      original = debugPrint;
+      lines = [];
+      debugPrint = (String? message, {int? wrapWidth}) =>
+          lines.add(message ?? '');
+    });
+    tearDown(() => debugPrint = original);
+
+    test('with debugPrint wrapped as in main, a line is redacted once', () {
+      redactDebugPrint();
+      AppLogger.d('PLAYER', 'Will use path: $_signed');
+      expect(lines.single, isNot(contains('SECRET')));
+      expect('<redacted>'.allMatches(lines.single), hasLength(1));
+    });
+
+    test('AppLogger redacts messages and error details', () {
+      AppLogger.d('PLAYER', 'Will use path: $_signed');
+      AppLogger.i('PLAYER', 'i $_signed');
+      AppLogger.w('PLAYER', 'w $_signed');
+      AppLogger.e('PLAYER', 'e $_signed', Exception('failed: $_signed'));
+
+      expect(lines, isNotEmpty);
+      for (final line in lines) {
+        expect(line, isNot(contains('SECRET')));
+        expect(line, isNot(contains('sig=')));
+      }
+      expect(lines.join('\n'), contains('googlevideo.com/<redacted>'));
+    });
+
+    test('redactDebugPrint also covers the framework\'s own output', () {
+      redactDebugPrint();
+      debugPrint('FlutterError: uri = $_signed');
+      expect(lines.single, isNot(contains('SECRET')));
+      expect('<redacted>'.allMatches(lines.single), hasLength(1));
+    });
+  });
+}

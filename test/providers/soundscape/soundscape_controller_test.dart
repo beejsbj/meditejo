@@ -224,6 +224,32 @@ void main() {
           .sessionDefault(SoundscapeSessionKind.practice);
     }
 
+    test('a saved mix of only dropped sounds plays the first starter under '
+        'Practice, not silence', () async {
+      // Pins what happens today (it passed before this slice too): the drop
+      // empties the saved mix, and an empty current mix is the first starter.
+      // Whether Practice should rather turn itself off is Burooj's call; see
+      // DECISIONS.md, bug batch A.
+      container.dispose();
+      container = await make({
+        SoundscapeStore.mixKey: jsonEncode([
+          {'soundId': 'gone-sound'},
+        ]),
+        SoundscapeStore.sessionDefaultsKey: oldFactory(),
+        SoundscapeStore.sessionDefaultsVersionKey: 2,
+      });
+      expect(
+        st().sessionDefault(SoundscapeSessionKind.practice).enabled,
+        isTrue,
+      );
+      await ctl().startSession(SoundscapeSessionKind.practice);
+      await settle();
+      expect(st().owner, SoundscapeOwner.session);
+      expect(engine.playing.keys, [
+        for (final l in kStarterPresets.first.mix.layers) l.soundId,
+      ]);
+    });
+
     test('a fresh install plays nothing under Practice or Talks', () async {
       expect(
         st().sessionDefault(SoundscapeSessionKind.practice).enabled,
@@ -427,7 +453,9 @@ void main() {
               SoundscapeSessionKind.practice,
               const SoundscapeSessionDefault(enabled: true),
             );
-        // ... and a relaunch must not undo it.
+        // ... and a relaunch must not undo it. (The version is written once the
+        // migrated setting has been saved, so let that finish first.)
+        await settle();
         final second = await make({
           SoundscapeStore.sessionDefaultsKey: prefs.getString(
             SoundscapeStore.sessionDefaultsKey,
@@ -945,6 +973,67 @@ void main() {
       await settle();
       expect(st().mix, mine);
       expect(SoundscapeStore(prefs).readMix(), mine);
+    });
+
+    test('a preset whose sounds the library dropped plays the current mix, '
+        'not silence', () async {
+      final gone = SoundPreset(
+        id: 'user-gone-sounds',
+        name: 'Gone',
+        mix: SoundMix([SoundLayer(soundId: 'gone-sound')]),
+      );
+      container.dispose();
+      container = await make({
+        SoundscapeStore.presetsKey: jsonEncode([gone.toJson()]),
+        SoundscapeStore.sessionDefaultsKey: jsonEncode({
+          'practice': {
+            'enabled': true,
+            'selection': SoundscapeSelection.preset(gone.id).encode(),
+            'volume': 0.5,
+          },
+        }),
+        SoundscapeStore.sessionDefaultsVersionKey: 2,
+      });
+      expect(
+        st().playable(SoundscapeSelection.preset(gone.id), _library),
+        SoundscapeSelection.currentMix,
+      );
+      // A preset with no sounds at all plays nothing either.
+      container.dispose();
+      container = await make({
+        SoundscapeStore.presetsKey: jsonEncode([
+          const SoundPreset(
+            id: 'user-empty',
+            name: 'Empty',
+            mix: SoundMix.empty,
+          ).toJson(),
+        ]),
+      });
+      expect(
+        st().playable(const SoundscapeSelection.preset('user-empty'), _library),
+        SoundscapeSelection.currentMix,
+      );
+      container.dispose();
+      container = await make({
+        SoundscapeStore.presetsKey: jsonEncode([gone.toJson()]),
+        SoundscapeStore.sessionDefaultsKey: jsonEncode({
+          'practice': {
+            'enabled': true,
+            'selection': SoundscapeSelection.preset(gone.id).encode(),
+            'volume': 0.5,
+          },
+        }),
+        SoundscapeStore.sessionDefaultsVersionKey: 2,
+      });
+      // Still loading: taken on trust.
+      expect(
+        st().playable(SoundscapeSelection.preset(gone.id), null),
+        SoundscapeSelection.preset(gone.id),
+      );
+      await ctl().startSession(SoundscapeSessionKind.practice);
+      await settle();
+      expect(st().owner, SoundscapeOwner.session);
+      expect(engine.playing, isNotEmpty);
     });
 
     test('a deleted preset or a dropped sound plays the current mix', () async {

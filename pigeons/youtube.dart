@@ -37,16 +37,20 @@ class YoutubeVideo {
   String description;
 }
 
+/// A playlist row. [uploader] is the channel that made this video, which is
+/// not the playlist's own owner; empty when the extractor does not say.
 class YoutubePlaylistItem {
   YoutubePlaylistItem({
     required this.videoId,
     required this.title,
+    required this.uploader,
     required this.durationSeconds,
     required this.thumbnail,
   });
 
   String videoId;
   String title;
+  String uploader;
   int durationSeconds;
   String thumbnail;
 }
