@@ -179,6 +179,13 @@ class IdStabilityTest(unittest.TestCase):
         new = self.snap(["x"], [("basics-01", "/Archive/y2025/x.mp3")])
         self.assertEqual(d.vanished_ids(old, new), [("file", "basics-01")])
 
+    def test_an_encoded_collection_href_still_matches_the_archive_talk(self):
+        # The collection page percent-encodes; the archive holds raw spaces.
+        old = self.snap([], [("basics-01", "/Archive/y2003/01%20Anger.mp3")])
+        new = self.snap([], [("basics-01", "/Archive/y2003/01%20Anger.mp3")])
+        new["talks"].append(["e", "01-anger", "Anger", "2003-08", "/Archive/y2003/01 Anger.mp3"])
+        self.assertEqual(d.vanished_ids(old, new), [("file", "basics-01")])
+
     def test_a_renamed_collection_is_reported(self):
         old = self.snap([], [("basics-01", "/a.mp3")])
         new = self.snap([], [("basics-01", "/a.mp3")])

@@ -327,6 +327,14 @@ def build_snapshot(talk_pages, guided, collections, as_of):
     return {"schema": SCHEMA, "asOf": as_of, "talks": talks, "courses": courses}
 
 
+def audio_key(path):
+    """How the app matches a collection file to an archive talk
+    (`DtCatalogue._audioKey`): no site prefix, percent-decoded, lower-cased."""
+    if path.startswith(SITE):
+        path = path[len(SITE) :]
+    return urllib.parse.unquote(path).lower()
+
+
 def ids_in_use(snapshot):
     """The identities a user's library, stats or downloads can hold.
 
@@ -334,12 +342,12 @@ def ids_in_use(snapshot):
     its key, unless the archive holds the same file, when the app uses the
     archive talk instead (so the collection key is no longer an ID).
     """
-    talks = {t[4].lower() for t in snapshot["talks"]}
+    talks = {audio_key(t[4]) for t in snapshot["talks"]}
     ids = {("talk", t[0], t[1]) for t in snapshot["talks"]}
     for course in snapshot["courses"]:
         ids.add(("course", course["id"]))
         for item in course["items"]:
-            if item[2].lower() not in talks:
+            if audio_key(item[2]) not in talks:
                 ids.add(("file", item[0]))
     return ids
 
