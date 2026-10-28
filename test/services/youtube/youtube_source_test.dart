@@ -2,10 +2,14 @@ import 'package:medito/src/youtube_api.g.dart';
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/exceptions/app_error.dart';
+import 'package:medito/services/content/content_source.dart';
 import 'package:medito/services/library/import_models.dart';
+import 'package:medito/services/my_courses/my_course_models.dart';
+import 'package:medito/services/my_courses/my_course_source.dart';
 import 'package:medito/services/library/library_database.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
@@ -1235,6 +1239,220 @@ void main() {
 
       expect((await store.entry(id))!.itemCount, 3);
       expect((await store.entry(ytPlaylistId(playlistTwo)))!.itemCount, 1);
+    });
+  });
+
+  group('who made each video', () {
+    final id = ytPlaylistId(playlistOne);
+
+    setUp(() {
+      api.playlists[playlistOne] = playlist([
+        item(videoA, title: 'First sit', uploader: 'Guest Channel'),
+        item(videoB, title: 'Second sit', uploader: 'Host Channel'),
+      ], uploader: 'Curator');
+    });
+
+    test('a course lists each session under its own channel', () async {
+      await addCourse(listOne);
+      final pack = await source.pack(id);
+
+      expect(
+        [for (final i in pack.items) i.teacher],
+        ['Guest Channel', 'Host Channel'],
+      );
+      expect(pack.subtitle, 'Curator', reason: 'the course keeps its owner');
+    });
+
+    test('a session is credited to its own channel', () async {
+      await addCourse(listOne);
+      final track = await source.track(ytVideoId(videoA));
+
+      expect(track.artist?.name, 'Guest Channel');
+      expect(track.attribution?.creator, 'Guest Channel');
+      expect(track.voices.single.guideName, 'Guest Channel');
+    });
+
+    test('a row that names no channel falls back to the playlist', () async {
+      api.playlists[playlistOne] = playlist([
+        item(videoA),
+      ], uploader: 'Curator');
+      await addCourse(listOne);
+
+      expect((await source.pack(id)).items.single.teacher, 'Curator');
+    });
+
+    test('a row that names no channel keeps one already stored', () async {
+      await addCourse(watchA, choice: single); // a full resolve: Quiet Channel
+      api.playlists[playlistOne] = playlist([
+        item(videoA),
+      ], uploader: 'Curator');
+      await addCourse(listOne);
+
+      expect((await source.pack(id)).items.single.teacher, 'Quiet Channel');
+    });
+
+    test('an empty stored channel falls back to the playlist', () async {
+      api.videos[videoA] = video(videoA, uploader: '');
+      await addCourse(watchA, choice: single); // stores an empty channel
+      api.playlists[playlistOne] = playlist([
+        item(videoA),
+      ], uploader: 'Curator');
+      await addCourse(listOne);
+
+      expect((await source.pack(id)).items.single.teacher, 'Curator');
+    });
+
+    test('a refresh corrects a row stored under the playlist owner', () async {
+      api.playlists[playlistOne] = playlist([
+        item(videoA, title: 'First sit'),
+      ], uploader: 'Curator');
+      await addCourse(listOne);
+      expect((await source.pack(id)).items.single.teacher, 'Curator');
+
+      clock.advance(const Duration(hours: 13));
+      api.playlists[playlistOne] = playlist([
+        item(videoA, title: 'First sit', uploader: 'Guest Channel'),
+      ], uploader: 'Curator');
+      expect(await source.refresh(id), isTrue);
+
+      expect((await source.pack(id)).items.single.teacher, 'Guest Channel');
+    });
+
+    test('a Single picked from the list keeps the row\'s channel', () async {
+      final preview = await previewOf(listOne);
+      await source.add(
+        preview,
+        const ImportChoice(
+          kind: LibraryKind.single,
+          group: LibraryGroup.practice,
+          episodeId: videoB,
+        ),
+      );
+
+      expect((await db.youtubeVideo(videoB))!.uploader, 'Host Channel');
+      expect((await store.entry(ytVideoId(videoB)))!.subtitle, 'Host Channel');
+    });
+
+    test('the picker names a channel only where it differs', () async {
+      api.playlists[playlistOne] = playlist([
+        item(videoA, uploader: 'Curator'),
+        item(videoB, uploader: 'Host Channel'),
+      ], uploader: 'Curator');
+      final preview = await previewOf(listOne);
+
+      expect(
+        [for (final e in preview.episodes) e.subtitle],
+        ['', 'Host Channel'],
+      );
+    });
+  });
+
+  group('a video in two saved courses', () {
+    final one = ytPlaylistId(playlistOne);
+    final two = ytPlaylistId(playlistTwo);
+    final shared = ytVideoId(videoA);
+
+    /// Stored times are whole seconds, so activity is set well apart.
+    Future<void> played(String id, DateTime at) =>
+        db.updateEntry(id, LibraryEntriesCompanion(lastPlayedAt: Value(at)));
+
+    setUp(() async {
+      await addCourse(listOne);
+      await addCourse('https://www.youtube.com/playlist?list=$playlistTwo');
+      // Each course has its own group; the video itself has none.
+      await store.setGroup(one, LibraryGroup.talks);
+      await store.setGroup(two, LibraryGroup.practice);
+    });
+
+    test('its group is the one of the course it was opened from', () async {
+      await store.noteSessionContext(shared, one);
+      expect((await source.track(shared)).hasBackgroundSound, isFalse);
+
+      await store.noteSessionContext(shared, two);
+      expect((await source.track(shared)).hasBackgroundSound, isTrue);
+    });
+
+    test('with no context, the most recently active course decides', () async {
+      await played(two, DateTime(2031));
+      expect(await source.parentOf(shared), two);
+      expect((await source.track(shared)).hasBackgroundSound, isTrue);
+
+      await played(one, DateTime(2032));
+      expect(await source.parentOf(shared), one);
+      expect((await source.track(shared)).hasBackgroundSound, isFalse);
+    });
+
+    test('a context that no longer lists the video is ignored', () async {
+      await store.noteSessionContext(shared, one);
+      clock.advance(const Duration(hours: 13));
+      api.playlists[playlistOne] = playlist([item(videoB)]);
+      await source.refresh(one);
+
+      expect(await source.courseLists(one, shared), isFalse);
+      expect(await source.courseLists(two, shared), isTrue);
+      expect((await source.track(shared)).hasBackgroundSound, isTrue);
+    });
+
+    test('a course that left the library is not asked', () async {
+      await store.noteSessionContext(shared, one);
+      await store.remove(one);
+
+      expect(await source.courseLists(one, shared), isFalse);
+      expect(await source.parentOf(shared), two);
+    });
+
+    test('only its own courses and videos are claimed', () async {
+      expect(await source.courseLists('ds-retreat-1', shared), isFalse);
+      expect(await source.courseLists(one, 'ds-talk-1'), isFalse);
+    });
+  });
+
+  group('a video in a personal course too', () {
+    final saved = ytPlaylistId(playlistOne);
+    final shared = ytVideoId(videoA);
+    late MyCourseSource mine;
+    late String personal;
+
+    setUp(() async {
+      await addCourse(listOne);
+      await store.setGroup(saved, LibraryGroup.talks);
+      mine = MyCourseSource(db: db, library: store, sources: () => [source]);
+      personal = await mine.create(
+        title: 'Morning sits',
+        group: LibraryGroup.practice,
+        lines: [
+          MyCourseLine.session(MyItemDraft(id: shared, title: 'First sit')),
+        ],
+      );
+      // Wired as the app does: one lookup across every source.
+      final router = ContentRouter(sources: [source, mine]);
+      source = YoutubeSource(
+        db: db,
+        library: store,
+        api: api,
+        clock: clock.call,
+        sessionCourse: (id) async => router.courseOfSession(
+          id,
+          openedFrom: await store.sessionContext(id),
+        ),
+      );
+    });
+    tearDown(() => mine.dispose());
+
+    test('started from the personal course, its group decides', () async {
+      await store.noteSessionContext(shared, personal);
+      expect((await source.track(shared)).hasBackgroundSound, isTrue);
+    });
+
+    test('started from the saved playlist, the playlist decides', () async {
+      await store.noteSessionContext(shared, saved);
+      expect((await source.track(shared)).hasBackgroundSound, isFalse);
+    });
+
+    test('the course decides before the video\'s own label', () async {
+      await store.noteSessionContext(shared, saved);
+      await store.setGroup(shared, LibraryGroup.practice);
+      expect((await source.track(shared)).hasBackgroundSound, isFalse);
     });
   });
 }

@@ -246,10 +246,16 @@ data class YoutubeVideo (
   }
 }
 
-/** Generated class from Pigeon that represents data sent in messages. */
+/**
+ * A playlist row. [uploader] is the channel that made this video, which is
+ * not the playlist's own owner; empty when the extractor does not say.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
 data class YoutubePlaylistItem (
   val videoId: String,
   val title: String,
+  val uploader: String,
   val durationSeconds: Long,
   val thumbnail: String
 )
@@ -258,15 +264,17 @@ data class YoutubePlaylistItem (
     fun fromList(pigeonVar_list: List<Any?>): YoutubePlaylistItem {
       val videoId = pigeonVar_list[0] as String
       val title = pigeonVar_list[1] as String
-      val durationSeconds = pigeonVar_list[2] as Long
-      val thumbnail = pigeonVar_list[3] as String
-      return YoutubePlaylistItem(videoId, title, durationSeconds, thumbnail)
+      val uploader = pigeonVar_list[2] as String
+      val durationSeconds = pigeonVar_list[3] as Long
+      val thumbnail = pigeonVar_list[4] as String
+      return YoutubePlaylistItem(videoId, title, uploader, durationSeconds, thumbnail)
     }
   }
   fun toList(): List<Any?> {
     return listOf(
       videoId,
       title,
+      uploader,
       durationSeconds,
       thumbnail,
     )
@@ -279,13 +287,14 @@ data class YoutubePlaylistItem (
       return true
     }
     val other = other as YoutubePlaylistItem
-    return YoutubeApiPigeonUtils.deepEquals(this.videoId, other.videoId) && YoutubeApiPigeonUtils.deepEquals(this.title, other.title) && YoutubeApiPigeonUtils.deepEquals(this.durationSeconds, other.durationSeconds) && YoutubeApiPigeonUtils.deepEquals(this.thumbnail, other.thumbnail)
+    return YoutubeApiPigeonUtils.deepEquals(this.videoId, other.videoId) && YoutubeApiPigeonUtils.deepEquals(this.title, other.title) && YoutubeApiPigeonUtils.deepEquals(this.uploader, other.uploader) && YoutubeApiPigeonUtils.deepEquals(this.durationSeconds, other.durationSeconds) && YoutubeApiPigeonUtils.deepEquals(this.thumbnail, other.thumbnail)
   }
 
   override fun hashCode(): Int {
     var result = javaClass.hashCode()
     result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.videoId)
     result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.title)
+    result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.uploader)
     result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.durationSeconds)
     result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.thumbnail)
     return result

@@ -1,5 +1,6 @@
-// The player over generated art, for the art PR's screenshots. Off by
-// default; written to docs/fork/design/art/<palette>/:
+// The player over generated art, for the art PR's screenshots. Every test run
+// renders it (so a plugin or layout failure fails CI); the PNGs are written
+// only when asked, to docs/fork/design/art/<palette>/:
 //
 //     MEDITEJO_SCREENSHOTS=1 MEDITEJO_SHOT_PALETTE=tide \
 //       MEDITEJO_SHOT_DIR=docs/fork/design/art/tide \
@@ -17,6 +18,8 @@ import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/models/track/track.dart' as model;
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/review_service_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
@@ -26,6 +29,11 @@ import 'package:medito/src/audio_pigeon.g.dart' as pigeon;
 import 'package:medito/views/home/previews/stats_fixtures.dart';
 import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/previews/preview_support.dart';
+import 'package:medito/widgets/errors/medito_error_widget.dart';
+// Both databases open through drift_flutter, which asks path_provider for a
+// temporary directory; a test has no such plugin. In-memory ones stand in.
+import '../helpers/dharma_seed_fake_api.dart';
+import '../helpers/library_fixtures.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -185,6 +193,16 @@ void main() {
                 ? ThemeMode.dark
                 : ThemeMode.light,
             overrides: [
+              dharmaSeedDatabaseProvider.overrideWith((ref) {
+                final db = memoryDharmaSeedDb();
+                ref.onDispose(db.close);
+                return db;
+              }),
+              libraryDatabaseProvider.overrideWith((ref) {
+                final db = memoryLibraryDb();
+                ref.onDispose(db.close);
+                return db;
+              }),
               playerProvider.overrideWith(
                 () => _FakePlayer(_request(attribution: _credit)),
               ),
@@ -215,18 +233,25 @@ void main() {
         );
         await tester.pump(const Duration(milliseconds: 100));
       }
-      await tester.runAsync(() async {
-        final render =
-            _boundary.currentContext!.findRenderObject()!
-                as RenderRepaintBoundary;
-        final image = await render.toImage(pixelRatio: 2.625);
-        final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-        File('$_out/player-${brightness.name}.png')
-          ..parent.createSync(recursive: true)
-          ..writeAsBytesSync(bytes!.buffer.asUint8List());
-      });
+      // The player shows an error screen instead when it cannot start (an
+      // unknown track, or a failed start); that must fail here, not pass as
+      // a capture of the error.
+      expect(find.byType(MeditoErrorWidget), findsNothing);
+      expect(find.byType(PlayerView), findsOneWidget);
+      if (_enabled) {
+        await tester.runAsync(() async {
+          final render =
+              _boundary.currentContext!.findRenderObject()!
+                  as RenderRepaintBoundary;
+          final image = await render.toImage(pixelRatio: 2.625);
+          final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+          File('$_out/player-${brightness.name}.png')
+            ..parent.createSync(recursive: true)
+            ..writeAsBytesSync(bytes!.buffer.asUint8List());
+        });
+      }
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 1));
-    }, skip: !_enabled);
+    });
   }
 }

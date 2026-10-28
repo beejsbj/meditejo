@@ -1,0 +1,31 @@
+/// Keeps signed YouTube stream addresses out of logs. One works for anyone who
+/// holds it until it expires, and logcat is pasted into bug reports. Only the
+/// host survives, so a log still says which server failed.
+// Up to whitespace, a quote or the marker's own `<`: a signed address may
+// hold `)` and `]`, and stopping at one would leave the rest of it in the log.
+final _address = RegExp(r'''https?://[^\s"'<>]+''', caseSensitive: false);
+
+const _marker = '<redacted>';
+
+String redactSignedUrls(String text) => text.replaceAllMapped(_address, (m) {
+  // Already redacted (the logger and debugPrint both pass text through here).
+  if (text.startsWith(_marker, m.end)) return m[0]!;
+  final uri = Uri.tryParse(m[0]!);
+  if (uri != null && _isSigned(uri)) return 'https://${uri.host}/$_marker';
+  // A signed address can sit later in the same token (two addresses joined by
+  // a comma, one nested in another's query), so judge the whole token.
+  return _looksSigned(m[0]!) ? 'https://unknown/$_marker' : m[0]!;
+});
+
+/// A stream address: a googlevideo.com host, or a `/videoplayback` path.
+bool _isSigned(Uri uri) {
+  final host = uri.host.toLowerCase();
+  return host == 'googlevideo.com' ||
+      host.endsWith('.googlevideo.com') ||
+      uri.path.startsWith('/videoplayback');
+}
+
+bool _looksSigned(String text) {
+  final lower = text.toLowerCase();
+  return lower.contains('googlevideo.com') || lower.contains('/videoplayback');
+}

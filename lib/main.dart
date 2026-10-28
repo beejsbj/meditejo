@@ -68,6 +68,7 @@ void main() async {
   DevicePreview.enable(enabled: DebugOptions.enableDevicePreview);
 
   WidgetsFlutterBinding.ensureInitialized();
+  redactDebugPrint();
   // The generated art's curated cards and textures, off the first frame's
   // path: cards show their ground's tone until these are in.
   unawaited(CuratedArt.instance.load());
