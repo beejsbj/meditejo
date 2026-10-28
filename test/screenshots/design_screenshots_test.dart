@@ -920,8 +920,7 @@ void main() {
       }, skip: !_enabled);
     }
 
-    // Explore with two catalogues: every source, then only Dhammatalks (the
-    // real bundled snapshot).
+    // Explore with both catalogues merged (the real bundled snapshot).
     testWidgets('Explore with both catalogues, ${brightness.name}', (
       tester,
     ) async {

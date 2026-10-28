@@ -91,8 +91,12 @@ jobs:
       - name: dhammatalks.org snapshot tool tests
         run: python3 -I -m unittest discover -s tools/meditejo -p 'test_dhammatalks.py'
 
-      # A warning, never a failure: the snapshot ages with the calendar, not
-      # with the code. release.sh is where a stale one is refused.
+      # Structure, counts and ordering: a hard check with no age limit.
+      - name: dhammatalks.org snapshot is well formed
+        run: python3 -I tools/meditejo/dhammatalks.py check
+
+      # Age is a warning, never a failure: the snapshot ages with the
+      # calendar, not with the code. release.sh is where a stale one is refused.
       - name: dhammatalks.org snapshot age (warning only)
         run: |
           python3 -I tools/meditejo/dhammatalks.py check --max-age-days 45 ||
