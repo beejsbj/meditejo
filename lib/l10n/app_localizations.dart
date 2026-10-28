@@ -4858,16 +4858,16 @@ abstract class AppLocalizations {
   /// **'Pinned to Home'**
   String get libraryPinned;
 
-  /// Heading above the category chips on Explore
+  /// Heading above the practice chips on Explore (Metta, Jhāna, …). Avoid the words 'categories' and 'tags'
   ///
   /// In en, this message translates to:
-  /// **'Categories'**
+  /// **'Ways to practise'**
   String get exploreCategories;
 
-  /// Screen-reader label of Explore's category chips
+  /// Screen-reader label of Explore's practice chips
   ///
   /// In en, this message translates to:
-  /// **'Browse by category'**
+  /// **'Browse ways to practise'**
   String get exploreCategoriesLabel;
 
   /// Title of a category page with nothing in it
@@ -4882,40 +4882,40 @@ abstract class AppLocalizations {
   /// **'Label something in your library, or add a course from Explore, and it will appear here.'**
   String get categoryEmptyBody;
 
-  /// Shown when a category page fails to load
+  /// Shown when the page of one practice (Metta, Jhāna, …) fails to load
   ///
   /// In en, this message translates to:
-  /// **'Could not load this category'**
+  /// **'Could not load this list'**
   String get categoryLoadFailed;
 
-  /// Screen-reader label of the Library's category and label chips
+  /// Screen-reader label of the Library's row of label chips
   ///
   /// In en, this message translates to:
-  /// **'Category or label'**
+  /// **'Filter by label'**
   String get libraryLabelFilterLabel;
 
-  /// Menu item that opens the categories and labels of a library item
+  /// Menu item that opens the labels of a library item
   ///
   /// In en, this message translates to:
-  /// **'Categories and labels'**
+  /// **'Labels'**
   String get libraryMenuLabels;
 
-  /// Title of the sheet where a library item's categories and labels are chosen
+  /// Title of the sheet where a library item's labels are chosen
   ///
   /// In en, this message translates to:
-  /// **'Categories and labels'**
+  /// **'Labels'**
   String get labelsTitle;
 
-  /// Explains the category chips in the labels sheet
+  /// Explains the practice chips in the labels sheet: the app pre-ticks its guesses, the user's choice wins
   ///
   /// In en, this message translates to:
-  /// **'Ticked categories are Meditejo\'s best guess or your own choice. Your choice always wins.'**
+  /// **'Meditejo ticks what it thinks fits. Change anything: your choice always wins.'**
   String get labelsExplain;
 
   /// Heading above the user's own labels in the labels sheet
   ///
   /// In en, this message translates to:
-  /// **'Your labels'**
+  /// **'Your own labels'**
   String get labelsCustomHeading;
 
   /// Hint of the text field for a new label
