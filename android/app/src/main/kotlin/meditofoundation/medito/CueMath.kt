@@ -360,6 +360,17 @@ internal class HoldPlan {
 
     fun begin(hold: PauseHold) { used.add(hold.atMs) }
 
+    /**
+     * A seek forward from [fromMs] to [toMs] jumped over the holds between:
+     * none of them is taken, even one just behind where the seek landed
+     * (within [LATE_TOLERANCE_MS], which is for playback arriving late, not
+     * for a seek). Their time is left for the end.
+     */
+    fun passOver(fromMs: Long, toMs: Long) {
+        if (toMs <= fromMs) return
+        holds.forEach { if (it.atMs > fromMs && it.atMs <= toMs) used.add(it.atMs) }
+    }
+
     /** The hold ended or was skipped: its planned length is spent either way. */
     fun spend(plannedMs: Long) { spentMs += plannedMs }
 

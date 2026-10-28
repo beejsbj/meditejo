@@ -116,6 +116,19 @@ class HoldPlanTest {
         assertEquals(30 * sec, p.endExtensionMs(60 * sec, Long.MAX_VALUE))
     }
 
+    @Test fun aSeekLandingJustPastAHoldDoesNotTakeIt() {
+        val p = plan(PauseHold(100 * sec, 30 * sec), PauseHold(300 * sec, 30 * sec))
+        // Within the late tolerance, playback arriving late would take it...
+        assertEquals(100 * sec, p.dueAt(100 * sec + 1500)?.atMs)
+        // ...but a seek from 10 s that lands there jumped over it.
+        p.passOver(10 * sec, 100 * sec + 1500)
+        assertNull(p.dueAt(100 * sec + 1500))
+        assertEquals(30 * sec, p.endExtensionMs(60 * sec, 100 * sec + 1500))
+        // A seek back does not mark anything; the second hold is still ahead.
+        p.passOver(250 * sec, 200 * sec)
+        assertEquals(300 * sec, p.dueAt(300 * sec)?.atMs)
+    }
+
     @Test fun skippingAHoldSpendsItsTimeWithoutMovingItToTheEnd() {
         val p = plan(PauseHold(100 * sec, 60 * sec))
         val hold = p.dueAt(100 * sec)!!

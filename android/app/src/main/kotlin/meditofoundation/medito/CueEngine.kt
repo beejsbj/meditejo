@@ -577,6 +577,8 @@ internal class CueEngine(
                         // Catch up to where the seek began, then jump by the distance.
                         sessionMs = CueMath.advance(sessionMs, lastPositionMs, oldPosition.positionMs, speed)
                         sessionMs = CueMath.advance(sessionMs, oldPosition.positionMs, newPosition.positionMs, speed)
+                        // Holds jumped over are not taken, even one just behind the landing.
+                        holdPlan.passOver(oldPosition.positionMs, newPosition.positionMs)
                         lastPositionMs = newPosition.positionMs
                         lastRealMs = SystemClock.elapsedRealtime()
                         armAll(sessionMs, fresh = false)
