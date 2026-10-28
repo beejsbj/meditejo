@@ -9,7 +9,7 @@ the result ships as `assets/categories/dharma_seed_pass.json`. See
 docs/fork/DECISIONS.md (2026-10-28, categories second pass).
 
     model_pass.py batches             write the retreat batches to read
-    model_pass.py check               validate the proposals written so far
+    model_pass.py check               validate the proposals (fails until all are in)
     model_pass.py audit-batches       write the batches for the audit
     model_pass.py build               write the shipped asset from both passes
     model_pass.py counts              categories per retreat, before and after
@@ -162,6 +162,10 @@ def cmd_check(_):
             done += 1
     proposals(WORK / 'haiku')
     print(f'{done}/{len(expected)} batches complete; to do: {" ".join(missing)}')
+    if not expected:
+        raise SystemExit(f'No batches under {INPUT}: run `batches` first')
+    if done != len(expected):
+        raise SystemExit(1)
 
 
 def cmd_audit_batches(args):
@@ -189,16 +193,44 @@ def cmd_audit_batches(args):
 
 
 def final():
-    """Haiku's proposals with Sonnet's audit applied."""
+    """Haiku's proposals with Sonnet's audit, then the corrections, applied.
+
+    `pass/corrections.jsonl` holds the few readings fixed after review, each
+    with its reason; it outranks both models.
+    """
     result = {rid: p['categories'] for rid, p in proposals(WORK / 'haiku').items()}
     audited = proposals(WORK / 'sonnet') if (WORK / 'sonnet').exists() else {}
     for rid, row in audited.items():
         result[rid] = row['categories']
+    corrections = WORK / 'corrections.jsonl'
+    if corrections.exists():
+        ids = {c['id'] for c in categories()}
+        for row in read_jsonl(corrections):
+            rid = int(row['id'])
+            if rid not in result or any(c not in ids for c in row['categories']):
+                raise SystemExit(f'corrections.jsonl: bad row {row}')
+            result[rid] = row['categories']
     return result, audited
 
 
 def cmd_build(_):
     result, audited = final()
+    con, tmp = open_snapshot()
+    try:
+        eligible = {
+            rid for (rid,) in con.execute(
+                "SELECT id FROM ds_retreats WHERE talk_ids != '[]'"
+            )
+        }
+    finally:
+        con.close()
+        shutil.rmtree(tmp)
+    if set(result) != eligible:
+        raise SystemExit(
+            f'The proposals cover {len(set(result) & eligible)} of '
+            f'{len(eligible)} retreats with talks '
+            f'({len(set(result) - eligible)} unknown): run `check`'
+        )
     order = [c['id'] for c in categories()]
     by_category = {c: [] for c in order}
     none = []

@@ -445,7 +445,8 @@ category *is* that category; anything else is a label of their own.
   (`tools/meditejo/categories/model_pass.py`; working files and reasons in
   `tools/meditejo/categories/pass/`). It is stored by category (retreat IDs)
   plus `none`, the retreats it read as having no practice focus. Regenerate
-  it, do not hand-edit it; correct a retreat with a `curated` entry instead.
+  it, do not hand-edit it; correct a reading in `pass/corrections.jsonl`
+  (with a reason), or hand-pick the retreat in `curated`.
 - **Precedence, one rule everywhere:** the user's labels, then the curated
   (hand-picked) mapping, then the model pass, then the keyword rules
   (`CategorySource.user > curated > model > rule`). A retreat the pass read,
