@@ -18,7 +18,7 @@ boundary, which is still empty. Everything else arrives through a
 
 ```dart
 abstract interface class ContentSource {
-  String get prefix;                       // 'ds-', later 'lib-', 'yt-'
+  String get prefix;                       // 'ds-', 'dt-', 'lib-', 'yt-'
   Future<List<PackModel>> browsePacks();   // bounded, saved first
   Future<PackModel> pack(String id);       // a course: tracks in play order
   Future<Track> track(String id);          // one voice, one playable file
@@ -35,7 +35,8 @@ so views and providers are unchanged. The interface's doc comment holds the
 rules for a new source: stable IDs, `/tracks/<id>` item paths, URLs resolved
 in `track()`, `CatalogueEntryUnavailable` for unknown IDs, and degrading to
 stored data when offline. An RSS or YouTube adapter implements those seven
-methods and joins the provider list.
+methods and joins the provider list; a catalogue the Explore tab browses also
+implements `CatalogueSource` (below).
 
 A source whose courses, talks or teachers can be kept also implements
 `SavableContentSource` (`canSave`, `isSaved`, `setSaved`); `ContentRouter`
@@ -174,16 +175,79 @@ and because the updater also refuses any tag that is not `v<MAJOR.MINOR.PATCH>`
   trade is that a checkout needs one network step before a full test run or
   build.
 
-`DharmaSeedSource` also carries the Dharma Seed screens' reads, outside the
-interface until a second source shows what is shared: `explore({group})`,
-`search(query, {length})`, `teacherPage(id)` and `teacherTalks(id, offset)`.
-They return the view models in `dharma_seed_models.dart` (`DsExplore`,
-`DsSearchResults`, `DsTeacherPage`, `DsTeacherItem`). `DsContentGroup` (practice
-or talks, from `recording_type`; `dsPracticeRecordingTypes` is the list the SQL
-filters on) and `SessionLength` (`lib/models/explore/session_length.dart`, the
-`[min, max)` minute buckets) are the filters. `lib/providers/dharma_seed/
-dharma_seed_ui_providers.dart` holds the Explore chip, the saved toggle and the
-Explore, search and teacher providers.
+The screens' reads sit on a second interface, below.
+
+### The catalogue seam
+
+`CatalogueSource` (`lib/services/content/catalogue_source.dart`) is a
+`ContentSource` plus what the Explore, search and teacher screens read:
+`name`, `ownsTeacher`, `revision`, `explore({group})`, `search(query, {length})`,
+`teacherPage`, `teacherTalks`, `libraryDraft` (how the library describes one of
+its items; Add to library and a pasted link store it) and `catchUp` (the only
+call that may use the network to refresh the catalogue; it runs when Explore
+opens, never at startup). `DharmaSeedSource` and `DhammatalksSource` implement
+it. They answer in source-neutral view models
+(`lib/models/catalogue/catalogue_models.dart`: `CatalogueExplore`,
+`CatalogueSearchResults`, `CatalogueTeacherPage`, `CatalogueTeacher`, and the
+`ContentGroup` enum, Practice or Talks), so no screen knows which source it is
+showing. `CatalogueExplore.archives` carries a source's "browse by" lists (the
+year lists). `catalogue_merge.dart` merges answers: courses and talks alternate
+between sources, teachers rank by talk count, followed teachers lead.
+
+`lib/providers/dharma_seed/dharma_seed_ui_providers.dart` holds the wiring:
+`catalogueSourcesProvider` (the `CatalogueSource`s in `contentSourcesProvider`,
+in the order their results are merged), `catalogueRevisionProvider`
+(bumps when any source lands records), `catalogueExploreProvider(group)`,
+`catalogueSearchProvider` (merged), `catalogueTeacherProvider` (routed by
+`ownsTeacher`) and `catchUpCatalogues(ref)`. A source that throws is skipped,
+so one failing catalogue does not blank the others. Adding a catalogue is:
+implement the interface, add it to `contentSourcesProvider`; merged Explore and
+search, teacher routing and import need nothing else.
+
+### dhammatalks.org (`dt-`)
+
+`lib/services/dhammatalks/`. Thanissaro Bhikkhu's talks, CC BY-NC 4.0, as a
+built-in catalogue (BRIEF decision 3; research in `content-sources.md`).
+
+- **Snapshot** (`assets/dhammatalks/`, **in git**, 313 KB for 9,311 talks):
+  built by `tools/meditejo/dhammatalks.py` (see BUILD.md), which documents the
+  format. Metadata only: the evening and morning archive year pages, the guided
+  meditations and the collections. `DtCatalogue` (`dhammatalks_catalogue.dart`)
+  reads it (gunzip and JSON in a `compute` isolate) and answers searches in
+  memory over folded title words. A collection item whose file the archive also
+  holds is that archive talk, so a talk has one ID wherever it is listed.
+- **Staleness.** `dtSnapshotMaxAgeDays` (45) is how far the RSS feeds (50 items
+  each) reach back; `dhammatalks_snapshot_test.dart` and a CI step only warn past it, and
+  `release.sh` refuses a snapshot over 14 days old. A rebuild refuses to drop IDs.
+- **Runtime additions** (`dhammatalks_feed.dart`): `catchUp` reads
+  `/rss/evening.xml` and `/rss/morning.xml` (one request each, serially, via
+  `ImportHttp`) at most every 6 h unless forced (pull to refresh), merges the new
+  talks, and keeps every talk the feeds have shown in shared preferences
+  (`dhammatalks_feed_v1`), so a kept talk stays playable. Offline it does
+  nothing. The feed's `pubDate` is when the file was published, so the date is
+  the key's (`261026-…`).
+- **IDs** (`dhammatalks_ids.dart`): `dt-talk-e-<key>` (evening),
+  `dt-talk-m-<key>` (short morning talk), `dt-talk-c-<slug>` (a file only a
+  collection lists), `dt-course-<collection>`, `dt-year-e|m-<year>` (a year of
+  the archive: a list that opens like a course but cannot be kept),
+  `dt-teacher-thanissaro`.
+- **Shape.** The guided meditations are a Practice course; Basics and the other
+  collections are Talks courses (relabelling is one tap). Years are browsed from
+  a "Talks by year" chip strip in Explore. One teacher page. Every item carries
+  `SourceAttribution` (dhammatalks.org, Thanissaro Bhikkhu, the item's page,
+  CC BY-NC 4.0 and the licence link); audio streams unmodified from the site.
+- **Import.** `DhammatalksSource.idForLink` maps a talk page, a talk's mp3, a
+  year, the guided index or a collection anchor to the built-in ID;
+  `ImportService.resolve` asks it before treating the link as a web address, so
+  such a link previews and adds the built-in item with no request. A link it
+  does not hold imports as before (a feed stays a feed).
+
+### Hermes Amāra (`ha-`, off)
+
+See DECISIONS.md, 2026-10-27 (slice 8). The adapter exists but
+`hermesAmaraEnabled` (`lib/services/hermes_amara/hermes_amara_flag.dart`) is a
+compile-time flag, off in every build until Burooj has the foundation's
+permission.
 
 ### The library and imports (`lib-`)
 
@@ -380,6 +444,9 @@ clipboard reader and share intake as providers, so tests need no platform.
   large cards with Add to library on the art, saved teachers and teachers
   (`TeacherStrip`), and the latest sessions (`SessionRowsSliver`): guided
   practice unless Talks is chosen. `LibraryStateCard` explains the first sync.
+  Browse and search always read every built-in catalogue, merged (see "The
+  catalogue seam"; there is no source filter, each item carries its own source
+  attribution), and a "Talks by year" chip strip opens a year of dhammatalks.
   Pull to refresh runs an incremental sync. Typing (400 ms debounce, not
   ASCII-filtered) replaces that with `SearchResults` (`lib/views/search/`):
   Teachers, Courses, Talks, with the length chips over the talks, and the

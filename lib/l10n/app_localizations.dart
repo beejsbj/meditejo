@@ -5163,6 +5163,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'My bell'**
   String get bellMakerDefaultName;
+
+  /// Explore section title: a source's talks, year by year
+  ///
+  /// In en, this message translates to:
+  /// **'Talks by year'**
+  String get exploreArchives;
 }
 
 class _AppLocalizationsDelegate

@@ -2915,4 +2915,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bellMakerDefaultName => 'My bell';
+
+  @override
+  String get exploreArchives => 'Talks by year';
 }

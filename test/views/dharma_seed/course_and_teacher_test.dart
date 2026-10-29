@@ -433,7 +433,7 @@ void main() {
       // A sync lands while the second page is still loading.
       ProviderScope.containerOf(
         tester.element(find.byType(TeacherView)),
-      ).invalidate(dharmaSeedTeacherProvider('ds-teacher-3'));
+      ).invalidate(catalogueTeacherProvider('ds-teacher-3'));
       await DharmaSeedTestApp.settle(tester);
       gate.complete();
       await DharmaSeedTestApp.settle(tester);

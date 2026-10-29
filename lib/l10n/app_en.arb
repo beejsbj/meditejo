@@ -3276,5 +3276,9 @@
   "bellMakerDefaultName": "My bell",
   "@bellMakerDefaultName": {
     "description": "Bell maker: the name suggested for a new bell"
+  },
+  "exploreArchives": "Talks by year",
+  "@exploreArchives": {
+    "description": "Explore section title: a source's talks, year by year"
   }
 }

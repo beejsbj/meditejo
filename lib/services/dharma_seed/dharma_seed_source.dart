@@ -1,17 +1,19 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/models/explore/session_length.dart';
 import 'package:medito/models/explore/track_search_model.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/models/track/track.dart';
+import 'package:medito/services/content/catalogue_source.dart';
 import 'package:medito/services/content/content_source.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_client.dart'
     show DsKind;
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_models.dart';
+import 'package:medito/models/catalogue/catalogue_models.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_sync.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
@@ -28,7 +30,7 @@ import 'package:medito/utils/logger.dart';
 /// has not synced yet asks [sync] to fetch it first, bounded by
 /// [fetchTimeout]; offline, it shows what is stored.
 class DharmaSeedSource
-    implements ContentSource, SavableContentSource, ParentedContentSource {
+    implements CatalogueSource, SavableContentSource, ParentedContentSource {
   DharmaSeedSource({
     required this.db,
     this.sync,
@@ -47,6 +49,28 @@ class DharmaSeedSource
 
   @override
   String get prefix => dharmaSeedPrefix;
+
+  @override
+  String get name => 'Dharma Seed';
+
+  @override
+  bool ownsTeacher(String id) => parseDsTeacherId(id) != null;
+
+  static final ValueNotifier<int> _noRevision = ValueNotifier(0);
+
+  @override
+  ValueListenable<int> get revision => sync?.revision ?? _noRevision;
+
+  /// The ordinary incremental sync: a few small requests, skipped when the
+  /// last one is recent.
+  @override
+  Future<void> catchUp({bool force = false}) async {
+    try {
+      await sync?.sync(force: force);
+    } catch (e) {
+      AppLogger.w('DHARMA_SEED', 'Catch-up skipped: $e');
+    }
+  }
 
   @override
   Future<List<PackModel>> browsePacks() => _quietly('browse', () async {
@@ -183,6 +207,7 @@ class DharmaSeedSource
   /// title, artwork, size and whether it is practice or talks. A course or
   /// talk not stored yet is fetched first (the same on-demand fetch as
   /// opening it). Null when Dharma Seed does not have it.
+  @override
   Future<LibraryDraft?> libraryDraft(String id) async {
     if (parseDsRetreatId(id) case final retreatId?) {
       await _fetch(() => sync?.ensureRetreatTalks(retreatId));
@@ -258,17 +283,17 @@ class DharmaSeedSource
     return retreat == null || retreat == 0 ? null : dsRetreatId(retreat);
   }
 
-  // ------------------------------------------------- Dharma Seed screens
+  // ------------------------------------------------- Catalogue screens
   //
-  // Teachers, content groups and the length filter are Dharma Seed features
-  // for now. They stay out of [ContentSource] until a second source shows
-  // what is really shared.
+  // The reads the Explore, search and teacher screens make: the
+  // [CatalogueSource] half of this class.
 
   /// Explore for one content group, or both when [group] is null: saved
   /// courses and teachers first (unfiltered view only), then the newest
   /// courses of that group, the busiest teachers, and the latest single
   /// sessions (guided practice when no group is chosen).
-  Future<DsExplore> explore({DsContentGroup? group}) =>
+  @override
+  Future<CatalogueExplore> explore({ContentGroup? group}) =>
       _quietly('explore', () async {
         // Courses in the library are shown by the Explore screen itself, so
         // they stay visible under any chip; here they are only left out of
@@ -299,10 +324,10 @@ class DharmaSeedSource
         // With no chip, the latest guided practice: practice leads where
         // nothing else decides (decision 11).
         final talks = await db.recentTalks(
-          filter: DsTalkFilter(group: group ?? DsContentGroup.practice),
+          filter: DsTalkFilter(group: group ?? ContentGroup.practice),
         );
 
-        return DsExplore(
+        return CatalogueExplore(
           courses: [for (final r in courses) course(r)],
           savedTeachers: [for (final t in savedTeachers) teacherItem(t)],
           teachers: [
@@ -318,12 +343,13 @@ class DharmaSeedSource
               await db.countOf(DsKind.retreats) > 0 &&
               (group == null || await db.countOf(DsKind.talks) > 0),
         );
-      }, orElse: const DsExplore());
+      }, orElse: const CatalogueExplore());
 
   /// Search over the local index, grouped: teachers lead (a talk quoting a
   /// teacher outranks the teacher's own talks otherwise), then courses, then
   /// talks, which alone honour [length].
-  Future<DsSearchResults> search(
+  @override
+  Future<CatalogueSearchResults> search(
     String query, {
     SessionLength? length,
   }) => _quietly('search', () async {
@@ -336,7 +362,7 @@ class DharmaSeedSource
     final counts = await db.talkCounts(teachers.map((t) => t.id));
     final leads = await db.leadTeacherOfRetreats(retreats.map((r) => r.id));
     final leadTeachers = await db.teachersById(leads.values);
-    return DsSearchResults(
+    return CatalogueSearchResults(
       teachers: [
         for (final t in teachers) teacherItem(t, talkCount: counts[t.id] ?? 0),
       ],
@@ -345,11 +371,15 @@ class DharmaSeedSource
       ],
       talks: [for (final t in talks) talkItem(t)],
     );
-  }, orElse: const DsSearchResults());
+  }, orElse: const CatalogueSearchResults());
 
   /// A teacher's page, or [CatalogueEntryUnavailable] when they are not
   /// stored (yet).
-  Future<DsTeacherPage> teacherPage(String id, {int talkPage = 30}) async {
+  @override
+  Future<CatalogueTeacherPage> teacherPage(
+    String id, {
+    int talkPage = 30,
+  }) async {
     final teacherId = parseDsTeacherId(id);
     if (teacherId == null) throw CatalogueEntryUnavailable('teacher', id);
     final teacher = await db.teacherById(teacherId);
@@ -360,7 +390,7 @@ class DharmaSeedSource
     final leadTeachers = await db.teachersById(leads.values);
     final talks = await db.talksOfTeacher(teacherId, limit: talkPage + 1);
     final talkCount = counts[teacherId] ?? 0;
-    return DsTeacherPage(
+    return CatalogueTeacherPage(
       teacher: teacherItem(
         teacher,
         talkCount: talkCount,
@@ -375,6 +405,7 @@ class DharmaSeedSource
   }
 
   /// More of a teacher's talks, after the [offset] already shown.
+  @override
   Future<List<PackItemsModel>> teacherTalks(
     String id, {
     required int offset,
@@ -477,11 +508,11 @@ class DharmaSeedSource
     );
   }
 
-  static DsTeacherItem teacherItem(
+  static CatalogueTeacher teacherItem(
     DsTeacher teacher, {
     int talkCount = 0,
     int retreatCount = 0,
-  }) => DsTeacherItem(
+  }) => CatalogueTeacher(
     id: dsTeacherId(teacher.id),
     name: teacher.name,
     photoUrl: teacherPhoto(teacher),
@@ -490,6 +521,10 @@ class DharmaSeedSource
     pageUrl: dsTeacherPageUrl(teacher.id),
     talkCount: talkCount,
     retreatCount: retreatCount,
+    attribution: _attribution(
+      url: dsTeacherPageUrl(teacher.id),
+      creator: teacher.name,
+    ),
   );
 
   static PackItemsModel retreatItem(DsRetreat retreat, DsTeacher? lead) =>

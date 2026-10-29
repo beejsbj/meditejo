@@ -2964,4 +2964,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get bellMakerDefaultName => 'Meine Glocke';
+
+  @override
+  String get exploreArchives => 'Vorträge nach Jahr';
 }

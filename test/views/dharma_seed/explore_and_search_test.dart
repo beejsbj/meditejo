@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/providers/main_tab_provider.dart';
+import 'package:medito/services/dhammatalks/dhammatalks_catalogue.dart';
+import 'package:medito/services/dhammatalks/dhammatalks_source.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/views/explore/widgets/explore_view.dart';
 import 'package:medito/services/library/library_database.dart';
 
+import '../../helpers/dhammatalks_fixtures.dart';
 import '../../helpers/dharma_seed_app.dart';
 
 void main() {
@@ -108,6 +111,82 @@ void main() {
 
       expect(find.text('The library is not synced yet'), findsOneWidget);
       expect(find.text('Courses'), findsNothing);
+    });
+  });
+
+  group('Explore with a second catalogue', () {
+    DhammatalksSource dhammatalks(DharmaSeedTestApp app) {
+      final json = dhammatalksJson();
+      // A talk both catalogues can answer a search for.
+      (json['talks']! as List<Object?>).add([
+        'e',
+        '251101-jhana-and-breath',
+        'Jhana and the Breath',
+        '2025-11-01',
+        '/Archive/y2025/251101_Jhana.mp3',
+      ]);
+      return DhammatalksSource(
+        loadSnapshot: () async => DtCatalogue.fromJson(json),
+        library: app.library,
+      );
+    }
+
+    testWidgets('Explore merges both catalogues with no source chips', (
+      tester,
+    ) async {
+      final app = await DharmaSeedTestApp.create(tester);
+      await app.pump(
+        tester,
+        const ExploreView(),
+        dhammatalks: dhammatalks(app),
+      );
+      tester.view.physicalSize = const Size(430, 2400);
+      await DharmaSeedTestApp.settle(tester);
+
+      expect(find.byKey(const ValueKey('explore_chip_practice')), findsOne);
+      for (final key in ['all', 'ds-', 'dt-']) {
+        expect(find.byKey(ValueKey('explore_source_$key')), findsNothing);
+      }
+      // Both catalogues' courses, the Dhammatalks teacher and its years.
+      expect(find.text('Mixed Weekend'), findsOneWidget);
+      expect(find.text('Guided meditations'), findsOneWidget);
+      expect(find.text('Thanissaro Bhikkhu'), findsOneWidget);
+      expect(find.text('Talks by year'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('archive_dt-year-e-2025')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('search is merged across sources', (tester) async {
+      final app = await DharmaSeedTestApp.create(tester);
+      await app.pump(
+        tester,
+        const ExploreView(),
+        dhammatalks: dhammatalks(app),
+      );
+
+      await tester.enterText(find.byType(TextField), 'jhana');
+      await tester.pump(const Duration(milliseconds: 450));
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.text('Jhana basics'), findsOneWidget); // Dharma Seed
+      expect(find.text('Jhana and the Breath'), findsOneWidget); // Dhammatalks
+    });
+
+    testWidgets('a year opens as a list of its talks', (tester) async {
+      final app = await DharmaSeedTestApp.create(tester);
+      await app.pump(
+        tester,
+        const ExploreView(),
+        dhammatalks: dhammatalks(app),
+      );
+      tester.view.physicalSize = const Size(430, 2400);
+      await DharmaSeedTestApp.settle(tester);
+
+      await tester.tap(find.byKey(const ValueKey('archive_dt-year-e-2025')));
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.text('Evening talks 2025'), findsWidgets);
+      expect(find.text('An Auspicious Night'), findsOneWidget);
     });
   });
 
