@@ -3047,13 +3047,13 @@
   "@libraryPinned": {
     "description": "Screen-reader label of the pin mark on a Library card"
   },
-  "exploreCategories": "Categories",
+  "exploreCategories": "Ways to practise",
   "@exploreCategories": {
-    "description": "Heading above the category chips on Explore"
+    "description": "Heading above the practice chips on Explore (Metta, Jhāna, …). Avoid the words 'categories' and 'tags'"
   },
-  "exploreCategoriesLabel": "Browse by category",
+  "exploreCategoriesLabel": "Browse ways to practise",
   "@exploreCategoriesLabel": {
-    "description": "Screen-reader label of Explore's category chips"
+    "description": "Screen-reader label of Explore's practice chips"
   },
   "categoryEmptyTitle": "Nothing here yet",
   "@categoryEmptyTitle": {
@@ -3063,27 +3063,27 @@
   "@categoryEmptyBody": {
     "description": "Body of a category page with nothing in it"
   },
-  "categoryLoadFailed": "Could not load this category",
+  "categoryLoadFailed": "Could not load this list",
   "@categoryLoadFailed": {
-    "description": "Shown when a category page fails to load"
+    "description": "Shown when the page of one practice (Metta, Jhāna, …) fails to load"
   },
-  "libraryLabelFilterLabel": "Category or label",
+  "libraryLabelFilterLabel": "Filter by label",
   "@libraryLabelFilterLabel": {
-    "description": "Screen-reader label of the Library's category and label chips"
+    "description": "Screen-reader label of the Library's row of label chips"
   },
-  "libraryMenuLabels": "Categories and labels",
+  "libraryMenuLabels": "Labels",
   "@libraryMenuLabels": {
-    "description": "Menu item that opens the categories and labels of a library item"
+    "description": "Menu item that opens the labels of a library item"
   },
-  "labelsTitle": "Categories and labels",
+  "labelsTitle": "Labels",
   "@labelsTitle": {
-    "description": "Title of the sheet where a library item's categories and labels are chosen"
+    "description": "Title of the sheet where a library item's labels are chosen"
   },
-  "labelsExplain": "Ticked categories are Meditejo's best guess or your own choice. Your choice always wins.",
+  "labelsExplain": "Meditejo ticks what it thinks fits. Change anything: your choice always wins.",
   "@labelsExplain": {
-    "description": "Explains the category chips in the labels sheet"
+    "description": "Explains the practice chips in the labels sheet: the app pre-ticks its guesses, the user's choice wins"
   },
-  "labelsCustomHeading": "Your labels",
+  "labelsCustomHeading": "Your own labels",
   "@labelsCustomHeading": {
     "description": "Heading above the user's own labels in the labels sheet"
   },

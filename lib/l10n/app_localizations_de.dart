@@ -2795,10 +2795,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get libraryPinned => 'Auf Home angeheftet';
 
   @override
-  String get exploreCategories => 'Kategorien';
+  String get exploreCategories => 'Arten zu üben';
 
   @override
-  String get exploreCategoriesLabel => 'Nach Kategorie durchsuchen';
+  String get exploreCategoriesLabel => 'Arten zu üben durchsuchen';
 
   @override
   String get categoryEmptyTitle => 'Hier ist noch nichts';
@@ -2808,24 +2808,23 @@ class AppLocalizationsDe extends AppLocalizations {
       'Vergib in deiner Bibliothek ein Label oder füge einen Kurs aus Entdecken hinzu, und er erscheint hier.';
 
   @override
-  String get categoryLoadFailed =>
-      'Diese Kategorie konnte nicht geladen werden';
+  String get categoryLoadFailed => 'Diese Liste konnte nicht geladen werden';
 
   @override
-  String get libraryLabelFilterLabel => 'Kategorie oder Label';
+  String get libraryLabelFilterLabel => 'Nach Label filtern';
 
   @override
-  String get libraryMenuLabels => 'Kategorien und Labels';
+  String get libraryMenuLabels => 'Labels';
 
   @override
-  String get labelsTitle => 'Kategorien und Labels';
+  String get labelsTitle => 'Labels';
 
   @override
   String get labelsExplain =>
-      'Angekreuzte Kategorien sind Meditejos beste Vermutung oder deine eigene Wahl. Deine Wahl hat immer Vorrang.';
+      'Meditejo kreuzt an, was seiner Meinung nach passt. Ändere, was du willst: Deine Wahl hat immer Vorrang.';
 
   @override
-  String get labelsCustomHeading => 'Deine Labels';
+  String get labelsCustomHeading => 'Deine eigenen Labels';
 
   @override
   String get labelsAddHint => 'Label hinzufügen';

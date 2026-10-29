@@ -426,7 +426,7 @@ void main() {
           'Copy as playlist',
           'Move to Talks',
           'Rename',
-          'Categories and labels',
+          'Labels',
           'Pin to Home',
           'Remove from library',
         });
@@ -436,7 +436,7 @@ void main() {
           'Copy as playlist',
           'Move to Talks',
           'Rename',
-          'Categories and labels',
+          'Labels',
           'Pin to Home',
           'Delete playlist',
         });
@@ -444,7 +444,7 @@ void main() {
           'Add to playlist…',
           'Move to Practice',
           'Rename',
-          'Categories and labels',
+          'Labels',
           'Remove from library',
         });
         expect(await menuOf(tester, 'ds-teacher-210'), {'Remove from library'});
