@@ -2837,4 +2837,29 @@ class AppLocalizationsDe extends AppLocalizations {
   String labelsRemoveTooltip(String label) {
     return 'Label $label entfernen';
   }
+
+  @override
+  String get extendHoldTitle => 'Ruhe in der Stille';
+
+  @override
+  String extendHoldLeft(String time) {
+    return 'noch $time';
+  }
+
+  @override
+  String get extendSkipPause => 'Diese Pause überspringen';
+
+  @override
+  String get pauseRestTitle => 'Ruhe in den Pausen';
+
+  @override
+  String get pauseRestCaption =>
+      'Fügt Stille in die eigenen langen Pausen der Anleitung ein, in der Reihenfolge der Aufnahme. Was die Pausen nicht aufnehmen, kommt nach der Aufnahme, vor der Abschlussglocke. Gestreamte Aufnahmen werden im WLAN eingelesen; bis dahin kommt alles ans Ende.';
+
+  @override
+  String get extendEndLabel => 'Stille nach der Aufnahme';
+
+  @override
+  String get extendEndCaption =>
+      'Nach dem Ende der Aufnahme in Stille weitermachen (mit Hintergrundklang, falls an), dann läutet die Abschlussglocke.';
 }

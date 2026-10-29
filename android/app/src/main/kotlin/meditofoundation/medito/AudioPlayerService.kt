@@ -559,6 +559,10 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
                                     )
                                     playBackgroundSound()
                                 }
+                            } else if (::cues.isInitialized && cues.isHolding) {
+                                // A hold stops the voice, not the session: the focus and
+                                // the background sound stay.
+                                Log.d(TAG, "🔊 Voice held for a pause: keeping focus and background")
                             } else {
                                 Log.d(
                                     TAG,
@@ -601,6 +605,17 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
                 override fun onSessionEnded(extensionFinished: Boolean, tailMs: Long) {
                     isCompletionHandled = true
                     finalizeSession(extensionFinished, tailMs)
+                }
+
+                override fun holdNarration() {
+                    persistListening(force = true)
+                    primaryPlayer.pause()
+                    updateNotification()
+                }
+
+                override fun resumeNarration() {
+                    primaryPlayer.play()
+                    updateNotification()
                 }
             })
             instance = this
@@ -1607,6 +1622,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         if (!::primaryPlayer.isInitialized || !::backgroundMusicPlayer.isInitialized) {
             return
         }
+        // The voice is stopped for a hold; the background sound plays through it.
+        if (::cues.isInitialized && cues.isHolding) return
 
         try {
             // If primary is playing, ensure background is playing too
@@ -1679,6 +1696,9 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     }
 
     fun skipCountdown() { if (::cues.isInitialized) cues.skipCountdown() }
+
+    /** Ends the hold in the recording that is under way; the voice carries on. */
+    fun skipHold(): Boolean = ::cues.isInitialized && cues.skipHold().also { if (it) updateNotification() }
 
     fun stopCues() {
         if (::cues.isInitialized) cues.stop()

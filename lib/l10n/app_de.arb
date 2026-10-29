@@ -1375,5 +1375,12 @@
   "labelsCustomHeading": "Deine Labels",
   "labelsAddHint": "Label hinzufügen",
   "labelsAddButton": "Hinzufügen",
-  "labelsRemoveTooltip": "Label {label} entfernen"
+  "labelsRemoveTooltip": "Label {label} entfernen",
+  "extendHoldTitle": "Ruhe in der Stille",
+  "extendHoldLeft": "noch {time}",
+  "extendSkipPause": "Diese Pause überspringen",
+  "pauseRestTitle": "Ruhe in den Pausen",
+  "pauseRestCaption": "Fügt Stille in die eigenen langen Pausen der Anleitung ein, in der Reihenfolge der Aufnahme. Was die Pausen nicht aufnehmen, kommt nach der Aufnahme, vor der Abschlussglocke. Gestreamte Aufnahmen werden im WLAN eingelesen; bis dahin kommt alles ans Ende.",
+  "extendEndLabel": "Stille nach der Aufnahme",
+  "extendEndCaption": "Nach dem Ende der Aufnahme in Stille weitermachen (mit Hintergrundklang, falls an), dann läutet die Abschlussglocke."
 }

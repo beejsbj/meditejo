@@ -96,6 +96,14 @@ class CueSchedulerTests: XCTestCase {
         XCTAssertFalse(noSound.hasInterval)
     }
 
+    func testConfigTakesBothKindsOfSilenceUpTo120Minutes() {
+        // Silence after the audio and rest in the pauses arrive as one sum;
+        // iOS holds all of it at the end.
+        XCTAssertEqual(CueConfig(map: ["extendMinutes": 90]).extensionMs, 90 * 60_000)
+        XCTAssertEqual(CueConfig(map: ["extendMinutes": 500]).extensionMs, 120 * 60_000)
+        XCTAssertEqual(CueConfig(map: ["extendMinutes": -3]).extensionMs, 0)
+    }
+
     func testHalfwayRingsOnceWhenCrossed() {
         var cue = HalfwayCue()
         cue.arm()
