@@ -218,7 +218,7 @@ class CategoryCatalogue {
         }
         model[dsRetreatId(id)] = [];
       }
-      final byCategory = pass['categories'] ?? const <String, dynamic>{};
+      final byCategory = pass['categories'];
       if (byCategory is! Map<String, dynamic>) {
         throw const FormatException('Model pass "categories" is not a map');
       }

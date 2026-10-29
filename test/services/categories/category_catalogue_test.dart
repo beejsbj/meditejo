@@ -360,6 +360,7 @@ void main() {
             'jhana': ['1'],
           },
         }),
+        jsonEncode({'format': 1, 'none': <int>[]}),
       ]) {
         expect(
           () => CategoryCatalogue.parse(_asset(), modelPass: bad),
