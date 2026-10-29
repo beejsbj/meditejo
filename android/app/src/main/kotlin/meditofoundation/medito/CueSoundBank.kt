@@ -11,7 +11,8 @@ import java.io.File
 
 /**
  * Cue sounds decoded once into a SoundPool, so a beat or a bell never starts a
- * decoder. Assets are Flutter asset paths (`assets/audio/...`).
+ * decoder. A sound is a Flutter asset path (`assets/audio/...`) or, for a bell
+ * the user made, an absolute path to a WAV in the app's own storage.
  */
 internal class CueSoundBank(private val context: Context) {
     private class Entry(val soundId: Int, val tailMs: Long) {
@@ -90,6 +91,11 @@ internal class CueSoundBank(private val context: Context) {
     private class Opened(val fd: android.content.res.AssetFileDescriptor?, val path: String?)
 
     private fun openAsset(asset: String): Opened {
+        if (isFilePath(asset)) {
+            val file = resolveFile(asset, context.dataDir)
+                ?: throw IllegalArgumentException("not a usable bell file")
+            return Opened(null, file.absolutePath)
+        }
         val key = try {
             FlutterInjector.instance().flutterLoader().getLookupKeyForAsset(asset)
         } catch (_: Exception) {
@@ -124,6 +130,26 @@ internal class CueSoundBank(private val context: Context) {
     companion object {
         /** Where an asset sits in the APK when the Flutter loader cannot be asked. */
         internal fun fallbackKey(asset: String): String = "flutter_assets/$asset"
+
+        /** A sound given as a file path (a bell the user made) rather than a Flutter asset. */
+        internal fun isFilePath(sound: String): Boolean = sound.startsWith("/")
+
+        /** SoundPool decodes a sound whole and refuses one over about 1 MiB. */
+        internal const val MAX_FILE_BYTES = 1L shl 20
+
+        /**
+         * The file behind [path], or null when it is not a plain WAV-sized file
+         * inside [dataDir] (the app's own storage): a path that came through
+         * the cue config is never trusted to point anywhere else.
+         */
+        internal fun resolveFile(path: String, dataDir: File): File? = try {
+            val file = File(path).canonicalFile
+            val root = dataDir.canonicalFile
+            if (file.isFile && file.length() in 1 until MAX_FILE_BYTES &&
+                file.path.startsWith(root.path + File.separator)) file else null
+        } catch (_: Exception) {
+            null
+        }
 
         private const val TAG = "CueSoundBank"
         private const val LATE_PLAY_MS = 1500L

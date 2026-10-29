@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -2435,8 +2436,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           'It is also in $count of your playlists, where it will show as unavailable.',
-      one:
-          'It is also in one of your playlists, where it will show as unavailable.',
+      one: 'It is also in one of your playlists, where it will show as unavailable.',
     );
     return '$_temp0';
   }
@@ -2816,4 +2816,103 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get extendEndCaption =>
       'Keep going in silence (with any background sound) after the audio ends, then ring the ending bell.';
+
+  @override
+  String get bellMakerTitle => 'Make a bell';
+
+  @override
+  String get bellMakerSave => 'Save';
+
+  @override
+  String get bellMakerName => 'Name';
+
+  @override
+  String get bellMakerStartFrom => 'Start from';
+
+  @override
+  String get bellMakerHear => 'Hear it';
+
+  @override
+  String get bellMakerMaking => 'Making the sound';
+
+  @override
+  String get bellMakerPlayFailed => 'The bell could not be played.';
+
+  @override
+  String get bellMakerSaveFailed => 'The bell could not be saved.';
+
+  @override
+  String bellMakerLimit(int count) {
+    return 'You can keep up to $count bells. Delete one to make another.';
+  }
+
+  @override
+  String get bellPitch => 'Pitch';
+
+  @override
+  String get bellPitchLow => 'Deep';
+
+  @override
+  String get bellPitchHigh => 'High';
+
+  @override
+  String get bellBright => 'Brightness';
+
+  @override
+  String get bellBrightLow => 'Dark';
+
+  @override
+  String get bellBrightHigh => 'Bright';
+
+  @override
+  String get bellRing => 'Ring';
+
+  @override
+  String get bellRingLow => 'Short';
+
+  @override
+  String get bellRingHigh => 'Long';
+
+  @override
+  String get bellStrike => 'Strike';
+
+  @override
+  String get bellStrikeLow => 'Soft';
+
+  @override
+  String get bellStrikeHigh => 'Hard';
+
+  @override
+  String get bellShimmer => 'Shimmer';
+
+  @override
+  String get bellShimmerLow => 'Still';
+
+  @override
+  String get bellShimmerHigh => 'Wobbling';
+
+  @override
+  String get bellYours => 'Your bells';
+
+  @override
+  String get bellRename => 'Rename';
+
+  @override
+  String get bellRenameTitle => 'Rename bell';
+
+  @override
+  String bellDeleteTitle(String name) {
+    return 'Delete “$name”?';
+  }
+
+  @override
+  String get bellDeleteBody => 'Cues that ring it go back to the Swell bell.';
+
+  @override
+  String bellMenu(String name) {
+    return 'More about $name';
+  }
+
+  @override
+  String get bellMakerDefaultName => 'My bell';
 }

@@ -4977,6 +4977,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Keep going in silence (with any background sound) after the audio ends, then ring the ending bell.'**
   String get extendEndCaption;
+
+  /// Bell maker: the screen's title and the row that opens it
+  ///
+  /// In en, this message translates to:
+  /// **'Make a bell'**
+  String get bellMakerTitle;
+
+  /// Bell maker: saves the bell
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get bellMakerSave;
+
+  /// Bell maker: the bell's name field
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get bellMakerName;
+
+  /// Bell maker: the bells to start from
+  ///
+  /// In en, this message translates to:
+  /// **'Start from'**
+  String get bellMakerStartFrom;
+
+  /// Bell maker: plays the bell as it is now
+  ///
+  /// In en, this message translates to:
+  /// **'Hear it'**
+  String get bellMakerHear;
+
+  /// Bell maker: shown while the sound is rendered
+  ///
+  /// In en, this message translates to:
+  /// **'Making the sound'**
+  String get bellMakerMaking;
+
+  /// Bell maker: the sound could not be made or played
+  ///
+  /// In en, this message translates to:
+  /// **'The bell could not be played.'**
+  String get bellMakerPlayFailed;
+
+  /// Bell maker: saving failed
+  ///
+  /// In en, this message translates to:
+  /// **'The bell could not be saved.'**
+  String get bellMakerSaveFailed;
+
+  /// Bell maker: the limit of saved bells
+  ///
+  /// In en, this message translates to:
+  /// **'You can keep up to {count} bells. Delete one to make another.'**
+  String bellMakerLimit(int count);
+
+  /// Bell maker: control
+  ///
+  /// In en, this message translates to:
+  /// **'Pitch'**
+  String get bellPitch;
+
+  /// Bell maker: pitch, low end
+  ///
+  /// In en, this message translates to:
+  /// **'Deep'**
+  String get bellPitchLow;
+
+  /// Bell maker: pitch, high end
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get bellPitchHigh;
+
+  /// Bell maker: control
+  ///
+  /// In en, this message translates to:
+  /// **'Brightness'**
+  String get bellBright;
+
+  /// Bell maker: brightness, low end
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get bellBrightLow;
+
+  /// Bell maker: brightness, high end
+  ///
+  /// In en, this message translates to:
+  /// **'Bright'**
+  String get bellBrightHigh;
+
+  /// Bell maker: control, how long it rings
+  ///
+  /// In en, this message translates to:
+  /// **'Ring'**
+  String get bellRing;
+
+  /// Bell maker: ring, short end
+  ///
+  /// In en, this message translates to:
+  /// **'Short'**
+  String get bellRingLow;
+
+  /// Bell maker: ring, long end
+  ///
+  /// In en, this message translates to:
+  /// **'Long'**
+  String get bellRingHigh;
+
+  /// Bell maker: control, soft mallet to hard
+  ///
+  /// In en, this message translates to:
+  /// **'Strike'**
+  String get bellStrike;
+
+  /// Bell maker: strike, soft end
+  ///
+  /// In en, this message translates to:
+  /// **'Soft'**
+  String get bellStrikeLow;
+
+  /// Bell maker: strike, hard end
+  ///
+  /// In en, this message translates to:
+  /// **'Hard'**
+  String get bellStrikeHigh;
+
+  /// Bell maker: control, the slow wobble of a ring
+  ///
+  /// In en, this message translates to:
+  /// **'Shimmer'**
+  String get bellShimmer;
+
+  /// Bell maker: shimmer, still end
+  ///
+  /// In en, this message translates to:
+  /// **'Still'**
+  String get bellShimmerLow;
+
+  /// Bell maker: shimmer, wobbling end
+  ///
+  /// In en, this message translates to:
+  /// **'Wobbling'**
+  String get bellShimmerHigh;
+
+  /// Bell picker: the bells the user made
+  ///
+  /// In en, this message translates to:
+  /// **'Your bells'**
+  String get bellYours;
+
+  /// Bell picker: renames a bell the user made
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get bellRename;
+
+  /// Bell picker: rename dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Rename bell'**
+  String get bellRenameTitle;
+
+  /// Bell picker: delete confirmation title
+  ///
+  /// In en, this message translates to:
+  /// **'Delete “{name}”?'**
+  String bellDeleteTitle(String name);
+
+  /// Bell picker: delete confirmation body
+  ///
+  /// In en, this message translates to:
+  /// **'Cues that ring it go back to the Swell bell.'**
+  String get bellDeleteBody;
+
+  /// Bell picker: screen-reader label of a made bell's menu
+  ///
+  /// In en, this message translates to:
+  /// **'More about {name}'**
+  String bellMenu(String name);
+
+  /// Bell maker: the name suggested for a new bell
+  ///
+  /// In en, this message translates to:
+  /// **'My bell'**
+  String get bellMakerDefaultName;
 }
 
 class _AppLocalizationsDelegate

@@ -97,7 +97,7 @@ jobs:
       - name: YouTube native unit tests
         run: |
           cd android
-          ./gradlew :app:testDevReleaseUnitTest -Ptarget-platform=android-arm64 --tests 'meditofoundation.medito.youtube.*' --tests 'meditofoundation.medito.CueMathTest' --tests 'meditofoundation.medito.HoldPlanTest' --tests 'meditofoundation.medito.SilenceDetectorTest' --tests 'meditofoundation.medito.CueBellCatalogueTest' --tests 'meditofoundation.medito.folder.*' --no-daemon --max-workers=2
+          ./gradlew :app:testDevReleaseUnitTest -Ptarget-platform=android-arm64 --tests 'meditofoundation.medito.youtube.*' --tests 'meditofoundation.medito.CueMathTest' --tests 'meditofoundation.medito.HoldPlanTest' --tests 'meditofoundation.medito.SilenceDetectorTest' --tests 'meditofoundation.medito.CueBellCatalogueTest' --tests 'meditofoundation.medito.CueCustomBellFileTest' --tests 'meditofoundation.medito.folder.*' --no-daemon --max-workers=2
       - uses: actions/upload-artifact@v4
         if: always()
         with:

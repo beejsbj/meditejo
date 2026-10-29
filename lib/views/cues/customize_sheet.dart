@@ -14,11 +14,12 @@ import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/providers/cues/cue_runtime_provider.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
+import 'package:medito/providers/cues/custom_bell_provider.dart';
 import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
-import 'package:medito/widgets/art/art_cover.dart';
-import 'package:medito/widgets/art/art_subject.dart';
+import 'package:medito/services/bells/custom_bell.dart';
+import 'package:medito/views/cues/bell_list.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/views/soundscape/sound_labels.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
@@ -653,8 +654,9 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ?above,
-        _BellList(
+        BellList(
           selected: part == _Part.intervalBell ? s.intervalSound : sound,
+          volume: s.bellVolume,
           onSelected: (v) {
             _edit(apply(v));
             _audition(v, s.bellVolume);
@@ -729,7 +731,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
             // the bell back on with the default one, so the wheel and the
             // row never disagree.
             final sound = v != 0 && s.intervalSound.isEmpty
-                ? cueBellSounds['Swell bell']!
+                ? cueDefaultBell
                 : s.intervalSound;
             if (v == halfway) {
               _edit(s.copyWith(intervalHalfway: true, intervalSound: sound));
@@ -1002,12 +1004,21 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     return v != null && v >= low && v <= high ? v : null;
   };
 
-  String _bellName(String path) => cueBellSounds.entries
-      .firstWhere(
-        (e) => e.value == path,
-        orElse: () => cueBellSounds.entries.first,
-      )
-      .key;
+  String _bellName(String path) {
+    if (isCustomBellId(path)) {
+      // A bell that was deleted rings as the default bell.
+      for (final b in ref.watch(customBellsProvider)) {
+        if (b.id == path) return b.name;
+      }
+      return _bellName(cueDefaultBell);
+    }
+    return cueBellSounds.entries
+        .firstWhere(
+          (e) => e.value == path,
+          orElse: () => cueBellSounds.entries.first,
+        )
+        .key;
+  }
 
   String _intervalValue(CueSettings s) {
     if (!s.hasIntervalBell) return 'Off';
@@ -1486,128 +1497,6 @@ class _SubLabel extends StatelessWidget {
       ),
     ),
   );
-}
-
-/// The bells a cue can ring, each with its icon (the bell's figure,
-/// drawn from its sound). Tapping one selects it and rings it once, so what
-/// is heard is what a session will play, and its icon is struck with it.
-class _BellList extends StatefulWidget {
-  const _BellList({required this.selected, required this.onSelected});
-
-  final String selected;
-  final ValueChanged<String> onSelected;
-
-  @override
-  State<_BellList> createState() => _BellListState();
-}
-
-class _BellListState extends State<_BellList> {
-  final _strikes = <String, ValueNotifier<int>>{
-    for (final asset in cueBellSounds.values)
-      if (asset.isNotEmpty) asset: ValueNotifier(0),
-  };
-
-  @override
-  void dispose() {
-    for (final n in _strikes.values) {
-      n.dispose();
-    }
-    super.dispose();
-  }
-
-  void _pick(String asset) {
-    widget.onSelected(asset);
-    _strikes[asset]?.value++;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final type = context.typography;
-    final selected = widget.selected;
-    return Material(
-      color: scheme.surfaceContainerHighest,
-      clipBehavior: Clip.antiAlias,
-      shape: MeditejoShapes.rounded(MeditejoShapes.largeIncreased),
-      child: Column(
-        children: [
-          for (final e in cueBellSounds.entries)
-            Semantics(
-              button: true,
-              selected: e.value == selected,
-              label: e.value.isEmpty ? e.key : '${e.key}, plays a preview',
-              excludeSemantics: true,
-              onTap: () => _pick(e.value),
-              child: InkWell(
-                onTap: () => _pick(e.value),
-                child: Ink(
-                  color: e.value == selected ? scheme.secondaryContainer : null,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 56),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      child: Row(
-                        children: [
-                          SizedBox.square(
-                            dimension: 40,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: e.value.isEmpty
-                                  ? ColoredBox(
-                                      color: scheme.surfaceContainerLow,
-                                      child: Icon(
-                                        Icons.notifications_off_outlined,
-                                        size: 20,
-                                        color: scheme.onSurfaceVariant,
-                                      ),
-                                    )
-                                  : ArtCover(
-                                      key: ValueKey('bell_icon_${e.value}'),
-                                      subject: ArtSubject.bell(
-                                        e.value,
-                                        icon: true,
-                                      ),
-                                      strike: _strikes[e.value],
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              e.key,
-                              style:
-                                  (e.value == selected
-                                          ? type.emphasized.bodyLarge
-                                          : type.baseline.bodyLarge)
-                                      ?.copyWith(
-                                        color: e.value == selected
-                                            ? scheme.onSecondaryContainer
-                                            : scheme.onSurface,
-                                      ),
-                            ),
-                          ),
-                          if (e.value == selected)
-                            Icon(Icons.check_rounded, color: scheme.primary)
-                          else if (e.value.isNotEmpty)
-                            Icon(
-                              Icons.volume_up_rounded,
-                              size: 20,
-                              color: scheme.onSurfaceVariant,
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 }
 
 class _Chips<T> extends StatelessWidget {

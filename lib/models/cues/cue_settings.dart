@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/pauses/pause_hold.dart';
+import 'package:medito/services/bells/custom_bell_id.dart';
 
 /// Playback preferences are independent of a source's audio metadata.
 enum CueKind { practice, talks }
@@ -23,6 +24,10 @@ const cueBellSounds = <String, String>{
   'Wooden fish': 'assets/audio/bell_wooden_fish.wav',
   'Gong': 'assets/audio/bell_gong.wav',
 };
+
+/// The bell a cue rings when nothing else is chosen, and when the bell it
+/// had was deleted.
+const cueDefaultBell = 'assets/audio/session_bell_v2.wav';
 const cuePulseSounds = <String, String>{
   'Off': '',
   'Soft click': 'assets/audio/pulse_click.wav',
@@ -38,9 +43,9 @@ class CueSettings {
     this.extendMinutes = 0,
     this.pauseMinutes = 0,
     this.countdownSeconds = 0,
-    this.startSound = 'assets/audio/session_bell_v2.wav',
-    this.endSound = 'assets/audio/session_bell_v2.wav',
-    this.intervalSound = 'assets/audio/session_bell_v2.wav',
+    this.startSound = cueDefaultBell,
+    this.endSound = cueDefaultBell,
+    this.intervalSound = cueDefaultBell,
     this.intervalMinutes = 0,
     this.randomWindowMinutes = 0,
     this.intervalHalfway = false,
@@ -206,9 +211,21 @@ class CueSettings {
 
     bool flag(String key, bool fallback) =>
         json[key] is bool ? json[key] as bool : fallback;
-    String sound(String key, String fallback, Map<String, String> allowed) {
+    // A bell is one that ships or one the user made. A made bell that has
+    // since been deleted still reads as itself: whatever plays it (the native
+    // resolver, the picker) answers with the default bell, so a missing file
+    // never changes what is stored.
+    String sound(
+      String key,
+      String fallback,
+      Map<String, String> allowed, {
+      bool custom = false,
+    }) {
       final value = json[key];
-      return value is String && allowed.containsValue(value) ? value : fallback;
+      if (value is! String) return fallback;
+      return allowed.containsValue(value) || (custom && isCustomBellId(value))
+          ? value
+          : fallback;
     }
 
     // Anything but a selection in the mixer's grammar (a damaged value, or a
@@ -226,12 +243,23 @@ class CueSettings {
       extendMinutes: integer('extendMinutes', 0, 0, 60),
       pauseMinutes: integer('pauseMinutes', 0, 0, 60),
       countdownSeconds: [0, 5, 10].contains(countdown) ? countdown : 0,
-      startSound: sound('startSound', defaults.startSound, cueBellSounds),
-      endSound: sound('endSound', defaults.endSound, cueBellSounds),
+      startSound: sound(
+        'startSound',
+        defaults.startSound,
+        cueBellSounds,
+        custom: true,
+      ),
+      endSound: sound(
+        'endSound',
+        defaults.endSound,
+        cueBellSounds,
+        custom: true,
+      ),
       intervalSound: sound(
         'intervalSound',
         defaults.intervalSound,
         cueBellSounds,
+        custom: true,
       ),
       intervalMinutes: integer('intervalMinutes', 0, 0, 60),
       randomWindowMinutes: integer('randomWindowMinutes', 0, 0, 60),
