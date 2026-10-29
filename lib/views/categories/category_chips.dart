@@ -7,15 +7,23 @@ import 'package:medito/widgets/cards/card_tokens.dart';
 import 'package:medito/widgets/cards/section_title.dart';
 
 /// Explore's category entry points: a heading and a sideways row of chips,
-/// one per curated category. Each opens that category's page. Renders
-/// nothing until the mapping has loaded.
+/// one per category that has something in it. Each opens that category's
+/// page. Renders nothing until the mapping has loaded.
 class ExploreCategoryChips extends ConsumerWidget {
   const ExploreCategoryChips({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final catalogue = ref.watch(categoryCatalogueProvider).value;
-    if (catalogue == null) return const SizedBox.shrink();
+    // Only categories with something in them; the empty ones stay in the
+    // asset for the labels sheet.
+    final browsable = ref.watch(browsableCategoriesProvider).value;
+    if (catalogue == null || browsable == null) return const SizedBox.shrink();
+    final shown = [
+      for (final c in catalogue.categories)
+        if (browsable.contains(c.id)) c,
+    ];
+    if (shown.isEmpty) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.only(top: 20),
@@ -31,7 +39,7 @@ class ExploreCategoryChips extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: kCardGutter),
               child: Row(
                 children: [
-                  for (final (i, category) in catalogue.categories.indexed) ...[
+                  for (final (i, category) in shown.indexed) ...[
                     if (i > 0) const SizedBox(width: 8),
                     ActionChip(
                       key: ValueKey('category_${category.id}'),

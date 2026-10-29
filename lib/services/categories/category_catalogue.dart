@@ -3,19 +3,26 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:medito/services/categories/category_text.dart';
+import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 
 /// Where the app keeps the curated mapping. It is a versioned asset so the
 /// list can grow without touching code; `test/services/categories` checks it
 /// against the bundled Dharma Seed catalogue.
 const categoriesAsset = 'assets/categories/categories.json';
 
+/// A model's reading of every Dharma Seed retreat, checked by a stronger
+/// model (`tools/meditejo/categories/model_pass.py`). Kept apart from the
+/// hand-picked mapping because it is large and regenerated, not edited.
+const categoriesPassAsset = 'assets/categories/dharma_seed_pass.json';
+
 /// The newest asset layout this build reads.
 const categoriesFormat = 1;
 
 /// Why an item has a category. Higher outranks lower: the user's own choice,
-/// then the curated mapping, then the keyword rules.
+/// then the hand-picked mapping, then the model pass, then the keyword rules.
 enum CategorySource {
   rule,
+  model,
   curated,
   user;
 
@@ -30,6 +37,7 @@ class PracticeCategory {
     required this.name,
     this.blurb = '',
     this.aliases = const [],
+    this.group = '',
   });
 
   /// Stable slug, stored in the user's labels (`metta`, `open-awareness`).
@@ -43,6 +51,10 @@ class PracticeCategory {
 
   /// Other names a user might type for it ("Insight" for Vipassanā).
   final List<String> aliases;
+
+  /// The family it sits in (`heart`, `concentration`, `body`, …), for a
+  /// grouped view later. Empty when the asset gives none.
+  final String group;
 }
 
 /// A category an item carries, and the reason.
@@ -84,10 +96,12 @@ class CategoryRule {
 
 /// The curated mapping, and the arithmetic of applying it.
 ///
-/// Precedence for one item: a curated entry (even an empty one, which says
-/// "none of the keyword guesses apply") replaces the rules; otherwise the
-/// rules run over the title and description, and a talk also takes what its
-/// retreat has. The user's own labels sit above all of this and are applied
+/// Precedence for one item: a hand-picked entry (even an empty one, which says
+/// "none of the keyword guesses apply") replaces everything below it; then the
+/// model pass, which covers Dharma Seed retreats and likewise replaces the
+/// rules (a retreat it read as "none" stays none); otherwise the rules run
+/// over the title and description, and a talk also takes what its retreat
+/// has. The user's own labels sit above all of this and are applied
 /// by the library, not here (see `LibraryLabelIndex`).
 class CategoryCatalogue {
   CategoryCatalogue._({
@@ -97,20 +111,29 @@ class CategoryCatalogue {
     required Map<String, List<String>> curated,
     required Map<String, String> curatedNames,
     required this.rules,
+    required Map<String, List<String>> modelPass,
+    required this.passVersion,
   }) : _curated = curated,
+       _model = modelPass,
        curatedNames = Map.unmodifiable(curatedNames),
        _byId = {for (final c in categories) c.id: c} {
     for (final c in categories) {
       for (final name in [c.id, c.name, ...c.aliases]) {
-        _byName[foldWords(name).join(' ')] = c;
+        final key = foldWords(name).join(' ');
+        final other = _byName[key];
+        if (other != null && other.id != c.id) {
+          throw FormatException('"$name" names both ${other.id} and ${c.id}');
+        }
+        _byName[key] = c;
       }
     }
   }
 
-  /// Reads the asset's JSON. Throws [FormatException] on a layout this build
-  /// does not know or an unknown category in a mapping, so a bad edit fails a
-  /// test instead of quietly hiding items.
-  factory CategoryCatalogue.parse(String source) {
+  /// Reads the asset's JSON, and the model pass's when given. Throws
+  /// [FormatException] on a layout this build does not know or an unknown
+  /// category in a mapping, so a bad edit fails a test instead of quietly
+  /// hiding items.
+  factory CategoryCatalogue.parse(String source, {String? modelPass}) {
     final json = jsonDecode(source);
     if (json is! Map<String, dynamic>) {
       throw const FormatException('categories.json is not an object');
@@ -126,6 +149,7 @@ class CategoryCatalogue {
           name: _string(raw, 'name'),
           blurb: raw['blurb'] as String? ?? '',
           aliases: _strings(raw['aliases']),
+          group: raw['group'] as String? ?? '',
         ),
     ];
     final ids = {for (final c in categories) c.id};
@@ -171,6 +195,50 @@ class CategoryCatalogue {
       );
     }
 
+    final model = <String, List<String>>{};
+    var passVersion = 0;
+    if (modelPass != null) {
+      final pass = jsonDecode(modelPass);
+      if (pass is! Map<String, dynamic>) {
+        throw const FormatException('The model pass is not an object');
+      }
+      final passFormat = pass['format'];
+      if (passFormat is! int || passFormat > categoriesFormat) {
+        throw FormatException('Unsupported model pass format: $passFormat');
+      }
+      final version = pass['version'] ?? 0;
+      if (version is! int) {
+        throw FormatException('Model pass version is not a number: $version');
+      }
+      passVersion = version;
+      final none = <String>{};
+      for (final id in _ids(pass['none'], 'none')) {
+        if (!none.add(dsRetreatId(id))) {
+          throw FormatException('Retreat $id is listed twice as none');
+        }
+        model[dsRetreatId(id)] = [];
+      }
+      final byCategory = pass['categories'];
+      if (byCategory is! Map<String, dynamic>) {
+        throw const FormatException('Model pass "categories" is not a map');
+      }
+      {
+        checkKnown(byCategory.keys, 'the model pass');
+        for (final MapEntry(:key, :value) in byCategory.entries) {
+          for (final id in _ids(value, key)) {
+            final itemId = dsRetreatId(id);
+            final cats = model[itemId] ??= [];
+            if (none.contains(itemId) || cats.contains(key)) {
+              throw FormatException(
+                'Retreat $id is in $key and none, or twice',
+              );
+            }
+            cats.add(key);
+          }
+        }
+      }
+    }
+
     return CategoryCatalogue._(
       version: json['version'] as int? ?? 0,
       updated: json['updated'] as String? ?? '',
@@ -178,13 +246,26 @@ class CategoryCatalogue {
       curated: curated,
       curatedNames: names,
       rules: List.unmodifiable(rules),
+      modelPass: model,
+      passVersion: passVersion,
     );
   }
 
-  static Future<CategoryCatalogue> load([AssetBundle? bundle]) async =>
-      CategoryCatalogue.parse(
-        await (bundle ?? rootBundle).loadString(categoriesAsset),
-      );
+  static Future<CategoryCatalogue> load([AssetBundle? bundle]) async {
+    final assets = bundle ?? rootBundle;
+    return CategoryCatalogue.parse(
+      await assets.loadString(categoriesAsset),
+      modelPass: await assets.loadString(categoriesPassAsset),
+    );
+  }
+
+  static List<int> _ids(Object? value, String where) {
+    if (value == null) return const [];
+    if (value is! List || value.any((id) => id is! int)) {
+      throw FormatException('Model pass "$where" is not a list of retreat ids');
+    }
+    return value.cast<int>();
+  }
 
   static List<Map<String, dynamic>> _list(Object? value) =>
       value is List ? value.whereType<Map<String, dynamic>>().toList() : [];
@@ -210,7 +291,11 @@ class CategoryCatalogue {
 
   final List<CategoryRule> rules;
 
+  /// The edition of the model pass, 0 when none was read.
+  final int passVersion;
+
   final Map<String, List<String>> _curated;
+  final Map<String, List<String>> _model;
   final Map<String, PracticeCategory> _byId;
   final Map<String, PracticeCategory> _byName = {};
 
@@ -237,6 +322,17 @@ class CategoryCatalogue {
       if (value.contains(categoryId)) key,
   ];
 
+  /// What the model pass read [sourceId] as, or null when it did not read it.
+  /// An empty list means "read as none".
+  List<String>? modelFor(String sourceId) => _model[sourceId];
+
+  /// Item IDs the model pass put in [categoryId], hand-picked ones aside (the
+  /// hand-picked mapping outranks the pass, so it decides those).
+  List<String> modelIn(String categoryId) => [
+    for (final MapEntry(:key, :value) in _model.entries)
+      if (value.contains(categoryId) && !_curated.containsKey(key)) key,
+  ];
+
   /// The rules that name [categoryId].
   List<CategoryRule> rulesFor(String categoryId) => [
     for (final rule in rules)
@@ -261,13 +357,20 @@ class CategoryCatalogue {
           CategoryAssignment(id, CategorySource.curated),
       ]);
     }
+    final model = _model[sourceId];
+    if (model != null) {
+      return _ordered([
+        for (final id in model) CategoryAssignment(id, CategorySource.model),
+      ]);
+    }
     final titleWords = foldWords(title);
     final descriptionWords = foldWords(description);
     final found = <String, CategoryAssignment>{
       for (final a in inherited) a.id: a,
     };
     for (final rule in rules) {
-      if (found[rule.category]?.source == CategorySource.curated) continue;
+      // An inherited reading outranks a rule; the rule only adds.
+      if (found.containsKey(rule.category)) continue;
       if (rule.matches(titleWords, descriptionWords)) {
         found.putIfAbsent(
           rule.category,

@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -2477,8 +2478,7 @@ class AppLocalizationsEs extends AppLocalizations {
       locale: localeName,
       other:
           'También está en $count de tus listas, donde aparecerá como no disponible.',
-      one:
-          'También está en una de tus listas, donde aparecerá como no disponible.',
+      one: 'También está en una de tus listas, donde aparecerá como no disponible.',
     );
     return '$_temp0';
   }
@@ -2794,10 +2794,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get libraryPinned => 'Fijado en Inicio';
 
   @override
-  String get exploreCategories => 'Categorías';
+  String get exploreCategories => 'Formas de practicar';
 
   @override
-  String get exploreCategoriesLabel => 'Navegar por categoría';
+  String get exploreCategoriesLabel => 'Explorar formas de practicar';
 
   @override
   String get categoryEmptyTitle => 'Todavía no hay nada aquí';
@@ -2807,23 +2807,23 @@ class AppLocalizationsEs extends AppLocalizations {
       'Pon una etiqueta a algo de tu biblioteca o añade un curso desde Explorar, y aparecerá aquí.';
 
   @override
-  String get categoryLoadFailed => 'No se pudo cargar esta categoría';
+  String get categoryLoadFailed => 'No se pudo cargar esta lista';
 
   @override
-  String get libraryLabelFilterLabel => 'Categoría o etiqueta';
+  String get libraryLabelFilterLabel => 'Filtrar por etiqueta';
 
   @override
-  String get libraryMenuLabels => 'Categorías y etiquetas';
+  String get libraryMenuLabels => 'Etiquetas';
 
   @override
-  String get labelsTitle => 'Categorías y etiquetas';
+  String get labelsTitle => 'Etiquetas';
 
   @override
   String get labelsExplain =>
-      'Las categorías marcadas son la mejor suposición de Meditejo o tu propia elección. Tu elección siempre tiene prioridad.';
+      'Meditejo marca lo que cree que encaja. Cambia lo que quieras: tu elección siempre tiene prioridad.';
 
   @override
-  String get labelsCustomHeading => 'Tus etiquetas';
+  String get labelsCustomHeading => 'Tus propias etiquetas';
 
   @override
   String get labelsAddHint => 'Añadir una etiqueta';

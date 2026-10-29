@@ -139,10 +139,10 @@ void main() {
       await settle(tester);
       expect(tester.widget<FilterChip>(metta).selected, isTrue);
 
-      await tester.enterText(
-        find.byKey(const ValueKey('labels_field')),
-        'Evening',
-      );
+      // 36 chips: the field sits below the fold.
+      final field = find.byKey(const ValueKey('labels_field'));
+      await tester.ensureVisible(field);
+      await tester.enterText(field, 'Evening');
       await tester.tap(find.byKey(const ValueKey('labels_add')));
       await settle(tester);
       expect(
@@ -309,7 +309,7 @@ void main() {
   });
 
   group('the entry points', () {
-    testWidgets('Explore offers every category, and a chip opens its page', (
+    testWidgets('Explore offers the categories with something in them', (
       tester,
     ) async {
       final app = await LibraryTestApp.create(tester);
@@ -320,6 +320,9 @@ void main() {
         ),
         overrides: [
           ..._overrides(app),
+          browsableCategoriesProvider.overrideWith(
+            (ref) async => {'metta', 'breath', 'walking'},
+          ),
           categoryListingProvider('breath').overrideWith(
             (ref) async =>
                 CategoryListing(category: _catalogue.category('breath')!),
@@ -329,7 +332,9 @@ void main() {
       for (final c in _catalogue.categories) {
         expect(
           find.byKey(ValueKey('category_${c.id}'), skipOffstage: false),
-          findsOneWidget,
+          {'metta', 'breath', 'walking'}.contains(c.id)
+              ? findsOneWidget
+              : findsNothing,
           reason: c.id,
         );
       }

@@ -8,6 +8,17 @@ import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
 
+/// The categories browsing offers: those a library entry carries (guessed
+/// or the user's), and those Dharma Seed fills ([dharmaSeed]).
+Set<String> browsableCategories(
+  Map<String, EntryLabels> labels,
+  Set<String> dharmaSeed,
+) => {
+  for (final entry in labels.values)
+    for (final c in entry.categories) c.id,
+  ...dharmaSeed,
+};
+
 /// What a category page lists: the user's own library first, then Dharma
 /// Seed, each split into Practice and Talks (decision 11).
 class CategoryListing {
@@ -57,9 +68,10 @@ class CategoryService {
   final LibraryStore library;
   final DharmaSeedDatabase? dharmaSeed;
 
-  /// How many keyword-matched courses and sessions a page asks Dharma Seed
-  /// for. Curated ones are always listed; this bounds the long tail.
-  static const ruleCourseLimit = 30;
+  /// How many guessed courses (the model pass's and the keyword rules',
+  /// newest first) and keyword-matched sessions a page lists. Hand-picked
+  /// ones are always listed; this bounds the long tail.
+  static const guessCourseLimit = 50;
   static const ruleSessionLimit = 30;
 
   // ---------------------------------------------------------------- labels
@@ -198,9 +210,57 @@ class CategoryService {
 
   // --------------------------------------------------------------- listing
 
+  /// The categories with something to show: a library entry carries it
+  /// (guessed or the user's), or Dharma Seed has a retreat or talk in it.
+  /// Browsing offers only these; the labels sheet still offers every one, so
+  /// an empty category can be filled.
+  Future<Set<String>> nonEmpty({required List<LibraryEntry> entries}) async =>
+      browsableCategories(
+        await labelsOfEntries(entries),
+        await dharmaSeedCategories(),
+      );
+
+  /// The categories with a Dharma Seed retreat or talk on their page. It does
+  /// not depend on the library, so it is worked out once per catalogue
+  /// edition, not on every library change.
+  Future<Set<String>> dharmaSeedCategories() async {
+    final db = dharmaSeed;
+    if (db == null) return const {};
+    return {
+      for (final category in catalogue.categories)
+        if (await _dharmaSeedHas(category, db)) category.id,
+    };
+  }
+
+  Future<bool> _dharmaSeedHas(
+    PracticeCategory category,
+    DharmaSeedDatabase db,
+  ) async {
+    final listed = [
+      ...catalogue.curatedIn(category.id),
+      ...catalogue.modelIn(category.id),
+    ];
+    final retreats = [for (final id in listed) ?parseDsRetreatId(id)];
+    if ((await _retreatsWithTalks(db, retreats, limit: 1)).isNotEmpty) {
+      return true;
+    }
+    for (final id in listed) {
+      final talk = parseDsTalkId(id);
+      if (talk != null && await db.talkById(talk) != null) return true;
+    }
+    // The rules: ask exactly what the category page would list, so a chip
+    // never opens an empty page and a page with something on it always has
+    // a chip. Only the sparse categories get this far.
+    final page = await _dharmaSeedFor(category, db, const {}, const {});
+    return page.courses.isNotEmpty ||
+        page.practice.isNotEmpty ||
+        page.talks.isNotEmpty;
+  }
+
   /// Everything the app knows for [categoryId]. Library entries are exact
-  /// (their labels, including the user's); Dharma Seed is the curated items
-  /// plus what the keyword rules find in the on-device index.
+  /// (their labels, including the user's); Dharma Seed is the hand-picked
+  /// items, then the model pass's retreats and what the keyword rules find in
+  /// the on-device index, newest first.
   Future<CategoryListing> listing(
     String categoryId, {
     required List<LibraryEntry> entries,
@@ -271,14 +331,19 @@ class CategoryService {
       return result.any((a) => a.id == category.id);
     }
 
-    // ---- Courses: curated retreats first, then what the rules find.
-    final curatedRetreats = [
-      for (final id in catalogue.curatedIn(category.id)) ?parseDsRetreatId(id),
-    ];
-    final curatedRows = [
-      for (final r in await db.retreatsById(curatedRetreats))
+    // ---- Courses: hand-picked retreats first, then the guesses (the model
+    // pass's and what the rules find), newest first.
+    Future<List<DsRetreat>> withTalks(Iterable<String> ids) async => [
+      for (final r in await db.retreatsById([
+        for (final id in ids) ?parseDsRetreatId(id),
+      ]))
         if (DharmaSeedDatabase.talkIdsOf(r).isNotEmpty) r,
     ];
+    final curatedRows = await withTalks(catalogue.curatedIn(category.id));
+    // Vipassanā alone has some 1,600: sort and cut in SQL.
+    final modelRows = await _retreatsWithTalks(db, [
+      for (final id in catalogue.modelIn(category.id)) ?parseDsRetreatId(id),
+    ], limit: guessCourseLimit);
     final ruleRows = <DsRetreat>[];
     final match = _match(category.id, titleColumn: 'name');
     if (match != null) {
@@ -290,7 +355,7 @@ class CategoryService {
             'ORDER BY r.start_date DESC, r.id DESC LIMIT ?',
             variables: [
               Variable.withString(match),
-              Variable.withInt(ruleCourseLimit * 3),
+              Variable.withInt(guessCourseLimit * 3),
             ],
             readsFrom: {db.dsRetreats},
           )
@@ -306,14 +371,19 @@ class CategoryService {
         )) {
           ruleRows.add(retreat);
         }
-        if (ruleRows.length >= ruleCourseLimit) break;
+        if (ruleRows.length >= guessCourseLimit) break;
       }
     }
-    final seen = <int>{};
-    final found = [
-      for (final r in [...curatedRows, ...ruleRows])
-        if (seen.add(r.id)) r,
-    ];
+    final seen = <int>{for (final r in curatedRows) r.id};
+    final guessed =
+        [
+          for (final r in [...modelRows, ...ruleRows])
+            if (seen.add(r.id)) r,
+        ]..sort((a, b) {
+          final byDate = b.startDate.compareTo(a.startDate);
+          return byDate != 0 ? byDate : b.id.compareTo(a.id);
+        });
+    final found = [...curatedRows, ...guessed.take(guessCourseLimit)];
     final retreats = [
       for (final r in found)
         if (!owned.contains(dsRetreatId(r.id))) r,
@@ -404,6 +474,30 @@ class CategoryService {
           if (!isPractice(x.talk)) x.item,
       ],
     );
+  }
+
+  /// The retreats among [ids] that have stored talks, newest first, at most
+  /// [limit].
+  Future<List<DsRetreat>> _retreatsWithTalks(
+    DharmaSeedDatabase db,
+    List<int> ids, {
+    required int limit,
+  }) async {
+    if (ids.isEmpty) return const [];
+    final rows = await db
+        .customSelect(
+          'SELECT * FROM ds_retreats WHERE id IN '
+          '(${List.filled(ids.length, '?').join(',')}) '
+          "AND talk_ids != '[]' "
+          'ORDER BY start_date DESC, id DESC LIMIT ?',
+          variables: [
+            for (final id in ids) Variable.withInt(id),
+            Variable.withInt(limit),
+          ],
+          readsFrom: {db.dsRetreats},
+        )
+        .get();
+    return [for (final row in rows) db.dsRetreats.map(row.data)];
   }
 
   /// An FTS5 expression for the keyword rules of [categoryId]: the title
