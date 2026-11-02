@@ -101,9 +101,15 @@ Future<void> _setUp(WidgetTester tester) async {
   addTearDown(_container.dispose);
 }
 
-Widget _app(Widget home) => UncontrolledProviderScope(
+Widget _app(Widget home, {double textScale = 1}) => UncontrolledProviderScope(
   container: _container,
   child: MaterialApp(
+    builder: (context, child) => MediaQuery(
+      data: MediaQuery.of(
+        context,
+      ).copyWith(textScaler: TextScaler.linear(textScale)),
+      child: child!,
+    ),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: home,
@@ -153,6 +159,50 @@ void main() {
     // Nothing is made or rung until asked.
     expect(_renders, isEmpty);
     expect(_preview.files, isEmpty);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('the five controls are vertical sliders side by side', (
+    tester,
+  ) async {
+    await _setUp(tester);
+    await tester.pumpWidget(_app(const BellMakerView(from: temple)));
+    await tester.pump();
+    const names = ['pitch', 'bright', 'ring', 'strike', 'shimmer'];
+    final rects = [
+      for (final n in names)
+        tester.getRect(find.byKey(ValueKey('bell_maker_$n'))),
+    ];
+    for (final r in rects) {
+      expect(r.height, greaterThan(r.width), reason: 'a vertical track');
+    }
+    expect(rects.map((r) => r.top).toSet(), hasLength(1), reason: 'one row');
+    for (var i = 1; i < rects.length; i++) {
+      expect(rects[i].left, greaterThan(rects[i - 1].left));
+    }
+    for (final label in ['Pitch', 'Brightness', 'Ring', 'Strike', 'Shimmer']) {
+      expect(find.text(label), findsOneWidget);
+    }
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('a narrow screen with large text keeps every control in reach', (
+    tester,
+  ) async {
+    await _setUp(tester);
+    tester.view.physicalSize = const Size(320, 2200);
+    await tester.pumpWidget(
+      _app(const BellMakerView(from: temple), textScale: 2),
+    );
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    for (final n in ['pitch', 'bright', 'ring', 'strike', 'shimmer']) {
+      final slider = find.byKey(ValueKey('bell_maker_$n'));
+      await tester.ensureVisible(slider);
+      final r = tester.getRect(slider);
+      expect(r.left, greaterThanOrEqualTo(0));
+      expect(r.right, lessThanOrEqualTo(320));
+    }
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

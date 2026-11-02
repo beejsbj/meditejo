@@ -90,11 +90,17 @@ class RangeControl extends StatelessWidget {
     final muted = type.baseline.labelSmall?.copyWith(
       color: scheme.onSurfaceVariant,
     );
-    // One line each, shrunk rather than cut: a column is narrow, and a word
-    // that is clipped is a word that is lost.
-    Widget line(String text, TextStyle? style) => FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Text(text, style: style, maxLines: 1),
+    // One line each, in a box as tall as that style's line, and shrunk rather
+    // than cut: a column is narrow, and a word that is clipped is a word that
+    // is lost. The fixed height keeps every channel's track at the same level
+    // when one channel's word had to shrink.
+    final scaler = MediaQuery.textScalerOf(context);
+    Widget line(String text, TextStyle? style) => SizedBox(
+      height: scaler.scale((style?.fontSize ?? 14) * (style?.height ?? 1.4)),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(text, style: style, maxLines: 1),
+      ),
     );
     return Column(
       mainAxisSize: MainAxisSize.min,

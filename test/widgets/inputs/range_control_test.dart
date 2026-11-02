@@ -74,4 +74,141 @@ void main() {
       1.0,
     );
   });
+
+  group('vertical', () {
+    Future<void> pumpOne(WidgetTester tester, {List<double>? moved}) =>
+        tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  width: 72,
+                  child: RangeControl(
+                    axis: Axis.vertical,
+                    sliderKey: const ValueKey('range'),
+                    label: 'Pitch',
+                    low: 'Deep',
+                    high: 'High',
+                    min: 100,
+                    max: 1600,
+                    value: 400,
+                    logarithmic: true,
+                    format: (v) => '${v.round()} Hz',
+                    onChanged: (v) => moved?.add(v),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+    testWidgets('shows the value, both ends and the name', (tester) async {
+      await pumpOne(tester);
+      expect(find.text('400 Hz'), findsOneWidget);
+      expect(find.text('High'), findsOneWidget);
+      expect(find.text('Deep'), findsOneWidget);
+      expect(find.text('Pitch'), findsOneWidget);
+      // Top to bottom: value, high end, track, low end, name.
+      double top(String text) => tester.getTopLeft(find.text(text)).dy;
+      final track = tester.getRect(find.byKey(const ValueKey('range')));
+      expect(top('400 Hz'), lessThan(top('High')));
+      expect(top('High'), lessThan(track.top));
+      expect(track.bottom, lessThanOrEqualTo(top('Deep')));
+      expect(top('Deep'), lessThan(top('Pitch')));
+      expect(track.height, greaterThan(track.width));
+    });
+
+    testWidgets('dragging up raises the value and down lowers it', (
+      tester,
+    ) async {
+      final moved = <double>[];
+      await pumpOne(tester, moved: moved);
+      final track = find.byKey(const ValueKey('range'));
+      await tester.drag(track, const Offset(0, -40));
+      expect(moved.last, greaterThan(400));
+      moved.clear();
+      await tester.drag(track, const Offset(0, 40));
+      expect(moved.last, lessThan(400));
+    });
+  });
+
+  group('RangeControlBank', () {
+    Future<void> pumpBank(
+      WidgetTester tester, {
+      required double width,
+      double textScale = 1,
+    }) async {
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(textScale)),
+            child: child!,
+          ),
+          home: Scaffold(
+            body: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: RangeControlBank(
+                children: [
+                  for (final name in [
+                    'Pitch',
+                    'Brightness',
+                    'Ring',
+                    'Strike',
+                    'Shimmer',
+                  ])
+                    RangeControl(
+                      axis: Axis.vertical,
+                      sliderKey: ValueKey(name),
+                      label: name,
+                      low: 'Low',
+                      high: 'High',
+                      min: 0,
+                      max: 1,
+                      value: 0.5,
+                      format: (v) => '${(v * 100).round()}%',
+                      onChanged: (_) {},
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    List<Offset> tops(WidgetTester tester) => [
+      for (final name in ['Pitch', 'Brightness', 'Ring', 'Strike', 'Shimmer'])
+        tester.getTopLeft(find.byKey(ValueKey(name))),
+    ];
+
+    testWidgets('five channels share a row on a small phone', (tester) async {
+      await pumpBank(tester, width: 320);
+      expect(tester.takeException(), isNull);
+      final t = tops(tester);
+      expect(t.map((o) => o.dy).toSet(), hasLength(1));
+      expect(t.map((o) => o.dx).toSet(), hasLength(5));
+      for (var i = 1; i < 5; i++) {
+        expect(t[i].dx, greaterThan(t[i - 1].dx));
+      }
+    });
+
+    testWidgets('large text makes more rows, not clipped channels', (
+      tester,
+    ) async {
+      await pumpBank(tester, width: 360, textScale: 2);
+      expect(tester.takeException(), isNull);
+      final t = tops(tester);
+      expect(t.map((o) => o.dy).toSet().length, greaterThan(1));
+      for (final name in ['Pitch', 'Brightness', 'Ring', 'Strike', 'Shimmer']) {
+        final rect = tester.getRect(find.byKey(ValueKey(name)));
+        expect(rect.left, greaterThanOrEqualTo(0));
+        expect(rect.right, lessThanOrEqualTo(360));
+      }
+    });
+  });
 }
