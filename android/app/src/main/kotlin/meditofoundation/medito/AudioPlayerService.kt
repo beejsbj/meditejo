@@ -552,7 +552,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             override fun positionMs(): Long = cues.positionMs()
             override fun durationMs(): Long = cues.durationMs()
             override fun running(): Boolean = sessionRunning()
-            override fun silent(): Boolean = cues.phase == CueEngine.Phase.HOLD || cues.phase == CueEngine.Phase.EXTENSION
+            // The countdown, like silence, runs while the voice waits.
+            override fun silent(): Boolean = cues.isSilent || cues.phase == CueEngine.Phase.COUNTDOWN
             override fun setRunning(run: Boolean) { if (run != sessionRunning()) playPauseAudio() }
             override fun seekTo(positionMs: Long) = seekSession(positionMs)
             override fun seekBy(deltaMs: Long) = this@AudioPlayerService.seekBy(deltaMs)
@@ -603,9 +604,9 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
                                     )
                                     playBackgroundSound()
                                 }
-                            } else if (::cues.isInitialized && cues.isHolding) {
-                                // A hold stops the voice, not the session: the focus and
-                                // the background sound stay.
+                            } else if (::cues.isInitialized && cues.isSilent) {
+                                // A hold or the tail stops the voice, not the session: the
+                                // focus and the background sound stay.
                                 Log.d(TAG, "🔊 Voice held for a pause: keeping focus and background")
                             } else {
                                 Log.d(
@@ -1419,11 +1420,17 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             listening.sample(sessionPositionMs(), sessionRunning())
             if (cues.seekTo(position)) {
                 listening.rebase(sessionPositionMs())
+                // A seek into the tail before the voice was ever ready ends it
+                // without passing READY, which is what starts these.
+                startPositionUpdates()
                 updateNotification()
                 // A seek within a hold or the tail moves no player event.
                 sessionPlayer?.invalidate()
                 return
             }
+            // A position on the extended timeline is not one the voice has:
+            // with no session to place it in (it has ended), nothing moves.
+            return
         }
         primaryPlayer.seekTo(position)
     }
@@ -1508,6 +1515,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
 
             // The countdown and the silence have no player to pause: hold their clock.
             if (cues.toggleHold()) {
+                // Paused, then sent into silence, the voice gave up focus: take it back.
+                if (cues.isHoldRunning()) requestAudioFocus()
                 if (::backgroundMusicPlayer.isInitialized) {
                     if (cues.isHoldRunning()) {
                         if (backgroundSoundUri != null) backgroundMusicPlayer.play()
@@ -1686,8 +1695,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         if (!::primaryPlayer.isInitialized || !::backgroundMusicPlayer.isInitialized) {
             return
         }
-        // The voice is stopped for a hold; the background sound plays through it.
-        if (::cues.isInitialized && cues.isHolding) return
+        // The voice is stopped for a hold or the tail; the background sound plays through it.
+        if (::cues.isInitialized && cues.isSilent) return
 
         try {
             // If primary is playing, ensure background is playing too

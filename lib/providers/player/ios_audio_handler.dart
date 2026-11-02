@@ -36,6 +36,12 @@ class IosAudioHandler extends BaseAudioHandler {
   int get extensionMs => _extensionMs;
   int _extensionMs = 0;
 
+  /// A Customize edit mid-session: the player's length follows it.
+  void updateExtension(CueSettings settings, PlaybackRequest request) {
+    if (!_nativeCues) return;
+    _extensionMs = _isTimer ? 0 : settings.extraMinutes * 60000;
+  }
+
   /// What the silence after the recording has left while it runs; null otherwise.
   int? get extensionRemainingMs =>
       _nativeExtending ? _lastExtensionRemainingMs : null;

@@ -783,7 +783,25 @@ Burooj tried the combined test APK: "Rest in pauses doesn't increase the play ti
   - **Bells:** session time moves by the voice at the player's speed and by silence as it is; a seek moves it by that distance. At 1x the halfway bell rings at the middle of recording + Extend.
   - **iOS:** Swift is unchanged (no holds, all of Extend after the recording). Dart reads its tail clock (now once a second) and shows recording + Extend, with the position running on through the silence (`extendedIosPlayback`, tested). A seek into the silence goes to the voice's end, which starts it from the beginning. Unverified: no iOS build here.
 - **The Ending bell's own silence stays** (#72's piece), now under its own key `endSilenceMinutes`. In code it is not a second copy of Extend: both feed the one native extension, but holds come from Extend only and the Ending bell's silence is always after the recording. It counts in the session's length like Extend. **Question for Burooj: keep it, or fold it into Extend?**
-- **Known limits.** A Resume position (and an unfinished session's listening record) is saved on the timeline; if Extend or the pause map differs next time it lands off by the holds before it. A Resume seek during the countdown can reach the voice or a hold's pause, not the tail.
+- **Known limits.** A Resume position (and an unfinished session's listening record) is saved on the timeline; if Extend or the pause map differs next time it lands off by the holds before it.
+- **Independent review (Claude Opus 5.5, read-only, head 3bd90092; approve with P2s, no P1):**
+  - **Fixed:**
+    - A Resume (or lock-screen) seek into the tail or a hold during the countdown is now taken when the voice starts, instead of ending the session or restarting the hold.
+    - When the voice is asked to play while the session sits in a paused hold or tail (a Resume that landed there before playback began), that silence runs on and the voice keeps waiting. Position updates start on such a seek too.
+    - A timeline position is never sent raw to the voice.
+    - iOS takes mid-session Customize edits into the shown length.
+    - Session time is caught up before a seek moves it.
+    - The lock screen treats the countdown like silence (it shows Pause, and a press pauses it), and silence reports 1x there whatever the voice's speed.
+    - Focus is requested when a paused hold or tail resumes.
+    - The background-sound and focus guards cover the tail as well as holds.
+    - Holds are not checked against the previous recording's length before a session.
+    - "Finishes at" never leaves the silence out (a repeat reports the bare recording).
+    - The player's placeholder length includes the silence.
+    - Stale comments and the unread `extensionLeftMs` are gone.
+  - **Left (P3):**
+    - The lock screen's length is not refreshed after a mid-session Extend edit (the metadata follows the next player event).
+    - Away from 1x, "Finishes at" assumes all of the silence is still ahead, so it runs late once holds are spent.
+    - Media3's own controller state reads a natural hold as paused. Harmless here: the service is not exported and no Media3 controller connects; the platform session the system UI reads uses the getters.
 - **Verification.** `ExtendedTimelineTest` (22 tests: the length; media to timeline and back over every second of a session; seeks over, into and back across holds; a seek into the tail; pause and resume in a hold and the tail; the late map; replanning during a hold; a shorter Extend mid-session) runs with `CueMathTest` and `SilenceDetectorTest` on bjslab through the Gradle distribution's kotlinc (86 tests), and in the APK workflow. `CueEngine`, `SessionPlayer` and `AudioPlayerService` were type-checked locally against android-35, Media3 1.2.1, androidx.core, coroutines and flutter.jar; the engine's use of the timeline with a real player is for the phone.
 
 ### Phone checklist (S23+, screen off)

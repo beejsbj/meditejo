@@ -157,6 +157,13 @@ class _PlayerViewState extends ConsumerState<PlayerView>
     _syncCuePoll();
   }
 
+  /// A guided session's added silence (Extend and the Ending bell's).
+  int _extraMs(PlaybackRequest request) {
+    final scope = _cueScope;
+    if (request.isTimer || scope == null) return 0;
+    return ref.watch(cueSettingsProvider(scope)).extraMinutes * 60000;
+  }
+
   /// Polls the native cue state only while this screen is in the foreground
   /// and a countdown or the extension runs or may begin; nothing else shows
   /// it. Silence inside the recording needs no polling: the player's own
@@ -484,6 +491,7 @@ class _PlayerViewState extends ConsumerState<PlayerView>
             onClosePressed: () => _handleClose(),
             onEndSession: _endTimerSession,
             courseId: _cueScope?.courseId,
+            extraMs: _extraMs(currentlyPlayingTrack),
           ),
           if (_countdownMs > 0)
             Positioned.fill(
@@ -845,9 +853,14 @@ class PlayerScreenLayout extends StatelessWidget {
     required this.onClosePressed,
     this.onEndSession,
     this.courseId,
+    this.extraMs = 0,
   });
 
   final PlaybackRequest currentlyPlayingTrack;
+
+  /// The session's added silence, so the length shown before the player has
+  /// reported its own already reads recording + Extend.
+  final int extraMs;
   final bool isPlaying;
   final bool isAudioLoading;
   final bool isBackgroundSoundSelected;
@@ -942,7 +955,8 @@ class PlayerScreenLayout extends StatelessWidget {
                                     artistUrl: artistUrl,
                                     attribution: attribution,
                                     totalDurationMs:
-                                        currentlyPlayingTrack.duration,
+                                        currentlyPlayingTrack.duration +
+                                        extraMs,
                                     isPlaying: isPlaying,
                                     isLoading: isAudioLoading,
                                     onPlayPause: onPlayPausePressed,
@@ -959,7 +973,8 @@ class PlayerScreenLayout extends StatelessWidget {
                                       artistUrl: artistUrl,
                                       attribution: attribution,
                                       totalDurationMs:
-                                          currentlyPlayingTrack.duration,
+                                          currentlyPlayingTrack.duration +
+                                          extraMs,
                                       isPlaying: isPlaying,
                                       isLoading: isAudioLoading,
                                       onPlayPause: onPlayPausePressed,

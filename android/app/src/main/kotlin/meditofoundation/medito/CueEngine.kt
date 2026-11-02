@@ -71,6 +71,8 @@ internal class CueEngine(
     // discontinuity is already accounted for. Cleared by the next seek.
     private var ownSeekToMs = -1L
     private var lastSeekOwn = false
+    // A seek into silence asked for during the countdown, taken when the voice starts.
+    private var seekAfterCountdownMs = -1L
 
     // Session time.
     private var started = false
@@ -112,7 +114,11 @@ internal class CueEngine(
         if (!live) stopTimers()
         // A repeating recording has no holds: its silence is all after the last pass.
         val holds = if (cfg.isTimer || repeating()) emptyList() else cfg.holds
-        timeline.configure(holds, if (cfg.isTimer) 0L else cfg.extensionMs, primary.currentPosition, mediaDurationMs(cfg), live)
+        // Before a session the player may still hold the previous recording, so
+        // its length says nothing about this one: the holds come from this
+        // recording's own pause map and are not checked against it.
+        val mediaMs = if (live) mediaDurationMs(cfg) else 0L
+        timeline.configure(holds, if (cfg.isTimer) 0L else cfg.extensionMs, primary.currentPosition, mediaMs, live)
         // The lock was sized for the old silence: re-time it to what is left now.
         if ((phase == Phase.HOLD || phase == Phase.EXTENSION) && timeline.silenceRunning) {
             acquireWake(timeline.silenceRemainingMs() + WAKE_SLACK_MS)
@@ -133,6 +139,7 @@ internal class CueEngine(
     fun prepareSession() {
         if (config == null) return
         stopTimers()
+        seekAfterCountdownMs = -1L
         timeline.reset()
         started = false
         sessionMs = 0.0
@@ -158,6 +165,31 @@ internal class CueEngine(
     fun skipCountdown() {
         if (phase == Phase.COUNTDOWN) finishCountdown()
     }
+
+    /**
+     * The voice was asked to play while the session is in silence, and that
+     * silence is paused: the session's own start (a Resume that landed in a
+     * hold or the tail before playback began), or a resume from outside the
+     * engine. The silence carries on instead, and the voice keeps waiting.
+     */
+    override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+        if (!playWhenReady || timeline.silenceRunning) return
+        when (phase) {
+            Phase.HOLD -> {
+                timeline.resumeSilence()
+                thaw(timeline.silenceRemainingMs())
+                host.holdNarration()
+            }
+            Phase.EXTENSION -> {
+                timeline.resumeSilence()
+                thaw(timeline.silenceRemainingMs())
+            }
+            else -> Unit
+        }
+    }
+
+    /** The voice is stopped for a hold or the tail. */
+    val isSilent: Boolean get() = phase == Phase.HOLD || phase == Phase.EXTENSION
 
     /** Cancels every timer and sound. The session is over or abandoned. */
     fun stop() {
@@ -245,9 +277,6 @@ internal class CueEngine(
         Phase.HOLD, Phase.EXTENSION -> timeline.silenceRunning
         else -> false
     }
-
-    /** The voice is stopped inside the recording for a hold (running or paused by the listener). */
-    val isHolding: Boolean get() = phase == Phase.HOLD
 
     /** The session is under way: the voice playing (or about to), or its silence running. */
     fun isSessionRunning(): Boolean = when (phase) {
@@ -370,21 +399,23 @@ internal class CueEngine(
         if (media <= 0) return false
         val running = isSessionRunning()
         val speed = primary.playbackParameters.speed.toDouble()
-        val from = positionMs()
         val spot = timeline.locate(positionMs, media)
-        handler.removeCallbacks(tick)
-        // The countdown is not session time yet: only the voice's place changes.
+        // The countdown is not session time yet: the voice's place changes now,
+        // and a place in silence is taken when the voice starts.
         if (phase == Phase.COUNTDOWN) {
-            val (mediaMs, behind) = when (spot) {
-                is ExtendedTimeline.Spot.Voice -> spot.mediaMs to spot.holdsBehind
-                is ExtendedTimeline.Spot.Hold -> timeline.holdAtMs(spot.index) to spot.index
-                is ExtendedTimeline.Spot.Tail -> return false
+            seekAfterCountdownMs = -1L
+            when (spot) {
+                is ExtendedTimeline.Spot.Voice -> {
+                    timeline.enterVoice(spot.holdsBehind)
+                    seekVoice(spot.mediaMs)
+                }
+                else -> seekAfterCountdownMs = positionMs
             }
-            timeline.enterVoice(behind)
-            seekVoice(mediaMs)
-            kick()
             return true
         }
+        catchUpSessionTime(speed)
+        val from = positionMs()
+        handler.removeCallbacks(tick)
         val to = timeline.positionOf(spot, media)
         // Into the voice before the first tick (a Resume seek as playback
         // starts), the first tick still sets session time and the start up.
@@ -436,6 +467,20 @@ internal class CueEngine(
         return true
     }
 
+    /** Brings session time up to now, so a seek moves it from where the session really is. */
+    private fun catchUpSessionTime(speed: Double) {
+        if (!started) return
+        when (phase) {
+            Phase.PLAYING -> if (primary.isPlaying) {
+                val position = primary.currentPosition
+                sessionMs = CueMath.advance(sessionMs, lastPositionMs, position, speed)
+                lastPositionMs = position
+            }
+            Phase.HOLD, Phase.EXTENSION -> sessionMs = silenceStartSessionMs + timeline.silenceElapsedMs()
+            else -> Unit
+        }
+    }
+
     private fun seekVoice(mediaMs: Long) {
         ownSeekToMs = mediaMs
         primary.seekTo(mediaMs)
@@ -474,7 +519,9 @@ internal class CueEngine(
         holdRemainingMs = 0L
         phase = Phase.PLAYING
         host.startNarration()
-        kick()
+        val pending = seekAfterCountdownMs
+        seekAfterCountdownMs = -1L
+        if (pending < 0 || !seekTo(pending)) kick()
     }
 
     private fun runPlaying() {
@@ -664,10 +711,14 @@ internal class CueEngine(
     // ---- Player events -----------------------------------------------------
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
-        // The voice started during a hold, by something other than the engine:
-        // the listener chose to carry on.
+        // The voice started during a hold, by something other than the engine,
+        // and is still meant to play (a paused hold resumed through
+        // [onPlayWhenReadyChanged] stops it again): the listener chose to carry on.
         if (phase == Phase.HOLD) {
-            if (isPlaying) { leaveHoldForVoice(resume = false); kick() }
+            if (isPlaying && primary.playWhenReady && timeline.silenceRunning) {
+                leaveHoldForVoice(resume = false)
+                kick()
+            }
             return
         }
         if (phase != Phase.PLAYING) return

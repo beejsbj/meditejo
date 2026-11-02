@@ -555,7 +555,7 @@ class BackgroundSoundsNotifier extends Notifier<BackgroundSoundsState> {
   /// Ambient preferences belong to Customize's kind/course scope. The cue
   /// scheduler owns bells; this method never enables the legacy bell layer.
   void applyCueSettings(CueSettings settings) {
-    // Rest in the pauses lengthens the session as much as silence at the end.
+    // All of a guided session's silence: Extend and the Ending bell's.
     _extensionMinutes = _timerScope ? 0 : settings.extraMinutes;
     final sounds = ref
         .read(backgroundSoundsRepositoryProvider)

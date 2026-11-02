@@ -42,22 +42,22 @@ void main() {
     },
   );
 
-  test('the native map fills the silence Extend has left', () {
+  test('the native map fills the phase and the tail left', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     container.read(cueRuntimeProvider.notifier).updateFromMap({
       'phase': 'hold',
       'holdRemainingMs': 30000,
-      'extensionLeftMs': 120000,
-      'paused': false,
+      'extensionRemainingMs': 120000,
+      'paused': true,
     });
     final state = container.read(cueRuntimeProvider);
     expect(state.phase, 'hold');
-    expect(state.extensionLeftMs, 120000);
-    expect(const CueRuntimeState().extensionLeftMs, isNull);
+    expect(state.extensionMs, 120000);
+    expect(state.paused, isTrue);
     container.read(cueRuntimeProvider.notifier).updateFromMap({
       'phase': 'idle',
     });
-    expect(container.read(cueRuntimeProvider).extensionLeftMs, isNull);
+    expect(container.read(cueRuntimeProvider).extensionMs, 0);
   });
 }

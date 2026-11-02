@@ -60,9 +60,9 @@ DateTime customizeFinishesAt(
     );
   }
   final silenceMs = settings.extraMinutes * 60000;
-  final total = sessionDurationMs != null && sessionDurationMs > 0
-      ? sessionDurationMs
-      : audioDurationMs + silenceMs;
+  // A session that does not read as extended (a repeat) reports the bare
+  // recording: its silence still comes, after the last pass.
+  final total = math.max(sessionDurationMs ?? 0, audioDurationMs + silenceMs);
   final remaining = active
       ? (total - positionMs).clamp(0, 1 << 40)
       : audioDurationMs + silenceMs;

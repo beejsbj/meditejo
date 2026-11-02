@@ -106,6 +106,8 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
         update: true,
         holds: holds,
       );
+      // iOS shows the session's length from Dart: it follows the edit too.
+      if (Platform.isIOS) iosAudioHandler.updateExtension(settings, request);
     }
   }
 

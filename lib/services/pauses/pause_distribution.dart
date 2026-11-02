@@ -1,8 +1,8 @@
 import 'package:medito/models/pauses/media_spans.dart';
 import 'package:medito/models/pauses/pause_hold.dart';
 
-/// Where the Rest-in-the-pauses minutes go: [holds] in the guide's pauses,
-/// and [remainderMs] after the recording, with the silence set there.
+/// Where Extend's minutes go: [holds] in the guide's pauses, and
+/// [remainderMs] after the recording.
 /// `sum(holds) + remainderMs` is always the minutes asked for.
 class PauseDistribution {
   const PauseDistribution(this.holds, this.remainderMs);

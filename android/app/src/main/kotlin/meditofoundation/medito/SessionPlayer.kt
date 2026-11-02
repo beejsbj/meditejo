@@ -3,6 +3,7 @@ package meditofoundation.medito
 
 import androidx.media3.common.FlagSet
 import androidx.media3.common.ForwardingPlayer
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import java.util.concurrent.CopyOnWriteArraySet
 
@@ -25,7 +26,7 @@ internal class SessionPlayer(player: Player, private val session: Session) : For
         fun durationMs(): Long
         /** The session is under way: the voice playing, or its silence running. */
         fun running(): Boolean
-        /** The voice is stopped for a hold or the tail. */
+        /** The voice is waiting: the countdown, a hold or the tail. */
         fun silent(): Boolean
         fun setRunning(run: Boolean)
         fun seekTo(positionMs: Long)
@@ -78,6 +79,10 @@ internal class SessionPlayer(player: Player, private val session: Session) : For
 
     // In a hold or the tail the voice is paused or ended, but the session plays on.
     override fun getPlaybackState(): Int = if (silent) Player.STATE_READY else super.getPlaybackState()
+
+    // Silence runs at real time, whatever the voice's speed.
+    override fun getPlaybackParameters(): PlaybackParameters =
+        if (silent) PlaybackParameters.DEFAULT else super.getPlaybackParameters()
 
     override fun getCurrentPosition(): Long = if (extended) session.positionMs() else super.getCurrentPosition()
 

@@ -7,15 +7,10 @@ class CueRuntimeState {
     this.phase = 'idle',
     this.countdownMs = 0,
     this.extensionMs = 0,
-    this.extensionLeftMs,
     this.paused = false,
   });
   final String phase;
   final int countdownMs, extensionMs;
-
-  /// Added silence still to come wherever it will be spent: in the guide's
-  /// pauses and after the recording. Null before the native side has said.
-  final int? extensionLeftMs;
   final bool paused;
 }
 
@@ -32,7 +27,6 @@ class CueRuntimeNotifier extends Notifier<CueRuntimeState> {
       phase: map['phase'] as String? ?? 'idle',
       countdownMs: (map['countdownRemainingMs'] as num?)?.toInt() ?? 0,
       extensionMs: (map['extensionRemainingMs'] as num?)?.toInt() ?? 0,
-      extensionLeftMs: (map['extensionLeftMs'] as num?)?.toInt(),
       paused: map['paused'] as bool? ?? false,
     );
   }
