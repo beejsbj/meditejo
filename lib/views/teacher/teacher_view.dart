@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
@@ -86,11 +88,22 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
     }
     setState(() => _openGroups.add(id));
     if (_groupTalks.containsKey(id)) return;
-    final talks = await ref
-        .read(catalogueSourceForTeacherProvider(widget.teacherId))
-        .archiveTalks(id);
-    if (!mounted) return;
-    setState(() => _groupTalks[id] = talks);
+    await _readGroup(id);
+  }
+
+  /// Reads [id]'s talks into the cache. A read that fails closes the group
+  /// again, so tapping it retries, rather than leaving a spinner.
+  Future<void> _readGroup(String id) async {
+    try {
+      final talks = await ref
+          .read(catalogueSourceForTeacherProvider(widget.teacherId))
+          .archiveTalks(id);
+      if (!mounted) return;
+      setState(() => _groupTalks[id] = talks);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _openGroups.remove(id));
+    }
   }
 
   @override
@@ -137,9 +150,19 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
     final theme = Theme.of(context);
     final teacher = page.teacher;
     if (!identical(page, _basePage)) {
+      // A fresh page (a feed landed) makes the cached years stale: closed ones
+      // are dropped, and open ones are read again, keeping their old rows
+      // on screen until the new ones arrive.
+      final first = _basePage == null;
       _basePage = page;
       _more.clear();
       _hasMore = true;
+      if (!first) {
+        _groupTalks.removeWhere((id, _) => !_openGroups.contains(id));
+        for (final id in _openGroups.toList()) {
+          unawaited(_readGroup(id));
+        }
+      }
     }
     final talks = [...page.talks, ..._more];
     final hasMore = _more.isEmpty ? page.hasMoreTalks : _hasMore;

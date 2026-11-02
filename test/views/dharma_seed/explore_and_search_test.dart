@@ -215,6 +215,15 @@ void main() {
           findsNothing,
         );
         expect(find.byKey(const ValueKey('archive_dt-year-m-2026')), findsOne);
+
+        // A year of the other section opens the same way.
+        await tester.tap(find.byKey(const ValueKey('archive_dt-year-m-2026')));
+        await DharmaSeedTestApp.settle(tester);
+        expect(
+          find.text('The Perfection of Equanimity'),
+          findsNWidgets(2),
+          reason: 'once in Latest talks, once in the opened year',
+        );
       },
     );
   });

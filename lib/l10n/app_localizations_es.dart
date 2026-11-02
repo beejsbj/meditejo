@@ -2840,5 +2840,5 @@ class AppLocalizationsEs extends AppLocalizations {
   String get teacherArchive => 'Archivo';
 
   @override
-  String get teacherLatestTalks => 'Charlas más recientes';
+  String get teacherLatestTalks => 'Últimas charlas';
 }

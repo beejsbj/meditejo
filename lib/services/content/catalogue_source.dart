@@ -49,7 +49,8 @@ abstract interface class CatalogueSource implements ContentSource {
   });
 
   /// The talks of one archive group named in a teacher page's `archive`,
-  /// newest first. Empty for a source with no archive or an unknown group.
+  /// newest first. Empty for a source with no archive or an unknown group;
+  /// throws only when the source cannot be read (the page then closes the group).
   Future<List<PackItemsModel>> archiveTalks(String groupId);
 
   /// How the library describes one of this source's courses, sessions or

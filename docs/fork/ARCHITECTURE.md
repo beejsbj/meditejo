@@ -230,8 +230,8 @@ built-in catalogue (BRIEF decision 3; research in `content-sources.md`).
 - **IDs** (`dhammatalks_ids.dart`): `dt-talk-e-<key>` (evening),
   `dt-talk-m-<key>` (short morning talk), `dt-talk-c-<slug>` (a file only a
   collection lists), `dt-course-<collection>`, `dt-year-e|m-<year>` (a year of
-  the archive: the group `archiveTalks` opens, and a list that opens like a course
-  but cannot be kept),
+  the archive: the group `archiveTalks` opens; the source still resolves it as a pack that
+  cannot be kept, though no screen opens one),
   `dt-teacher-thanissaro`.
 - **Shape.** The guided meditations are a Practice course; Basics and the other
   collections are Talks courses (relabelling is one tap). The archive (about 9,300 talks) is browsed on

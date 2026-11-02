@@ -320,6 +320,9 @@ void main() {
       expect(find.text('Rob Burbea'), findsWidgets);
       expect(find.text('6 talks · 2 courses'), findsOneWidget);
       expect(find.text('Taught at Gaia House.'), findsOneWidget);
+      // Dharma Seed has no archive: the plain Talks section, as before.
+      expect(find.text('Archive'), findsNothing);
+      expect(find.text('Latest talks'), findsNothing);
       expect(find.text('Jhana Retreat'), findsOneWidget);
       expect(find.text('Dharma Talks Winter'), findsOneWidget);
 
