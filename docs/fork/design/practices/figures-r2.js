@@ -288,5 +288,222 @@ const PracticesR2 = (() => {
     },
   };
 
+  // ================= Prāṇa · Qì =================
+  // Field lines of one breathing field: light rises through the centre,
+  // spills over and returns from below, every line meeting at one point.
+  F.energy_field = {
+    label: 'the field', says: 'Prāṇa and qì: energy circling through one field that opens and closes with the breath.',
+    build: (r, pl) => ({ ...pl, L: [0.42, 0.68, 0.94, 1.2], motes: Array.from({ length: 32 }, (_, i) => ({ li: i % 4, sd: (i >> 2) % 2 ? 1 : -1, ph: r.next(), sp: r.range(0.85, 1.15) })) }),
+    draw(ctx, p, k, t, still) {
+      const b = BR(t, still), sc = p.s * (0.9 + 0.1 * b), sy = 1.75;
+      const at = (L, th, sd) => { const r2 = L * Math.sin(th) ** 2; return [p.cx + sd * sc * r2 * Math.sin(th), p.cy - sc * sy * r2 * Math.cos(th)]; };
+      soft(ctx, p.cx, p.cy, p.s * (0.8 + 0.3 * b), k.glow, 0.28);
+      p.L.forEach((L, li) => [-1, 1].forEach((sd) => {
+        ctx.beginPath(); for (let i = 0; i <= 80; i++) { const [x, y] = at(L, 0.02 + (Math.PI - 0.04) * i / 80, sd); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+        stroke(ctx, k.main, 0.005, 0.22 + 0.1 * li);
+      }));
+      p.motes.forEach((m) => {
+        const v = still ? m.ph : frac(t / (2 * B) * m.sp + m.ph), [x, y] = at(p.L[m.li], Math.PI * v, m.sd), a = fade(v);
+        dot(ctx, x, y, p.s * 0.03 * (0.6 + 0.4 * a)); fill(ctx, m.li % 2 ? k.alt : k.glow, 0.95 * a);
+      });
+      soft(ctx, p.cx, p.cy, p.s * 0.3, k.glow, 0.6 + 0.3 * b); dot(ctx, p.cx, p.cy, p.s * 0.06); fill(ctx, k.alt);
+    },
+  };
+
+  // No outline at all: a cloud of fine motes that widens on the in-breath,
+  // gathers on the out-breath, each mote shimmering on its own clock.
+  F.energy_motes = {
+    label: 'a shimmering field', says: 'Prāṇa and qì: the body felt as a shimmering field that widens with the in-breath.',
+    build: (r, pl) => ({ ...pl, m: Array.from({ length: 120 }, (_, i) => { const d = Math.min(1.1, Math.sqrt(-2 * Math.log(1 - r.next() * 0.96)) * 0.42); return { a: r.range(0, TAU), d, ph: r.range(0, TAU), per: r.range(3, 7), z: r.range(0.012, 0.03), hot: i % 7 === 0 }; }) }),
+    draw(ctx, p, k, t, still) {
+      const b = BR(t, still), R = p.s * (0.82 + 0.28 * b);
+      soft(ctx, p.cx, p.cy, R * 1.25, k.glow, 0.22 + 0.12 * b);
+      p.m.forEach((m) => {
+        const a = m.a + (still ? 0 : t * 0.03 * (1.2 - m.d)), tw = still ? 0.7 : 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(TAU * t / m.per + m.ph));
+        dot(ctx, p.cx + Math.cos(a) * m.d * R, p.cy + Math.sin(a) * m.d * R * 1.12, p.s * m.z); fill(ctx, m.hot ? k.alt : k.glow, tw * (1 - 0.4 * C.ss(0.7, 1.1, m.d)));
+      });
+    },
+  };
+
+  // The small circuit: a light rises up the back on the in-breath, pauses
+  // at the crown, comes down the front on the out-breath and rests below.
+  F.energy_orbit = {
+    label: 'the small circuit', says: 'Qì: a light circling up the back on the in-breath and down the front on the out-breath.',
+    build: (r, pl) => ({ ...pl }),
+    draw(ctx, p, k, t, still) {
+      const rx = p.s * 0.62, ry = p.s * 0.98, y0 = p.cy;
+      const phiAt = (tt) => { const h = 2 * tt / B; return Math.PI / 2 + Math.PI * (Math.floor(h) + C.easeInOut(frac(h))); };
+      const P = (phi) => [p.cx + rx * Math.cos(phi), y0 + ry * Math.sin(phi)];
+      ctx.beginPath(); ctx.ellipse(p.cx, y0, rx, ry, 0, 0, TAU); stroke(ctx, k.main, 0.006, 0.4);
+      soft(ctx, p.cx, y0 + ry * 0.62, p.s * 0.42, k.glow, 0.5); dot(ctx, p.cx, y0 + ry * 0.62, p.s * 0.07); fill(ctx, k.alt, 0.85);
+      dot(ctx, p.cx, y0 - ry, p.s * 0.03); fill(ctx, k.main, 0.6);
+      const tt = still ? 3.4 : t;
+      for (let i = 24; i >= 0; i--) { const [x, y] = P(phiAt(tt - i * 0.07)); dot(ctx, x, y, p.s * (0.055 - 0.0016 * i)); fill(ctx, i ? k.glow : k.alt, i ? 0.55 * (1 - i / 25) : 1); }
+      const [hx, hy] = P(phiAt(tt)); soft(ctx, hx, hy, p.s * 0.28, k.glow, 0.6);
+    },
+  };
+
+  // ================= Focusing =================
+  // Something vague and grey, listened to, comes slowly into focus and
+  // warms; at its clearest it shifts — a release goes out — and blurs again.
+  F.focus_blur = {
+    label: 'coming into focus', says: 'Focusing: a vague felt something, listened to, comes clear, and shifts.',
+    build: (r, pl) => ({ ...pl, blob: C.makeBlob(r, pl.cx, pl.cy, pl.s * 0.6, 2.6, 0.002) }),
+    draw(ctx, p, k, t, still) {
+      const u = still ? 0.3 : frac(t / (2 * B)), c = 0.5 - 0.5 * Math.cos(TAU * u), col = mix(k.main, k.alt, c);
+      soft(ctx, p.cx, p.cy, p.s * (1.1 - 0.3 * c), k.glow, 0.25 + 0.25 * c);
+      for (let i = 6; i >= 0; i--) { C.blobPath(ctx, p.blob, { grow: 1 + (1 - c) * 0.09 * i, imperf: 1 - 0.3 * c }); fill(ctx, col, 0.08 + 0.06 * c); }
+      C.blobPath(ctx, p.blob, { imperf: 1 - 0.3 * c }); fill(ctx, col, 0.75 * c * c);
+      const v = clamp((u - 0.5) / 0.3, 0, 1);
+      if (v > 0 && v < 1) { C.blobPath(ctx, p.blob, { grow: 1 + 1.1 * C.easeOut(v), imperf: 1 - 0.3 * c }); stroke(ctx, k.alt, 0.007, 0.8 * fade(v)); }
+    },
+  };
+
+  // A felt sense, and a word for it held up beside it: too big, too small,
+  // closer, until it fits — and both glow, and the felt sense eases.
+  F.focus_handle = {
+    label: 'a handle that fits', says: 'Focusing: trying words against the felt sense until one fits, and it eases.',
+    build: (r, pl) => ({ ...pl, blob: C.makeBlob(r, pl.cx, pl.cy, pl.s * 0.5, 2.8, 0.002) }),
+    draw(ctx, p, k, t, still) {
+      const u = still ? 0.7 : frac(t / (3 * B)), fit = C.ss(0.5, 0.62, u) * (1 - C.ss(0.88, 1, u)), seek = 1 - C.ss(0.05, 0.6, u);
+      const ease = still ? 1 : C.ss(0.6, 0.8, u) * (1 - C.ss(0.9, 1, u));
+      const o = { imperf: 1 - 0.55 * ease, grow: 1 + 0.08 * ease };
+      soft(ctx, p.cx, p.cy, p.s * (0.8 + 0.4 * fit), k.glow, 0.2 + 0.45 * fit);
+      C.blobPath(ctx, p.blob, o); fill(ctx, mix(k.main, k.alt, 0.2 + 0.5 * ease), 0.5 + 0.35 * ease);
+      const R = p.s * 0.62 * (1 + 0.5 * seek * Math.sin(u * TAU * 2.6)), a = (still ? 1 : C.ss(0, 0.08, u)) * (1 - C.ss(0.86, 0.98, u));
+      ring(ctx, p.cx, p.cy, R); stroke(ctx, fit > 0.5 ? k.alt : k.main, 0.008 + 0.006 * fit, a);
+    },
+  };
+
+  // A fern's crozier: tightly curled, it unrolls a little with each breath
+  // and a long way at the shift, then gathers again. Carrying forward.
+  F.focus_unfurl = {
+    label: 'unfurling', says: 'Focusing: the felt shift, something curled up in the body loosening and unfolding.',
+    build: (r, pl) => ({ ...pl, lean: r.range(-0.1, 0.05) }),
+    draw(ctx, p, k, t, still) {
+      const open = still ? 0.35 : C.easeInOut(0.5 - 0.5 * Math.cos(TAU * t / (3 * B))) * 0.8 + 0.2 * BR(t, still);
+      const N = 150, Lw = p.s * 2.6, ds = Lw / N, turn = lerp(3.4, 1.1, open) * Math.PI;
+      let x = p.cx - p.s * 0.3, y = p.cy + p.s * 1.15, h = -Math.PI / 2 + p.lean;
+      const pts = [[x, y]];
+      for (let i = 1; i <= N; i++) { const v = i / N; h += turn * 3.4 * Math.pow(v, 2.4) / N; x += Math.cos(h) * ds; y += Math.sin(h) * ds; pts.push([x, y]); }
+      const tip = pts[N];
+      soft(ctx, tip[0], tip[1], p.s * (0.35 + 0.3 * open), k.glow, 0.3 + 0.35 * open);
+      for (let i = 0; i < N; i++) { ctx.beginPath(); ctx.moveTo(pts[i][0], pts[i][1]); ctx.lineTo(pts[i + 1][0], pts[i + 1][1]); stroke(ctx, k.main, p.s * lerp(0.16, 0.035, Math.pow(i / N, 0.8))); }
+      dot(ctx, tip[0], tip[1], p.s * 0.05); fill(ctx, k.alt);
+    },
+  };
+
+  // ================= Yoga nidrā =================
+  // Five sheaths, outermost first, settle from restless waves to stillness,
+  // one after another; above them, one point of awareness stays lit.
+  F.nidra_sheaths = {
+    label: 'five sheaths settling', says: 'Yoga nidrā: layer after layer settles into rest, and awareness stays awake.',
+    build: (r, pl) => ({ ...pl, ph: Array.from({ length: 5 }, () => r.range(0, TAU)) }),
+    draw(ctx, p, k, t, still) {
+      const depth = still ? 0.55 : 0.5 - 0.5 * Math.cos(TAU * t / (3 * B)), b = BR(t, still), ay = p.cy - p.s * 0.92;
+      for (let i = 0; i < 5; i++) {
+        const settle = C.ss(i * 0.12, i * 0.12 + 0.45, depth), y = p.cy + p.s * (0.92 - i * 0.34 + 0.05 * settle), A = p.s * (0.13 * (1 - settle) + 0.008);
+        ctx.beginPath();
+        for (let j = 0; j <= 60; j++) { const v = j / 60, x = p.cx + p.s * lerp(-1.15, 1.15, v); const yy = y + A * Math.sin(TAU * v * (1.6 + 0.3 * i) + p.ph[i] + (still ? 0 : t * 0.35)) * fade(v); j ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy); }
+        stroke(ctx, k.main, 0.008, 0.35 + 0.45 * (1 - i / 5));
+      }
+      soft(ctx, p.cx, ay, p.s * (0.3 + 0.25 * depth + 0.05 * b), k.glow, 0.5 + 0.3 * depth);
+      dot(ctx, p.cx, ay, p.s * 0.06); fill(ctx, k.alt);
+    },
+  };
+
+  // One line from waking to sleep: quick small waves slow into long deep
+  // ones. A point of awareness rides it all the way and stays bright.
+  F.nidra_waves = {
+    label: 'into the slow waves', says: 'Yoga nidrā: the mind’s waves slowing towards sleep, with awareness riding them.',
+    build: (r, pl) => ({ ...pl }),
+    draw(ctx, p, k, t, still) {
+      const N = 220, x0 = p.cx - p.s * 1.25, x1 = p.cx + p.s * 1.25, scroll = still ? 0 : TAU * t / B;
+      const pts = []; let ph = 0;
+      for (let i = 0; i <= N; i++) { const v = i / N; ph += TAU * lerp(9, 1.1, Math.pow(v, 0.6)) / N; pts.push([lerp(x0, x1, v), p.cy + p.s * lerp(0.05, 0.42, v) * Math.sin(ph - scroll)]); }
+      for (let i = 0; i < N; i++) { const v = i / N; ctx.beginPath(); ctx.moveTo(pts[i][0], pts[i][1]); ctx.lineTo(pts[i + 1][0], pts[i + 1][1]); stroke(ctx, k.main, 0.009, 0.9 * Math.min(1, v * 6, (1 - v) * 6)); }
+      const u = still ? 0.62 : frac(t / (2 * B)), j = Math.round(C.easeInOut(u) * N), [x, y] = pts[j], a = fade(u);
+      soft(ctx, x, y, p.s * 0.35, k.glow, 0.65 * a); dot(ctx, x, y, p.s * 0.055); fill(ctx, k.alt, a);
+    },
+  };
+
+  // A level line, lying down; the moon sinks towards it and rises again;
+  // on the line one small light keeps watch the whole night.
+  F.nidra_moon = {
+    label: 'the edge of sleep', says: 'Yoga nidrā: lying level at the edge of sleep, with one light that stays awake.',
+    build: (r, pl) => ({ ...pl, bars: Array.from({ length: 4 }, () => r.range(0, TAU)) }),
+    draw(ctx, p, k, t, still) {
+      const hy = p.cy + p.s * 0.38, sink = still ? 0.45 : 0.5 - 0.5 * Math.cos(TAU * t / (3 * B)), mx = p.cx + p.s * 0.45, my = lerp(p.cy - p.s * 0.75, hy - p.s * 0.28, sink), R = p.s * 0.2;
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, 1, hy); ctx.clip();
+      soft(ctx, mx, my, p.s * 0.6, k.glow, 0.35);
+      ctx.beginPath(); ctx.arc(mx, my, R, 0, TAU); ctx.arc(mx + R * 0.42, my - R * 0.22, R * 0.86, 0, TAU, true); fill(ctx, k.alt);
+      ctx.restore();
+      p.bars.forEach((ph, i) => { const y = hy + p.s * (0.1 + i * 0.1), w = p.s * (0.36 - i * 0.06) * (1 + (still ? 0 : 0.2 * S(t, 6 + i, ph))); pill(ctx, mx, y, w, p.s * 0.035, 0); fill(ctx, k.alt, (0.5 - i * 0.1) * (1 - 0.5 * sink)); });
+      ctx.beginPath(); ctx.moveTo(p.cx - p.s * 1.25, hy); ctx.lineTo(p.cx + p.s * 1.25, hy); stroke(ctx, k.main, 0.008, 0.75);
+      const lx = p.cx - p.s * 0.55;
+      soft(ctx, lx, hy, p.s * (0.3 + 0.05 * BR(t, still)), k.glow, 0.7); dot(ctx, lx, hy - p.s * 0.02, p.s * 0.05); fill(ctx, k.glow);
+    },
+  };
+
+  // ================= Headless Way =================
+  // Face to no-face: over there, a face, solid; here, no face — open space
+  // with that face, and the world, in it.
+  F.headless_face = {
+    label: 'face to no-face', says: 'The Headless Way: there, a face; here, no face — open space, with the world in it.',
+    build: (r, pl) => ({ ...pl }),
+    draw(ctx, p, k, t, still) {
+      const b = BR(t, still), R = p.s * 0.46, lx = p.cx - p.s * 0.56, rx = p.cx + p.s * 0.6, y = p.cy;
+      dot(ctx, rx, y, R); fill(ctx, k.main);
+      soft(ctx, lx, y, R * (1.5 + 0.15 * b), k.glow, 0.45 + 0.1 * b);
+      ctx.save(); dot(ctx, lx, y, R * 1.06); ctx.clip();
+      soft(ctx, lx, y, R * 1.15, mix(k.paper, '#FFFFFF', isLight(k) ? 0.6 : 0.1), 0.95);
+      ctx.beginPath(); ctx.moveTo(lx - R * 1.2, y + R * 0.42); ctx.quadraticCurveTo(lx, y + R * 0.3, lx + R * 1.2, y + R * 0.46); ctx.lineTo(lx + R * 1.2, y + R * 1.2); ctx.lineTo(lx - R * 1.2, y + R * 1.2); ctx.closePath(); fill(ctx, k.line, 0.22);
+      dot(ctx, lx - R * 0.45, y - R * 0.38, R * 0.14); fill(ctx, k.alt);
+      dot(ctx, lx + R * 0.22, y - R * 0.02, R * (0.36 + 0.03 * b)); fill(ctx, k.main, 0.9);
+      ctx.restore();
+      ctx.setLineDash([0.006, 0.012]); ring(ctx, lx, y, R * 1.06); stroke(ctx, k.main, 0.004, 0.45); ctx.setLineDash([]);
+    },
+  };
+
+  // The single eye: the world, vivid inside a wide open space with no
+  // edge, fading to nothing all round. The space breathes.
+  F.headless_eye = {
+    label: 'the single eye', says: 'The Headless Way: looking out from no head — one wide open space, full of the world.',
+    build: (r, pl) => ({ ...pl }),
+    draw(ctx, p, k, t, still) {
+      const b = BR(t, still), rx = p.s * (1.6 + 0.12 * b), ry = p.s * 1.05 * (1 + 0.05 * b);
+      dot(ctx, p.cx + p.s * 0.35, p.cy - p.s * 0.2, p.s * 0.1); fill(ctx, k.alt);
+      soft(ctx, p.cx + p.s * 0.35, p.cy - p.s * 0.2, p.s * 0.4, k.glow, 0.45);
+      ctx.save(); ctx.translate(p.cx, p.cy); ctx.scale(1, ry / rx);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx); g.addColorStop(0, css(k.paper, 0)); g.addColorStop(0.62, css(k.paper, 0)); g.addColorStop(0.95, css(k.paper, 0.92)); g.addColorStop(1, css(k.paper, 1));
+      ctx.fillStyle = g; ctx.fillRect(-2, -4, 4, 8); ctx.restore();
+    },
+  };
+
+  // Pointing at things: each is solid, a thing. Then pointing back here,
+  // where the head should be — and finding open space, full of the things.
+  F.headless_point = {
+    label: 'pointing back', says: 'The Headless Way: point at things, each a thing; point back here, and find open space.',
+    build: (r, pl) => ({ ...pl, things: [[-0.95, 0.42, 0.11], [-0.62, -0.32, 0.09], [0.92, 0.18, 0.12]] }),
+    draw(ctx, p, k, t, still) {
+      const px = p.cx, py = p.cy + p.s * 0.72, top = [p.cx, p.cy - p.s * 0.62], R = p.s * 0.34;
+      const targets = [...p.things.map(([x, y]) => [p.cx + x * p.s, p.cy + y * p.s]), top], ang = targets.map(([x, y]) => Math.atan2(y - py, x - px));
+      const h = still ? 3 : frac(t / (3 * B)) * 4, i = Math.floor(h), f = C.ss(0.6, 1, h - i), a = lerp(ang[i], ang[(i + 1) % 4], f), on = (j) => (j === i ? 1 - f : j === (i + 1) % 4 ? f : 0);
+      const back = on(3);
+      soft(ctx, top[0], top[1], R * (1.4 + 0.5 * back), k.glow, 0.15 + 0.5 * back);
+      ring(ctx, top[0], top[1], R); stroke(ctx, k.main, 0.006, 0.35 + 0.4 * back);
+      p.things.forEach(([x, y, z], j) => {
+        const tx = p.cx + x * p.s, ty = p.cy + y * p.s;
+        if (on(j) > 0.01) soft(ctx, tx, ty, p.s * 0.3, k.glow, 0.45 * on(j));
+        dot(ctx, tx, ty, p.s * z); fill(ctx, k.main);
+        dot(ctx, top[0] + x * R * 0.42, top[1] + y * R * 0.42, p.s * z * 0.35); fill(ctx, k.main, 0.75 * back);
+      });
+      const L = p.s * 0.55, ex = px + Math.cos(a) * L, ey = py + Math.sin(a) * L;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(ex, ey); stroke(ctx, k.alt, 0.012);
+      ctx.beginPath(); ctx.moveTo(ex + Math.cos(a) * p.s * 0.09, ey + Math.sin(a) * p.s * 0.09); ctx.lineTo(ex + Math.cos(a + 2.4) * p.s * 0.07, ey + Math.sin(a + 2.4) * p.s * 0.07); ctx.lineTo(ex + Math.cos(a - 2.4) * p.s * 0.07, ey + Math.sin(a - 2.4) * p.s * 0.07); ctx.closePath(); fill(ctx, k.alt);
+      dot(ctx, px, py, p.s * 0.05); fill(ctx, k.alt);
+    },
+  };
+
   return F;
 })();

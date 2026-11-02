@@ -46,7 +46,7 @@
       "was": { "figure": "feltsense", "ground": "mist", "why": "A human outline." },
       "variants": [
         { "figure": "focus_blur", "ground": "mist" },
-        { "figure": "focus_handle", "ground": "dawn" },
+        { "figure": "focus_handle", "ground": "paper" },
         { "figure": "focus_unfurl", "ground": "mist" }
       ] },
     { "id": "yoga-nidra", "group": "body", "name": "Yoga nidrā", "script": "योगनिद्रा", "lang": "Sanskrit",
@@ -61,7 +61,7 @@
       "desc": "Looking back at where your head should be, and finding open space.",
       "was": { "figure": "headless", "ground": "dawn", "why": "A human outline (the idea, an open space where the head should be, stays)." },
       "variants": [
-        { "figure": "headless_face", "ground": "dawn" },
+        { "figure": "headless_face", "ground": "mist" },
         { "figure": "headless_eye", "ground": "mist" },
         { "figure": "headless_point", "ground": "dawn" }
       ] },
