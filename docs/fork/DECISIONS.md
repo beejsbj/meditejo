@@ -698,7 +698,7 @@ Burooj authorised Meditejo's Freesound app, so the picks that needed an account 
 
 ## 2026-10-27 (BJS-583: Extend with silence in the guide's own pauses)
 
-**Reworked on 2026-10-28 after Burooj's review (next section): there is no placement choice any more. "Rest in the pauses" is its own setting beside the silence after the recording, which joins the Ending bell. Where this section and the next disagree, the next wins.**
+**Reworked twice since: on 2026-10-28 (no placement choice; "Rest in the pauses" as its own setting) and on 2026-11-02 (one setting, Extend, and the session reads as if the recording were longer; no hold UI). Where this section and the later ones disagree, the latest wins.**
 
 Android first. iOS holds it all at the end: the Customize choice is not shown there, and the Swift engine ignores the `holds` it is sent. Completion rules are unchanged: a hold is the player paused, so it is never listening and never counts toward the 90% heard.
 
@@ -743,6 +743,8 @@ Android first. iOS holds it all at the end: the Customize choice is not shown th
 
 ## 2026-10-28 (BJS-583 rework: Rest in the pauses is its own setting)
 
+**Superseded on 2026-11-02 (next section) except for the Ending bell's own silence: the setting is Extend again, there is no hold UI, and the session reads as if the recording were longer.**
+
 Burooj's review of #49: "no extend at end is becoming a part of ending bell. so this extend is always part of in the pauses. see issue #72". In #72 the silence after the recording becomes part of the **Ending bell** ("optional silence after the audio + bell"). So resting in the guide's pauses is not a choice of where Extend goes; it is a setting of its own.
 
 - **Two settings, one extension in the engines.** `CueSettings.pauseMinutes` (0 to 60, "Rest in the pauses") sits beside `extendMinutes` (0 to 60, the silence after the recording). `extraMinutes` is their sum, and the session length, "Finishes at" and the iOS background-sound fade use it. The native configuration's `extendMinutes` is the sum, and its `holds` are drawn from `pauseMinutes` only. So `HoldPlan` and `CueEngine` did not change: whatever the holds do not use is held after the recording, with the silence set there, before the ending bell. The native clamps rise from 60 to 120 minutes to carry both (`CueConfig.MAX_EXTEND_MINUTES` in Kotlin, `CueConfig` in Swift), with a config test on each side; the Swift one has no CI runner.
@@ -762,24 +764,46 @@ Burooj's review of #49: "no extend at end is becoming a part of ending bell. so 
   - **Known gap, widened (was F5):** the engines know one combined extension. Turning Rest in the pauses down or Off mid-session after a hold takes the time already rested out of the silence after the recording (10 after + 10 in the pauses, 5 rested, then Off: 5 at the end, not 10), and turning it Off mid-hold does not end that hold. The fix is to send `pauseMinutes` natively as its own budget; left for after Burooj's answers, since it only bites when the setting changes mid-session.
   - **Kotlin compiled here:** the pure files (`CueMath.kt`, `SilenceDetector.kt`) and their tests were compiled with the Gradle distribution's embedded Kotlin compiler and run under JUnit on bjslab (80 tests). `CueEngine.kt` and the service need the Android build: the APK workflow.
 
+## 2026-11-02 (BJS-583, second rework: Extend, as if the recording were longer)
+
+Burooj tried the combined test APK: "Rest in pauses doesn't increase the play time? Look we won't have these skip cards. Or call it rest in silence. It will just be called extend. And behind the scenes the way it extends things is in the silence. This technique doesn't need to be user facing. It should seamlessly just extend the audio by that much. Like the playback seek timer thing also reflects that increase. As if the audio file is longer itself." (Recorded on #49 too.)
+
+- **One setting, Extend.** `CueSettings.extendMinutes` is Extend again: 0.1.4's key and meaning (the session is this much longer). Its silence goes into the guide's own pauses where it can (Android, once the recording is read) and after the recording otherwise; nothing on screen says which. Customize → Time → Extend shows on every platform for guided sessions. The 2026-10-28 test builds stored `pauseMinutes` (rest in the pauses) and `extendMinutes` (the silence after); a value with `pauseMinutes` and no `endSilenceMinutes` is read as Extend = `pauseMinutes`, Ending-bell silence = `extendMinutes`.
+- **No hold UI.** The rest card, Skip, the `skipHold` channel call, the hold polling and five strings are gone. **The "Skip spends the hold's time or moves it to the end" question is moot**: there is no skip. The row's name is answered too: Extend.
+- **The extended timeline (`ExtendedTimeline.kt`, pure, JVM-tested).** The session is the recording with Extend's silence laid into it: holds at fixed places in the guide's pauses, and a tail after the recording with whatever the holds do not take. Its length is always recording + all the added silence. Positions are media time for the voice and real time for silence, so at 1x a position is time into the session; at other speeds the voice part keeps media units, as the seek bar always did.
+  - **Holds are part of the file now, not events.** Seeking forward over a hold skips it, as it would skip any stretch of a longer file; seeking back before it plays it again. This replaces "a hold is taken once" and "seeking past a hold leaves its time for the end" (both from 2026-10-27). A seek can land inside a hold (the voice waits at that pause, the silence runs from there) or in the tail (the voice rests at its end).
+  - **Pause and resume inside a hold or the tail** freeze and restart its clock; the position stops and starts with it.
+  - **A plan that changes mid-session** (the pause map arriving on a first play, a settings edit) never changes the timeline behind the playhead: holds behind it and one under way stay, new ones are taken only ahead, and the length does not jump. Holds whose pauses are already behind when the map lands do not happen; their share joins the tail rather than being spread again over later pauses.
+  - **Minutes the pauses cannot take go at the end** (decided 2026-10-28) and still do: no usable pauses, the 5-minute cap per pause, iOS, YouTube, a stream not read yet.
+  - **A timer or a repeating recording keeps the player's own timeline.** A repeat has no holds: all of its silence comes after the last pass, as before.
+- **Who reads the timeline.**
+  - **Dart (Android):** `PlaybackState.position` and `duration` are on it, and `isPlaying` stays true through silence that is running. So the seek bar, its times, "Finishes at" and the saved Resume position all read the longer session with no change to those widgets. Seeks and the 15 s skips go through `CueEngine.seekTo`.
+  - **Lock screen, notification, headset:** the media session wraps the player in `SessionPlayer` (a Media3 `ForwardingPlayer`). It reports the timeline's position and length, plays through silence, and sends play, pause and seeks through the service. This also answers the 2026-10-27 follow-up F2/F7: a headset or lock-screen press during a hold now pauses the hold instead of starting the voice. Untested on a phone: the system UI's seek bar should follow, but only the phone shows it.
+  - **Completion:** listening is sampled on the timeline, so silence walked through counts like the voice. The 90% rule is 90% of recording + Extend (sitting through the tail counts; skipping it does not), and the completion's recorded duration (the session's minutes in stats) is the whole session. **This changes stats for Extend at the end too: before, its minutes were not counted. Question for Burooj.**
+  - **Bells:** session time moves by the voice at the player's speed and by silence as it is; a seek moves it by that distance. At 1x the halfway bell rings at the middle of recording + Extend.
+  - **iOS:** Swift is unchanged (no holds, all of Extend after the recording). Dart reads its tail clock (now once a second) and shows recording + Extend, with the position running on through the silence (`extendedIosPlayback`, tested). A seek into the silence goes to the voice's end, which starts it from the beginning. Unverified: no iOS build here.
+- **The Ending bell's own silence stays** (#72's piece), now under its own key `endSilenceMinutes`. In code it is not a second copy of Extend: both feed the one native extension, but holds come from Extend only and the Ending bell's silence is always after the recording. It counts in the session's length like Extend. **Question for Burooj: keep it, or fold it into Extend?**
+- **Known limits.** A Resume position (and an unfinished session's listening record) is saved on the timeline; if Extend or the pause map differs next time it lands off by the holds before it. A Resume seek during the countdown can reach the voice or a hold's pause, not the tail.
+- **Verification.** `ExtendedTimelineTest` (22 tests: the length; media to timeline and back over every second of a session; seeks over, into and back across holds; a seek into the tail; pause and resume in a hold and the tail; the late map; replanning during a hold; a shorter Extend mid-session) runs with `CueMathTest` and `SilenceDetectorTest` on bjslab through the Gradle distribution's kotlinc (86 tests), and in the APK workflow. `CueEngine`, `SessionPlayer` and `AudioPlayerService` were type-checked locally against android-35, Media3 1.2.1, androidx.core, coroutines and flutter.jar; the engine's use of the timeline with a real player is for the phone.
+
 ### Phone checklist (S23+, screen off)
 
-1. Download *Metta Instructions and Guided Meditation 3* (Burbea, ds-talk 9985, 44 min) or *Breathing with the Energy Body* (ds-talk 60862).
-2. Customize: **Rest in the pauses** +10 min; **Ending bell**, silence after the audio, Off. Start the session and lock the screen at once.
-3. Within about a minute the pause map should be made (the first hold is at least 7 minutes in on 60862, 22 minutes in on 9985). Logcat tag `PauseMapAnalyzer` and `CueEngine`; the file appears under `files/media_spans/` (app support).
-4. At each pause the voice stops for the hold and starts again by itself, with the screen off, and the background sound, interval bell and (if on) pulse carry on through it. Notification shows playing throughout.
-5. Unlock mid-hold: the "Resting in silence" card shows the time left. **Skip this pause** carries on with the voice at once. The pause button freezes the hold and the card.
-6. With interval bells every 5 min and again with Halfway: they ring on time, through holds. The halfway bell rings at half of recording + both kinds of silence.
-7. The end bell rings at recording length + Rest in the pauses + silence after (less anything skipped) from the start of the session. Compare the clock with "Finishes at" in the sheet, which should hold steady across holds.
-8. Stats: the session counts once, 90% of the recording heard; holds add nothing to time heard.
-9. Seek back over a hold already taken: it does not repeat. Seek past one: its time comes at the end.
-10. A streamed (not downloaded) recording on Wi-Fi: it is read (watch data), then holds begin. On mobile data: no holds, everything at the end, no data used for the map.
-11. A YouTube session with Rest in the pauses: all of it at the end.
-12. A hold of at least 2 minutes with the screen off; mid-hold, `adb shell dumpsys activity services <package> | grep isForeground` should still show foreground.
-13. Lock-screen media control and a Bluetooth headset press during a hold: record what happens (expected today: the press starts the voice and ends the hold).
-14. **Both at once:** Rest in the pauses +10 and silence after +3. The holds add up to at most 10 minutes; after the recording comes 3 minutes plus whatever the pauses could not take, then the ending bell, at the time "Finishes at" said.
-15. Customize looks right: the Ending bell row reads "+3 min · <bell>" and opens to the silence wheel above the bells; on the Timer, the Ending bell has no wheel.
-16. Seek forward from before a hold to just past it (within 2 s): no hold. Seek back before it and play on: the hold is taken.
+1. Download *Metta Instructions and Guided Meditation 3* (Burbea, ds-talk 9985, 44 min) or *Breathing with the Energy Body* (ds-talk 60862). Customize: **Extend** +10; Ending bell silence Off.
+2. Before starting, and on the player: the length reads recording + 10 min.
+3. Start and lock the screen. Within about a minute the pause map is made (logcat `PauseMapAnalyzer`, `CueEngine`; a file under `files/media_spans/`). At each long pause the voice stops and starts again by itself; the background sound, interval bells and pulse carry on.
+4. Unlock during a hold: no card. The seek bar keeps moving through the silence and the time left keeps falling; pause stops the bar and the silence, play carries on from there.
+5. **Lock screen and notification:** the seek bar's length is recording + 10 min and it moves during a hold. Pause and play there, and a Bluetooth headset press, during a hold pause and resume the hold (the voice stays quiet).
+6. In the app, seek into the middle of a hold: silence, the bar moving, the voice back when the hold's time is up. Seek over a hold: no silence there. Seek back before it: it comes again. The 15 s skips across a hold.
+7. Seek into the last minutes of the bar (after the recording): silence, then the end bell as the bar reaches its end.
+8. Halfway bell on: it rings at half of recording + 10 min.
+9. The end bell rings when the bar reaches its end; "Finishes at" in the sheet matched it.
+10. Stats: one session, its minutes recording + 10. Stopping in the last minutes, after 90% of the bar, still counts it.
+11. A streamed recording on mobile data: no holds, the bar still reads recording + 10 with the silence at the end. On Wi-Fi for a first play: when the map lands mid-session the bar's length does not jump, and holds come only after that point.
+12. A YouTube session: recording + 10, all of it at the end.
+13. Repeat once: the bar reads the recording, and the silence comes after the last pass (known limit).
+14. A hold of at least 2 minutes with the screen off; mid-hold, `adb shell dumpsys activity services <package> | grep isForeground` still shows foreground.
+15. Leave mid-session and Resume (Home, Continue): it carries on at the same place on the bar.
+16. Customize: Extend under Time; the Ending bell row reads "+N min · <bell>" when its own silence is set, and opens to that wheel above the bells.
 
 ## 2026-10-27 (bug batch A: cues and sounds)
 
