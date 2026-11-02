@@ -194,16 +194,18 @@ void main() {
           find.byKey(const ValueKey('archive_dt-year-m-2026')),
           findsNothing,
         );
-        expect(find.text('Samādhi & Mindfulness'), findsNothing);
+        // The snapshot is tiny, so the talk is among the latest too: it shows
+        // once there, and a second time when its year is opened.
+        expect(find.text('Samādhi & Mindfulness'), findsOneWidget);
 
         await tester.tap(find.byKey(const ValueKey('archive_dt-year-e-2025')));
         await DharmaSeedTestApp.settle(tester);
-        expect(find.text('Samādhi & Mindfulness'), findsOneWidget);
+        expect(find.text('Samādhi & Mindfulness'), findsNWidgets(2));
 
         // Closing it again takes the rows away.
         await tester.tap(find.byKey(const ValueKey('archive_dt-year-e-2025')));
         await DharmaSeedTestApp.settle(tester);
-        expect(find.text('Samādhi & Mindfulness'), findsNothing);
+        expect(find.text('Samādhi & Mindfulness'), findsOneWidget);
 
         // Morning is a switch away.
         await tester.tap(find.text('Morning'));

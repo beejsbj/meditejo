@@ -190,8 +190,9 @@ it. They answer in source-neutral view models
 (`lib/models/catalogue/catalogue_models.dart`: `CatalogueExplore`,
 `CatalogueSearchResults`, `CatalogueTeacherPage`, `CatalogueTeacher`, and the
 `ContentGroup` enum, Practice or Talks), so no screen knows which source it is
-showing. `CatalogueExplore.archives` carries a source's "browse by" lists (the
-year lists). `catalogue_merge.dart` merges answers: courses and talks alternate
+showing. `CatalogueTeacherPage.archive` carries a source's whole archive as sections of
+closed groups (dhammatalks: evening and morning, by year); a group's talks come
+from `CatalogueSource.archiveTalks` only when it is opened. `catalogue_merge.dart` merges answers: courses and talks alternate
 between sources, teachers rank by talk count, followed teachers lead.
 
 `lib/providers/dharma_seed/dharma_seed_ui_providers.dart` holds the wiring:
@@ -229,11 +230,14 @@ built-in catalogue (BRIEF decision 3; research in `content-sources.md`).
 - **IDs** (`dhammatalks_ids.dart`): `dt-talk-e-<key>` (evening),
   `dt-talk-m-<key>` (short morning talk), `dt-talk-c-<slug>` (a file only a
   collection lists), `dt-course-<collection>`, `dt-year-e|m-<year>` (a year of
-  the archive: a list that opens like a course but cannot be kept),
+  the archive: the group `archiveTalks` opens, and a list that opens like a course
+  but cannot be kept),
   `dt-teacher-thanissaro`.
 - **Shape.** The guided meditations are a Practice course; Basics and the other
-  collections are Talks courses (relabelling is one tap). Years are browsed from
-  a "Talks by year" chip strip in Explore. One teacher page. Every item carries
+  collections are Talks courses (relabelling is one tap). The archive (about 9,300 talks) is browsed on
+  the one teacher page, Thanissaro Bhikkhu's: his latest talks, then an Archive
+  section with an Evening/Morning switch and the years as closed rows that read
+  and build their talks only when opened. Explore has no year strip. Every item carries
   `SourceAttribution` (dhammatalks.org, Thanissaro Bhikkhu, the item's page,
   CC BY-NC 4.0 and the licence link); audio streams unmodified from the site.
 - **Import.** `DhammatalksSource.idForLink` maps a talk page, a talk's mp3, a
@@ -446,7 +450,7 @@ clipboard reader and share intake as providers, so tests need no platform.
   practice unless Talks is chosen. `LibraryStateCard` explains the first sync.
   Browse and search always read every built-in catalogue, merged (see "The
   catalogue seam"; there is no source filter, each item carries its own source
-  attribution), and a "Talks by year" chip strip opens a year of dhammatalks.
+  attribution). A source's archive lives on its teacher page, not here.
   Pull to refresh runs an incremental sync. Typing (400 ms debounce, not
   ASCII-filtered) replaces that with `SearchResults` (`lib/views/search/`):
   Teachers, Courses, Talks, with the length chips over the talks, and the
