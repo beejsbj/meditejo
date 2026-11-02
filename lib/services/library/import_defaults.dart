@@ -16,11 +16,12 @@ enum ImportShape {
   /// A YouTube watch link with no playlist.
   youtubeVideo,
 
-  /// A Dharma Seed retreat page.
-  dharmaSeedRetreat,
+  /// A course of a built-in catalogue: a Dharma Seed retreat page, a
+  /// dhammatalks.org collection.
+  catalogueCourse,
 
-  /// A Dharma Seed talk page.
-  dharmaSeedTalk,
+  /// A single session of a built-in catalogue.
+  catalogueSingle,
 
   /// A direct link to one audio file.
   audioUrl,
@@ -66,10 +67,10 @@ const importDefaults = <ImportShape, ImportDefault>{
     _courseOrSingle,
   ),
   ImportShape.youtubeVideo: ImportDefault(LibraryKind.single, _courseOrSingle),
-  ImportShape.dharmaSeedRetreat: ImportDefault(LibraryKind.course, {
+  ImportShape.catalogueCourse: ImportDefault(LibraryKind.course, {
     LibraryKind.course,
   }),
-  ImportShape.dharmaSeedTalk: ImportDefault(LibraryKind.single, {
+  ImportShape.catalogueSingle: ImportDefault(LibraryKind.single, {
     LibraryKind.single,
   }),
   ImportShape.audioUrl: ImportDefault(LibraryKind.single, {LibraryKind.single}),

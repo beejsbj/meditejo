@@ -2949,4 +2949,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get bellMakerDefaultName => 'Mi campana';
+
+  @override
+  String get teacherArchive => 'Archivo';
+
+  @override
+  String get teacherLatestTalks => 'Últimas charlas';
 }

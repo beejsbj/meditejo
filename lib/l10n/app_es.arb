@@ -1170,5 +1170,7 @@
   "bellDeleteTitle": "¿Borrar «{name}»?",
   "bellDeleteBody": "Las señales que la usan volverán a «Swell bell».",
   "bellMenu": "Más sobre {name}",
-  "bellMakerDefaultName": "Mi campana"
+  "bellMakerDefaultName": "Mi campana",
+  "teacherArchive": "Archivo",
+  "teacherLatestTalks": "Últimas charlas"
 }

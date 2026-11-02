@@ -2904,4 +2904,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bellMakerDefaultName => 'My bell';
+
+  @override
+  String get teacherArchive => 'Archive';
+
+  @override
+  String get teacherLatestTalks => 'Latest talks';
 }

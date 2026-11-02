@@ -3258,5 +3258,13 @@
   "bellMakerDefaultName": "My bell",
   "@bellMakerDefaultName": {
     "description": "Bell maker: the name suggested for a new bell"
+  },
+  "teacherArchive": "Archive",
+  "@teacherArchive": {
+    "description": "Teacher page section: every talk, by year, each year closed until opened"
+  },
+  "teacherLatestTalks": "Latest talks",
+  "@teacherLatestTalks": {
+    "description": "Teacher page section: the newest talks, above the archive"
   }
 }

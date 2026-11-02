@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "asOf": "2026-10-27T15:53:45Z",
+  "newest": "2026-10-26",
+  "oldest": "2000-10-13",
+  "counts": {
+    "talks": 9311,
+    "evening": 5482,
+    "morning": 3829,
+    "courses": 8,
+    "courseItems": 218
+  },
+  "bytes": 1246996,
+  "asset": {
+    "name": "catalogue.json.gz",
+    "bytes": 313031,
+    "sha256": "dca7ca7b0c96bed911520fd2af0b14a039122d095496f9d42dbcc215d3bd78aa"
+  },
+  "source": "https://www.dhammatalks.org",
+  "licence": "CC BY-NC 4.0"
+}

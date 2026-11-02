@@ -1410,5 +1410,7 @@
   "bellDeleteTitle": "„{name}“ löschen?",
   "bellDeleteBody": "Signale, die sie läuten, wechseln zur „Swell bell“.",
   "bellMenu": "Mehr zu {name}",
-  "bellMakerDefaultName": "Meine Glocke"
+  "bellMakerDefaultName": "Meine Glocke",
+  "teacherArchive": "Archiv",
+  "teacherLatestTalks": "Neueste Vorträge"
 }
