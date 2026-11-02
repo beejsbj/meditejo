@@ -3,23 +3,61 @@ import 'dart:io' show Platform;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import '../../models/background_sounds/background_sounds_model.dart';
+import '../../providers/cues/custom_bell_provider.dart';
+import '../bells/custom_bell_id.dart';
 
 final sessionBellPreviewProvider = Provider<SessionBellPreview>((ref) {
-  final preview = SessionBellPreview();
+  final preview = SessionBellPreview(
+    bellFile: (id) => ref.read(customBellStoreProvider).fileFor(id),
+  );
   ref.onDispose(preview.dispose);
   return preview;
 });
 
 /// Foreground audition only; never changes the meditation's cue schedule.
 class SessionBellPreview {
-  SessionBellPreview({AudioPlayer? player}) : _player = player;
+  SessionBellPreview({
+    AudioPlayer? player,
+    Future<String?> Function(String id)? bellFile,
+  }) : _player = player,
+       _bellFile = bellFile;
   AudioPlayer? _player;
+  final Future<String?> Function(String id)? _bellFile;
   int _generation = 0;
 
+  /// Rings [asset]: a bundled bell's asset path, or the id of a bell the user
+  /// made. A made bell that no longer exists, or cannot be made again, rings
+  /// the default bell, as it does on the native side (`nativeBellSound`).
   Future<void> play(double volume, {String asset = kSessionBellAsset}) async {
     final generation = ++_generation;
     final player = _player ??= newPlayer();
-    await player.setAsset(asset);
+    if (isCustomBellId(asset)) {
+      String? path;
+      try {
+        path = await _bellFile?.call(asset);
+      } catch (_) {
+        // Rings the default bell below.
+      }
+      if (generation != _generation) return;
+      if (path == null) {
+        await player.setAsset(kSessionBellAsset);
+      } else {
+        await player.setFilePath(path);
+      }
+    } else {
+      await player.setAsset(asset);
+    }
+    if (generation != _generation) return;
+    await player.setVolume(volume);
+    if (generation != _generation) return;
+    await player.play();
+  }
+
+  /// Rings the WAV at [path], a bell being made that is not saved yet.
+  Future<void> playFile(String path, double volume) async {
+    final generation = ++_generation;
+    final player = _player ??= newPlayer();
+    await player.setFilePath(path);
     if (generation != _generation) return;
     await player.setVolume(volume);
     if (generation != _generation) return;

@@ -2835,4 +2835,104 @@ class AppLocalizationsEs extends AppLocalizations {
   String labelsRemoveTooltip(String label) {
     return 'Quitar la etiqueta $label';
   }
+
+  @override
+  String get bellMakerTitle => 'Crear una campana';
+
+  @override
+  String get bellMakerSave => 'Guardar';
+
+  @override
+  String get bellMakerName => 'Nombre';
+
+  @override
+  String get bellMakerStartFrom => 'Partir de';
+
+  @override
+  String get bellMakerHear => 'Escuchar';
+
+  @override
+  String get bellMakerMaking => 'Creando el sonido';
+
+  @override
+  String get bellMakerPlayFailed => 'No se pudo reproducir la campana.';
+
+  @override
+  String get bellMakerSaveFailed => 'No se pudo guardar la campana.';
+
+  @override
+  String bellMakerLimit(int count) {
+    return 'Puedes guardar hasta $count campanas. Borra una para crear otra.';
+  }
+
+  @override
+  String get bellPitch => 'Tono';
+
+  @override
+  String get bellPitchLow => 'Grave';
+
+  @override
+  String get bellPitchHigh => 'Agudo';
+
+  @override
+  String get bellBright => 'Brillo';
+
+  @override
+  String get bellBrightLow => 'Oscuro';
+
+  @override
+  String get bellBrightHigh => 'Brillante';
+
+  @override
+  String get bellRing => 'Resonancia';
+
+  @override
+  String get bellRingLow => 'Corta';
+
+  @override
+  String get bellRingHigh => 'Larga';
+
+  @override
+  String get bellStrike => 'Golpe';
+
+  @override
+  String get bellStrikeLow => 'Suave';
+
+  @override
+  String get bellStrikeHigh => 'Fuerte';
+
+  @override
+  String get bellShimmer => 'Vibración';
+
+  @override
+  String get bellShimmerLow => 'Quieta';
+
+  @override
+  String get bellShimmerHigh => 'Ondulante';
+
+  @override
+  String get bellYours => 'Tus campanas';
+
+  @override
+  String get bellRename => 'Renombrar';
+
+  @override
+  String get bellRenameTitle => 'Renombrar campana';
+
+  @override
+  String bellDeleteTitle(String name) {
+    return '¿Borrar «$name»?';
+  }
+
+  @override
+  String get bellDeleteBody =>
+      'Las señales que la usan volverán a «Swell bell».';
+
+  @override
+  String bellMenu(String name) {
+    return 'Más sobre $name';
+  }
+
+  @override
+  String get bellMakerDefaultName => 'Mi campana';
 }
