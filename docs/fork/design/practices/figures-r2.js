@@ -680,7 +680,7 @@ const PracticesR2 = (() => {
     label: 'the sign comes clear', says: 'Kasiṇa: a disc of dawn-coloured clay, gazed at until its flawless bright sign appears.',
     build: (r, pl) => ({ ...pl, blob: C.makeBlob(r, pl.cx, pl.cy, pl.s * 0.68, 1.6, 0), flaws: Array.from({ length: 70 }, () => { const a = r.range(0, TAU), d = Math.sqrt(r.next()) * 0.6; return [Math.cos(a) * d, Math.sin(a) * d, r.range(0.01, 0.03)]; }) }),
     draw(ctx, p, k, t, still) {
-      const pure = still ? 0.75 : 0.5 - 0.5 * Math.cos(TAU * t / (3 * B)), b = BR(t, still), clay = mix(k.alt, k.main, 0.4), bright = mix(k.glow, '#FFFFFF', 0.45), col = mix(clay, bright, C.ss(0.2, 0.95, pure));
+      const pure = still ? 0.45 : 0.5 - 0.5 * Math.cos(TAU * t / (3 * B)), b = BR(t, still), clay = mix(k.alt, k.main, 0.4), bright = mix(k.glow, '#FFFFFF', 0.45), col = mix(clay, bright, C.ss(0.2, 0.95, pure));
       soft(ctx, p.cx, p.cy, p.s * (1.0 + 0.3 * pure), k.glow, 0.15 + 0.5 * pure);
       C.blobPath(ctx, p.blob, { imperf: 1 - pure, grow: 0.97 + 0.03 * b }); fill(ctx, col);
       p.flaws.forEach(([x, y, z]) => { dot(ctx, p.cx + x * p.s, p.cy + y * p.s, p.s * z); fill(ctx, mix(clay, k.main, 0.5), 0.75 * (1 - C.ss(0, 0.7, pure))); });
