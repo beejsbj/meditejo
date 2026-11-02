@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/widgets/inputs/range_control.dart';
 
@@ -132,6 +133,65 @@ void main() {
     });
   });
 
+  group('vertical, more', () {
+    Widget control({List<double>? moved, TextDirection? dir}) => MaterialApp(
+      builder: (context, child) => Directionality(
+        textDirection: dir ?? TextDirection.ltr,
+        child: child!,
+      ),
+      home: Scaffold(
+        body: Center(
+          child: SizedBox(
+            width: 72,
+            child: RangeControl(
+              axis: Axis.vertical,
+              sliderKey: const ValueKey('range'),
+              label: 'Pitch',
+              low: 'Deep',
+              high: 'High',
+              min: 100,
+              max: 1600,
+              value: 400,
+              logarithmic: true,
+              format: (v) => '${v.round()} Hz',
+              onChanged: (v) => moved?.add(v),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    testWidgets('up is more in a right-to-left language too', (tester) async {
+      final moved = <double>[];
+      await tester.pumpWidget(control(moved: moved, dir: TextDirection.rtl));
+      await tester.drag(
+        find.byKey(const ValueKey('range')),
+        const Offset(0, -40),
+      );
+      expect(moved.last, greaterThan(400));
+    });
+
+    testWidgets('a screen reader gets the name and the value on the slider', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(control());
+      // The slider's node carries both the name and the value in the control's
+      // own units: one thing to adjust, read once.
+      final named = find.semantics.byLabel('Pitch');
+      final valued = find.semantics.byValue('400 Hz');
+      expect(named, findsOneWidget);
+      expect(valued, findsOneWidget);
+      // Merged: the value node is folded into the one that has the name.
+      final value = valued.evaluate().single;
+      expect(value.isMergedIntoParent, isTrue);
+      expect(value.parent!.id, named.evaluate().single.id);
+      expect(find.semantics.byAction(SemanticsAction.increase), findsWidgets);
+      expect(find.semantics.byLabel('High'), findsNothing);
+      semantics.dispose();
+    });
+  });
+
   group('RangeControlBank', () {
     Future<void> pumpBank(
       WidgetTester tester, {
@@ -186,8 +246,8 @@ void main() {
         tester.getTopLeft(find.byKey(ValueKey(name))),
     ];
 
-    testWidgets('five channels share a row on a small phone', (tester) async {
-      await pumpBank(tester, width: 320);
+    testWidgets('five channels share a row on a 360 dp phone', (tester) async {
+      await pumpBank(tester, width: 360);
       expect(tester.takeException(), isNull);
       final t = tops(tester);
       expect(t.map((o) => o.dy).toSet(), hasLength(1));
@@ -203,12 +263,47 @@ void main() {
       await pumpBank(tester, width: 360, textScale: 2);
       expect(tester.takeException(), isNull);
       final t = tops(tester);
-      expect(t.map((o) => o.dy).toSet().length, greaterThan(1));
+      // 128 dp a channel in 328: two to a row, so 2 + 2 + 1.
+      expect(t.map((o) => o.dy).toSet(), hasLength(3));
       for (final name in ['Pitch', 'Brightness', 'Ring', 'Strike', 'Shimmer']) {
         final rect = tester.getRect(find.byKey(ValueKey(name)));
         expect(rect.left, greaterThanOrEqualTo(0));
         expect(rect.right, lessThanOrEqualTo(360));
       }
     });
+  });
+
+  testWidgets('a bank with no width to fill sits in one row', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: RangeControlBank(
+              children: [
+                for (var i = 0; i < 3; i++)
+                  RangeControl(
+                    axis: Axis.vertical,
+                    sliderKey: ValueKey('c$i'),
+                    label: 'C$i',
+                    low: 'Low',
+                    high: 'High',
+                    min: 0,
+                    max: 1,
+                    value: 0.5,
+                    format: (v) => '$v',
+                    onChanged: (_) {},
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    expect({
+      for (var i = 0; i < 3; i++)
+        tester.getTopLeft(find.byKey(ValueKey('c$i'))).dy,
+    }, hasLength(1));
   });
 }

@@ -190,19 +190,29 @@ void main() {
     tester,
   ) async {
     await _setUp(tester);
-    tester.view.physicalSize = const Size(320, 2200);
+    tester.view.physicalSize = const Size(320, 4000);
     await tester.pumpWidget(
       _app(const BellMakerView(from: temple), textScale: 2),
     );
     await tester.pump();
     expect(tester.takeException(), isNull);
+    final rects = <Rect>[];
     for (final n in ['pitch', 'bright', 'ring', 'strike', 'shimmer']) {
       final slider = find.byKey(ValueKey('bell_maker_$n'));
-      await tester.ensureVisible(slider);
       final r = tester.getRect(slider);
       expect(r.left, greaterThanOrEqualTo(0));
       expect(r.right, lessThanOrEqualTo(320));
+      rects.add(r);
     }
+    // 128 dp a channel in 288: two to a row, so 2 + 2 + 1, each channel whole.
+    final rows = rects.map((r) => r.top.round()).toSet();
+    expect(rows, hasLength(3), reason: 'rows of 2, 2 and 1');
+    expect(rects.map((r) => r.top.round()).toList().sublist(0, 4), [
+      rects[0].top.round(),
+      rects[0].top.round(),
+      rects[2].top.round(),
+      rects[2].top.round(),
+    ]);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
