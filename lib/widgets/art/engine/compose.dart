@@ -585,6 +585,51 @@ abstract final class Compose {
     );
   }
 
+  /// A way to practise: its curated [ground] and [figure] (`rings:ripple`
+  /// pins a variant), seeded by the practice's id so it never moves. Unknown
+  /// names fall back to paper and no figure rather than throwing, so a
+  /// figure renamed in the asset ahead of its port still draws.
+  static ArtComposition buildPractice(
+    String id, {
+    required String ground,
+    String? figure,
+  }) {
+    final seed = 'practice:$id';
+    final gName = ArtRegistry.grounds.containsKey(ground) ? ground : 'paper';
+    final g = ArtLayer(
+      gName,
+      ArtRegistry.ground(gName).build(SeededRandom('$seed:g'), const {}),
+    );
+    final f = _parse(figure);
+    ArtLayer? layer;
+    if (f != null && ArtRegistry.figures.containsKey(f.name)) {
+      // Where the figure normally sits (fire low, the moon high), first
+      // choice, so a practice's art never moves.
+      final layout = ArtMap.homes[f.name]?.first ?? 'centre';
+      final pl = ArtMap.layouts[layout]!;
+      final p = ArtRegistry.figure(f.name).build(SeededRandom('$seed:f'), {
+        'cx': pl.cx,
+        'cy': pl.cy,
+        's': pl.s,
+      }, 'figure');
+      if (f.kind != null) p['kind'] = f.kind;
+      layer = ArtLayer(
+        f.name,
+        p,
+        kind: f.kind ?? p['kind'] as String?,
+        layout: layout,
+      );
+    }
+    return ArtComposition(
+      cls: 'practice',
+      seed: seed,
+      ground: g,
+      figure: layer,
+      inkSeed: '$seed:ink',
+      misregister: (0.0, 0.006),
+    );
+  }
+
   /// `compose.js` `buildFor`: an item by id and kind. Null when the map has
   /// no class for it.
   static ArtComposition? buildFor(

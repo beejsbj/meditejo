@@ -4,6 +4,7 @@ import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/categories/category_providers.dart';
 import 'package:medito/services/categories/entry_labels.dart';
+import 'package:medito/views/categories/practice_tile.dart';
 
 /// Opens the sheet where the user sets a library item's categories and adds
 /// labels of their own. [title] is what the item is called in the library;
@@ -82,31 +83,61 @@ class _LabelsSheetState extends ConsumerState<LabelsSheet> {
               ),
             ),
             const SizedBox(height: 16),
+            // Every practice, empty ones too, so the user can fill one.
             if (catalogue != null)
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final category in catalogue.categories)
-                    FilterChip(
+              for (final (group, items) in groupPractices(
+                catalogue.categories,
+              )) ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 8),
+                  child: Semantics(
+                    header: true,
+                    child: Text(
+                      practiceGroupName(l10n, group).toUpperCase(),
+                      style: type.baseline.labelMedium?.copyWith(
+                        letterSpacing: 1.2,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 220,
+                    mainAxisExtent:
+                        64 +
+                        48 * MediaQuery.textScalerOf(context).scale(14) / 14,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                  ),
+                  itemCount: items.length,
+                  itemBuilder: (context, i) {
+                    final category = items[i];
+                    final on = labels.hasCategory(category.id);
+                    return PracticeTile(
                       key: ValueKey('labels_category_${category.id}'),
-                      label: Text(category.name),
-                      selected: labels.hasCategory(category.id),
-                      onSelected: (on) async {
+                      category: category,
+                      size: PracticeTileSize.compact,
+                      selected: on,
+                      onTap: () async {
                         final service = await ref.read(
                           categoryServiceProvider.future,
                         );
                         await service.setCategory(
                           widget.subject.id,
                           category.id,
-                          on: on,
+                          on: !on,
                           current: labels,
                           title: widget.subject.title,
                         );
                       },
-                    ),
-                ],
-              ),
+                    );
+                  },
+                ),
+              ],
             const SizedBox(height: 8),
             Text(
               l10n.labelsExplain,
