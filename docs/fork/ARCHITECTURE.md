@@ -422,11 +422,15 @@ category *is* that category; anything else is a label of their own.
   `CategoryCatalogue`, `lib/services/categories/`). `format` is the layout
   this build reads, `version` and `updated` the edition of the curation (bump
   `version` by hand whenever the mapping changes). It holds:
-  - `categories`: ID, name, `group`, a one-line blurb and aliases. 36
-    practices in seven groups (heart, concentration, insight, awareness,
-    body, devotion, imagination), listed group by group; the group is for a
-    grouped view later and nothing reads it yet. Names are practice terms and
-    live here, not in the `.arb` files. An alias must not name two categories.
+  - `categories`: 38 practices in seven groups (heart, concentration,
+    insight, awareness, body, devotion, imagination), listed group by group.
+    Each has an ID, `name` (its own name when one tradition owns it, plain
+    English when shared; never translated), optional `script`, `langs`
+    (language codes the app translates) or `label` (originals or founder, as
+    written), `blurb` by language (`en`, `de`, `es`), `aliases` (the English
+    names, so search still finds them; an alias must not name two
+    categories) and `art` (a ground and a figure, drawn by
+    `ArtSubject.practice`).
   - `curated`: content IDs (`ds-retreat-4496`, `ds-talk-60864`, or another
     source's ID) with their categories and the item's name. A curated entry
     **replaces** the keyword rules for that ID; `"categories": []` says "none of
@@ -477,12 +481,15 @@ category *is* that category; anything else is a label of their own.
   rule hit); browsing offers only those. Retreats with
   no stored talks are left out; a session whose retreat is already listed is
   not repeated. Retreats are Practice; sessions follow `recording_type`.
-- **Screens, kept thin** (`lib/views/categories/`): `ExploreCategoryChips` (a
-  chip per non-empty category on Explore, under "Ways to practise"; the word
-  "category" is not on screen, the sheet is "Labels"), `CategoryView` (Practice, then Talks: the
+- **Screens, kept thin** (`lib/views/categories/`): `PracticeTile` (one
+  tile in three sizes: card, tall, compact), `ExplorePractices` (Explore's
+  "Ways to practise": See all, then a carousel of cards per group, only the
+  non-empty ones; the word "category" is not on screen, the sheet is
+  "Labels"), `PracticesView` (See all: the grid of tall tiles),
+  `CategoryView` (Practice, then Talks: the
   library's entries, then catalogue courses, then sessions), `LabelsSheet`
-  (opened from a library entry's menu: category chips, the user's own labels,
-  a field to add one) and `CategoryChips` (course and session pages). The
+  (opened from a library entry's menu: every practice as compact tiles by
+  group, the user's own labels, a field to add one) and `CategoryChips` (course and session pages). The
   Library gets a row of category and label chips under the kind chips
   (`libraryLabelOptionsProvider`; `LibraryViewOptions.label`, not kept between
   visits); `arrangeLibrary` filters on it.

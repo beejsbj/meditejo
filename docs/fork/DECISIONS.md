@@ -1083,3 +1083,40 @@ Follow-up to #56 (BJS-586) from Burooj's review: the list was only what he could
 - **A grouped view** for the Labels sheet (36 chips in one wrap) and Explore (up to ~28 chips in one row); the `group` field is there for it.
 - **Talks are labelled by title rules only.** A model pass over talk titles (49,007) is possible but much bigger; the retreat pass plus inheritance covers most.
 - **dhammatalks.org** (PR #57): run a pass when it lands.
+
+## 2026-11-02 (ways to practise, Phase 2: tiles, original names, the splits)
+
+Burooj tried the test APK: "not a fan of the categories being bland as pills. And English sanitized translations. Cards/tiles could allow us the og language with a small description. Each meditation technique could be given identity." Phase 1 was an exploration (`docs/fork/design/practices/`, three tile layouts, a figure per practice, names in their own language). His picks, the same day:
+
+- **One tile, three sizes** (`PracticeTile`, `lib/views/categories/practice_tile.dart`): figure, name, where the name comes from, one line.
+  - **card** on Explore: "Ways to practise" with **See all**, then one carousel per group.
+  - **tall** on the practices page (`PracticesView`), a grid by group.
+  - **compact** in the Labels sheet: the figure as background, the name over a scrim, a ring and check when ticked.
+  - Empty practices and groups are hidden from Explore and the practices page, as before. The sheet still offers all 38.
+- **Varied grounds stay** (night, hearth, canopy beside paper, mist and dawn).
+- **Dzogchen and Mahāmudrā, Trāṭaka and Kasiṇa are four practices.** IDs `trataka` and `kasina` replace `gazing`, which never shipped. Claude Haiku re-read the 23 retreats the splits touch (the five Haiku had tagged Dzogchen, plus every retreat mentioning dzogchen, mahamudra, rigpa, kasina, trataka, candle or "nature of mind"). The result is in `pass/split.jsonl`, which `model_pass.py` applies after the audit and before the corrections.
+  - 814 "Mahumudra" (sic) is Mahāmudrā.
+  - 595, 2628, 2629 and 5995 stay Dzogchen.
+  - "Nature of Mind" talk titles and ceremonial candles count for nothing.
+  - No retreat is trāṭaka or kasiṇa yet, so those two show only through a talk title, or once a user labels something.
+  - The rules follow: "nature of mind" left the Dzogchen title rule (it caught insight talks); Mahāmudrā has its own rule.
+- **The naming rule** (the orchestrator's, Burooj's to veto):
+  - When one tradition owns a practice, the tile shows its own name, and the label line shows its language, translated (Pāli, Sanskrit, Tibetan, Japanese), then its script.
+  - When a practice is shared, the tile shows the plain English name, and the label line lists the originals as written (Chanting: Paritta · Kīrtan · Okyō).
+  - A practice born in English shows its founder on the label line (Headless Way: Douglas Harding).
+  - **Names are never translated. The one-line descriptions are**, in en, de and es, kept in the asset (`blurb` per language), beside the name they describe. Language names are `.arb` strings.
+  - **English names stay as aliases**, so typing "loving-kindness", "Zen" or "gazing" still finds Mettā, Zazen and Trāṭaka.
+  - **Where the rule is debatable:**
+    - **Compassion.** It is English because the category also holds tonglen and self-compassion. If it narrowed to Buddhist karuṇā, Karuṇā would be its name.
+    - **Mantra.** It is English by the rule, but the English word is the Sanskrit one, so nothing visible changes.
+    - **Body, Walking and Energy body** showed Kāyagatāsati, Caṅkama · Kinhin and Prāṇa · Qì in Phase 1. The rule makes them English, because each spans traditions. I think the rule is right there.
+    - **Relational.** Insight Dialogue is one teacher's practice, but the category also holds dyads.
+    - **Samatha, Jhāna, Vipassanā and Śūnyatā** span the Buddhist schools; "one tradition" is read as Buddhism. Śūnyatā takes the Sanskrit (Mahāyāna) over Pāli suññatā, as Burbea and Dharma Seed do.
+    - **Mahāmudrā** is a Sanskrit name in a Tibetan tradition, so its label line reads "Sanskrit · Tibetan" with the Tibetan script ཕྱག་ཆེན་.
+    - **Forgiveness's originals** ("Khamā · Kṣamā") are thin; the practice as taught is modern.
+- **Art.** Each practice names a ground and a figure in the asset (`art`), drawn by `ArtSubject.practice` → `Compose.buildPractice`, seeded by the practice's ID, curated per decision 22.
+  - **The figures are stand-ins** from the current Dart engine (Mettā `rings:ripple`, Trāṭaka `fire:tongues`, Kasiṇa `disc:plain` on hearth…). A separate figure round is redrawing several of Phase 1's figures and adding the four new practices'. Porting them to Dart comes last, once that round lands on this branch. After the port, the asset's `figure` names change and nothing else does.
+  - `buildPractice` falls back to paper and no figure for an unknown name, so the asset can name a figure ahead of its port.
+- **Assets:** `categories.json` version 3, `dharma_seed_pass.json` version 2, both 2026-11-02.
+- **Strings:** 12 new in en, de and es: See all, the seven group names and four language names. The 38 descriptions, in three languages, are in the asset.
+- **Shared files touched:** `lib/widgets/art/art_subject.dart` and `lib/widgets/art/engine/compose.dart` (a new subject and builder), `lib/views/explore/widgets/explore_view.dart` (one line), `lib/l10n/app_{en,de,es}.arb`.
