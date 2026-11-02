@@ -40,10 +40,6 @@ class NativeCueController {
   static Future<void> skipCountdown() =>
       channel.invokeMethod<void>('skipCountdown');
 
-  /// Ends the hold in the recording that is under way and carries on with the
-  /// voice. False when no hold was under way.
-  static Future<bool> skipHold() async =>
-      await channel.invokeMethod<bool>('skipHold') ?? false;
   static Future<Map<Object?, Object?>> state() async =>
       await channel.invokeMapMethod<Object?, Object?>('state') ?? const {};
 

@@ -8,13 +8,11 @@ void main() {
     String phase = 'playing',
     bool countdownExpected = false,
     bool voiceAtEnd = false,
-    bool holdsPlanned = false,
   }) => shouldPollCueState(
     foreground: foreground,
     phase: phase,
     countdownExpected: countdownExpected,
     voiceAtEnd: voiceAtEnd,
-    holdsPlanned: holdsPlanned,
   );
 
   test('the cue state is read only while a countdown or extension runs', () {
@@ -38,30 +36,13 @@ void main() {
   });
 
   test(
-    'a rest in a pause is read, and watched for when Extend is in the pauses',
+    'silence inside the recording needs no polling: the position runs through it',
     () {
-      expect(poll(phase: 'hold'), isTrue);
-      expect(poll(phase: 'playing', holdsPlanned: true), isTrue);
-      expect(poll(phase: 'idle', holdsPlanned: true), isTrue);
-      expect(poll(phase: 'playing', holdsPlanned: false), isFalse);
-      expect(poll(foreground: false, phase: 'hold'), isFalse);
-      expect(poll(foreground: false, holdsPlanned: true), isFalse);
+      expect(poll(phase: 'hold'), isFalse);
     },
   );
 
-  test('the runtime state carries the rest and what Extend has left', () {
-    const state = CueRuntimeState(
-      phase: 'hold',
-      holdMs: 45000,
-      extensionLeftMs: 300000,
-    );
-    expect(state.isResting, isTrue);
-    expect(const CueRuntimeState().isResting, isFalse);
-    expect(const CueRuntimeState().extensionLeftMs, isNull);
-    expect(state.holdMs, 45000);
-  });
-
-  test('the native map fills the rest and the Extend time left', () {
+  test('the native map fills the silence Extend has left', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     container.read(cueRuntimeProvider.notifier).updateFromMap({
@@ -71,9 +52,9 @@ void main() {
       'paused': false,
     });
     final state = container.read(cueRuntimeProvider);
-    expect(state.isResting, isTrue);
-    expect(state.holdMs, 30000);
+    expect(state.phase, 'hold');
     expect(state.extensionLeftMs, 120000);
+    expect(const CueRuntimeState().extensionLeftMs, isNull);
     container.read(cueRuntimeProvider.notifier).updateFromMap({
       'phase': 'idle',
     });

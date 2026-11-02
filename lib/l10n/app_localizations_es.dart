@@ -2837,27 +2837,16 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get extendHoldTitle => 'Descansando en silencio';
-
-  @override
-  String extendHoldLeft(String time) {
-    return 'quedan $time';
-  }
-
-  @override
-  String get extendSkipPause => 'Omitir esta pausa';
-
-  @override
-  String get pauseRestTitle => 'Descanso en las pausas';
-
-  @override
-  String get pauseRestCaption =>
-      'Añade silencio dentro de las pausas largas de la propia guía, en el orden de la grabación. Lo que las pausas no pueden tomar llega después de la grabación, antes de la campana final. Las grabaciones en streaming se leen con Wi-Fi; hasta entonces, todo llega al final.';
-
-  @override
   String get extendEndLabel => 'Silencio después del audio';
 
   @override
   String get extendEndCaption =>
       'Sigue en silencio (con el sonido de fondo, si lo hay) cuando termina el audio, y luego suena la campana final.';
+
+  @override
+  String get extendTitle => 'Extender';
+
+  @override
+  String get extendCaption =>
+      'Alarga la sesión este tiempo, con silencio, como si la grabación fuera más larga.';
 }

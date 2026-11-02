@@ -109,17 +109,18 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     }
   }
 
-  /// The holds for [request]: Rest in the pauses, once the recording has been
-  /// read. Without a pause map those minutes go to the end with the rest of
-  /// the silence, and the reading starts in the background; when it lands the
-  /// native cues are configured again with the holds that follow from it.
+  /// Where Extend goes in [request]: into the guide's pauses, once the
+  /// recording has been read. Without a pause map it all goes after the
+  /// recording, and the reading starts in the background; when it lands the
+  /// native cues are configured again, and only what is still ahead of the
+  /// playhead changes (the session's length does not).
   Future<List<PauseHold>> _holdsFor(
     CueSettings settings,
     PlaybackRequest request,
   ) async {
     final source = _analysisSource;
     if (!Platform.isAndroid ||
-        settings.pauseMinutes <= 0 ||
+        settings.extendMinutes <= 0 ||
         request.isTimer ||
         source == null ||
         !PauseMapService.canAnalyse(request.trackId, source)) {
@@ -129,7 +130,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     final key = PauseMapService.keyFor(request.trackId, request.fileId);
     final map = await service.cached(key, durationMs: request.duration);
     if (map != null) {
-      return PauseMapService.holdsFor(map, settings.pauseMinutes);
+      return PauseMapService.holdsFor(map, settings.extendMinutes);
     }
     // One waiter per recording, however many settings edits ask meanwhile.
     if (_waitingForMap == key) return const [];
@@ -146,7 +147,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
             live == null ||
             live.trackId != request.trackId ||
             live.fileId != request.fileId ||
-            current.pauseMinutes <= 0) {
+            current.extendMinutes <= 0) {
           return;
         }
         try {
@@ -154,7 +155,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
             current,
             live,
             update: true,
-            holds: PauseMapService.holdsFor(found, current.pauseMinutes),
+            holds: PauseMapService.holdsFor(found, current.extendMinutes),
           );
         } catch (e) {
           AppLogger.w('PLAYER', 'Could not apply the pause map: $e');
@@ -351,9 +352,16 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
 
   Future<void> seekToPosition(int position) async {
     if (Platform.isAndroid) {
+      // A position on the session's timeline: the recording and its Extend.
       await _api.seekToPosition(position);
     } else {
-      await iosAudioHandler.seek(Duration(milliseconds: position));
+      // iOS holds Extend after the recording, which a seek cannot enter: a
+      // position in it goes to the voice's end, and the silence begins.
+      final media = iosAudioHandler.duration?.inMilliseconds;
+      final target = media != null && media > 0 && position > media
+          ? media
+          : position;
+      await iosAudioHandler.seek(Duration(milliseconds: target));
     }
   }
 

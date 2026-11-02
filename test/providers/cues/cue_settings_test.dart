@@ -209,61 +209,78 @@ void main() {
     },
   );
 
-  group('Rest in the pauses', () {
+  group('Extend', () {
     const holds = [PauseHold(105000, 60000), PauseHold(215000, 120000)];
 
-    test('is off unless set, apart from the silence after, and survives a round trip', () {
-      expect(const CueSettings().pauseMinutes, 0);
-      const s = CueSettings(extendMinutes: 5, pauseMinutes: 10);
-      final back = CueSettings.fromJson(s.toJson());
-      expect(back.pauseMinutes, 10);
-      expect(back.extendMinutes, 5);
-      expect(CueSettings.fromJson(const {}).pauseMinutes, 0);
-      expect(CueSettings.fromJson({'pauseMinutes': 'ten'}).pauseMinutes, 0);
-      expect(CueSettings.fromJson({'pauseMinutes': 500}).pauseMinutes, 60);
-      expect(s.copyWith(extendMinutes: 0).pauseMinutes, 10);
-      expect(s.copyWith(pauseMinutes: 0).extendMinutes, 5);
-      // The toggle this branch first had never shipped; its key is ignored.
-      expect(
-        CueSettings.fromJson({
-          'extendMinutes': 6,
-          'extendInPauses': true,
-        }).pauseMinutes,
-        0,
-      );
+    test(
+      'Extend and the Ending bell silence are apart and survive a round trip',
+      () {
+        expect(const CueSettings().endSilenceMinutes, 0);
+        const s = CueSettings(extendMinutes: 10, endSilenceMinutes: 5);
+        final back = CueSettings.fromJson(s.toJson());
+        expect(back.extendMinutes, 10);
+        expect(back.endSilenceMinutes, 5);
+        expect(CueSettings.fromJson(const {}).endSilenceMinutes, 0);
+        expect(
+          CueSettings.fromJson({'endSilenceMinutes': 'ten'}).endSilenceMinutes,
+          0,
+        );
+        expect(
+          CueSettings.fromJson({'endSilenceMinutes': 500}).endSilenceMinutes,
+          60,
+        );
+        expect(s.copyWith(extendMinutes: 0).endSilenceMinutes, 5);
+        expect(s.copyWith(endSilenceMinutes: 0).extendMinutes, 10);
+        // 0.1.4's "Extend with silence" is still Extend.
+        expect(CueSettings.fromJson({'extendMinutes': 6}).extendMinutes, 6);
+      },
+    );
+
+    test('a test build rest in the pauses becomes Extend', () {
+      // The 2026-10-28 builds of #49 stored the silence after the recording
+      // as extendMinutes and the rest in the pauses as pauseMinutes.
+      final s = CueSettings.fromJson({'extendMinutes': 3, 'pauseMinutes': 8});
+      expect(s.extendMinutes, 8);
+      expect(s.endSilenceMinutes, 3);
+      // Once saved in the new shape it is read as it is.
+      expect(CueSettings.fromJson(s.toJson()).extendMinutes, 8);
+      expect(CueSettings.fromJson(s.toJson()).endSilenceMinutes, 3);
+      expect(s.toJson().containsKey('pauseMinutes'), isFalse);
     });
 
-    test('the engines get both kinds of silence as one extension, and holds only from the pauses', () {
-      const s = CueSettings(extendMinutes: 5, pauseMinutes: 10);
-      final sent = s.nativeConfiguration(
-        durationMs: 600000,
-        isTimer: false,
-        holds: holds,
-      );
-      expect(sent['extendMinutes'], 15);
-      expect(sent['holds'], [
-        {'atMs': 105000, 'holdMs': 60000},
-        {'atMs': 215000, 'holdMs': 120000},
-      ]);
-      // No rest in the pauses: whatever was computed, nothing is held in
-      // the recording.
-      final atEnd = const CueSettings(
-        extendMinutes: 10,
-      ).nativeConfiguration(durationMs: 600000, isTimer: false, holds: holds);
-      expect(atEnd['holds'], isEmpty);
-      expect(atEnd['extendMinutes'], 10);
-      // A timer has no recording to rest in, and no silence after it.
-      final timer = s.nativeConfiguration(
-        durationMs: 600000,
-        isTimer: true,
-        holds: holds,
-      );
-      expect(timer['holds'], isEmpty);
-      expect(timer['extendMinutes'], 0);
-    });
+    test(
+      'the engines get all the silence as one extension, holds from Extend',
+      () {
+        const s = CueSettings(extendMinutes: 10, endSilenceMinutes: 5);
+        final sent = s.nativeConfiguration(
+          durationMs: 600000,
+          isTimer: false,
+          holds: holds,
+        );
+        expect(sent['extendMinutes'], 15);
+        expect(sent['holds'], [
+          {'atMs': 105000, 'holdMs': 60000},
+          {'atMs': 215000, 'holdMs': 120000},
+        ]);
+        // No Extend: whatever was computed, nothing is held in the recording.
+        final atEnd = const CueSettings(
+          endSilenceMinutes: 10,
+        ).nativeConfiguration(durationMs: 600000, isTimer: false, holds: holds);
+        expect(atEnd['holds'], isEmpty);
+        expect(atEnd['extendMinutes'], 10);
+        // A timer has no recording to extend.
+        final timer = s.nativeConfiguration(
+          durationMs: 600000,
+          isTimer: true,
+          holds: holds,
+        );
+        expect(timer['holds'], isEmpty);
+        expect(timer['extendMinutes'], 0);
+      },
+    );
 
-    test('the session lasts the recording plus both kinds of silence', () {
-      const s = CueSettings(extendMinutes: 5, pauseMinutes: 10);
+    test('the session lasts the recording plus all of its silence', () {
+      const s = CueSettings(extendMinutes: 10, endSilenceMinutes: 5);
       expect(s.extraMinutes, 15);
       expect(
         s.sessionDuration(const Duration(minutes: 30), isTimer: false),

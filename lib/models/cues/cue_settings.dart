@@ -36,7 +36,7 @@ class CueSettings {
   const CueSettings({
     this.durationMinutes = 10,
     this.extendMinutes = 0,
-    this.pauseMinutes = 0,
+    this.endSilenceMinutes = 0,
     this.countdownSeconds = 0,
     this.startSound = 'assets/audio/session_bell_v2.wav',
     this.endSound = 'assets/audio/session_bell_v2.wav',
@@ -68,16 +68,17 @@ class CueSettings {
 
   final int durationMinutes, extendMinutes, countdownSeconds;
 
-  /// Minutes of silence taken inside the guide's own long pauses, separate
-  /// from [extendMinutes] (the silence after the recording, before the ending
-  /// bell). What the pauses cannot take, and all of it where they cannot be
-  /// used (no usable pauses, iOS, YouTube, a stream not yet read), is held
-  /// after the recording too. An older app ignores the key.
-  final int pauseMinutes;
+  /// [extendMinutes] is Extend: a guided session is this much longer, as if
+  /// the recording were. Behind the scenes the silence goes into the guide's
+  /// own long pauses where it can (Android, once the recording has been read)
+  /// and after the recording otherwise; the listener never sees which.
+  ///
+  /// The Ending bell's own silence: minutes after the recording, before the
+  /// bell, apart from Extend (#72). An older app ignores the key.
+  final int endSilenceMinutes;
 
-  /// All the silence a guided session adds: after the recording and in its
-  /// pauses. The session is this much longer than the recording either way.
-  int get extraMinutes => extendMinutes + pauseMinutes;
+  /// All the silence a guided session adds: Extend and the Ending bell's.
+  int get extraMinutes => extendMinutes + endSilenceMinutes;
   final String startSound, endSound, intervalSound;
   final int intervalMinutes, randomWindowMinutes;
 
@@ -111,7 +112,7 @@ class CueSettings {
   CueSettings copyWith({
     int? durationMinutes,
     int? extendMinutes,
-    int? pauseMinutes,
+    int? endSilenceMinutes,
     int? countdownSeconds,
     String? startSound,
     String? endSound,
@@ -136,7 +137,7 @@ class CueSettings {
     ...toJson(),
     'durationMinutes': durationMinutes ?? this.durationMinutes,
     'extendMinutes': extendMinutes ?? this.extendMinutes,
-    'pauseMinutes': pauseMinutes ?? this.pauseMinutes,
+    'endSilenceMinutes': endSilenceMinutes ?? this.endSilenceMinutes,
     'countdownSeconds': countdownSeconds ?? this.countdownSeconds,
     'startSound': startSound ?? this.startSound,
     'endSound': endSound ?? this.endSound,
@@ -163,7 +164,7 @@ class CueSettings {
     'version': formatVersion,
     'durationMinutes': durationMinutes,
     'extendMinutes': extendMinutes,
-    'pauseMinutes': pauseMinutes,
+    'endSilenceMinutes': endSilenceMinutes,
     'countdownSeconds': countdownSeconds,
     'startSound': startSound,
     'endSound': endSound,
@@ -219,12 +220,24 @@ class CueSettings {
       return SoundscapeSelection.tryParse(value)?.encode() ?? '';
     }
 
+    // The 2026-10-28 test builds of #49 stored the silence after the recording
+    // as extendMinutes and the rest in the pauses as pauseMinutes: Extend is
+    // now what was in the pauses, and the Ending bell keeps the silence after.
+    final testBuild =
+        json.containsKey('pauseMinutes') &&
+        !json.containsKey('endSilenceMinutes');
+    final extend = testBuild
+        ? integer('pauseMinutes', 0, 0, 60)
+        : integer('extendMinutes', 0, 0, 60);
+    final endSilence = testBuild
+        ? integer('extendMinutes', 0, 0, 60)
+        : integer('endSilenceMinutes', 0, 0, 60);
     final countdown = integer('countdownSeconds', 0, 0, 10);
     final interlude = integer('interludeSeconds', 0, 0, 30);
     return CueSettings(
       durationMinutes: integer('durationMinutes', 10, 1, 299),
-      extendMinutes: integer('extendMinutes', 0, 0, 60),
-      pauseMinutes: integer('pauseMinutes', 0, 0, 60),
+      extendMinutes: extend,
+      endSilenceMinutes: endSilence,
       countdownSeconds: [0, 5, 10].contains(countdown) ? countdown : 0,
       startSound: sound('startSound', defaults.startSound, cueBellSounds),
       endSound: sound('endSound', defaults.endSound, cueBellSounds),
@@ -292,7 +305,7 @@ class CueSettings {
       );
 
   /// The engines know one extension: all of [extraMinutes]. [holds] are the
-  /// silences to take inside the recording, drawn from [pauseMinutes] (see
+  /// silences to take inside the recording, drawn from Extend alone (see
   /// `distributeExtension`); whatever they leave is held after it.
   Map<String, Object?> nativeConfiguration({
     required int durationMs,
@@ -305,7 +318,7 @@ class CueSettings {
     'isTimer': isTimer,
     'randomSeed': randomSeed,
     'extendMinutes': isTimer ? 0 : extraMinutes,
-    'holds': isTimer || pauseMinutes <= 0
+    'holds': isTimer || extendMinutes <= 0
         ? const <Map<String, Object?>>[]
         : [for (final h in holds) h.toJson()],
     'startSound': startSound.isEmpty ? null : startSound,

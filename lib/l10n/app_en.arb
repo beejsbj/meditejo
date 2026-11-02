@@ -3104,32 +3104,6 @@
       }
     }
   },
-  "extendHoldTitle": "Resting in silence",
-  "@extendHoldTitle": {
-    "description": "Heading of the card shown while the voice rests in a pause"
-  },
-  "extendHoldLeft": "{time} left",
-  "@extendHoldLeft": {
-    "description": "Time left of a rest in a pause, for example 1:45 left",
-    "placeholders": {
-      "time": {
-        "type": "String",
-        "example": "1:45"
-      }
-    }
-  },
-  "extendSkipPause": "Skip this pause",
-  "@extendSkipPause": {
-    "description": "Button that ends the rest in a pause and carries on with the voice"
-  },
-  "pauseRestTitle": "Rest in the pauses",
-  "@pauseRestTitle": {
-    "description": "Customize row: minutes of silence spread across the guide's own long pauses"
-  },
-  "pauseRestCaption": "Adds silence inside the guide's own long pauses, in the order of the recording. What the pauses can't take comes after the recording, before the ending bell. Streamed recordings are read on Wi-Fi; until then, it all comes at the end.",
-  "@pauseRestCaption": {
-    "description": "Caption under Rest in the pauses"
-  },
   "extendEndLabel": "Silence after the audio",
   "@extendEndLabel": {
     "description": "Ending bell: wheel for minutes of silence after the recording, before the bell"
@@ -3137,5 +3111,13 @@
   "extendEndCaption": "Keep going in silence (with any background sound) after the audio ends, then ring the ending bell.",
   "@extendEndCaption": {
     "description": "Caption above the Silence after the audio wheel"
+  },
+  "extendTitle": "Extend",
+  "@extendTitle": {
+    "description": "Customize row: minutes added to a guided session, as if the recording were longer"
+  },
+  "extendCaption": "Make the session longer by this much, with silence, as if the recording were longer.",
+  "@extendCaption": {
+    "description": "Caption under Extend"
   }
 }
