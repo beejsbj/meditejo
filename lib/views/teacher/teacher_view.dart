@@ -298,6 +298,7 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
       button: true,
       child: ListTile(
         key: ValueKey('archive_${group.id}'),
+        dense: true,
         title: Text(group.title),
         subtitle: Text(l10n.teacherTalkCount(group.talkCount)),
         trailing: Icon(

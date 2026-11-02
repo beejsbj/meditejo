@@ -425,11 +425,17 @@ class DhammatalksSource
     return CatalogueTeacherPage(
       teacher: _teacher(cat),
       courses: [for (final course in cat.courses) _courseItem(course)],
-      // The latest few; the rest is the archive, by year, opened on demand.
-      talks: [for (final talk in cat.talks.take(talkPage)) _talkItem(talk)],
+      // The latest ten, so the archive below them is not a long scroll away;
+      // the rest is the archive, by year, opened on demand.
+      talks: [
+        for (final talk in cat.talks.take(talkPage.clamp(0, _latestOnPage)))
+          _talkItem(talk),
+      ],
       archive: _archive(cat),
     );
   }
+
+  static const _latestOnPage = 10;
 
   @override
   Future<List<PackItemsModel>> archiveTalks(String groupId) async {

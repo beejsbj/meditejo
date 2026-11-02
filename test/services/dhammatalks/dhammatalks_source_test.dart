@@ -141,7 +141,7 @@ void main() {
       ]);
       expect(page.archive.last.groups.map((g) => g.id), ['dt-year-m-2026']);
       // The talks of a group are not in the page: they load when it opens.
-      expect(page.talks.length, lessThanOrEqualTo(30));
+      expect(page.talks.length, lessThanOrEqualTo(10));
       expect(page.hasMoreTalks, isFalse);
     });
 
