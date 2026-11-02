@@ -92,7 +92,7 @@ internal data class PauseHold(val atMs: Long, val holdMs: Long) {
             val m = item as? Map<*, *> ?: return@mapNotNull null
             val at = (m["atMs"] as? Number)?.toLong() ?: return@mapNotNull null
             val hold = (m["holdMs"] as? Number)?.toLong() ?: return@mapNotNull null
-            if (at < 0 || hold <= 0) null else PauseHold(at, hold.coerceAtMost(HoldPlan.MAX_HOLD_MS))
+            if (at < 0 || hold <= 0) null else PauseHold(at, hold.coerceAtMost(ExtendedTimeline.MAX_HOLD_MS))
         }
     }
 }
@@ -301,100 +301,6 @@ internal class HalfwayCue {
         if (sessionMs < due) return false
         pending = false
         return sessionMs - due <= CueMath.INTERVAL_LATE_TOLERANCE_MS && CueMath.insideSession(due, endMs)
-    }
-}
-
-/**
- * The holds of one session: where the voice pauses and for how long, and how
- * much of the Extend budget they have used. A hold is taken once; seeking
- * back over it does not take it again, and seeking past it leaves its time
- * for the end. Skipping a hold spends it without waiting it out.
- *
- * Positions are media milliseconds. Everything else is session time, so
- * holds never count as listening: the player is paused for all of them.
- */
-internal class HoldPlan {
-    private var holds: List<PauseHold> = emptyList()
-    private val used = HashSet<Long>()
-
-    /** Holds a seek forward jumped over; a seek back before one clears it. */
-    private val jumped = HashSet<Long>()
-
-    /** Extend time already used by holds, taken or skipped. */
-    var spentMs = 0L
-        private set
-
-    /** Replaces the planned holds; those already taken stay taken. */
-    fun configure(planned: List<PauseHold>) {
-        holds = planned.sortedBy { it.atMs }.distinctBy { it.atMs }
-    }
-
-    /** A new session: nothing is taken or spent. The planned holds stay. */
-    fun resetSession() {
-        used.clear()
-        jumped.clear()
-        spentMs = 0L
-    }
-
-    fun clear() {
-        holds = emptyList()
-        resetSession()
-    }
-
-    val isEmpty: Boolean get() = holds.isEmpty()
-
-    /** The hold playback has just reached, if any. A seek that lands long past one does not take it. */
-    fun dueAt(positionMs: Long): PauseHold? =
-        holds.firstOrNull {
-            it.atMs !in used && it.atMs !in jumped &&
-                positionMs >= it.atMs && positionMs - it.atMs <= LATE_TOLERANCE_MS
-        }
-
-    /** The first hold still ahead of [positionMs]. */
-    fun nextAfter(positionMs: Long): PauseHold? =
-        holds.firstOrNull { it.atMs !in used && it.atMs > positionMs }
-
-    /** Extend time the holds still ahead of [positionMs] will use, as planned. */
-    fun plannedAheadMs(positionMs: Long): Long =
-        holds.filter { it.atMs !in used && it.atMs > positionMs }.sumOf { it.holdMs }
-
-    /**
-     * How long [hold] lasts: as planned, but never more than the Extend time
-     * that is left.
-     */
-    fun lengthOf(hold: PauseHold, extensionMs: Long): Long =
-        minOf(hold.holdMs, (extensionMs - spentMs).coerceAtLeast(0L))
-
-    fun begin(hold: PauseHold) { used.add(hold.atMs) }
-
-    /**
-     * A seek from [fromMs] to [toMs]. Forward, it jumped over the holds
-     * between: none of them is taken, even one just behind where it landed
-     * (within [LATE_TOLERANCE_MS], which is for playback arriving late, not
-     * for a seek), and their time is left for the end. Back, the holds ahead
-     * of the landing that were only jumped over are due again when reached.
-     */
-    fun passOver(fromMs: Long, toMs: Long) {
-        if (toMs < fromMs) {
-            jumped.removeAll { it > toMs }
-            return
-        }
-        holds.forEach { if (it.atMs > fromMs && it.atMs <= toMs) jumped.add(it.atMs) }
-    }
-
-    /** The hold ended or was skipped: its planned length is spent either way. */
-    fun spend(plannedMs: Long) { spentMs += plannedMs }
-
-    /** What is held after the recording: the Extend time no hold has used or will use. */
-    fun endExtensionMs(extensionMs: Long, positionMs: Long, inHoldMs: Long = 0L): Long =
-        (extensionMs - spentMs - inHoldMs - plannedAheadMs(positionMs)).coerceAtLeast(0L)
-
-    companion object {
-        /** The playhead may be this far past a hold's position and still take it. */
-        const val LATE_TOLERANCE_MS = 2000L
-
-        /** One hold never exceeds the longest Extend. */
-        const val MAX_HOLD_MS = 60L * 60_000L
     }
 }
 
