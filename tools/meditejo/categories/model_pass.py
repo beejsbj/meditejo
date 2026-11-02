@@ -216,7 +216,7 @@ def cmd_audit_batches(args):
 
 
 def final():
-    """Haiku's proposals with Sonnet's audit, then the corrections, applied.
+    """Haiku's proposals with Sonnet's audit, the splits, then the corrections.
 
     `pass/corrections.jsonl` holds the few readings fixed after review, each
     with its reason; it outranks both models.
@@ -225,6 +225,16 @@ def final():
     audited = proposals(WORK / 'sonnet') if (WORK / 'sonnet').exists() else {}
     for rid, row in audited.items():
         result[rid] = row['categories']
+    # The 2026-11-02 splits (Dzogchen / Mahāmudrā, Trāṭaka / Kasiṇa): a
+    # Haiku re-read of the retreats they touch decides only those four.
+    split = WORK / 'split.jsonl'
+    if split.exists():
+        four = {'dzogchen', 'mahamudra', 'trataka', 'kasina'}
+        for row in read_jsonl(split):
+            rid = int(row['id'])
+            if rid not in result or not set(row['split']) <= four:
+                raise SystemExit(f'split.jsonl: bad row {row}')
+            result[rid] = [c for c in result[rid] if c not in four] + row['split']
     corrections = WORK / 'corrections.jsonl'
     if corrections.exists():
         ids = {c['id'] for c in categories()}

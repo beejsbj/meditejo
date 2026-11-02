@@ -9,42 +9,44 @@ a wrong label puts a retreat in front of someone looking for something else.
 
 ## The categories (use these ids exactly)
 
-- `metta` (Metta): Loving-kindness and the brahmavihāras: compassion, joy and equanimity.
-- `compassion` (Compassion): Karuṇā, tonglen and self-compassion: meeting suffering, other people's and your own, with care.
-- `forgiveness` (Forgiveness): Forgiveness practice: letting go of resentment towards others and yourself.
-- `relational` (Relational): Meditating with other people: Insight Dialogue, dyads and contemplative conversation.
-- `sankalpa` (Sankalpa): Resolve and intention: setting a heartfelt aim and returning to it.
-- `samatha` (Samatha): Calm and concentration: steadying and unifying the mind.
-- `jhana` (Jhāna): The meditative absorptions, and the joy and stillness that lead into them.
-- `breath` (Breath): Mindfulness of breathing and ānāpānasati.
-- `tmi` (TMI): The Mind Illuminated: Culadasa's ten stages of meditation.
-- `gazing` (Gazing): Trāṭaka and kasiṇa: steady gazing at a flame, a colour or a point, then at its afterimage.
-- `recollections` (Recollections): The anussatis: recollecting the Buddha, Dhamma and Saṅgha, virtue, generosity and peace.
-- `vipassana` (Vipassanā): Insight practice: seeing impermanence, unsatisfactoriness and not-self.
-- `noting` (Noting): Mental noting: lightly labelling experience as it arises, in the Mahasi style.
-- `emptiness` (Emptiness): Śūnyatā: practising with the emptiness of self and phenomena.
-- `death` (Death contemplation): Maraṇasati: remembering death and impermanence to see what matters.
-- `mbsr` (MBSR): Secular mindfulness programmes: MBSR, MBCT and the practices they teach.
-- `open-awareness` (Open awareness): Choiceless, natural and non-dual awareness, with no single object.
-- `zen` (Zen): Zazen, shikantaza and kōan practice.
-- `dzogchen` (Dzogchen & Mahāmudrā): Tibetan practices of recognising the mind's own nature.
-- `self-inquiry` (Self-inquiry): Asking "Who am I?" and looking for the one who is aware.
-- `headless` (Headless Way): Douglas Harding's experiments: looking back at where your head should be.
-- `glimpses` (Effortless mindfulness): Short glimpses of awake awareness that is already here (Loch Kelly and others).
-- `nature` (Nature): Practising outdoors, with the land, the weather and other creatures as support.
-- `body` (Body): Body scans, mindfulness of the body and embodied practice.
-- `walking` (Walking): Walking meditation and kinhin: practising in slow, ordinary steps.
-- `movement` (Movement): Yoga, qigong, tai chi and other mindful movement.
-- `energy` (Energy body): Feeling and working with the subtle body: prāṇa, qi and the energy body.
-- `kundalini` (Kundalini): Kundalini and kriya practice: working with energy rising through the body.
-- `chakras` (Chakras): Meditating on the body's energy centres, one by one or together.
-- `yoga-nidra` (Yoga nidra): Guided deep rest between waking and sleep; where a sankalpa is set.
-- `focusing` (Focusing): Eugene Gendlin's Focusing: listening to the body's felt sense of a situation.
-- `chanting` (Chanting): Chanting aloud: suttas, sūtras, paritta and devotional song.
-- `mantra` (Mantra): Repeating a word or phrase, silently or aloud: japa, nembutsu, dhikr.
-- `devotion` (Devotion): Prayer, refuge, pūjā and contemplative reading, in any tradition.
+- `metta` (Mettā): Wishing beings well, from the easy ones outward until no one is left out.
+- `compassion` (Compassion): Letting suffering in and meeting it with care; in tonglen, breathing it in and sending ease out.
+- `forgiveness` (Forgiveness): Loosening resentment, towards others and towards yourself.
+- `relational` (Relational): Meditating together in conversation: pause, relax, open, and listen deeply.
+- `sankalpa` (Saṅkalpa): A heartfelt resolve, planted in deep rest and returned to.
+- `samatha` (Samatha): Calming and steadying the mind on one object until it settles.
+- `jhana` (Jhāna): The meditative absorptions: joy and ease gathering into deep stillness.
+- `breath` (Ānāpānasati): Knowing each breath in and out, in sixteen steps or in one.
+- `tmi` (The Mind Illuminated): Ten stages, from a wandering mind to effortless attention.
+- `trataka` (Trāṭaka): Gazing steadily at a flame or a point, then holding its image with eyes closed.
+- `kasina` (Kasiṇa): A device (earth, water, fire, a colour) gazed at until its image fills the mind, towards jhāna.
+- `recollections` (Anussati): Recollecting the Buddha, Dhamma and Saṅgha, virtue, generosity and peace.
+- `vipassana` (Vipassanā): Seeing clearly how experience arises and passes, and holds no self.
+- `noting` (Noting): Lightly labelling each experience as it comes: rising, falling, hearing, thinking.
+- `emptiness` (Śūnyatā): Seeing that nothing stands on its own; everything is open, and free.
+- `death` (Maraṇasati): Remembering that this life will end, so that it can be lived.
+- `mbsr` (MBSR): An eight-week secular course of body scan, sitting and gentle yoga (also MBCT).
+- `open-awareness` (Open awareness): Resting as awareness itself, with nothing to hold and nothing to push away.
+- `zen` (Zazen): Just sitting (shikantaza), or sitting with a kōan, in the Zen way.
+- `dzogchen` (Dzogchen): The Great Perfection: recognising the mind's nature as open, clear and already complete.
+- `mahamudra` (Mahāmudrā): The Great Seal: resting in the mind's own nature, and seeing each thought as its play.
+- `self-inquiry` (Ātma-vicāra): Asking “Who am I?” and turning towards the one who is aware.
+- `headless` (Headless Way): Looking back at where your head should be, and finding open space.
+- `glimpses` (Effortless mindfulness): Short glimpses of the awake awareness that is already here.
+- `nature` (Nature): Practising outdoors, with land, weather and creatures as company.
+- `body` (Body): Mindfulness of the body, from breath and posture to a slow scan.
+- `walking` (Walking): Walking slowly and knowing each step: lifting, moving, placing.
+- `movement` (Movement): Moving slowly with breath and attention.
+- `energy` (Energy body): Sensing the body as a field of energy, and letting it open.
+- `kundalini` (Kuṇḍalinī): The coiled energy at the base of the spine, rising through the body.
+- `chakras` (Cakra): Resting attention on the body's wheels of energy, one by one.
+- `yoga-nidra` (Yoga nidrā): Guided deep rest, aware between waking and sleep.
+- `focusing` (Focusing): Listening to the body's felt sense of a situation until it shifts.
+- `chanting` (Chanting): Chanting aloud: suttas and blessings, sūtras, devotional song.
+- `mantra` (Mantra): Repeating a sacred word or phrase, often on a string of beads.
+- `devotion` (Devotion): Prayer, offering and refuge, in any tradition.
 - `visualisation` (Visualisation): Practising with imagined images: light, deities, places and figures.
-- `soulmaking` (Soulmaking): Rob Burbea's imaginal practice: images, eros and soul as ways of seeing.
+- `soulmaking` (Soulmaking): Rob Burbea's imaginal Dharma: images, eros and soul as ways of seeing.
 
 ## How to decide
 
