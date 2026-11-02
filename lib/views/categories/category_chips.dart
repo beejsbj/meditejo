@@ -16,9 +16,11 @@ import 'package:medito/widgets/cards/section_title.dart';
 class ExplorePractices extends ConsumerWidget {
   const ExplorePractices({super.key});
 
-  /// A card's slot: its figure (148 × 132) and three lines under it.
+  /// A card's slot: its figure (148 × 132) and the words under it, which
+  /// grow with the text size.
   static const cardWidth = 148.0;
-  static const cardHeight = 262.0;
+  static double cardHeight(BuildContext context) =>
+      132 + 130 * MediaQuery.textScalerOf(context).scale(14) / 14;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -74,7 +76,7 @@ class ExplorePractices extends ConsumerWidget {
                     ),
                   ),
                   SizedBox(
-                    height: cardHeight,
+                    height: cardHeight(context),
                     child: ListView.separated(
                       key: ValueKey('practices_row_$group'),
                       scrollDirection: Axis.horizontal,

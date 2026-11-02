@@ -131,7 +131,8 @@ class PracticeTile extends StatelessWidget {
           ArtCover(subject: _art, scrim: true),
           Positioned(
             left: 12,
-            right: 10,
+            // Clear of the tick's badge.
+            right: (selected ?? false) ? 36 : 10,
             bottom: 10,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,7 +190,9 @@ class PracticeTile extends StatelessWidget {
         children: [
           AspectRatio(
             aspectRatio: tall ? 170 / 148 : 148 / 132,
-            child: ArtCover(subject: _art, live: true),
+            // Still frames, as every list in the app: lists scroll over
+            // rasters rather than painting (ArtRasters).
+            child: ArtCover(subject: _art),
           ),
           // The slot's height is fixed (a carousel row, a grid cell), so the
           // words take what is left and clip under large text.
@@ -241,16 +244,31 @@ class PracticeTile extends StatelessWidget {
       );
     }
 
+    // One node for a screen reader, with the tap kept: excluding the
+    // children drops the InkWell's action, so Semantics carries it.
     return Semantics(
       button: onTap != null,
       selected: selected,
       label: semantics,
+      onTap: onTap,
       excludeSemantics: true,
       child: Material(
         color: scheme.surfaceContainer,
         borderRadius: radius,
         clipBehavior: Clip.antiAlias,
-        child: InkWell(onTap: onTap, child: body),
+        child: Stack(
+          fit: StackFit.passthrough,
+          children: [
+            body,
+            // Over the art, so the ripple shows on the figure too.
+            Positioned.fill(
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(onTap: onTap),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

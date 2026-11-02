@@ -141,7 +141,7 @@ void main() {
       await settle(tester);
       expect(tester.widget<PracticeTile>(metta).selected, isTrue);
 
-      // 36 chips: the field sits below the fold.
+      // 38 tiles: the field sits below the fold.
       final field = find.byKey(const ValueKey('labels_field'));
       await tester.ensureVisible(field);
       await tester.enterText(field, 'Evening');

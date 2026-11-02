@@ -1,10 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/services/categories/category_catalogue.dart';
 import 'package:medito/views/categories/practice_tile.dart';
+import 'package:medito/views/categories/practices_view.dart';
 import 'package:medito/widgets/art/art_subject.dart';
 
 import '../../helpers/art_finders.dart';
@@ -130,12 +132,43 @@ void main() {
     await pump(true);
     expect(find.byIcon(Icons.check), findsOneWidget);
     expect(tester.getSemantics(find.byType(PracticeTile)).label, 'Mettā. Pāli');
+    // A screen reader can act on it, not just hear it.
+    final node = tester.getSemantics(find.byType(PracticeTile));
+    expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
     expect(
       find.byWidgetPredicate(
         (w) => w is Semantics && w.properties.selected == true,
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('the practices grid fits its width and the text size', (
+    tester,
+  ) async {
+    expect(PracticesView.gridFor(384).columns, 2);
+    expect(PracticesView.gridFor(800).columns, greaterThan(2));
+    expect(PracticesView.gridFor(800).tile, lessThanOrEqualTo(220));
+    late double normal, large;
+    for (final scale in [1.0, 2.0]) {
+      await tester.pumpWidget(
+        MediaQuery(
+          data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+          child: Builder(
+            builder: (context) {
+              final h = PracticesView.tileHeight(context, 170);
+              if (scale == 1) {
+                normal = h;
+              } else {
+                large = h;
+              }
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+    }
+    expect(large, greaterThan(normal));
   });
 
   test('groups come in order, and an unknown group goes last', () {

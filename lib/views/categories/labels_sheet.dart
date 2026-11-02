@@ -90,11 +90,14 @@ class _LabelsSheetState extends ConsumerState<LabelsSheet> {
               )) ...[
                 Padding(
                   padding: const EdgeInsets.only(top: 8, bottom: 8),
-                  child: Text(
-                    practiceGroupName(l10n, group).toUpperCase(),
-                    style: type.baseline.labelMedium?.copyWith(
-                      letterSpacing: 1.2,
-                      color: scheme.onSurfaceVariant,
+                  child: Semantics(
+                    header: true,
+                    child: Text(
+                      practiceGroupName(l10n, group).toUpperCase(),
+                      style: type.baseline.labelMedium?.copyWith(
+                        letterSpacing: 1.2,
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ),
@@ -102,9 +105,11 @@ class _LabelsSheetState extends ConsumerState<LabelsSheet> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   padding: EdgeInsets.zero,
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 220,
-                    mainAxisExtent: 112,
+                    mainAxisExtent:
+                        64 +
+                        48 * MediaQuery.textScalerOf(context).scale(14) / 14,
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
                   ),

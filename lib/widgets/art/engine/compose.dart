@@ -603,7 +603,10 @@ abstract final class Compose {
     final f = _parse(figure);
     ArtLayer? layer;
     if (f != null && ArtRegistry.figures.containsKey(f.name)) {
-      final pl = ArtMap.layouts['centre']!;
+      // Where the figure normally sits (fire low, the moon high), first
+      // choice, so a practice's art never moves.
+      final layout = ArtMap.homes[f.name]?.first ?? 'centre';
+      final pl = ArtMap.layouts[layout]!;
       final p = ArtRegistry.figure(f.name).build(SeededRandom('$seed:f'), {
         'cx': pl.cx,
         'cy': pl.cy,
@@ -614,7 +617,7 @@ abstract final class Compose {
         f.name,
         p,
         kind: f.kind ?? p['kind'] as String?,
-        layout: 'centre',
+        layout: layout,
       );
     }
     return ArtComposition(
