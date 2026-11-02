@@ -386,7 +386,17 @@ internal class CueEngine(
             return true
         }
         val to = timeline.positionOf(spot, media)
-        if (started) sessionMs = (sessionMs + timeline.sessionDistanceMs(from, to, media, speed)).coerceAtLeast(0.0)
+        // Into the voice before the first tick (a Resume seek as playback
+        // starts), the first tick still sets session time and the start up.
+        if (!started && spot is ExtendedTimeline.Spot.Voice) {
+            timeline.enterVoice(spot.holdsBehind)
+            seekVoice(spot.mediaMs)
+            kick()
+            return true
+        }
+        sessionMs = if (started) {
+            (sessionMs + timeline.sessionDistanceMs(from, to, media, speed)).coerceAtLeast(0.0)
+        } else timeline.sessionDistanceMs(0L, to, media, speed)
         if (phase == Phase.HOLD || phase == Phase.EXTENSION) releaseWake()
         when (spot) {
             is ExtendedTimeline.Spot.Voice -> {

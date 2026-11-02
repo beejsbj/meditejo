@@ -94,6 +94,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             if (::backgroundMusicPlayer.isInitialized) backgroundMusicPlayer.pause()
             noteSessionRunningChanged()
             updateNotification()
+            sessionPlayer?.invalidate()
         }
     }
     private var completionPlaythroughIndex = 0
@@ -289,7 +290,6 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             listening.markNotPlaying()
             persistListening(force = true)
         }
-        sessionPlayer?.invalidate()
     }
 
     // Records one finished play-through. The first one that earns it is the
@@ -649,19 +649,19 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
                 override fun onSessionEnded(extensionFinished: Boolean, tailMs: Long) {
                     isCompletionHandled = true
                     finalizeSession(extensionFinished, tailMs)
+                    // The tail ran out with the voice already ended: no player event says so.
+                    sessionPlayer?.invalidate()
                 }
 
                 override fun holdNarration() {
                     persistListening(force = true)
                     primaryPlayer.pause()
                     updateNotification()
-                    sessionPlayer?.invalidate()
                 }
 
                 override fun resumeNarration() {
                     primaryPlayer.play()
                     updateNotification()
-                    sessionPlayer?.invalidate()
                 }
             })
             instance = this
@@ -1419,8 +1419,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             listening.sample(sessionPositionMs(), sessionRunning())
             if (cues.seekTo(position)) {
                 listening.rebase(sessionPositionMs())
-                syncBackgroundWithPrimaryState()
                 updateNotification()
+                // A seek within a hold or the tail moves no player event.
                 sessionPlayer?.invalidate()
                 return
             }
@@ -1515,6 +1515,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
                 }
                 noteSessionRunningChanged()
                 updateNotification()
+                sessionPlayer?.invalidate()
                 return
             }
             isCompletionHandled = false
