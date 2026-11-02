@@ -117,6 +117,13 @@ internal class ExtendedTimeline(private val clock: () -> Long) {
     /** The media position of hold number [index]. */
     fun holdAtMs(index: Int): Long = holds[index].atMs
 
+    /** The timeline position of [spot]: the inverse of [locate]. */
+    fun positionOf(spot: Spot, mediaDurationMs: Long): Long = when (spot) {
+        is Spot.Voice -> spot.mediaMs + heldBeforeMs(spot.holdsBehind)
+        is Spot.Hold -> holds[spot.index].atMs + heldBeforeMs(spot.index) + spot.offsetMs
+        is Spot.Tail -> mediaDurationMs.coerceAtLeast(0L) + heldMs + spot.offsetMs
+    }
+
     /** Where [positionMs] falls: in the voice, inside a hold, or in the tail. */
     fun locate(positionMs: Long, mediaDurationMs: Long): Spot {
         val media = mediaDurationMs.coerceAtLeast(0L)
