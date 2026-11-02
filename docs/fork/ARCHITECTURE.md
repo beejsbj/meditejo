@@ -882,8 +882,8 @@ accepts only a plain file under 1 MiB inside the app's data directory
 every stored bell id under `CueSettingsStore.bellReferenceKeyPrefixes` (today the cue
 scopes) to the default bell (`CueSettingsStore.replaceSound`). The editor is
 `BellMakerView`, opened from the last row of `BellList`, which also lists "Your
-bells" with rename and delete. Its five sliders are `RangeControl`
-(`lib/widgets/inputs/range_control.dart`), which knows nothing of bells. A bell being made is drawn by
+bells" with rename and delete. Its five controls are vertical `RangeControl`s in a
+`RangeControlBank` (`lib/widgets/inputs/range_control.dart`), which know nothing of bells. A bell being made is drawn by
 `ArtSubject.customBell` (a `BellFigure` from the live controls, not cached).
 
 `NativeCueController` sends plain configuration over `meditejo/cues`.

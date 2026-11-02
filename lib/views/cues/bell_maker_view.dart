@@ -245,21 +245,6 @@ class _BellMakerViewState extends ConsumerState<BellMakerView> {
               makingLabel: l10n?.bellMakerMaking ?? 'Making the sound',
             ),
             const SizedBox(height: 16),
-            _Label(l10n?.bellMakerStartFrom ?? 'Start from'),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final b in BellFigure.shipped)
-                  ChoiceChip(
-                    key: ValueKey('bell_maker_start_${b.preset}'),
-                    label: Text(b.title),
-                    selected: b.preset == _preset,
-                    onSelected: (_) => _startFrom(b.preset),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
             RangeControlBank(
               children: [
                 for (final c in _controls(l10n))
@@ -279,7 +264,22 @@ class _BellMakerViewState extends ConsumerState<BellMakerView> {
                   ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 24),
+            _Label(l10n?.bellMakerStartFrom ?? 'Start from'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final b in BellFigure.shipped)
+                  ChoiceChip(
+                    key: ValueKey('bell_maker_start_${b.preset}'),
+                    label: Text(b.title),
+                    selected: b.preset == _preset,
+                    onSelected: (_) => _startFrom(b.preset),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 24),
             TextField(
               key: const ValueKey('bell_maker_name'),
               controller: _name,

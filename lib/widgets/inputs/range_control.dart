@@ -155,9 +155,11 @@ class RangeControl extends StatelessWidget {
 }
 
 /// Vertical [RangeControl]s side by side. Each gets a column about
-/// [columnWidth] wide at the normal text size (wider as the text grows); the
-/// columns share the width, and when they do not fit in one row the rest
-/// continue in the next, so nothing is clipped or scrolled out of reach.
+/// [columnWidth] wide at the normal text size, and half as much again as the
+/// text grows (the words in a column shrink to fit rather than the column
+/// growing to the words, so large text does not push the channels one to a
+/// row); the columns share the width, and when they do not fit in one row the
+/// rest continue in the next, so nothing is clipped or scrolled out of reach.
 class RangeControlBank extends StatelessWidget {
   const RangeControlBank({
     super.key,
@@ -170,7 +172,8 @@ class RangeControlBank extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final wanted = MediaQuery.textScalerOf(context).scale(columnWidth);
+    final grown = MediaQuery.textScalerOf(context).scale(1);
+    final wanted = columnWidth * (1 + (grown - 1) * 0.5);
     return LayoutBuilder(
       builder: (context, box) {
         final perRow = children.isEmpty
