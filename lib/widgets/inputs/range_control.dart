@@ -3,9 +3,15 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 
-/// A labelled slider over a real-world range: the name and the value in its
-/// own units above, a word for each end below. [logarithmic] spaces the track
+/// A labelled slider over a real-world range. [logarithmic] spaces the track
 /// evenly in ratio, as pitch and decay time are heard.
+///
+/// Horizontal (the default) is a row: the name and the value in its own units
+/// above the track, a word for each end below. Vertical is one channel of a
+/// mixing desk: the value above, the word for the high end, the track (low at
+/// the bottom), the word for the low end, then the name. Put several vertical
+/// ones in a [RangeControlBank], which sets them side by side and, when the
+/// text is large or the screen narrow, in more than one row.
 ///
 /// Nothing here knows about sounds. It is the "range" of the shared control
 /// vocabulary (UX issue #71): the bell maker uses it now, and the synth
@@ -23,6 +29,7 @@ class RangeControl extends StatelessWidget {
     required this.onChanged,
     this.onChangeEnd,
     this.logarithmic = false,
+    this.axis = Axis.horizontal,
     this.sliderKey,
   }) : assert(max > min),
        assert(!logarithmic || min > 0);
@@ -44,6 +51,12 @@ class RangeControl extends StatelessWidget {
   final ValueChanged<double>? onChangeEnd;
   final bool logarithmic;
 
+  /// Horizontal is a row; vertical is a channel for a [RangeControlBank].
+  final Axis axis;
+
+  /// How long a vertical track is, before the text around it.
+  static const verticalTrack = 168.0;
+
   /// The key of the slider itself, for tests.
   final Key? sliderKey;
 
@@ -54,8 +67,54 @@ class RangeControl extends StatelessWidget {
   double _fromTrack(double t) =>
       logarithmic ? min * math.pow(max / min, t) : min + t * (max - min);
 
+  Widget _slider() => Semantics(
+    label: label,
+    value: format(value),
+    child: Slider(
+      key: sliderKey,
+      value: _toTrack(value).clamp(0.0, 1.0),
+      onChanged: (t) => onChanged(_fromTrack(t)),
+      onChangeEnd: onChangeEnd == null
+          ? null
+          : (t) => onChangeEnd!(_fromTrack(t)),
+    ),
+  );
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      axis == Axis.vertical ? _vertical(context) : _horizontal(context);
+
+  Widget _vertical(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final type = context.typography;
+    final muted = type.baseline.labelSmall?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+    // One line each, shrunk rather than cut: a column is narrow, and a word
+    // that is clipped is a word that is lost.
+    Widget line(String text, TextStyle? style) => FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(text, style: style, maxLines: 1),
+    );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        line(format(value), type.emphasized.labelMedium),
+        const SizedBox(height: 4),
+        line(high, muted),
+        SizedBox(
+          height: verticalTrack,
+          // The slider's left end is the bottom of the track.
+          child: RotatedBox(quarterTurns: 3, child: _slider()),
+        ),
+        line(low, muted),
+        const SizedBox(height: 8),
+        line(label, type.emphasized.titleSmall),
+      ],
+    );
+  }
+
+  Widget _horizontal(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final type = context.typography;
     final muted = type.baseline.labelMedium?.copyWith(
@@ -72,18 +131,7 @@ class RangeControl extends StatelessWidget {
               Text(format(value), style: muted),
             ],
           ),
-          Semantics(
-            label: label,
-            value: format(value),
-            child: Slider(
-              key: sliderKey,
-              value: _toTrack(value).clamp(0.0, 1.0),
-              onChanged: (t) => onChanged(_fromTrack(t)),
-              onChangeEnd: onChangeEnd == null
-                  ? null
-                  : (t) => onChangeEnd!(_fromTrack(t)),
-            ),
-          ),
+          _slider(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -96,6 +144,41 @@ class RangeControl extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Vertical [RangeControl]s side by side. Each gets a column about
+/// [columnWidth] wide at the normal text size (wider as the text grows); the
+/// columns share the width, and when they do not fit in one row the rest
+/// continue in the next, so nothing is clipped or scrolled out of reach.
+class RangeControlBank extends StatelessWidget {
+  const RangeControlBank({
+    super.key,
+    required this.children,
+    this.columnWidth = 56,
+  });
+
+  final List<Widget> children;
+  final double columnWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final wanted = MediaQuery.textScalerOf(context).scale(columnWidth);
+    return LayoutBuilder(
+      builder: (context, box) {
+        final perRow = children.isEmpty
+            ? 1
+            : (box.maxWidth / wanted).floor().clamp(1, children.length);
+        final width = box.maxWidth / perRow;
+        return Wrap(
+          alignment: WrapAlignment.center,
+          runSpacing: 16,
+          children: [
+            for (final child in children) SizedBox(width: width, child: child),
+          ],
+        );
+      },
     );
   }
 }

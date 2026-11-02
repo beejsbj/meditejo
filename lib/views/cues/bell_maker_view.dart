@@ -260,20 +260,25 @@ class _BellMakerViewState extends ConsumerState<BellMakerView> {
               ],
             ),
             const SizedBox(height: 16),
-            for (final c in _controls(l10n))
-              RangeControl(
-                sliderKey: ValueKey('bell_maker_${c.name}'),
-                label: c.label,
-                low: c.low,
-                high: c.high,
-                min: BellFigure.knobs[c.name]!.min,
-                max: BellFigure.knobs[c.name]!.max,
-                logarithmic: BellFigure.knobs[c.name]!.scale == 'log',
-                value: _knobs[c.name],
-                format: c.format,
-                onChanged: (v) => _move(c.name, v),
-                onChangeEnd: (_) => _hear(),
-              ),
+            RangeControlBank(
+              children: [
+                for (final c in _controls(l10n))
+                  RangeControl(
+                    axis: Axis.vertical,
+                    sliderKey: ValueKey('bell_maker_${c.name}'),
+                    label: c.label,
+                    low: c.low,
+                    high: c.high,
+                    min: BellFigure.knobs[c.name]!.min,
+                    max: BellFigure.knobs[c.name]!.max,
+                    logarithmic: BellFigure.knobs[c.name]!.scale == 'log',
+                    value: _knobs[c.name],
+                    format: c.format,
+                    onChanged: (v) => _move(c.name, v),
+                    onChangeEnd: (_) => _hear(),
+                  ),
+              ],
+            ),
             const SizedBox(height: 8),
             TextField(
               key: const ValueKey('bell_maker_name'),
