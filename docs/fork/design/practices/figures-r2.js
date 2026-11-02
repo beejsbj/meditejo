@@ -126,7 +126,7 @@ const PracticesR2 = (() => {
           if (fits) {
             const grow = age < 1 ? C.easeOut(age * 1.6) : 1, a = age < 1 ? 1 : Math.max(0.32, 1 - (age - 1) / 12);
             if (age < 1.5) soft(ctx, x + w / 2, y, p.s * 0.3, k.glow, 0.45 * fade(age / 1.5));
-            pill(ctx, x + (w * grow) / 2, y, Math.max(w * grow, 0.001), p.s * 0.11, 0); fill(ctx, age < 1.2 ? k.alt : k.main, a);
+            pill(ctx, x + (w * grow) / 2, y, Math.max(w * grow, 0.001), p.s * 0.11, 0); fill(ctx, mix(k.alt, k.main, C.ss(0.8, 2.2, age)), a);
           }
           x += w + m.gap * p.s; idx++;
         });
@@ -246,7 +246,7 @@ const PracticesR2 = (() => {
       p.pts.forEach((q) => {
         const wake = Math.exp(-Math.pow((q.y - band) / 0.16, 2)), edge = 1 - C.ss(0.82, 1, q.d);
         dot(ctx, p.cx + q.x * p.s, p.cy + q.y * p.s, p.s * 0.026 * q.z * (1 + 1.1 * wake));
-        fill(ctx, wake > 0.45 ? k.alt : k.main, (0.38 + 0.62 * wake) * edge);
+        fill(ctx, mix(k.main, k.alt, C.ss(0.25, 0.7, wake)), (0.38 + 0.62 * wake) * edge);
       });
     },
   };
@@ -282,7 +282,7 @@ const PracticesR2 = (() => {
         const lit = Math.max(0, 1 - Math.abs(at - i) * 1.1), wv = p.waves.map(([kk, a, ph]) => [kk, a * (1 - 0.5 * f), ph + f * 0.6]);
         lobed(ctx, x, y, R, wv, 1.08);
         if (lit > 0) fill(ctx, k.glow, 0.22 * lit);
-        stroke(ctx, lit > 0.4 ? k.alt : k.main, 0.006 + 0.008 * lit, 0.45 + 0.55 * lit);
+        stroke(ctx, mix(k.main, k.alt, C.ss(0.2, 0.7, lit)), 0.006 + 0.008 * lit, 0.45 + 0.55 * lit);
       }
       dot(ctx, p.cx + p.ox * p.s, p.cy + p.oy * p.s, p.s * 0.05); fill(ctx, k.alt);
     },
@@ -371,7 +371,7 @@ const PracticesR2 = (() => {
       soft(ctx, p.cx, p.cy, p.s * (0.8 + 0.4 * fit), k.glow, 0.2 + 0.45 * fit);
       C.blobPath(ctx, p.blob, o); fill(ctx, mix(k.main, k.alt, 0.2 + 0.5 * ease), 0.5 + 0.35 * ease);
       const R = p.s * 0.62 * (1 + 0.5 * seek * Math.sin(u * TAU * 2.6)), a = (still ? 1 : C.ss(0, 0.08, u)) * (1 - C.ss(0.86, 0.98, u));
-      ring(ctx, p.cx, p.cy, R); stroke(ctx, fit > 0.5 ? k.alt : k.main, 0.008 + 0.006 * fit, a);
+      ring(ctx, p.cx, p.cy, R); stroke(ctx, mix(k.main, k.alt, fit), 0.008 + 0.006 * fit, a);
     },
   };
 
@@ -502,6 +502,220 @@ const PracticesR2 = (() => {
       ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(ex, ey); stroke(ctx, k.alt, 0.012);
       ctx.beginPath(); ctx.moveTo(ex + Math.cos(a) * p.s * 0.09, ey + Math.sin(a) * p.s * 0.09); ctx.lineTo(ex + Math.cos(a + 2.4) * p.s * 0.07, ey + Math.sin(a + 2.4) * p.s * 0.07); ctx.lineTo(ex + Math.cos(a - 2.4) * p.s * 0.07, ey + Math.sin(a - 2.4) * p.s * 0.07); ctx.closePath(); fill(ctx, k.alt);
       dot(ctx, px, py, p.s * 0.05); fill(ctx, k.alt);
+    },
+  };
+
+  // ================= Dzogchen and Mahāmudrā =================
+  // Kin, not the same: both are drawn round one clear disc, the mind's
+  // nature. Dzogchen rests as the disc (open, clear, lit from itself);
+  // Mahāmudrā watches what arises in it and knows it as the disc.
+  function clearDisc(ctx, x, y, R, k, b) {
+    const g = ctx.createRadialGradient(x - R * 0.25, y - R * 0.3, 0, x, y, R);
+    g.addColorStop(0, css(mix(k.paper, k.glow, 0.32), 0.95)); g.addColorStop(0.7, css(mix(k.paper, k.main, 0.1), 0.85)); g.addColorStop(1, css(mix(k.paper, k.main, 0.18), 0.85));
+    ctx.fillStyle = g; dot(ctx, x, y, R); ctx.fill();
+    ring(ctx, x, y, R); stroke(ctx, k.main, 0.006, 0.5);
+    ctx.beginPath(); ctx.arc(x, y, R * 0.86, Math.PI * 1.08, Math.PI * (1.08 + 0.3 + 0.08 * b)); stroke(ctx, mix(k.glow, '#FFFFFF', 0.5), 0.008, 0.5);
+  }
+  const FIVE = (k) => [mix(k.glow, '#FFFFFF', 0.45), k.glow, k.alt, mix(k.alt, k.main, 0.45), mix(k.main, k.paper, 0.3)];
+
+  // The mirror: lights pass before it and show in it, vivid while they
+  // are there; the mirror takes nothing and keeps nothing.
+  F.dzogchen_mirror = {
+    label: 'the mirror', says: 'Dzogchen: like a mirror, the mind shows everything and is stained by nothing.',
+    build: (r, pl) => ({ ...pl, lights: Array.from({ length: 5 }, (_, i) => ({ y: r.range(-0.6, 0.6), ph: i / 5 + r.range(-0.03, 0.03), z: r.range(0.08, 0.14), ci: i })) }),
+    draw(ctx, p, k, t, still) {
+      const b = BR(t, still), R = p.s * 0.85, five = FIVE(k);
+      soft(ctx, p.cx, p.cy, R * 1.5, k.glow, 0.2 + 0.08 * b);
+      clearDisc(ctx, p.cx, p.cy, R, k, b);
+      ctx.save(); dot(ctx, p.cx, p.cy, R * 0.98); ctx.clip();
+      p.lights.forEach((l) => { const u = still ? frac(l.ph + 0.1) : frac(t / (4 * B) + l.ph), x = p.cx + p.s * lerp(-1.3, 1.3, u), y = p.cy + l.y * p.s; soft(ctx, x, y, p.s * l.z * 2.6, five[l.ci], 0.75 * fade(u)); dot(ctx, x, y, p.s * l.z * 0.6); fill(ctx, five[l.ci], 0.9 * fade(u)); });
+      ctx.restore();
+    },
+  };
+
+  // The thigle: a sphere of five lights, open at the centre, its light
+  // welling outward from nowhere, ring after ring, on the breath.
+  F.dzogchen_thigle = {
+    label: 'a sphere of five lights', says: 'Dzogchen: the mind’s nature, open at the centre, its light arising by itself.',
+    build: (r, pl) => ({ ...pl }),
+    draw(ctx, p, k, t, still) {
+      const b = BR(t, still), five = FIVE(k);
+      soft(ctx, p.cx, p.cy, p.s * 1.3, k.glow, 0.25 + 0.1 * b);
+      for (let i = 0; i < 5; i++) {
+        const w = still ? 0.6 : 0.35 + 0.65 * Math.pow(fade(frac(t / (2 * B) - i / 7)), 2), R = p.s * (0.48 + 0.14 * i) * (0.97 + 0.03 * b);
+        ring(ctx, p.cx, p.cy, R); stroke(ctx, five[i], 0.011 + 0.006 * w, 0.4 + 0.55 * w);
+      }
+            dot(ctx, p.cx, p.cy, p.s * (0.045 + 0.015 * b)); fill(ctx, k.glow);
+    },
+  };
+
+  // An empty sky; a rainbow forms in it from nothing and goes back to
+  // nothing. Nothing made it, nothing holds it.
+  F.dzogchen_rainbow = {
+    label: 'a rainbow in open sky', says: 'Dzogchen: like a rainbow in open sky, appearance arising by itself from openness.',
+    build: (r, pl) => ({ ...pl }),
+    draw(ctx, p, k, t, still) {
+      const v = still ? 1 : Math.pow(fade(frac(t / (3 * B))), 1.4), five = FIVE(k), x = p.cx, y = p.cy + p.s * 0.75, R = p.s * 1.05;
+      soft(ctx, x, y - R * 0.6, p.s * 1.2, k.glow, 0.2 * v);
+      for (let i = 0; i < 5; i++) { const M = 60; for (let j = 0; j < M; j++) { const a0 = Math.PI + Math.PI * j / M, ends = Math.pow(Math.sin(Math.PI * (j + 0.5) / M), 0.6); ctx.beginPath(); ctx.arc(x, y, R - i * p.s * 0.055, a0, a0 + Math.PI / M + 0.01); stroke(ctx, five[4 - i], p.s * 0.055, 0.75 * v * ends); } }
+    },
+  };
+
+  // Whatever arises in the disc — a wave, a scatter, a loop — shows first
+  // in its own colour; recognised, it takes the disc's colour and is gone.
+  F.mahamudra_recognise = {
+    label: 'recognised as mind', says: 'Mahāmudrā: whatever arises is recognised as mind itself, and settles back into it.',
+    build: (r, pl) => ({ ...pl, dots: Array.from({ length: 7 }, () => [r.range(-0.4, 0.4), r.range(-0.3, 0.3)]) }),
+    draw(ctx, p, k, t, still) {
+      const b = BR(t, still), R = p.s * 0.85, h = still ? 0.42 : frac(t / (3 * B)) * 3, i = Math.floor(h), u = h - i;
+      const shown = C.ss(0, 0.2, u) * (1 - C.ss(0.7, 0.95, u)), known = C.ss(0.3, 0.55, u), col = mix(k.alt, mix(k.paper, k.main, 0.35), known);
+      soft(ctx, p.cx, p.cy, R * 1.5, k.glow, 0.18 + 0.12 * known * shown);
+      clearDisc(ctx, p.cx, p.cy, R, k, b);
+      ring(ctx, p.cx, p.cy, R * (1 + 0.04 * fade((u - 0.3) / 0.35))); stroke(ctx, k.glow, 0.012, 0.8 * fade((u - 0.3) / 0.35));
+      const sc = p.s * (0.9 + 0.1 * shown);
+      ctx.beginPath();
+      if (i === 0) { for (let j = 0; j <= 40; j++) { const v = j / 40, x = p.cx + (v - 0.5) * sc * 1.0, y = p.cy + Math.sin(v * TAU * 1.5) * sc * 0.14; j ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } stroke(ctx, col, 0.014, shown); }
+      else if (i === 1) p.dots.forEach(([dx, dy]) => { dot(ctx, p.cx + dx * sc, p.cy + dy * sc, p.s * 0.045); fill(ctx, col, shown); });
+      else { ctx.ellipse(p.cx, p.cy, sc * 0.32, sc * 0.2, 0.4, 0, TAU); stroke(ctx, col, 0.014, shown); }
+    },
+  };
+
+  // Waves and water: in the clear disc, waves rise and fall back. They
+  // are never anything but the water.
+  F.mahamudra_waves = {
+    label: 'waves are water', says: 'Mahāmudrā: thoughts rise like waves and fall back; they were never other than the water.',
+    build: (r, pl) => ({ ...pl, ph: r.range(0, TAU) }),
+    draw(ctx, p, k, t, still) {
+      const b = BR(t, still), R = p.s * 0.85, rise = still ? 0.7 : Math.pow(fade(frac(t / (2 * B))), 1.5), lvl = p.cy + p.s * 0.08;
+      clearDisc(ctx, p.cx, p.cy, R, k, b);
+      ctx.save(); dot(ctx, p.cx, p.cy, R * 0.99); ctx.clip();
+      ctx.beginPath(); ctx.moveTo(p.cx - R, p.cy + R);
+      for (let j = 0; j <= 80; j++) { const v = j / 80, x = p.cx + (v - 0.5) * 2 * R, crest = Math.exp(-Math.pow((v - 0.5) / 0.3, 2)); ctx.lineTo(x, lvl - p.s * (0.03 + 0.2 * rise * crest) * (0.5 + 0.5 * Math.cos(TAU * (v - 0.5) * 2.5 + (still ? 0 : t * 0.3))) + p.s * 0.02 * Math.sin(TAU * v * 3 + p.ph + (still ? 0 : t * 0.5))); }
+      ctx.lineTo(p.cx + R, p.cy + R); ctx.closePath(); fill(ctx, mix(k.main, k.paper, 0.45), 0.85);
+      ctx.restore();
+      ring(ctx, p.cx, p.cy, R); stroke(ctx, k.main, 0.006, 0.5);
+    },
+  };
+
+  // One taste: shapes of every kind and colour drift in, lose their
+  // difference, and are one light at the centre.
+  F.mahamudra_taste = {
+    label: 'one taste', says: 'Mahāmudrā: every kind of experience, met fully, has one taste — the mind’s own.',
+    build: (r, pl) => ({ ...pl, items: Array.from({ length: 6 }, (_, i) => ({ a: TAU * i / 6 + r.range(-0.3, 0.3), ph: i / 6, kind: i % 3 })) }),
+    draw(ctx, p, k, t, still) {
+      const b = BR(t, still), five = FIVE(k), core = mix(k.glow, '#FFFFFF', 0.3);
+      soft(ctx, p.cx, p.cy, p.s * (0.9 + 0.15 * b), k.glow, 0.45);
+      p.items.forEach((q, i) => {
+        const u = still ? frac(q.ph + 0.3) : frac(t / (3 * B) + q.ph), d = p.s * 1.15 * (1 - Math.pow(u, 1.6)), x = p.cx + Math.cos(q.a + u * 0.8) * d, y = p.cy + Math.sin(q.a + u * 0.8) * d;
+        const same = C.ss(0.35, 0.9, u), col = mix(five[1 + (i % 4)], core, same), a = C.ss(0, 0.12, u) * (1 - C.ss(0.9, 1, u)), z = p.s * 0.1 * (1 - 0.5 * same);
+        ctx.beginPath();
+        if (q.kind === 0 || same > 0.8) { dot(ctx, x, y, z * 0.7); fill(ctx, col, a); }
+        else if (q.kind === 1) { ring(ctx, x, y, z); stroke(ctx, col, 0.01, a); }
+        else { for (let j = 0; j <= 16; j++) { const v = j / 16; const xx = x + (v - 0.5) * z * 3 * (1 - same), yy = y + Math.sin(v * TAU) * z * 0.6 * (1 - same); j ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy); } stroke(ctx, col, 0.011, a); }
+      });
+      dot(ctx, p.cx, p.cy, p.s * (0.2 + 0.03 * b)); fill(ctx, core, 0.95);
+    },
+  };
+
+  // ================= Trāṭaka and Kasiṇa =================
+  const tear = (ctx, x, y, h, w) => { ctx.beginPath(); ctx.moveTo(x, y - h); ctx.bezierCurveTo(x + w * 0.9, y - h * 0.35, x + w, y + h * 0.2, x, y + h * 0.3); ctx.bezierCurveTo(x - w, y + h * 0.2, x - w * 0.9, y - h * 0.35, x, y - h); };
+  // Eyes closing, without eyes: the dark closes in from the edges.
+  function closeIn(ctx, p, col, a) { if (a <= 0) return; const g = ctx.createRadialGradient(p.cx, p.cy, p.s * 0.2, p.cx, p.cy, p.s * 2); g.addColorStop(0, css(col, a * 0.55)); g.addColorStop(0.5, css(col, a * 0.85)); g.addColorStop(1, css(col, a)); ctx.fillStyle = g; ctx.fillRect(p.cx - 2, p.cy - 2, 4, 4); }
+
+  // Gazing at the flame without blinking; then the dark closes in, and the
+  // flame is still there inside, pale and cool, drifting, fading.
+  F.trataka_after = {
+    label: 'flame, then afterimage', says: 'Trāṭaka: gazing at one flame, then holding its afterimage, pale and cool, within.',
+    build: (r, pl) => ({ ...pl }),
+    draw(ctx, p, k, t, still) {
+      const u = still ? 0.3 : frac(t / (2 * B)), shut = C.ss(0.44, 0.62, u) * (1 - C.ss(0.84, 1, u)), ghost = C.ss(0.58, 0.68, u) * (1 - C.ss(0.76, 0.9, u));
+      const flick = still ? 0 : (0.015 * S(t, 2.3) + 0.008 * S(t, 0.9)) * (1 - shut), fy = p.cy - p.s * 0.12, fx = p.cx + flick * p.s;
+      const seen = 1 - shut; // eyes closed, the flame itself is gone
+      soft(ctx, p.cx, fy, p.s * 1.0, k.glow, 0.5 * seen);
+      tear(ctx, fx, fy, p.s * 0.52, p.s * 0.21); fill(ctx, k.alt, seen);
+      tear(ctx, fx, fy + p.s * 0.09, p.s * 0.26, p.s * 0.09); fill(ctx, k.glow, seen);
+      ctx.beginPath(); ctx.moveTo(p.cx, fy + p.s * 0.16); ctx.lineTo(p.cx, fy + p.s * 0.3); stroke(ctx, k.line, 0.008, seen);
+      ctx.beginPath(); ctx.roundRect(p.cx - p.s * 0.15, fy + p.s * 0.3, p.s * 0.3, p.s * 0.72, p.s * 0.03); fill(ctx, k.main, 0.9 * seen);
+      closeIn(ctx, p, mix(k.paper, '#000000', 0.45), shut * 0.96);
+      if (ghost > 0) { const gy = fy - p.s * 0.12 * (u - 0.6), cool = mix(k.main, k.paper, 0.15); soft(ctx, p.cx, gy, p.s * 0.6, cool, 0.3 * ghost); tear(ctx, p.cx, gy, p.s * 0.48, p.s * 0.2); fill(ctx, cool, 0.6 * ghost); }
+    },
+  };
+
+  // Gazing at one black point; then, eyes closed, the same point shows as
+  // light in the dark: the afterimage is the negative.
+  F.trataka_point = {
+    label: 'one point, then its light', says: 'Trāṭaka: gazing at one dark point, then seeing it within as a point of light.',
+    build: (r, pl) => ({ ...pl, rays: Array.from({ length: 10 }, (_, i) => TAU * i / 10 + r.range(-0.1, 0.1)) }),
+    draw(ctx, p, k, t, still) {
+      const u = still ? 0.25 : frac(t / (2 * B)), shut = C.ss(0.42, 0.6, u) * (1 - C.ss(0.84, 1, u)), ghost = C.ss(0.56, 0.66, u) * (1 - C.ss(0.74, 0.88, u)), gaze = C.ss(0, 0.3, u);
+      p.rays.forEach((a) => { const r0 = p.s * lerp(1.3, 0.28, gaze), r1 = p.s * 1.4; ctx.beginPath(); ctx.moveTo(p.cx + Math.cos(a) * r0, p.cy + Math.sin(a) * r0); ctx.lineTo(p.cx + Math.cos(a) * r1, p.cy + Math.sin(a) * r1); stroke(ctx, k.main, 0.005, 0.35 * (1 - shut)); });
+      dot(ctx, p.cx, p.cy, p.s * 0.1); fill(ctx, k.main);
+      closeIn(ctx, p, isLight(k) ? mix(k.main, k.paper, 0.15) : mix(k.paper, '#000000', 0.5), shut * 0.97);
+      if (ghost > 0) { soft(ctx, p.cx, p.cy, p.s * 0.45, k.glow, 0.55 * ghost); dot(ctx, p.cx, p.cy, p.s * 0.1); fill(ctx, mix(k.glow, '#FFFFFF', 0.4), ghost); }
+    },
+  };
+
+  // The flame steadies as the gaze steadies: its sway dies away over a
+  // long while, its reflection in the dark beneath goes still, then stirs.
+  F.trataka_still = {
+    label: 'a steadying flame', says: 'Trāṭaka: as the gaze steadies, the flame and the mind steady together.',
+    build: (r, pl) => ({ ...pl }),
+    draw(ctx, p, k, t, still) {
+      const calm = still ? 1 : 0.5 - 0.5 * Math.cos(TAU * t / (3 * B)), sway = (1 - calm) * (still ? 0 : 0.06 * S(t, 2.1) + 0.03 * S(t, 0.77, 1)), fy = p.cy - p.s * 0.1, wy = p.cy + p.s * 0.5;
+      soft(ctx, p.cx, fy, p.s * 0.9, k.glow, 0.45 + 0.15 * calm);
+      ctx.save(); ctx.translate(p.cx, fy + p.s * 0.3); ctx.rotate(sway); ctx.translate(-p.cx, -(fy + p.s * 0.3));
+      tear(ctx, p.cx, fy, p.s * 0.55, p.s * 0.2); fill(ctx, k.alt);
+      tear(ctx, p.cx, fy + p.s * 0.1, p.s * 0.26, p.s * 0.085); fill(ctx, k.glow);
+      ctx.restore();
+      ctx.beginPath(); ctx.moveTo(p.cx, fy + p.s * 0.18); ctx.lineTo(p.cx, fy + p.s * 0.34); stroke(ctx, k.line, 0.008);
+      ctx.beginPath(); ctx.moveTo(p.cx - p.s * 1.2, wy); ctx.lineTo(p.cx + p.s * 1.2, wy); stroke(ctx, k.main, 0.005, 0.4);
+      for (let i = 0; i < 5; i++) { const y = wy + p.s * (0.1 + i * 0.09), w = p.s * (0.22 - i * 0.03) * (1 + (1 - calm) * (still ? 0 : 0.5 * S(t, 1.7 + i * 0.4, i))); pill(ctx, p.cx + (1 - calm) * p.s * 0.06 * (still ? 0 : S(t, 2.3 + i * 0.3, i)), y, w, p.s * 0.035, 0); fill(ctx, k.alt, 0.55 - i * 0.09); }
+    },
+  };
+
+  // An earth kasiṇa, the colour of dawn: at first a copy with every flaw
+  // (the learning sign), it slowly becomes the counterpart sign —
+  // smooth, bright, flawless, “like the moon coming out from a cloud”.
+  F.kasina_earth = {
+    label: 'the sign comes clear', says: 'Kasiṇa: a disc of dawn-coloured clay, gazed at until its flawless bright sign appears.',
+    build: (r, pl) => ({ ...pl, blob: C.makeBlob(r, pl.cx, pl.cy, pl.s * 0.68, 1.6, 0), flaws: Array.from({ length: 70 }, () => { const a = r.range(0, TAU), d = Math.sqrt(r.next()) * 0.6; return [Math.cos(a) * d, Math.sin(a) * d, r.range(0.01, 0.03)]; }) }),
+    draw(ctx, p, k, t, still) {
+      const pure = still ? 0.75 : 0.5 - 0.5 * Math.cos(TAU * t / (3 * B)), b = BR(t, still), clay = mix(k.alt, k.main, 0.4), bright = mix(k.glow, '#FFFFFF', 0.45), col = mix(clay, bright, C.ss(0.2, 0.95, pure));
+      soft(ctx, p.cx, p.cy, p.s * (1.0 + 0.3 * pure), k.glow, 0.15 + 0.5 * pure);
+      C.blobPath(ctx, p.blob, { imperf: 1 - pure, grow: 0.97 + 0.03 * b }); fill(ctx, col);
+      p.flaws.forEach(([x, y, z]) => { dot(ctx, p.cx + x * p.s, p.cy + y * p.s, p.s * z); fill(ctx, mix(clay, k.main, 0.5), 0.75 * (1 - C.ss(0, 0.7, pure))); });
+    },
+  };
+
+  // The fire kasiṇa as the texts set it up: a mat with a round hole, and
+  // the fire seen only through the hole, a disc of flame.
+  F.kasina_fire = {
+    label: 'fire through the hole', says: 'Kasiṇa: fire seen through a round hole in a mat, so the eye holds only a disc of flame.',
+    build: (r, pl) => ({ ...pl, fire: { ...Prims.fire.build(r, { cx: pl.cx, cy: pl.cy - pl.s * 0.1, s: pl.s * 0.48 }), kind: 'tongues', log: false } }),
+    draw(ctx, p, k, t, still) {
+      const R = p.s * 0.52, b = BR(t, still);
+      ctx.save(); dot(ctx, p.cx, p.cy, R); ctx.clip();
+      ctx.fillStyle = css(mix(k.alt, k.paper, 0.35)); ctx.fillRect(p.cx - R, p.cy - R, 2 * R, 2 * R);
+      Prims.fire.draw(ctx, p.fire, { ...k, main: k.alt, alt: mix(k.glow, '#FFFFFF', 0.3), line: k.alt }, t, still);
+      ctx.restore();
+      soft(ctx, p.cx, p.cy, R * (1.6 + 0.1 * b), k.glow, 0.28);
+      C.cutPoly(ctx, [[p.cx - p.s * 1.0, p.cy - p.s * 0.95], [p.cx + p.s * 1.02, p.cy - p.s * 0.98], [p.cx + p.s * 0.98, p.cy + p.s * 0.96], [p.cx - p.s * 1.03, p.cy + p.s * 0.98]], C.makeRng('mat'), 0.006);
+      ctx.moveTo(p.cx + R, p.cy); ctx.arc(p.cx, p.cy, R, 0, TAU, true); fill(ctx, mix(k.paper, k.main, 0.22), 0.96);
+      ring(ctx, p.cx, p.cy, R); stroke(ctx, k.glow, 0.008, 0.5 + 0.2 * b);
+    },
+  };
+
+  // The counterpart sign extended: the bright disc grows past each mark,
+  // past the edge, till there is nothing but its light; then gathers.
+  F.kasina_extend = {
+    label: 'the sign extended', says: 'Kasiṇa: the bright sign extended, a hand’s breadth, then further, until it fills everything.',
+    build: (r, pl) => ({ ...pl }),
+    draw(ctx, p, k, t, still) {
+      const u = still ? 0.35 : 0.5 - 0.5 * Math.cos(TAU * t / (3 * B)), R = p.s * lerp(0.28, 3.2, Math.pow(u, 1.6)), col = mix(k.glow, '#FFFFFF', 0.35);
+      [0.45, 0.8, 1.15].forEach((m) => { ring(ctx, p.cx, p.cy, p.s * m); stroke(ctx, k.main, 0.004, 0.4 * (1 - C.ss(m * 0.8, m * 1.05, R / p.s))); });
+      const g = ctx.createRadialGradient(p.cx, p.cy, 0, p.cx, p.cy, R * 1.25); g.addColorStop(0, css(col, 0.98)); g.addColorStop(0.78, css(col, 0.95)); g.addColorStop(1, css(col, 0));
+      ctx.fillStyle = g; dot(ctx, p.cx, p.cy, R * 1.25); ctx.fill();
+      dot(ctx, p.cx, p.cy, p.s * 0.04); fill(ctx, k.alt, 0.8);
     },
   };
 

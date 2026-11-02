@@ -93,7 +93,7 @@
       "desc": "Gazing at a device, a disc of earth, water, fire or colour, until its sign leads into jhāna.",
       "was": { "figure": "flame", "ground": "night", "why": "Shared with Trāṭaka; split." },
       "variants": [
-        { "figure": "kasina_earth", "ground": "dawn" },
+        { "figure": "kasina_earth", "ground": "paper" },
         { "figure": "kasina_fire", "ground": "hearth" },
         { "figure": "kasina_extend", "ground": "mist" }
       ] }

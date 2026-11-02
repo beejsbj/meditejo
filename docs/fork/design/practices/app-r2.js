@@ -126,6 +126,7 @@
     if (FROZEN == null && !STILL && !reduce) requestAnimationFrame(frame);
   }
   all.forEach((cv) => paint(cv, FROZEN ?? 3, STILL || reduce));
+  window.__paint = paint; // for check_r2.mjs
   window.__ready = true;
   requestAnimationFrame(frame);
 })();

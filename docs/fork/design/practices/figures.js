@@ -306,7 +306,9 @@ const Practices = (() => {
       ctx.beginPath(); ctx.moveTo(p.cx - p.s * 1.3, hy); ctx.lineTo(p.cx + p.s * 1.3, hy); stroke(ctx, k.line, 0.006, 0.65);
       p.clouds.forEach((c) => {
         const u = still ? c.ph : frac(t / c.per + c.ph), x = p.cx + p.s * lerp(-1.6, 1.6, u), y = p.cy + c.y * p.s, a = 0.75 * fade(u);
-        [[0, 0, 1], [-0.35, 0.06, 0.7], [0.35, 0.07, 0.75], [0.12, -0.08, 0.8]].forEach(([dx, dy, sc]) => { ctx.beginPath(); ctx.ellipse(x + dx * c.w * p.s, y + dy * p.s, c.w * p.s * 0.42 * sc, c.w * p.s * 0.2 * sc, 0, 0, TAU); fill(ctx, k.main, a * 0.5); });
+        // soft puffs, lighter than the sky: hard dark ellipses read as stones
+        const veil = C.lum(k.paper) > 0.3 ? mix(k.paper, '#FFFFFF', 0.72) : mix(k.paper, k.main, 0.3);
+        [[0, 0, 1], [-0.42, 0.07, 0.72], [0.4, 0.08, 0.78], [0.14, -0.12, 0.8], [-0.2, -0.06, 0.7]].forEach(([dx, dy, sc]) => { const rx = c.w * p.s * 0.55 * sc, ry = c.w * p.s * 0.3 * sc; ctx.save(); ctx.translate(x + dx * c.w * p.s, y + dy * c.w * p.s); ctx.scale(1, ry / rx); soft(ctx, 0, 0, rx, veil, a * 0.95); ctx.restore(); });
       });
       dot(ctx, p.cx + p.s * 0.75, hy - p.s * 0.18, p.s * 0.06); fill(ctx, k.alt, 0.9);
     },
@@ -321,7 +323,8 @@ const Practices = (() => {
       for (let i = 0; i < M; i++) {
         const v = i / M; if (v * TAU * 0.9 > sweep) break;
         const a = a0 + v * TAU * 0.9, rr = p.s * (0.88 + 0.03 * n(v * 7));
-        const w = p.s * (0.14 * Math.pow(1 - v, 0.6) * (0.75 + 0.25 * n(v * 23 + 3)) + 0.012) * (v < 0.04 ? v / 0.04 : 1);
+        // the tail keeps a visible width at tile size, or the still reads as a crescent
+        const w = p.s * (0.12 * Math.pow(1 - v, 0.6) * (0.75 + 0.25 * n(v * 23 + 3)) + 0.04) * (v < 0.04 ? v / 0.04 : 1);
         ctx.beginPath(); ctx.arc(p.cx, p.cy, rr, a, a + TAU * 0.9 / M + 0.01); stroke(ctx, k.main, w, hold * (0.92 - 0.25 * v));
       }
     },
