@@ -21,6 +21,11 @@ sealed class ArtSubject {
   const factory ArtSubject.layers(String id, List<SoundLayer> layers) = MixArt;
   const factory ArtSubject.cover(ArtCoverKind kind, String id) = CoverArt;
   const factory ArtSubject.bell(String asset, {bool icon}) = BellArt;
+  const factory ArtSubject.practice(
+    String id, {
+    required String ground,
+    String? figure,
+  }) = PracticeArt;
 
   /// Stable across runs: the raster cache's key.
   String get key;
@@ -109,6 +114,28 @@ final class BellArt extends ArtSubject {
 
   @override
   bool operator ==(Object other) => other is BellArt && other.key == key;
+
+  @override
+  int get hashCode => key.hashCode;
+}
+
+/// A way to practise (Mettā, Zazen…): its curated ground and figure, named
+/// in `assets/categories/categories.json` (decision 22: shipped, so curated).
+final class PracticeArt extends ArtSubject {
+  const PracticeArt(this.id, {required this.ground, this.figure});
+
+  final String id;
+  final String ground;
+
+  /// A figure in the registry, with an optional pinned variant
+  /// (`rings:ripple`); null draws the ground alone.
+  final String? figure;
+
+  @override
+  String get key => 'practice:$id:$ground:${figure ?? ''}';
+
+  @override
+  bool operator ==(Object other) => other is PracticeArt && other.key == key;
 
   @override
   int get hashCode => key.hashCode;
@@ -211,6 +238,8 @@ class CuratedArt extends ChangeNotifier {
               ArtCoverKind.single => 'single',
               ArtCoverKind.teacher => 'teacher',
             });
+      case PracticeArt(:final id, :final ground, :final figure):
+        return Compose.buildPractice(id, ground: ground, figure: figure);
       case BellArt(:final asset, :final icon):
         // Every shipped bell is curated, and its entry names its asset.
         final e = _items!.values

@@ -36,18 +36,49 @@ class PracticeCategory {
     required this.id,
     required this.name,
     this.blurb = '',
+    this.blurbs = const {},
     this.aliases = const [],
     this.group = '',
+    this.script = '',
+    this.langs = const [],
+    this.label = '',
+    this.ground = 'paper',
+    this.figure,
   });
 
   /// Stable slug, stored in the user's labels (`metta`, `open-awareness`).
   final String id;
 
-  /// What the screens show. Practice terms are not translated.
+  /// What the screens show: the practice's own name when one tradition owns
+  /// it (Mettā, Zazen), the plain English one when it is shared (Chanting).
+  /// Not translated.
   final String name;
 
-  /// One line saying what the category gathers.
+  /// One line saying what the practice is, in English.
   final String blurb;
+
+  /// The one line by language code (`de`, `es`), English included.
+  final Map<String, String> blurbs;
+
+  /// The one line in [languageCode], or English.
+  String blurbFor(String languageCode) => blurbs[languageCode] ?? blurb;
+
+  /// The name in its own script where the tradition writes one (शून्यता,
+  /// 坐禅, རྫོགས་ཆེན་), or empty.
+  final String script;
+
+  /// The languages the name comes from, as codes the app translates (`pi`,
+  /// `sa`, `bo`, `ja`). Empty when [label] says where it comes from instead.
+  final List<String> langs;
+
+  /// For a shared or modern practice: its originals (`Paritta · Kīrtan`) or
+  /// its founder (`Douglas Harding`), shown as written. Empty otherwise.
+  final String label;
+
+  /// The practice's art: a ground and a figure from the art engine's
+  /// registry (decision 22: curated, not random).
+  final String ground;
+  final String? figure;
 
   /// Other names a user might type for it ("Insight" for Vipassanā).
   final List<String> aliases;
@@ -143,14 +174,7 @@ class CategoryCatalogue {
       throw FormatException('Unsupported categories format: $format');
     }
     final categories = [
-      for (final raw in _list(json['categories']))
-        PracticeCategory(
-          id: _string(raw, 'id'),
-          name: _string(raw, 'name'),
-          blurb: raw['blurb'] as String? ?? '',
-          aliases: _strings(raw['aliases']),
-          group: raw['group'] as String? ?? '',
-        ),
+      for (final raw in _list(json['categories'])) _category(raw),
     ];
     final ids = {for (final c in categories) c.id};
     if (ids.length != categories.length) {
@@ -248,6 +272,32 @@ class CategoryCatalogue {
       rules: List.unmodifiable(rules),
       modelPass: model,
       passVersion: passVersion,
+    );
+  }
+
+  static PracticeCategory _category(Map<String, dynamic> raw) {
+    final blurb = raw['blurb'];
+    final blurbs = <String, String>{
+      if (blurb is String) 'en': blurb,
+      if (blurb is Map<String, dynamic>)
+        for (final MapEntry(:key, :value) in blurb.entries)
+          if (value is String) key: value,
+    };
+    final art = raw['art'];
+    return PracticeCategory(
+      id: _string(raw, 'id'),
+      name: _string(raw, 'name'),
+      blurb: blurbs['en'] ?? '',
+      blurbs: Map.unmodifiable(blurbs),
+      aliases: _strings(raw['aliases']),
+      group: raw['group'] as String? ?? '',
+      script: raw['script'] as String? ?? '',
+      langs: _strings(raw['langs']),
+      label: raw['label'] as String? ?? '',
+      ground: art is Map<String, dynamic>
+          ? art['ground'] as String? ?? 'paper'
+          : 'paper',
+      figure: art is Map<String, dynamic> ? art['figure'] as String? : null,
     );
   }
 

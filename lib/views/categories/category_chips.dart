@@ -2,15 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/categories/category_providers.dart';
+import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/views/categories/category_view.dart';
+import 'package:medito/views/categories/practice_tile.dart';
+import 'package:medito/views/categories/practices_view.dart';
 import 'package:medito/widgets/cards/card_tokens.dart';
 import 'package:medito/widgets/cards/section_title.dart';
 
-/// Explore's category entry points: a heading and a sideways row of chips,
-/// one per category that has something in it. Each opens that category's
-/// page. Renders nothing until the mapping has loaded.
-class ExploreCategoryChips extends ConsumerWidget {
-  const ExploreCategoryChips({super.key});
+/// Explore's ways to practise (Burooj, 2026-11-02): the heading with "See
+/// all", then one carousel of practice cards per group. Only practices with
+/// something in them are shown; a group with none is left out. Renders
+/// nothing until the mapping has loaded.
+class ExplorePractices extends ConsumerWidget {
+  const ExplorePractices({super.key});
+
+  /// A card's slot: its figure (148 × 132) and three lines under it.
+  static const cardWidth = 148.0;
+  static const cardHeight = 262.0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -19,36 +27,76 @@ class ExploreCategoryChips extends ConsumerWidget {
     // asset for the labels sheet.
     final browsable = ref.watch(browsableCategoriesProvider).value;
     if (catalogue == null || browsable == null) return const SizedBox.shrink();
-    final shown = [
+    final groups = groupPractices([
       for (final c in catalogue.categories)
         if (browsable.contains(c.id)) c,
-    ];
-    if (shown.isEmpty) return const SizedBox.shrink();
+    ]);
+    if (groups.isEmpty) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(top: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SectionTitle(l10n.exploreCategories),
+          SectionTitle(
+            l10n.exploreCategories,
+            trailing: TextButton(
+              key: const ValueKey('practices_see_all'),
+              onPressed: () => openPractices(context),
+              child: Text(l10n.practicesSeeAll),
+            ),
+          ),
           Semantics(
             container: true,
             label: l10n.exploreCategoriesLabel,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: kCardGutter),
-              child: Row(
-                children: [
-                  for (final (i, category) in shown.indexed) ...[
-                    if (i > 0) const SizedBox(width: 8),
-                    ActionChip(
-                      key: ValueKey('category_${category.id}'),
-                      label: Text(category.name),
-                      onPressed: () => openCategory(context, category.id),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final (group, items) in groups) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      kCardGutter + 4,
+                      4,
+                      kCardGutter,
+                      8,
                     ),
-                  ],
+                    child: Semantics(
+                      header: true,
+                      child: Text(
+                        practiceGroupName(l10n, group).toUpperCase(),
+                        style: context.typography.baseline.labelMedium
+                            ?.copyWith(
+                              letterSpacing: 1.2,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    height: cardHeight,
+                    child: ListView.separated(
+                      key: ValueKey('practices_row_$group'),
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: kCardGutter,
+                      ),
+                      itemCount: items.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 12),
+                      itemBuilder: (context, i) => SizedBox(
+                        width: cardWidth,
+                        child: PracticeTile(
+                          key: ValueKey('category_${items[i].id}'),
+                          category: items[i],
+                          size: PracticeTileSize.card,
+                          onTap: () => openCategory(context, items[i].id),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                 ],
-              ),
+              ],
             ),
           ),
         ],

@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -2436,7 +2435,8 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           'It is also in $count of your playlists, where it will show as unavailable.',
-      one: 'It is also in one of your playlists, where it will show as unavailable.',
+      one:
+          'It is also in one of your playlists, where it will show as unavailable.',
     );
     return '$_temp0';
   }
@@ -2754,6 +2754,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exploreCategoriesLabel => 'Browse ways to practise';
+
+  @override
+  String get practicesSeeAll => 'See all';
+
+  @override
+  String get practiceGroupHeart => 'Heart';
+
+  @override
+  String get practiceGroupConcentration => 'Concentration';
+
+  @override
+  String get practiceGroupInsight => 'Insight';
+
+  @override
+  String get practiceGroupAwareness => 'Awareness';
+
+  @override
+  String get practiceGroupBody => 'Body & energy';
+
+  @override
+  String get practiceGroupDevotion => 'Sound & devotion';
+
+  @override
+  String get practiceGroupImagination => 'Imagination';
+
+  @override
+  String get practiceLangPali => 'Pāli';
+
+  @override
+  String get practiceLangSanskrit => 'Sanskrit';
+
+  @override
+  String get practiceLangTibetan => 'Tibetan';
+
+  @override
+  String get practiceLangJapanese => 'Japanese';
 
   @override
   String get categoryEmptyTitle => 'Nothing here yet';

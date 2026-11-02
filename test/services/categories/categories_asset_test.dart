@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/services/categories/category_catalogue.dart';
 import 'package:medito/services/library/starter_set.dart';
+import 'package:medito/views/categories/practice_tile.dart';
+import 'package:medito/widgets/art/engine/registry.dart';
 import 'package:sqlite3/open.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -64,6 +66,39 @@ void main() {
     for (final c in catalogue.categories) {
       expect(c.blurb, isNotEmpty, reason: '${c.id} needs a one-line blurb');
     }
+  });
+
+  test(
+    'each practice has its tile: group, origin, a line in en/de/es, art',
+    () {
+      const langs = {'pi', 'sa', 'bo', 'ja'};
+      for (final c in catalogue.categories) {
+        expect(practiceGroups, contains(c.group), reason: c.id);
+        // Where the name comes from: its languages, or its originals/founder.
+        expect(c.langs.isNotEmpty || c.label.isNotEmpty, isTrue, reason: c.id);
+        expect(langs, containsAll(c.langs), reason: c.id);
+        for (final code in ['en', 'de', 'es']) {
+          expect(c.blurbs[code], isNotEmpty, reason: '${c.id} $code');
+        }
+        expect(ArtRegistry.grounds, contains(c.ground), reason: c.id);
+        final figure = c.figure?.split(':').first;
+        if (figure != null) {
+          expect(ArtRegistry.figures, contains(figure), reason: c.id);
+        }
+      }
+    },
+  );
+
+  test('the split practices are four, and English names still find them', () {
+    for (final id in ['dzogchen', 'mahamudra', 'trataka', 'kasina']) {
+      expect(catalogue.category(id), isNotNull, reason: id);
+    }
+    expect(catalogue.categoryNamed('Gazing')?.id, 'trataka');
+    expect(catalogue.categoryNamed('Kasina')?.id, 'kasina');
+    expect(catalogue.categoryNamed('Mahamudra')?.id, 'mahamudra');
+    expect(catalogue.categoryNamed('loving-kindness')?.id, 'metta');
+    expect(catalogue.categoryNamed('Zen')?.id, 'zen');
+    expect(catalogue.categoryNamed('emptiness')?.id, 'emptiness');
   });
 
   test(
@@ -216,6 +251,9 @@ void main() {
         'samatha',
       ]);
       expect(ofTitle('Dzogchen Retreat'), ['dzogchen']);
+      expect(ofTitle('Mahamudra Retreat'), ['mahamudra']);
+      expect(ofTitle('Fire Kasina'), ['kasina']);
+      expect(ofTitle('Candle Gazing Meditation'), ['trataka']);
       expect(ofTitle('Open Awareness Practice'), ['open-awareness']);
       expect(ofTitle('Walking Meditation Instructions'), ['walking']);
       expect(ofTitle('Tonglen Practice'), ['compassion']);

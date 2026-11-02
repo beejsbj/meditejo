@@ -4870,6 +4870,78 @@ abstract class AppLocalizations {
   /// **'Browse ways to practise'**
   String get exploreCategoriesLabel;
 
+  /// Opens the page of every way to practise, from Explore's carousels
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get practicesSeeAll;
+
+  /// Group of practices: metta, compassion, forgiveness…
+  ///
+  /// In en, this message translates to:
+  /// **'Heart'**
+  String get practiceGroupHeart;
+
+  /// Group of practices: samatha, jhāna, breath…
+  ///
+  /// In en, this message translates to:
+  /// **'Concentration'**
+  String get practiceGroupConcentration;
+
+  /// Group of practices: vipassanā, noting, emptiness…
+  ///
+  /// In en, this message translates to:
+  /// **'Insight'**
+  String get practiceGroupInsight;
+
+  /// Group of practices: open awareness, Zen, Dzogchen…
+  ///
+  /// In en, this message translates to:
+  /// **'Awareness'**
+  String get practiceGroupAwareness;
+
+  /// Group of practices: body, walking, movement, energy…
+  ///
+  /// In en, this message translates to:
+  /// **'Body & energy'**
+  String get practiceGroupBody;
+
+  /// Group of practices: chanting, mantra, devotion
+  ///
+  /// In en, this message translates to:
+  /// **'Sound & devotion'**
+  String get practiceGroupDevotion;
+
+  /// Group of practices: visualisation, soulmaking
+  ///
+  /// In en, this message translates to:
+  /// **'Imagination'**
+  String get practiceGroupImagination;
+
+  /// The language a practice name comes from (shown small under the name)
+  ///
+  /// In en, this message translates to:
+  /// **'Pāli'**
+  String get practiceLangPali;
+
+  /// The language a practice name comes from
+  ///
+  /// In en, this message translates to:
+  /// **'Sanskrit'**
+  String get practiceLangSanskrit;
+
+  /// The language a practice name comes from
+  ///
+  /// In en, this message translates to:
+  /// **'Tibetan'**
+  String get practiceLangTibetan;
+
+  /// The language a practice name comes from
+  ///
+  /// In en, this message translates to:
+  /// **'Japanese'**
+  String get practiceLangJapanese;
+
   /// Title of a category page with nothing in it
   ///
   /// In en, this message translates to:

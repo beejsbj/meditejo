@@ -3055,6 +3055,54 @@
   "@exploreCategoriesLabel": {
     "description": "Screen-reader label of Explore's practice chips"
   },
+  "practicesSeeAll": "See all",
+  "@practicesSeeAll": {
+    "description": "Opens the page of every way to practise, from Explore's carousels"
+  },
+  "practiceGroupHeart": "Heart",
+  "@practiceGroupHeart": {
+    "description": "Group of practices: metta, compassion, forgiveness…"
+  },
+  "practiceGroupConcentration": "Concentration",
+  "@practiceGroupConcentration": {
+    "description": "Group of practices: samatha, jhāna, breath…"
+  },
+  "practiceGroupInsight": "Insight",
+  "@practiceGroupInsight": {
+    "description": "Group of practices: vipassanā, noting, emptiness…"
+  },
+  "practiceGroupAwareness": "Awareness",
+  "@practiceGroupAwareness": {
+    "description": "Group of practices: open awareness, Zen, Dzogchen…"
+  },
+  "practiceGroupBody": "Body & energy",
+  "@practiceGroupBody": {
+    "description": "Group of practices: body, walking, movement, energy…"
+  },
+  "practiceGroupDevotion": "Sound & devotion",
+  "@practiceGroupDevotion": {
+    "description": "Group of practices: chanting, mantra, devotion"
+  },
+  "practiceGroupImagination": "Imagination",
+  "@practiceGroupImagination": {
+    "description": "Group of practices: visualisation, soulmaking"
+  },
+  "practiceLangPali": "Pāli",
+  "@practiceLangPali": {
+    "description": "The language a practice name comes from (shown small under the name)"
+  },
+  "practiceLangSanskrit": "Sanskrit",
+  "@practiceLangSanskrit": {
+    "description": "The language a practice name comes from"
+  },
+  "practiceLangTibetan": "Tibetan",
+  "@practiceLangTibetan": {
+    "description": "The language a practice name comes from"
+  },
+  "practiceLangJapanese": "Japanese",
+  "@practiceLangJapanese": {
+    "description": "The language a practice name comes from"
+  },
   "categoryEmptyTitle": "Nothing here yet",
   "@categoryEmptyTitle": {
     "description": "Title of a category page with nothing in it"
