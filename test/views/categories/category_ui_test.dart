@@ -345,7 +345,7 @@ void main() {
       await tester.tap(chip);
       await settle(tester);
       expect(find.text('Nothing here yet'), findsOneWidget);
-      expect(find.text('Breath'), findsWidgets);
+      expect(find.text('Ānāpānasati'), findsWidgets);
     });
 
     testWidgets('a course page shows its categories and the user\'s labels', (
