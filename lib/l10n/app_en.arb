@@ -3104,8 +3104,12 @@
       }
     }
   },
-  "exploreArchives": "Talks by year",
-  "@exploreArchives": {
-    "description": "Explore section title: a source's talks, year by year"
+  "teacherArchive": "Archive",
+  "@teacherArchive": {
+    "description": "Teacher page section: every talk, by year, each year closed until opened"
+  },
+  "teacherLatestTalks": "Latest talks",
+  "@teacherLatestTalks": {
+    "description": "Teacher page section: the newest talks, above the archive"
   }
 }

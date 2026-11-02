@@ -2793,5 +2793,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get exploreArchives => 'Talks by year';
+  String get teacherArchive => 'Archive';
+
+  @override
+  String get teacherLatestTalks => 'Latest talks';
 }

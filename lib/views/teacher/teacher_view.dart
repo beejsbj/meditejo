@@ -20,7 +20,10 @@ import 'package:medito/widgets/widgets.dart';
 
 /// A teacher of any built-in catalogue: photo, biography, their courses and
 /// their talks, with Save.
-/// Talks load a page at a time, newest first.
+/// Talks load a page at a time, newest first. A source with a large archive
+/// shows only its latest talks there, then the archive: years as closed
+/// groups, in a section per kind (evening, morning), whose talks are read and
+/// built only once a year is opened.
 class TeacherView extends ConsumerStatefulWidget {
   const TeacherView({super.key, required this.teacherId});
 
@@ -42,6 +45,12 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
   CatalogueTeacherPage? _basePage;
   bool _hasMore = true;
   bool _loadingMore = false;
+
+  /// The archive: the section shown, the groups opened, and the talks of
+  /// each opened group once read.
+  int _archiveSection = 0;
+  final Set<String> _openGroups = {};
+  final Map<String, List<PackItemsModel>> _groupTalks = {};
 
   @override
   void dispose() {
@@ -68,6 +77,20 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
       _hasMore = next.length >= _pageSize;
       _loadingMore = false;
     });
+  }
+
+  Future<void> _toggleGroup(String id) async {
+    if (_openGroups.remove(id)) {
+      setState(() {});
+      return;
+    }
+    setState(() => _openGroups.add(id));
+    if (_groupTalks.containsKey(id)) return;
+    final talks = await ref
+        .read(catalogueSourceForTeacherProvider(widget.teacherId))
+        .archiveTalks(id);
+    if (!mounted) return;
+    setState(() => _groupTalks[id] = talks);
   }
 
   @override
@@ -184,7 +207,13 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
           CourseRowsSliver(courses: page.courses),
         ],
         if (talks.isNotEmpty) ...[
-          SliverToBoxAdapter(child: SectionHeader(title: l10n.teacherTalks)),
+          SliverToBoxAdapter(
+            child: SectionHeader(
+              title: page.archive.isEmpty
+                  ? l10n.teacherTalks
+                  : l10n.teacherLatestTalks,
+            ),
+          ),
           const SliverPadding(padding: EdgeInsets.only(top: padding8)),
           SessionRowsSliver(items: talks),
         ],
@@ -207,6 +236,7 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
               ),
             ),
           ),
+        ..._archive(page.archive),
         SliverToBoxAdapter(
           child: teacher.attribution == null
               ? const SizedBox(height: 32)
@@ -216,6 +246,65 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
                 ),
         ),
       ],
+    );
+  }
+
+  /// The archive section: a switch between its sections when there are
+  /// several, then the section's years, each a closed row until tapped.
+  List<Widget> _archive(List<CatalogueArchiveSection> archive) {
+    if (archive.isEmpty) return const [];
+    final l10n = AppLocalizations.of(context)!;
+    final index = _archiveSection.clamp(0, archive.length - 1);
+    return [
+      SliverToBoxAdapter(child: SectionHeader(title: l10n.teacherArchive)),
+      if (archive.length > 1)
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, padding8, 20, 0),
+            child: SegmentedButton<int>(
+              key: const ValueKey('archive_sections'),
+              showSelectedIcon: false,
+              segments: [
+                for (final (i, section) in archive.indexed)
+                  ButtonSegment(value: i, label: Text(section.title)),
+              ],
+              selected: {index},
+              onSelectionChanged: (chosen) =>
+                  setState(() => _archiveSection = chosen.single),
+            ),
+          ),
+        ),
+      const SliverPadding(padding: EdgeInsets.only(top: padding8)),
+      for (final group in archive[index].groups) ...[
+        SliverToBoxAdapter(child: _groupRow(group, l10n)),
+        if (_openGroups.contains(group.id))
+          if (_groupTalks[group.id] case final talks?)
+            SessionRowsSliver(items: talks)
+          else
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(padding16),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
+      ],
+    ];
+  }
+
+  Widget _groupRow(CatalogueArchiveGroup group, AppLocalizations l10n) {
+    final open = _openGroups.contains(group.id);
+    return Semantics(
+      expanded: open,
+      button: true,
+      child: ListTile(
+        key: ValueKey('archive_${group.id}'),
+        title: Text(group.title),
+        subtitle: Text(l10n.teacherTalkCount(group.talkCount)),
+        trailing: Icon(
+          open ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+        ),
+        onTap: () => _toggleGroup(group.id),
+      ),
     );
   }
 }

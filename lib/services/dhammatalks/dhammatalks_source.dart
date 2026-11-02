@@ -379,7 +379,6 @@ class DhammatalksSource
                   ])
           _talkItem(talk),
       ],
-      archives: group == ContentGroup.practice ? const [] : _archives(cat),
       hasCatalogue: held,
     );
   }
@@ -426,9 +425,21 @@ class DhammatalksSource
     return CatalogueTeacherPage(
       teacher: _teacher(cat),
       courses: [for (final course in cat.courses) _courseItem(course)],
+      // The latest few; the rest is the archive, by year, opened on demand.
       talks: [for (final talk in cat.talks.take(talkPage)) _talkItem(talk)],
-      hasMoreTalks: cat.talks.length > talkPage,
+      archive: _archive(cat),
     );
+  }
+
+  @override
+  Future<List<PackItemsModel>> archiveTalks(String groupId) async {
+    final year = parseDtYearId(groupId);
+    if (year == null) return const [];
+    final cat = await catalogue();
+    return [
+      for (final talk in cat.yearTalks(year.channel, year.year))
+        _talkItem(talk),
+    ];
   }
 
   @override
@@ -531,19 +542,22 @@ class DhammatalksSource
     path: '/packs/${course.appId}',
   );
 
-  /// The year lists Explore offers: evening years, then morning years.
-  List<PackItemsModel> _archives(DtCatalogue cat) => [
+  /// The archive of the teacher's page: the evening years, then the morning
+  /// years, each newest first. Titles are English, like the rest of what this
+  /// source names ("Guided meditations").
+  List<CatalogueArchiveSection> _archive(DtCatalogue cat) => [
     for (final channel in DtChannel.values)
-      for (final year in cat.years(channel))
-        PackItemsModel(
-          type: TypeConstants.pack,
-          id: dtYearId(channel, year),
-          title:
-              '${channel == DtChannel.evening ? 'Evening' : 'Morning'} $year',
-          subtitle: '${cat.yearTalks(channel, year).length} talks',
-          coverUrl: '',
-          path: '/packs/${dtYearId(channel, year)}',
-        ),
+      CatalogueArchiveSection(
+        title: channel == DtChannel.evening ? 'Evening' : 'Morning',
+        groups: [
+          for (final year in cat.years(channel))
+            CatalogueArchiveGroup(
+              id: dtYearId(channel, year),
+              title: '$year',
+              talkCount: cat.yearTalks(channel, year).length,
+            ),
+        ],
+      ),
   ];
 
   static PackItemsModel _talkItem(DtTalk talk) => PackItemsModel(

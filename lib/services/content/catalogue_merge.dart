@@ -29,7 +29,6 @@ CatalogueExplore mergeExplores(List<CatalogueExplore> parts) {
     savedTeachers: [for (final part in parts) ...part.savedTeachers],
     teachers: teachers,
     talks: interleave([for (final part in parts) part.talks]),
-    archives: [for (final part in parts) ...part.archives],
     hasCatalogue: parts.any((part) => part.hasCatalogue),
   );
 }

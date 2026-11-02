@@ -2839,5 +2839,8 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get exploreArchives => 'Vorträge nach Jahr';
+  String get teacherArchive => 'Archiv';
+
+  @override
+  String get teacherLatestTalks => 'Neueste Vorträge';
 }

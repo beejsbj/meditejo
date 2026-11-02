@@ -1136,5 +1136,6 @@
   "labelsAddHint": "Añadir una etiqueta",
   "labelsAddButton": "Añadir",
   "labelsRemoveTooltip": "Quitar la etiqueta {label}",
-  "exploreArchives": "Charlas por año"
+  "teacherArchive": "Archivo",
+  "teacherLatestTalks": "Charlas más recientes"
 }

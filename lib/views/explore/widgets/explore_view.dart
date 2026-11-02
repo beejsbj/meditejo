@@ -347,10 +347,6 @@ class ExploreViewState extends ConsumerState<ExploreView> {
         _title(l10n.exploreCourses),
         SliverToBoxAdapter(child: _CourseStrip(courses: explore.courses)),
       ],
-      if (explore.archives.isNotEmpty) ...[
-        _title(l10n.exploreArchives),
-        SliverToBoxAdapter(child: _ArchiveStrip(archives: explore.archives)),
-      ],
       if (explore.savedTeachers.isNotEmpty) ...[
         _title(l10n.exploreSavedTeachers),
         SliverToBoxAdapter(
@@ -478,40 +474,6 @@ class _CourseStrip extends ConsumerWidget {
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-/// A source's lists to browse by, such as its talks year by year: a row of
-/// chips, each opening the list as a course page.
-class _ArchiveStrip extends ConsumerWidget {
-  const _ArchiveStrip({required this.archives});
-
-  final List<PackItemsModel> archives;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return SingleChildScrollView(
-      key: const ValueKey('explore_archive_strip'),
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: kCardGutter),
-      child: Row(
-        children: [
-          for (final (i, archive) in archives.indexed) ...[
-            if (i > 0) const SizedBox(width: 8),
-            ActionChip(
-              key: ValueKey('archive_${archive.id}'),
-              label: Text(archive.title),
-              onPressed: () => handleNavigation(
-                TypeConstants.pack,
-                [archive.id, archive.path],
-                context,
-                ref: ref,
-              ),
-            ),
-          ],
-        ],
       ),
     );
   }

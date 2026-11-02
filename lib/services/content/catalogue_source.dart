@@ -48,6 +48,10 @@ abstract interface class CatalogueSource implements ContentSource {
     int limit = 30,
   });
 
+  /// The talks of one archive group named in a teacher page's `archive`,
+  /// newest first. Empty for a source with no archive or an unknown group.
+  Future<List<PackItemsModel>> archiveTalks(String groupId);
+
   /// How the library describes one of this source's courses, sessions or
   /// teachers, or null when it does not hold [id]. It is what Add to library
   /// and a pasted link store.

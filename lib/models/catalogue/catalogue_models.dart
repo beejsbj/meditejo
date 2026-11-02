@@ -47,7 +47,6 @@ class CatalogueExplore {
     this.teachers = const [],
     this.talks = const [],
     this.savedTeachers = const [],
-    this.archives = const [],
     this.hasCatalogue = false,
   });
 
@@ -55,10 +54,6 @@ class CatalogueExplore {
   final List<CatalogueTeacher> teachers;
   final List<CatalogueTeacher> savedTeachers;
   final List<PackItemsModel> talks;
-
-  /// Lists to browse by, such as a source's talks year by year; each opens as
-  /// a course page but cannot be kept.
-  final List<PackItemsModel> archives;
 
   /// Whether any retreat is stored yet. False on a first launch before the
   /// first sync pass has brought courses in.
@@ -68,8 +63,7 @@ class CatalogueExplore {
       courses.isEmpty &&
       teachers.isEmpty &&
       savedTeachers.isEmpty &&
-      talks.isEmpty &&
-      archives.isEmpty;
+      talks.isEmpty;
 }
 
 /// Grouped search results: teachers first, then courses, then talks.
@@ -88,7 +82,8 @@ class CatalogueSearchResults {
   bool get isEmpty => teachers.isEmpty && courses.isEmpty && talks.isEmpty;
 }
 
-/// A teacher's page: who they are, their courses, and a first page of talks.
+/// A teacher's page: who they are, their courses, a first page of talks and,
+/// for a source with a large archive, the archive.
 @immutable
 class CatalogueTeacherPage {
   const CatalogueTeacherPage({
@@ -96,10 +91,43 @@ class CatalogueTeacherPage {
     this.courses = const [],
     this.talks = const [],
     this.hasMoreTalks = false,
+    this.archive = const [],
   });
 
   final CatalogueTeacher teacher;
   final List<PackItemsModel> courses;
   final List<PackItemsModel> talks;
   final bool hasMoreTalks;
+
+  /// The teacher's whole archive, as sections (evening, morning) of groups
+  /// (years). The page lists the groups closed; a group's talks are read only
+  /// when it is opened ([CatalogueSource.archiveTalks]). Empty when the source
+  /// has none, in which case [talks] pages through everything.
+  final List<CatalogueArchiveSection> archive;
+}
+
+/// One way of cutting an archive, such as the evening talks, as years.
+@immutable
+class CatalogueArchiveSection {
+  const CatalogueArchiveSection({required this.title, required this.groups});
+
+  final String title;
+
+  /// Newest first.
+  final List<CatalogueArchiveGroup> groups;
+}
+
+/// A closed group of an archive: one year of one section.
+@immutable
+class CatalogueArchiveGroup {
+  const CatalogueArchiveGroup({
+    required this.id,
+    required this.title,
+    required this.talkCount,
+  });
+
+  /// What [CatalogueSource.archiveTalks] reads it by.
+  final String id;
+  final String title;
+  final int talkCount;
 }

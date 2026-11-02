@@ -404,6 +404,9 @@ class DharmaSeedSource
     );
   }
 
+  @override
+  Future<List<PackItemsModel>> archiveTalks(String groupId) async => const [];
+
   /// More of a teacher's talks, after the [offset] already shown.
   @override
   Future<List<PackItemsModel>> teacherTalks(

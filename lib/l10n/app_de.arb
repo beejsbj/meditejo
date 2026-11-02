@@ -1376,5 +1376,6 @@
   "labelsAddHint": "Label hinzufügen",
   "labelsAddButton": "Hinzufügen",
   "labelsRemoveTooltip": "Label {label} entfernen",
-  "exploreArchives": "Vorträge nach Jahr"
+  "teacherArchive": "Archiv",
+  "teacherLatestTalks": "Neueste Vorträge"
 }

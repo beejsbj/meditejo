@@ -4936,11 +4936,17 @@ abstract class AppLocalizations {
   /// **'Remove label {label}'**
   String labelsRemoveTooltip(String label);
 
-  /// Explore section title: a source's talks, year by year
+  /// Teacher page section: every talk, by year, each year closed until opened
   ///
   /// In en, this message translates to:
-  /// **'Talks by year'**
-  String get exploreArchives;
+  /// **'Archive'**
+  String get teacherArchive;
+
+  /// Teacher page section: the newest talks, above the archive
+  ///
+  /// In en, this message translates to:
+  /// **'Latest talks'**
+  String get teacherLatestTalks;
 }
 
 class _AppLocalizationsDelegate

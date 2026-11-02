@@ -50,7 +50,6 @@ void main() {
           courses: [item('dt-1', type: 'pack')],
           talks: [item('dt-t1'), item('dt-t2')],
           teachers: [teacher('dt-a', 5000)],
-          archives: [item('dt-year-e-2025', type: 'pack')],
           hasCatalogue: true,
         ),
       ]);
@@ -58,7 +57,6 @@ void main() {
       expect(merged.talks.map((c) => c.id), ['ds-t1', 'dt-t1', 'dt-t2']);
       expect(merged.teachers.map((t) => t.id), ['dt-a', 'ds-a', 'ds-b']);
       expect(merged.savedTeachers.map((t) => t.id), ['ds-s']);
-      expect(merged.archives.map((a) => a.id), ['dt-year-e-2025']);
       expect(
         merged.hasCatalogue,
         isTrue,

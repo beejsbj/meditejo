@@ -344,6 +344,9 @@ class HermesAmaraSource implements CatalogueSource, SavableContentSource {
     int limit = 30,
   }) async => const [];
 
+  @override
+  Future<List<PackItemsModel>> archiveTalks(String groupId) async => const [];
+
   // ---------------------------------------------------------------- mapping
 
   static bool _matches(List<String> terms, String text) {

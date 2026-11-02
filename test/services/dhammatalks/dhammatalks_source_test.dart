@@ -129,28 +129,58 @@ void main() {
     );
   });
 
+  group('the teacher page', () {
+    test('lists the archive as closed groups, newest year first', () async {
+      final page = await source().teacherPage(dtTeacherId);
+      expect(page.archive.map((s) => s.title), ['Evening', 'Morning']);
+      final evening = page.archive.first.groups;
+      expect(evening.map((g) => g.id), ['dt-year-e-2025', 'dt-year-e-2003']);
+      expect(evening.map((g) => (g.title, g.talkCount)), [
+        ('2025', 2),
+        ('2003', 1),
+      ]);
+      expect(page.archive.last.groups.map((g) => g.id), ['dt-year-m-2026']);
+      // The talks of a group are not in the page: they load when it opens.
+      expect(page.talks.length, lessThanOrEqualTo(30));
+      expect(page.hasMoreTalks, isFalse);
+    });
+
+    test('a group opens to its talks, newest first', () async {
+      final s = source();
+      final talks = await s.archiveTalks('dt-year-e-2025');
+      expect(talks.map((t) => t.title), [
+        'An Auspicious Night',
+        'Samādhi & Mindfulness',
+      ]);
+      expect(
+        talks.every((t) => t.path.startsWith('/tracks/dt-talk-e-')),
+        isTrue,
+      );
+      expect(await s.archiveTalks('dt-year-e-1999'), isEmpty);
+      expect(await s.archiveTalks('dt-course-basics'), isEmpty);
+      expect(await s.archiveTalks('nonsense'), isEmpty);
+    });
+  });
+
   group('Explore', () {
-    test('Practice: the guided course and its talks, no archives', () async {
+    test('Practice: the guided course and its talks', () async {
       final explore = await source().explore(group: ContentGroup.practice);
       expect(explore.courses.map((c) => c.id), ['dt-course-guided']);
       expect(explore.talks.map((t) => t.title), [
         'Metta',
         'Breath (short version)',
       ]);
-      expect(explore.archives, isEmpty);
       expect(explore.teachers.single.name, dtTeacherName);
     });
 
-    test('Talks: the Basics course, the latest talks and the years', () async {
-      final explore = await source().explore(group: ContentGroup.talks);
-      expect(explore.courses.map((c) => c.id), ['dt-course-basics']);
-      expect(explore.talks.first.title, 'The Perfection of Equanimity');
-      expect(explore.archives.map((a) => a.title), [
-        'Evening 2025',
-        'Evening 2003',
-        'Morning 2026',
-      ]);
-    });
+    test(
+      'Talks: the Basics course and the latest talks, no year lists',
+      () async {
+        final explore = await source().explore(group: ContentGroup.talks);
+        expect(explore.courses.map((c) => c.id), ['dt-course-basics']);
+        expect(explore.talks.first.title, 'The Perfection of Equanimity');
+      },
+    );
 
     test('with no chip, guided practice leads (decision 11)', () async {
       final explore = await source().explore();
