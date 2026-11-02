@@ -1,0 +1,106 @@
+{
+  "note": "Round 2 of the practice figures (2026-11-02). Burooj on round 1: varied grounds stay; abstract, quiet, graceful motion on a ~10 s breath; no human silhouettes. Each practice has two or three variants (figure + ground); `was` is round 1's tile for comparison (the shared tile for the two splits). `pick` is the variant I'd ship.",
+  "practices": [
+    { "id": "relational", "group": "heart", "name": "Insight Dialogue", "script": "", "lang": "English",
+      "desc": "Meditating together, in conversation: pause, relax, open, and listen deeply.",
+      "was": { "figure": "dyad", "ground": "paper", "why": "Two plain circles: too literal and flat." },
+      "variants": [
+        { "figure": "dialogue_ripples", "ground": "hearth" },
+        { "figure": "dialogue_strokes", "ground": "mist" },
+        { "figure": "dialogue_thread", "ground": "bokeh" }
+      ] },
+    { "id": "noting", "group": "insight", "name": "Noting", "script": "", "lang": "Burmese tradition",
+      "desc": "Lightly labelling each experience as it comes: rising, falling, hearing, thinking.",
+      "was": { "figure": "notes", "ground": "paper", "why": "Too faint." },
+      "variants": [
+        { "figure": "noting_notes", "ground": "paper", "gopts": { "key": "mid" } },
+        { "figure": "noting_touch", "ground": "dawn" },
+        { "figure": "noting_rise", "ground": "mist" }
+      ] },
+    { "id": "glimpses", "group": "awareness", "name": "Effortless mindfulness", "script": "", "lang": "English",
+      "desc": "Short glimpses of the awake awareness that is already here.",
+      "was": { "figure": "glimpse", "ground": "mist", "why": "The clouds read as rocks." },
+      "variants": [
+        { "figure": "glimpse_part", "ground": "dawn" },
+        { "figure": "glimpse_widen", "ground": "mist" },
+        { "figure": "glimpse_veils", "ground": "dawn" }
+      ] },
+    { "id": "body", "group": "body", "name": "Kāyagatāsati", "script": "", "lang": "Pāli",
+      "desc": "Mindfulness of the body, from the breath and posture to a slow scan.",
+      "was": { "figure": "scan", "ground": "paper", "why": "A human outline." },
+      "variants": [
+        { "figure": "body_sweep", "ground": "paper" },
+        { "figure": "body_pebble", "ground": "mist" },
+        { "figure": "body_contours", "ground": "dawn" }
+      ] },
+    { "id": "energy", "group": "body", "name": "Prāṇa · Qì", "script": "प्राण · 气", "lang": "Sanskrit · Chinese",
+      "desc": "Sensing the body as a field of energy, and letting it open.",
+      "was": { "figure": "field", "ground": "night", "why": "A human outline." },
+      "variants": [
+        { "figure": "energy_field", "ground": "night" },
+        { "figure": "energy_motes", "ground": "night" },
+        { "figure": "energy_orbit", "ground": "hearth" }
+      ] },
+    { "id": "focusing", "group": "body", "name": "Focusing", "script": "", "lang": "English",
+      "desc": "Listening to the body's felt sense of a situation until it shifts.",
+      "was": { "figure": "feltsense", "ground": "mist", "why": "A human outline." },
+      "variants": [
+        { "figure": "focus_blur", "ground": "mist" },
+        { "figure": "focus_handle", "ground": "dawn" },
+        { "figure": "focus_unfurl", "ground": "mist" }
+      ] },
+    { "id": "yoga-nidra", "group": "body", "name": "Yoga nidrā", "script": "योगनिद्रा", "lang": "Sanskrit",
+      "desc": "Guided deep rest, aware between waking and sleep.",
+      "was": { "figure": "rest", "ground": "night", "why": "A human outline." },
+      "variants": [
+        { "figure": "nidra_sheaths", "ground": "night" },
+        { "figure": "nidra_waves", "ground": "night" },
+        { "figure": "nidra_moon", "ground": "night" }
+      ] },
+    { "id": "headless", "group": "awareness", "name": "Headless Way", "script": "", "lang": "English",
+      "desc": "Looking back at where your head should be, and finding open space.",
+      "was": { "figure": "headless", "ground": "dawn", "why": "A human outline (the idea, an open space where the head should be, stays)." },
+      "variants": [
+        { "figure": "headless_face", "ground": "dawn" },
+        { "figure": "headless_eye", "ground": "mist" },
+        { "figure": "headless_point", "ground": "dawn" }
+      ] },
+    { "id": "dzogchen", "group": "awareness", "name": "Dzogchen", "script": "རྫོགས་ཆེན་", "lang": "Tibetan",
+      "desc": "Resting as the mind's own nature: open, clear and spontaneously present.",
+      "was": { "figure": "thigle", "ground": "night", "why": "Shared with Mahāmudrā; split." },
+      "variants": [
+        { "figure": "dzogchen_mirror", "ground": "night" },
+        { "figure": "dzogchen_thigle", "ground": "night" },
+        { "figure": "dzogchen_rainbow", "ground": "dawn" }
+      ] },
+    { "id": "mahamudra", "group": "awareness", "name": "Mahāmudrā", "script": "ཕྱག་ཆེན་", "lang": "Sanskrit · Tibetan",
+      "desc": "The great seal: recognising mind in whatever arises.",
+      "was": { "figure": "thigle", "ground": "night", "why": "Shared with Dzogchen; split." },
+      "variants": [
+        { "figure": "mahamudra_recognise", "ground": "night" },
+        { "figure": "mahamudra_waves", "ground": "mist" },
+        { "figure": "mahamudra_taste", "ground": "night" }
+      ] },
+    { "id": "trataka", "group": "concentration", "name": "Trāṭaka", "script": "त्राटक", "lang": "Sanskrit",
+      "desc": "Gazing at one flame or point without blinking, then holding its afterimage within.",
+      "was": { "figure": "flame", "ground": "night", "why": "Shared with Kasiṇa; split." },
+      "variants": [
+        { "figure": "trataka_after", "ground": "night" },
+        { "figure": "trataka_point", "ground": "paper" },
+        { "figure": "trataka_still", "ground": "hearth" }
+      ] },
+    { "id": "kasina", "group": "concentration", "name": "Kasiṇa", "script": "", "lang": "Pāli",
+      "desc": "Gazing at a device, a disc of earth, water, fire or colour, until its sign leads into jhāna.",
+      "was": { "figure": "flame", "ground": "night", "why": "Shared with Trāṭaka; split." },
+      "variants": [
+        { "figure": "kasina_earth", "ground": "dawn" },
+        { "figure": "kasina_fire", "ground": "hearth" },
+        { "figure": "kasina_extend", "ground": "mist" }
+      ] }
+  ],
+  "flags": [],
+  "fixes": [
+    { "id": "zen", "label": "Zazen · fixed", "figure": "enso", "ground": "paper", "what": "The ensō's thin tail was under a pixel at tile size, so the still read as a crescent moon. The tail keeps a visible minimum width now." },
+    { "id": "open-awareness", "label": "Open awareness · fixed", "figure": "sky", "ground": "dawn", "what": "Same fault as Effortless mindfulness: hard-edged dark ellipses read as rocks. The clouds are soft, light veils now." }
+  ]
+}
