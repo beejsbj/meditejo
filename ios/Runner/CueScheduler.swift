@@ -23,6 +23,8 @@ struct CueConfig {
     var pulseRampMinutes = 0
     var pulseVolume = 1.0
     var bellVolume = 1.0
+    /// All the silence a guided session adds: after the recording and in its
+    /// pauses (60 minutes each in the app). iOS holds all of it at the end.
     var extendMinutes = 0
     var isTimer = false
     var durationMs: Int64 = 0
@@ -34,7 +36,7 @@ struct CueConfig {
     var intervalHalfway = false
 
     var countdownMs: Double { Double(min(max(countdownSeconds, 0), 10)) * 1000 }
-    var extensionMs: Double { Double(min(max(extendMinutes, 0), 60)) * 60_000 }
+    var extensionMs: Double { Double(min(max(extendMinutes, 0), 120)) * 60_000 }
     var interludeMs: Double { Double(min(max(interludeSeconds, 0), 30)) * 1000 }
     /// Every-N-minutes bells; never alongside the halfway bell.
     var hasInterval: Bool { !intervalHalfway && intervalMinutes > 0 && intervalSound != nil }
@@ -63,7 +65,7 @@ struct CueConfig {
         pulseRampMinutes = min(max(int("pulseRampMinutes"), 0), 60)
         pulseVolume = min(max(dbl("pulseVolume", 1), 0), 1)
         bellVolume = min(max(dbl("bellVolume", 1), 0), 1)
-        extendMinutes = min(max(int("extendMinutes"), 0), 60)
+        extendMinutes = min(max(int("extendMinutes"), 0), 120)
         isTimer = (map["isTimer"] as? Bool) ?? false
         durationMs = i64("durationMs")
         randomSeed = i64("randomSeed")

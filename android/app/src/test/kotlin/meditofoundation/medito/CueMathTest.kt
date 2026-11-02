@@ -172,6 +172,13 @@ class CueMathTest {
         assertFalse(CueConfig.fromMap(emptyMap<String, Any?>()).autoplay)
     }
 
+    @Test fun configTakesBothKindsOfSilenceUpTo120Minutes() {
+        // Silence after the audio and rest in the pauses arrive as one sum.
+        assertEquals(90 * 60_000L, CueConfig.fromMap(mapOf("extendMinutes" to 90)).extensionMs)
+        assertEquals(120 * 60_000L, CueConfig.fromMap(mapOf("extendMinutes" to 500)).extensionMs)
+        assertEquals(0L, CueConfig.fromMap(mapOf("extendMinutes" to -3)).extensionMs)
+    }
+
     // ---- Halfway bell -----------------------------------------------------------
 
     private val min = 60_000.0

@@ -2837,4 +2837,18 @@ class AppLocalizationsDe extends AppLocalizations {
   String labelsRemoveTooltip(String label) {
     return 'Label $label entfernen';
   }
+
+  @override
+  String get extendEndLabel => 'Stille nach der Aufnahme';
+
+  @override
+  String get extendEndCaption =>
+      'Nach dem Ende der Aufnahme in Stille weitermachen (mit Hintergrundklang, falls an), dann läutet die Abschlussglocke.';
+
+  @override
+  String get extendTitle => 'Verlängern';
+
+  @override
+  String get extendCaption =>
+      'Verlängert die Sitzung um so viel, mit Stille, als wäre die Aufnahme länger.';
 }

@@ -1375,5 +1375,9 @@
   "labelsCustomHeading": "Deine Labels",
   "labelsAddHint": "Label hinzufügen",
   "labelsAddButton": "Hinzufügen",
-  "labelsRemoveTooltip": "Label {label} entfernen"
+  "labelsRemoveTooltip": "Label {label} entfernen",
+  "extendEndLabel": "Stille nach der Aufnahme",
+  "extendEndCaption": "Nach dem Ende der Aufnahme in Stille weitermachen (mit Hintergrundklang, falls an), dann läutet die Abschlussglocke.",
+  "extendTitle": "Verlängern",
+  "extendCaption": "Verlängert die Sitzung um so viel, mit Stille, als wäre die Aufnahme länger."
 }

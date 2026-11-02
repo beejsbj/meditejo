@@ -12,7 +12,8 @@ import io.flutter.plugin.common.MethodChannel
  *  - `holdInterlude`   wait out the autoplay interlude (the rest of it, when it began at the end)
  *  - `endInterlude`    no autoplay after all: finish once the end bell has rung out
  *  - `stop`            cancel every timer, sound and the configuration
- *  - `state`           map: phase, countdownRemainingMs, extensionRemainingMs, sessionMs, paused, heardMs
+ *  - `state`           map: phase (idle, countdown, playing, hold, extension, ended), countdownRemainingMs,
+ *                      extensionRemainingMs, holdRemainingMs, extensionLeftMs, sessionMs, paused, heardMs
  *  - `countdownRemainingMs`  int
  *  - `sampleListening` bool: 90% really heard (the service samples the player itself)
  *  - `resetListening`  start a fresh listening record
