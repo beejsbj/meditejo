@@ -10,6 +10,8 @@ import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
+import 'package:medito/providers/dhammatalks/dhammatalks_providers.dart';
+import 'package:medito/services/dhammatalks/dhammatalks_source.dart';
 import 'package:medito/providers/meditation/downloaded_track_ids_provider.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/stats_provider.dart';
@@ -22,6 +24,7 @@ import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_sync.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'dhammatalks_fixtures.dart';
 import 'dharma_seed_catalogue.dart';
 import 'dharma_seed_fake_api.dart';
 import 'library_fixtures.dart';
@@ -115,6 +118,10 @@ class DharmaSeedTestApp {
 
     /// A stand-in for the app's source (e.g. a slow one); defaults to [source].
     DharmaSeedSource? withSource,
+
+    /// dhammatalks.org's catalogue; empty by default, so screens that are
+    /// about Dharma Seed show only Dharma Seed.
+    DhammatalksSource? dhammatalks,
     List<Override> overrides = const [],
   }) async {
     tester.view.physicalSize = const Size(430, 1200);
@@ -126,6 +133,13 @@ class DharmaSeedTestApp {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           dharmaSeedSourceProvider.overrideWithValue(withSource ?? source),
+          dhammatalksSourceProvider.overrideWithValue(
+            dhammatalks ??
+                DhammatalksSource(
+                  loadSnapshot: () async => emptyDhammatalks(),
+                  library: library,
+                ),
+          ),
           libraryDatabaseProvider.overrideWithValue(libraryDb),
           libraryStoreProvider.overrideWithValue(library),
           // Never contacted: only here so nothing builds a real client.

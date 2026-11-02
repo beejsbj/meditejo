@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/stats_provider.dart';
@@ -48,7 +48,7 @@ class _BottomNavigationBarViewState
     if (ref.read(mainTabProvider) == MainTab.explore) {
       // Restored straight into Explore.
       WidgetsBinding.instance.addPostFrameCallback(
-        (_) => catchUpDharmaSeed(ref),
+        (_) => catchUpCatalogues(ref),
       );
     }
     _initializeStats();
@@ -258,7 +258,7 @@ class _BottomNavigationBarViewState
     // changed since the bundled copy; never at startup.
     if (tab == MainTab.explore) {
       _exploreViewKey.currentState?.loadData();
-      catchUpDharmaSeed(ref);
+      catchUpCatalogues(ref);
     }
     if (tab == MainTab.sounds) retryLegacySounds(ref.container);
   }

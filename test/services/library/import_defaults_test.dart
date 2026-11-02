@@ -49,13 +49,13 @@ void main() {
         ImportShape.feed,
         ImportShape.youtubePlaylist,
         ImportShape.youtubeWatchWithPlaylist,
-        ImportShape.dharmaSeedRetreat,
+        ImportShape.catalogueCourse,
         ImportShape.localFolder,
         ImportShape.localFiles,
       };
       const recordings = {
         ImportShape.youtubeVideo,
-        ImportShape.dharmaSeedTalk,
+        ImportShape.catalogueSingle,
         ImportShape.audioUrl,
         ImportShape.localFile,
       };
@@ -144,14 +144,14 @@ void main() {
     test('a retreat arrives as a Course', () async {
       expectFollowsTable(
         await h.service.resolve('https://dharmaseed.org/retreats/6689/'),
-        ImportShape.dharmaSeedRetreat,
+        ImportShape.catalogueCourse,
       );
     });
 
     test('a talk stays a Single', () async {
       expectFollowsTable(
         await h.service.resolve('https://www.dharmaseed.org/talks/99944/'),
-        ImportShape.dharmaSeedTalk,
+        ImportShape.catalogueSingle,
       );
     });
 

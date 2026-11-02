@@ -9,6 +9,7 @@ import 'package:medito/src/youtube_api.g.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
+import 'package:medito/providers/dhammatalks/dhammatalks_providers.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/services/library/feed_refresher.dart';
 import 'package:medito/services/library/import_http.dart';
@@ -173,6 +174,7 @@ final importServiceProvider = Provider<ImportService>(
     lib: ref.watch(libSourceProvider),
     library: ref.watch(libraryStoreProvider),
     dharmaSeed: ref.watch(dharmaSeedSourceProvider),
+    dhammatalks: ref.watch(dhammatalksSourceProvider),
     youtube: ref.watch(youtubeAvailableProvider)
         ? ref.watch(youtubeSourceProvider)
         : null,

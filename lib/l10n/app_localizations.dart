@@ -3571,7 +3571,7 @@ abstract class AppLocalizations {
   /// No description provided for @exploreSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search your library and Dharma Seed'**
+  /// **'Search your library and catalogues'**
   String get exploreSearchHint;
 
   /// The shortcuts section's name in Customize, and its screen-reader heading on Home (not drawn)
@@ -4935,6 +4935,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove label {label}'**
   String labelsRemoveTooltip(String label);
+
+  /// Teacher page section: every talk, by year, each year closed until opened
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get teacherArchive;
+
+  /// Teacher page section: the newest talks, above the archive
+  ///
+  /// In en, this message translates to:
+  /// **'Latest talks'**
+  String get teacherLatestTalks;
 }
 
 class _AppLocalizationsDelegate

@@ -12,6 +12,8 @@ import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
+import 'package:medito/providers/dhammatalks/dhammatalks_providers.dart';
+import 'package:medito/services/dhammatalks/dhammatalks_source.dart';
 import 'package:medito/providers/library/import_providers.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/meditation/downloaded_track_ids_provider.dart';
@@ -25,6 +27,7 @@ import 'package:medito/services/library/import_service.dart';
 import 'package:medito/services/library/share_intake.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'dhammatalks_fixtures.dart';
 import 'dharma_seed_app.dart';
 import 'library_fixtures.dart';
 
@@ -166,6 +169,9 @@ class LibraryTestApp {
           downloadedTrackIdsProvider.overrideWithValue(downloaded),
           // An empty catalogue stands in for Dharma Seed.
           dharmaSeedSourceProvider.overrideWithValue(harness.dharmaSeed),
+          dhammatalksSourceProvider.overrideWithValue(
+            DhammatalksSource(loadSnapshot: () async => emptyDhammatalks()),
+          ),
           ...overrides,
         ],
         child: Builder(

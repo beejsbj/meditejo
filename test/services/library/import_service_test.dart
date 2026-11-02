@@ -4,12 +4,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_sync.dart';
+import 'package:medito/services/dhammatalks/dhammatalks_source.dart';
 import 'package:medito/services/library/import_models.dart';
 import 'package:medito/services/library/lib_ids.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/local_catalogue.dart';
 
 import '../../helpers/dharma_seed_fake_api.dart';
+import '../../helpers/dhammatalks_fixtures.dart';
 import '../../helpers/library_fixtures.dart';
 
 const feedUrl = 'https://example.org/evening.rss';
@@ -657,6 +659,100 @@ void main() {
     });
   });
 
+  group('dhammatalks.org links', () {
+    setUp(() {
+      h = LibraryHarness.create(
+        dhammatalks: (store) => DhammatalksSource(
+          loadSnapshot: () async => dhammatalksCatalogue(),
+          library: store,
+        ),
+      );
+    });
+
+    test('a talk page resolves to the built-in talk, with no request', () async {
+      final preview = await h.service.resolve(
+        'https://www.dhammatalks.org/audio/evening/2025/'
+        '251231-an-auspicious-night.html',
+      );
+      expect(preview.origin, ImportOrigin.catalogue);
+      expect(preview.entryId, 'dt-talk-e-251231-an-auspicious-night');
+      expect(preview.kind, LibraryKind.single);
+      expect(preview.group, LibraryGroup.talks);
+      expect(preview.sourceLabel, 'Dhammatalks');
+      expect(preview.attribution!.licenseName, 'CC BY-NC 4.0');
+      expect(h.web.requests, isEmpty);
+
+      final result = await h.service.add(
+        preview,
+        ImportChoice(kind: preview.kind, group: preview.group),
+      );
+      expect(result.alreadyPresent, isFalse);
+      expect(
+        (await h.store.entry('dt-talk-e-251231-an-auspicious-night'))!.kind,
+        LibraryKind.single,
+      );
+      final again = await h.service.resolve(
+        'https://www.dhammatalks.org/audio/evening/2025/'
+        '251231-an-auspicious-night.html',
+      );
+      expect(again.alreadyInLibrary, isTrue);
+    });
+
+    test('the audio file of a talk is the same built-in talk', () async {
+      final preview = await h.service.resolve(
+        'https://www.dhammatalks.org/Archive/y2025/251231_An_Auspicious_Night.mp3',
+      );
+      expect(preview.entryId, 'dt-talk-e-251231-an-auspicious-night');
+      expect(h.web.requests, isEmpty);
+    });
+
+    test('the guided meditations page is a Practice course', () async {
+      final preview = await h.service.resolve(
+        'https://www.dhammatalks.org/mp3_guidedMed_index.html',
+      );
+      expect(preview.entryId, 'dt-course-guided');
+      expect(preview.kind, LibraryKind.course);
+      expect(preview.group, LibraryGroup.practice);
+      expect(preview.itemCount, 2);
+      expect(preview.firstItems.first.title, 'Metta');
+    });
+
+    test('a collection by its anchor, and a year as a not-found', () async {
+      final basics = await h.service.resolve(
+        'https://www.dhammatalks.org/mp3_collections_index.html#basics',
+      );
+      expect(basics.entryId, 'dt-course-basics');
+      expect(basics.group, LibraryGroup.talks);
+      // A year is an archive to browse in Explore, not something to keep.
+      expect(
+        await failureOf(
+          () => h.service.resolve('https://www.dhammatalks.org/audio/evening/2025/'),
+        ),
+        ImportFailureReason.notFound,
+      );
+    });
+
+    test('a link the catalogue does not hold is imported as before', () async {
+      h = LibraryHarness.create(
+        routes: {
+          'https://www.dhammatalks.org/Archive/y2026/new.mp3': http.Response(
+            '',
+            200,
+            headers: {'content-type': 'audio/mpeg'},
+          ),
+        },
+        dhammatalks: (store) => DhammatalksSource(
+          loadSnapshot: () async => dhammatalksCatalogue(),
+          library: store,
+        ),
+      );
+      final preview = await h.service.resolve(
+        'https://www.dhammatalks.org/Archive/y2026/new.mp3',
+      );
+      expect(preview.origin, ImportOrigin.audioUrl);
+    });
+  });
+
   group('Dharma Seed links', () {
     late FakeDharmaSeedApi api;
 
@@ -683,7 +779,7 @@ void main() {
         final preview = await h.service.resolve(
           'https://dharmaseed.org/retreats/6689/',
         );
-        expect(preview.origin, ImportOrigin.dharmaSeed);
+        expect(preview.origin, ImportOrigin.catalogue);
         expect(preview.entryId, 'ds-retreat-6689');
         expect(preview.kind, LibraryKind.course);
         expect(preview.title, 'Auckland Insight Meditation meetings 2026');
