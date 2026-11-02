@@ -299,8 +299,15 @@ class HermesAmaraSource implements CatalogueSource, SavableContentSource {
           if (inGroup(event.practice) && !saved.contains(event.id))
             _courseItem(event),
       ],
+      // With no chip, guided practice leads (decision 11), as in the other
+      // catalogues; Talks shows the latest talks.
       talks: [
-        for (final talk in all.talks.where((t) => inGroup(t.practice)).take(20))
+        for (final talk
+            in all.talks
+                .where(
+                  (t) => group == ContentGroup.talks ? !t.practice : t.practice,
+                )
+                .take(20))
           _talkItem(talk),
       ],
       hasCatalogue: !all.isEmpty,

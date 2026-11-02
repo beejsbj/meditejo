@@ -288,7 +288,8 @@ void main() {
       final talks = await s.explore(group: ContentGroup.talks);
       final both = await s.explore();
       expect(practice.hasCatalogue, isTrue);
-      expect(both.talks, hasLength(9));
+      // With no chip, guided practice leads (like the other catalogues).
+      expect(both.talks.map((t) => t.id), practice.talks.map((t) => t.id));
       expect(practice.talks.map((t) => t.kind).toSet(), {'Practice'});
       expect(talks.talks.map((t) => t.kind).toSet(), {'Talk'});
       expect(practice.talks.length + talks.talks.length, 9);
