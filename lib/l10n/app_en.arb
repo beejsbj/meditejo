@@ -1062,7 +1062,7 @@
   },
   "endScreenDone": "Done",
   "@endScreenDone": {
-    "description": "Button that closes an end screen shown on the next launch and returns to Home"
+    "description": "Button that closes an end screen shown on the next launch and returns to Home. Also closes the battery page (Settings › Keep Meditejo running) once its settings were opened"
   },
   "endScreenRestoredLastNight": "Welcome back. You finished “{title}” last night.",
   "@endScreenRestoredLastNight": {

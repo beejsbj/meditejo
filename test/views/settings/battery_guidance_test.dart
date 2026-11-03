@@ -193,7 +193,6 @@ void main() {
           'needs it', (tester) async {
         _grantNotifications();
         _freshStats();
-        _freshStats();
         await tester.pumpWidget(
           PreviewShell(
             prefs: const {},

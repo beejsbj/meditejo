@@ -92,7 +92,12 @@ class _BatteryOptimizationScreenState
     // Done once the phone lets Meditejo run: re-read on every return to
     // the app (see [batteryGuidanceNeededProvider]).
     ref.listen(batteryGuidanceNeededProvider, (_, next) {
-      if (_openedSettings && next.value == false) {
+      // Once only, and only this page: a second answer during the exit
+      // animation must not pop the page underneath.
+      if (_openedSettings &&
+          next.value == false &&
+          ModalRoute.of(context)?.isCurrent == true) {
+        _openedSettings = false;
         Navigator.of(context).maybePop();
       }
     });

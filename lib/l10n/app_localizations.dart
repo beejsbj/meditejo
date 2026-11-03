@@ -2104,7 +2104,7 @@ abstract class AppLocalizations {
   /// **'Meditated today'**
   String get meditatedToday;
 
-  /// Button that closes an end screen shown on the next launch and returns to Home
+  /// Button that closes an end screen shown on the next launch and returns to Home. Also closes the battery page (Settings › Keep Meditejo running) once its settings were opened
   ///
   /// In en, this message translates to:
   /// **'Done'**
