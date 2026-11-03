@@ -82,7 +82,10 @@ class LibraryEntryTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => GestureDetector(
-    onLongPress: () => showLibraryEntryActions(context, ref, entry),
+    onLongPress: () {
+      Feedback.forLongPress(context);
+      showLibraryEntryActions(context, ref, entry);
+    },
     child: _row(context, ref),
   );
 
@@ -159,7 +162,10 @@ class LibraryEntryCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => GestureDetector(
-    onLongPress: () => showLibraryEntryActions(context, ref, entry),
+    onLongPress: () {
+      Feedback.forLongPress(context);
+      showLibraryEntryActions(context, ref, entry);
+    },
     child: _card(context, ref),
   );
 

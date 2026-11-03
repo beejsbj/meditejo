@@ -21,12 +21,17 @@ class SessionRowsSliver extends ConsumerWidget {
     super.key,
     required this.items,
     this.onBeforeNavigate,
+    this.hideTeacherId,
   });
 
   final List<PackItemsModel> items;
 
   /// Runs before a row navigates, e.g. to dismiss the keyboard.
   final VoidCallback? onBeforeNavigate;
+
+  /// The teacher whose page this list is on: "Go to teacher" would only
+  /// lead back here.
+  final String? hideTeacherId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,10 +44,13 @@ class SessionRowsSliver extends ConsumerWidget {
         final actions = ContentActionsButton(
           id: item.id,
           fallback: MyItemDraft.fromPackItem(item),
-          teacherId: item.teacherId,
+          teacherId: item.teacherId == hideTeacherId ? null : item.teacherId,
         );
         return GestureDetector(
-          onLongPress: () => showItemActions(context, ref, actions.spec),
+          onLongPress: () {
+            Feedback.forLongPress(context);
+            showItemActions(context, ref, actions.spec);
+          },
           child: Semantics(
             key: ValueKey('session_${item.id}'),
             button: true,

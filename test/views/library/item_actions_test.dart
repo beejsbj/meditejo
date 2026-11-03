@@ -49,9 +49,50 @@ void main() {
       expect(actions, isNot(contains(ItemAction.goToTeacher)));
     });
 
-    test('Mark as played needs a course to write the state to', () {
-      final actions = itemActionsFor(const ItemActionsSpec(id: 'ds-talk-1'));
-      expect(actions, isNot(contains(ItemAction.markPlayed)));
+    test('Mark as played is offered on any session, not a course or a lost '
+        'one', () {
+      expect(
+        itemActionsFor(const ItemActionsSpec(id: 'ds-talk-1')),
+        contains(ItemAction.markPlayed),
+      );
+      expect(
+        itemActionsFor(const ItemActionsSpec(id: 'ds-retreat-1')),
+        isNot(contains(ItemAction.markPlayed)),
+      );
+      expect(
+        itemActionsFor(const ItemActionsSpec(id: 'x-1', playable: false)),
+        isNot(contains(ItemAction.markPlayed)),
+      );
+    });
+
+    test('Download is hidden for audio already on the device', () {
+      final actions = itemActionsFor(
+        const ItemActionsSpec(id: 'lib-track-1'),
+        downloadable: false,
+      );
+      expect(actions, isNot(contains(ItemAction.download)));
+    });
+
+    test('Play on a course starts the first session not yet played', () {
+      PackItemsModel track(String id) => PackItemsModel(
+        type: TypeConstants.track,
+        id: id,
+        title: id,
+        path: '/tracks/$id',
+      );
+      final pack = PackModel(
+        id: 'ds-retreat-1',
+        title: 'R',
+        items: [for (var i = 1; i <= 8; i++) track('t$i')],
+      );
+      // Lesson 6 is next for someone who has played 1 to 5, though the raw
+      // pack knows nothing about completion.
+      expect(nextSessionIn(pack, {'t1', 't2', 't3', 't4', 't5'})!.id, 't6');
+      expect(nextSessionIn(pack, const {})!.id, 't1');
+      expect(
+        nextSessionIn(pack, {for (var i = 1; i <= 8; i++) 't$i'})!.id,
+        't1',
+      );
     });
 
     test('a downloaded session does not offer Download again', () {
@@ -204,7 +245,10 @@ void main() {
       );
       expect(items, contains('Play'));
       expect(items, isNot(contains('Go to teacher')));
-      expect(items, isNot(contains('Mark as played')));
+      // Played state is global, so any session can be marked.
+      expect(items, contains('Mark as played'));
+      // The sheet names what it is for.
+      expect(find.byKey(const ValueKey('item_actions_title')), findsNothing);
     });
 
     testWidgets('a course row: no Download, no Mark as played', (tester) async {
@@ -228,6 +272,26 @@ void main() {
       );
       expect(items, containsAll(['Play', 'Edit playlist', 'Delete playlist']));
     });
+  });
+
+  testWidgets('the sheet shows the item title and the played state', (
+    tester,
+  ) async {
+    final app = await LibraryTestApp.create(tester);
+    await app.pump(
+      tester,
+      const Scaffold(
+        body: Center(
+          child: ContentActionsButton(id: 'ds-talk-5', title: 'Equanimity'),
+        ),
+      ),
+      asRoute: true,
+      played: const ['ds-talk-5'],
+    );
+    await tester.tap(find.byKey(const ValueKey('content_actions_ds-talk-5')));
+    await settle(tester);
+    expect(find.text('Equanimity'), findsOneWidget);
+    expect(find.text('Mark as unplayed'), findsOneWidget);
   });
 
   testWidgets('long-pressing a session row opens the same sheet', (

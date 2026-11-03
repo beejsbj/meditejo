@@ -284,6 +284,47 @@ void main() {
     });
   });
 
+  group('Delete playlist from a sheet', () {
+    Future<void> deleteVia(
+      WidgetTester tester,
+      Widget trigger,
+      String id,
+    ) async {
+      await pump(tester, Scaffold(body: Center(child: trigger)));
+      await tester.tap(find.byType(IconButton).first);
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('item_action_delete')));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('my_course_delete_confirm')));
+      await settle(tester);
+    }
+
+    testWidgets('a row on a pushed list stays on that list', (tester) async {
+      await setUpApp(tester);
+      final id = await course(tester, 'Gone', const []);
+      await deleteVia(tester, ContentActionsButton(id: id, title: 'Gone'), id);
+      expect(find.byType(ContentActionsButton), findsOneWidget);
+      expect(find.text('root'), findsNothing);
+    });
+
+    testWidgets('the course page\'s own sheet leaves the page', (tester) async {
+      await setUpApp(tester);
+      final id = await course(tester, 'Gone', const []);
+      await deleteVia(
+        tester,
+        Consumer(
+          builder: (context, ref, _) => IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: () =>
+                showContentActionsSheet(context, ref, id: id, title: 'Gone'),
+          ),
+        ),
+        id,
+      );
+      expect(find.text('root'), findsOneWidget);
+    });
+  });
+
   group('Add to playlist…', () {
     testWidgets('adds a session to a playlist the user picks', (tester) async {
       await setUpApp(tester);

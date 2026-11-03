@@ -276,6 +276,7 @@ Future<void> showContentActionsSheet(
     title: title,
     fallback: fallback,
     teacherId: teacherId,
+    popOnDelete: true,
   ),
 );
 

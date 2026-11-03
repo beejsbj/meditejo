@@ -44,11 +44,14 @@ class CourseRowsSliver extends ConsumerWidget {
             kCardGap / 2,
           ),
           child: GestureDetector(
-            onLongPress: () => showItemActions(
-              context,
-              ref,
-              ItemActionsSpec(id: course.id, title: course.title),
-            ),
+            onLongPress: () {
+              Feedback.forLongPress(context);
+              showItemActions(
+                context,
+                ref,
+                ItemActionsSpec(id: course.id, title: course.title),
+              );
+            },
             child: Semantics(
               button: true,
               child: CourseRowCard(

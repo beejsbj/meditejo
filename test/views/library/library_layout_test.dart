@@ -451,6 +451,7 @@ void main() {
           'Play',
           'Add to playlist…',
           'Download audio',
+          'Mark as played',
           'Share',
           'Move to Practice',
           'Rename',

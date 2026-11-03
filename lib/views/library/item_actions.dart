@@ -9,6 +9,9 @@ import 'package:medito/models/models.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
+import 'package:medito/providers/stats_provider.dart';
+import 'package:medito/services/library/lib_ids.dart';
+import 'package:medito/utils/utils.dart';
 import 'package:medito/providers/meditation/downloaded_track_ids_provider.dart';
 import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/providers/providers.dart';
@@ -62,6 +65,7 @@ class ItemActionsSpec {
     this.isComplete,
     this.onSetComplete,
     this.playable = true,
+    this.popOnDelete = false,
   });
 
   final String id;
@@ -92,6 +96,10 @@ class ItemActionsSpec {
   /// or share.
   final bool playable;
 
+  /// Leave the page after deleting: true only when opened from the page of
+  /// the thing deleted. A row on a list just disappears from it.
+  final bool popOnDelete;
+
   bool get isTeacher => entry?.kind == LibraryKind.teacher;
   bool get isCourse => isCourseId(id) || (entry?.isCourse ?? false);
 }
@@ -105,6 +113,7 @@ List<ItemAction> itemActionsFor(
   bool canSave = false,
   bool pinned = false,
   bool downloaded = false,
+  bool downloadable = true,
 }) {
   final entry = spec.entry;
   final mine = isMyCourseId(spec.id);
@@ -119,8 +128,9 @@ List<ItemAction> itemActionsFor(
     if (isCourse) ItemAction.duplicate,
     if (isCourse && inLibrary) ItemAction.pin,
     if (!inLibrary && canSave) ItemAction.save,
-    if (!isCourse && spec.playable && !downloaded) ItemAction.download,
-    if (!isCourse && spec.onSetComplete != null) ItemAction.markPlayed,
+    if (!isCourse && spec.playable && downloadable && !downloaded)
+      ItemAction.download,
+    if (!isCourse && spec.playable) ItemAction.markPlayed,
     if (spec.teacherId != null) ItemAction.goToTeacher,
     if (spec.playable) ItemAction.share,
     if (entry != null && entry.group == LibraryGroup.talks)
@@ -210,15 +220,27 @@ Future<void> showItemActions(
   if (!context.mounted) return;
   final pinned = ref.read(pinnedCoursesProvider).contains(spec.id);
   final downloaded = ref.read(downloadedTrackIdsProvider).contains(spec.id);
+  final downloadable = await _isDownloadable(ref, spec.id);
+  // The played state may not have been read yet from a screen that never
+  // watched it.
+  try {
+    await ref.read(statsProvider.future);
+  } catch (e) {
+    AppLogger.d('ACTIONS', 'Stats unavailable for played state: $e');
+  }
+  if (!context.mounted) return;
   final actions = itemActionsFor(
     spec,
     saved: saved,
     canSave: canSave,
     pinned: pinned,
     downloaded: downloaded,
+    downloadable: downloadable,
   );
   final l10n = AppLocalizations.of(context)!;
-  final complete = spec.isComplete ?? false;
+  final complete =
+      spec.isComplete ?? ref.read(playedTrackIdsProvider).contains(spec.id);
+  final title = spec.entry?.displayTitle ?? spec.title;
   final action = await showModalBottomSheet<ItemAction>(
     context: context,
     showDragHandle: true,
@@ -227,8 +249,21 @@ Future<void> showItemActions(
       child: SingleChildScrollView(
         child: Column(
           key: const ValueKey('item_actions_sheet'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (title.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                child: Text(
+                  title,
+                  key: const ValueKey('item_actions_title'),
+                  textAlign: TextAlign.start,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
             for (final action in actions)
               ListTile(
                 key: ValueKey('item_action_${action.name}'),
@@ -247,15 +282,49 @@ Future<void> showItemActions(
     ),
   );
   if (action == null || !context.mounted) return;
-  return _run(context, ref, action, spec);
+  return _run(context, ref, action, spec, played: complete);
+}
+
+/// Whether the session's audio is a remote file the app can download. An
+/// imported local file is already on the device. Only imported sessions are
+/// checked up front (a local read); other sources are remote.
+Future<bool> _isDownloadable(WidgetRef ref, String id) async {
+  if (!isLibTrackId(id)) return true;
+  try {
+    final track = await ref.read(tracksProvider(trackId: id).future);
+    final path = track.voices.firstOrNull?.audioFiles.firstOrNull?.path;
+    return path == null || path.startsWith('http');
+  } catch (_) {
+    return true;
+  }
+}
+
+/// Sets a session's played state in local stats, whichever source it is
+/// from. Returns whether it stuck.
+Future<bool> _setPlayed(WidgetRef ref, String id, bool complete) async {
+  try {
+    final stats = ref.read(statsManagerProvider);
+    await stats.initialize();
+    if (complete) {
+      await stats.addTrackChecked(id);
+    } else {
+      await stats.removeTrackChecked(id);
+    }
+    await ref.read(statsProvider.notifier).refreshFromLocal();
+    return true;
+  } catch (e, st) {
+    AppLogger.e('ACTIONS', 'Could not set played for $id', e, st);
+    return false;
+  }
 }
 
 Future<void> _run(
   BuildContext context,
   WidgetRef ref,
   ItemAction action,
-  ItemActionsSpec spec,
-) async {
+  ItemActionsSpec spec, {
+  bool played = false,
+}) async {
   final id = spec.id;
   final entry = spec.entry;
   switch (action) {
@@ -279,7 +348,12 @@ Future<void> _run(
     case ItemAction.download:
       return _download(context, ref, id);
     case ItemAction.markPlayed:
-      await spec.onSetComplete!(!(spec.isComplete ?? false));
+      final set = spec.onSetComplete;
+      if (set != null) {
+        await set(!played);
+      } else {
+        await _setPlayed(ref, id, !played);
+      }
     case ItemAction.goToTeacher:
       return handleNavigation(
         TypeConstants.teacher,
@@ -304,10 +378,23 @@ Future<void> _run(
     case ItemAction.remove:
       return removeFromLibrary(context, ref, entry!);
     case ItemAction.delete:
-      if (await deleteMyCourse(context, ref, id) && context.mounted) {
+      if (await deleteMyCourse(context, ref, id) &&
+          spec.popOnDelete &&
+          context.mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);
       }
   }
+}
+
+/// The session a course's Play starts: the first playable one not yet
+/// played, else the first (a finished course starts over).
+@visibleForTesting
+PackItemsModel? nextSessionIn(PackModel pack, Set<String> played) {
+  final tracks = pack.playableTracks;
+  return tracks
+          .where((i) => i.isCompleted != true && !played.contains(i.id))
+          .firstOrNull ??
+      tracks.firstOrNull;
 }
 
 /// A session starts as it would from its course; a course starts at its
@@ -328,13 +415,10 @@ Future<void> _play(
     );
   }
   try {
-    final PackModel pack =
-        ref.read(packProvider(packId: id)).value ??
-        await ref.read(packDataProvider(packId: id).future);
-    final tracks = pack.playableTracks;
-    final next =
-        tracks.where((item) => item.isCompleted != true).firstOrNull ??
-        tracks.firstOrNull;
+    // Read the raw pack first so the derived one (with completion) is ready.
+    final raw = await ref.read(packDataProvider(packId: id).future);
+    final PackModel pack = ref.read(packProvider(packId: id)).value ?? raw;
+    final next = nextSessionIn(pack, ref.read(playedTrackIdsProvider));
     if (!context.mounted) return;
     if (next == null) {
       await openCourse(context, ref, id);
@@ -387,11 +471,28 @@ Future<void> _download(BuildContext context, WidgetRef ref, String id) async {
             guideName: ref.read(guideNamePreferenceProvider),
             durationMs: ref.read(durationPreferenceProvider),
           );
+    final request = PlaybackRequest.fromTrack(
+      track,
+      selection.voice,
+      selection.file,
+    );
+    if (!request.remoteUrl.startsWith('http')) return;
+    final key = audioFileName(
+      request.trackId,
+      request.fileId,
+      request.remoteUrl,
+    );
+    final state = ref.read(audioDownloaderProvider).audioDownloadState[key];
+    if (state == AudioDownloadState.downloading ||
+        state == AudioDownloadState.downloaded) {
+      return;
+    }
+    if (context.mounted) {
+      showSnackBar(context, AppLocalizations.of(context)!.downloadingAudio);
+    }
     await ref
         .read(audioDownloaderProvider.notifier)
-        .downloadTrackAudio(
-          PlaybackRequest.fromTrack(track, selection.voice, selection.file),
-        );
+        .downloadTrackAudio(request);
   } catch (e, st) {
     AppLogger.e('ACTIONS', 'Could not download $id', e, st);
     if (!context.mounted) return;

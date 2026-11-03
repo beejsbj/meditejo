@@ -2107,7 +2107,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get itemMarkUnplayed => 'Marcar como no escuchada';
 
   @override
-  String get itemGoToTeacher => 'Ir al maestro';
+  String get itemGoToTeacher => 'Ir al docente';
 
   @override
   String get pinnedLimitReached =>

@@ -674,6 +674,24 @@ void main() {
       await _captureView(tester, 'add-to-playlist-${brightness.name}');
     }, skip: !_enabled);
 
+    // A playlist's ⋮ in the Library: the longest menu (before #83 a popup).
+    testWidgets('Playlist row menu, ${brightness.name}', (tester) async {
+      final app = await LibraryTestApp.create(tester);
+      final (source, morning) = await seedPlaylists(tester, app);
+      WidgetsApp.debugAllowBannerOverride = false;
+      addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
+      await app.pump(
+        tester,
+        _frame(brightness, const LibraryView()),
+        overrides: [myCourseSourceProvider.overrideWithValue(source)],
+      );
+      await _phone(tester);
+      await tester.tap(find.byKey(ValueKey('library_menu_$morning')));
+      await DharmaSeedTestApp.settle(tester);
+      expect(tester.takeException(), isNull);
+      await _captureView(tester, 'playlist-menu-${brightness.name}');
+    }, skip: !_enabled);
+
     testWidgets('Episode actions sheet, ${brightness.name}', (tester) async {
       final app = await LibraryTestApp.create(tester);
       final (source, _) = await seedPlaylists(tester, app);

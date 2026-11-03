@@ -188,7 +188,7 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
         if (talks.isNotEmpty) ...[
           SliverToBoxAdapter(child: SectionHeader(title: l10n.teacherTalks)),
           const SliverPadding(padding: EdgeInsets.only(top: padding8)),
-          SessionRowsSliver(items: talks),
+          SessionRowsSliver(items: talks, hideTeacherId: widget.teacherId),
         ],
         if (hasMore)
           SliverToBoxAdapter(

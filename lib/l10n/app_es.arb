@@ -924,7 +924,7 @@
   "unpinCourse": "Quitar de Inicio",
   "itemMarkPlayed": "Marcar como escuchada",
   "itemMarkUnplayed": "Marcar como no escuchada",
-  "itemGoToTeacher": "Ir al maestro",
+  "itemGoToTeacher": "Ir al docente",
   "pinnedLimitReached": "Inicio admite hasta tres cursos o listas fijados. Quita uno primero.",
   "pinnedCourseAdded": "Fijado en Inicio",
   "statsFeedbackNote": "Estas cifras son una guía, no una puntuación.",
