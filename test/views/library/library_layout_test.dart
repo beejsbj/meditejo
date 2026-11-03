@@ -441,7 +441,6 @@ void main() {
           'Add to playlist…',
           'Copy as playlist',
           'Pin to Home',
-          'Share',
           'Move to Talks',
           'Rename',
           'Categories and labels',

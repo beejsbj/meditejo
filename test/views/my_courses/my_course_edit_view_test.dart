@@ -411,7 +411,6 @@ void main() {
         ItemAction.edit,
         ItemAction.duplicate,
         ItemAction.pin,
-        ItemAction.share,
         ItemAction.delete,
       ]);
       expect(

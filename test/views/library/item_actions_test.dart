@@ -147,6 +147,16 @@ void main() {
       expect(saved, isNot(contains(ItemAction.save)));
     });
 
+    test('device-local things cannot be shared', () {
+      for (final id in ['my-course-1', 'lib-course-1', 'lib-track-1']) {
+        expect(
+          itemActionsFor(ItemActionsSpec(id: id), saved: true),
+          isNot(contains(ItemAction.share)),
+          reason: id,
+        );
+      }
+    });
+
     test('a playlist adds Edit and Delete', () {
       final actions = itemActionsFor(
         const ItemActionsSpec(id: 'my-course-1'),

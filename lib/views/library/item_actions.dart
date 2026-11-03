@@ -133,7 +133,13 @@ List<ItemAction> itemActionsFor(
       ItemAction.download,
     if (!isCourse && spec.playable) ItemAction.markPlayed,
     if (spec.teacherId != null) ItemAction.goToTeacher,
-    if (spec.playable) ItemAction.share,
+    // A link to something that lives only on this device opens nothing for
+    // the person it is sent to.
+    if (spec.playable &&
+        !mine &&
+        !isLibCourseId(spec.id) &&
+        !isLibTrackId(spec.id))
+      ItemAction.share,
     if (entry != null && entry.group == LibraryGroup.talks)
       ItemAction.moveToPractice,
     if (entry != null && entry.group == LibraryGroup.practice)
