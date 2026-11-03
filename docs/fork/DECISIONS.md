@@ -1190,8 +1190,12 @@ Burooj left the names to the orchestrator ("You know more about the names than m
   - Walking (Caṅkama · Kinhin)
   - Energy body (Prāṇa · Qì · Lung)
   - Mantra (Japa · Nembutsu · Dhikr)
-  - Relational (Insight Dialogue · Dyads)
-  - **Two label lines named English terms rather than originals.** Body's "Body scan" became Kāyānupassanā, and Visualisation's "Deity yoga" became Devatā-yoga. Both English terms stay as aliases, so search still finds them. `categories.json` version 6.
+  - Relational (Insight Dialogue · Dyads). These are modern practices whose own names are English: Gregory Kramer's Insight Dialogue, and the dyads of Charles Berner's Enlightenment Intensive. For a modern practice, its own name is the original, as Headless Way and Focusing show their founders.
+  - **Three label lines named English terms rather than originals, now fixed:**
+    - Body: "Body scan" became Kāyānupassanā.
+    - Visualisation: "Deity yoga" became Devatā-yoga, and "Guided imagery" became Ignatius's *Compositio loci*.
+    - Movement: Tai chi took its tones (Tàijí), like the Qìgōng beside it.
+    - The English terms stay as aliases, so search still finds them. `categories.json` version 7.
 - **The figure library keeps its reach** (Burooj: "It's fine, we're still beta. Let generated ones change."). It covers about 85% of generated covers, Dharma Seed included.
 - **German heading: *Übungswege*** (and *Übungswege durchsuchen* for screen readers).
 - **Dharma Seed retreat 5371 is hidden.** "ORIGINAL RECORDINGS, TO BE EDITED - Ajahn Sucitto at IMS-FR" says "Not for public distribution". The app respects the teacher's note.
@@ -1200,13 +1204,24 @@ Burooj left the names to the orchestrator ("You know more about the names than m
   - Opening it by ID still works, so a library that already holds it keeps it.
   - `hidden_retreat_test.dart` checks all of this against the bundled snapshot.
   - **To hide another retreat, add its ID to the set.**
-- **Vipassanā is narrowed, and filters: 38% → 21% of the pass.** It is for retreats whose **practice is insight**, not every event from an Insight Meditation centre or series (`pass/GUIDE.md`).
-  - Insight counts as the practice when the retreat is named vipassanā or insight in its own title or description, or teaches satipaṭṭhāna, noting, the three characteristics, or arising and passing.
-  - **Drops:** a centre or series label alone, an affinity gathering, another stated theme (mettā, a sutta study, illness, daily life), one insight-sounding talk among unrelated ones, and no description with generic talks.
+- **Vipassanā is narrowed, and filters: 38% → 22% of the pass.** It is for retreats whose **practice is insight**, not every event from an Insight Meditation centre or series (`pass/GUIDE.md`).
+  - **Insight counts as the practice when:**
+    - the retreat calls itself a vipassanā retreat in its own title or description; or
+    - its description or talk titles teach satipaṭṭhāna, noting, the three characteristics, or arising and passing as the method.
+  - **"Insight meditation" in a title counts only with that support.** It is also the name of the movement, its centres and their series.
+  - **Drops:** a centre or series label alone, another stated theme (mettā, a sutta study, illness, daily life), and one insight-sounding talk among unrelated ones.
+  - **Audience never matters.** A young adults', women's, LGBTQ+ or people-of-colour retreat that practises insight is Vipassanā.
+  - **With no description, it is judged from every talk title.**
   - **Haiku re-read the pass's 1,578 Vipassanā retreats** (curated ones aside). It kept 1,206 (`pass/vipassana/`).
   - **A Sonnet spot-check found Haiku lenient.** On a random 300, Sonnet kept 159 of Haiku's 200 keeps but only 3 of its 100 drops.
   - **So Sonnet re-read every remaining keep** (1,006, in ten batches), and its reading wins (`pass/vipassana-audit.jsonl`).
-  - **One correction:** Sayadaw U Pandita's three-month retreat (2898, 89 talks) stays Vipassanā and Noting. Sonnet dropped it only because the description is empty.
-  - **Result:** 879 of 4,184 retreats (21.0%), down from 1,599. Retreats the pass gives no label rise from 1,332 to 1,838, and keyword rules still don't reach them.
+  - **The Opus review of that result (P2) found two faults, both fixed:**
+    - affinity retreats had been dropped for their audience (24, "Vipassana Retreat for Ages 18 to 32", among them);
+    - retreats with no description had been judged from 8 sampled talk titles.
+  - **So Sonnet re-read 214 retreats with every talk title** (120 affinity, and 97 with no description and more than 8 talks). 36 regained Vipassanā and 2 lost it (`pass/vipassana-reread.jsonl`).
+    - U Tejaniya's 1446 regained it on its titles.
+    - His 2470 and 2511 did not: their titles are only "instructions" and "group sessions", and a teacher's reputation alone does not count.
+  - **One correction stands** (`pass/corrections.jsonl`): Sayadaw U Pandita's three-month retreat (2898, 89 talks) keeps Vipassanā and gains Noting. The title says "with Sayadaw U Pandita", and its 89 talks are his Mahāsi course. The correction was made before the full re-read.
+  - **Result:** 913 of 4,184 retreats (21.8%), down from 1,599. Retreats the pass gives no label rise from 1,332 to 1,810, and keyword rules still don't reach them.
   - **The bound test holds every category under a quarter, Vipassanā included,** and Vipassanā above a tenth, so it can't quietly empty.
   - Pass meta v3.
