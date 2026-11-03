@@ -14,9 +14,7 @@ class PinnedCoursesNotifier extends Notifier<List<String>> {
   @override
   List<String> build() {
     final prefs = ref.read(sharedPreferencesProvider);
-    final saved = prefs.getStringList(
-      SharedPreferenceConstants.pinnedCourseIds,
-    );
+    final saved = prefs.getStringList(SharedPreferenceConstants.pinnedCourseIds);
     if (saved != null) return saved.toSet().take(maxPinned).toList();
     // The one course Home used to continue becomes the first pin.
     final legacy = prefs.getString(SharedPreferenceConstants.upNextPackId);
