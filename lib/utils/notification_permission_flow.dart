@@ -10,8 +10,9 @@ import 'package:medito/widgets/dialogs/medito_dialog.dart';
 import 'package:medito/widgets/dialogs/medito_dialog_buttons.dart';
 
 /// Everything between "user asked for reminders" and "the OS actually lets us
-/// send them". Three surfaces need it — onboarding, the end-screen card and the
-/// settings tile — and each previously handled it differently, or not at all.
+/// send them". Two surfaces need it — the end-screen card and the settings
+/// tile (Medito's onboarding was the third until #87) — and each previously
+/// handled it differently, or not at all.
 
 /// Records that a reminder was asked for but never granted.
 ///

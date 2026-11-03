@@ -5,6 +5,8 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/updates/update_providers.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/models/local_all_stats.dart';
+import 'package:medito/views/intro/intro_view.dart';
+import 'package:medito/views/settings/battery_optimization_screen.dart';
 import 'package:medito/views/settings/settings_screen.dart';
 import 'package:medito/views/settings/settings_sections.dart';
 
@@ -35,6 +37,7 @@ const _everywhere = {
   'Theme',
   'Organize Home layout',
   // About: from Advanced and About Meditejo
+  'What Meditejo is',
   'Check for updates',
   'Source code',
   'Upstream project',
@@ -67,10 +70,17 @@ Future<ProviderContainer> _pump(
   WidgetTester tester, {
   bool phone = false,
   Widget page = const SettingsScreen(),
+  bool batteryGuidanceNeeded = false,
 }) async {
   final h = await UpdateHarness.create();
   final container = ProviderContainer(
-    overrides: [...h.overrides, statsProvider.overrideWith(_EmptyStats.new)],
+    overrides: [
+      ...h.overrides,
+      statsProvider.overrideWith(_EmptyStats.new),
+      batteryGuidanceNeededProvider.overrideWith(
+        (_) async => batteryGuidanceNeeded,
+      ),
+    ],
   );
   addTearDown(container.dispose);
   // Tall, so the whole page is built.
@@ -175,6 +185,8 @@ void main() {
       'Default Guide Name',
       'Default Duration',
       'App Icon',
+      // Medito's questionnaire (#87); the intro replaced it.
+      'Onboarding',
     ]) {
       expect(_titled(title), findsNothing, reason: title);
     }
@@ -214,5 +226,40 @@ void main() {
       find.widgetWithText(OutlinedButton, 'Check for updates'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('About opens the intro again', (tester) async {
+    await _pump(tester);
+    await tester.tap(find.byKey(const ValueKey('about_intro')));
+    // The intro's mark keeps moving, so pump a while rather than settle.
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byType(IntroView), findsOneWidget);
+    expect(find.text('One calm place for your practice.'), findsOneWidget);
+    // Opened from About it is a page to read, not the first-launch flow.
+    expect(find.byKey(const ValueKey('intro_start')), findsNothing);
+  });
+
+  testWidgets('no battery row where the phone lets Meditejo run', (
+    tester,
+  ) async {
+    await _pump(tester, phone: true);
+    expect(find.byKey(const ValueKey('settings_battery')), findsNothing);
+  });
+
+  testWidgets('the battery row shows on phones that need it', (tester) async {
+    await _pump(tester, phone: true, batteryGuidanceNeeded: true);
+    final row = find.byKey(const ValueKey('settings_battery'));
+    expect(row, findsOneWidget);
+    expect(_titled('Keep Meditejo running'), findsOneWidget);
+    // It sits with the reminders it keeps working.
+    expect(
+      tester.getTopLeft(row).dy,
+      greaterThan(tester.getTopLeft(_titled('Daily reminder')).dy),
+    );
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+    expect(find.byType(BatteryOptimizationScreen), findsOneWidget);
+    expect(find.byKey(const ValueKey('battery_open')), findsOneWidget);
   });
 }

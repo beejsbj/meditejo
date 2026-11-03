@@ -148,57 +148,7 @@
     }
   },
   "minutesPerDayOptional": "Minutes per day (optional)",
-  "onboarding": "Onboarding",
-  "@onboarding": {
-    "description": "Title for the onboarding section in settings"
-  },
-  "enableNotificationsTitle": "Stay on Track with Meditation Reminders",
   "enableNotificationsBody": "Enable notifications so you never miss a session.",
-  "enableNotificationsTitleLearn": "Keep the learning going",
-  "@enableNotificationsTitleLearn": {
-    "description": "Notifications screen title for users who want to learn to meditate (intent: learn_properly)"
-  },
-  "enableNotificationsTitleHabit": "Build the habit you're after",
-  "@enableNotificationsTitleHabit": {
-    "description": "Notifications screen title for users who want to build a habit (intent: build_habit)"
-  },
-  "enableNotificationsTitleStress": "Make it part of your day",
-  "@enableNotificationsTitleStress": {
-    "description": "Notifications screen title for users managing stress, sleep, or emotions (intent: stress_sleep_emotions)"
-  },
-  "notificationPreviewTimestamp": "now",
-  "@notificationPreviewTimestamp": {
-    "description": "Timestamp shown on a fake iOS notification preview, mirroring iOS's 'now' label for a notification that just arrived"
-  },
-  "notificationPreviewTitleB": "A quieter mind starts here",
-  "@notificationPreviewTitleB": {
-    "description": "Title of the fake notification shown in the onboarding notifications screen preview"
-  },
-  "notificationPreviewBodyB": "Your daily breath is waiting. Just tap to begin.",
-  "@notificationPreviewBodyB": {
-    "description": "Body of the fake notification shown in the onboarding notifications screen preview"
-  },
-  "onboardingStepIndicator": "Step {current} of {total}",
-  "@onboardingStepIndicator": {
-    "description": "Progress label under the onboarding pages, next to the circular progress ring",
-    "placeholders": {
-      "current": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "onboardingReminderCurrentlySet": "Daily reminder set for {time}",
-  "@onboardingReminderCurrentlySet": {
-    "description": "Shown on the onboarding reminder screen when a reminder is already set, above the chips that let the user change it",
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  },
   "reminderChipsQuestion": "When will you meditate?",
   "@reminderChipsQuestion": {
     "description": "Question above the time-of-day chips in the onboarding notifications screen (chips arm of the reminder experiment)"
@@ -267,10 +217,18 @@
   "@reminderTurnOff": {
     "description": "Last row of the reminder time bottom sheet; cancels the scheduled reminders"
   },
-  "onboardingBatteryTitle": "One Setting, Smoother Meditations",
-  "onboardingBatteryBody": "Your phone can pause Meditejo mid-session. One quick change prevents this.",
-  "onboardingBatteryOptimize": "Update Setting",
-  "skipForNow": "Skip for Now",
+  "batteryGuidanceTitle": "Keep Meditejo running",
+  "@batteryGuidanceTitle": {
+    "description": "Title of the page that asks to let the app run in the background (battery optimisation), on phones known to stop apps"
+  },
+  "batteryGuidanceBody": "Your phone may pause Meditejo during a session or hold back a reminder. Letting it run in the background stops this.",
+  "@batteryGuidanceBody": {
+    "description": "Why battery optimisation matters: sessions and reminders can be stopped"
+  },
+  "batteryGuidanceOpen": "Open battery settings",
+  "@batteryGuidanceOpen": {
+    "description": "Button opening the phone's battery optimisation settings"
+  },
   "skip": "Skip",
   "notNow": "Not now",
   "errorNoInternetMessage": "No internet connection",
@@ -914,30 +872,6 @@
   "@clearSearch": {
     "description": "Accessibility label for the clear search button"
   },
-  "onboardingExperienceQuestion": "Have you meditated before?",
-  "@onboardingExperienceQuestion": {
-    "description": "Question on onboarding screen 1 — asking about the user's meditation experience"
-  },
-  "onboardingExperienceSubtext": "This helps us show you the right starting point.",
-  "@onboardingExperienceSubtext": {
-    "description": "Subtext below the question on onboarding screen 1"
-  },
-  "onboardingExperienceNever": "Never tried it",
-  "@onboardingExperienceNever": {
-    "description": "Option 1 on onboarding screen 1 — user has never meditated"
-  },
-  "onboardingExperienceALittle": "A little, here and there",
-  "@onboardingExperienceALittle": {
-    "description": "Option 2 on onboarding screen 1 — user has meditated a little"
-  },
-  "onboardingExperienceRegular": "I have a regular practice",
-  "@onboardingExperienceRegular": {
-    "description": "Option 3 on onboarding screen 1 — user has a regular meditation practice"
-  },
-  "onboardingResultCta": "Get started",
-  "@onboardingResultCta": {
-    "description": "CTA button label on the onboarding result screen"
-  },
   "openPack": "Open pack",
   "@openPack": {
     "description": "Swipe action on the home Your Path card that opens the pack"
@@ -1176,34 +1110,6 @@
   "localHomeHeading": "Time to sit.",
   "@localHomeHeading": {
     "description": "Calm home heading above the locally available meditation timer."
-  },
-  "localIntroBeginHeading": "A little time to begin.",
-  "@localIntroBeginHeading": {
-    "description": "Local introduction heading for someone new to meditation."
-  },
-  "localIntroReturnHeading": "Ease back into your practice.",
-  "@localIntroReturnHeading": {
-    "description": "Local introduction heading for someone with some meditation experience."
-  },
-  "localIntroPracticeHeading": "Space for your practice.",
-  "@localIntroPracticeHeading": {
-    "description": "Local introduction heading for someone with a regular meditation practice."
-  },
-  "localIntroBeginBody": "Find a comfortable seat, set a short timer, and notice your breath. When your attention wanders, gently begin again.",
-  "@localIntroBeginBody": {
-    "description": "Instructions for a first unguided meditation using the local timer."
-  },
-  "localIntroReturnBody": "Start with a few quiet minutes. The timer is ready whenever you are.",
-  "@localIntroReturnBody": {
-    "description": "Encouragement to resume practice using the local timer."
-  },
-  "localIntroPracticeBody": "Use the timer for an unguided sit, with the bells and duration you prefer.",
-  "@localIntroPracticeBody": {
-    "description": "Introduction to the local timer and its configurable bells and duration."
-  },
-  "localIntroDeviceOnlyNote": "Your practice history, pins and settings stay on this device.",
-  "@localIntroDeviceOnlyNote": {
-    "description": "Explains that practice history, pins and preferences are stored on the device."
   },
   "aboutMeditejo": "About Meditejo",
   "forkCredit": "Meditejo is based on Medito by the Medito Foundation (meditofoundation.org), licensed under AGPL-3.0.",
@@ -2781,6 +2687,42 @@
   "settingsLicenses": "Open-source licences",
   "@settingsLicenses": {
     "description": "Settings row opening the licences page"
+  },
+  "introLead": "One calm place for your practice.",
+  "@introLead": {
+    "description": "First-launch intro: the one-line summary of what the app is, under its name"
+  },
+  "introPractice": "Follow a course session by session, listen to talks, or sit with the timer.",
+  "@introPractice": {
+    "description": "First-launch intro: what you can do (courses, talks, timer)"
+  },
+  "introSources": "Dharma Seed is built in. Add podcasts, YouTube or your own files.",
+  "@introSources": {
+    "description": "First-launch intro: where the content comes from"
+  },
+  "introPrivate": "No account. Your history and settings stay on this phone.",
+  "@introPrivate": {
+    "description": "First-launch intro: no account, data stays on the device"
+  },
+  "introMeaning": "Meditejo is Esperanto for “a place of meditation”.",
+  "@introMeaning": {
+    "description": "First-launch intro: what the name means, small print"
+  },
+  "introStart": "Start",
+  "@introStart": {
+    "description": "First-launch intro: button that closes the intro and opens Home"
+  },
+  "introTour": "Take the tour",
+  "@introTour": {
+    "description": "First-launch intro: button that starts the guided tour (shown once the tour exists)"
+  },
+  "aboutWhatIsMeditejo": "What Meditejo is",
+  "@aboutWhatIsMeditejo": {
+    "description": "Settings > About row that opens the first-launch intro again"
+  },
+  "batteryGuidanceRow": "Your phone may pause sessions and reminders",
+  "@batteryGuidanceRow": {
+    "description": "Settings row subtitle, under the battery title, on phones known to stop apps in the background"
   },
   "statsTimePractised": "Time practised",
   "@statsTimePractised": {
