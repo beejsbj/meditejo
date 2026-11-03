@@ -221,7 +221,9 @@ Future<void> showItemActions(
   if (!context.mounted) return;
   final pinned = ref.read(pinnedCoursesProvider).contains(spec.id);
   final downloaded = ref.read(downloadedTrackIdsProvider).contains(spec.id);
-  final downloadable = await _isDownloadable(ref, spec.id);
+  final downloadable =
+      await _isDownloadable(ref, spec.id) &&
+      !isDownloadInProgress(ref.read(audioDownloaderProvider), spec.id);
   // The played state may not have been read yet from a screen that never
   // watched it.
   try {
@@ -299,6 +301,16 @@ Future<bool> _isDownloadable(WidgetRef ref, String id) async {
     return true;
   }
 }
+
+/// Whether any audio file of session [id] is being downloaded right now.
+/// Download keys are `<trackId>-<fileId>.<ext>`.
+@visibleForTesting
+bool isDownloadInProgress(AudioDownloaderState state, String id) =>
+    state.audioDownloadState.entries.any(
+      (e) =>
+          e.value == AudioDownloadState.downloading &&
+          e.key.startsWith('$id-'),
+    );
 
 /// Sets a session's played state in local stats, whichever source it is
 /// from. Returns whether it stuck.

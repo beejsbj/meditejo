@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/models/pack/pack_model.dart';
+import 'package:medito/providers/player/download/audio_downloader_provider.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
 import 'package:medito/views/library/item_actions.dart';
@@ -110,6 +111,20 @@ void main() {
         downloaded: true,
       );
       expect(actions, isNot(contains(ItemAction.download)));
+    });
+
+    test('a download in progress for the session is detected', () {
+      final state = AudioDownloaderState(
+        audioDownloadState: {
+          'ds-talk-1-f1.mp3': AudioDownloadState.downloading,
+          'ds-talk-2-f1.mp3': AudioDownloadState.downloading,
+          'ds-talk-3-f1.mp3': AudioDownloadState.downloaded,
+        },
+      );
+      expect(isDownloadInProgress(state, 'ds-talk-1'), isTrue);
+      expect(isDownloadInProgress(state, 'ds-talk-3'), isFalse);
+      expect(isDownloadInProgress(state, 'ds-talk'), isFalse);
+      expect(isDownloadInProgress(const AudioDownloaderState(), 'x'), isFalse);
     });
 
     test('a course: no Download or Mark as played; Pin only once saved', () {
