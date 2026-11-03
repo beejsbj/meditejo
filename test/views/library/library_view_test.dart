@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:medito/views/pack/widgets/pack_item_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:medito/constants/colors/color_constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
@@ -285,8 +287,14 @@ void main() {
       await tester.tap(find.text('Evening Sits'));
       await settle(tester);
       expect(find.byType(PackView), findsOneWidget);
-      expect(find.text('First sit: arriving'), findsOneWidget);
-      expect(find.text('3 of 3 left'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(PackItemWidget),
+          matching: find.text('First sit: arriving'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('3 sessions'), findsOneWidget);
     });
 
     testWidgets('removing an imported course unpins it and its sessions', (
@@ -441,8 +449,8 @@ void main() {
       await settle(tester);
       expect(find.byType(PackView), findsOneWidget);
 
-      await tester.ensureVisible(find.byType(SaveButton));
-      await tester.tap(find.byType(SaveButton));
+      await tester.ensureVisible(find.byType(SaveIconButton));
+      await tester.tap(find.byType(SaveIconButton));
       await settle(tester);
       await tester.tap(
         find.descendant(
@@ -453,6 +461,17 @@ void main() {
       await settle(tester);
       expect(find.byType(PackView), findsNothing);
       expect(find.text('Your library is empty'), findsOneWidget);
+      // Said, though the page that asked is gone, in readable text: styled
+      // from the app's messenger, not left white on the white snackbar.
+      final said = find.descendant(
+        of: find.byType(SnackBar),
+        matching: find.text('Removed from your library'),
+      );
+      expect(said, findsOneWidget);
+      expect(
+        tester.widget<Text>(said).style?.color,
+        ColorConstants.greyIsTheNewBlack,
+      );
     });
 
     testWidgets(
@@ -481,7 +500,15 @@ void main() {
         });
         await app.pump(tester, PackView(id: id));
 
-        double top(String title) => tester.getTopLeft(find.text(title)).dy;
+        // A row's title (the Play button names the next one too).
+        double top(String title) => tester
+            .getTopLeft(
+              find.descendant(
+                of: find.byType(PackItemWidget),
+                matching: find.text(title),
+              ),
+            )
+            .dy;
         expect(
           top('First sit: arriving'),
           lessThan(top('Third sit: open awareness')),

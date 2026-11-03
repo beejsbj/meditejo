@@ -1,3 +1,4 @@
+import 'package:medito/views/pack/widgets/pack_item_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/providers/library/library_providers.dart';
@@ -59,7 +60,13 @@ void main() {
     expect(find.text('Day 1'), findsOneWidget);
     expect(find.text('Day 2'), findsOneWidget);
     for (final s in ['x-1', 'x-2', 'x-3']) {
-      expect(find.text('Session $s'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(PackItemWidget),
+          matching: find.text('Session $s'),
+        ),
+        findsOneWidget,
+      );
     }
     // Its own playlist: Edit, not "Add to library", and it says what it is
     // where a course shows its source.
@@ -85,8 +92,8 @@ void main() {
     expect(find.text('Session x-1'), findsOneWidget);
     // The kind label, in capitals like every kind.
     expect(find.text('UNAVAILABLE'), findsOneWidget);
-    // Progress counts the one session that can still be played.
-    expect(find.textContaining('of 1'), findsWidgets);
+    // The header counts the one session that can still be played.
+    expect(find.textContaining('1 session ·'), findsOneWidget);
 
     await tester.tap(find.text('Session x-1'));
     await DharmaSeedTestApp.settle(tester);

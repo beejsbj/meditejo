@@ -50,11 +50,10 @@ void main() {
   ) => app.pump(
     tester,
     Scaffold(
-      body: PackPathButton(
+      body: PackPlayButton(
         pack: pack,
         onStartSession:
             (c, r, {required trackId, required path, courseId}) async {},
-        child: const SizedBox(height: 40),
       ),
     ),
     overrides: [
