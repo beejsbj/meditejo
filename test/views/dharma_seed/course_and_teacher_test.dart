@@ -145,7 +145,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(PackItemWidget),
-          matching: find.text('Guided meditation'),
+          matching: find.text('Meditation'),
         ),
         findsWidgets,
       );

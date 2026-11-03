@@ -103,6 +103,45 @@ final _podcast = PackModel(
   ],
 );
 
+/// A course of talks titled "Talk 1", "Talk 2"…, one per entry of [dates]
+/// (`yyyy-MM-dd`), in that order.
+PackModel _dated(
+  String id,
+  List<String> dates, {
+  String Function(int i) kind = _talk,
+}) => PackModel(
+  id: id,
+  title: 'Dated course',
+  teacher: const PackTeacher(id: 'ds-teacher-12', name: 'Gil Fronsdal'),
+  attribution: _credit,
+  items: [
+    for (final (i, date) in dates.indexed)
+      PackItemsModel(
+        type: 'track',
+        id: '$id-$i',
+        title: 'Talk ${i + 1}',
+        path: '/tracks/$id-$i',
+        kind: kind(i),
+        teacher: 'Gil Fronsdal',
+        durationMs: 30 * 60000,
+        date: date,
+      ),
+  ],
+);
+
+String _talk(int i) => 'Talk';
+
+/// [perDay] dates a day for [days] days from 1 March 2024.
+List<String> _days(int days, int perDay) => [
+  for (var d = 0; d < days; d++)
+    for (var n = 0; n < perDay; n++)
+      DateTime.utc(
+        2024,
+        3,
+        1,
+      ).add(Duration(days: d)).toIso8601String().substring(0, 10),
+];
+
 /// The meta line of the row titled [title], with plain spaces.
 String _meta(WidgetTester tester, String title) {
   final row = find.ancestor(
@@ -222,7 +261,8 @@ void main() {
     tester,
   ) async {
     await open(tester, _retreat);
-    expect(_chip(tester, 'Retreat session 1'), 'Guided meditation');
+    // "Guided meditation" in short, in the app's language.
+    expect(_chip(tester, 'Retreat session 1'), 'Meditation');
     expect(_chip(tester, 'Retreat session 2'), 'Talk');
     expect(_chip(tester, 'Retreat session 6'), 'Q & A');
     // Not the loud capitals of before.
@@ -264,6 +304,112 @@ void main() {
     expect(_meta(tester, 'Retreat session 4'), 'Apr 15 · 45 min');
   });
 
+  testWidgets('a feed listed newest first is not boxed into days', (
+    tester,
+  ) async {
+    // Three a day over four days, newest first, as a feed's "newest"
+    // order lists them.
+    await open(
+      tester,
+      _dated('lib-course-feed', _days(4, 3).reversed.toList()),
+    );
+    expect(find.byKey(const ValueKey('day_2024-03-04')), findsNothing);
+    expect(find.textContaining('Day '), findsNothing);
+    expect(_meta(tester, 'Talk 1'), 'Mar 4 · 30 min');
+  });
+
+  testWidgets('a dense month-long Dharma Seed retreat keeps its days', (
+    tester,
+  ) async {
+    // 66 talks over 27 days, as "March Insight 1 Month Retreat".
+    final dates = [..._days(27, 2), ..._days(12, 1)];
+    dates.sort();
+    await open(tester, _dated('ds-retreat-9000', dates));
+    expect(find.byKey(const ValueKey('day_2024-03-01')), findsOneWidget);
+    expect(find.text('Day 1 · Fri, Mar 1'), findsOneWidget);
+  });
+
+  testWidgets('a feed over the same month is not a retreat', (tester) async {
+    final dates = _days(27, 2);
+    await open(tester, _dated('lib-course-month', dates));
+    expect(find.byKey(const ValueKey('day_2024-03-01')), findsNothing);
+    expect(_meta(tester, 'Talk 1'), 'Mar 1 · 30 min');
+  });
+
+  testWidgets('a feed within three weeks is still grouped', (tester) async {
+    await open(tester, _dated('lib-course-week', _days(5, 3)));
+    expect(find.byKey(const ValueKey('day_2024-03-01')), findsOneWidget);
+  });
+
+  testWidgets('a retreat of about one talk a day is dated rows, not boxes', (
+    tester,
+  ) async {
+    await open(tester, _dated('ds-retreat-9001', _days(12, 1)));
+    expect(find.byKey(const ValueKey('day_2024-03-01')), findsNothing);
+    expect(_meta(tester, 'Talk 2'), 'Mar 2 · 30 min');
+  });
+
+  testWidgets('a course recorded in a day does not date its rows', (
+    tester,
+  ) async {
+    await open(tester, _dated('ds-retreat-9002', _days(1, 9)));
+    expect(_meta(tester, 'Talk 1'), '30 min');
+  });
+
+  testWidgets('talks with a Q & A are not mixed: no chips', (tester) async {
+    await open(
+      tester,
+      _dated(
+        'ds-retreat-9003',
+        _days(3, 3),
+        kind: (i) => i % 3 == 2 ? 'Q & A' : 'Talk',
+      ),
+    );
+    expect(_chip(tester, 'Talk 1'), isNull);
+    expect(_chip(tester, 'Talk 3'), isNull);
+  });
+
+  testWidgets('a day\'s rows are split by inset hairlines in its colour', (
+    tester,
+  ) async {
+    await open(tester, _retreat);
+    final day1 = find.byKey(const ValueKey('day_2023-04-14'));
+    final dividers = tester
+        .widgetList<Divider>(
+          find.descendant(of: day1, matching: find.byType(Divider)),
+        )
+        .toList();
+    // Three rows, two lines between them.
+    expect(dividers, hasLength(2));
+    final outline = Theme.of(tester.element(day1)).colorScheme.outlineVariant;
+    for (final divider in dividers) {
+      expect(divider.color, outline);
+      expect(divider.indent, 16);
+      expect(divider.endIndent, 16);
+    }
+  });
+
+  testWidgets('chips speak the app\'s language', (tester) async {
+    final app = await LibraryTestApp.create(tester);
+    await app.pump(
+      tester,
+      Builder(
+        builder: (context) => Localizations.override(
+          context: context,
+          locale: const Locale('de'),
+          child: PackView(id: _retreat.id),
+        ),
+      ),
+      overrides: [
+        packProvider(
+          packId: _retreat.id,
+        ).overrideWith(() => _FakePack(_retreat)),
+      ],
+    );
+    expect(find.text('Vortrag'), findsWidgets);
+    expect(find.text('Talk'), findsNothing);
+  });
+
   testWidgets('a podcast drops its author from rows, not its guests', (
     tester,
   ) async {
@@ -285,7 +431,7 @@ void main() {
     await tester.pump();
     expect(tester.takeException(), isNull);
     // The chip stays one line.
-    final chip = find.text('Guided meditation').first;
+    final chip = find.text('Meditation').first;
     expect(tester.getSize(chip).height, lessThan(30));
   });
 }

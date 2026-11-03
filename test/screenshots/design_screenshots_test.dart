@@ -957,7 +957,7 @@ void main() {
           packProvider(packId: p.id).overrideWith(() => _PackOf(p)),
       ];
       for (final (pack, name, drags) in [
-        (_insight, 'insight', const [900.0, 1500.0, 1500.0]),
+        (_insight, 'insight', const [900.0, 1500.0]),
         (_jhanas, 'jhanas', const [1400.0]),
         (_podcast, 'podcast', const [700.0]),
       ]) {
@@ -974,7 +974,10 @@ void main() {
             find.byType(CustomScrollView).first,
             Offset(0, -drag),
           );
-          await tester.pump(const Duration(seconds: 1));
+          // Let the fling come to rest before the capture.
+          for (var frame = 0; frame < 20; frame++) {
+            await tester.pump(const Duration(milliseconds: 200));
+          }
           expect(tester.takeException(), isNull);
           await _captureView(
             tester,

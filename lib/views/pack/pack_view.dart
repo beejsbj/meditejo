@@ -17,6 +17,7 @@ import 'package:medito/routes/routes.dart';
 import 'package:medito/views/dharma_seed/widgets/teacher_avatar.dart';
 import 'package:medito/views/library/lib_course_settings.dart';
 import 'package:medito/views/library/library_format.dart';
+import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
@@ -566,7 +567,7 @@ class _PackViewState extends ConsumerState<PackView>
       return [_myCourseEmpty()];
     }
     final rows = _RowStyle.of(pack, Localizations.localeOf(context));
-    final days = _retreatDays(pack.items);
+    final days = _retreatDays(pack);
     final widgets = <Widget>[];
     if (pack.items.any((i) => i.section != null)) {
       widgets.addAll(_sectioned(pack, rows));
@@ -580,13 +581,18 @@ class _PackViewState extends ConsumerState<PackView>
     return [...widgets, _markAllButton(pack)];
   }
 
-  /// A retreat's days: consecutive sessions sharing a recording date, for a
-  /// long course recorded within three weeks. Null for a short course, one
-  /// with an undated session, one recorded in a day, or a series over months
-  /// or years, whose rows say their own dates. Days count from [first].
-  ({List<_DayGroup> groups, DateTime first})? _retreatDays(
-    List<PackItemsModel> items,
-  ) {
+  /// A retreat's days: consecutive sessions sharing a recording date, in
+  /// order, each day after the last. Null where the rows say their own
+  /// dates instead:
+  /// - a short course, one with an undated session, or one recorded in a day;
+  /// - days out of order (a feed listed newest first);
+  /// - about one session a day, which would be a box per row;
+  /// - a feed or other source spread over more than three weeks (a podcast,
+  ///   a series). A Dharma Seed retreat is a retreat by its record, so a
+  ///   month-long one keeps its days, up to [_longestRetreat].
+  /// Days count from [first].
+  ({List<_DayGroup> groups, DateTime first})? _retreatDays(PackModel pack) {
+    final items = pack.items;
     if (items.length < 8 || items.any((i) => i.date == null)) return null;
     final groups = <_DayGroup>[];
     for (final item in items) {
@@ -597,14 +603,22 @@ class _PackViewState extends ConsumerState<PackView>
     }
     if (groups.length < 2) return null;
     final days = [for (final group in groups) ?_day(group.date)];
-    // Out of date order, a day would come back as a second group.
-    if (days.length != groups.length || days.toSet().length != days.length) {
-      return null;
+    if (days.length != groups.length) return null;
+    for (var i = 1; i < days.length; i++) {
+      if (!days[i].isAfter(days[i - 1])) return null;
     }
-    days.sort();
+    if (items.length / groups.length < _densestSparse) return null;
     final span = days.last.difference(days.first).inDays;
-    return span <= 21 ? (groups: groups, first: days.first) : null;
+    final longest = pack.id.startsWith('ds-retreat-') ? _longestRetreat : 21;
+    return span <= longest ? (groups: groups, first: days.first) : null;
   }
+
+  /// Sessions per recorded day below which a retreat's days are not boxed.
+  static const _densestSparse = 1.3;
+
+  /// The longest Dharma Seed retreat, in days, still shown by its days (a
+  /// three-month retreat's part).
+  static const _longestRetreat = 100;
 
   /// A `yyyy-MM-dd` date as a UTC day, so counting days between two of them
   /// is exact across a daylight-saving change.
@@ -764,7 +778,7 @@ class _PackViewState extends ConsumerState<PackView>
         child: PackItemWidget(
           item: item,
           // Unavailable said in words too, not only by fading the row.
-          badge: unavailable ? l10n.myCourseUnavailable : rows.kind(item),
+          badge: unavailable ? l10n.myCourseUnavailable : rows.kind(item, l10n),
           courseTeacher: rows.teacher,
           date: date,
           onSetComplete: unavailable || item.type == TypeConstants.pack
@@ -793,11 +807,20 @@ class _PackViewState extends ConsumerState<PackView>
           )
         else
           row,
-        if (!isLast)
+        if (!isLast && dated)
           const Divider(
             color: ColorConstants.charcoal,
             thickness: 0.5,
             height: 1,
+          )
+        // Inside a day's box, a hairline in the box's own colour, inset.
+        else if (!isLast)
+          Divider(
+            color: Theme.of(context).colorScheme.outlineVariant,
+            thickness: 1,
+            height: 1,
+            indent: 16,
+            endIndent: 16,
           ),
       ],
     );
@@ -891,11 +914,15 @@ class _RowStyle {
 
   factory _RowStyle.of(PackModel pack, Locale locale) {
     final tracks = pack.playableTracks;
-    final kinds = {for (final item in tracks) ?item.kind};
-    final years = {
+    final kinds = [
       for (final item in tracks)
-        if ((item.date ?? '').length >= 4) item.date!.substring(0, 4),
+        if (item.kind case final kind?) DharmaSeedKind.fromRecordingType(kind),
+    ];
+    final dates = {
+      for (final item in tracks)
+        if ((item.date ?? '').length >= 10) item.date!.substring(0, 10),
     };
+    final years = {for (final date in dates) date.substring(0, 4)};
     final tag = locale.toLanguageTag();
     // A Dharma Seed subtitle is a summary ("2014 · 38 talks"), not a name,
     // and a playlist's sessions come from many teachers.
@@ -905,9 +932,13 @@ class _RowStyle {
         : subtitle;
     return _RowStyle._(
       teacher: pack.teacher?.name ?? (byline?.isEmpty ?? true ? null : byline),
-      mixed: kinds.length > 1,
-      // The header already gives a single year: "Mar 5", else "Mar 5, 2019".
-      dateFormat: years.isEmpty
+      // Sits and talks side by side; talks with a Q & A stay quiet.
+      mixed:
+          kinds.any((kind) => kind.isPractice) &&
+          kinds.any((kind) => !kind.isPractice),
+      // Recorded in a day (a daylong), the date says nothing per row. The
+      // header already gives a single year: "Mar 5", else "Mar 5, 2019".
+      dateFormat: dates.length < 2
           ? null
           : years.length == 1
           ? DateFormat.MMMd(tag)
@@ -918,13 +949,29 @@ class _RowStyle {
   /// Who leads the course; rows by them leave out the name.
   final String? teacher;
 
-  /// Whether the course holds more than one kind of session.
+  /// Whether the course holds both practice and talks.
   final bool _mixed;
 
   final DateFormat? dateFormat;
 
-  /// The kind chip for [item], only where the course mixes kinds.
-  String? kind(PackItemsModel item) => _mixed ? item.kind : null;
+  /// The kind chip for [item], only where the course mixes practice and
+  /// talks: the session's own kind, in the app's language.
+  String? kind(PackItemsModel item, AppLocalizations l10n) {
+    final kind = item.kind;
+    if (!_mixed || kind == null) return null;
+    final known = DharmaSeedKind.fromRecordingType(kind);
+    if (known != DharmaSeedKind.other || kind == known.label) {
+      return switch (known) {
+        DharmaSeedKind.meditation => l10n.sessionKindMeditation,
+        DharmaSeedKind.chanting => l10n.sessionKindChanting,
+        DharmaSeedKind.talk => l10n.sessionKindTalk,
+        DharmaSeedKind.questions => l10n.sessionKindQuestions,
+        DharmaSeedKind.other => l10n.sessionKindRecording,
+      };
+    }
+    // A source's own name ("YouTube") is not translated.
+    return kind;
+  }
 
   /// When [item] was recorded, as its row says it.
   String? date(PackItemsModel item) {
