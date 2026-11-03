@@ -33,32 +33,6 @@ final Rgb _black = Rgb.hex('#000000');
 
 // ---------- private helpers (figures-r2.js) ----------
 
-/// The clear disc (the mind's nature) Dzogchen and Mahāmudrā are drawn
-/// round (`clearDisc`).
-void _clearDisc(Ctx ctx, double x, double y, double R, Inks k, double b) {
-  final g = ctx.createRadialGradient(x - R * 0.25, y - R * 0.3, 0, x, y, R)
-    ..addColorStop(0, css(mix(k.paper, k.glow, 0.32), 0.95))
-    ..addColorStop(0.7, css(mix(k.paper, k.main, 0.1), 0.85))
-    ..addColorStop(1, css(mix(k.paper, k.main, 0.18), 0.85));
-  ctx.fillStyle = g;
-  pDot(ctx, x, y, R);
-  ctx.fill();
-  pDot(ctx, x, y, R);
-  pStroke(ctx, k.main, 0.006, 0.5);
-  ctx.beginPath();
-  ctx.arc(x, y, R * 0.86, math.pi * 1.08, math.pi * (1.08 + 0.3 + 0.08 * b));
-  pStroke(ctx, mix(k.glow, Rgb.white, 0.5), 0.008, 0.5);
-}
-
-/// The five lights (`FIVE`).
-List<Rgb> _five(Inks k) => [
-  mix(k.glow, Rgb.white, 0.45),
-  k.glow,
-  k.alt,
-  mix(k.alt, k.main, 0.45),
-  mix(k.main, k.paper, 0.3),
-];
-
 // ---------- Insight Dialogue ----------
 
 /// Two sources take turns; neither ring set is the point. Where a ring from
@@ -551,9 +525,9 @@ class DzogchenMirrorFigure extends Figure {
   @override
   void draw(Ctx ctx, P p, Inks k, double t, bool still) {
     final cx = p.d('cx'), cy = p.d('cy'), s = p.d('s');
-    final b = BR(t, still), R = s * 0.85, five = _five(k);
+    final b = BR(t, still), R = s * 0.85, five = pFive(k);
     pSoft(ctx, cx, cy, R * 1.5, k.glow, 0.2 + 0.08 * b);
-    _clearDisc(ctx, cx, cy, R, k, b);
+    pClearDisc(ctx, cx, cy, R, k, b);
     ctx.save();
     pDot(ctx, cx, cy, R * 0.98);
     ctx.clip();
@@ -599,7 +573,7 @@ class MahamudraWavesFigure extends Figure {
             ? 0.7
             : math.pow(fade(frac(t / (2 * _breath))), 1.5).toDouble(),
         lvl = cy + s * 0.08;
-    _clearDisc(ctx, cx, cy, R, k, b);
+    pClearDisc(ctx, cx, cy, R, k, b);
     ctx.save();
     pDot(ctx, cx, cy, R * 0.99);
     ctx.clip();

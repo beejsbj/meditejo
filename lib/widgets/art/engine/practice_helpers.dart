@@ -157,3 +157,29 @@ double pNum(Map<String, Object?> m, String key) => (m[key]! as num).toDouble();
 
 /// Seconds per breath, as the figures pace themselves (`Core.BREATH`).
 const breathPeriod = 10.0;
+
+/// The clear disc (the mind's nature) Dzogchen and Mahāmudrā are drawn
+/// round (`clearDisc`).
+void pClearDisc(Ctx ctx, double x, double y, double R, Inks k, double b) {
+  final g = ctx.createRadialGradient(x - R * 0.25, y - R * 0.3, 0, x, y, R)
+    ..addColorStop(0, css(mix(k.paper, k.glow, 0.32), 0.95))
+    ..addColorStop(0.7, css(mix(k.paper, k.main, 0.1), 0.85))
+    ..addColorStop(1, css(mix(k.paper, k.main, 0.18), 0.85));
+  ctx.fillStyle = g;
+  pDot(ctx, x, y, R);
+  ctx.fill();
+  pDot(ctx, x, y, R);
+  pStroke(ctx, k.main, 0.006, 0.5);
+  ctx.beginPath();
+  ctx.arc(x, y, R * 0.86, math.pi * 1.08, math.pi * (1.08 + 0.3 + 0.08 * b));
+  pStroke(ctx, mix(k.glow, Rgb.white, 0.5), 0.008, 0.5);
+}
+
+/// The five lights (`FIVE`).
+List<Rgb> pFive(Inks k) => [
+  mix(k.glow, Rgb.white, 0.45),
+  k.glow,
+  k.alt,
+  mix(k.alt, k.main, 0.45),
+  mix(k.main, k.paper, 0.3),
+];
