@@ -2414,6 +2414,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get youSectionPractice => 'Your practice';
 
   @override
+  String get navSettings => 'Settings';
+
+  @override
   String get soundsMixEmptyTitle => 'Nothing in your mix yet';
 
   @override

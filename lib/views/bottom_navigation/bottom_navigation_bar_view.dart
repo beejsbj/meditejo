@@ -237,7 +237,7 @@ class _BottomNavigationBarViewState
         ),
         MainTab.settings => MeditoNavItem(
           icon: Symbols.settings_rounded,
-          label: l10n.settings,
+          label: l10n.navSettings,
         ),
       };
 

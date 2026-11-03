@@ -1021,6 +1021,7 @@
   "navYou": "Tú",
   "youButton": "Tú: estadísticas e historial",
   "youSectionPractice": "Tu práctica",
+  "navSettings": "Ajustes",
   "soundsMixEmptyTitle": "Tu mezcla aún está vacía",
   "soundsMixEmptyHint": "Toca un sonido o un preajuste para empezar una mezcla.",
   "soundsMute": "Silenciar {sound}",

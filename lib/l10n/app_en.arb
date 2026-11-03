@@ -2591,6 +2591,10 @@
   "@youSectionPractice": {
     "description": "Heading on the You page above the rows for session history and favourites"
   },
+  "navSettings": "Settings",
+  "@navSettings": {
+    "description": "Label of the fifth tab in the bottom bar, under a gear. Keep it short: a fifth of a 360 dp phone's width"
+  },
   "soundsMixEmptyTitle": "Nothing in your mix yet",
   "@soundsMixEmptyTitle": {
     "description": "The Sounds tab's mix panel when the mix has no layers"

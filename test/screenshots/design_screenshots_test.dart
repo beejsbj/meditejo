@@ -513,6 +513,86 @@ void main() {
       await _capture(tester, 'navbar-five-${brightness.name}');
     }, skip: !_enabled);
 
+    // The longest translations, on the narrowest phone: each label stays on
+    // one line, set smaller where it must.
+    for (final lang in ['es', 'de']) {
+      testWidgets('five tabs in $lang, ${brightness.name}', (tester) async {
+        final l10n = lookupAppLocalizations(Locale(lang));
+        await tester.pumpWidget(
+          MaterialApp(
+            home: _frame(
+              brightness,
+              Scaffold(
+                body: const SizedBox.expand(),
+                bottomNavigationBar: MeditoNavBar(
+                  items: [
+                    MeditoNavItem(icon: Symbols.home_rounded, label: l10n.home),
+                    MeditoNavItem(
+                      icon: Symbols.search_rounded,
+                      label: l10n.explore,
+                    ),
+                    MeditoNavItem(
+                      icon: Symbols.graphic_eq_rounded,
+                      label: l10n.backgroundSoundsSection,
+                    ),
+                    MeditoNavItem(
+                      icon: Symbols.library_books_rounded,
+                      label: l10n.navLibrary,
+                    ),
+                    MeditoNavItem(
+                      icon: Symbols.settings_rounded,
+                      label: l10n.navSettings,
+                    ),
+                  ],
+                  selectedIndex: 4,
+                  onSelected: (_) {},
+                ),
+              ),
+            ),
+          ),
+        );
+        tester.view.devicePixelRatio = 3;
+        tester.view.physicalSize = const Size(1080, 360);
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+        await _capture(tester, 'navbar-five-$lang-${brightness.name}');
+      }, skip: !_enabled);
+    }
+
+    // Library's header where it is tight: Add folds to a "+" so the title
+    // stays whole.
+    for (final (name, lang, width, scale) in [
+      ('library-header-360-large', 'en', 945.0, 1.3),
+      ('library-header-de', 'de', 1080.0, 1.0),
+    ]) {
+      testWidgets('$name, ${brightness.name}', (tester) async {
+        final app = await LibraryTestApp.create(tester);
+        await app.pump(
+          tester,
+          _frame(
+            brightness,
+            Builder(
+              builder: (context) => Localizations.override(
+                context: context,
+                locale: Locale(lang),
+                child: MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(textScaler: TextScaler.linear(scale)),
+                  child: const LibraryView(),
+                ),
+              ),
+            ),
+          ),
+        );
+        tester.view.devicePixelRatio = 2.625;
+        tester.view.physicalSize = Size(width, 600);
+        await tester.pump(const Duration(seconds: 1));
+        expect(tester.takeException(), isNull);
+        await _capture(tester, '$name-${brightness.name}');
+      }, skip: !_enabled);
+    }
+
     testWidgets('You and Settings, ${brightness.name}', (tester) async {
       // The Settings tab: its header with the You button, then all of it.
       await _pumpYou(tester, brightness, const SettingsScreen());

@@ -31,11 +31,12 @@ class LibraryView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final entries = ref.watch(libraryEntriesProvider);
+    final titleStyle = context.typography.emphasized.titleLarge;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.libraryTitle),
-        titleTextStyle: context.typography.emphasized.titleLarge,
+        titleTextStyle: titleStyle,
         actions: [
           IconButton(
             key: const ValueKey('library_new_course'),
@@ -45,11 +46,9 @@ class LibraryView extends ConsumerWidget {
           ),
           Padding(
             padding: const EdgeInsets.only(right: 4),
-            child: FilledButton.tonalIcon(
-              key: const ValueKey('library_add'),
+            child: _AddButton(
+              compact: !_fullAddFits(context, l10n, titleStyle),
               onPressed: () => openImport(context, ref),
-              icon: const Icon(Icons.add_rounded),
-              label: Text(l10n.libraryAdd),
             ),
           ),
           const Padding(
@@ -67,6 +66,77 @@ class LibraryView extends ConsumerWidget {
           error: (_, _) => const _EmptyLibrary(),
           loading: () => const Center(child: CircularProgressIndicator()),
         ),
+      ),
+    );
+  }
+}
+
+/// Whether "Your library" and the labelled "+ Add" pill both fit the header
+/// beside the new-playlist and You buttons. Measured with the user's text
+/// size, so a narrow phone or large text gets the icon-only button instead
+/// of a cut-off title.
+bool _fullAddFits(
+  BuildContext context,
+  AppLocalizations l10n,
+  TextStyle? titleStyle,
+) {
+  final scaler = MediaQuery.textScalerOf(context);
+  final direction = Directionality.of(context);
+  double measure(String text, TextStyle? style) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: direction,
+      textScaler: scaler,
+      maxLines: 1,
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    return width;
+  }
+
+  // The screen's width: beside a sidebar (700 dp and wider) there is room.
+  final page = MediaQuery.sizeOf(context).width;
+  final title = measure(l10n.libraryTitle, titleStyle);
+  // A tonal pill: 16 dp before the icon, an 18 dp icon, an 8 dp gap, the
+  // label, then 24 dp after it.
+  final pill =
+      16 +
+      18 +
+      8 +
+      measure(l10n.libraryAdd, Theme.of(context).textTheme.labelLarge) +
+      24;
+  // The title's 16 dp inset and the 16 dp before the actions, the
+  // new-playlist button, the pill's 4 dp, and the You button with its inset.
+  const rest = 16 + 16 + 48 + 4 + 48 + YouButton.inset;
+  return title + pill + rest <= page;
+}
+
+/// "+ Add", which opens Import. Where the header is tight it is a round
+/// tonal "+" with the same tooltip and a spoken label.
+class _AddButton extends StatelessWidget {
+  const _AddButton({required this.compact, required this.onPressed});
+
+  final bool compact;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    if (!compact) {
+      return FilledButton.tonalIcon(
+        key: const ValueKey('library_add'),
+        onPressed: onPressed,
+        icon: const Icon(Icons.add_rounded),
+        label: Text(l10n.libraryAdd),
+      );
+    }
+    return Tooltip(
+      message: l10n.importTitle,
+      excludeFromSemantics: true,
+      child: IconButton.filledTonal(
+        key: const ValueKey('library_add'),
+        onPressed: onPressed,
+        icon: Icon(Icons.add_rounded, semanticLabel: l10n.importTitle),
       ),
     );
   }

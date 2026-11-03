@@ -4246,6 +4246,12 @@ abstract class AppLocalizations {
   /// **'Your practice'**
   String get youSectionPractice;
 
+  /// Label of the fifth tab in the bottom bar, under a gear. Keep it short: a fifth of a 360 dp phone's width
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get navSettings;
+
   /// The Sounds tab's mix panel when the mix has no layers
   ///
   /// In en, this message translates to:

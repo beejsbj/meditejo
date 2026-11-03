@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
@@ -7,8 +8,11 @@ import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/routes/routes.dart';
+import 'package:medito/views/settings/settings_screen.dart';
 import 'package:medito/views/you/you_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../helpers/update_fakes.dart';
 
 class _EmptyStats extends StatsNotifier {
   @override
@@ -129,5 +133,61 @@ void main() {
 
     expect(find.text('page'), findsNothing);
     expect(container.read(mainTabProvider), MainTab.library);
+  });
+
+  testWidgets('another *settings* link pushes Settings, with a way back', (
+    tester,
+  ) async {
+    // Settings' reminder row asks for the notification permission.
+    const permissions = MethodChannel(
+      'flutter.baseflow.com/permissions/methods',
+    );
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(permissions, (_) async => 1);
+    addTearDown(() => messenger.setMockMethodCallHandler(permissions, null));
+    final h = await UpdateHarness.create();
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(430, 1200);
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          ...h.overrides,
+          statsProvider.overrideWith(_EmptyStats.new),
+        ],
+        child: MaterialApp(
+          navigatorKey: navigatorKey,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Consumer(
+            builder: (c, ref, _) {
+              context = c;
+              widgetRef = ref;
+              return const Scaffold(body: Text('root'));
+            },
+          ),
+        ),
+      ),
+    );
+    container = ProviderScope.containerOf(context);
+
+    handleNavigation(
+      'notification_settings',
+      [''],
+      context,
+      ref: widgetRef,
+    ).ignore();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SettingsScreen), findsOneWidget);
+    // Pushed over the tabs, not the tab itself.
+    expect(container.read(mainTabProvider), MainTab.home);
+    expect(find.byType(BackButton), findsOneWidget);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsNothing);
+    expect(find.text('root'), findsOneWidget);
   });
 }
