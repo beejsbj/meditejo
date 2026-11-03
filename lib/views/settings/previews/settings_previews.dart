@@ -16,7 +16,6 @@ import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/views/settings/settings_screen.dart';
-import 'package:medito/views/settings/widgets/app_icon_tile.dart';
 import 'package:medito/views/settings/widgets/day_boundary_offset_dialog.dart';
 import 'package:medito/views/settings/widgets/dnd_setting_tile.dart';
 import 'package:medito/views/settings/widgets/reminder_tile.dart';
@@ -129,38 +128,29 @@ Widget reminderTileOn() => const ReminderTile();
 
 @Preview(
   group: 'Tiles',
-  name: 'Theme + App icon rows',
-  size: Size(390, 220),
+  name: 'Theme row',
+  size: Size(390, 120),
   wrapper: wrapDarkTile,
 )
-Widget themeAndIconRows() => Builder(
+Widget themeRow() => Builder(
   builder: (context) {
     final color = Theme.of(context).colorScheme.onSurface;
     final l10n = AppLocalizations.of(context)!;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ThemeTile(
-          icon: MeditoIcon(assetName: AssetConstants.icSparks, color: color),
-          title: l10n.themeTitle,
-        ),
-        AppIconTile(
-          icon: MeditoIcon(assetName: MeditoIcons.home, color: color),
-          title: l10n.appIconTitle,
-          hasUnderline: false,
-        ),
-      ],
+    return ThemeTile(
+      icon: MeditoIcon(assetName: AssetConstants.icSparks, color: color),
+      title: l10n.themeTitle,
+      hasUnderline: false,
     );
   },
 );
 
 @Preview(
   group: 'Tiles',
-  name: 'Theme + App icon rows · light',
-  size: Size(390, 220),
+  name: 'Theme row · light',
+  size: Size(390, 120),
   wrapper: wrapLightTile,
 )
-Widget themeAndIconRowsLight() => themeAndIconRows();
+Widget themeRowLight() => themeRow();
 
 @Preview(
   group: 'Tiles',

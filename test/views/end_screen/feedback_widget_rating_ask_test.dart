@@ -44,7 +44,7 @@ void main() {
     expect(find.text('Could you leave Meditejo a rating?'), findsOneWidget);
     expect(find.text('Rate Meditejo'), findsOneWidget);
 
-    await tester.tap(find.text('Not Now'));
+    await tester.tap(find.text('Not now'));
     await tester.pumpAndSettle();
     expect(find.text('Could you leave Meditejo a rating?'), findsNothing);
     expect(find.textContaining('Thanks for sharing'), findsOneWidget);

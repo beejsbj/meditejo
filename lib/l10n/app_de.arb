@@ -69,7 +69,6 @@
   "alwaysShowStreakOnHomepage": "Serie immer auf der Startseite anzeigen",
   "gotIt": "Verstanden",
   "goBack": "Zurück",
-  "editStatsTitle": "Statistiken bearbeiten",
   "path": "Pfad",
   "completed": "Abgeschlossen",
   "submit": "Absenden",
@@ -295,46 +294,6 @@
   "themeTitle": "Erscheinungsbild",
   "@themeTitle": {
     "description": "Title for theme selection setting in customization section"
-  },
-  "appIconTitle": "App-Symbol",
-  "@appIconTitle": {
-    "description": "Title for app icon selection setting in customization section"
-  },
-  "appIconNearBlack": "Dunkel",
-  "@appIconNearBlack": {
-    "description": "Label for the near-black app icon option"
-  },
-  "appIconDusk": "Abenddämmerung",
-  "@appIconDusk": {
-    "description": "Label for the dusk gradient app icon option (now the default)"
-  },
-  "appIconPurple": "Violett",
-  "@appIconPurple": {
-    "description": "Label for the original purple app icon option"
-  },
-  "appIconClassic": "Klassisch",
-  "@appIconClassic": {
-    "description": "Label for the classic app icon option (purple M on white)"
-  },
-  "appIconBlush": "Rosé",
-  "@appIconBlush": {
-    "description": "Label for the blush pink gradient app icon option"
-  },
-  "appIconOcean": "Ozean",
-  "@appIconOcean": {
-    "description": "Label for the ocean blue gradient app icon option"
-  },
-  "appIconForest": "Wald",
-  "@appIconForest": {
-    "description": "Label for the forest green gradient app icon option"
-  },
-  "appIconPink": "Gold",
-  "@appIconPink": {
-    "description": "Label for the pink-to-gold sunset gradient app icon option"
-  },
-  "appIconChanged": "App-Symbol aktualisiert. Neustart...",
-  "@appIconChanged": {
-    "description": "Snackbar message shown on Android after changing the app icon"
   },
   "systemTheme": "System",
   "@systemTheme": {
@@ -741,26 +700,6 @@
   "@manageDefaults": {
     "description": "Title for the manage defaults screen"
   },
-  "defaultGuideName": "Bevorzugte Stimme",
-  "@defaultGuideName": {
-    "description": "Label for default guide name setting"
-  },
-  "defaultDuration": "Bevorzugte Dauer",
-  "@defaultDuration": {
-    "description": "Label for default duration setting"
-  },
-  "defaultGuideNameCleared": "Bevorzugte Stimme zurückgesetzt",
-  "@defaultGuideNameCleared": {
-    "description": "Message shown when default guide name is cleared"
-  },
-  "notSet": "Nicht festgelegt",
-  "@notSet": {
-    "description": "Text shown when a default value is not set"
-  },
-  "defaultsNote": "Diese Voreinstellungen entsprechen deiner letzten Auswahl bei einem Titel. Die Startseite verwendet sie, um den Auswahlbildschirm zu überspringen, wenn du ein Paket fortsetzt.",
-  "@defaultsNote": {
-    "description": "Note explaining how defaults work in Up Next"
-  },
   "streakFreezeUsed": "Serienschutz eingesetzt",
   "@streakFreezeUsed": {
     "description": "Text shown when a streak freeze was used on a particular day"
@@ -827,10 +766,6 @@
   "clearSearch": "Suche leeren",
   "@clearSearch": {
     "description": "Accessibility label for the clear search button"
-  },
-  "clearDefault": "Bevorzugte Stimme zurücksetzen",
-  "@clearDefault": {
-    "description": "Accessibility label for the button that clears the saved default guide preference"
   },
   "onboardingExperienceQuestion": "Hast du schon einmal meditiert?",
   "@onboardingExperienceQuestion": {
@@ -1375,5 +1310,8 @@
   "labelsCustomHeading": "Deine Labels",
   "labelsAddHint": "Label hinzufügen",
   "labelsAddButton": "Hinzufügen",
-  "labelsRemoveTooltip": "Label {label} entfernen"
+  "labelsRemoveTooltip": "Label {label} entfernen",
+  "settingsSessionHistory": "Verlauf der Sitzungen",
+  "updateAutoCheck": "Automatisch nach Updates suchen",
+  "updateAutoCheckDescription": "Fragt beim Öffnen von Meditejo einmal täglich bei GitHub nach."
 }
