@@ -195,16 +195,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get loading => 'Cargando...';
 
   @override
-  String get currentStreak => 'Racha Actual';
+  String get currentStreak => 'Racha actual';
 
   @override
-  String get longestStreak => 'Racha Más Larga';
+  String get longestStreak => 'Racha más larga';
 
   @override
   String get consistencyScore => 'Puntuación de Consistencia';
 
   @override
-  String get totalTracksCompleted => 'Total de Pistas Completadas';
+  String get totalTracksCompleted => 'Total de pistas completadas';
 
   @override
   String get totalTimeListened => 'Tiempo Total Escuchado';
@@ -236,9 +236,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get goBack => 'Regresar';
-
-  @override
-  String get editStatsTitle => 'Editar estadísticas';
 
   @override
   String get path => 'Ruta';
@@ -318,7 +315,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get customization => 'Personalización';
 
   @override
-  String get customiseHomeLayout => 'Organizar Diseño de Inicio';
+  String get customiseHomeLayout => 'Organizar el diseño de Inicio';
 
   @override
   String get helpLegal => 'Ayuda y Legal';
@@ -490,7 +487,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get skip => 'Omitir';
 
   @override
-  String get notNow => 'Ahora No';
+  String get notNow => 'Ahora no';
 
   @override
   String get errorNoInternetMessage => 'Sin conexión a internet';
@@ -514,7 +511,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Silenciar teléfono durante la meditación';
 
   @override
-  String get zenMode => 'Modo Zen';
+  String get zenMode => 'Modo zen';
 
   @override
   String get zenModeEnabledMessage =>
@@ -605,7 +602,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noResultsFound => 'No se encontraron resultados para tu búsqueda';
 
   @override
-  String get consistencyScoreInfoTitle => 'Puntuación de Consistencia';
+  String get consistencyScoreInfoTitle => 'Puntuación de consistencia';
 
   @override
   String get consistencyScoreInfoMessage =>
@@ -630,7 +627,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get customizationSection => 'Personalización';
 
   @override
-  String get addHomeScreenWidget => 'Añadir Widget a la Pantalla de Inicio';
+  String get addHomeScreenWidget => 'Añadir widget a la pantalla de inicio';
 
   @override
   String get addWidgetSheetTitle => 'Añade un widget de Meditejo';
@@ -658,36 +655,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get themeTitle => 'Tema';
 
   @override
-  String get appIconTitle => 'Icono de la app';
-
-  @override
-  String get appIconNearBlack => 'Casi negro';
-
-  @override
-  String get appIconDusk => 'Crepúsculo';
-
-  @override
-  String get appIconPurple => 'Morado';
-
-  @override
-  String get appIconClassic => 'Clásico';
-
-  @override
-  String get appIconBlush => 'Rubor';
-
-  @override
-  String get appIconOcean => 'Océano';
-
-  @override
-  String get appIconForest => 'Bosque';
-
-  @override
-  String get appIconPink => 'Hora dorada';
-
-  @override
-  String get appIconChanged => 'Icono actualizado. Reiniciando…';
-
-  @override
   String get systemTheme => 'Sistema';
 
   @override
@@ -701,7 +668,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get darkTheme => 'Oscuro';
 
   @override
-  String get selectTheme => 'Seleccionar Tema';
+  String get selectTheme => 'Seleccionar tema';
 
   @override
   String get dailyReminders => 'Recordatorios Diarios';
@@ -1042,22 +1009,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get manageDefaults => 'Gestionar Predeterminados';
 
   @override
-  String get defaultGuideName => 'Guía Predeterminado';
-
-  @override
-  String get defaultDuration => 'Duración Predeterminada';
-
-  @override
-  String get defaultGuideNameCleared => 'Guía predeterminado eliminado';
-
-  @override
-  String get notSet => 'Sin configurar';
-
-  @override
-  String get defaultsNote =>
-      'Estos valores predeterminados se basan en tu última selección en cualquier pista. Inicio los usa para omitir la pantalla de selección cuando continúas un paquete.';
-
-  @override
   String get streakFreezeUsed => 'Congelación de racha usada';
 
   @override
@@ -1113,9 +1064,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get clearSearch => 'Borrar búsqueda';
-
-  @override
-  String get clearDefault => 'Borrar guía predeterminada';
 
   @override
   String get onboardingExperienceQuestion => '¿Has meditado antes?';
@@ -2152,10 +2100,16 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get soundsDrift => 'Vaivén';
+  String get soundsSwell => 'Oleaje';
 
   @override
-  String get soundsDriftHint => 'Deja que el volumen suba y baje despacio';
+  String get soundsSwellHint => 'Sube y baja despacio';
+
+  @override
+  String get soundsClear => 'Vaciar';
+
+  @override
+  String get soundsMixCleared => 'Mezcla vaciada';
 
   @override
   String get soundsPresets => 'Preajustes';
@@ -2844,4 +2798,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String labelsRemoveTooltip(String label) {
     return 'Quitar la etiqueta $label';
   }
+
+  @override
+  String get settingsSessionHistory => 'Historial de sesiones';
+
+  @override
+  String get updateAutoCheck => 'Buscar actualizaciones automáticamente';
+
+  @override
+  String get updateAutoCheckDescription =>
+      'Consulta GitHub una vez al día al abrir Meditejo.';
 }

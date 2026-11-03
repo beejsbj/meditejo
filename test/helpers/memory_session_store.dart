@@ -1,3 +1,4 @@
+import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
 
 /// The session contexts a view writes, kept in memory. A real database
@@ -5,6 +6,12 @@ import 'package:medito/services/library/library_store.dart';
 /// store call fails loudly.
 class MemorySessionStore implements LibraryStore {
   final contexts = <String, String>{};
+
+  /// Sessions left partway, most recently left first.
+  final places = <SavedPlace>[];
+
+  @override
+  Future<List<SavedPlace>> savedPlaces({int? limit}) async => places;
 
   @override
   Future<void> noteSessionContext(String trackId, String courseId) async =>

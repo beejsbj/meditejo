@@ -507,6 +507,7 @@ void main() {
     for (final (name, empty, open, wide) in [
       ('sounds', false, false, false),
       ('sounds-mix', false, true, false),
+      ('sounds-cleared', false, true, false),
       ('sounds-empty', true, false, false),
       ('sounds-wide', false, false, true),
     ]) {
@@ -550,6 +551,13 @@ void main() {
         if (open) {
           await tester.tap(find.byKey(const ValueKey('sounds_mix_toggle')));
           await tester.pump(const Duration(seconds: 1));
+        }
+        if (name == 'sounds-cleared') {
+          // Clear, with its Undo snackbar showing.
+          await tester.tap(find.byKey(const ValueKey('sounds_clear')));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 500));
+          await tester.pump(const Duration(milliseconds: 500));
         }
         expect(tester.takeException(), isNull);
         await _capture(tester, '$name-${brightness.name}');

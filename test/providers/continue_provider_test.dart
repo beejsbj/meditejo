@@ -155,6 +155,35 @@ void main() {
     expect(items.single.sessionTotal, 4);
   });
 
+  test(
+    'a session in two courses is offered once, under the one opened',
+    () async {
+      await addCourse('a', played: true);
+      await addCourse('b', played: true);
+      // Course b lists a's third session, and it was left partway after
+      // opening it from b.
+      final b = PackModel(
+        id: 'x-course-b',
+        title: 'Course b',
+        items: const [
+          PackItemsModel(
+            type: TypeConstants.track,
+            id: 'x-a-3',
+            title: 'Session 3 of a',
+            path: '/tracks/x-a-3',
+          ),
+        ],
+      );
+      await store.noteSessionContext('x-a-3', 'x-course-b');
+      await leftAt('x-a-3', DateTime(2026, 10, 18));
+
+      final items = await read(checked: ['x-a-1'], packs: [_course('a'), b]);
+
+      expect(items.where((i) => i.trackId == 'x-a-3'), hasLength(1));
+      expect(items.single.courseId, 'x-course-b');
+    },
+  );
+
   test('a completed resume point yields the next unfinished session', () async {
     await addCourse('a', played: true);
     await leftAt('x-a-1', DateTime(2026, 10, 18));

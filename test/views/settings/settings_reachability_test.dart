@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/providers/duration_preference_provider.dart';
+import 'package:medito/providers/updates/update_providers.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/views/settings/settings_screen.dart';
@@ -23,11 +23,9 @@ const _everywhere = {
   // Notifications & reminders
   'Daily reminder',
   // Practice: from Manage defaults, Advanced and Customisation
-  'Default Guide Name',
-  'Default Duration',
   'When my day starts',
-  'Zen Mode',
-  'Edit stats',
+  'Zen mode',
+  'Session history',
   // Sounds & cues: the Customize defaults
   'Practice sounds & cues',
   'Talks sounds & cues',
@@ -38,8 +36,7 @@ const _everywhere = {
   'Dharma Seed library',
   // Appearance
   'Theme',
-  'App Icon',
-  'Organize Home Layout',
+  'Organize Home layout',
   // About: from Advanced and About Meditejo
   'Check for updates',
   'Source code',
@@ -51,7 +48,7 @@ const _everywhere = {
 const _phoneOnly = {
   'Silence phone during meditation',
   'Sync with Apple Health', // "Health Connect" when the tests run on Android
-  'Add Home Screen Widget',
+  'Add Home screen widget',
 };
 const _groups = [
   'Practice',
@@ -170,18 +167,50 @@ void main() {
     expect(_titled('Stats'), findsWidgets);
   });
 
-  testWidgets('the default length can be set from Settings before any track', (
+  testWidgets('the Medito leftovers are gone from Settings', (tester) async {
+    await _pump(tester);
+    for (final title in [
+      'Default Guide Name',
+      'Default Duration',
+      'App Icon',
+    ]) {
+      expect(_titled(title), findsNothing, reason: title);
+    }
+  });
+
+  testWidgets('the automatic update check is a switch, on by default', (
     tester,
   ) async {
     final container = await _pump(tester);
-    expect(container.read(durationPreferenceProvider), isNull);
-    await tester.tap(_titled('Default Duration'));
+    final tile = find.byKey(const ValueKey('settings_auto_update_check'));
+    expect(tile, findsOneWidget);
+    expect(_titled('Check for updates automatically'), findsOneWidget);
+    expect(container.read(autoUpdateCheckProvider), isTrue);
+    expect(
+      tester
+          .widget<Switch>(
+            find.descendant(of: tile, matching: find.byType(Switch)),
+          )
+          .value,
+      isTrue,
+    );
+
+    await tester.tap(find.descendant(of: tile, matching: find.byType(Switch)));
     await tester.pumpAndSettle();
-    expect(find.byType(Slider), findsOneWidget);
-    expect(find.text('10 min'), findsOneWidget);
-    // Opening the sheet saves nothing; moving the slider does.
-    expect(container.read(durationPreferenceProvider), isNull);
-    await tester.drag(find.byType(Slider), const Offset(100, 0));
-    expect(container.read(durationPreferenceProvider), isNotNull);
+
+    expect(container.read(autoUpdateCheckProvider), isFalse);
+    expect(
+      tester
+          .widget<Switch>(
+            find.descendant(of: tile, matching: find.byType(Switch)),
+          )
+          .value,
+      isFalse,
+    );
+    // The manual path stays.
+    expect(
+      find.widgetWithText(OutlinedButton, 'Check for updates'),
+      findsOneWidget,
+    );
   });
 }

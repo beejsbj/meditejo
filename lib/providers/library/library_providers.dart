@@ -281,6 +281,17 @@ final resumePointProvider = FutureProvider.autoDispose
       return ref.watch(libraryStoreProvider).resumePoint(trackId);
     });
 
+/// When each session the user left partway was last left, by session id. The
+/// course page and Home's Continue both choose a course's next session from
+/// this (see `nextSessionFor`).
+final partialPlacesProvider = FutureProvider.autoDispose<Map<String, DateTime>>(
+  (ref) async {
+    ref.watch(playbackPositionsRevisionProvider);
+    final places = await ref.watch(libraryStoreProvider).savedPlaces();
+    return {for (final p in places) p.trackId: p.updatedAt};
+  },
+);
+
 /// Resume points for several sessions at once (a course page's rows).
 final resumePointsProvider = FutureProvider.autoDispose
     .family<Map<String, ResumePoint>, List<String>>((ref, trackIds) {
