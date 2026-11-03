@@ -9,33 +9,34 @@ enum MainTab {
   explore,
   sounds,
   library,
-  you;
+  settings;
 
   /// The tab bar this order belongs to. The first bar (Home · Explore ·
   /// Search · Settings) never wrote a layout; 2 was Home · Explore · Library
-  /// · Settings.
+  /// · Settings. Layout 3's fifth tab was You until it became Settings again;
+  /// it was never saved, so the order is unchanged.
   static const layout = 3;
 
   /// What each older bar's saved index means now. The first bar saved only
-  /// Home and Explore; layout 2's Settings is You.
+  /// Home and Explore.
   static const _olderLayouts = <int?, List<MainTab>>{
     null: [home, explore],
-    2: [home, explore, library, you],
+    2: [home, explore, library, settings],
     layout: values,
   };
 
   /// Which tab to open on launch from what was [saved] (an index, or null) by
   /// a bar of the given [savedLayout].
   ///
-  /// A saved index maps to the tab it named in its own bar. You is never
-  /// restored (nor Settings before it), and an index that names nothing, or
-  /// a layout this build does not know, opens Home.
+  /// A saved index maps to the tab it named in its own bar. Settings is never
+  /// restored, and an index that names nothing, or a layout this build does
+  /// not know, opens Home.
   static MainTab restore(int? saved, {int? savedLayout}) {
     final order = _olderLayouts[savedLayout];
     if (saved == null || order == null) return home;
     if (saved < 0 || saved >= order.length) return home;
     final tab = order[saved];
-    return tab == you ? home : tab;
+    return tab == settings ? home : tab;
   }
 }
 
@@ -68,8 +69,8 @@ class MainTabNotifier extends Notifier<MainTab> {
   }
 
   void _save(MainTab tab) {
-    // You (Settings and stats) is a place to visit, not to return to.
-    if (tab == MainTab.you) return;
+    // Settings is a place to visit, not to return to.
+    if (tab == MainTab.settings) return;
     final prefs = ref.read(sharedPreferencesProvider);
     prefs.setInt(SharedPreferenceConstants.mainTabLayout, MainTab.layout);
     prefs.setInt(SharedPreferenceConstants.lastMainTabIndex, tab.index);

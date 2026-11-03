@@ -4228,11 +4228,23 @@ abstract class AppLocalizations {
   /// **'Edit'**
   String get myCourseEditAction;
 
-  /// The tab bar's last tab: the user's own place (stats and settings)
+  /// Title of the You page: the user's own place (stats, session history, favourites). Opened from the person button at the top right of Home, Library and Settings
   ///
   /// In en, this message translates to:
   /// **'You'**
   String get navYou;
+
+  /// Tooltip and screen-reader label of the person button at the top right of Home, Library and Settings, which opens the You page
+  ///
+  /// In en, this message translates to:
+  /// **'You: stats and history'**
+  String get youButton;
+
+  /// Heading on the You page above the rows for session history and favourites
+  ///
+  /// In en, this message translates to:
+  /// **'Your practice'**
+  String get youSectionPractice;
 
   /// The Sounds tab's mix panel when the mix has no layers
   ///

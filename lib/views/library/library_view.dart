@@ -11,6 +11,7 @@ import 'package:medito/services/library/library_models.dart';
 import 'package:medito/views/library/import_view.dart';
 import 'package:medito/views/library/library_widgets.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
+import 'package:medito/views/you/you_button.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 import 'package:medito/widgets/cards/card_tokens.dart';
 import 'package:medito/widgets/cards/course_card.dart';
@@ -43,13 +44,17 @@ class LibraryView extends ConsumerWidget {
             icon: const Icon(Icons.playlist_add_rounded),
           ),
           Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: 4),
             child: FilledButton.tonalIcon(
               key: const ValueKey('library_add'),
               onPressed: () => openImport(context, ref),
               icon: const Icon(Icons.add_rounded),
               label: Text(l10n.libraryAdd),
             ),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(right: YouButton.inset),
+            child: YouButton(),
           ),
         ],
       ),

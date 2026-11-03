@@ -1,10 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
+import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/routes/routes.dart';
+import 'package:medito/views/you/you_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+class _EmptyStats extends StatsNotifier {
+  @override
+  Future<LocalAllStats> build() async => LocalAllStats.empty();
+
+  @override
+  Future<void> refresh() async {}
+}
 
 void main() {
   late ProviderContainer container;
@@ -17,9 +29,15 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          // The You page reads the stats.
+          statsProvider.overrideWith(_EmptyStats.new),
+        ],
         child: MaterialApp(
           navigatorKey: navigatorKey,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Consumer(
             builder: (c, ref, _) {
               context = c;
@@ -49,7 +67,7 @@ void main() {
     expect(container.read(mainTabProvider), MainTab.home);
   });
 
-  testWidgets('meditejo://sounds and you select their tab; settings is You', (
+  testWidgets('meditejo://sounds and settings select their tab', (
     tester,
   ) async {
     await pump(tester);
@@ -57,12 +75,35 @@ void main() {
     await handleNavigation('sounds', [''], context, ref: widgetRef);
     expect(container.read(mainTabProvider), MainTab.sounds);
 
-    await handleNavigation('you', [''], context, ref: widgetRef);
-    expect(container.read(mainTabProvider), MainTab.you);
-
-    await handleNavigation('home', [''], context, ref: widgetRef);
     await handleNavigation('settings', [''], context, ref: widgetRef);
-    expect(container.read(mainTabProvider), MainTab.you);
+    expect(container.read(mainTabProvider), MainTab.settings);
+  });
+
+  testWidgets('meditejo://you, the old You tab, opens the You page', (
+    tester,
+  ) async {
+    await pump(tester);
+    await handleNavigation('library', [''], context, ref: widgetRef);
+    // Something open above the tabs closes first.
+    navigatorKey.currentState!.push<void>(
+      MaterialPageRoute(builder: (_) => const Scaffold(body: Text('page'))),
+    );
+    await tester.pumpAndSettle();
+
+    handleNavigation('you', [''], context, ref: widgetRef).ignore();
+    await tester.pumpAndSettle();
+
+    expect(find.text('page'), findsNothing);
+    expect(find.byType(YouView), findsOneWidget);
+    expect(find.byKey(const ValueKey('you_stats_card')), findsOneWidget);
+    // Over the tab that was open; You is not a tab.
+    expect(container.read(mainTabProvider), MainTab.library);
+
+    // Back returns to the tabs.
+    navigatorKey.currentState!.pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(YouView), findsNothing);
+    expect(find.text('root'), findsOneWidget);
   });
 
   testWidgets('search opens Explore and asks for the cursor', (tester) async {

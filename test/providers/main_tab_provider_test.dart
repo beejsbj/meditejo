@@ -119,7 +119,7 @@ void main() {
       expect(container.read(mainTabProvider), MainTab.home);
     });
 
-    test('selecting remembers every tab but You', () async {
+    test('selecting remembers every tab but Settings', () async {
       final (prefs, container) = await _open({});
       final tabs = container.read(mainTabProvider.notifier);
 
@@ -131,8 +131,8 @@ void main() {
       tabs.select(MainTab.library);
       expect(prefs.getInt(SharedPreferenceConstants.lastMainTabIndex), 3);
 
-      tabs.select(MainTab.you);
-      expect(container.read(mainTabProvider), MainTab.you);
+      tabs.select(MainTab.settings);
+      expect(container.read(mainTabProvider), MainTab.settings);
       expect(prefs.getInt(SharedPreferenceConstants.lastMainTabIndex), 3);
     });
   });
@@ -144,9 +144,9 @@ void main() {
       expect(tabForLink('search'), MainTab.explore);
       expect(tabForLink('sounds'), MainTab.sounds);
       expect(tabForLink('library'), MainTab.library);
-      expect(tabForLink('you'), MainTab.you);
-      // Settings lives under You.
-      expect(tabForLink('settings'), MainTab.you);
+      expect(tabForLink('settings'), MainTab.settings);
+      // You is a page over the tabs, not a tab.
+      expect(tabForLink('you'), isNull);
       expect(tabForLink('tracks'), isNull);
     });
 
@@ -156,7 +156,7 @@ void main() {
         'explore',
         'sounds',
         'library',
-        'you',
+        'settings',
       ]);
       expect(MainTab.layout, 3);
     });

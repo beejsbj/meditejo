@@ -1211,6 +1211,8 @@
   "myCourseRemovedSnack": "Aus der Playlist entfernt",
   "myCourseEditAction": "Bearbeiten",
   "navYou": "Du",
+  "youButton": "Du: Statistik und Verlauf",
+  "youSectionPractice": "Deine Praxis",
   "soundsMixEmptyTitle": "Noch nichts in deinem Mix",
   "soundsMixEmptyHint": "Tippe auf ein Geräusch oder eine Voreinstellung, um einen Mix zu beginnen.",
   "soundsMute": "{sound} stummschalten",

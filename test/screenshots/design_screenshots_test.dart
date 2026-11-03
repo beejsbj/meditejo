@@ -47,7 +47,7 @@ import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/views/stats/stats_screen.dart';
-import 'package:medito/views/you/you_view.dart';
+import 'package:medito/views/settings/settings_screen.dart';
 
 import '../helpers/dharma_seed_app.dart';
 import '../helpers/dharma_seed_catalogue.dart';
@@ -316,6 +316,8 @@ Future<void> _pumpYou(
     UncontrolledProviderScope(
       container: container,
       child: MaterialApp(
+        // The You page is captured with the whole view, banner included.
+        debugShowCheckedModeBanner: false,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         theme: meditejoTheme(brightness, _palette),
@@ -419,7 +421,7 @@ void main() {
     MeditoNavItem(icon: Symbols.search_rounded, label: 'Explore'),
     MeditoNavItem(icon: Symbols.graphic_eq_rounded, label: 'Sounds'),
     MeditoNavItem(icon: Symbols.library_books_rounded, label: 'Library'),
-    MeditoNavItem(icon: Symbols.person_rounded, label: 'You'),
+    MeditoNavItem(icon: Symbols.settings_rounded, label: 'Settings'),
   ];
 
   for (final brightness in Brightness.values) {
@@ -511,11 +513,18 @@ void main() {
     }, skip: !_enabled);
 
     testWidgets('You and Settings, ${brightness.name}', (tester) async {
-      await _pumpYou(tester, brightness, const YouView());
-      await _capture(tester, 'you-${brightness.name}');
+      // The Settings tab: its header with the You button, then all of it.
+      await _pumpYou(tester, brightness, const SettingsScreen());
+      await _capture(tester, 'settings-top-${brightness.name}');
       tester.view.physicalSize = const Size(1080, 6200);
       await tester.pump(const Duration(seconds: 1));
       await _capture(tester, 'settings-${brightness.name}');
+      // The You page, as its button opens it over Settings.
+      await _phone(tester);
+      await tester.tap(find.byKey(const ValueKey('you_button')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await _captureView(tester, 'you-${brightness.name}');
     }, skip: !_enabled);
 
     for (final days in [7, 30]) {

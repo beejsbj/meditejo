@@ -10,7 +10,7 @@ import 'package:medito/services/updates/apk_installer.dart';
 import 'package:medito/services/updates/github_release_client.dart';
 import 'package:medito/services/updates/update_failure.dart';
 import 'package:medito/views/home/widgets/update_notice.dart';
-import 'package:medito/views/you/you_view.dart';
+import 'package:medito/views/settings/settings_screen.dart';
 
 import '../../helpers/update_fakes.dart';
 
@@ -27,11 +27,11 @@ Widget _app(ProviderContainer container, Widget home) =>
 Future<ProviderContainer> _pump(
   WidgetTester tester,
   UpdateHarness h, {
-  Widget home = const YouView(),
+  Widget home = const SettingsScreen(),
 }) async {
   final container = h.container();
   addTearDown(container.dispose);
-  // Tall enough that the whole You page is built, About at the bottom.
+  // Tall enough that the whole Settings tab is built, About at the bottom.
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(800, 4000);
   addTearDown(tester.view.reset);
@@ -272,7 +272,9 @@ void main() {
       expect(find.textContaining('is available'), findsNothing);
     });
 
-    testWidgets('View opens You, with the update on offer', (tester) async {
+    testWidgets('View opens Settings, with the update on offer', (
+      tester,
+    ) async {
       final h = await UpdateHarness.create(
         latest: () => LatestFound(testRelease(), null),
       );
@@ -287,7 +289,7 @@ void main() {
       await tester.tap(find.text('View'));
       await tester.pumpAndSettle();
 
-      expect(container.read(mainTabProvider), MainTab.you);
+      expect(container.read(mainTabProvider), MainTab.settings);
     });
 
     testWidgets('About leads Settings while an update is waiting', (
