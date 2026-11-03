@@ -98,7 +98,7 @@
       document.body.className = 'shotmode';
       const host = el('div', 'shot');
       if (shot === 'fixes') host.append(fixesBlock());
-      else if (shot === 'sheet') { host.classList.add('sheet'); P.forEach((p) => host.append(block(p, true))); }
+      else if (shot === 'sheet') { host.classList.add('sheet'); if (P.length <= 8) { host.style.width = '2380px'; host.style.columns = '2'; } P.forEach((p) => host.append(block(p, true))); }
       else host.append(block(P.find((p) => p.id === shot)));
       document.body.append(host);
       return;
