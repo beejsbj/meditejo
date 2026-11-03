@@ -4864,6 +4864,42 @@ abstract class AppLocalizations {
   /// **'Remove label {label}'**
   String labelsRemoveTooltip(String label);
 
+  /// Card menu action on a Home Continue card that opens the course page
+  ///
+  /// In en, this message translates to:
+  /// **'Open course'**
+  String get homeOpenCourse;
+
+  /// Card menu action on a Home Continue card that plays the session from 0:00
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get homeRestart;
+
+  /// Card menu action that takes an item off Home's Continue section
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from Continue'**
+  String get homeRemoveFromContinue;
+
+  /// Snackbar after unpinning a course from Home; offers Undo
+  ///
+  /// In en, this message translates to:
+  /// **'Unpinned from Home'**
+  String get homeUnpinned;
+
+  /// Snackbar after removing an item from Continue; offers Undo
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from Continue'**
+  String get homeRemovedFromContinue;
+
+  /// Tooltip and screen-reader label of the more-options button on a Home card
+  ///
+  /// In en, this message translates to:
+  /// **'More options for {title}'**
+  String homeCardMenu(String title);
+
   /// Settings row that opens the History tab of Stats: the calendar where past sessions are added or edited
   ///
   /// In en, this message translates to:

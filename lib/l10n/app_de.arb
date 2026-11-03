@@ -1316,6 +1316,12 @@
   "labelsAddHint": "Label hinzufügen",
   "labelsAddButton": "Hinzufügen",
   "labelsRemoveTooltip": "Label {label} entfernen",
+  "homeOpenCourse": "Kurs öffnen",
+  "homeRestart": "Neu starten",
+  "homeRemoveFromContinue": "Aus „Weitermachen“ entfernen",
+  "homeUnpinned": "Von Start gelöst",
+  "homeRemovedFromContinue": "Aus „Weitermachen“ entfernt",
+  "homeCardMenu": "Weitere Optionen für {title}",
   "settingsSessionHistory": "Verlauf der Sitzungen",
   "updateAutoCheck": "Automatisch nach Updates suchen",
   "updateAutoCheckDescription": "Fragt beim Öffnen von Meditejo einmal täglich bei GitHub nach."
