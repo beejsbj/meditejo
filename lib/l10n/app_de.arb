@@ -1349,5 +1349,5 @@
   "labelsRemoveTooltip": "Label {label} entfernen",
   "settingsSessionHistory": "Verlauf der Sitzungen",
   "updateAutoCheck": "Automatisch nach Updates suchen",
-  "updateAutoCheckDescription": "Fragt beim Öffnen von Meditejo höchstens einmal täglich bei GitHub nach. Ist es aus, gibt es keine Anfrage, bis du auf „Nach Updates suchen“ tippst."
+  "updateAutoCheckDescription": "Fragt beim Öffnen von Meditejo einmal täglich bei GitHub nach."
 }

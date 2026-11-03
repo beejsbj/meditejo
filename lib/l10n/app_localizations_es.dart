@@ -2819,5 +2819,5 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get updateAutoCheckDescription =>
-      'Consulta GitHub como máximo una vez al día al abrir Meditejo. Desactivado, no hace ninguna petición hasta que pulses Buscar actualizaciones.';
+      'Consulta GitHub una vez al día al abrir Meditejo.';
 }

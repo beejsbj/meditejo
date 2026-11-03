@@ -3083,7 +3083,7 @@
   "@updateAutoCheck": {
     "description": "Switch in About: whether the app checks GitHub for a newer Meditejo when it opens"
   },
-  "updateAutoCheckDescription": "Looks at GitHub at most once a day when Meditejo opens. Off, it makes no request until you tap Check for updates.",
+  "updateAutoCheckDescription": "Asks GitHub once a day when Meditejo opens.",
   "@updateAutoCheckDescription": {
     "description": "Caption under the automatic update check switch"
   }

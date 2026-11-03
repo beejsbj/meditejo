@@ -1130,5 +1130,5 @@
   "labelsRemoveTooltip": "Quitar la etiqueta {label}",
   "settingsSessionHistory": "Historial de sesiones",
   "updateAutoCheck": "Buscar actualizaciones automáticamente",
-  "updateAutoCheckDescription": "Consulta GitHub como máximo una vez al día al abrir Meditejo. Desactivado, no hace ninguna petición hasta que pulses Buscar actualizaciones."
+  "updateAutoCheckDescription": "Consulta GitHub una vez al día al abrir Meditejo."
 }

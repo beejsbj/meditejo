@@ -2821,5 +2821,5 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get updateAutoCheckDescription =>
-      'Fragt beim Öffnen von Meditejo höchstens einmal täglich bei GitHub nach. Ist es aus, gibt es keine Anfrage, bis du auf „Nach Updates suchen“ tippst.';
+      'Fragt beim Öffnen von Meditejo einmal täglich bei GitHub nach.';
 }

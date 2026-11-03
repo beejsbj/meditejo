@@ -4903,7 +4903,7 @@ abstract class AppLocalizations {
   /// Caption under the automatic update check switch
   ///
   /// In en, this message translates to:
-  /// **'Looks at GitHub at most once a day when Meditejo opens. Off, it makes no request until you tap Check for updates.'**
+  /// **'Asks GitHub once a day when Meditejo opens.'**
   String get updateAutoCheckDescription;
 }
 
