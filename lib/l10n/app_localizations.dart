@@ -4905,6 +4905,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Asks GitHub once a day when Meditejo opens.'**
   String get updateAutoCheckDescription;
+
+  /// Customize: name of the tile for what plays under a session
+  ///
+  /// In en, this message translates to:
+  /// **'Sound'**
+  String get customizeSlotSound;
+
+  /// Customize: name of the tile for the starting, interval and ending bells
+  ///
+  /// In en, this message translates to:
+  /// **'Bells'**
+  String get customizeSlotBells;
+
+  /// Customize: name of the tile for the pulse
+  ///
+  /// In en, this message translates to:
+  /// **'Rhythm'**
+  String get customizeSlotRhythm;
+
+  /// Customize: name of the tile for how long the session runs
+  ///
+  /// In en, this message translates to:
+  /// **'Length'**
+  String get customizeSlotLength;
+
+  /// Customize: a tile's value when it plays nothing
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get customizeOff;
+
+  /// Customize: Bells tile, a bell rings at the start
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get customizeBellsAtStart;
+
+  /// Customize: Bells tile, one bell rings at the midpoint
+  ///
+  /// In en, this message translates to:
+  /// **'Halfway'**
+  String get customizeBellsHalfway;
+
+  /// Customize: Bells tile, the interval bell's rhythm
+  ///
+  /// In en, this message translates to:
+  /// **'Every {minutes} min'**
+  String customizeBellsEvery(int minutes);
+
+  /// Customize: Bells tile, a bell rings at the end
+  ///
+  /// In en, this message translates to:
+  /// **'End'**
+  String get customizeBellsAtEnd;
+
+  /// Customize: the starting bell's value when a countdown comes first
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} sec countdown · {bell}'**
+  String customizeCountdownThenBell(int seconds, String bell);
+
+  /// Customize: the ending bell's value when silence comes first
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min silence · {bell}'**
+  String customizeSilenceThenBell(int minutes, String bell);
+
+  /// Customize: Length tile for a stopwatch, which has no end
+  ///
+  /// In en, this message translates to:
+  /// **'Counts up'**
+  String get customizeLengthCountsUp;
+
+  /// Customize: Length tile, the recording decides the length
+  ///
+  /// In en, this message translates to:
+  /// **'Set by the session'**
+  String get customizeLengthSetBySession;
+
+  /// Customize: Length tile in Settings, where no session is chosen
+  ///
+  /// In en, this message translates to:
+  /// **'Set by each session'**
+  String get customizeLengthSetByEachSession;
+
+  /// Customize: Length tile, silence added after the recording
+  ///
+  /// In en, this message translates to:
+  /// **'+ {minutes} min silence'**
+  String customizeLengthPlusSilence(int minutes);
+
+  /// Customize: footer switch; off starts sessions straight away
+  ///
+  /// In en, this message translates to:
+  /// **'Show before each session'**
+  String get customizeShowBeforeSession;
+
+  /// Player: title of the autoplay sheet for a course's sessions
+  ///
+  /// In en, this message translates to:
+  /// **'Autoplay'**
+  String get playerAutoplay;
+
+  /// Player: autoplay button while the next session starts by itself
+  ///
+  /// In en, this message translates to:
+  /// **'Autoplay on'**
+  String get playerAutoplayOn;
+
+  /// Player: autoplay button while it is off
+  ///
+  /// In en, this message translates to:
+  /// **'Autoplay off'**
+  String get playerAutoplayOff;
+
+  /// Player: autoplay switch
+  ///
+  /// In en, this message translates to:
+  /// **'Play the next session automatically'**
+  String get playerAutoplaySwitch;
+
+  /// Player: label above the pause choices
+  ///
+  /// In en, this message translates to:
+  /// **'Pause between sessions'**
+  String get playerAutoplayPause;
+
+  /// Player: no pause between sessions
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get playerAutoplayNoPause;
+
+  /// Player: a pause between sessions, in seconds
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} sec'**
+  String playerAutoplaySeconds(int seconds);
+
+  /// Player: the course's next session
+  ///
+  /// In en, this message translates to:
+  /// **'Up next: {title}'**
+  String playerAutoplayUpNext(String title);
+
+  /// Player: no next session to autoplay
+  ///
+  /// In en, this message translates to:
+  /// **'This is the last session of the course'**
+  String get playerAutoplayLast;
+
+  /// Customize: Sound tile's value when the current mix plays under sessions
+  ///
+  /// In en, this message translates to:
+  /// **'Current mix'**
+  String get customizeCurrentMix;
+
+  /// Customize: read by a screen reader after a tile that differs from the defaults
+  ///
+  /// In en, this message translates to:
+  /// **'changed'**
+  String get customizeSlotChanged;
+
+  /// Customize: read by a screen reader after a tile at its defaults
+  ///
+  /// In en, this message translates to:
+  /// **'default'**
+  String get customizeSlotDefault;
+
+  /// Player: the autoplay setting applies to every practice course
+  ///
+  /// In en, this message translates to:
+  /// **'For all practice'**
+  String get playerAutoplayForPractice;
+
+  /// Player: the autoplay setting applies to every talks course
+  ///
+  /// In en, this message translates to:
+  /// **'For all talks'**
+  String get playerAutoplayForTalks;
+
+  /// Player: the autoplay setting applies to this course only
+  ///
+  /// In en, this message translates to:
+  /// **'For this course'**
+  String get playerAutoplayForCourse;
+
+  /// Player: the autoplay setting applies to this playlist only
+  ///
+  /// In en, this message translates to:
+  /// **'For this playlist'**
+  String get playerAutoplayForPlaylist;
+
+  /// Player: no next session to autoplay in a playlist
+  ///
+  /// In en, this message translates to:
+  /// **'This is the last session of the playlist'**
+  String get playerAutoplayLastOfPlaylist;
 }
 
 class _AppLocalizationsDelegate

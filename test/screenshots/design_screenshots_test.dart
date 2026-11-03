@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/constants/theme/app_theme.dart';
@@ -39,6 +40,7 @@ import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
+import 'package:medito/views/player/widgets/autoplay_control.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medito/constants/theme/palette_theme.dart';
@@ -348,6 +350,9 @@ Future<ProviderContainer> _pumpCustomize(
   required CueSettings settings,
   bool beforeStart = false,
   int positionMs = 0,
+  Locale? locale,
+  List<Override> overrides = const [],
+  Widget Function()? sheet,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
@@ -355,6 +360,7 @@ Future<ProviderContainer> _pumpCustomize(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       ...soundscapeTestOverrides(FakeSoundscapeEngine()),
+      ...overrides,
     ],
   );
   addTearDown(container.dispose);
@@ -368,6 +374,7 @@ Future<ProviderContainer> _pumpCustomize(
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         navigatorKey: navigator,
+        locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         theme: meditejoTheme(brightness, _palette),
@@ -398,20 +405,31 @@ Future<ProviderContainer> _pumpCustomize(
         data: MediaQuery.of(
           navigator.currentContext!,
         ).copyWith(disableAnimations: true),
-        child: CustomizeSheet(
-          scope: scope,
-          isActive: !beforeStart,
-          audioDurationMs: 45 * 60000,
-          positionMs: positionMs,
-          onStart: beforeStart ? () {} : null,
-          clock: () => DateTime(2026, 10, 26, 7, 30),
-        ),
+        child:
+            sheet?.call() ??
+            CustomizeSheet(
+              scope: scope,
+              isActive: !beforeStart,
+              audioDurationMs: 45 * 60000,
+              positionMs: positionMs,
+              onStart: beforeStart ? () {} : null,
+              clock: () => DateTime(2026, 10, 26, 7, 30),
+            ),
       ),
     ),
   );
   await tester.pumpAndSettle();
   expect(tester.takeException(), isNull);
   return container;
+}
+
+/// Opens a Customize slot's section by its tile ('sound', 'bells', 'rhythm',
+/// 'length').
+Future<void> _openSlot(WidgetTester tester, String slot) async {
+  final tile = find.byKey(ValueKey('customize_slot_$slot'));
+  await tester.ensureVisible(tile);
+  await tester.tap(tile);
+  await tester.pumpAndSettle();
 }
 
 /// Opens a Customize row by its title.
@@ -838,8 +856,10 @@ void main() {
       await _captureView(tester, 'add-to-playlist-${brightness.name}');
     }, skip: !_enabled);
 
-    // The Customize sheet (design PR 5): before a Practice session, during
-    // a course's session, a wheel in use, and the Timer with its duration.
+    // The Customize sheet (design PR 5, regrouped in #72): it opens on the
+    // 2×2 slot tiles; each tile opens its section. Before a Practice
+    // session, during a course's session, each section open, a wheel in use,
+    // and the Timer with its length open.
     const practiceCues = CueSettings(
       startSound: 'assets/audio/bell_bowl_medium.wav',
       endSound: 'assets/audio/bell_bowl_deep.wav',
@@ -848,6 +868,16 @@ void main() {
       extendMinutes: 5,
       countdownSeconds: 5,
     );
+    final courseCues = practiceCues.copyWith(
+      intervalHalfway: false,
+      randomWindowMinutes: 3,
+      pulseSound: 'assets/audio/pulse_heartbeat.wav',
+      pulseBpm: 60,
+      pulseEndBpm: 48,
+      pulseRampMinutes: 10,
+      soundscape: 'preset:starter-night',
+    );
+    const course = CueScope(CueKind.practice, courseId: 'lib-course-a');
     testWidgets('Customize before a session, ${brightness.name}', (
       tester,
     ) async {
@@ -861,6 +891,18 @@ void main() {
       await _captureView(tester, 'customize-before-${brightness.name}');
     }, skip: !_enabled);
 
+    testWidgets('Customize bells open, ${brightness.name}', (tester) async {
+      await _pumpCustomize(
+        tester,
+        brightness,
+        scope: const CueScope(CueKind.practice),
+        settings: practiceCues,
+        beforeStart: true,
+      );
+      await _openSlot(tester, 'bells');
+      await _captureView(tester, 'customize-bells-open-${brightness.name}');
+    }, skip: !_enabled);
+
     testWidgets('Customize bell picker, ${brightness.name}', (tester) async {
       await _pumpCustomize(
         tester,
@@ -869,10 +911,53 @@ void main() {
         settings: practiceCues,
         beforeStart: true,
       );
-      // Open the starting bell's list: every bell with its icon.
-      await tester.tap(find.text('Starting bell'));
+      // The starting bell open: its countdown, then every bell with its
+      // icon.
+      await _openSlot(tester, 'bells');
+      await _openRow(tester, 'Starting bell');
+      await tester.ensureVisible(find.text('Starting bell'));
       await tester.pumpAndSettle();
       await _captureView(tester, 'customize-bells-${brightness.name}');
+    }, skip: !_enabled);
+
+    testWidgets('Customize ending bell, ${brightness.name}', (tester) async {
+      await _pumpCustomize(
+        tester,
+        brightness,
+        scope: const CueScope(CueKind.practice),
+        settings: practiceCues,
+        beforeStart: true,
+      );
+      // The ending bell open: the silence after the audio, then the bells.
+      await _openSlot(tester, 'bells');
+      await _openRow(tester, 'Ending bell');
+      await tester.ensureVisible(find.text('Ending bell'));
+      await tester.pumpAndSettle();
+      await _captureView(tester, 'customize-ending-${brightness.name}');
+    }, skip: !_enabled);
+
+    testWidgets('Customize rhythm open, ${brightness.name}', (tester) async {
+      await _pumpCustomize(
+        tester,
+        brightness,
+        scope: course,
+        settings: courseCues,
+        beforeStart: true,
+      );
+      await _openSlot(tester, 'rhythm');
+      await _captureView(tester, 'customize-rhythm-${brightness.name}');
+    }, skip: !_enabled);
+
+    testWidgets('Customize sound open, ${brightness.name}', (tester) async {
+      await _pumpCustomize(
+        tester,
+        brightness,
+        scope: course,
+        settings: courseCues,
+        beforeStart: true,
+      );
+      await _openSlot(tester, 'sound');
+      await _captureView(tester, 'customize-sound-${brightness.name}');
     }, skip: !_enabled);
 
     testWidgets('Customize during a session, ${brightness.name}', (
@@ -881,15 +966,8 @@ void main() {
       await _pumpCustomize(
         tester,
         brightness,
-        scope: const CueScope(CueKind.practice, courseId: 'lib-course-a'),
-        settings: practiceCues.copyWith(
-          intervalHalfway: false,
-          randomWindowMinutes: 3,
-          pulseSound: 'assets/audio/pulse_heartbeat.wav',
-          pulseBpm: 60,
-          pulseEndBpm: 48,
-          pulseRampMinutes: 10,
-        ),
+        scope: course,
+        settings: courseCues,
         positionMs: 12 * 60000,
       );
       await _captureView(tester, 'customize-during-${brightness.name}');
@@ -906,11 +984,57 @@ void main() {
         ),
         beforeStart: true,
       );
+      await _openSlot(tester, 'bells');
       await _openRow(tester, 'Interval bell');
       // The row's header at the top, its wheels and list under it.
       await tester.ensureVisible(find.text('Interval bell'));
       await tester.pumpAndSettle();
       await _captureView(tester, 'customize-wheel-${brightness.name}');
+    }, skip: !_enabled);
+
+    testWidgets('Customize in German, ${brightness.name}', (tester) async {
+      await _pumpCustomize(
+        tester,
+        brightness,
+        scope: course,
+        settings: courseCues.copyWith(soundscape: 'mix'),
+        beforeStart: true,
+        locale: const Locale('de'),
+      );
+      await _captureView(tester, 'customize-de-${brightness.name}');
+    }, skip: !_enabled);
+
+    // Autoplay moved from Customize's Flow section to the player (#72).
+    testWidgets('Autoplay sheet, ${brightness.name}', (tester) async {
+      await _pumpCustomize(
+        tester,
+        brightness,
+        scope: course,
+        settings: courseCues.copyWith(autoplay: true, interludeSeconds: 10),
+        overrides: [
+          packDataProvider(packId: course.courseId!).overrideWith(
+            (ref) async => PackModel(
+              id: course.courseId!,
+              title: 'Practising the Jhānas',
+              items: [
+                for (final (i, title) in [
+                  'Settling the body and the breath',
+                  'Piti, and letting it build',
+                  'Sukha: the second jhāna',
+                ].indexed)
+                  PackItemsModel(
+                    type: 'track',
+                    id: 't$i',
+                    title: 'Day ${i + 1}: $title',
+                    path: '/tracks/t$i',
+                  ),
+              ],
+            ),
+          ),
+        ],
+        sheet: () => AutoplaySheet(scope: course, trackId: 't0'),
+      );
+      await _captureView(tester, 'autoplay-sheet-${brightness.name}');
     }, skip: !_enabled);
 
     testWidgets('Timer setup with its duration open, ${brightness.name}', (
@@ -924,7 +1048,7 @@ void main() {
       );
       await _phone(tester);
       await tester.pump(const Duration(seconds: 1));
-      await _openRow(tester, 'Duration');
+      await _openSlot(tester, 'length');
       await tester.pump(const Duration(seconds: 1));
       expect(tester.takeException(), isNull);
       await _capture(tester, 'timer-duration-${brightness.name}');
