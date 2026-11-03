@@ -1179,3 +1179,34 @@ Burooj's round 3 picks: Headless Way B (full of what passes), Caṅkama · Kinhi
   - Tests: 74 practice figures registered, none shadowed; all 38 practices and 38 library pairs draw; covers draw from the library, and Noting's variants appear only with that practice.
   - Visibility: 3 of 12 covers tick, again after scrolling away and back; 2 in a 200-wide list; 0 on a hidden tab, in the background, or under reduce motion.
   - A Dart contact sheet of every new figure, checked by eye. **No APK** (Burooj will say when).
+
+## 2026-11-03 (decided: names, library reach, German heading, retreat 5371, Vipassanā)
+
+Burooj left the names to the orchestrator ("You know more about the names than me") and settled the rest. These are decisions now, not questions.
+
+- **The naming rule stands as built.** One tradition owns a practice → its own name. Shared → plain English, with the originals on the label line:
+  - Compassion (Karuṇā · Tonglen)
+  - Body (Kāyagatāsati · Kāyānupassanā)
+  - Walking (Caṅkama · Kinhin)
+  - Energy body (Prāṇa · Qì · Lung)
+  - Mantra (Japa · Nembutsu · Dhikr)
+  - Relational (Insight Dialogue · Dyads)
+  - **Two label lines named English terms rather than originals.** Body's "Body scan" became Kāyānupassanā, and Visualisation's "Deity yoga" became Devatā-yoga. Both English terms stay as aliases, so search still finds them. `categories.json` version 6.
+- **The figure library keeps its reach** (Burooj: "It's fine, we're still beta. Let generated ones change."). It covers about 85% of generated covers, Dharma Seed included.
+- **German heading: *Übungswege*** (and *Übungswege durchsuchen* for screen readers).
+- **Dharma Seed retreat 5371 is hidden.** "ORIGINAL RECORDINGS, TO BE EDITED - Ajahn Sucitto at IMS-FR" says "Not for public distribution". The app respects the teacher's note.
+  - `DharmaSeedDatabase.hiddenRetreatIds` keeps it and its 13 talks out of browsing: recent retreats and talks, every group, teacher pages and counts, and top teachers.
+  - It is also out of search (through `DsTalkFilter`) and out of category pages and probes.
+  - Opening it by ID still works, so a library that already holds it keeps it.
+  - `hidden_retreat_test.dart` checks all of this against the bundled snapshot.
+  - **To hide another retreat, add its ID to the set.**
+- **Vipassanā is narrowed, and filters: 38% → 21% of the pass.** It is for retreats whose **practice is insight**, not every event from an Insight Meditation centre or series (`pass/GUIDE.md`).
+  - Insight counts as the practice when the retreat is named vipassanā or insight in its own title or description, or teaches satipaṭṭhāna, noting, the three characteristics, or arising and passing.
+  - **Drops:** a centre or series label alone, an affinity gathering, another stated theme (mettā, a sutta study, illness, daily life), one insight-sounding talk among unrelated ones, and no description with generic talks.
+  - **Haiku re-read the pass's 1,578 Vipassanā retreats** (curated ones aside). It kept 1,206 (`pass/vipassana/`).
+  - **A Sonnet spot-check found Haiku lenient.** On a random 300, Sonnet kept 159 of Haiku's 200 keeps but only 3 of its 100 drops.
+  - **So Sonnet re-read every remaining keep** (1,006, in ten batches), and its reading wins (`pass/vipassana-audit.jsonl`).
+  - **One correction:** Sayadaw U Pandita's three-month retreat (2898, 89 talks) stays Vipassanā and Noting. Sonnet dropped it only because the description is empty.
+  - **Result:** 879 of 4,184 retreats (21.0%), down from 1,592. Retreats the pass gives no label rise from about 1,320 to 1,838, and keyword rules still don't reach them.
+  - **The bound test holds every category under a quarter, Vipassanā included,** and Vipassanā above a tenth, so it can't quietly empty.
+  - Pass meta v3.
