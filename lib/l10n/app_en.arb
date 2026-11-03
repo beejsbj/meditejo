@@ -2101,13 +2101,21 @@
       }
     }
   },
-  "soundsDrift": "Drift",
-  "@soundsDrift": {
-    "description": "Sounds screen: soundsDrift"
+  "soundsSwell": "Swell",
+  "@soundsSwell": {
+    "description": "Chip on a mix layer: lets its level rise and fall slowly"
   },
-  "soundsDriftHint": "Let the level rise and fall slowly",
-  "@soundsDriftHint": {
-    "description": "Sounds screen: soundsDriftHint"
+  "soundsSwellHint": "Rises and falls slowly",
+  "@soundsSwellHint": {
+    "description": "Caption beside the Swell chip"
+  },
+  "soundsClear": "Clear",
+  "@soundsClear": {
+    "description": "Button in the open mix panel that takes every sound out of the mix"
+  },
+  "soundsMixCleared": "Mix cleared",
+  "@soundsMixCleared": {
+    "description": "Snackbar after Clear, with an Undo action"
   },
   "soundsPresets": "Presets",
   "@soundsPresets": {

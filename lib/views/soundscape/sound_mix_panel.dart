@@ -180,6 +180,14 @@ class SoundsMixHeader extends ConsumerWidget {
             onPressed: controller.stop,
             icon: const Icon(Symbols.stop_rounded, fill: 1),
           ),
+        // Clear takes the whole mix off the deck; Undo in the snackbar puts
+        // it back. Only where the panel is open (the dock's chevron stays).
+        if ((expanded || onToggle == null) && !state.mix.isEmpty)
+          TextButton(
+            key: const ValueKey('sounds_clear'),
+            onPressed: () => _clear(context, ref),
+            child: Text(l10n.soundsClear),
+          ),
         // An empty mix has nothing to open: its line says how to start.
         if (onToggle != null && (expanded || !state.mix.isEmpty))
           IconButton(
@@ -198,8 +206,38 @@ class SoundsMixHeader extends ConsumerWidget {
   }
 }
 
+/// Empties the mix and offers Undo, which restores it exactly (and plays it
+/// again if it was playing).
+void _clear(BuildContext context, WidgetRef ref) {
+  final l10n = AppLocalizations.of(context)!;
+  final controller = ref.read(soundscapeProvider.notifier);
+  final before = ref.read(soundscapeProvider);
+  controller.clearMix();
+  // A paused mix is loaded but not playing; Undo brings it back paused.
+  final wasPaused =
+      before.owner == SoundscapeOwner.standalone && !before.playing;
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Text(l10n.soundsMixCleared),
+        // An action keeps a SnackBar up until dismissed; Undo is for the
+        // moment after Clear, so let it time out.
+        persist: false,
+        action: SnackBarAction(
+          label: l10n.undo,
+          onPressed: () => controller.restoreMix(
+            before.mix,
+            play: before.playing || wasPaused,
+            paused: wasPaused,
+          ),
+        ),
+      ),
+    );
+}
+
 /// The open panel under the header: the mix's volume, its layers (each
-/// with volume, mute, drift, settings for a generated one, and remove) and
+/// with volume, mute, swell, settings for a generated one, and remove) and
 /// Save mix. Scrolls with [controller].
 class SoundsMixBody extends ConsumerWidget {
   const SoundsMixBody({super.key, this.controller, this.padding});
@@ -522,15 +560,27 @@ class _LayerTile extends ConsumerWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    FilterChip(
-                      key: ValueKey('drift_$id'),
-                      tooltip: l10n.soundsDriftHint,
-                      avatar: const Icon(Symbols.waves_rounded),
-                      label: Text(l10n.soundsDrift),
-                      selected: layer.animate,
-                      // The waves stay; the tonal fill says it is on.
-                      showCheckmark: false,
-                      onSelected: (on) => mixer.setLayerAnimate(id, on),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        FilterChip(
+                          key: ValueKey('swell_$id'),
+                          avatar: const Icon(Symbols.waves_rounded),
+                          label: Text(l10n.soundsSwell),
+                          selected: layer.animate,
+                          // The waves stay; the tonal fill says it is on.
+                          showCheckmark: false,
+                          onSelected: (on) => mixer.setLayerAnimate(id, on),
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            l10n.soundsSwellHint,
+                            style: context.typography.baseline.bodySmall
+                                ?.copyWith(color: scheme.onSurfaceVariant),
+                          ),
+                        ),
+                      ],
                     ),
                     if (isSynthId(id))
                       ActionChip(

@@ -2091,10 +2091,16 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get soundsDrift => 'Vaivén';
+  String get soundsSwell => 'Oleaje';
 
   @override
-  String get soundsDriftHint => 'Deja que el volumen suba y baje despacio';
+  String get soundsSwellHint => 'Sube y baja despacio';
+
+  @override
+  String get soundsClear => 'Vaciar';
+
+  @override
+  String get soundsMixCleared => 'Mezcla vaciada';
 
   @override
   String get soundsPresets => 'Preajustes';

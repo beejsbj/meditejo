@@ -3610,17 +3610,29 @@ abstract class AppLocalizations {
   /// **'Remove {sound}'**
   String soundsRemove(String sound);
 
-  /// Sounds screen: soundsDrift
+  /// Chip on a mix layer: lets its level rise and fall slowly
   ///
   /// In en, this message translates to:
-  /// **'Drift'**
-  String get soundsDrift;
+  /// **'Swell'**
+  String get soundsSwell;
 
-  /// Sounds screen: soundsDriftHint
+  /// Caption beside the Swell chip
   ///
   /// In en, this message translates to:
-  /// **'Let the level rise and fall slowly'**
-  String get soundsDriftHint;
+  /// **'Rises and falls slowly'**
+  String get soundsSwellHint;
+
+  /// Button in the open mix panel that takes every sound out of the mix
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get soundsClear;
+
+  /// Snackbar after Clear, with an Undo action
+  ///
+  /// In en, this message translates to:
+  /// **'Mix cleared'**
+  String get soundsMixCleared;
 
   /// Sounds screen: soundsPresets
   ///
