@@ -160,7 +160,10 @@ class _YoutubeChannelViewState extends ConsumerState<YoutubeChannelView> {
               child: SectionHeader(title: l10n.courseSessionsTab),
             ),
             const SliverPadding(padding: EdgeInsets.only(top: padding8)),
-            SessionRowsSliver(items: page.sessions),
+            SessionRowsSliver(
+              items: page.sessions,
+              hideTeacherId: widget.teacherId,
+            ),
           ],
           SliverToBoxAdapter(
             child: AttributionNotice(

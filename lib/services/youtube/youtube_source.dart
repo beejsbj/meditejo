@@ -984,6 +984,7 @@ class YoutubeSource
             title: entry.displayTitle,
             subtitle: video.uploader,
             teacher: video.uploader,
+            teacherId: ytChannelId(key),
             coverUrl: video.thumbnail,
             path: '/tracks/$id',
             durationMs: video.durationSeconds > 0
@@ -1016,6 +1017,9 @@ class YoutubeSource
             title: item.title,
             subtitle: item.uploader,
             teacher: item.uploader,
+            teacherId: item.channelId.isEmpty
+                ? null
+                : ytChannelId(item.channelId),
             coverUrl: item.thumbnail,
             path: '/tracks/${ytVideoId(item.videoId)}',
             durationMs: item.durationSeconds > 0
