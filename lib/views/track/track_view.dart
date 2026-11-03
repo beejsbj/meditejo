@@ -217,6 +217,7 @@ class _TrackViewState extends ConsumerState<TrackView>
   /// The saved place, if it is in the file shown (another length of the same
   /// track has its own).
   ResumePoint? _resumeIn(Track track, TrackAudioFile file) {
+    if (widget.fromStart) return null;
     final point = ref.watch(resumePointProvider(track.id)).value;
     return point != null && point.appliesTo(file.id) ? point : null;
   }

@@ -4834,37 +4834,37 @@ abstract class AppLocalizations {
   /// **'Remove label {label}'**
   String labelsRemoveTooltip(String label);
 
-  /// No description provided for @homeOpenCourse.
+  /// Card menu action on a Home Continue card that opens the course page
   ///
   /// In en, this message translates to:
   /// **'Open course'**
   String get homeOpenCourse;
 
-  /// No description provided for @homeRestart.
+  /// Card menu action on a Home Continue card that plays the session from 0:00
   ///
   /// In en, this message translates to:
   /// **'Restart'**
   String get homeRestart;
 
-  /// No description provided for @homeRemoveFromContinue.
+  /// Card menu action that takes an item off Home's Continue section
   ///
   /// In en, this message translates to:
   /// **'Remove from Continue'**
   String get homeRemoveFromContinue;
 
-  /// No description provided for @homeUnpinned.
+  /// Snackbar after unpinning a course from Home; offers Undo
   ///
   /// In en, this message translates to:
   /// **'Unpinned from Home'**
   String get homeUnpinned;
 
-  /// No description provided for @homeRemovedFromContinue.
+  /// Snackbar after removing an item from Continue; offers Undo
   ///
   /// In en, this message translates to:
   /// **'Removed from Continue'**
   String get homeRemovedFromContinue;
 
-  /// No description provided for @homeCardMenu.
+  /// Tooltip and screen-reader label of the more-options button on a Home card
   ///
   /// In en, this message translates to:
   /// **'More options for {title}'**
