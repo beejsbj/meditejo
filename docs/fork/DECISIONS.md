@@ -1207,6 +1207,6 @@ Burooj left the names to the orchestrator ("You know more about the names than m
   - **A Sonnet spot-check found Haiku lenient.** On a random 300, Sonnet kept 159 of Haiku's 200 keeps but only 3 of its 100 drops.
   - **So Sonnet re-read every remaining keep** (1,006, in ten batches), and its reading wins (`pass/vipassana-audit.jsonl`).
   - **One correction:** Sayadaw U Pandita's three-month retreat (2898, 89 talks) stays Vipassanā and Noting. Sonnet dropped it only because the description is empty.
-  - **Result:** 879 of 4,184 retreats (21.0%), down from 1,592. Retreats the pass gives no label rise from about 1,320 to 1,838, and keyword rules still don't reach them.
+  - **Result:** 879 of 4,184 retreats (21.0%), down from 1,599. Retreats the pass gives no label rise from 1,332 to 1,838, and keyword rules still don't reach them.
   - **The bound test holds every category under a quarter, Vipassanā included,** and Vipassanā above a tenth, so it can't quietly empty.
   - Pass meta v3.
