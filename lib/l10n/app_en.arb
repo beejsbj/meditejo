@@ -1726,6 +1726,15 @@
       }
     }
   },
+  "playForMinutes": "Play · {minutes} min",
+  "@playForMinutes": {
+    "description": "Label of the track page's Play button, with the length in minutes",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "importTitle": "Add to your library",
   "@importTitle": {
     "description": "Title of the import screen"

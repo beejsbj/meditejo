@@ -1007,6 +1007,7 @@
   "libraryAddToLibrary": "Zur Bibliothek hinzufügen",
   "libraryInLibrary": "In der Bibliothek",
   "libraryResumeAt": "Fortsetzen bei {position}",
+  "playForMinutes": "Abspielen · {minutes} Min.",
   "importTitle": "Zu deiner Bibliothek hinzufügen",
   "importFieldHint": "Link einfügen",
   "importHelp": "Dharma-Seed-Seiten, Podcast-Feeds, Audio-Links oder Dateien auf deinem Telefon.",

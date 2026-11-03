@@ -1728,6 +1728,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String playForMinutes(int minutes) {
+    return 'Abspielen · $minutes Min.';
+  }
+
+  @override
   String get importTitle => 'Zu deiner Bibliothek hinzufügen';
 
   @override

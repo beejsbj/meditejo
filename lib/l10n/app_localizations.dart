@@ -3028,6 +3028,12 @@ abstract class AppLocalizations {
   /// **'Resume at {position}'**
   String libraryResumeAt(String position);
 
+  /// Label of the track page's Play button, with the length in minutes
+  ///
+  /// In en, this message translates to:
+  /// **'Play · {minutes} min'**
+  String playForMinutes(int minutes);
+
   /// Title of the import screen
   ///
   /// In en, this message translates to:
