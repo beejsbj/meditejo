@@ -331,6 +331,17 @@ class SoundscapeController extends Notifier<SoundscapeState> {
 
   void clearMix() => _editMix(SoundMix.empty);
 
+  /// Puts back a mix [clearMix] took away (Undo): the same layers, volumes,
+  /// swell and params. [play] plays it again; [paused] (with [play]) brings
+  /// it back loaded but paused. It does nothing once the mix has anything in
+  /// it, so a stale Undo never overwrites what was added since. Where the mix
+  /// is not standalone (a session has since started) it comes back stopped.
+  void restoreMix(SoundMix mix, {bool play = false, bool paused = false}) {
+    if (mix.isEmpty || !state.mix.isEmpty) return;
+    _editMix(mix, start: play);
+    if (play && paused && state.owner == SoundscapeOwner.standalone) pause();
+  }
+
   /// Master volume. Under a session it is that session kind's level.
   void setVolume(double volume) {
     final kind = state.sessionKind;

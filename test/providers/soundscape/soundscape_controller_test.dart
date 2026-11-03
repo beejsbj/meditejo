@@ -486,6 +486,66 @@ void main() {
     expect(keepAlive.held, isTrue);
   });
 
+  group('restoreMix (Undo after Clear)', () {
+    test(
+      'puts back the same layers, saves them, and plays if it was',
+      () async {
+        ctl().clearMix();
+        ctl().toggleSound('cafe');
+        ctl().toggleSound('river');
+        await settle();
+        ctl().setLayerVolume('river', 0.5);
+        ctl().setLayerAnimate('river', true);
+        final before = st().mix;
+        ctl().clearMix();
+        await settle();
+        expect(st().mix.isEmpty, isTrue);
+        expect(st().active, isFalse);
+
+        ctl().restoreMix(before, play: true);
+        await settle();
+        expect(st().mix.layers, before.layers);
+        expect(st().playing, isTrue);
+        expect(engine.playing.keys, unorderedEquals(['cafe', 'river']));
+        expect(SoundscapeStore(prefs).readMix()!.layers, before.layers);
+      },
+    );
+
+    test('without play it stays stopped; paused comes back paused', () async {
+      ctl().clearMix();
+      ctl().toggleSound('cafe');
+      await settle();
+      final before = st().mix;
+      ctl().clearMix();
+      ctl().restoreMix(before);
+      await settle();
+      expect(st().mix.layers, before.layers);
+      expect(st().active, isFalse);
+
+      ctl().clearMix();
+      ctl().restoreMix(before, play: true, paused: true);
+      await settle();
+      expect(st().owner, SoundscapeOwner.standalone);
+      expect(st().playing, isFalse);
+    });
+
+    test('does nothing once the mix has something in it', () async {
+      ctl().clearMix();
+      ctl().toggleSound('cafe');
+      await settle();
+      final old = st().mix;
+      ctl().clearMix();
+      ctl().toggleSound('river');
+      await settle();
+      ctl().restoreMix(old, play: true);
+      await settle();
+      expect(st().mix.layers.map((l) => l.soundId), ['river']);
+      expect(SoundscapeStore(prefs).readMix()!.layers.map((l) => l.soundId), [
+        'river',
+      ]);
+    });
+  });
+
   test('volume, drift and removal reach the engine', () async {
     ctl().clearMix();
     ctl().toggleSound('cafe');

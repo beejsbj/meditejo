@@ -51,6 +51,10 @@ const continueLimit = 3;
 
 /// Practice first, then the most recently played; one item per course (the
 /// best-ranked one), at most [limit] (null for all of them).
+///
+/// Ties between items are broken by track id. That orders different courses'
+/// items only: which session a single course offers is `nextSessionFor`'s
+/// call (course order), made before anything is ranked.
 List<ContinueItem> rankContinue(
   Iterable<ContinueItem> items, {
   int? limit = continueLimit,

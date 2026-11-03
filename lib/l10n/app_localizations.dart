@@ -3610,17 +3610,29 @@ abstract class AppLocalizations {
   /// **'Remove {sound}'**
   String soundsRemove(String sound);
 
-  /// Sounds screen: soundsDrift
+  /// Chip on a mix layer: lets its level rise and fall slowly
   ///
   /// In en, this message translates to:
-  /// **'Drift'**
-  String get soundsDrift;
+  /// **'Swell'**
+  String get soundsSwell;
 
-  /// Sounds screen: soundsDriftHint
+  /// Caption beside the Swell chip
   ///
   /// In en, this message translates to:
-  /// **'Let the level rise and fall slowly'**
-  String get soundsDriftHint;
+  /// **'Rises and falls slowly'**
+  String get soundsSwellHint;
+
+  /// Button in the open mix panel that takes every sound out of the mix
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get soundsClear;
+
+  /// Snackbar after Clear, with an Undo action
+  ///
+  /// In en, this message translates to:
+  /// **'Mix cleared'**
+  String get soundsMixCleared;
 
   /// Sounds screen: soundsPresets
   ///
@@ -4833,6 +4845,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove label {label}'**
   String labelsRemoveTooltip(String label);
+
+  /// Card menu action on a Home Continue card that opens the course page
+  ///
+  /// In en, this message translates to:
+  /// **'Open course'**
+  String get homeOpenCourse;
+
+  /// Card menu action on a Home Continue card that plays the session from 0:00
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get homeRestart;
+
+  /// Card menu action that takes an item off Home's Continue section
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from Continue'**
+  String get homeRemoveFromContinue;
+
+  /// Snackbar after unpinning a course from Home; offers Undo
+  ///
+  /// In en, this message translates to:
+  /// **'Unpinned from Home'**
+  String get homeUnpinned;
+
+  /// Snackbar after removing an item from Continue; offers Undo
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from Continue'**
+  String get homeRemovedFromContinue;
+
+  /// Tooltip and screen-reader label of the more-options button on a Home card
+  ///
+  /// In en, this message translates to:
+  /// **'More options for {title}'**
+  String homeCardMenu(String title);
 
   /// Settings row that opens the History tab of Stats: the calendar where past sessions are added or edited
   ///

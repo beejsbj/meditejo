@@ -2050,10 +2050,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get soundsDrift => 'Drift';
+  String get soundsSwell => 'Swell';
 
   @override
-  String get soundsDriftHint => 'Let the level rise and fall slowly';
+  String get soundsSwellHint => 'Rises and falls slowly';
+
+  @override
+  String get soundsClear => 'Clear';
+
+  @override
+  String get soundsMixCleared => 'Mix cleared';
 
   @override
   String get soundsPresets => 'Presets';
@@ -2738,6 +2744,26 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String labelsRemoveTooltip(String label) {
     return 'Remove label $label';
+  }
+
+  @override
+  String get homeOpenCourse => 'Open course';
+
+  @override
+  String get homeRestart => 'Restart';
+
+  @override
+  String get homeRemoveFromContinue => 'Remove from Continue';
+
+  @override
+  String get homeUnpinned => 'Unpinned from Home';
+
+  @override
+  String get homeRemovedFromContinue => 'Removed from Continue';
+
+  @override
+  String homeCardMenu(String title) {
+    return 'More options for $title';
   }
 
   @override

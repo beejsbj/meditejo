@@ -2101,13 +2101,21 @@
       }
     }
   },
-  "soundsDrift": "Drift",
-  "@soundsDrift": {
-    "description": "Sounds screen: soundsDrift"
+  "soundsSwell": "Swell",
+  "@soundsSwell": {
+    "description": "Chip on a mix layer: lets its level rise and fall slowly"
   },
-  "soundsDriftHint": "Let the level rise and fall slowly",
-  "@soundsDriftHint": {
-    "description": "Sounds screen: soundsDriftHint"
+  "soundsSwellHint": "Rises and falls slowly",
+  "@soundsSwellHint": {
+    "description": "Caption beside the Swell chip"
+  },
+  "soundsClear": "Clear",
+  "@soundsClear": {
+    "description": "Button in the open mix panel that takes every sound out of the mix"
+  },
+  "soundsMixCleared": "Mix cleared",
+  "@soundsMixCleared": {
+    "description": "Snackbar after Clear, with an Undo action"
   },
   "soundsPresets": "Presets",
   "@soundsPresets": {
@@ -3035,6 +3043,35 @@
     "description": "Tooltip of the delete button on a label chip",
     "placeholders": {
       "label": {
+        "type": "String"
+      }
+    }
+  },
+  "homeOpenCourse": "Open course",
+  "@homeOpenCourse": {
+    "description": "Card menu action on a Home Continue card that opens the course page"
+  },
+  "homeRestart": "Restart",
+  "@homeRestart": {
+    "description": "Card menu action on a Home Continue card that plays the session from 0:00"
+  },
+  "homeRemoveFromContinue": "Remove from Continue",
+  "@homeRemoveFromContinue": {
+    "description": "Card menu action that takes an item off Home's Continue section"
+  },
+  "homeUnpinned": "Unpinned from Home",
+  "@homeUnpinned": {
+    "description": "Snackbar after unpinning a course from Home; offers Undo"
+  },
+  "homeRemovedFromContinue": "Removed from Continue",
+  "@homeRemovedFromContinue": {
+    "description": "Snackbar after removing an item from Continue; offers Undo"
+  },
+  "homeCardMenu": "More options for {title}",
+  "@homeCardMenu": {
+    "description": "Tooltip and screen-reader label of the more-options button on a Home card",
+    "placeholders": {
+      "title": {
         "type": "String"
       }
     }
