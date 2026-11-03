@@ -1701,6 +1701,65 @@ void main() {
       await _unmount(tester);
     });
 
+    testWidgets('a step adds only what it changed: a bell chosen between '
+        'two turns of Every is kept by Undo', (tester) async {
+      final c = await pumpWith(
+        tester,
+        CueSettings.defaults(
+          CueKind.practice,
+        ).copyWith(intervalSound: '', intervalMinutes: 10),
+      );
+      await _slot(tester, 'bells');
+      await _row(tester, 'Interval bell');
+      // Off → 5 min also turns the bell on with the default sound.
+      await _turn(tester, 'Every', '5 min');
+      expect(_read(c).intervalSound, isNotEmpty);
+      final bowl = find.text('Singing bowl').first;
+      await tester.ensureVisible(bowl);
+      await tester.tap(bowl);
+      await tester.pumpAndSettle();
+      final chosen = _read(c).intervalSound;
+      await _turn(tester, 'Every', '7 min');
+      await tester.tap(find.byKey(undoButton));
+      await tester.pumpAndSettle();
+      // The interval goes back; the bell chosen by hand stays.
+      expect(_read(c).intervalMinutes, 10);
+      expect(_read(c).intervalSound, chosen);
+      await _unmount(tester);
+    });
+
+    testWidgets('the room under the list stays when the bar goes, until '
+        'the section folds', (tester) async {
+      await pumpWith(tester, ramp, size: const Size(411, 760));
+      await _slot(tester, 'rhythm');
+      final list = tester
+          .state<ScrollableState>(
+            find.descendant(
+              of: find.byKey(const ValueKey('customize_list')),
+              matching: find.byType(Scrollable),
+            ),
+          )
+          .position;
+      final before = list.maxScrollExtent;
+      await _turn(tester, 'Slow down over', '30 min');
+      expect(list.maxScrollExtent, greaterThan(before));
+      list.jumpTo(list.maxScrollExtent);
+      await tester.pumpAndSettle();
+      final top = tester.getRect(_wheel('Rate')).top;
+      final pixels = list.pixels;
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pumpAndSettle();
+      expect(find.byKey(undoBar), findsNothing);
+      // Nothing moved under the thumb.
+      expect(list.pixels, pixels);
+      expect(tester.getRect(_wheel('Rate')).top, top);
+      // Folding the section gives the room back.
+      await _slot(tester, 'rhythm');
+      await _slot(tester, 'rhythm');
+      expect(list.maxScrollExtent, before);
+      await _unmount(tester);
+    });
+
     testWidgets('a step that lands after its section folded brings no bar', (
       tester,
     ) async {

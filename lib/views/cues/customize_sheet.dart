@@ -179,7 +179,7 @@ class _WheelUndo {
     final from = before.toJson(), to = after.toJson();
     final was = {...this.was}, set = {...this.set};
     for (final key in to.keys) {
-      if (to[key] == from[key] && !set.containsKey(key)) continue;
+      if (to[key] == from[key]) continue;
       was.putIfAbsent(key, () => from[key]);
       set[key] = to[key];
     }
@@ -282,6 +282,11 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   _WheelUndo? _undo;
   Timer? _undoTimer;
 
+  /// Room under the list for the bar, kept from its first showing until the
+  /// open section or row folds: taking it away when the bar goes would move
+  /// the list under the thumb.
+  bool _undoRoom = false;
+
   /// How long the Undo bar stays: a little longer than a snackbar, and
   /// longer again for a screen reader, which has to find the button.
   static const _undoFor = Duration(seconds: 5);
@@ -369,9 +374,9 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     CueSettings next, {
     bool offerUndo = true,
   }) {
+    if (!mounted) return;
     final before = ref.read(cueSettingsProvider(_scope));
     _edit(next);
-    if (!mounted) return;
     if (!offerUndo) return _dismissUndo();
     final message = _l10n.customizeUndoChange(label, shown);
     final open = _undo;
@@ -403,7 +408,10 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
           : _undoFor,
       _dismissUndo,
     );
-    setState(() => _undo = undo);
+    setState(() {
+      _undo = undo;
+      _undoRoom = true;
+    });
   }
 
   /// The bar's height and the space around it, at the current text size.
@@ -440,6 +448,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     setState(() {
       _slot = _slot == slot ? null : slot;
       _reveal = _slot;
+      _undoRoom = false;
       _open = null;
     });
     // Leaving the bells silences what they were auditioning.
@@ -472,7 +481,10 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   void _toggle(_Part part) {
     _dismissUndo();
     final closing = _open;
-    setState(() => _open = _open == part ? null : part);
+    setState(() {
+      _open = _open == part ? null : part;
+      _undoRoom = false;
+    });
     // Folding a bell list silences what it was auditioning.
     if (closing != null) _silence();
   }
@@ -519,13 +531,13 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
 
     final list = SingleChildScrollView(
       key: const ValueKey('customize_list'),
-      // While the Undo bar is up the list ends below it, so whatever it
-      // covers can be scrolled clear.
+      // Once the Undo bar has shown, the list ends below it (until the
+      // section folds), so whatever it covers can be scrolled clear.
       padding: EdgeInsets.fromLTRB(
         16,
         8,
         16,
-        16 + (_undo == null ? 0 : _undoBarRoom(context)),
+        16 + (_undoRoom ? _undoBarRoom(context) : 0),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2063,8 +2075,10 @@ class _WheelRow extends StatelessWidget {
           ],
         );
         if (wheels.length == 1) return Center(child: row);
-        // Spare room beyond the gutters goes 1 : 4, the larger share on the
-        // right, where a right thumb scrolls.
+        // Spare room beyond the 28 dp gutters goes 1 : 4, the larger share
+        // on the right, where a right thumb scrolls: about 50 dp there for
+        // three wheels at 411 dp. Where there is no spare room (360 dp),
+        // both gutters stay at 28 dp.
         final used = each * wheels.length + gap * (wheels.length - 1);
         final spare = math.max(0.0, constraints.maxWidth - used - 2 * gutter);
         return Padding(
