@@ -1,52 +1,61 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/widgets/art/art_cover.dart';
 import 'package:medito/widgets/art/art_subject.dart';
 
 /// Live art ticks only while it can be seen (Burooj, 2026-11-02): a cover
-/// scrolled out of the window, an app in the background, or reduce motion
-/// runs no ticker at all. A running ticker is a transient frame callback.
+/// scrolled out of its list, on a hidden tab, in an app in the background,
+/// or under reduce motion runs no ticker. A running ticker is a transient
+/// frame callback, so the tests count those.
 void main() {
   setUp(() => CuratedArt.instance.useJson('{"items": {}}'));
 
-  Widget row({bool reduceMotion = false}) => MaterialApp(
+  Widget cover(int i) => SizedBox(
+    width: 150,
+    child: ArtCover(
+      subject: ArtSubject.practice('p$i', ground: 'paper', figure: 'breath'),
+      live: true,
+    ),
+  );
+
+  Widget row({double width = 400}) => Align(
+    alignment: Alignment.topLeft,
+    child: SizedBox(
+      width: width,
+      height: 150,
+      child: ListView(
+        key: const ValueKey('row'),
+        scrollDirection: Axis.horizontal,
+        // Everything is built, so off-screen covers exist and could tick.
+        scrollCacheExtent: const ScrollCacheExtent.pixels(5000),
+        children: [for (var i = 0; i < 12; i++) cover(i)],
+      ),
+    ),
+  );
+
+  Widget app(Widget body, {bool reduceMotion = false}) => MaterialApp(
     theme: meditejoTheme(Brightness.light),
     home: Builder(
       builder: (context) => MediaQuery(
         data: MediaQuery.of(context).copyWith(disableAnimations: reduceMotion),
-        child: Scaffold(
-          body: SizedBox(
-            height: 150,
-            child: ListView(
-              key: const ValueKey('row'),
-              scrollDirection: Axis.horizontal,
-              // Everything is built, so off-screen covers exist and could tick.
-              scrollCacheExtent: const ScrollCacheExtent.pixels(5000),
-              children: [
-                for (var i = 0; i < 12; i++)
-                  SizedBox(
-                    width: 150,
-                    child: ArtCover(
-                      subject: ArtSubject.practice(
-                        'p$i',
-                        ground: 'paper',
-                        figure: 'breath',
-                      ),
-                      live: true,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
+        child: Scaffold(body: body),
       ),
     ),
   );
 
   int ticking() => SchedulerBinding.instance.transientCallbackCount;
+
+  ScrollPosition position(WidgetTester tester) => tester
+      .state<ScrollableState>(
+        find.descendant(
+          of: find.byKey(const ValueKey('row')),
+          matching: find.byType(Scrollable),
+        ),
+      )
+      .position;
 
   Future<void> settle(WidgetTester tester) async {
     for (var i = 0; i < 3; i++) {
@@ -54,30 +63,73 @@ void main() {
     }
   }
 
-  testWidgets('only the covers in the window tick', (tester) async {
+  void phone(WidgetTester tester) {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
+  }
 
-    await tester.pumpWidget(row());
+  testWidgets('only the covers in view tick, and they come back', (
+    tester,
+  ) async {
+    phone(tester);
+    await tester.pumpWidget(app(row()));
     await settle(tester);
     // 400 wide, 150 each: three covers show (the third in part).
     expect(ticking(), 3);
 
-    await tester.drag(find.byKey(const ValueKey('row')), const Offset(-900, 0));
+    // Scroll by exactly six covers: covers 6, 7 and 8 show.
+    // Jumped, not dragged: a fling would add a ticker of its own.
+    position(tester).jumpTo(900);
+    // Covers measure themselves after the new layout.
+    await tester.pump(const Duration(seconds: 3));
     await settle(tester);
-    // Still only what shows, not the twelve that are built.
-    expect(ticking(), inInclusiveRange(1, 4));
+    expect(ticking(), 3);
+
+    // And back: the first three tick again.
+    position(tester).jumpTo(0);
+    await tester.pump(const Duration(seconds: 3));
+    await settle(tester);
+    expect(ticking(), 3);
+  });
+
+  testWidgets('a list narrower than the screen bounds what shows', (
+    tester,
+  ) async {
+    phone(tester);
+    await tester.pumpWidget(app(row(width: 200)));
+    await settle(tester);
+    // 200 wide: two covers show, though more are on the screen's width.
+    expect(ticking(), 2);
+  });
+
+  testWidgets('a hidden tab ticks nothing', (tester) async {
+    phone(tester);
+    final tab = ValueNotifier(0);
+    await tester.pumpWidget(
+      app(
+        ValueListenableBuilder(
+          valueListenable: tab,
+          builder: (_, i, _) =>
+              IndexedStack(index: i, children: [row(), const SizedBox()]),
+        ),
+      ),
+    );
+    await settle(tester);
+    expect(ticking(), 3);
+    tab.value = 1;
+    await settle(tester);
+    expect(ticking(), 0);
+    tab.value = 0;
+    await settle(tester);
+    expect(ticking(), 3);
   });
 
   testWidgets('nothing ticks while the app is in the background', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(400, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-
-    await tester.pumpWidget(row());
+    phone(tester);
+    await tester.pumpWidget(app(row()));
     await settle(tester);
     expect(ticking(), 3);
 
@@ -91,11 +143,8 @@ void main() {
   });
 
   testWidgets('reduce motion draws still frames', (tester) async {
-    tester.view.physicalSize = const Size(400, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-
-    await tester.pumpWidget(row(reduceMotion: true));
+    phone(tester);
+    await tester.pumpWidget(app(row(), reduceMotion: true));
     await settle(tester);
     expect(ticking(), 0);
   });

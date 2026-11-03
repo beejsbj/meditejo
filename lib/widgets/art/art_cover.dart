@@ -196,13 +196,23 @@ class _ArtCoverState extends State<ArtCover>
   var _frames = 0;
   var _onScreen = true;
 
-  /// Whether the app is in front. In the background nothing animates.
-  var _appActive = true;
+  /// Whether the app is showing. Hidden or paused, nothing animates; an
+  /// unfocused window (split screen, a dialog over the app) still does.
+  var _appActive = _isActive(WidgetsBinding.instance.lifecycleState);
 
-  /// Every scroll position this cover sits in (a carousel inside a page):
-  /// scrolling one re-checks whether the cover is in the window, so a live
-  /// cover's ticker runs only while some of it shows.
-  final _positions = <ScrollPosition>[];
+  static bool _isActive(AppLifecycleState? s) =>
+      s == null ||
+      s == AppLifecycleState.resumed ||
+      s == AppLifecycleState.inactive;
+
+  /// Every scroll view this cover sits in (a carousel inside a page):
+  /// scrolling one re-checks whether the cover shows, and each one's
+  /// viewport bounds what counts as showing.
+  final _scrollables = <ScrollableState>[];
+
+  /// While a live cover is out of sight, a cheap look every half second
+  /// catches it coming back by a way no scroll reports (a route sliding in).
+  Timer? _lookAgain;
 
   @override
   void initState() {
@@ -220,45 +230,73 @@ class _ArtCoverState extends State<ArtCover>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final found = <ScrollPosition>[];
+    // The nearest scroll view by dependency (its position can change); the
+    // outer ones by lookup, which registers nothing on their behalf.
+    final found = <ScrollableState>[];
     for (
-      var s = Scrollable.maybeOf(context);
+      ScrollableState? s = Scrollable.maybeOf(context);
       s != null;
-      s = Scrollable.maybeOf(s.context)
+      s = s.context.findAncestorStateOfType<ScrollableState>()
     ) {
-      found.add(s.position);
+      found.add(s);
     }
-    for (final p in _positions) {
-      p.removeListener(_scrolled);
+    for (final s in _scrollables) {
+      s.position.removeListener(_scrolled);
     }
-    _positions
+    _scrollables
       ..clear()
       ..addAll(found);
-    for (final p in _positions) {
-      p.addListener(_scrolled);
+    for (final s in _scrollables) {
+      s.position.addListener(_scrolled);
     }
     if (widget.live) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _scrolled());
+      WidgetsBinding.instance.addPostFrameCallback((_) => _check());
     }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final active = state == AppLifecycleState.resumed;
+    final active = _isActive(state);
     if (active != _appActive && mounted) setState(() => _appActive = active);
   }
 
-  // A scroll moved: start or stop the ticker as the cover enters or leaves
-  // the window.
+  // A scroll moved. Scroll positions notify before the new layout, so the
+  // cover measures itself after this frame's layout, once per frame.
+  var _checkPending = false;
   void _scrolled() {
+    if (!mounted || !widget.live || _checkPending) return;
+    _checkPending = true;
+    WidgetsBinding.instance
+      ..addPostFrameCallback((_) {
+        _checkPending = false;
+        _check();
+      })
+      ..ensureVisualUpdate();
+  }
+
+  // Start or stop the ticker as the cover enters or leaves the view.
+  void _check() {
     if (!mounted || !widget.live) return;
     final visible = _visible();
     if (visible != _onScreen) setState(() => _onScreen = visible);
+    if (visible) {
+      _lookAgain?.cancel();
+      _lookAgain = null;
+    } else {
+      _lookAgain ??= Timer.periodic(
+        const Duration(milliseconds: 500),
+        (_) => _check(),
+      );
+    }
   }
 
   @override
   void didUpdateWidget(ArtCover old) {
     super.didUpdateWidget(old);
+    if (!widget.live) {
+      _lookAgain?.cancel();
+      _lookAgain = null;
+    }
     if (old.strike != widget.strike) {
       old.strike?.removeListener(_struck);
       widget.strike?.addListener(_struck);
@@ -271,8 +309,9 @@ class _ArtCoverState extends State<ArtCover>
     ArtTextures.instance.removeListener(_changed);
     widget.strike?.removeListener(_struck);
     WidgetsBinding.instance.removeObserver(this);
-    for (final p in _positions) {
-      p.removeListener(_scrolled);
+    _lookAgain?.cancel();
+    for (final s in _scrollables) {
+      s.position.removeListener(_scrolled);
     }
     _ticker.dispose();
     _time.dispose();
@@ -323,14 +362,22 @@ class _ArtCoverState extends State<ArtCover>
     _time.value = struck == null ? 60 + s : s;
   }
 
-  // Whether any of this box is inside the window.
+  // Whether any of this box shows: inside the window and inside every
+  // scroll view's viewport it sits in.
   bool _visible() {
     final box = context.findRenderObject();
     if (box is! RenderBox || !box.attached || !box.hasSize) return false;
     final rect = box.localToGlobal(Offset.zero) & box.size;
     final view = View.of(context);
     final screen = Offset.zero & (view.physicalSize / view.devicePixelRatio);
-    return rect.overlaps(screen);
+    if (!rect.overlaps(screen)) return false;
+    for (final s in _scrollables) {
+      final port = s.context.findRenderObject();
+      if (port is! RenderBox || !port.attached || !port.hasSize) continue;
+      final area = port.localToGlobal(Offset.zero) & port.size;
+      if (!rect.overlaps(area)) return false;
+    }
+    return true;
   }
 
   @override
@@ -349,11 +396,13 @@ class _ArtCoverState extends State<ArtCover>
     final animate =
         _motionAllowed &&
         _appActive &&
+        // A hidden tab (IndexedStack) keeps its tickers unless asked.
+        Visibility.of(context) &&
         ((widget.live && _onScreen) || _striking) &&
         TickerMode.valuesOf(context).enabled;
     if (widget.live && !_onScreen) {
       // Re-checked after layout too, for moves no scroll position reports.
-      WidgetsBinding.instance.addPostFrameCallback((_) => _scrolled());
+      WidgetsBinding.instance.addPostFrameCallback((_) => _check());
     }
     if (_striking && widget.strike != null) {
       _strikeLength = bellStrikeLength(comp);
