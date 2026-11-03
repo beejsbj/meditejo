@@ -680,6 +680,7 @@ class _PackViewState extends ConsumerState<PackView>
   /// The session row's "⋮", and the spec its long-press opens too.
   ContentActionsButton _actionsFor(PackItemsModel item) => ContentActionsButton(
     id: item.id,
+    title: item.title,
     fallback: MyItemDraft.fromPackItem(item),
     inCourse: widget.id,
     teacherId: item.teacherId,

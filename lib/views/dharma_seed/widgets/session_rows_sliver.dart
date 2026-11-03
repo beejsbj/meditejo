@@ -43,6 +43,7 @@ class SessionRowsSliver extends ConsumerWidget {
         final item = items[index];
         final actions = ContentActionsButton(
           id: item.id,
+          title: item.title,
           fallback: MyItemDraft.fromPackItem(item),
           teacherId: item.teacherId == hideTeacherId ? null : item.teacherId,
         );

@@ -308,8 +308,7 @@ Future<bool> _isDownloadable(WidgetRef ref, String id) async {
 bool isDownloadInProgress(AudioDownloaderState state, String id) =>
     state.audioDownloadState.entries.any(
       (e) =>
-          e.value == AudioDownloadState.downloading &&
-          e.key.startsWith('$id-'),
+          e.value == AudioDownloadState.downloading && e.key.startsWith('$id-'),
     );
 
 /// Sets a session's played state in local stats, whichever source it is
@@ -536,7 +535,7 @@ void _share(BuildContext context, ItemActionsSpec spec) {
   final l10n = AppLocalizations.of(context)!;
   final title = spec.entry?.displayTitle ?? spec.title;
   final text = spec.isCourse
-      ? l10n.sharePackText(title, 'meditejo://meditejo/packs/${spec.id}')
-      : l10n.shareTrackText(title, 'meditejo://meditejo/tracks/${spec.id}');
+      ? l10n.sharePackText('meditejo://meditejo/packs/${spec.id}', title)
+      : l10n.shareTrackText('meditejo://meditejo/tracks/${spec.id}', title);
   unawaited(SharePlus.instance.share(ShareParams(text: text)));
 }

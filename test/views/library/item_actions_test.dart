@@ -119,11 +119,16 @@ void main() {
           'ds-talk-1-f1.mp3': AudioDownloadState.downloading,
           'ds-talk-2-f1.mp3': AudioDownloadState.downloading,
           'ds-talk-3-f1.mp3': AudioDownloadState.downloaded,
+          'ds-talk-12-f1.mp3': AudioDownloadState.downloading,
         },
       );
       expect(isDownloadInProgress(state, 'ds-talk-1'), isTrue);
       expect(isDownloadInProgress(state, 'ds-talk-3'), isFalse);
-      expect(isDownloadInProgress(state, 'ds-talk'), isFalse);
+      // A longer id that merely starts the same is a different session.
+      expect(isDownloadInProgress(state, 'ds-talk-1'), isTrue);
+      expect(isDownloadInProgress(state, 'ds-talk-2'), isTrue);
+      expect(isDownloadInProgress(state, 'ds-talk-4'), isFalse);
+      expect(isDownloadInProgress(state, 'ds-talk-123'), isFalse);
       expect(isDownloadInProgress(const AudioDownloaderState(), 'x'), isFalse);
     });
 
