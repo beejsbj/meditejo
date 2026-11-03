@@ -92,8 +92,8 @@ void main() {
     expect(find.text('Session x-1'), findsOneWidget);
     // The kind label, in capitals like every kind.
     expect(find.text('UNAVAILABLE'), findsOneWidget);
-    // Progress counts the one session that can still be played.
-    expect(find.textContaining('of 1'), findsWidgets);
+    // The header counts the one session that can still be played.
+    expect(find.textContaining('1 session ·'), findsOneWidget);
 
     await tester.tap(find.text('Session x-1'));
     await DharmaSeedTestApp.settle(tester);

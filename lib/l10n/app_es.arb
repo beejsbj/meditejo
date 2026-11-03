@@ -730,6 +730,8 @@
   "searchLengthOver45": "Más de 45 min",
   "coursePlayed": "{count} de {total} escuchadas",
   "courseAllPlayed": "Las {total} escuchadas",
+  "coursePlayAgain": "Volver a empezar",
+  "courseSessionCount": "{count, plural, =1{1 sesión} other{{count} sesiones}}",
   "courseSave": "Añadir a la biblioteca",
   "courseSaved": "En la biblioteca",
   "courseSessionsTab": "Sesiones",

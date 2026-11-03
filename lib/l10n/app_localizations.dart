@@ -2518,6 +2518,18 @@ abstract class AppLocalizations {
   /// **'All {total} played'**
   String courseAllPlayed(int total);
 
+  /// A finished course's play button: starts it again from its first session
+  ///
+  /// In en, this message translates to:
+  /// **'Play again'**
+  String get coursePlayAgain;
+
+  /// How many sessions a course holds, in its header's meta line (the word its Sessions tab uses)
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 session} other{{count} sessions}}'**
+  String courseSessionCount(int count);
+
   /// Button to save a course
   ///
   /// In en, this message translates to:

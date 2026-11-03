@@ -57,6 +57,11 @@ class _PackViewState extends ConsumerState<PackView>
   /// The pinned tab bar, to keep it in place when the tab changes.
   final _tabsKey = GlobalKey(debugLabel: 'course_tabs');
 
+  /// Set when a tab change kept the tabs pinned: a short tab then gets room
+  /// below it ([_filler]) until the user scrolls back above where it ends.
+  bool _holdTabs = false;
+  double _filler = 0;
+
   /// SliverAppBar.large's collapsed toolbar height (Material 3).
   static const _collapsedAppBarHeight = 64.0;
   bool _markingAll = false;
@@ -118,7 +123,14 @@ class _PackViewState extends ConsumerState<PackView>
 
   void _scrollListener() {
     // The app bar fades its art with the offset.
-    setState(() => {});
+    setState(() {
+      // Back within the tab's own length: the room below is not needed.
+      final position = _scrollController.position;
+      if (_holdTabs &&
+          position.pixels <= math.max(0, position.maxScrollExtent - _filler)) {
+        _holdTabs = false;
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) => _updateBarPlay());
   }
 
@@ -212,8 +224,9 @@ class _PackViewState extends ConsumerState<PackView>
           ),
           // A short tab (Summary, Teacher) opened from deep in the sessions
           // keeps the tabs pinned, with room below, instead of the page
-          // springing back down under them.
-          if (tabs != null && tabs.length > 1)
+          // springing back down under them. Only then: a short course at
+          // rest does not scroll into blank space.
+          if (tabs != null && tabs.length > 1 && _holdTabs)
             SliverLayoutBuilder(
               builder: (context, constraints) => SliverToBoxAdapter(
                 child: SizedBox(height: _roomBelowTabs(constraints)),
@@ -234,8 +247,9 @@ class _PackViewState extends ConsumerState<PackView>
       pack.items.any((item) => item.kind != null);
 
   /// The header (#81): who leads the course, what it holds, how far along
-  /// the user is, then one row of actions: Play / Resume, Library, Pin,
-  /// Share, ⋮. A plain pack shows its description in place of the first two.
+  /// the user is, then its actions: a full-width Play / Resume over a row of
+  /// Library, Pin, Share and ⋮. A plain pack shows its description in place
+  /// of the first two.
   Widget _header(PackModel pack) {
     final course = _isCourse(pack);
     final who = course ? _who(pack) : null;
@@ -261,7 +275,9 @@ class _PackViewState extends ConsumerState<PackView>
                     style: theme.textTheme.bodyMedium?.copyWith(color: muted),
                   ),
                 ),
-              if (pack.playableTracks.isNotEmpty) ...[
+              // Shown once a session is played: a course not yet begun has
+              // nothing to measure.
+              if (pack.playableTracks.any((i) => i.isCompleted == true)) ...[
                 const SizedBox(height: 16),
                 _progress(pack),
               ],
@@ -302,8 +318,9 @@ class _PackViewState extends ConsumerState<PackView>
             context,
             ref: ref,
           ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(0, 4, 12, 4),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.only(right: 12),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -356,7 +373,7 @@ class _PackViewState extends ConsumerState<PackView>
     return [
       if (years.length == 1) years.single,
       if (years.length > 1) '${years.first}–${years.last}',
-      if (tracks.isNotEmpty) l10n.librarySessions(tracks.length),
+      if (tracks.isNotEmpty) l10n.courseSessionCount(tracks.length),
       if (totalMs > 0) _length(totalMs),
     ].join(' · ');
   }
@@ -369,7 +386,7 @@ class _PackViewState extends ConsumerState<PackView>
     return '${(minutes / 60).round()} h';
   }
 
-  /// A thin bar of the sessions played, with the count beside it.
+  /// A thin bar of the sessions played, under the count.
   Widget _progress(PackModel pack) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
@@ -383,26 +400,27 @@ class _PackViewState extends ConsumerState<PackView>
     return Semantics(
       label: label,
       excludeSemantics: true,
-      child: Row(
+      // The count over the bar, so a long translation at a large text size
+      // wraps instead of squeezing the bar.
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(2),
-              child: LinearProgressIndicator(
-                value: done / total,
-                minHeight: 4,
-                backgroundColor: onSurface.withValues(alpha: 0.1),
-                color: context.brandAccent,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
           Text(
             label,
             key: const ValueKey('course_progress'),
             style: theme.textTheme.labelMedium?.copyWith(
               color: onSurface.withValues(alpha: 0.7),
               fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: done / total,
+              minHeight: 4,
+              backgroundColor: onSurface.withValues(alpha: 0.1),
+              color: context.brandAccent,
             ),
           ),
         ],
@@ -416,7 +434,7 @@ class _PackViewState extends ConsumerState<PackView>
   double _roomBelowTabs(SliverConstraints constraints) {
     final tabs = _tabsKey.currentContext
         ?.findAncestorRenderObjectOfType<RenderSliver>();
-    if (tabs == null || !tabs.attached) return 0;
+    if (tabs == null || !tabs.attached) return _filler = 0;
     final tabsAndContent =
         constraints.precedingScrollExtent -
         tabs.constraints.precedingScrollExtent;
@@ -424,7 +442,7 @@ class _PackViewState extends ConsumerState<PackView>
         constraints.viewportMainAxisExtent -
         MediaQuery.paddingOf(context).top -
         _collapsedAppBarHeight;
-    return math.max(0, underTitle - tabsAndContent);
+    return _filler = math.max(0, underTitle - tabsAndContent);
   }
 
   /// Switches tab. Once the tabs are pinned under the title, the new tab
@@ -438,8 +456,9 @@ class _PackViewState extends ConsumerState<PackView>
           tabs.constraints.precedingScrollExtent -
           MediaQuery.paddingOf(context).top -
           _collapsedAppBarHeight;
-      if (_scrollController.offset > pinnedAt) {
+      if (_scrollController.offset >= pinnedAt) {
         _scrollController.jumpTo(math.max(0, pinnedAt));
+        _holdTabs = true;
       }
     }
     setState(() => _tab = index);

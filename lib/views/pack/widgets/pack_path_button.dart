@@ -17,11 +17,12 @@ typedef StartSessionFn =
       String? courseId,
     });
 
-/// The course's one Play: a filled button that plays the next session
-/// ([nextSessionFor]) and names it, "Resume: Second Jhāna". It leads the
-/// header's action row; the bottom bar shows a [compact] copy once the header
-/// has scrolled away (#81). Home's Continue follows what the user plays;
-/// pinning a course is a separate, deliberate action.
+/// The course's one Play: a full-width filled button that plays the next
+/// session ([nextSessionFor]) and names it, "▶ Resume  Second Jhāna…". It
+/// sits above the header's icon row; the bottom bar shows a [compact] copy
+/// once the header has scrolled away (#81). A finished course offers Play
+/// again, from its first session. Home's Continue follows what the user
+/// plays; pinning a course is a separate, deliberate action.
 class PackPlayButton extends ConsumerStatefulWidget {
   const PackPlayButton({
     super.key,
@@ -32,8 +33,7 @@ class PackPlayButton extends ConsumerStatefulWidget {
 
   final PackModel pack;
 
-  /// One line ("Resume: Second Jhāna…") at the bottom bar's height, instead
-  /// of the header's two (the action over the session's title).
+  /// The bottom bar's height (48) instead of the header's (56).
   final bool compact;
   final StartSessionFn onStartSession;
 
@@ -55,40 +55,58 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final tracks = pack.playableTracks;
     final completed = tracks.where((item) => item.isCompleted == true).length;
     final places = ref.watch(partialPlacesProvider);
-    final next = nextSessionFor(pack, partial: places.value ?? const {});
-    // Until the places are read the answer could be the wrong session, so
-    // the button waits (an error reads as no places).
+    // Until the places are read the answer could be the wrong session (and
+    // Start where it is Resume), so the button names nothing and waits; an
+    // error reads as no places.
     final ready = places.hasValue || places.hasError;
-    return _playButton(context, next, completed, tracks.length, ready);
+    final next = nextSessionFor(pack, partial: places.value ?? const {});
+    final first = tracks.firstOrNull;
+
+    final String action;
+    final PackItemsModel? session;
+    if (!ready) {
+      action = l10n.play;
+      session = null;
+    } else if (next == null) {
+      // Finished: start over from the first session.
+      action = l10n.coursePlayAgain;
+      session = first;
+    } else {
+      // A session left partway also reads Resume, even in an unstarted
+      // course.
+      action = next.isResume ? l10n.packContinue : l10n.packStart;
+      session = next.item;
+    }
+    final label = session == null
+        ? action
+        : next == null
+        ? '$action: ${session.title}'
+        : '$action: ${session.title}. '
+              '${l10n.upNextProgress(completed, tracks.length)}';
+    return _button(
+      context,
+      action: action,
+      title: session?.title,
+      label: label,
+      replay: ready && next == null,
+      onTap: session == null ? null : () => _start(context, session!),
+    );
   }
 
-  Widget _playButton(
-    BuildContext context,
-    NextSession? nextSession,
-    int completed,
-    int total,
-    bool ready,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
+  Widget _button(
+    BuildContext context, {
+    required String action,
+    required String? title,
+    required String label,
+    required bool replay,
+    required VoidCallback? onTap,
+  }) {
     final theme = Theme.of(context);
-    final onSurface = theme.colorScheme.onSurface;
-    final next = nextSession?.item;
-    final done = nextSession == null;
-    // A session left partway also reads Resume, even in an unstarted course.
-    final action = done
-        ? l10n.yourPathAllDone
-        : nextSession.isResume
-        ? l10n.packContinue
-        : l10n.packStart;
-    final label = done
-        ? action
-        : '$action: ${next!.title}. ${l10n.upNextProgress(completed, total)}';
-    final foreground = done ? onSurface : context.onBrandAccent;
-    final height = widget.compact ? 48.0 : 56.0;
-
+    final foreground = context.onBrandAccent;
     final icon = _starting
         ? SizedBox.square(
             dimension: 20,
@@ -98,78 +116,85 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
             ),
           )
         : Icon(
-            done ? Icons.check_rounded : Icons.play_arrow_rounded,
-            size: done ? 22 : 28,
+            replay ? Icons.replay_rounded : Icons.play_arrow_rounded,
+            size: replay ? 24 : 28,
             color: foreground,
           );
-
     final actionStyle = theme.textTheme.labelLarge?.copyWith(
       color: foreground,
       fontWeight: FontWeight.w700,
       fontSize: 15,
     );
-    final Widget text;
-    if (done) {
-      text = Text(action, maxLines: 1, style: actionStyle);
-    } else if (widget.compact) {
-      text = Text(
-        '$action: ${next!.title}',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: actionStyle,
-      );
-    } else {
-      text = Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(action, maxLines: 1, style: actionStyle),
-          Text(
-            next!.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: foreground.withValues(alpha: 0.85),
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.1,
-              height: 1.25,
-            ),
-          ),
-        ],
-      );
-    }
+    final titleStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: foreground.withValues(alpha: 0.85),
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.1,
+    );
 
     return Semantics(
-      button: !done,
+      button: true,
+      enabled: onTap != null,
       label: label,
       excludeSemantics: true,
       child: Tooltip(
-        message: done ? action : '$action: ${next!.title}',
+        message: title == null ? action : '$action: $title',
         excludeFromSemantics: true,
         child: Material(
           shape: const StadiumBorder(),
           clipBehavior: Clip.antiAlias,
-          color: done
-              ? Color.alphaBlend(
-                  onSurface.withValues(alpha: 0.08),
-                  theme.cardColor,
-                )
-              : context.brandAccent,
+          color: context.brandAccent,
           child: InkWell(
-            onTap: done || !ready ? null : () => _start(context, next!),
+            onTap: onTap,
             child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: height),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 6, 16, 6),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox.square(dimension: 26, child: Center(child: icon)),
-                    const SizedBox(width: 6),
-                    Flexible(child: text),
-                  ],
-                ),
+              constraints: BoxConstraints(minHeight: widget.compact ? 48 : 56),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final actionMax = constraints.maxWidth.isFinite
+                      ? constraints.maxWidth * 0.75
+                      : double.infinity;
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 6, 20, 6),
+                    child: Row(
+                      mainAxisSize: widget.compact
+                          ? MainAxisSize.min
+                          : MainAxisSize.max,
+                      children: [
+                        SizedBox.square(
+                          dimension: 28,
+                          child: Center(child: icon),
+                        ),
+                        const SizedBox(width: 8),
+                        // The action word stays whole; only the title gives way.
+                        // (Capped, so even a huge text scale ellipsizes rather
+                        // than overflows.)
+                        ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: actionMax),
+                          child: Text(
+                            action,
+                            key: const ValueKey('play_action'),
+                            maxLines: 1,
+                            softWrap: false,
+                            overflow: TextOverflow.ellipsis,
+                            style: actionStyle,
+                          ),
+                        ),
+                        if (title != null) ...[
+                          const SizedBox(width: 10),
+                          Flexible(
+                            child: Text(
+                              title,
+                              key: const ValueKey('play_title'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: titleStyle,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
           ),

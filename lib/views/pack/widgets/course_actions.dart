@@ -14,10 +14,10 @@ import 'package:medito/widgets/medito_icon.dart';
 import 'package:medito/widgets/save_button.dart';
 import 'package:share_plus/share_plus.dart';
 
-/// The course page's one action row (#81): a filled Play / Resume that names
-/// the next session, then the toggles that keep the course (Library, Pin),
-/// Share and ⋮. What used to sit in the bottom bar lives here, with the
-/// course.
+/// The course page's actions (#81): a full-width filled Play / Resume that
+/// names the next session, over a row of the toggles that keep the course
+/// (Library, Pin), Share and ⋮. What used to sit in the bottom bar lives
+/// here, with the course.
 class CourseActionRow extends StatelessWidget {
   const CourseActionRow({super.key, required this.pack, this.playKey});
 
@@ -50,22 +50,23 @@ class CourseActionRow extends StatelessWidget {
       CourseShareButton(packId: pack.id, title: pack.title),
       CourseMoreButton(packId: pack.id, title: pack.title),
     ];
-    return Row(
+    // Play gets the full width, so the session's name has room; the
+    // toggles sit in a row under it.
+    final icons = Row(
       children: [
-        if (playable) ...[
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: PackPlayButton(key: playKey, pack: pack),
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
-        // Spaced as one group, apart from Play.
         for (final (i, toggle) in toggles.indexed) ...[
-          if (i > 0) const SizedBox(width: 4),
+          if (i > 0) const SizedBox(width: 8),
           toggle,
         ],
+      ],
+    );
+    if (!playable) return icons;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        PackPlayButton(key: playKey, pack: pack),
+        const SizedBox(height: 12),
+        icons,
       ],
     );
   }

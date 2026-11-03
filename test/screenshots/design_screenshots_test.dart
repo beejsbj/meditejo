@@ -782,6 +782,73 @@ void main() {
       }
     }, skip: !_enabled);
 
+    // The header's Play and toggles in long languages, on the narrowest
+    // phones and at a larger text size (#81): no word may be cut.
+    testWidgets('Course page fit, ${brightness.name}', (tester) async {
+      WidgetsApp.debugAllowBannerOverride = false;
+      addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
+      final finished = _jhanas.copyWith(
+        id: 'ds-retreat-4497',
+        items: [
+          for (final item in _jhanas.items) item.copyWith(isCompleted: true),
+        ],
+      );
+      // The same three every pump: one ProviderScope is pumped repeatedly.
+      final overrides = [
+        for (final p in [_jhanas, _vervaeke, finished])
+          packProvider(packId: p.id).overrideWith(() => _PackOf(p)),
+      ];
+      for (final lang in const ['en', 'de', 'es']) {
+        for (final width in const [360, 411]) {
+          for (final scale in const [1.0, 1.3]) {
+            final app = await LibraryTestApp.create(tester);
+            await app.pump(
+              tester,
+              _frame(
+                brightness,
+                Builder(
+                  builder: (context) => Localizations.override(
+                    context: context,
+                    locale: Locale(lang),
+                    child: MediaQuery(
+                      data: MediaQuery.of(
+                        context,
+                      ).copyWith(textScaler: TextScaler.linear(scale)),
+                      child: PackView(
+                        key: ValueKey('$lang-$width-$scale'),
+                        id: _jhanas.id,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              overrides: overrides,
+            );
+            // 1080 px wide at 3 = 360 dp; at 2.625 = 411 dp (S23+).
+            tester.view.devicePixelRatio = width == 360 ? 3 : 2.625;
+            tester.view.physicalSize = const Size(1080, 2340);
+            await tester.pump(const Duration(seconds: 1));
+            expect(tester.takeException(), isNull);
+            await _captureView(
+              tester,
+              'course-fit-$lang-$width-x$scale-${brightness.name}',
+            );
+          }
+        }
+      }
+      // Finished: a quiet "All 32 played" and Play again.
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(
+        tester,
+        _frame(brightness, PackView(id: finished.id)),
+        overrides: overrides,
+      );
+      await _phone(tester);
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+      await _captureView(tester, 'course-finished-${brightness.name}');
+    }, skip: !_enabled);
+
     testWidgets('Home menus, ${brightness.name}', (tester) async {
       final app = await LibraryTestApp.create(tester);
       await app.prefs.setStringList('pinned_course_ids', [_pack.id]);

@@ -1413,6 +1413,20 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get coursePlayAgain => 'Noch einmal';
+
+  @override
+  String courseSessionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Sitzungen',
+      one: '1 Sitzung',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get courseSave => 'Zur Bibliothek hinzufügen';
 
   @override

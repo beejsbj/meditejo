@@ -1384,6 +1384,20 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get coursePlayAgain => 'Play again';
+
+  @override
+  String courseSessionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sessions',
+      one: '1 session',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get courseSave => 'Add to library';
 
   @override

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
@@ -9,6 +10,7 @@ import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/pack/widgets/pack_path_button.dart';
 import 'package:medito/views/player/widgets/bottom_actions/pack_view_bottom_bar.dart';
 import 'package:medito/views/teacher/teacher_view.dart';
+import 'package:medito/widgets/attribution_notice.dart';
 
 import '../../helpers/art_finders.dart';
 import '../../helpers/dharma_seed_app.dart';
@@ -107,10 +109,14 @@ void main() {
       expect(find.text('John Vervaeke'), findsOneWidget);
       expect(find.byKey(const ValueKey('course_teacher')), findsNothing);
       expect(find.text('18 sessions · 9 h'), findsOneWidget);
-      expect(find.text('0 of 18 played'), findsOneWidget);
+      // Nothing played yet: no progress to show.
+      expect(find.byKey(const ValueKey('course_progress')), findsNothing);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
     });
 
-    testWidgets('one row: Play, Library, Pin, Share and more', (tester) async {
+    testWidgets('Play across the width, then Library, Pin, Share, more', (
+      tester,
+    ) async {
       final app = await createApp(tester);
       await app.pump(tester, const PackView(id: 'ds-retreat-500'));
 
@@ -122,12 +128,16 @@ void main() {
         'pack_actions',
       ];
       expect(play, findsOneWidget);
-      final row = tester.getCenter(play).dy;
-      var left = tester.getTopRight(play).dx;
+      // Play spans the header's content width (20 dp gutters).
+      final width = tester.getSize(find.byType(PackView)).width;
+      expect(tester.getSize(play).width, closeTo(width - 40, 1));
+      // The toggles share one line under it, in this order.
+      final row = tester.getCenter(find.byKey(ValueKey(keys.first))).dy;
+      expect(row, greaterThan(tester.getBottomLeft(play).dy));
+      var left = 0.0;
       for (final key in keys) {
         final control = find.byKey(ValueKey(key));
         expect(control, findsOneWidget, reason: key);
-        // On the Play's line, in this order, after it.
         expect(tester.getCenter(control).dy, closeTo(row, 1), reason: key);
         expect(tester.getTopLeft(control).dx, greaterThan(left), reason: key);
         left = tester.getTopLeft(control).dx;
@@ -163,10 +173,8 @@ void main() {
       // bar offers it, naming the session.
       await scrollBy(tester, 900);
       expect(inBar(find.byType(PackPlayButton)), findsOneWidget);
-      expect(
-        inBar(find.text('${l10n.packContinue}: Long talk 2')),
-        findsOneWidget,
-      );
+      expect(inBar(find.text(l10n.packContinue)), findsOneWidget);
+      expect(inBar(find.text('Long talk 2')), findsOneWidget);
 
       // Back at the top, the header has it again.
       await scrollBy(tester, -2000);
@@ -196,6 +204,75 @@ void main() {
       expect(summary, findsOneWidget);
       expect(tester.getTopLeft(summary).dy, greaterThan(pinnedTop));
       expect(tester.getTopLeft(summary).dy, lessThan(pinnedTop + 200));
+      // The room that keeps them there is only for that moment: back at
+      // the top, it goes.
+      expect(find.byType(SliverLayoutBuilder), findsOneWidget);
+      await scrollBy(tester, -3000);
+      expect(find.byType(SliverLayoutBuilder), findsNothing);
     });
+
+    testWidgets('a course at rest has no blank room below its sessions', (
+      tester,
+    ) async {
+      final app = await DharmaSeedTestApp.create(tester);
+      await app.pump(tester, const PackView(id: 'ds-retreat-100'));
+      expect(find.byType(SliverLayoutBuilder), findsNothing);
+      await scrollBy(tester, 3000);
+      // Scrolled to the end, the end of the page meets the bottom bar.
+      final viewport = tester.getBottomLeft(find.byType(CustomScrollView)).dy;
+      final last = tester.getBottomLeft(find.byType(AttributionNotice)).dy;
+      expect(viewport - last, lessThan(48));
+    });
+
+    // Words in de and es run long; the action word must never be cut, at
+    // the narrowest phones and at a larger text size.
+    for (final locale in const ['en', 'de', 'es']) {
+      for (final width in const [360.0, 411.0]) {
+        for (final scale in const [1.0, 1.3]) {
+          testWidgets('Play keeps its action whole: $locale, ${width.toInt()} '
+              'dp, text x$scale', (tester) async {
+            final app = await createApp(tester);
+            await app.pump(
+              tester,
+              Builder(
+                builder: (context) => Localizations.override(
+                  context: context,
+                  locale: Locale(locale),
+                  child: MediaQuery(
+                    data: MediaQuery.of(
+                      context,
+                    ).copyWith(textScaler: TextScaler.linear(scale)),
+                    child: const PackView(id: 'ds-retreat-500'),
+                  ),
+                ),
+              ),
+              played: ['ds-talk-501', 'ds-talk-502', 'ds-talk-503'],
+            );
+            tester.view.physicalSize = Size(width, 900);
+            await tester.pump();
+            await tester.pump(const Duration(milliseconds: 100));
+            expect(tester.takeException(), isNull);
+
+            final words = await AppLocalizations.delegate.load(Locale(locale));
+            final action = find.descendant(
+              of: find.byType(PackPlayButton),
+              matching: find.byKey(const ValueKey('play_action')),
+            );
+            expect(tester.widget<Text>(action).data, words.packContinue);
+            final paragraph = tester.renderObject<RenderParagraph>(
+              find.descendant(of: action, matching: find.byType(RichText)),
+            );
+            expect(paragraph.didExceedMaxLines, isFalse);
+            // The four toggles still fit their row.
+            for (final key in const ['course_library', 'pack_actions']) {
+              expect(
+                tester.getTopRight(find.byKey(ValueKey(key))).dx,
+                lessThanOrEqualTo(width),
+              );
+            }
+          });
+        }
+      }
+    }
   });
 }

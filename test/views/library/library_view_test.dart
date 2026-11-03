@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:medito/views/pack/widgets/pack_item_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:medito/constants/colors/color_constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
@@ -293,7 +294,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('0 of 3 played'), findsOneWidget);
+      expect(find.textContaining('3 sessions'), findsOneWidget);
     });
 
     testWidgets('removing an imported course unpins it and its sessions', (
@@ -460,6 +461,17 @@ void main() {
       await settle(tester);
       expect(find.byType(PackView), findsNothing);
       expect(find.text('Your library is empty'), findsOneWidget);
+      // Said, though the page that asked is gone, in readable text: styled
+      // from the app's messenger, not left white on the white snackbar.
+      final said = find.descendant(
+        of: find.byType(SnackBar),
+        matching: find.text('Removed from your library'),
+      );
+      expect(said, findsOneWidget);
+      expect(
+        tester.widget<Text>(said).style?.color,
+        ColorConstants.greyIsTheNewBlack,
+      );
     });
 
     testWidgets(

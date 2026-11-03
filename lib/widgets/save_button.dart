@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/colors/color_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/scaffold_messenger_key.dart';
 import 'package:medito/services/library/lib_ids.dart';
 import 'package:medito/utils/logger.dart';
@@ -120,6 +121,10 @@ Future<void> toggleSaved(
   bool announce = false,
 }) async {
   final l10n = AppLocalizations.of(context)!;
+  // The snackbar's text takes its style from a context: the page's while it
+  // is there, else the app's messenger (with none it is white on white).
+  BuildContext? styled() =>
+      context.mounted ? context : scaffoldMessengerKey.currentContext;
   if (saved && id.startsWith(libPrefix)) {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -146,10 +151,10 @@ Future<void> toggleSaved(
     } catch (e, st) {
       AppLogger.e('LIBRARY', 'Could not remove $id', e, st);
       // The app's messenger shows it, so it survives the page.
-      showSnackBar(context.mounted ? context : null, l10n.someThingWentWrong);
+      showSnackBar(styled(), l10n.someThingWentWrong);
       return;
     }
-    if (announce) showSnackBar(null, l10n.libraryRemovedSnack);
+    if (announce) showSnackBar(styled(), l10n.libraryRemovedSnack);
     // The page shows what was just deleted (a Play for a file that is gone),
     // so an imported item's page closes with it.
     if (context.mounted) await Navigator.of(context).maybePop();
@@ -157,10 +162,18 @@ Future<void> toggleSaved(
   }
   // Replace rather than queue, so a quick re-tap reads the end state.
   if (announce) scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
+  if (saved && announce) {
+    // Taken out as the Library takes it out: with Undo, which puts it back
+    // as it was (its section and title overrides too).
+    final entry = await ref.read(libraryStoreProvider).entry(id);
+    if (entry != null && context.mounted) {
+      return removeFromLibrary(context, ref, entry);
+    }
+  }
   await ref.read(savedProvider(id).notifier).toggle();
   if (announce) {
     showSnackBar(
-      context.mounted ? context : null,
+      styled(),
       saved ? l10n.libraryRemovedSnack : l10n.libraryAddedSnack,
     );
   }

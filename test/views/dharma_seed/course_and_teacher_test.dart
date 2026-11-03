@@ -116,7 +116,8 @@ void main() {
     testWidgets('a fresh course offers Start', (tester) async {
       final app = await createApp(tester);
       await app.pump(tester, const PackView(id: 'ds-retreat-500'));
-      expect(find.text('0 of 12 played'), findsOneWidget);
+      // Nothing played: no progress bar yet.
+      expect(find.byKey(const ValueKey('course_progress')), findsNothing);
       expect(
         find.descendant(
           of: find.byType(PackPlayButton),
@@ -200,11 +201,23 @@ void main() {
         ['ds-retreat-500'],
       );
 
+      // Moved to Talks in the Library, then taken out from the header.
+      await tester.runAsync(
+        () => app.library.setGroup('ds-retreat-500', LibraryGroup.talks),
+      );
       await tester.tap(toggle);
       await DharmaSeedTestApp.settle(tester);
       expect(find.byTooltip('Add to library'), findsOneWidget);
       expect(find.text(l10n.libraryRemovedSnack), findsOneWidget);
       expect(await tester.runAsync(app.library.entries), isEmpty);
+
+      // Undo puts it back as it was, as the Library's own Undo does.
+      await tester.tap(find.text(l10n.undo));
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.byTooltip('In library'), findsOneWidget);
+      final entries = (await tester.runAsync(app.library.entries))!;
+      expect(entries.map((e) => e.sourceId), ['ds-retreat-500']);
+      expect(entries.single.group, LibraryGroup.talks);
     });
 
     testWidgets('a course already in the library opens as In library', (
@@ -321,7 +334,7 @@ void main() {
       expect(stats, isNotNull);
       final checked = (jsonDecode(stats!) as Map)['tracks_checked'];
       expect(checked == null || (checked as List).isEmpty, isTrue);
-      expect(find.text('0 of 12 played'), findsOneWidget);
+      expect(find.byKey(const ValueKey('course_progress')), findsNothing);
     });
   });
 

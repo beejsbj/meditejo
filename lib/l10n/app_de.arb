@@ -916,6 +916,8 @@
   "searchLengthOver45": "Über 45 Min.",
   "coursePlayed": "{count} von {total} gehört",
   "courseAllPlayed": "Alle {total} gehört",
+  "coursePlayAgain": "Noch einmal",
+  "courseSessionCount": "{count, plural, =1{1 Sitzung} other{{count} Sitzungen}}",
   "courseSave": "Zur Bibliothek hinzufügen",
   "courseSaved": "In der Bibliothek",
   "courseSessionsTab": "Sitzungen",
