@@ -13,6 +13,7 @@ import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 import 'package:medito/widgets/attribution_notice.dart';
 import 'package:medito/widgets/cards/card_art.dart';
 import 'package:medito/widgets/cover_art.dart';
+import 'package:medito/widgets/save_button.dart';
 import 'package:medito/widgets/section_header.dart';
 import 'package:medito/widgets/widgets.dart';
 
@@ -111,19 +112,32 @@ class _YoutubeChannelViewState extends ConsumerState<YoutubeChannelView> {
                       style: theme.textTheme.titleMedium,
                     ),
                   ),
-                if (channel.pageUrl.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                    child: OutlinedButton(
-                      key: const ValueKey('channel_open_youtube'),
-                      onPressed: () => launchURLInBrowser(channel.pageUrl),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 44),
-                        shape: const StadiumBorder(),
+                // Save and the channel's own page, as a Dharma Seed
+                // teacher's page has Save and Website.
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      SaveButton(
+                        id: channel.id,
+                        label: l10n.teacherSave,
+                        savedLabel: l10n.courseSaved,
                       ),
-                      child: Text(l10n.youtubeChannelOpen),
-                    ),
+                      if (channel.pageUrl.isNotEmpty)
+                        OutlinedButton(
+                          key: const ValueKey('channel_open_youtube'),
+                          onPressed: () => launchURLInBrowser(channel.pageUrl),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 44),
+                            shape: const StadiumBorder(),
+                          ),
+                          child: Text(l10n.youtubeChannelOpen),
+                        ),
+                    ],
                   ),
+                ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                   child: SelectableText(

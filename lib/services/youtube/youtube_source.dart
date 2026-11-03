@@ -761,6 +761,16 @@ class YoutubeSource
         retryAt: const Value(null),
       ),
     );
+    // A saved channel shows what its page now says (a picture where it had
+    // none). This is the read that was happening anyway, not a refresh.
+    final saved = ytChannelId(row.channelId);
+    if (await library.contains(saved)) {
+      await library.updateSnapshot(
+        saved,
+        title: fresh.name.isEmpty ? null : fresh.name,
+        coverUrl: fresh.avatar.isEmpty ? null : fresh.avatar,
+      );
+    }
     return true;
   }
 
@@ -1210,13 +1220,32 @@ class YoutubeSource
 
   @override
   bool canSave(String id) =>
-      id.startsWith('yt-video-') || id.startsWith('yt-playlist-');
+      id.startsWith('yt-video-') ||
+      id.startsWith('yt-playlist-') ||
+      isYtChannelId(id);
   @override
   Future<bool> isSaved(String id) => library.contains(id);
   @override
   Future<void> setSaved(String id, {required bool saved}) async {
     if (!saved) {
       await library.remove(id);
+      return;
+    }
+    if (isYtChannelId(id)) {
+      // A channel is saved as a teacher, as a Dharma Seed teacher is: its
+      // name and picture, opening its page. Nothing is subscribed to.
+      final row = await db.youtubeChannel(ytChannelKeyOf(id));
+      if (row == null) return;
+      await library.add(
+        LibraryDraft(
+          sourceId: id,
+          kind: LibraryKind.teacher,
+          title: row.name.isNotEmpty ? row.name : ytChannelKeyOf(id),
+          subtitle: 'YouTube',
+          // Empty: the teacher's generated art stands in.
+          coverUrl: row.avatar,
+        ),
+      );
       return;
     }
     if (id.startsWith('yt-playlist-')) {

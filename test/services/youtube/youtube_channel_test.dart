@@ -518,4 +518,59 @@ void main() {
       expect(await source.avatarFor(id), '');
     },
   );
+
+  test('a channel saves as a teacher, lists, and comes out again', () async {
+    await addPlaylist();
+    final id = ytChannelId(vervaeke);
+    expect(source.canSave(id), isTrue);
+    expect(await source.isSaved(id), isFalse);
+
+    await source.setSaved(id, saved: true);
+    expect(await source.isSaved(id), isTrue);
+    final entry = (await store.entry(id))!;
+    expect(entry.kind, LibraryKind.teacher);
+    expect(entry.title, 'John Vervaeke');
+    expect(entry.subtitle, 'YouTube');
+    expect(entry.coverUrl, 'https://yt3.example/vervaeke-small.jpg');
+    expect(
+      (await store.entries()).where((e) => e.kind == LibraryKind.teacher),
+      [isA<LibraryEntry>().having((e) => e.sourceId, 'id', id)],
+    );
+    // Saving it subscribes to nothing: no lookups, now or on refresh.
+    api.videoCalls.clear();
+    api.playlistCalls.clear();
+    expect(await source.fillDetails(id), isFalse);
+    expect(api.videoCalls, isEmpty);
+    expect(api.channelCalls, isEmpty);
+
+    await source.setSaved(id, saved: false);
+    expect(await source.isSaved(id), isFalse);
+    expect(await store.entry(id), isNull);
+    // The channel itself stays, for its courses' Teacher tab.
+    expect(await db.youtubeChannel(vervaeke), isNotNull);
+  });
+
+  test('a saved channel takes the picture its page gives later', () async {
+    api.playlists[playlistOne] = playlist(
+      [item(videoA, uploader: 'John Vervaeke')],
+      uploader: 'John Vervaeke',
+      channel: vervaeke,
+    );
+    await addPlaylist();
+    final id = ytChannelId(vervaeke);
+    await source.setSaved(id, saved: true);
+    expect((await store.entry(id))!.coverUrl, '', reason: 'art stands in');
+
+    await source.channelPage(id);
+    await pumpEventQueue();
+    expect(
+      (await store.entry(id))!.coverUrl,
+      'https://yt3.example/vervaeke.jpg',
+    );
+  });
+
+  test('a channel that is not stored cannot be saved', () async {
+    await source.setSaved(ytChannelId(guest), saved: true);
+    expect(await store.entry(ytChannelId(guest)), isNull);
+  });
 }
