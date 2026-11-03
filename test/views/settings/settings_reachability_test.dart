@@ -184,7 +184,7 @@ void main() {
     final container = await _pump(tester);
     final tile = find.byKey(const ValueKey('settings_auto_update_check'));
     expect(tile, findsOneWidget);
-    expect(find.text('Check for updates automatically'), findsOneWidget);
+    expect(_titled('Check for updates automatically'), findsOneWidget);
     expect(container.read(autoUpdateCheckProvider), isTrue);
     expect(
       tester
