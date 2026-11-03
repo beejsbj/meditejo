@@ -1120,3 +1120,28 @@ Burooj tried the test APK: "not a fan of the categories being bland as pills. An
 - **Assets:** `categories.json` version 3, `dharma_seed_pass.json` version 2, both 2026-11-02.
 - **Strings:** 12 new in en, de and es: See all, the seven group names and four language names. The 38 descriptions, in three languages, are in the asset.
 - **Shared files touched:** `lib/widgets/art/art_subject.dart` and `lib/widgets/art/engine/compose.dart` (a new subject and builder), `lib/views/explore/widgets/explore_view.dart` (one line), `lib/l10n/app_{en,de,es}.arb`.
+
+## 2026-11-02 (ways to practise: the figures in Dart, and live tiles)
+
+Burooj's picks on the figure round 2 (branch `fork/practice-figures`, merged here): the designer's picks for all, **Kasiṇa B** (the fire seen through the hole in the mat). Headless Way, Caṅkama/Walking, Forgiveness, The Mind Illuminated, Anussati, Karuṇā/Compassion and Jhāna go to a round 3.
+
+- **Ported to Dart: 29 figures.** Ānāpānasati keeps round 4's `breath:orb` and Nature round 4's `grass`.
+  - **18 from round 1** (`practice_figures_r1a.dart`, `practice_figures_r1b.dart`), including round 2's fixes to the ensō and the open sky.
+  - **The 11 round 2 picks** (`practice_figures_r2.dart`).
+  - **Shared helpers** live in `practice_helpers.dart`.
+  - They are registered beside round 4's, under their JavaScript names (`metta`, `dialogue_ripples`, `kasina_fire`, …), and none shadows an older name. `categories.json` version 4 names them.
+  - **Round 3's seven keep their stand-ins.** Porting figures about to be redrawn would be wasted work.
+  - **The port was split across three Sonnet workers, one brief, one file each,** then integrated here. A contact sheet of all 38 in Dart was checked by eye against the JavaScript.
+- **Kasiṇa's hole and `Ctx.arc`.** The engine's `Ctx` draws `arc(x, y, r, 0, τ, true)` (a full anticlockwise circle) as nothing, where Chrome draws the circle. The port spells it `0, −τ`. `canvas2d.dart` is left alone, because fixing it there could change art already curated. **Follow-up:** fix `Ctx.ellipse`'s full-turn case behind the art reference test.
+- **A design bug found in the port, not fixed in it:** Visualisation's lotus never fades with the image's `form`. The lotus's own fills reset `globalAlpha`, in JavaScript and Dart alike. This is for the figure designer.
+- **Live tiles, only while seen** (Burooj: "Maybe only the animations of what are visible on screen will be running?"). Every practice tile is `live` again. `ArtCover` now runs its ticker only while some of the cover is in the window:
+  - It listens to every scroll position it sits in (a carousel inside a page), with a periodic and a post-frame re-check for moves no scroll reports.
+  - It stops when the app is not in front (lifecycle observer).
+  - It shows the still frame under reduce motion and on covered routes (`TickerMode`), as before.
+  - This is a shared widget, so the player's live cover follows the same rules.
+  - Tested by counting running tickers: 3 of 12 built covers in a 400-px row, 0 in the background, 0 under reduce motion.
+- **Frame cost, measured here, not on the phone** (`practice_art_cost_test.dart`, opt-in with `MEDITEJO_BENCH=1`). Six cards at the S23+'s density (148×132 dp at 2.8125×), every practice once, on bjslab in debug JIT with a load of about 4.4:
+  - **Painting six: 1.7–5.1 ms per frame.** That is the UI thread's share, against `ArtCover`'s 30 fps cap (33 ms).
+  - **Rasterising on the CPU: 29–65 ms.** The phone rasterises on the GPU, so this only ranks the figures. The heaviest are Open awareness's veils and Dzogchen and Mahāmudrā.
+  - A profile run on the S23+ would settle it, and needs an APK, which Burooj will call for.
+- **The random pool of unpicked variants: not done.** Burooj wants the variants that weren't picked to join the random library for user content. The designer marks each one generic or practice-tied in round 3, and that flag isn't on the branch yet. When it lands, port the generic ones into the random pool. It is the last step.

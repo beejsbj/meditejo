@@ -430,7 +430,10 @@ category *is* that category; anything else is a label of their own.
     written), `blurb` by language (`en`, `de`, `es`), `aliases` (the English
     names, so search still finds them; an alias must not name two
     categories) and `art` (a ground and a figure, drawn by
-    `ArtSubject.practice`).
+    `ArtSubject.practice`). The practice figures are in
+    `lib/widgets/art/engine/practice_figures_*.dart` (ported from
+    `docs/fork/design/practices/`), registered under their JavaScript
+    names.
   - `curated`: content IDs (`ds-retreat-4496`, `ds-talk-60864`, or another
     source's ID) with their categories and the item's name. A curated entry
     **replaces** the keyword rules for that ID; `"categories": []` says "none of
