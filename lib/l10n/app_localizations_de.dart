@@ -1458,6 +1458,21 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get sessionKindMeditation => 'Meditation';
+
+  @override
+  String get sessionKindChanting => 'Rezitation';
+
+  @override
+  String get sessionKindTalk => 'Vortrag';
+
+  @override
+  String get sessionKindQuestions => 'Fragen';
+
+  @override
+  String get sessionKindRecording => 'Aufnahme';
+
+  @override
   String get teacherSave => 'Zur Bibliothek hinzufügen';
 
   @override

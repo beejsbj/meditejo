@@ -2584,6 +2584,36 @@ abstract class AppLocalizations {
   /// **'{minutes} min'**
   String courseSessionLength(int minutes);
 
+  /// Kind chip on a course row: a guided meditation
+  ///
+  /// In en, this message translates to:
+  /// **'Meditation'**
+  String get sessionKindMeditation;
+
+  /// Kind chip on a course row: chanting
+  ///
+  /// In en, this message translates to:
+  /// **'Chanting'**
+  String get sessionKindChanting;
+
+  /// Kind chip on a course row: a talk
+  ///
+  /// In en, this message translates to:
+  /// **'Talk'**
+  String get sessionKindTalk;
+
+  /// Kind chip on a course row: questions and answers
+  ///
+  /// In en, this message translates to:
+  /// **'Q & A'**
+  String get sessionKindQuestions;
+
+  /// Kind chip on a course row: any other recording
+  ///
+  /// In en, this message translates to:
+  /// **'Recording'**
+  String get sessionKindRecording;
+
   /// Button to save a teacher
   ///
   /// In en, this message translates to:

@@ -1442,6 +1442,26 @@
       }
     }
   },
+  "sessionKindMeditation": "Meditation",
+  "@sessionKindMeditation": {
+    "description": "Kind chip on a course row: a guided meditation"
+  },
+  "sessionKindChanting": "Chanting",
+  "@sessionKindChanting": {
+    "description": "Kind chip on a course row: chanting"
+  },
+  "sessionKindTalk": "Talk",
+  "@sessionKindTalk": {
+    "description": "Kind chip on a course row: a talk"
+  },
+  "sessionKindQuestions": "Q & A",
+  "@sessionKindQuestions": {
+    "description": "Kind chip on a course row: questions and answers"
+  },
+  "sessionKindRecording": "Recording",
+  "@sessionKindRecording": {
+    "description": "Kind chip on a course row: any other recording"
+  },
   "teacherSave": "Add to library",
   "@teacherSave": {
     "description": "Button to save a teacher"
