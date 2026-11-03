@@ -17,6 +17,7 @@ import 'package:medito/views/dharma_seed/widgets/teacher_avatar.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/views/library/lib_course_settings.dart';
 import 'package:medito/views/library/library_actions.dart';
+import 'package:medito/services/home/next_session.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
@@ -263,7 +264,11 @@ class _PackViewState extends ConsumerState<PackView>
     final tracks = pack.playableTracks;
     final total = tracks.length;
     final done = tracks.where((i) => i.isCompleted == true).length;
-    final next = tracks.where((i) => i.isCompleted != true).firstOrNull;
+    final nextSession = nextSessionFor(
+      pack,
+      partial: ref.watch(partialPlacesProvider).value ?? const {},
+    );
+    final next = nextSession?.item;
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.7);
 
     return Padding(
@@ -301,7 +306,7 @@ class _PackViewState extends ConsumerState<PackView>
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                  '${done == 0 && ref.watch(resumePointProvider(next.id)).value == null ? l10n.packStart : l10n.packContinue}: '
+                  '${nextSession!.isResume ? l10n.packContinue : l10n.packStart}: '
                   '${next.title}',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,

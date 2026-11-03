@@ -5,6 +5,7 @@ import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/services/home/continue_rules.dart';
+import 'package:medito/services/home/next_session.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/utils/logger.dart';
 
@@ -54,8 +55,16 @@ Future<List<ContinueItem>> _readContinue(
 
   // Sessions a personal course lists but their source has lost are not
   // counted or offered (`playableTracks`).
-  PackItemsModel? nextIn(PackModel pack) =>
-      pack.playableTracks.where((i) => !checked.contains(i.id)).firstOrNull;
+  final places = {
+    for (final place in await store.savedPlaces()) place.trackId: place,
+  };
+  final partial = {
+    for (final place in places.values) place.trackId: place.updatedAt,
+  };
+
+  // The same rule as the course page's play button.
+  NextSession? nextIn(PackModel pack) =>
+      nextSessionFor(pack, partial: partial, completedIds: checked);
 
   int? numberIn(PackModel? pack, String trackId) {
     final index = pack?.playableTracks.indexWhere((i) => i.id == trackId) ?? -1;
@@ -65,13 +74,9 @@ Future<List<ContinueItem>> _readContinue(
   int doneIn(PackModel pack) =>
       pack.playableTracks.where((i) => checked.contains(i.id)).length;
 
-  ContinueItem fromItem(
-    PackModel pack,
-    PackItemsModel item,
-    LibraryEntry? entry, {
-    ResumePoint? resume,
-    DateTime? lastPlayed,
-  }) {
+  ContinueItem fromItem(PackModel pack, NextSession next, LibraryEntry? entry) {
+    final item = next.item;
+    final place = places[item.id];
     return ContinueItem(
       trackId: item.id,
       path: item.path,
@@ -79,14 +84,14 @@ Future<List<ContinueItem>> _readContinue(
       subtitle: item.subtitle ?? '',
       group: entry?.group ?? LibraryGroup.practice,
       lastPlayed:
-          lastPlayed ??
+          place?.updatedAt ??
           entry?.lastPlayedAt ??
           entry?.addedAt ??
           DateTime.fromMillisecondsSinceEpoch(0),
       courseId: pack.id,
       courseTitle: entry?.displayTitle ?? pack.title,
       coverUrl: item.coverUrl ?? pack.coverUrl ?? '',
-      resume: resume,
+      resume: place?.point,
       sessionNumber: numberIn(pack, item.id),
       sessionTotal: pack.playableTracks.length,
       completedSessions: doneIn(pack),
@@ -97,7 +102,7 @@ Future<List<ContinueItem>> _readContinue(
   final coursesWithPlace = <String>{};
 
   // Sessions left partway.
-  for (final place in await store.savedPlaces()) {
+  for (final place in places.values) {
     if (checked.contains(place.trackId)) continue;
     try {
       final track = await router.track(place.trackId);
