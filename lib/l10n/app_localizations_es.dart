@@ -244,9 +244,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get completed => 'Completado';
 
   @override
-  String get submit => 'Enviar';
-
-  @override
   String get duration => 'Duración';
 
   @override
@@ -373,45 +370,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minutesPerDayOptional => 'Minutos por día (opcional)';
 
   @override
-  String get onboarding => 'Incorporación';
-
-  @override
-  String get enableNotificationsTitle =>
-      'Mantente en el Camino con Recordatorios de Meditación';
-
-  @override
   String get enableNotificationsBody =>
       'Habilita las notificaciones para que nunca te pierdas una sesión.';
-
-  @override
-  String get enableNotificationsTitleLearn => 'Sigue aprendiendo';
-
-  @override
-  String get enableNotificationsTitleHabit => 'Crea el hábito que buscas';
-
-  @override
-  String get enableNotificationsTitleStress => 'Hazlo parte de tu día';
-
-  @override
-  String get notificationPreviewTimestamp => 'ahora';
-
-  @override
-  String get notificationPreviewTitleB =>
-      'Una mente más tranquila empieza aquí';
-
-  @override
-  String get notificationPreviewBodyB =>
-      'Tu respiración diaria te espera. Solo toca para empezar.';
-
-  @override
-  String onboardingStepIndicator(int current, int total) {
-    return 'Paso $current de $total';
-  }
-
-  @override
-  String onboardingReminderCurrentlySet(String time) {
-    return 'Recordatorio diario configurado para las $time';
-  }
 
   @override
   String get reminderChipsQuestion => '¿Cuándo vas a meditar?';
@@ -457,10 +417,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get reminderPrimerContinue => 'Continuar';
 
   @override
-  String get reminderCustomCancelled =>
-      'Aún no has elegido una hora: elige una arriba u omite por ahora.';
-
-  @override
   String get reminderTitle => 'Recordatorio diario';
 
   @override
@@ -470,18 +426,28 @@ class AppLocalizationsEs extends AppLocalizations {
   String get reminderTurnOff => 'Desactivar recordatorios';
 
   @override
-  String get onboardingBatteryTitle =>
-      'Mantén las Meditaciones Sin Interrupciones';
+  String get batteryGuidanceTitle => 'Deja que Meditejo siga funcionando';
 
   @override
-  String get onboardingBatteryBody =>
-      'Algunos dispositivos Android detienen apps en segundo plano, lo que puede interrumpir tus sesiones. Desactiva la optimización de batería para meditar sin interrupciones.';
+  String get batteryGuidanceBody =>
+      'Tu teléfono puede pausar Meditejo durante una sesión o retrasar un recordatorio. Dejar que funcione en segundo plano lo evita.';
 
   @override
-  String get onboardingBatteryOptimize => 'Desactivar Optimización de Batería';
+  String get batteryGuidanceOpen => 'Abrir ajustes de batería';
 
   @override
-  String get skipForNow => 'Omitir por Ahora';
+  String get batteryAutoStartTitle => 'Deja que Meditejo se inicie solo';
+
+  @override
+  String get batteryAutoStartBody =>
+      'Tu teléfono impide que las apps se inicien en segundo plano. Sigue los pasos para permitir que Meditejo se inicie y te lleguen los recordatorios.';
+
+  @override
+  String get batteryManufacturerTitle => 'Un ajuste de batería más';
+
+  @override
+  String get batteryManufacturerBody =>
+      'Tu teléfono también tiene su propio ahorro de batería. Sigue los pasos para dejar que Meditejo funcione y las sesiones no se pausen.';
 
   @override
   String get skip => 'Omitir';
@@ -1044,25 +1010,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get clearSearch => 'Borrar búsqueda';
 
   @override
-  String get onboardingExperienceQuestion => '¿Has meditado antes?';
-
-  @override
-  String get onboardingExperienceSubtext =>
-      'Esto nos ayuda a mostrarte el punto de partida correcto.';
-
-  @override
-  String get onboardingExperienceNever => 'Nunca lo he intentado';
-
-  @override
-  String get onboardingExperienceALittle => 'Un poco, de vez en cuando';
-
-  @override
-  String get onboardingExperienceRegular => 'Tengo una práctica regular';
-
-  @override
-  String get onboardingResultCta => 'Empezar';
-
-  @override
   String get openPack => 'Abrir paquete';
 
   @override
@@ -1260,31 +1207,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get localHomeHeading => 'Un momento para meditar.';
-
-  @override
-  String get localIntroBeginHeading => 'Un momento para empezar.';
-
-  @override
-  String get localIntroReturnHeading => 'Retoma tu práctica con calma.';
-
-  @override
-  String get localIntroPracticeHeading => 'Un espacio para tu práctica.';
-
-  @override
-  String get localIntroBeginBody =>
-      'Busca una postura cómoda, programa unos minutos en el temporizador y presta atención a tu respiración. Cuando tu atención se disperse, vuelve a empezar con suavidad.';
-
-  @override
-  String get localIntroReturnBody =>
-      'Empieza con unos minutos de calma. El temporizador está listo cuando tú lo estés.';
-
-  @override
-  String get localIntroPracticeBody =>
-      'Usa el temporizador para meditar sin guía, con las campanas y la duración que prefieras.';
-
-  @override
-  String get localIntroDeviceOnlyNote =>
-      'Tu historial de práctica, lo que has fijado y tus ajustes se guardan en este dispositivo.';
 
   @override
   String get aboutMeditejo => 'Acerca de Meditejo';
@@ -2590,6 +2512,38 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsLicenses => 'Licencias de código abierto';
+
+  @override
+  String get introLead => 'Un lugar tranquilo para tu práctica.';
+
+  @override
+  String get introPractice =>
+      'Sigue un curso sesión a sesión, escucha charlas o medita con el temporizador.';
+
+  @override
+  String get introSources =>
+      'Dharma Seed viene incluido. Añade podcasts, YouTube o tus propios archivos.';
+
+  @override
+  String get introPrivate =>
+      'Sin cuenta. Tu historial y tus ajustes se quedan en este teléfono.';
+
+  @override
+  String get introMeaning =>
+      'Meditejo significa «lugar de meditación» en esperanto.';
+
+  @override
+  String get introStart => 'Empezar';
+
+  @override
+  String get introTour => 'Hacer el recorrido';
+
+  @override
+  String get aboutWhatIsMeditejo => 'Qué es Meditejo';
+
+  @override
+  String get batteryGuidanceRow =>
+      'Tu teléfono puede pausar sesiones y recordatorios';
 
   @override
   String get statsTimePractised => 'Tiempo practicado';

@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
@@ -16,8 +16,9 @@ import 'package:medito/views/debug/debug_info_screen.dart';
 import 'package:medito/views/downloads/downloads_view.dart';
 import 'package:medito/views/home/customise_home_layout_screen.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
+import 'package:medito/views/intro/intro_view.dart';
 import 'package:medito/views/library/import_view.dart';
-import 'package:medito/views/onboarding/onboarding_pager_screen.dart';
+import 'package:medito/views/settings/battery_optimization_screen.dart';
 import 'package:medito/views/settings/health_sync_tile.dart';
 import 'package:medito/views/settings/widgets/add_widget_sheet.dart';
 import 'package:medito/views/settings/widgets/dharma_seed_sync_tile.dart';
@@ -84,6 +85,8 @@ class SettingsSections extends ConsumerWidget {
         update.phase != UpdatePhase.idle &&
         update.phase != UpdatePhase.upToDate &&
         update.phase != UpdatePhase.checking;
+    final batteryGuidanceNeeded =
+        ref.watch(batteryGuidanceNeededProvider).value ?? false;
 
     final about = SettingsGroup(
       key: const ValueKey('settings_about'),
@@ -173,7 +176,12 @@ class SettingsSections extends ConsumerWidget {
       SettingsGroup.rows(
         key: const ValueKey('settings_reminders'),
         title: l10n.settingsSectionReminders,
-        rows: [(last) => ReminderTile(hasUnderline: !last)],
+        rows: [
+          (last) => ReminderTile(hasUnderline: !last),
+          // Only on phones known to stop apps in the background (#87).
+          if (batteryGuidanceNeeded)
+            (last) => BatteryGuidanceTile(hasUnderline: !last),
+        ],
       ),
       if (!updateWaiting) about,
     ];
@@ -313,6 +321,12 @@ class _AboutLinks extends StatelessWidget {
           ),
         ),
         RowItemWidget(
+          key: const ValueKey('about_intro'),
+          icon: Icon(Icons.spa_outlined, color: onSurface),
+          title: l10n.aboutWhatIsMeditejo,
+          onTap: () => SettingsSections._push(context, const IntroView()),
+        ),
+        RowItemWidget(
           key: const ValueKey('about_source'),
           icon: Icon(Icons.code_rounded, color: onSurface),
           title: l10n.sourceCode,
@@ -349,21 +363,9 @@ class _AboutLinks extends StatelessWidget {
           key: const ValueKey('about_debug'),
           icon: Icon(Icons.bug_report_outlined, color: onSurface),
           title: l10n.debugInfo,
-          // Setup replay is a development aid.
-          hasUnderline: kDebugMode,
+          hasUnderline: false,
           onTap: () => SettingsSections._push(context, const DebugInfoScreen()),
         ),
-        if (kDebugMode)
-          RowItemWidget(
-            icon: MeditoIcon(
-              assetName: MeditoIcons.arrowRight,
-              color: onSurface,
-            ),
-            title: l10n.onboarding,
-            hasUnderline: false,
-            onTap: () =>
-                SettingsSections._push(context, const OnboardingPagerScreen()),
-          ),
       ],
     );
   }

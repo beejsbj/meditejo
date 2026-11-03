@@ -29,6 +29,7 @@ import 'package:medito/utils/notification_permission_flow.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:medito/services/history/app_history_service.dart';
 import 'package:medito/services/home/favourites_migration.dart';
+import 'package:medito/services/intro/first_run_intro.dart';
 import 'package:medito/services/home_widget_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:medito/src/audio_pigeon.g.dart';
@@ -97,6 +98,10 @@ void main() async {
   });
 
   var prefs = await initializeSharedPreferences();
+
+  // Before this launch records its version: an install already in use skips
+  // the first-launch intro (#87).
+  await FirstRunIntro.settleForExistingInstall(prefs);
 
   try {
     final packageInfo = await PackageInfo.fromPlatform();

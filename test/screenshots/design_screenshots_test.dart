@@ -65,6 +65,7 @@ import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/views/stats/stats_screen.dart';
+import 'package:medito/views/intro/intro_view.dart';
 import 'package:medito/views/settings/settings_screen.dart';
 
 import '../helpers/dharma_seed_app.dart';
@@ -1561,6 +1562,38 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       await _captureView(tester, 'you-${brightness.name}');
+    }, skip: !_enabled);
+
+    // First launch (#87): one quiet page over Home, Start to begin.
+    testWidgets('Intro, ${brightness.name}', (tester) async {
+      await _pumpYou(tester, brightness, const IntroView(firstRun: true));
+      await _capture(tester, 'intro-${brightness.name}');
+    }, skip: !_enabled);
+
+    // The longest copy (de), on a 360 dp phone with larger text.
+    testWidgets('Intro in de, 360 dp, large text, ${brightness.name}', (
+      tester,
+    ) async {
+      await _pumpYou(
+        tester,
+        brightness,
+        Builder(
+          builder: (context) => Localizations.override(
+            context: context,
+            locale: const Locale('de'),
+            child: MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(1.3)),
+              child: const IntroView(firstRun: true),
+            ),
+          ),
+        ),
+      );
+      tester.view.physicalSize = const Size(945, 2048);
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+      await _capture(tester, 'intro-360-de-large-${brightness.name}');
     }, skip: !_enabled);
 
     for (final days in [7, 30]) {

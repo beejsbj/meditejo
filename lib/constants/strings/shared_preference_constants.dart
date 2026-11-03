@@ -61,7 +61,18 @@ class SharedPreferenceConstants {
   static const String librarySort = 'library_sort';
   static const String libraryLayout = 'library_layout';
   static const String installedVersionHistory = 'installed_version_history';
+
+  /// Medito's questionnaire answer. Nothing writes it since #87 removed the
+  /// questionnaire; read once so whoever answered it never sees the intro.
   static const String onboardingExperienceLevel = 'onboarding_experience_level';
+
+  /// Set once the first-launch intro ("What Meditejo is") has been left, or
+  /// on an install that was in use before the intro existed.
+  static const String introSeen = 'intro_seen_v1';
+
+  /// Set once the battery page has been offered after a reminder was turned
+  /// on, so it is offered only that once.
+  static const String batteryGuidanceOffered = 'battery_guidance_offered_v1';
   static const String timerMinutes = 'timer_minutes';
   static const String sessionBellsEnabled = 'session_bells_enabled';
   static const String timerSessionBellsEnabled = 'timer_session_bells_enabled';

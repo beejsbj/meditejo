@@ -39,16 +39,8 @@ import 'package:medito/views/previews/preview_support.dart';
 import 'package:medito/views/bottom_navigation/widgets/medito_sidebar.dart';
 import 'package:medito/widgets/adaptive/adaptive_content.dart';
 
-import 'package:medito/constants/constants.dart';
-import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/views/onboarding/onboarding_question_screen.dart';
-import 'package:medito/views/onboarding/notifications_screen.dart';
-import 'package:medito/widgets/onboarding/onboarding_header_image.dart';
-import 'package:medito/widgets/onboarding/onboarding_option_button.dart';
-import 'package:medito/widgets/onboarding/progress_indicator_widget.dart';
-
-import 'package:medito/views/onboarding/onboarding_result_screen.dart';
-import 'package:medito/views/onboarding/battery_optimization_screen.dart';
+import 'package:medito/views/settings/battery_optimization_screen.dart';
+import 'package:medito/views/intro/intro_view.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/providers/stats_provider.dart';
 
@@ -252,7 +244,9 @@ void main() {
         const Size(390, 844),
       ]) {
         tester.view.physicalSize = size;
-        final bytes = await rootBundle.load('assets/images/open_awareness.png');
+        final bytes = await rootBundle.load(
+          'assets/images/personal_insights.png',
+        );
         final codec = await tester.runAsync(
           () => ui.instantiateImageCodec(bytes.buffer.asUint8List()),
         );
@@ -309,173 +303,18 @@ void main() {
       expect(closed, isTrue);
     },
   );
-  testWidgets('onboarding keeps existing steps readable when resized', (
+  testWidgets('the intro and the battery page fit every size and large text', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    int? selected;
-    for (final size in [
-      const Size(1200, 900),
-      const Size(820, 900),
-      const Size(390, 844),
-    ]) {
-      tester.view.physicalSize = size;
-      await tester.pumpWidget(
-        PreviewShell(
-          prefs: prefsDark,
-          child: Scaffold(
-            body: SafeArea(
-              top: false,
-              child: SizedBox(
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: Builder(
-                        builder: (context) {
-                          final l10n = AppLocalizations.of(context)!;
-                          return OnboardingQuestionScreen(
-                            headerImage: AssetConstants.onboardingImage1,
-                            question: l10n.onboardingExperienceQuestion,
-                            subtext: l10n.onboardingExperienceSubtext,
-                            options: [
-                              l10n.onboardingExperienceNever,
-                              l10n.onboardingExperienceALittle,
-                              l10n.onboardingExperienceRegular,
-                            ],
-                            // Fix fixture order only; the live question still shuffles.
-                            pinnedTrailingCount: 3,
-                            onOptionSelected: (index) => selected = index,
-                          );
-                        },
-                      ),
-                    ),
-                    const OnboardingProgressIndicator(
-                      currentIndex: 0,
-                      totalSteps: 3,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.runAsync(
-        () => precacheImage(
-          const AssetImage(AssetConstants.onboardingImage1),
-          tester.element(find.byType(Scaffold)),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(
-        tester.getSize(find.byType(OnboardingOptionButton).first).width,
-        (size.width > 600 ? 600 : size.width) - 48,
-      );
-      expect(find.byType(OnboardingOptionButton), findsNWidgets(3));
-      expect(
-        tester.getSize(find.byType(OnboardingHeaderImage)).width,
-        size.width,
-      );
-      expect(tester.takeException(), isNull);
-    }
-    await tester.tap(find.byType(OnboardingOptionButton).first);
-    await tester.pump(const Duration(milliseconds: 250));
-    expect(selected, 0);
-
-    tester.view.physicalSize = const Size(1200, 900);
-    await tester.pumpWidget(
-      PreviewShell(
-        prefs: prefsDark,
-        child: Scaffold(
-          body: SafeArea(
-            top: false,
-            child: SizedBox(
-              child: Column(
-                children: [
-                  Expanded(
-                    child: NotificationsScreen(
-                      headerImage: AssetConstants.onboardingImage3,
-                      onNext: () {},
-                    ),
-                  ),
-                  const OnboardingProgressIndicator(
-                    currentIndex: 2,
-                    totalSteps: 3,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.runAsync(
-      () => precacheImage(
-        const AssetImage(AssetConstants.onboardingImage3),
-        tester.element(find.byType(Scaffold).first),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-  });
-  testWidgets('audit every onboarding step across sizes and large text', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final steps = <String, Widget Function()>{
-      'question': () => Builder(
-        builder: (context) {
-          final l10n = AppLocalizations.of(context)!;
-          return OnboardingQuestionScreen(
-            headerImage: AssetConstants.onboardingImage1,
-            question: l10n.onboardingExperienceQuestion,
-            subtext: l10n.onboardingExperienceSubtext,
-            options: [
-              l10n.onboardingExperienceNever,
-              l10n.onboardingExperienceALittle,
-              l10n.onboardingExperienceRegular,
-            ],
-            pinnedTrailingCount: 3,
-            onOptionSelected: (_) {},
-          );
-        },
-      ),
-
-      'reminder': () => NotificationsScreen(
-        headerImage: AssetConstants.onboardingImage3,
-        onNext: () {},
-      ),
-      'battery': () => BatteryOptimizationScreen(
-        headerImage: AssetConstants.onboardingImage3,
-        onNext: () {},
-      ),
-
-      'first-meditation': () => OnboardingResultScreen(
-        headerImage: AssetConstants.onboardingImage3,
-        state: OnboardingResultState.stateA,
-        onGetStarted: () {},
-      ),
-      'returning-meditation': () => OnboardingResultScreen(
-        headerImage: AssetConstants.onboardingImage3,
-        state: OnboardingResultState.stateB,
-        onGetStarted: () {},
-      ),
-      'experienced-meditation': () => OnboardingResultScreen(
-        headerImage: AssetConstants.onboardingImage3,
-        state: OnboardingResultState.stateC,
-        onGetStarted: () {},
-      ),
-      'get-started': () => OnboardingResultScreen(
-        headerImage: AssetConstants.onboardingImage3,
-        state: OnboardingResultState.stateC,
-        onGetStarted: () {},
-      ),
+    final pages = <String, Widget Function()>{
+      'intro': () => const IntroView(firstRun: true),
+      'intro-about': () => const IntroView(),
+      'battery': () => const BatteryOptimizationScreen(),
     };
-    for (final entry in steps.entries) {
+    for (final entry in pages.entries) {
       for (final configuration in [
         (const Size(360, 640), 1.0, ThemeMode.dark),
         (const Size(820, 900), 1.0, ThemeMode.dark),
@@ -492,61 +331,28 @@ void main() {
           PreviewShell(
             prefs: mode == ThemeMode.dark ? prefsDark : prefsLight,
             themeMode: mode,
-            overrides: [
-              audioStateProvider.overrideWith(_PreviewAudio.new),
-              statsProvider.overrideWith(_OnboardingStats.new),
-            ],
             child: Builder(
               builder: (context) => MediaQuery(
-                data: MediaQuery.of(
-                  context,
-                ).copyWith(textScaler: TextScaler.linear(scale)),
-                child: Scaffold(
-                  body: SafeArea(
-                    top: false,
-                    child: Column(
-                      children: [
-                        Expanded(child: entry.value()),
-                        if (!entry.key.contains('meditation') &&
-                            entry.key != 'get-started')
-                          const OnboardingProgressIndicator(
-                            currentIndex: 1,
-                            totalSteps: 3,
-                          ),
-                      ],
-                    ),
-                  ),
+                data: MediaQuery.of(context).copyWith(
+                  textScaler: TextScaler.linear(scale),
+                  // The mark is still, so the page settles.
+                  disableAnimations: true,
                 ),
+                child: entry.value(),
               ),
             ),
           ),
         );
-        await tester.runAsync(() async {
-          for (final path in [
-            AssetConstants.onboardingImage1,
-            AssetConstants.onboardingImage2,
-            AssetConstants.onboardingImage3,
-          ]) {
-            await precacheImage(
-              AssetImage(path),
-              tester.element(find.byType(Scaffold).first),
-            );
-          }
-        });
-        await tester.pump();
-        await tester.pump(const Duration(seconds: 3));
         await tester.pump(const Duration(seconds: 1));
         expect(
           tester.takeException(),
           isNull,
           reason: '${entry.key}: $size text $scale',
         );
-        // Exercise the scroll view so lower-page controls are laid out too.
+        // Exercise the scroll view so lower-page text is laid out too.
         final scrollables = find.byType(Scrollable);
         if (scrollables.evaluate().isNotEmpty) {
           await tester.drag(scrollables.first, const Offset(0, -1200));
-          await tester.pump();
-          await tester.pump(const Duration(seconds: 3));
           await tester.pump(const Duration(seconds: 1));
           expect(
             tester.takeException(),
@@ -641,7 +447,9 @@ void main() {
               .toList();
       ui.FrameInfo? frame;
       await tester.runAsync(() async {
-        final bytes = await rootBundle.load('assets/images/open_awareness.png');
+        final bytes = await rootBundle.load(
+          'assets/images/personal_insights.png',
+        );
         final codec = await ui.instantiateImageCodec(
           bytes.buffer.asUint8List(),
         );

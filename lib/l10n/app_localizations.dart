@@ -538,12 +538,6 @@ abstract class AppLocalizations {
   /// **'Completed'**
   String get completed;
 
-  /// No description provided for @submit.
-  ///
-  /// In en, this message translates to:
-  /// **'Submit'**
-  String get submit;
-
   /// No description provided for @duration.
   ///
   /// In en, this message translates to:
@@ -736,73 +730,13 @@ abstract class AppLocalizations {
   /// **'Minutes per day (optional)'**
   String get minutesPerDayOptional;
 
-  /// Title for the onboarding section in settings
-  ///
-  /// In en, this message translates to:
-  /// **'Onboarding'**
-  String get onboarding;
-
-  /// No description provided for @enableNotificationsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Stay on Track with Meditation Reminders'**
-  String get enableNotificationsTitle;
-
   /// No description provided for @enableNotificationsBody.
   ///
   /// In en, this message translates to:
   /// **'Enable notifications so you never miss a session.'**
   String get enableNotificationsBody;
 
-  /// Notifications screen title for users who want to learn to meditate (intent: learn_properly)
-  ///
-  /// In en, this message translates to:
-  /// **'Keep the learning going'**
-  String get enableNotificationsTitleLearn;
-
-  /// Notifications screen title for users who want to build a habit (intent: build_habit)
-  ///
-  /// In en, this message translates to:
-  /// **'Build the habit you\'re after'**
-  String get enableNotificationsTitleHabit;
-
-  /// Notifications screen title for users managing stress, sleep, or emotions (intent: stress_sleep_emotions)
-  ///
-  /// In en, this message translates to:
-  /// **'Make it part of your day'**
-  String get enableNotificationsTitleStress;
-
-  /// Timestamp shown on a fake iOS notification preview, mirroring iOS's 'now' label for a notification that just arrived
-  ///
-  /// In en, this message translates to:
-  /// **'now'**
-  String get notificationPreviewTimestamp;
-
-  /// Title of the fake notification shown in the onboarding notifications screen preview
-  ///
-  /// In en, this message translates to:
-  /// **'A quieter mind starts here'**
-  String get notificationPreviewTitleB;
-
-  /// Body of the fake notification shown in the onboarding notifications screen preview
-  ///
-  /// In en, this message translates to:
-  /// **'Your daily breath is waiting. Just tap to begin.'**
-  String get notificationPreviewBodyB;
-
-  /// Progress label under the onboarding pages, next to the circular progress ring
-  ///
-  /// In en, this message translates to:
-  /// **'Step {current} of {total}'**
-  String onboardingStepIndicator(int current, int total);
-
-  /// Shown on the onboarding reminder screen when a reminder is already set, above the chips that let the user change it
-  ///
-  /// In en, this message translates to:
-  /// **'Daily reminder set for {time}'**
-  String onboardingReminderCurrentlySet(String time);
-
-  /// Question above the time-of-day chips in the onboarding notifications screen (chips arm of the reminder experiment)
+  /// Question above the reminder time choices (Morning, Evening, Night, custom), in the sheet opened from Settings and from the end-of-session reminder card
   ///
   /// In en, this message translates to:
   /// **'When will you meditate?'**
@@ -880,12 +814,6 @@ abstract class AppLocalizations {
   /// **'Continue'**
   String get reminderPrimerContinue;
 
-  /// Feedback shown when the user opens the custom time picker and dismisses it without choosing, so the tap is not a silent dead end
-  ///
-  /// In en, this message translates to:
-  /// **'No time picked yet — choose one above, or skip for now.'**
-  String get reminderCustomCancelled;
-
   /// Title of the settings tile that opens the reminder time bottom sheet (replaced the Daily reminders switch)
   ///
   /// In en, this message translates to:
@@ -904,29 +832,47 @@ abstract class AppLocalizations {
   /// **'Turn off reminders'**
   String get reminderTurnOff;
 
-  /// No description provided for @onboardingBatteryTitle.
+  /// Title of the page that asks to let the app run in the background (battery optimisation), on phones known to stop apps
   ///
   /// In en, this message translates to:
-  /// **'One Setting, Smoother Meditations'**
-  String get onboardingBatteryTitle;
+  /// **'Keep Meditejo running'**
+  String get batteryGuidanceTitle;
 
-  /// No description provided for @onboardingBatteryBody.
+  /// Why battery optimisation matters: sessions and reminders can be stopped
   ///
   /// In en, this message translates to:
-  /// **'Your phone can pause Meditejo mid-session. One quick change prevents this.'**
-  String get onboardingBatteryBody;
+  /// **'Your phone may pause Meditejo during a session or hold back a reminder. Letting it run in the background stops this.'**
+  String get batteryGuidanceBody;
 
-  /// No description provided for @onboardingBatteryOptimize.
+  /// Button opening the phone's battery optimisation settings
   ///
   /// In en, this message translates to:
-  /// **'Update Setting'**
-  String get onboardingBatteryOptimize;
+  /// **'Open battery settings'**
+  String get batteryGuidanceOpen;
 
-  /// No description provided for @skipForNow.
+  /// Title of the phone's own dialog that leads to its auto-start setting (shown by the battery page's button)
   ///
   /// In en, this message translates to:
-  /// **'Skip for Now'**
-  String get skipForNow;
+  /// **'Let Meditejo start on its own'**
+  String get batteryAutoStartTitle;
+
+  /// Body of the phone's own auto-start dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone stops apps from starting in the background. Follow the steps to let Meditejo start, so reminders arrive.'**
+  String get batteryAutoStartBody;
+
+  /// Title of the dialog that leads to the manufacturer's extra battery optimisation setting
+  ///
+  /// In en, this message translates to:
+  /// **'One more battery setting'**
+  String get batteryManufacturerTitle;
+
+  /// Body of the manufacturer's extra battery optimisation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone has its own battery saving as well. Follow the steps to let Meditejo run, so sessions are not paused.'**
+  String get batteryManufacturerBody;
 
   /// No description provided for @skip.
   ///
@@ -1918,42 +1864,6 @@ abstract class AppLocalizations {
   /// **'Clear search'**
   String get clearSearch;
 
-  /// Question on onboarding screen 1 — asking about the user's meditation experience
-  ///
-  /// In en, this message translates to:
-  /// **'Have you meditated before?'**
-  String get onboardingExperienceQuestion;
-
-  /// Subtext below the question on onboarding screen 1
-  ///
-  /// In en, this message translates to:
-  /// **'This helps us show you the right starting point.'**
-  String get onboardingExperienceSubtext;
-
-  /// Option 1 on onboarding screen 1 — user has never meditated
-  ///
-  /// In en, this message translates to:
-  /// **'Never tried it'**
-  String get onboardingExperienceNever;
-
-  /// Option 2 on onboarding screen 1 — user has meditated a little
-  ///
-  /// In en, this message translates to:
-  /// **'A little, here and there'**
-  String get onboardingExperienceALittle;
-
-  /// Option 3 on onboarding screen 1 — user has a regular meditation practice
-  ///
-  /// In en, this message translates to:
-  /// **'I have a regular practice'**
-  String get onboardingExperienceRegular;
-
-  /// CTA button label on the onboarding result screen
-  ///
-  /// In en, this message translates to:
-  /// **'Get started'**
-  String get onboardingResultCta;
-
   /// Swipe action on the home Your Path card that opens the pack
   ///
   /// In en, this message translates to:
@@ -2194,7 +2104,7 @@ abstract class AppLocalizations {
   /// **'Meditated today'**
   String get meditatedToday;
 
-  /// Button that closes an end screen shown on the next launch and returns to Home
+  /// Button that closes an end screen shown on the next launch and returns to Home. Also closes the battery page (Settings › Keep Meditejo running) once its settings were opened
   ///
   /// In en, this message translates to:
   /// **'Done'**
@@ -2241,48 +2151,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Time to sit.'**
   String get localHomeHeading;
-
-  /// Local introduction heading for someone new to meditation.
-  ///
-  /// In en, this message translates to:
-  /// **'A little time to begin.'**
-  String get localIntroBeginHeading;
-
-  /// Local introduction heading for someone with some meditation experience.
-  ///
-  /// In en, this message translates to:
-  /// **'Ease back into your practice.'**
-  String get localIntroReturnHeading;
-
-  /// Local introduction heading for someone with a regular meditation practice.
-  ///
-  /// In en, this message translates to:
-  /// **'Space for your practice.'**
-  String get localIntroPracticeHeading;
-
-  /// Instructions for a first unguided meditation using the local timer.
-  ///
-  /// In en, this message translates to:
-  /// **'Find a comfortable seat, set a short timer, and notice your breath. When your attention wanders, gently begin again.'**
-  String get localIntroBeginBody;
-
-  /// Encouragement to resume practice using the local timer.
-  ///
-  /// In en, this message translates to:
-  /// **'Start with a few quiet minutes. The timer is ready whenever you are.'**
-  String get localIntroReturnBody;
-
-  /// Introduction to the local timer and its configurable bells and duration.
-  ///
-  /// In en, this message translates to:
-  /// **'Use the timer for an unguided sit, with the bells and duration you prefer.'**
-  String get localIntroPracticeBody;
-
-  /// Explains that practice history, pins and preferences are stored on the device.
-  ///
-  /// In en, this message translates to:
-  /// **'Your practice history, pins and settings stay on this device.'**
-  String get localIntroDeviceOnlyNote;
 
   /// No description provided for @aboutMeditejo.
   ///
@@ -4467,6 +4335,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open-source licences'**
   String get settingsLicenses;
+
+  /// First-launch intro: the one-line summary of what the app is, under its name
+  ///
+  /// In en, this message translates to:
+  /// **'One calm place for your practice.'**
+  String get introLead;
+
+  /// First-launch intro: what you can do (courses, talks, timer)
+  ///
+  /// In en, this message translates to:
+  /// **'Follow a course session by session, listen to talks, or sit with the timer.'**
+  String get introPractice;
+
+  /// First-launch intro: where the content comes from
+  ///
+  /// In en, this message translates to:
+  /// **'Dharma Seed is built in. Add podcasts, YouTube or your own files.'**
+  String get introSources;
+
+  /// First-launch intro: no account, data stays on the device
+  ///
+  /// In en, this message translates to:
+  /// **'No account. Your history and settings stay on this phone.'**
+  String get introPrivate;
+
+  /// First-launch intro: what the name means, small print
+  ///
+  /// In en, this message translates to:
+  /// **'Meditejo is Esperanto for “a place of meditation”.'**
+  String get introMeaning;
+
+  /// First-launch intro: button that closes the intro and opens Home
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get introStart;
+
+  /// First-launch intro: button that starts the guided tour (shown once the tour exists)
+  ///
+  /// In en, this message translates to:
+  /// **'Take the tour'**
+  String get introTour;
+
+  /// Settings > About row that opens the first-launch intro again
+  ///
+  /// In en, this message translates to:
+  /// **'What Meditejo is'**
+  String get aboutWhatIsMeditejo;
+
+  /// Settings row subtitle, under the battery title, on phones known to stop apps in the background
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone may pause sessions and reminders'**
+  String get batteryGuidanceRow;
 
   /// Stats card: today, week, month and all-time totals
   ///

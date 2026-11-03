@@ -49,8 +49,9 @@ class DailyRemindersService {
 
   /// Turn reminders on without asking for a time (end-of-session card,
   /// permission repair on Home). Keeps the hour the user chose earlier
-  /// (onboarding chips or Settings); only when none was ever saved does it
-  /// fall back to "same time tomorrow". Returns the hour used.
+  /// (in Settings, or Medito's onboarding before #87); only when none was
+  /// ever saved does it fall back to "same time tomorrow". Returns the hour
+  /// used.
   Future<TimeOfDay> enable({AppLocalizations? l10n}) async {
     final time = getSavedTime() ?? _computeDefaultTimeFromNow();
     await enableAt(time, l10n: l10n);
@@ -58,7 +59,7 @@ class DailyRemindersService {
   }
 
   /// Turn reminders on at a time the user chose (Settings bottom sheet /
-  /// onboarding chips), instead of the silent "same time tomorrow" default of
+  /// end-screen card), instead of the silent "same time tomorrow" default of
   /// [enable]. The series is anchored to the next occurrence of [time].
   Future<DateTime> enableAt(TimeOfDay time, {AppLocalizations? l10n}) async {
     await prefs.setBool(SharedPreferenceConstants.dailyReminderEnabled, true);
