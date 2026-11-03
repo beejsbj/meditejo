@@ -12,7 +12,8 @@
   const FROZEN = params.has('t') ? Number(params.get('t')) : null;
   const STILL = params.has('still');
   const EMPTY = { label: '(not drawn yet)', says: '', build: (r, pl) => pl, draw() {} };
-  const fig = (key) => PracticesR2[key] || Practices[key] || EMPTY;
+  const R3 = typeof PracticesR3 === 'undefined' ? {} : PracticesR3;
+  const fig = (key) => R3[key] || PracticesR2[key] || Practices[key] || EMPTY;
 
   // Inks as round 1's page (round 5's compose), seeded per practice.
   function inks(c, tone, r) {
@@ -58,7 +59,7 @@
   function tile(p, v, theme, tag, pick) {
     const f = fig(v.figure), t = el('div', `tile${pick ? ' pick' : ''}${tag === 'R1' ? ' was' : ''}`);
     t.append(art(p.id, v, theme));
-    t.append(el('div', 'txt', `<div class="tag">${tag === 'R1' ? 'Round 1' : `Variant ${tag}`}${pick ? '<span class="badge">pick</span>' : ''}</div><div class="name">${esc(f.label)}</div><div class="says">${esc(f.says)}</div><div class="gr">${esc(v.ground)}</div>`));
+    t.append(el('div', 'txt', `<div class="tag">${tag === 'R1' ? 'Round 1' : tag.length > 1 ? tag : `Variant ${tag}`}${pick ? '<span class="badge">pick</span>' : ''}</div><div class="name">${esc(f.label)}</div><div class="says">${esc(f.says)}</div><div class="gr">${esc(v.ground)}${v.library ? `<span class="lib" title="figure library: ${v.library === 'any' ? 'may be drawn for any user content' : 'only for content about this practice'}">${v.library === 'any' ? 'library: any' : 'library: practice'}</span>` : ''}</div>`));
     return t;
   }
   function block(p, compact = false) {
@@ -72,6 +73,7 @@
     ['light', 'dark'].forEach((theme) => {
       const row = el('div', `row ${theme}`);
       row.append(tile(p, { ...p.was, r1: p.was.r1 || p.id }, theme, 'R1'));
+      (p.also || []).forEach((v) => row.append(tile(p, v, theme, v.tag)));
       p.variants.forEach((v, i) => row.append(tile(p, v, theme, LETTERS[i], p.pick === i)));
       b.append(row);
     });
@@ -103,9 +105,10 @@
     }
     const host = document.getElementById('blocks');
     P.forEach((p) => host.append(block(p)));
-    host.append(fixesBlock());
+    if ((DATA.fixes || []).length) host.append(fixesBlock());
     const flags = document.getElementById('flags');
-    DATA.flags.forEach((x) => flags.append(el('li', '', `<b>${esc(x.name)}</b> (${esc(x.figure)}): ${esc(x.what)}`)));
+    if (!(DATA.flags || []).length) document.getElementById('flagbox').remove();
+    (DATA.flags || []).forEach((x) => flags.append(el('li', '', `<b>${esc(x.name)}</b> (${esc(x.figure)}): ${esc(x.what)}`)));
   }
 
   // ---------- the clock: draw only what is on screen ----------

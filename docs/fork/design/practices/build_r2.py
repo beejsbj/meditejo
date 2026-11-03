@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Build practice-figures-r2.html: round 2 of the practice figures, one
-self-contained page (scripts, data and font subsets inlined).
+"""Build practice-figures-r<N>.html: a round (2 or later) of the practice
+figures, one self-contained page (scripts, data and font subsets inlined).
 
-    python build_r2.py [--fonts DIR] [--out PATH ...]
+    python build_r2.py [--round N] [--fonts DIR] [--out PATH ...]
+
+Round N reads rN.json and rN-recommend.html; every round's figures file
+that exists (figures-r2.js, figures-r3.js) is inlined.
 
 Same needs as build.py (fontTools, brotli; the same font sources).
 """
@@ -13,18 +16,18 @@ from pathlib import Path
 
 from build import HERE, ROOT, face, woff2
 
-RECOMMEND = Path(HERE / 'r2-recommend.html')
-
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--fonts', default='/tmp/cat2/fonts')
-    ap.add_argument('--out', nargs='*', default=['/tmp/meditejo-runbooks/practice-figures-r2.html'])
+    ap.add_argument('--round', type=int, default=2)
+    ap.add_argument('--out', nargs='*')
     a = ap.parse_args()
-    read = lambda f: (HERE / f).read_text(encoding='utf-8')
-    data = json.loads(read('r2.json'))
+    out = a.out or [f'/tmp/meditejo-runbooks/practice-figures-r{a.round}.html']
+    read = lambda f: (HERE / f).read_text(encoding='utf-8') if (HERE / f).exists() else ''
+    data = json.loads(read(f'r{a.round}.json'))
     page, app = read('page-r2.html'), read('app-r2.js')
-    rec = read('r2-recommend.html') if RECOMMEND.exists() else ''
+    rec = read(f'r{a.round}-recommend.html')
     text = page + app + rec + json.dumps(data, ensure_ascii=False)
     latin_ext = list(range(0x20, 0x250)) + list(range(0x1E00, 0x1F00)) + list(range(0x2010, 0x2060)) + [0x2192, 0x00B7]
     gs = ROOT / 'assets/fonts/google-sans'
@@ -38,19 +41,22 @@ def main():
     ]
     html = (page
             .replace('/*@FONTS@*/', '\n'.join(faces))
+            .replace('/*@TITLE@*/', data['title'])
+            .replace('/*@LEDE@*/', data['lede'])
             .replace('/*@RECOMMEND@*/', rec)
             .replace('/*@CORE@*/', read('engine/core.js'))
             .replace('/*@GROUNDS@*/', read('engine/grounds.js'))
             .replace('/*@PRIMS@*/', read('engine/prims.js'))
             .replace('/*@FIGURES@*/', read('figures.js'))
             .replace('/*@FIGURES2@*/', read('figures-r2.js'))
+            .replace('/*@FIGURES3@*/', read('figures-r3.js'))
             .replace('/*@APP@*/', app.replace('/*@DATA@*/{}', json.dumps(data, ensure_ascii=False))))
     assert not re.search(r'/\*@[A-Z0-9]+@\*/', html), 'unfilled placeholder'
-    for out in a.out:
-        p = Path(out)
+    for o in out:
+        p = Path(o)
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(html, encoding='utf-8')
-    print(f'{len(html.encode()) / 1024:.0f} KB -> {", ".join(a.out)}')
+    print(f'{len(html.encode()) / 1024:.0f} KB -> {", ".join(out)}')
 
 
 if __name__ == '__main__':
