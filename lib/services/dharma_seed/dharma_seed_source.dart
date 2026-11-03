@@ -28,7 +28,11 @@ import 'package:medito/utils/logger.dart';
 /// has not synced yet asks [sync] to fetch it first, bounded by
 /// [fetchTimeout]; offline, it shows what is stored.
 class DharmaSeedSource
-    implements ContentSource, SavableContentSource, ParentedContentSource {
+    implements
+        ContentSource,
+        SavableContentSource,
+        ParentedContentSource,
+        CourseMembershipSource {
   DharmaSeedSource({
     required this.db,
     this.sync,
@@ -255,7 +259,21 @@ class DharmaSeedSource
     final talkId = parseDsTalkId(trackId);
     if (talkId == null) return null;
     final retreat = (await db.talkById(talkId))?.retreatId;
-    return retreat == null || retreat == 0 ? null : dsRetreatId(retreat);
+    // The catch-all "Unknown" retreat is not a course a talk is part of.
+    return retreat == null || retreat == 0 || retreat == dsUnknownRetreat
+        ? null
+        : dsRetreatId(retreat);
+  }
+
+  /// Whether talk [trackId] was given at retreat [courseId]. Unlike
+  /// [parentOf] this holds for the catch-all "Unknown" retreat too: a talk
+  /// opened from that course's page keeps its cues, autoplay and place.
+  @override
+  Future<bool> courseLists(String courseId, String trackId) async {
+    final retreat = parseDsRetreatId(courseId);
+    final talkId = parseDsTalkId(trackId);
+    if (retreat == null || talkId == null) return false;
+    return (await db.talkById(talkId))?.retreatId == retreat;
   }
 
   // ------------------------------------------------- Dharma Seed screens

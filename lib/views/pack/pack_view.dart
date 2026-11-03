@@ -15,6 +15,7 @@ import 'package:medito/models/models.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/views/dharma_seed/widgets/teacher_avatar.dart';
+import 'package:medito/widgets/teacher_link.dart';
 import 'package:medito/views/library/lib_course_settings.dart';
 import 'package:medito/views/library/library_format.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
@@ -311,45 +312,11 @@ class _PackViewState extends ConsumerState<PackView>
     }
     final teacher = pack.teacher;
     if (teacher != null) {
-      return Semantics(
-        button: true,
-        child: InkWell(
-          key: const ValueKey('course_teacher'),
-          borderRadius: BorderRadius.circular(24),
-          onTap: () => handleNavigation(
-            TypeConstants.teacher,
-            [teacher.id],
-            context,
-            ref: ref,
-          ),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 48),
-            padding: const EdgeInsets.only(right: 12),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ExcludeSemantics(
-                  child: TeacherAvatar(
-                    id: teacher.id,
-                    name: teacher.name,
-                    photoUrl: teacher.photoUrl,
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Flexible(
-                  child: Text(
-                    teacher.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium,
-                  ),
-                ),
-                Icon(Icons.chevron_right_rounded, size: 20, color: muted),
-              ],
-            ),
-          ),
-        ),
+      return TeacherLink(
+        key: const ValueKey('course_teacher'),
+        id: teacher.id,
+        name: teacher.name,
+        photoUrl: teacher.photoUrl,
       );
     }
     // A Dharma Seed subtitle is a summary ("2014 · 38 talks"), not a name.

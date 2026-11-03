@@ -2974,4 +2974,20 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get playerAutoplayLastOfPlaylist =>
       'Das ist die letzte Sitzung der Playlist';
+
+  @override
+  String trackPartOf(String course) {
+    return 'Teil von $course';
+  }
+
+  @override
+  String trackInCourse(String course) {
+    return 'In $course';
+  }
+
+  @override
+  String get trackShowMore => 'Mehr anzeigen';
+
+  @override
+  String get trackShowLess => 'Weniger anzeigen';
 }

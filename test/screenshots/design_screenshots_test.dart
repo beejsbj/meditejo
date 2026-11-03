@@ -70,6 +70,8 @@ import '../helpers/dharma_seed_app.dart';
 import '../helpers/dharma_seed_catalogue.dart';
 import '../helpers/dharma_seed_fake_api.dart';
 import '../helpers/fake_session_source.dart';
+import 'package:medito/providers/library/episode_course_provider.dart';
+import '../helpers/fake_savable_source.dart';
 import '../helpers/library_app.dart';
 import '../helpers/stats_fixtures.dart';
 import '../helpers/update_fakes.dart';
@@ -486,6 +488,192 @@ final _pinFavouritesJson = jsonEncode([
     'timestamp': 4000,
   },
 ]);
+
+/// Saves anything of one source, and says which are saved: the episode
+/// pages' Library state (#84).
+class _SavesAll extends FakeSavableSource {
+  _SavesAll(this._prefix, {super.saved});
+  final String _prefix;
+
+  @override
+  String get prefix => _prefix;
+
+  @override
+  bool canSave(String id) => true;
+}
+
+/// The Vervaeke series as YouTube titles it: the playlist's name in front
+/// and the livestream's schedule behind every episode (#84).
+final _vervaekeLive = _vervaeke.copyWith(
+  id: 'yt-playlist-vervaeke-live',
+  teacher: const PackTeacher(
+    id: 'yt-channel-vervaeke',
+    name: 'John Vervaeke',
+    bio: '',
+  ),
+  items: [
+    for (final (i, item) in _vervaeke.items.indexed)
+      item.copyWith(
+        id: 'yt-video-live$i',
+        path: '/tracks/yt-video-live$i',
+        title: '${item.title} | Livestream Mon-Fri 09:30 EST',
+        teacherId: 'yt-channel-vervaeke',
+      ),
+  ],
+);
+
+const _ytDescription =
+    'Day 7 of the series. Today we practise flow: what it is, why it '
+    'matters for meaning, and how a sit can set it up.\n'
+    '\n'
+    '00:00 Welcome and check-in\n'
+    '04:12 Settling the body\n'
+    '09:30 Breath, then the field of attention\n'
+    '21:45 Flow: challenge meets skill\n'
+    '34:10 Questions from the chat\n'
+    '41:02 Closing\n'
+    '\n'
+    'Join us live Monday to Friday at 09:30 EST.\n'
+    'Support the work: https://www.patreon.com/johnvervaeke\n'
+    'The Vervaeke Foundation: https://vervaekefoundation.org\n'
+    '\n'
+    '#meditation #flow #meaningcrisis';
+
+/// Episode pages (#84): a YouTube episode of a saved series, a long retreat
+/// talk whose retreat is not saved, a podcast episode with a guest, and a
+/// talk no course holds.
+final _episodes = <({String name, Track track, String? course})>[
+  (
+    name: 'youtube',
+    course: _vervaekeLive.id,
+    track: Track(
+      id: 'yt-video-live6',
+      title: _vervaekeLive.items[6].title,
+      subtitle: 'John Vervaeke',
+      description: _ytDescription,
+      coverUrl: '',
+      isPublished: true,
+      hasBackgroundSound: true,
+      attribution: const SourceAttribution(
+        source: 'YouTube',
+        creator: 'John Vervaeke',
+        url: 'https://www.youtube.com/watch?v=live6',
+        licenseName: '',
+        licenseUrl: '',
+      ),
+      voices: const [
+        TrackVoice(
+          guideName: 'John Vervaeke',
+          audioFiles: [
+            TrackAudioFile(id: 'live6', path: 'live6', duration: 44 * 60000),
+          ],
+        ),
+      ],
+    ),
+  ),
+  (
+    name: 'dharma-seed',
+    course: _jhanas.id,
+    track: Track(
+      id: _jhanas.items[22].id,
+      title: _jhanas.items[22].title,
+      subtitle: 'Guided meditation · Rob Burbea · 68 min',
+      description:
+          'The last of the formless realms, approached gently from the '
+          'nothingness of the day before: a guided practice in letting '
+          'perception itself thin out, and in noticing what the mind makes '
+          'of that.',
+      coverUrl: '',
+      isPublished: true,
+      hasBackgroundSound: true,
+      attribution: _jhanas.attribution,
+      voices: const [
+        TrackVoice(
+          guideName: 'Rob Burbea',
+          audioFiles: [
+            TrackAudioFile(id: 'ds22', path: 'ds22', duration: 68 * 60000),
+          ],
+        ),
+      ],
+    ),
+  ),
+  (
+    name: 'podcast',
+    course: _podcast.id,
+    track: Track(
+      id: _podcast.items[8].id,
+      title: _podcast.items[8].title,
+      subtitle: 'Nikki Mirghafori',
+      description:
+          'Guest teacher Nikki Mirghafori on joy as a wholesome state the '
+          'path cultivates, not a reward at its end: how gladness steadies '
+          'the mind, and why the Buddha counted it among the factors of '
+          'awakening. Recorded at the Insight Meditation Center, Redwood '
+          'City, as part of the Sunday morning series. Audio Dharma is '
+          'offered freely; donations support the centre.',
+      coverUrl: '',
+      isPublished: true,
+      hasBackgroundSound: false,
+      attribution: _podcast.attribution,
+      voices: const [
+        TrackVoice(
+          guideName: 'Nikki Mirghafori',
+          audioFiles: [
+            TrackAudioFile(id: 'ad8', path: 'ad8', duration: 51 * 60000),
+          ],
+        ),
+      ],
+    ),
+  ),
+  (
+    name: 'no-course',
+    course: null,
+    track: const Track(
+      id: 'ds-talk-77',
+      title: 'Wise Attention and the Practice of Loving-Kindness',
+      subtitle: 'Talk · Ajahn Sucitto · 42 min',
+      description: 'A talk given at Cittaviveka on steadying the mind.',
+      coverUrl: '',
+      isPublished: true,
+      hasBackgroundSound: false,
+      attribution: SourceAttribution(
+        source: 'Dharma Seed',
+        creator: 'Ajahn Sucitto',
+        url: 'https://dharmaseed.org/talks/77/',
+        licenseName: 'CC BY-NC-ND 4.0',
+        licenseUrl: 'https://creativecommons.org/licenses/by-nc-nd/4.0/',
+      ),
+      voices: [
+        TrackVoice(
+          guideName: 'Ajahn Sucitto',
+          audioFiles: [
+            TrackAudioFile(id: 'f77', path: 'f77', duration: 42 * 60000),
+          ],
+        ),
+      ],
+    ),
+  ),
+];
+
+/// Everything an episode page reads, for every episode: one ProviderScope
+/// is pumped repeatedly.
+List<Override> get _episodeOverrides => [
+  contentSourcesProvider.overrideWith(
+    (ref) => [
+      _SavesAll('yt-', saved: {_vervaekeLive.id}),
+      _SavesAll('ds-'),
+      _SavesAll('lib-', saved: {_podcast.id}),
+    ],
+  ),
+  for (final p in [_vervaekeLive, _jhanas, _podcast])
+    packProvider(packId: p.id).overrideWith(() => _PackOf(p)),
+  for (final e in _episodes) ...[
+    tracksProvider(
+      trackId: e.track.id,
+    ).overrideWith(() => _FakeTracks(e.track)),
+    episodeCourseIdProvider(e.track.id).overrideWith((ref) async => e.course),
+  ],
+];
 
 class _PackOf extends Pack {
   _PackOf(this.pack);
@@ -1635,6 +1823,112 @@ void main() {
       await _phone(tester);
       expect(tester.takeException(), isNull);
       await _captureView(tester, 'track-youtube-style-${brightness.name}');
+    }, skip: !_enabled);
+
+    // Episode pages (#84): each at the top, the YouTube one scrolled to its
+    // description and credit too.
+    testWidgets('Episode page, ${brightness.name}', (tester) async {
+      WidgetsApp.debugAllowBannerOverride = false;
+      addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
+      for (final episode in _episodes) {
+        final app = await LibraryTestApp.create(tester);
+        await app.pump(
+          tester,
+          _frame(
+            brightness,
+            TrackView(
+              key: ValueKey(episode.track.id),
+              trackId: episode.track.id,
+            ),
+          ),
+          overrides: _episodeOverrides,
+        );
+        await _phone(tester);
+        await tester.pump(const Duration(seconds: 1));
+        expect(tester.takeException(), isNull);
+        await _captureView(
+          tester,
+          'episode-${episode.name}-${brightness.name}',
+        );
+        if (episode.name == 'youtube') {
+          // Show more, then down to the credit.
+          await tester.tap(
+            find.byKey(const ValueKey('track_description_more')),
+          );
+          await tester.pump(const Duration(seconds: 1));
+          await tester.drag(
+            find.byType(SingleChildScrollView).first,
+            const Offset(0, -1600),
+          );
+          await tester.pump(const Duration(seconds: 1));
+          expect(tester.takeException(), isNull);
+          await _captureView(
+            tester,
+            'episode-${episode.name}-end-${brightness.name}',
+          );
+        }
+      }
+    }, skip: !_enabled);
+
+    // The narrowest phones at a larger text size, in English and German.
+    testWidgets('Episode page fit, ${brightness.name}', (tester) async {
+      WidgetsApp.debugAllowBannerOverride = false;
+      addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
+      for (final episode in _episodes.take(2)) {
+        for (final lang in const ['en', 'de']) {
+          final app = await LibraryTestApp.create(tester);
+          await app.pump(
+            tester,
+            _frame(
+              brightness,
+              Builder(
+                builder: (context) => Localizations.override(
+                  context: context,
+                  locale: Locale(lang),
+                  child: MediaQuery(
+                    data: MediaQuery.of(
+                      context,
+                    ).copyWith(textScaler: const TextScaler.linear(1.3)),
+                    child: TrackView(
+                      key: ValueKey('${episode.track.id}-$lang'),
+                      trackId: episode.track.id,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            overrides: _episodeOverrides,
+          );
+          // 1080 px wide at 3 = 360 dp.
+          tester.view.devicePixelRatio = 3;
+          tester.view.physicalSize = const Size(1080, 2340);
+          await tester.pump(const Duration(seconds: 1));
+          expect(tester.takeException(), isNull);
+          await _captureView(
+            tester,
+            'episode-fit-${episode.name}-$lang-360-x1.3-${brightness.name}',
+          );
+        }
+      }
+    }, skip: !_enabled);
+
+    // The course header's ⋮ on a course not yet saved: no Add to library,
+    // which sits beside it as a button (#84 integration).
+    testWidgets('Course header menu, ${brightness.name}', (tester) async {
+      WidgetsApp.debugAllowBannerOverride = false;
+      addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(
+        tester,
+        _frame(brightness, PackView(id: _jhanas.id)),
+        overrides: _episodeOverrides,
+      );
+      await _phone(tester);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.tap(find.byKey(const ValueKey('pack_actions')));
+      await DharmaSeedTestApp.settle(tester);
+      expect(tester.takeException(), isNull);
+      await _captureView(tester, 'course-header-menu-${brightness.name}');
     }, skip: !_enabled);
 
     testWidgets('Add to playlist sheet, ${brightness.name}', (tester) async {

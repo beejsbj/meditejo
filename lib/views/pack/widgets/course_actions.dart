@@ -35,7 +35,7 @@ class CourseActionRow extends StatelessWidget {
       // A playlist the user made lives in the library; it is edited (and
       // deleted from its editor), not unsaved.
       if (isMyCourseId(pack.id))
-        _RoundIconButton(
+        RoundIconButton(
           key: const ValueKey('my_course_edit'),
           tooltip: l10n.myCourseEditAction,
           icon: Icons.edit_outlined,
@@ -80,14 +80,29 @@ class CourseShareButton extends StatelessWidget {
     super.key,
     required this.packId,
     required this.title,
-  });
+  }) : _session = false;
 
+  /// An episode page's Share (#84): the same button, for one session.
+  const CourseShareButton.session({
+    super.key,
+    required String trackId,
+    required this.title,
+  }) : packId = trackId,
+       _session = true;
+
+  /// The course's ID, or the session's for [CourseShareButton.session].
   final String packId;
   final String title;
+  final bool _session;
+
+  String get _link =>
+      'meditejo://meditejo/${_session ? 'tracks' : 'packs'}/$packId';
 
   void _share(BuildContext context) {
-    final deepLink = 'meditejo://meditejo/packs/$packId';
-    final text = AppLocalizations.of(context)!.sharePackText(deepLink, title);
+    final l10n = AppLocalizations.of(context)!;
+    final text = _session
+        ? l10n.shareTrackText(_link, title)
+        : l10n.sharePackText(_link, title);
     SharePlus.instance.share(ShareParams(text: text));
   }
 
@@ -110,11 +125,7 @@ class CourseShareButton extends StatelessWidget {
               ),
               title: Text(l10n.addToSiri),
               onTap: () {
-                addToSiri(
-                  title: '${l10n.open} $title',
-                  id: packId,
-                  url: 'meditejo://meditejo/packs/$packId',
-                );
+                addToSiri(title: '${l10n.open} $title', id: packId, url: _link);
                 Navigator.pop(sheet);
               },
             ),
@@ -140,7 +151,7 @@ class CourseShareButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ios = Platform.isIOS;
-    return _RoundIconButton(
+    return RoundIconButton(
       key: const ValueKey('course_share'),
       tooltip: AppLocalizations.of(context)!.share,
       iconWidget: MeditoIcon(
@@ -154,8 +165,8 @@ class CourseShareButton extends StatelessWidget {
 }
 
 /// ⋮: the one item-actions sheet (#83), the same a course row's ⋮ and
-/// long-press open, less what the header already shows as buttons (Play,
-/// Pin, Share). Rows, long-press and the Library keep them.
+/// long-press open, less what the header already shows as buttons
+/// ([shownAsButtons]). Rows, long-press and the Library keep them.
 class CourseMoreButton extends ConsumerWidget {
   const CourseMoreButton({
     super.key,
@@ -166,16 +177,19 @@ class CourseMoreButton extends ConsumerWidget {
   final String packId;
   final String title;
 
-  /// The header's own buttons, not repeated in its ⋮.
+  /// The header's own buttons, not repeated in its ⋮: Play, Add to
+  /// library (or, for a playlist the user made, Edit), Pin and Share.
   static const shownAsButtons = {
     ItemAction.play,
+    ItemAction.save,
+    ItemAction.edit,
     ItemAction.pin,
     ItemAction.share,
   };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return _RoundIconButton(
+    return RoundIconButton(
       key: const ValueKey('pack_actions'),
       tooltip: AppLocalizations.of(context)!.myCourseMore,
       icon: Icons.more_vert_rounded,
@@ -191,9 +205,10 @@ class CourseMoreButton extends ConsumerWidget {
 }
 
 /// A 44dp outlined round button, the shape [PinIconButton] and
-/// [SaveIconButton] share, so the row reads as one set.
-class _RoundIconButton extends StatelessWidget {
-  const _RoundIconButton({
+/// [SaveIconButton] share, so a header's row reads as one set. The course
+/// header and an episode's page (#84) use it.
+class RoundIconButton extends StatelessWidget {
+  const RoundIconButton({
     super.key,
     required this.tooltip,
     required this.onPressed,

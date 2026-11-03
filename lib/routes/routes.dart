@@ -37,6 +37,9 @@ MainTab? tabForLink(String type) => switch (type) {
   _ => null,
 };
 
+/// The route name of course [id]'s page.
+String coursePageRouteName(String id) => '/packs/$id';
+
 /// Source repositories supply track/pack IDs; navigation does not resolve media.
 ///
 /// Opening a track says where from: [courseId] is the course the user is
@@ -95,7 +98,15 @@ Future<void> handleNavigation(
     }
     page = values.first == kLegacyTimerTrackId
         ? const TimerView()
-        : TrackView(trackId: values.first, fromStart: fromStart);
+        : TrackView(
+            trackId: values.first,
+            fromStart: fromStart,
+            // The page it opens over (a course's), so its course line can
+            // go back to it rather than open it again.
+            openedOver: context.mounted
+                ? ModalRoute.of(context)?.settings.name
+                : null,
+          );
   } else if (type == TypeConstants.teacher && values.isNotEmpty) {
     page = TeacherView(teacherId: values.first);
   } else if (type.contains('pack') && values.isNotEmpty) {
@@ -136,7 +147,13 @@ Future<void> handleNavigation(
   }
   if (page == null) return;
   await navigatorKey.currentState?.push<void>(
-    MaterialPageRoute(builder: (_) => page!),
+    MaterialPageRoute(
+      builder: (_) => page!,
+      // A course's page is named for it: an episode opened over it knows.
+      settings: page is PackView
+          ? RouteSettings(name: coursePageRouteName(page.id))
+          : null,
+    ),
   );
   if (ref != null && context.mounted) {
     ref.read(statsProvider.notifier).refresh();
