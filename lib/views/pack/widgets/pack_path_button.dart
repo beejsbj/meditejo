@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/colors/color_constants.dart';
@@ -49,6 +51,13 @@ class PackPlayButton extends ConsumerStatefulWidget {
 }
 
 class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
+  // The row's fixed parts, around the action word and the title.
+  static const _padStart = 14.0;
+  static const _padEnd = 20.0;
+  static const _iconSize = 28.0;
+  static const _iconGap = 8.0;
+  static const _titleGap = 10.0;
+
   bool _starting = false;
 
   PackModel get pack => widget.pack;
@@ -150,21 +159,36 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
               constraints: BoxConstraints(minHeight: widget.compact ? 48 : 56),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final actionMax = constraints.maxWidth.isFinite
-                      ? constraints.maxWidth * 0.75
+                  // What the row needs besides the words: its padding, the
+                  // icon and the gaps. The action word gets at most 75% of
+                  // the width, and never more than is left after those.
+                  final fixed =
+                      _padStart +
+                      _padEnd +
+                      _iconSize +
+                      _iconGap +
+                      (title == null ? 0 : _titleGap);
+                  final width = constraints.maxWidth;
+                  final actionMax = width.isFinite
+                      ? math.max(0.0, math.min(width * 0.75, width - fixed))
                       : double.infinity;
                   return Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 6, 20, 6),
+                    padding: const EdgeInsets.fromLTRB(
+                      _padStart,
+                      6,
+                      _padEnd,
+                      6,
+                    ),
                     child: Row(
                       mainAxisSize: widget.compact
                           ? MainAxisSize.min
                           : MainAxisSize.max,
                       children: [
                         SizedBox.square(
-                          dimension: 28,
+                          dimension: _iconSize,
                           child: Center(child: icon),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: _iconGap),
                         // The action word stays whole; only the title gives way.
                         // (Capped, so even a huge text scale ellipsizes rather
                         // than overflows.)
@@ -180,7 +204,7 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
                           ),
                         ),
                         if (title != null) ...[
-                          const SizedBox(width: 10),
+                          const SizedBox(width: _titleGap),
                           Flexible(
                             child: Text(
                               title,

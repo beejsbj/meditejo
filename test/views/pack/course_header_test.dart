@@ -224,6 +224,50 @@ void main() {
       expect(viewport - last, lessThan(48));
     });
 
+    // The bottom bar's copy shares its row with Back: a finished course's
+    // long "Volver a empezar" at a large text size must fit there too.
+    for (final (width, scale) in const [(360.0, 2.0), (320.0, 1.3)]) {
+      testWidgets('the bar\'s Play again fits: es, ${width.toInt()} dp, '
+          'text x$scale', (tester) async {
+        final app = await createApp(tester);
+        await app.pump(
+          tester,
+          Builder(
+            builder: (context) => Localizations.override(
+              context: context,
+              locale: const Locale('es'),
+              child: MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(scale)),
+                child: const PackView(id: 'ds-retreat-500'),
+              ),
+            ),
+          ),
+          played: [for (var i = 1; i <= 12; i++) 'ds-talk-${500 + i}'],
+        );
+        tester.view.physicalSize = Size(width, 900);
+        await tester.pump();
+        await scrollBy(tester, 1500);
+        expect(tester.takeException(), isNull);
+
+        final es = await AppLocalizations.delegate.load(const Locale('es'));
+        final bar = inBar(find.byType(PackPlayButton));
+        expect(bar, findsOneWidget);
+        final action = find.descendant(
+          of: bar,
+          matching: find.byKey(const ValueKey('play_action')),
+        );
+        expect(tester.widget<Text>(action).data, es.coursePlayAgain);
+        // Inside the screen, beside Back.
+        expect(tester.getTopRight(bar).dx, lessThanOrEqualTo(width));
+        expect(
+          tester.getTopLeft(bar).dx,
+          greaterThan(tester.getTopRight(inBar(find.byType(IconButton))).dx),
+        );
+      });
+    }
+
     // Words in de and es run long; the action word must never be cut, at
     // the narrowest phones and at a larger text size.
     for (final locale in const ['en', 'de', 'es']) {
