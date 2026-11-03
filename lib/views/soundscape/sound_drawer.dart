@@ -67,8 +67,10 @@ Future<SoundscapeSelection?> showSoundDrawer(
       ),
     );
   } finally {
+    // A session that started or ended meanwhile owns the mixer: what plays
+    // is no longer this drawer's draft, so nothing is kept from it.
     final chosen = container.read(soundscapeProvider).mix;
-    final changed = chosen != draft;
+    final changed = mixer.auditionIntact && chosen != draft;
     if (changed) {
       selection = container.read(soundscapeProvider).selectionFor(chosen);
     }

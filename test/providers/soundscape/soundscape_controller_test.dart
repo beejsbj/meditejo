@@ -1323,6 +1323,27 @@ void main() {
       ], reason: 'the session plays the tab\'s mix, not the draft');
     });
 
+    test('a chooser overtaken by a session keeps nothing', () async {
+      ctl().clearMix();
+      ctl().toggleSound('river');
+      await drain();
+      ctl().beginAudition(SoundscapeSessionKind.practice, SoundMix.empty);
+      ctl().toggleSound('cafe');
+      await drain();
+      expect(ctl().auditionIntact, isTrue);
+
+      practiceOn();
+      await ctl().startSession(SoundscapeSessionKind.practice);
+      await drain();
+      expect(
+        ctl().auditionIntact,
+        isFalse,
+        reason: 'what plays is the session, not the draft',
+      );
+      ctl().endAudition();
+      await drain();
+    });
+
     test('what is chosen: nothing, a preset, or the layers themselves', () {
       expect(st().selectionFor(SoundMix.empty), SoundscapeSelection.none);
       expect(

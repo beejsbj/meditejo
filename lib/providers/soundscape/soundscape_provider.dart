@@ -589,6 +589,12 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   /// Whether a chooser is open.
   bool get auditioning => _audition != null;
 
+  /// Whether the open chooser still holds the mixer: false once a session
+  /// has started or ended under it, when what plays is no longer its draft
+  /// and nothing in the drawer should be kept.
+  bool get auditionIntact =>
+      _audition != null && _audition!.token == _sessionToken;
+
   /// A chooser opened on [draft], for sessions of [kind]. Inside a running
   /// session of that kind which plays [draft] already, it keeps playing and
   /// edits are heard under the session. Otherwise whatever played stops and
