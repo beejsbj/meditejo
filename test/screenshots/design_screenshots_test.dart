@@ -67,6 +67,7 @@ import 'package:medito/views/settings/settings_screen.dart';
 
 import '../helpers/dharma_seed_app.dart';
 import '../helpers/dharma_seed_catalogue.dart';
+import '../helpers/dharma_seed_fake_api.dart';
 import '../helpers/fake_session_source.dart';
 import '../helpers/library_app.dart';
 import '../helpers/stats_fixtures.dart';
@@ -423,9 +424,14 @@ Future<void> _pumpYou(
         .setMockMethodCallHandler(permissions, null),
   );
   final h = await UpdateHarness.create();
+  // The real database would open under the fake clock and leave a drift
+  // timer pending; an in-memory one stands in for it.
+  final dsDb = memoryDharmaSeedDb();
+  addTearDown(dsDb.close);
   final container = ProviderContainer(
     overrides: [
       ...h.overrides,
+      dharmaSeedDatabaseProvider.overrideWithValue(dsDb),
       statsProvider.overrideWith(() => _Stats(richStats(fixtureNow))),
       practiceClockProvider.overrideWithValue(() => fixtureNow),
     ],
