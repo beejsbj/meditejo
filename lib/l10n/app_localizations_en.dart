@@ -2749,4 +2749,91 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get updateAutoCheckDescription =>
       'Asks GitHub once a day when Meditejo opens.';
+
+  @override
+  String get customizeSlotSound => 'Sound';
+
+  @override
+  String get customizeSlotBells => 'Bells';
+
+  @override
+  String get customizeSlotRhythm => 'Rhythm';
+
+  @override
+  String get customizeSlotLength => 'Length';
+
+  @override
+  String get customizeOff => 'Off';
+
+  @override
+  String get customizeBellsAtStart => 'Start';
+
+  @override
+  String get customizeBellsHalfway => 'Halfway';
+
+  @override
+  String customizeBellsEvery(int minutes) {
+    return 'Every $minutes min';
+  }
+
+  @override
+  String get customizeBellsAtEnd => 'End';
+
+  @override
+  String customizeCountdownThenBell(int seconds, String bell) {
+    return '$seconds sec countdown · $bell';
+  }
+
+  @override
+  String customizeSilenceThenBell(int minutes, String bell) {
+    return '$minutes min silence · $bell';
+  }
+
+  @override
+  String get customizeLengthCountsUp => 'Counts up';
+
+  @override
+  String get customizeLengthSetBySession => 'Set by the session';
+
+  @override
+  String get customizeLengthSetByEachSession => 'Set by each session';
+
+  @override
+  String customizeLengthPlusSilence(int minutes) {
+    return '+ $minutes min silence';
+  }
+
+  @override
+  String get customizeShowBeforeSession => 'Show before each session';
+
+  @override
+  String get playerAutoplay => 'Autoplay';
+
+  @override
+  String get playerAutoplayOn => 'Autoplay on';
+
+  @override
+  String get playerAutoplayOff => 'Autoplay off';
+
+  @override
+  String get playerAutoplaySwitch => 'Play the next session automatically';
+
+  @override
+  String get playerAutoplayPause => 'Pause between sessions';
+
+  @override
+  String get playerAutoplayNoPause => 'None';
+
+  @override
+  String playerAutoplaySeconds(int seconds) {
+    return '$seconds sec';
+  }
+
+  @override
+  String playerAutoplayUpNext(String title) {
+    return 'Up next: $title';
+  }
+
+  @override
+  String get playerAutoplayLast => 'This is the last session of the course';
 }

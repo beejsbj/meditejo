@@ -2793,4 +2793,92 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get updateAutoCheckDescription =>
       'Consulta GitHub una vez al día al abrir Meditejo.';
+
+  @override
+  String get customizeSlotSound => 'Sonido';
+
+  @override
+  String get customizeSlotBells => 'Campanas';
+
+  @override
+  String get customizeSlotRhythm => 'Ritmo';
+
+  @override
+  String get customizeSlotLength => 'Duración';
+
+  @override
+  String get customizeOff => 'Apagado';
+
+  @override
+  String get customizeBellsAtStart => 'Inicio';
+
+  @override
+  String get customizeBellsHalfway => 'A la mitad';
+
+  @override
+  String customizeBellsEvery(int minutes) {
+    return 'Cada $minutes min';
+  }
+
+  @override
+  String get customizeBellsAtEnd => 'Final';
+
+  @override
+  String customizeCountdownThenBell(int seconds, String bell) {
+    return 'Cuenta atrás de $seconds s · $bell';
+  }
+
+  @override
+  String customizeSilenceThenBell(int minutes, String bell) {
+    return '$minutes min de silencio · $bell';
+  }
+
+  @override
+  String get customizeLengthCountsUp => 'Cuenta hacia arriba';
+
+  @override
+  String get customizeLengthSetBySession => 'La fija la sesión';
+
+  @override
+  String get customizeLengthSetByEachSession => 'La fija cada sesión';
+
+  @override
+  String customizeLengthPlusSilence(int minutes) {
+    return '+ $minutes min de silencio';
+  }
+
+  @override
+  String get customizeShowBeforeSession => 'Mostrar antes de cada sesión';
+
+  @override
+  String get playerAutoplay => 'Reproducción automática';
+
+  @override
+  String get playerAutoplayOn => 'Reproducción automática activada';
+
+  @override
+  String get playerAutoplayOff => 'Reproducción automática desactivada';
+
+  @override
+  String get playerAutoplaySwitch =>
+      'Reproducir la siguiente sesión automáticamente';
+
+  @override
+  String get playerAutoplayPause => 'Pausa entre sesiones';
+
+  @override
+  String get playerAutoplayNoPause => 'Ninguna';
+
+  @override
+  String playerAutoplaySeconds(int seconds) {
+    return '$seconds s';
+  }
+
+  @override
+  String playerAutoplayUpNext(String title) {
+    return 'A continuación: $title';
+  }
+
+  @override
+  String get playerAutoplayLast => 'Es la última sesión del curso';
 }

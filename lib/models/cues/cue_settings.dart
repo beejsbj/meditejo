@@ -79,7 +79,21 @@ class CueSettings {
   final String pulseSound;
   final double pulseBpm, pulseEndBpm, pulseVolume, bellVolume;
   final int pulseRampMinutes;
-  final bool backgroundEnabled, autoplay, hideBeforePractice;
+  final bool backgroundEnabled;
+
+  /// Whether a course's next session starts by itself when one ends, after
+  /// [interludeSeconds]. Set from the player's Autoplay control (it was
+  /// Customize's Flow section); kept here, with the scope's cues, so a
+  /// course override carries it and the native side holds the interlude.
+  final bool autoplay;
+
+  /// Stored under its first name; the switch shows the positive,
+  /// [showBeforeSession]. It applies before every recorded session, practice
+  /// or talk, not only practice.
+  final bool hideBeforePractice;
+
+  /// The Customize footer's "Show before each session".
+  bool get showBeforeSession => !hideBeforePractice;
   final String backgroundSoundId;
   final double backgroundVolume;
 

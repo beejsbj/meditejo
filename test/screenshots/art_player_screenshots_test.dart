@@ -14,10 +14,12 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/theme/app_theme.dart';
+import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/models/track/track.dart' as model;
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
+import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/providers.dart';
@@ -179,8 +181,16 @@ void main() {
     await _loadFonts();
   });
 
-  for (final brightness in Brightness.values) {
-    testWidgets('the player over its art, ${brightness.name}', (tester) async {
+  // In a course the player offers Autoplay under the transport (#72).
+  for (final (brightness, inCourse) in [
+    for (final b in Brightness.values)
+      for (final c in [false, true]) (b, c),
+  ]) {
+    final name = inCourse
+        ? 'the player in a course'
+        : 'the player over its art';
+    final file = 'player-${inCourse ? 'course-' : ''}${brightness.name}';
+    testWidgets('$name, ${brightness.name}', (tester) async {
       tester.view.physicalSize = const Size(1080, 2340);
       tester.view.devicePixelRatio = 2.625;
       addTearDown(tester.view.reset);
@@ -212,6 +222,13 @@ void main() {
               ),
               statsProvider.overrideWith(_Stats.new),
               reviewServiceProvider.overrideWithValue(_Review()),
+              if (inCourse)
+                cueScopeForRequestProvider.overrideWith(
+                  (ref, request) async => const CueScope(
+                    CueKind.practice,
+                    courseId: 'ds-retreat-4496',
+                  ),
+                ),
             ],
             child: Builder(
               builder: (context) => Theme(
@@ -233,11 +250,21 @@ void main() {
         );
         await tester.pump(const Duration(milliseconds: 100));
       }
+      // The course is resolved off the test's clock; give a loaded machine
+      // longer before the Autoplay button is looked for.
+      final autoplay = find.byKey(const ValueKey('player_autoplay'));
+      for (var i = 0; i < 40 && inCourse && autoplay.evaluate().isEmpty; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+      }
       // The player shows an error screen instead when it cannot start (an
       // unknown track, or a failed start); that must fail here, not pass as
       // a capture of the error.
       expect(find.byType(MeditoErrorWidget), findsNothing);
       expect(find.byType(PlayerView), findsOneWidget);
+      expect(autoplay, inCourse ? findsOneWidget : findsNothing);
       if (_enabled) {
         await tester.runAsync(() async {
           final render =
@@ -245,7 +272,7 @@ void main() {
                   as RenderRepaintBoundary;
           final image = await render.toImage(pixelRatio: 2.625);
           final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-          File('$_out/player-${brightness.name}.png')
+          File('$_out/$file.png')
             ..parent.createSync(recursive: true)
             ..writeAsBytesSync(bytes!.buffer.asUint8List());
         });

@@ -125,24 +125,21 @@ Future<bool> showCustomizeSheet(
 /// The longest timer [CueSettings] stores.
 const _maxDurationMinutes = 299;
 
-/// Which part of the sheet is open. One at a time, so the sheet never turns
-/// into a wall of controls.
-enum _Part {
-  duration,
-  extend,
-  countdown,
-  startBell,
-  intervalBell,
-  endBell,
-  pulse,
-  background,
-  autoplay,
-}
+/// The four things a sit is made of, in the order the sheet's tiles show
+/// them: what plays under it, its bells, its rhythm and its length. The same
+/// four slots a preset holds (#64), so Customize, presets and saving read as
+/// one system.
+enum _Slot { sound, bells, rhythm, length }
 
-/// Cue settings in one place, in sections (Bells, Rhythm, Time, Sound, Flow)
-/// that show their values at a glance and open in place. Edits are saved as
-/// the defaults for the scope's kind (or as a per-course override) and picked
-/// up by the player through the provider.
+/// Which bell row of the Bells section is open. One at a time, so the
+/// section never turns into a wall of controls.
+enum _Part { startBell, intervalBell, endBell }
+
+/// Cue settings in one place. The sheet opens on a 2×2 grid of the slots,
+/// each tile showing its value (filled when it differs from the defaults,
+/// outlined when it does not); tapping one opens its section under its row.
+/// Edits are saved as the defaults for the scope's kind (or as a per-course
+/// override) and picked up by the player through the provider.
 class CustomizeSheet extends ConsumerStatefulWidget {
   const CustomizeSheet({
     super.key,
@@ -174,8 +171,8 @@ class CustomizeSheet extends ConsumerStatefulWidget {
   /// The "Finishes at" line; a stopwatch has no end to show.
   final bool showFinishes;
 
-  /// A timer length chosen elsewhere; the sheet's own Duration row is hidden
-  /// when this is set (a stopwatch passes 0).
+  /// A timer length chosen elsewhere; the Length tile then shows it rather
+  /// than setting it (a stopwatch passes 0).
   final int? timerMinutes;
   final DateTime Function() clock;
 
@@ -187,6 +184,11 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   Timer? _tick;
   late bool _courseOverride;
   late final SessionBellPreview _preview;
+  _Slot? _slot;
+
+  /// A slot just opened, to bring into view once its section is laid out.
+  _Slot? _reveal;
+  final _tileKeys = {for (final slot in _Slot.values) slot: GlobalKey()};
   _Part? _open;
   final _wheels = WheelSettleGroup();
   bool _startPending = false;
@@ -214,7 +216,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   void dispose() {
     _tick?.cancel();
     // A bell auditioned here never rings on after the sheet closes.
-    unawaited(_preview.stop().catchError((Object _) {}));
+    _silence();
     super.dispose();
   }
 
@@ -224,20 +226,49 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         .update(value, courseOverride: _courseOverride),
   );
 
+  /// Opens [slot]'s section under its row of tiles, or folds it.
+  void _toggleSlot(_Slot slot) {
+    final leaving = _slot;
+    setState(() {
+      _slot = _slot == slot ? null : slot;
+      _reveal = _slot;
+      _open = null;
+    });
+    // Leaving the bells silences what they were auditioning.
+    if (leaving == _Slot.bells) _silence();
+    // Without motion the section is there on the next frame; otherwise once
+    // it has grown (AnimatedSize.onEnd), when there is room to scroll to.
+    if (MediaQuery.of(context).disableAnimations) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _revealOpen());
+    }
+  }
+
+  /// Scrolls the open tile to the top of the list, so its section sits
+  /// under it in view, with the tile still saying what the section is.
+  void _revealOpen() {
+    final slot = _reveal;
+    _reveal = null;
+    if (slot == null || !mounted || _slot != slot) return;
+    final tile = _tileKeys[slot]!.currentContext;
+    if (tile == null) return;
+    final reduce = MediaQuery.of(context).disableAnimations;
+    unawaited(
+      Scrollable.ensureVisible(
+        tile,
+        duration: reduce ? Duration.zero : MeditejoMotion.short,
+        curve: MeditejoMotion.emphasizedDecelerate,
+      ),
+    );
+  }
+
   void _toggle(_Part part) {
     final closing = _open;
     setState(() => _open = _open == part ? null : part);
     // Folding a bell list silences what it was auditioning.
-    if (closing != null && _bellParts.contains(closing)) {
-      unawaited(_preview.stop().catchError((Object _) {}));
-    }
+    if (closing != null) _silence();
   }
 
-  static const _bellParts = {
-    _Part.startBell,
-    _Part.intervalBell,
-    _Part.endBell,
-  };
+  void _silence() => unawaited(_preview.stop().catchError((Object _) {}));
 
   /// Rings [asset] once at [volume], as a session would. Best effort: a tap
   /// that interrupts a still-loading bell, or a sound the platform will not
@@ -247,275 +278,316 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         .catchError((Object _) {}),
   );
 
+  /// The sheet sets a timer's length itself only where nothing else does:
+  /// a recording owns its length, and a stopwatch has none.
+  bool get _canSetDuration =>
+      widget.isTimer && widget.timerMinutes == null && widget.onStart != null;
+
+  AppLocalizations get _l10n =>
+      AppLocalizations.of(context) ??
+      lookupAppLocalizations(const Locale('en'));
+
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(cueSettingsProvider(_scope));
-    final isTimer = widget.isTimer;
-    final canSetDuration =
-        isTimer && widget.timerMinutes == null && widget.onStart != null;
+    final reference = _reference;
+    final open = _slot;
+    final reduce = MediaQuery.of(context).disableAnimations;
+    // Large text makes the switch several lines tall: pinned, it would leave
+    // the list no room, so it ends the list instead.
+    final pinSwitch = MediaQuery.textScalerOf(context).scale(10) <= 13;
+    final showBefore = widget.isTimer ? null : _showBeforeSwitch(s);
 
-    final time = _Section(
-      title: 'Time',
-      children: [
-        if (canSetDuration)
-          _row(
-            _Part.duration,
-            icon: Icons.timer_outlined,
-            title: 'Duration',
-            value: _minutes(s.durationMinutes),
-            editor: () => _WheelField<int>(
-              label: 'Duration',
-              showLabel: false,
-              options: [
-                for (var m = 1; m <= _maxDurationMinutes; m++)
-                  WheelOption(
-                    m,
-                    _minutes(m),
-                    semanticsLabel: _spokenMinutes(m),
-                  ),
-              ],
-              value: s.durationMinutes.clamp(1, _maxDurationMinutes),
-              parse: _range(1, _maxDurationMinutes),
-              hint: '1 to $_maxDurationMinutes minutes',
-              onChanged: (v) => _edit(s.copyWith(durationMinutes: v)),
+    final section = open == null
+        ? null
+        : Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: KeyedSubtree(
+              key: ValueKey('customize_section_${open.name}'),
+              child: _section(open, s),
             ),
-          )
-        else if (!isTimer)
-          _row(
-            _Part.extend,
-            icon: Icons.more_time_rounded,
-            title: 'Extend with silence',
-            value: s.extendMinutes == 0 ? 'Off' : '+${s.extendMinutes} min',
-            editor: () => Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const _Caption(
-                  'Keep going in silence (with any background sound) after '
-                  'the audio ends, then ring the ending bell.',
-                ),
-                _WheelField<int>(
-                  label: 'Extra minutes',
-                  options: [
-                    const WheelOption(0, 'Off'),
-                    for (var m = 1; m <= 60; m++)
-                      WheelOption(
-                        m,
-                        '+$m min',
-                        semanticsLabel: _spokenMinutes(m),
-                      ),
-                  ],
-                  value: s.extendMinutes,
-                  parse: _range(0, 60),
-                  hint: '0 to 60 minutes',
-                  onChanged: (v) => _edit(s.copyWith(extendMinutes: v)),
-                ),
-              ],
-            ),
+          );
+
+    final list = SingleChildScrollView(
+      key: const ValueKey('customize_list'),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_scope.courseId != null) ...[
+            _scopeCard(s),
+            const SizedBox(height: 16),
+          ],
+          // A section opens right under its tile's row, so the two read
+          // together.
+          _SlotGrid(
+            tiles: [for (final slot in _Slot.values) _tile(slot, s, reference)],
+            below: (row) {
+              final here = open != null && open.index ~/ 2 == row
+                  ? section
+                  : null;
+              // Reduced motion opens in one step. (A zero-length
+              // AnimatedSize restarts inside its own layout and asserts, so
+              // it is left out.)
+              if (reduce) return here;
+              return AnimatedSize(
+                duration: MeditejoMotion.medium,
+                curve: MeditejoMotion.emphasizedDecelerate,
+                alignment: Alignment.topCenter,
+                onEnd: _revealOpen,
+                child: here ?? const SizedBox(width: double.infinity),
+              );
+            },
           ),
-        _row(
-          _Part.countdown,
-          icon: Icons.hourglass_top_rounded,
-          title: 'Countdown',
-          value: s.countdownSeconds == 0 ? 'Off' : '${s.countdownSeconds} sec',
-          editor: () => _WheelField<int>(
-            label: 'Countdown',
-            showLabel: false,
-            options: const [
-              WheelOption(0, 'Off'),
-              WheelOption(5, '5 sec', semanticsLabel: '5 seconds'),
-              WheelOption(10, '10 sec', semanticsLabel: '10 seconds'),
-            ],
-            value: s.countdownSeconds,
-            visibleItems: 3,
-            onChanged: (v) => _edit(s.copyWith(countdownSeconds: v)),
-          ),
-        ),
-      ],
+          if (!pinSwitch && showBefore != null) ...[
+            const SizedBox(height: 16),
+            showBefore,
+          ],
+        ],
+      ),
     );
-
-    final bells = _Section(
-      title: 'Bells',
-      children: [
-        _bellRow(
-          _Part.startBell,
-          s,
-          title: 'Starting bell',
-          icon: Icons.notifications_active_outlined,
-          sound: s.startSound,
-          value: _bellName(s.startSound),
-          apply: (v) => s.copyWith(startSound: v),
-        ),
-        _bellRow(
-          _Part.intervalBell,
-          s,
-          title: 'Interval bell',
-          icon: Icons.restart_alt_rounded,
-          sound: s.hasIntervalBell ? s.intervalSound : '',
-          value: _intervalValue(s),
-          apply: (v) => s.copyWith(intervalSound: v),
-          above: _intervalWheels(s),
-        ),
-        _bellRow(
-          _Part.endBell,
-          s,
-          title: 'Ending bell',
-          icon: Icons.notifications_paused_outlined,
-          sound: s.endSound,
-          value: _bellName(s.endSound),
-          apply: (v) => s.copyWith(endSound: v),
-        ),
-        _SliderRow(
-          icon: Icons.volume_up_outlined,
-          label: 'Bell volume',
-          value: s.bellVolume,
-          format: _percent,
-          onChanged: (v) => _edit(s.copyWith(bellVolume: v)),
-        ),
-      ],
-    );
-
-    final rhythm = _Section(
-      title: 'Rhythm',
-      children: [
-        _row(
-          _Part.pulse,
-          icon: Icons.monitor_heart_outlined,
-          title: 'Pulse',
-          value: _pulseValue(s),
-          editor: () => _pulseEditor(s),
-        ),
-      ],
-    );
-
-    final sound = _Section(
-      title: 'Sound',
-      children: [
-        _row(
-          _Part.background,
-          icon: Icons.graphic_eq_rounded,
-          title: 'Background sound',
-          value: _backgroundValue(s),
-          editor: () => _backgroundEditor(s),
-        ),
-      ],
-    );
-
-    final flow = _Section(
-      title: 'Flow',
-      children: [
-        if (!isTimer)
-          _row(
-            _Part.autoplay,
-            icon: Icons.playlist_play_rounded,
-            title: 'Autoplay',
-            value: !s.autoplay
-                ? 'Off'
-                : s.interludeSeconds == 0
-                ? 'On'
-                : 'On · ${s.interludeSeconds} sec pause',
-            editor: () => Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Play the next session automatically'),
-                  value: s.autoplay,
-                  onChanged: (v) => _edit(s.copyWith(autoplay: v)),
-                ),
-                if (s.autoplay)
-                  _WheelField<int>(
-                    label: 'Interlude before the next session',
-                    options: const [
-                      WheelOption(0, 'None'),
-                      WheelOption(5, '5 sec', semanticsLabel: '5 seconds'),
-                      WheelOption(10, '10 sec', semanticsLabel: '10 seconds'),
-                      WheelOption(30, '30 sec', semanticsLabel: '30 seconds'),
-                    ],
-                    value: s.interludeSeconds,
-                    onChanged: (v) => _edit(s.copyWith(interludeSeconds: v)),
-                  ),
-              ],
-            ),
-          ),
-        _SwitchRow(
-          icon: Icons.visibility_off_outlined,
-          title: 'Hide these settings before practice',
-          value: s.hideBeforePractice,
-          onChanged: (v) => _edit(s.copyWith(hideBeforePractice: v)),
-        ),
-      ],
-    );
-
-    // The brief's order is Bells, Rhythm, Time, Sound, Flow. A timer's
-    // length is what its screen is for, so there Time leads.
-    final sections = [
-      if (_scope.courseId != null) _scopeCard(s),
-      if (isTimer) time,
-      bells,
-      rhythm,
-      if (!isTimer) time,
-      sound,
-      flow,
-    ];
 
     return WheelSettleScope(
       group: _wheels,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final media = MediaQuery.of(context);
-          // Tall enough to breathe; fills a page (the Timer) that gives less.
+          // A page that gives the sheet its height (the Timer) is filled,
+          // with Start at its foot. As a sheet it is as tall as what is open,
+          // up to most of the screen, so the folded grid is not a tall
+          // empty card.
+          final fill = constraints.hasTightHeight;
           final height = math.min(
             constraints.maxHeight,
             media.size.height * 0.92,
           );
+          final body = Column(
+            mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Header(
+                subtitle: _scopeLine,
+                finishes: widget.showFinishes ? _finishes(context, s) : null,
+              ),
+              if (fill) Expanded(child: list) else Flexible(child: list),
+              if (pinSwitch) ?showBefore,
+              ?_startButton,
+            ],
+          );
           return SafeArea(
             top: false,
-            child: SizedBox(
-              height: height,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _Header(
-                    subtitle: _scopeLine,
-                    finishes: widget.showFinishes
-                        ? _finishes(context, s)
-                        : null,
+            child: fill
+                ? SizedBox(height: height, child: body)
+                : ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: height),
+                    child: body,
                   ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      key: const ValueKey('customize_list'),
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          for (final (i, section) in sections.indexed) ...[
-                            if (i > 0) const SizedBox(height: 20),
-                            section,
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (widget.onStart != null)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(56),
-                          shape: MeditejoShapes.stadium,
-                        ),
-                        onPressed: _start,
-                        child: const Text('Start'),
-                      ),
-                    ),
-                ],
-              ),
-            ),
           );
         },
       ),
     );
   }
+
+  /// Whether this sheet opens before each recorded session. The sheet's own
+  /// setting, so not a slot: it sits under the list, by Start. A timer,
+  /// whose screen is this sheet, has no use for it.
+  Widget _showBeforeSwitch(CueSettings s) => _SwitchRow(
+    key: const ValueKey('customize_show_before'),
+    icon: Icons.visibility_outlined,
+    title: _l10n.customizeShowBeforeSession,
+    value: s.showBeforeSession,
+    onChanged: (v) => _edit(s.copyWith(hideBeforePractice: !v)),
+  );
+
+  Widget? get _startButton => widget.onStart == null
+      ? null
+      : Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: FilledButton(
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(56),
+              shape: MeditejoShapes.stadium,
+            ),
+            onPressed: _start,
+            child: const Text('Start'),
+          ),
+        );
+
+  /// What "changed" is measured against: the defaults this scope falls back
+  /// on. A course's own settings against its kind's; the kind's against the
+  /// app's.
+  CueSettings get _reference => _courseOverride
+      ? ref.watch(cueSettingsProvider(CueScope(_scope.kind)))
+      : CueSettings.defaults(_scope.kind);
+
+  /// The tile for [slot]: its name, its value at a glance, filled when it
+  /// differs from the defaults. Length is shown, not set, where the
+  /// recording or the screen owns it.
+  Widget _tile(_Slot slot, CueSettings s, CueSettings reference) {
+    final l10n = _l10n;
+    final scheme = Theme.of(context).colorScheme;
+    Widget icon(IconData data) => Icon(data, color: scheme.onSurfaceVariant);
+    final (label, leading, value, detail, changed, enabled) = switch (slot) {
+      _Slot.sound => (
+        l10n.customizeSlotSound,
+        _soundArt(s) ?? icon(Icons.graphic_eq_rounded),
+        _backgroundValue(s),
+        null,
+        _soundDiffers(s, reference),
+        true,
+      ),
+      _Slot.bells => (
+        l10n.customizeSlotBells,
+        icon(Icons.notifications_none_rounded),
+        _bellsValue(s),
+        _bellsDetail(s),
+        _bellsKey(s) != _bellsKey(reference),
+        true,
+      ),
+      _Slot.rhythm => (
+        l10n.customizeSlotRhythm,
+        icon(Icons.monitor_heart_outlined),
+        _pulseName(s),
+        s.pulseSound.isEmpty ? null : _pulseRate(s),
+        _pulseKey(s) != _pulseKey(reference),
+        true,
+      ),
+      _Slot.length => (
+        l10n.customizeSlotLength,
+        icon(Icons.timer_outlined),
+        _lengthValue(s),
+        _lengthDetail(s),
+        _canSetDuration && s.durationMinutes != reference.durationMinutes,
+        _canSetDuration,
+      ),
+    };
+    return KeyedSubtree(
+      key: _tileKeys[slot],
+      child: _SlotTile(
+        key: ValueKey('customize_slot_${slot.name}'),
+        leading: leading,
+        label: label,
+        value: value,
+        detail: detail,
+        changed: changed,
+        open: _slot == slot,
+        onTap: enabled ? () => _toggleSlot(slot) : null,
+      ),
+    );
+  }
+
+  /// The controls behind a tile.
+  Widget _section(_Slot slot, CueSettings s) => switch (slot) {
+    _Slot.sound => _Section(children: [_Inset(_backgroundEditor(s))]),
+    _Slot.bells => _bellsSection(s),
+    _Slot.rhythm => _Section(children: [_Inset(_pulseEditor(s))]),
+    _Slot.length => _Section(children: [_Inset(_durationWheel(s))]),
+  };
+
+  /// Each bell with what belongs to it: the countdown before the starting
+  /// bell, and the silence after the audio before the ending bell.
+  Widget _bellsSection(CueSettings s) => _Section(
+    children: [
+      _bellRow(
+        _Part.startBell,
+        s,
+        title: 'Starting bell',
+        icon: Icons.notifications_active_outlined,
+        sound: s.startSound,
+        value: _startValue(s),
+        apply: (v) => s.copyWith(startSound: v),
+        above: Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _WheelPair(
+            first: _WheelField<int>(
+              label: 'Countdown',
+              options: const [
+                WheelOption(0, 'Off'),
+                WheelOption(5, '5 sec', semanticsLabel: '5 seconds'),
+                WheelOption(10, '10 sec', semanticsLabel: '10 seconds'),
+              ],
+              value: s.countdownSeconds,
+              visibleItems: 3,
+              onChanged: (v) => _edit(s.copyWith(countdownSeconds: v)),
+            ),
+          ),
+        ),
+      ),
+      _bellRow(
+        _Part.intervalBell,
+        s,
+        title: 'Interval bell',
+        icon: Icons.restart_alt_rounded,
+        sound: s.hasIntervalBell ? s.intervalSound : '',
+        value: _intervalValue(s),
+        apply: (v) => s.copyWith(intervalSound: v),
+        above: _intervalWheels(s),
+      ),
+      _bellRow(
+        _Part.endBell,
+        s,
+        title: 'Ending bell',
+        icon: Icons.notifications_paused_outlined,
+        sound: s.endSound,
+        value: _endValue(s),
+        apply: (v) => s.copyWith(endSound: v),
+        // A timer's length is its own: silence after it is just a longer
+        // timer.
+        above: widget.isTimer
+            ? null
+            : Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const _Caption(
+                      'Keep going in silence (with any background sound) '
+                      'after the audio ends, then ring the ending bell.',
+                    ),
+                    _WheelPair(
+                      first: _WheelField<int>(
+                        label: 'Extra minutes',
+                        options: [
+                          const WheelOption(0, 'Off'),
+                          for (var m = 1; m <= 60; m++)
+                            WheelOption(
+                              m,
+                              '+$m min',
+                              semanticsLabel: _spokenMinutes(m),
+                            ),
+                        ],
+                        value: s.extendMinutes,
+                        parse: _range(0, 60),
+                        hint: '0 to 60 minutes',
+                        onChanged: (v) => _edit(s.copyWith(extendMinutes: v)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+      ),
+      _SliderRow(
+        icon: Icons.volume_up_outlined,
+        label: 'Bell volume',
+        value: s.bellVolume,
+        format: _percent,
+        onChanged: (v) => _edit(s.copyWith(bellVolume: v)),
+      ),
+    ],
+  );
+
+  Widget _durationWheel(CueSettings s) => _WheelField<int>(
+    label: 'Duration',
+    showLabel: false,
+    options: [
+      for (var m = 1; m <= _maxDurationMinutes; m++)
+        WheelOption(m, _minutes(m), semanticsLabel: _spokenMinutes(m)),
+    ],
+    value: s.durationMinutes.clamp(1, _maxDurationMinutes),
+    parse: _range(1, _maxDurationMinutes),
+    hint: '1 to $_maxDurationMinutes minutes',
+    onChanged: (v) => _edit(s.copyWith(durationMinutes: v)),
+  );
 
   /// Start reads the settings at once, but a wheel reports only when it
   /// comes to rest: a tap during a fling waits for the wheel to land, so the
@@ -609,7 +681,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         ? null
         : IconButton(
             key: ValueKey('customize_play_${part.name}'),
-            tooltip: 'Play $value',
+            tooltip: 'Play ${_bellName(sound)}',
             icon: const Icon(Icons.play_arrow_rounded),
             onPressed: () => _audition(sound, s.bellVolume),
           ),
@@ -951,15 +1023,149 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         : '$base ± ${s.randomWindowMinutes} · $bell';
   }
 
-  String _pulseValue(CueSettings s) {
-    if (s.pulseSound.isEmpty) return 'Off';
-    final name = cuePulseSounds.entries
-        .firstWhere((e) => e.value == s.pulseSound)
-        .key;
-    final bpm = s.pulseRampMinutes > 0
-        ? '${s.pulseBpm.round()}→${s.pulseEndBpm.round()} BPM'
-        : '${s.pulseBpm.round()} BPM';
-    return '$name · $bpm';
+  /// The starting bell, after its countdown when there is one.
+  String _startValue(CueSettings s) {
+    final bell = _bellName(s.startSound);
+    return s.countdownSeconds == 0
+        ? bell
+        : _l10n.customizeCountdownThenBell(s.countdownSeconds, bell);
+  }
+
+  /// The ending bell, after its silence when there is one.
+  String _endValue(CueSettings s) {
+    final bell = _bellName(s.endSound);
+    return widget.isTimer || s.extendMinutes == 0
+        ? bell
+        : _l10n.customizeSilenceThenBell(s.extendMinutes, bell);
+  }
+
+  /// The Bells tile: the first bell heard, by name.
+  String _bellsValue(CueSettings s) {
+    for (final sound in [
+      s.startSound,
+      if (s.hasIntervalBell) s.intervalSound,
+      s.endSound,
+    ]) {
+      if (sound.isNotEmpty) return _bellName(sound);
+    }
+    return _l10n.customizeOff;
+  }
+
+  /// The Bells tile's second line: when bells ring ("Start · Halfway · End").
+  String? _bellsDetail(CueSettings s) {
+    final l10n = _l10n;
+    final parts = [
+      if (s.startSound.isNotEmpty) l10n.customizeBellsAtStart,
+      if (s.hasIntervalBell)
+        s.intervalHalfway
+            ? l10n.customizeBellsHalfway
+            : l10n.customizeBellsEvery(s.intervalMinutes),
+      if (s.endSound.isNotEmpty) l10n.customizeBellsAtEnd,
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
+  /// What the Bells slot holds, as a value to compare: the countdown and the
+  /// silence belong to their bells. An interval bell that is off is off,
+  /// whatever its stored rhythm.
+  Object _bellsKey(CueSettings s) => (
+    s.startSound,
+    s.endSound,
+    s.countdownSeconds,
+    widget.isTimer ? 0 : s.extendMinutes,
+    s.bellVolume,
+    !s.hasIntervalBell
+        ? null
+        : s.intervalHalfway
+        ? (s.intervalSound, -1, 0)
+        : (s.intervalSound, s.intervalMinutes, s.randomWindowMinutes),
+  );
+
+  /// What the Rhythm slot holds: nothing while the pulse is off.
+  Object? _pulseKey(CueSettings s) => s.pulseSound.isEmpty
+      ? null
+      : (
+          s.pulseSound,
+          s.pulseBpm.round(),
+          s.pulseRampMinutes,
+          s.pulseRampMinutes > 0 ? s.pulseEndBpm.round() : 0,
+          s.pulseVolume,
+        );
+
+  String _pulseName(CueSettings s) => s.pulseSound.isEmpty
+      ? _l10n.customizeOff
+      : cuePulseSounds.entries
+            .firstWhere(
+              (e) => e.value == s.pulseSound,
+              orElse: () => cuePulseSounds.entries.first,
+            )
+            .key;
+
+  String _pulseRate(CueSettings s) => s.pulseRampMinutes > 0
+      ? '${s.pulseBpm.round()}→${s.pulseEndBpm.round()} BPM'
+      : '${s.pulseBpm.round()} BPM';
+
+  /// The Length tile: the timer's length, or the recording's, which the
+  /// sheet shows but does not set.
+  String _lengthValue(CueSettings s) {
+    final audioMinutes = math.max(1, (widget.audioDurationMs / 60000).round());
+    if (_canSetDuration) return _minutes(s.durationMinutes);
+    if (widget.isTimer) {
+      final minutes = widget.timerMinutes;
+      if (minutes == 0) return _l10n.customizeLengthCountsUp;
+      if (minutes != null) return _minutes(minutes);
+      return widget.audioDurationMs > 0
+          ? _minutes(audioMinutes)
+          : _minutes(s.durationMinutes);
+    }
+    return widget.audioDurationMs > 0
+        ? _minutes(audioMinutes)
+        : _l10n.customizeLengthSetByEachSession;
+  }
+
+  String? _lengthDetail(CueSettings s) {
+    if (widget.isTimer || widget.audioDurationMs <= 0) return null;
+    return s.extendMinutes > 0
+        ? _l10n.customizeLengthPlusSilence(s.extendMinutes)
+        : _l10n.customizeLengthSetBySession;
+  }
+
+  /// Whether what plays under these sessions differs from the defaults:
+  /// for a course, from its kind's choice; for a kind, from nothing.
+  bool _soundDiffers(CueSettings s, CueSettings reference) {
+    final mixer = ref.watch(soundscapeProvider);
+    final choice = _soundscapeChoice(s, mixer).encode();
+    if (_courseOverride) {
+      return choice != _soundscapeChoice(reference, mixer).encode();
+    }
+    return choice != SoundscapeSelection.none.encode();
+  }
+
+  /// The Sound tile carries the chosen sound's art, as on the Sounds
+  /// screen; null when nothing plays.
+  Widget? _soundArt(CueSettings s) {
+    final mixer = ref.watch(soundscapeProvider);
+    final choice = _soundscapeChoice(s, mixer);
+    final ArtSubject? subject = switch (choice.kind) {
+      SoundscapeSelectionKind.none => null,
+      SoundscapeSelectionKind.mix =>
+        mixer.mix.isEmpty
+            ? null
+            : ArtSubject.layers(MixArt.current, mixer.mix.layers),
+      SoundscapeSelectionKind.preset => () {
+        for (final p in mixer.presets) {
+          if (p.id == choice.id) return ArtSubject.layers(p.id, p.mix.layers);
+        }
+        return null;
+      }(),
+      SoundscapeSelectionKind.sound => ArtSubject.sound(choice.id),
+    };
+    if (subject == null) return null;
+    return ClipRRect(
+      key: const ValueKey('customize_sound_art'),
+      borderRadius: BorderRadius.circular(MeditejoShapes.medium),
+      child: SizedBox.square(dimension: 40, child: ArtCover(subject: subject)),
+    );
   }
 
   String _backgroundValue(CueSettings s) {
@@ -1063,43 +1269,22 @@ class _FinishesPill extends StatelessWidget {
   }
 }
 
-/// A section: its name in the primary colour, its rows on one tonal 28 dp
-/// surface, as on the Settings and You screens. One step up from the sheet
-/// (which is surfaceContainerLow), so the card reads on it.
+/// A slot's section: its rows on one tonal 28 dp surface, as on the Settings
+/// and You screens. One step up from the sheet (which is
+/// surfaceContainerLow), so the card reads on it. Its name is on the open
+/// tile above it.
 class _Section extends StatelessWidget {
-  const _Section({this.title, required this.children});
+  const _Section({required this.children});
 
-  final String? title;
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (title != null)
-          Semantics(
-            header: true,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 16, 8),
-              child: Text(
-                title!,
-                style: context.typography.emphasized.titleSmall?.copyWith(
-                  color: scheme.primary,
-                ),
-              ),
-            ),
-          ),
-        Material(
-          color: scheme.surfaceContainerHigh,
-          clipBehavior: Clip.antiAlias,
-          shape: MeditejoShapes.rounded(MeditejoShapes.extraLarge),
-          child: Column(children: children),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => Material(
+    color: Theme.of(context).colorScheme.surfaceContainerHigh,
+    clipBehavior: Clip.antiAlias,
+    shape: MeditejoShapes.rounded(MeditejoShapes.extraLarge),
+    child: Column(children: children),
+  );
 }
 
 /// A setting that shows its value folded and opens its controls in place.
@@ -1209,8 +1394,164 @@ class _ExpandingRow extends StatelessWidget {
   }
 }
 
+/// The slots as a 2×2 grid; each row's tiles share the taller one's height.
+/// [below] gives what goes under each row (an open section).
+class _SlotGrid extends StatelessWidget {
+  const _SlotGrid({required this.tiles, required this.below});
+
+  final List<Widget> tiles;
+  final Widget? Function(int row) below;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      for (var i = 0; i < tiles.length; i += 2) ...[
+        if (i > 0) const SizedBox(height: 12),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: tiles[i]),
+              const SizedBox(width: 12),
+              Expanded(
+                child: i + 1 < tiles.length ? tiles[i + 1] : const SizedBox(),
+              ),
+            ],
+          ),
+        ),
+        ?below(i ~/ 2),
+      ],
+    ],
+  );
+}
+
+/// One slot: its name, its value and a second line. Filled when it differs
+/// from the defaults, outlined when it does not (the language of the preset
+/// picker and the save sheet); a wider primary edge while its section is
+/// open. Without [onTap] it only shows its value, dimmed.
+class _SlotTile extends StatelessWidget {
+  const _SlotTile({
+    super.key,
+    required this.leading,
+    required this.label,
+    required this.value,
+    this.detail,
+    required this.changed,
+    required this.open,
+    this.onTap,
+  });
+
+  final Widget leading;
+  final String label, value;
+  final String? detail;
+  final bool changed, open;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final type = context.typography;
+    final enabled = onTap != null;
+    final filled = changed && enabled;
+    final onColor = filled ? scheme.onSecondaryContainer : scheme.onSurface;
+    final side = open
+        ? BorderSide(color: scheme.primary, width: 2)
+        : filled
+        ? BorderSide.none
+        : BorderSide(color: scheme.outlineVariant);
+    final tile = Material(
+      color: filled ? scheme.secondaryContainer : Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(MeditejoShapes.large),
+        side: side,
+      ),
+      child: InkWell(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 112),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    SizedBox.square(
+                      dimension: 40,
+                      child: Center(child: leading),
+                    ),
+                    const Spacer(),
+                    if (enabled)
+                      AnimatedRotation(
+                        turns: open ? 0.5 : 0,
+                        duration: MediaQuery.of(context).disableAnimations
+                            ? Duration.zero
+                            : MeditejoMotion.short,
+                        child: Icon(
+                          Icons.expand_more_rounded,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  label,
+                  style: type.baseline.labelLarge?.copyWith(
+                    color: filled
+                        ? scheme.onSecondaryContainer
+                        : scheme.onSurfaceVariant,
+                  ),
+                ),
+                Text(
+                  value,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: type.emphasized.titleMedium?.copyWith(color: onColor),
+                ),
+                if (detail != null)
+                  Text(
+                    detail!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: type.baseline.bodySmall?.copyWith(
+                      color: filled
+                          ? scheme.onSecondaryContainer
+                          : scheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    return Semantics(
+      button: enabled,
+      expanded: enabled ? open : null,
+      label: [label, value, ?detail].join(', '),
+      excludeSemantics: true,
+      onTap: onTap,
+      child: enabled ? tile : Opacity(opacity: 0.6, child: tile),
+    );
+  }
+}
+
+/// A section's single control, inset on its card.
+class _Inset extends StatelessWidget {
+  const _Inset(this.child);
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) =>
+      Padding(padding: const EdgeInsets.all(16), child: child);
+}
+
 class _SwitchRow extends StatelessWidget {
   const _SwitchRow({
+    super.key,
     required this.icon,
     required this.title,
     required this.value,
