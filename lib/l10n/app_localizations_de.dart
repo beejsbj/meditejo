@@ -2965,6 +2965,33 @@ class AppLocalizationsDe extends AppLocalizations {
   String get customizeSlotDefault => 'Standard';
 
   @override
+  String get customizeRhythmRate => 'Tempo';
+
+  @override
+  String get customizeRhythmSlowDownOver => 'Verlangsamen über';
+
+  @override
+  String get customizeRhythmOver => 'Über';
+
+  @override
+  String get customizeRhythmEndsAt => 'Endet bei';
+
+  @override
+  String customizeRhythmOverMinutes(int minutes) {
+    return 'über $minutes Min.';
+  }
+
+  @override
+  String customizeRhythmRampSpoken(int from, int to, int minutes) {
+    return '$from bis $to BPM über $minutes Min.';
+  }
+
+  @override
+  String customizeUndoChange(String setting, String value) {
+    return '$setting: $value';
+  }
+
+  @override
   String get playerAutoplayForPractice => 'Für alle Praxis-Sitzungen';
 
   @override

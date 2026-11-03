@@ -5134,6 +5134,48 @@ abstract class AppLocalizations {
   /// **'default'**
   String get customizeSlotDefault;
 
+  /// Customize › Rhythm: label over the wheel that sets the pulse's beats a minute
+  ///
+  /// In en, this message translates to:
+  /// **'Rate'**
+  String get customizeRhythmRate;
+
+  /// Customize › Rhythm: what the ramp wheel sets (minutes the pulse takes to slow to its end rate); read by a screen reader and in the Undo bar
+  ///
+  /// In en, this message translates to:
+  /// **'Slow down over'**
+  String get customizeRhythmSlowDownOver;
+
+  /// Customize › Rhythm: short label over the ramp wheel, in the row 'Rate · Over · Ends at'
+  ///
+  /// In en, this message translates to:
+  /// **'Over'**
+  String get customizeRhythmOver;
+
+  /// Customize › Rhythm: label over the wheel that sets the rate the pulse slows to; dimmed while the ramp is Off
+  ///
+  /// In en, this message translates to:
+  /// **'Ends at'**
+  String get customizeRhythmEndsAt;
+
+  /// Customize › Rhythm tile: small text set above the arrow in '60 ⟶ 40 BPM'
+  ///
+  /// In en, this message translates to:
+  /// **'over {minutes} min'**
+  String customizeRhythmOverMinutes(int minutes);
+
+  /// Customize › Rhythm tile, for a screen reader: the pulse slowing from one rate to another
+  ///
+  /// In en, this message translates to:
+  /// **'{from} to {to} BPM over {minutes} min'**
+  String customizeRhythmRampSpoken(int from, int to, int minutes);
+
+  /// Customize: the bar shown after a wheel changes a setting, with an Undo button, e.g. 'Slow down over: 9 min'
+  ///
+  /// In en, this message translates to:
+  /// **'{setting}: {value}'**
+  String customizeUndoChange(String setting, String value);
+
   /// Player: the autoplay setting applies to every practice course
   ///
   /// In en, this message translates to:

@@ -125,6 +125,90 @@ Future<bool> showCustomizeSheet(
 /// The longest timer [CueSettings] stores.
 const _maxDurationMinutes = 299;
 
+/// What a wheel changed, kept so the Undo bar can put it back. Steps of the
+/// same wheel while its bar is up (a turn, then another; a screen reader's
+/// three swipes) are one change: Undo goes back to before the first.
+class _WheelUndo {
+  const _WheelUndo({
+    required this.label,
+    required this.message,
+    required this.was,
+    required this.set,
+    required this.courseOverride,
+  });
+
+  /// The step from [before] to [after] of the wheel [label]; null when it
+  /// changed nothing.
+  static _WheelUndo? of(
+    String label,
+    String message,
+    CueSettings before,
+    CueSettings after, {
+    required bool courseOverride,
+  }) => const _WheelUndo(
+    label: '',
+    message: '',
+    was: {},
+    set: {},
+    courseOverride: false,
+  )._then(label, message, before, after, courseOverride: courseOverride);
+
+  /// The wheel this is for, and where its change was saved (a course's own
+  /// settings or its kind's).
+  final String label;
+  final bool courseOverride;
+  final String message;
+
+  /// The fields the wheel touched: as they were before its first step, and
+  /// as its last step set them.
+  final Map<String, Object?> was, set;
+
+  /// Whether a step of [label] continues this change.
+  bool continuedBy(String label, {required bool courseOverride}) =>
+      label == this.label && courseOverride == this.courseOverride;
+
+  /// This change followed by the step [before] to [after] of [label];
+  /// null when, all told, nothing is changed (the wheel went back).
+  _WheelUndo? _then(
+    String label,
+    String message,
+    CueSettings before,
+    CueSettings after, {
+    required bool courseOverride,
+  }) {
+    final from = before.toJson(), to = after.toJson();
+    final was = {...this.was}, set = {...this.set};
+    for (final key in to.keys) {
+      if (to[key] == from[key]) continue;
+      was.putIfAbsent(key, () => from[key]);
+      set[key] = to[key];
+    }
+    was.removeWhere((key, value) => set[key] == value);
+    set.removeWhere((key, _) => !was.containsKey(key));
+    if (set.isEmpty) return null;
+    return _WheelUndo(
+      label: label,
+      message: message,
+      was: was,
+      set: set,
+      courseOverride: courseOverride,
+    );
+  }
+
+  /// [current] with each field put back that still holds what the wheel
+  /// set; null when nothing is left to put back.
+  CueSettings? revert(CueSettings current, CueKind kind) {
+    final now = current.toJson();
+    var reverted = false;
+    for (final MapEntry(:key, :value) in set.entries) {
+      if (now[key] != value) continue;
+      now[key] = was[key];
+      reverted = true;
+    }
+    return reverted ? CueSettings.fromJson(now, kind: kind) : null;
+  }
+}
+
 /// The four things a sit is made of, in the order the sheet's tiles show
 /// them: what plays under it, its bells, its rhythm and its length. The same
 /// four slots a preset holds (#64), so Customize, presets and saving read as
@@ -193,6 +277,21 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   final _wheels = WheelSettleGroup();
   bool _startPending = false;
 
+  /// The last change a wheel made, offered back for a moment (#91): a thumb
+  /// scrolling the sheet can land on a wheel and turn it.
+  _WheelUndo? _undo;
+  Timer? _undoTimer;
+
+  /// Room under the list for the bar, kept from its first showing until the
+  /// open section or row folds: taking it away when the bar goes would move
+  /// the list under the thumb.
+  bool _undoRoom = false;
+
+  /// How long the Undo bar stays: a little longer than a snackbar, and
+  /// longer again for a screen reader, which has to find the button.
+  static const _undoFor = Duration(seconds: 5);
+  static const _undoForScreenReader = Duration(seconds: 10);
+
   CueScope get _scope => widget.scope;
   bool get _practice => _scope.kind == CueKind.practice;
 
@@ -215,6 +314,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   @override
   void dispose() {
     _tick?.cancel();
+    _undoTimer?.cancel();
     // A bell auditioned here never rings on after the sheet closes.
     _silence();
     super.dispose();
@@ -226,12 +326,129 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         .update(value, courseOverride: _courseOverride),
   );
 
+  /// A wheel for [label]; what it lands on is saved through [apply], with
+  /// an Undo bar ("Slow down over: 9 min · Undo"). [title] is the shorter
+  /// word shown above it, where the row already says the rest.
+  Widget _wheel<T>({
+    required String label,
+    String? title,
+    required List<WheelOption<T>> options,
+    required T value,
+    required CueSettings Function(T value) apply,
+    T? Function(String)? parse,
+    String? hint,
+    int visibleItems = 5,
+    bool showLabel = true,
+    bool enabled = true,
+  }) {
+    // Where this wheel is: a step that lands after its section or row has
+    // closed is saved, but brings no bar up over what opened instead.
+    final slot = _slot, part = _open;
+    return _WheelField<T>(
+      label: label,
+      title: title,
+      options: options,
+      value: value,
+      parse: parse,
+      hint: hint,
+      visibleItems: visibleItems,
+      showLabel: showLabel,
+      enabled: enabled,
+      onChanged: (v) {
+        final shown = options.firstWhere((o) => o.value == v).label;
+        _turned(
+          label,
+          shown,
+          apply(v),
+          offerUndo: mounted && _slot == slot && _open == part,
+        );
+      },
+    );
+  }
+
+  /// Saves what a wheel landed on and offers it back. Further steps of the
+  /// same wheel while its bar is up join its change.
+  void _turned(
+    String label,
+    String shown,
+    CueSettings next, {
+    bool offerUndo = true,
+  }) {
+    if (!mounted) return;
+    final before = ref.read(cueSettingsProvider(_scope));
+    _edit(next);
+    if (!offerUndo) return _dismissUndo();
+    final message = _l10n.customizeUndoChange(label, shown);
+    final open = _undo;
+    final undo =
+        open != null && open.continuedBy(label, courseOverride: _courseOverride)
+        ? open._then(
+            label,
+            message,
+            before,
+            next,
+            courseOverride: _courseOverride,
+          )
+        : _WheelUndo.of(
+            label,
+            message,
+            before,
+            next,
+            courseOverride: _courseOverride,
+          );
+    // Back where it started: nothing to undo.
+    if (undo == null) {
+      if (open != null) _dismissUndo();
+      return;
+    }
+    _undoTimer?.cancel();
+    _undoTimer = Timer(
+      MediaQuery.of(context).accessibleNavigation
+          ? _undoForScreenReader
+          : _undoFor,
+      _dismissUndo,
+    );
+    setState(() {
+      _undo = undo;
+      _undoRoom = true;
+    });
+  }
+
+  /// The bar's height and the space around it, at the current text size.
+  static double _undoBarRoom(BuildContext context) =>
+      MediaQuery.textScalerOf(context).scale(48) + 16;
+
+  /// The bar goes when it has been read, and as soon as a section or row
+  /// opens or folds: the person has moved on, and it would sit over what
+  /// they open next.
+  void _dismissUndo() {
+    _undoTimer?.cancel();
+    _undoTimer = null;
+    if (mounted && _undo != null) setState(() => _undo = null);
+  }
+
+  /// Puts back what the wheel changed, unless it has been changed again
+  /// since (by another control, or with the "only for this course" switch
+  /// flipped): those are left as they are.
+  void _undoTurn() {
+    final undo = _undo;
+    _dismissUndo();
+    if (undo == null || undo.courseOverride != _courseOverride) return;
+    final restored = undo.revert(
+      ref.read(cueSettingsProvider(_scope)),
+      _scope.kind,
+    );
+    if (restored != null) _edit(restored);
+  }
+
   /// Opens [slot]'s section under its row of tiles, or folds it.
   void _toggleSlot(_Slot slot) {
+    _dismissUndo();
     final leaving = _slot;
     setState(() {
       _slot = _slot == slot ? null : slot;
       _reveal = _slot;
+      _undoRoom = false;
       _open = null;
     });
     // Leaving the bells silences what they were auditioning.
@@ -262,8 +479,12 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   }
 
   void _toggle(_Part part) {
+    _dismissUndo();
     final closing = _open;
-    setState(() => _open = _open == part ? null : part);
+    setState(() {
+      _open = _open == part ? null : part;
+      _undoRoom = false;
+    });
     // Folding a bell list silences what it was auditioning.
     if (closing != null) _silence();
   }
@@ -310,7 +531,14 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
 
     final list = SingleChildScrollView(
       key: const ValueKey('customize_list'),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      // Once the Undo bar has shown, the list ends below it (until the
+      // section folds), so whatever it covers can be scrolled clear.
+      padding: EdgeInsets.fromLTRB(
+        16,
+        8,
+        16,
+        16 + (_undoRoom ? _undoBarRoom(context) : 0),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -367,6 +595,33 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
             constraints.maxHeight,
             media.size.height * 0.92,
           );
+          // The Undo bar floats over the foot of the list, as a snackbar
+          // would: one on the page's Scaffold would sit behind this sheet.
+          final undo = _undo;
+          final bar = undo == null
+              ? const SizedBox.shrink()
+              : _UndoBar(
+                  key: ObjectKey(undo),
+                  message: undo.message,
+                  onUndo: _undoTurn,
+                );
+          final listArea = Stack(
+            fit: StackFit.passthrough,
+            children: [
+              list,
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 8,
+                child: reduce
+                    ? bar
+                    : AnimatedSwitcher(
+                        duration: MeditejoMotion.short,
+                        child: bar,
+                      ),
+              ),
+            ],
+          );
           final body = Column(
             mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -375,7 +630,10 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
                 subtitle: _scopeLine,
                 finishes: widget.showFinishes ? _finishes(context, s) : null,
               ),
-              if (fill) Expanded(child: list) else Flexible(child: list),
+              if (fill)
+                Expanded(child: listArea)
+              else
+                Flexible(child: listArea),
               if (pinSwitch) ?showBefore,
               ?_startButton,
             ],
@@ -454,7 +712,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         l10n.customizeSlotRhythm,
         icon(Icons.monitor_heart_outlined),
         _pulseName(s),
-        s.pulseSound.isEmpty ? null : _pulseRate(s),
+        s.pulseSound.isEmpty ? null : _pulseRateSpoken(s),
         _pulseKey(s) != _pulseKey(reference),
         true,
       ),
@@ -475,6 +733,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         label: label,
         value: value,
         detail: detail,
+        detailView: slot == _Slot.rhythm ? _pulseRateView(s) : null,
         changed: changed,
         open: _slot == slot,
         state: !enabled
@@ -509,8 +768,8 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         apply: (v) => s.copyWith(startSound: v),
         above: Padding(
           padding: const EdgeInsets.only(bottom: 8),
-          child: _WheelPair(
-            first: _WheelField<int>(
+          child: _WheelRow([
+            _wheel<int>(
               label: 'Countdown',
               options: const [
                 WheelOption(0, 'Off'),
@@ -519,9 +778,9 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
               ],
               value: s.countdownSeconds,
               visibleItems: 3,
-              onChanged: (v) => _edit(s.copyWith(countdownSeconds: v)),
+              apply: (v) => s.copyWith(countdownSeconds: v),
             ),
-          ),
+          ]),
         ),
       ),
       _bellRow(
@@ -555,8 +814,8 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
                       'Keep going in silence (with any background sound) '
                       'after the audio ends, then ring the ending bell.',
                     ),
-                    _WheelPair(
-                      first: _WheelField<int>(
+                    _WheelRow([
+                      _wheel<int>(
                         label: 'Extra minutes',
                         options: [
                           const WheelOption(0, 'Off'),
@@ -570,9 +829,9 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
                         value: s.extendMinutes,
                         parse: _range(0, 60),
                         hint: '0 to 60 minutes',
-                        onChanged: (v) => _edit(s.copyWith(extendMinutes: v)),
+                        apply: (v) => s.copyWith(extendMinutes: v),
                       ),
-                    ),
+                    ]),
                   ],
                 ),
               ),
@@ -587,18 +846,20 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     ],
   );
 
-  Widget _durationWheel(CueSettings s) => _WheelField<int>(
-    label: 'Duration',
-    showLabel: false,
-    options: [
-      for (var m = 1; m <= _maxDurationMinutes; m++)
-        WheelOption(m, _minutes(m), semanticsLabel: _spokenMinutes(m)),
-    ],
-    value: s.durationMinutes.clamp(1, _maxDurationMinutes),
-    parse: _range(1, _maxDurationMinutes),
-    hint: '1 to $_maxDurationMinutes minutes',
-    onChanged: (v) => _edit(s.copyWith(durationMinutes: v)),
-  );
+  Widget _durationWheel(CueSettings s) => _WheelRow([
+    _wheel<int>(
+      label: 'Duration',
+      showLabel: false,
+      options: [
+        for (var m = 1; m <= _maxDurationMinutes; m++)
+          WheelOption(m, _minutes(m), semanticsLabel: _spokenMinutes(m)),
+      ],
+      value: s.durationMinutes.clamp(1, _maxDurationMinutes),
+      parse: _range(1, _maxDurationMinutes),
+      hint: '1 to $_maxDurationMinutes minutes',
+      apply: (v) => s.copyWith(durationMinutes: v),
+    ),
+  ]);
 
   /// Start reads the settings at once, but a wheel reports only when it
   /// comes to rest: a tap during a fling waits for the wheel to land, so the
@@ -647,6 +908,8 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
               ),
         value: _courseOverride,
         onChanged: (v) async {
+          // Where changes go moves: the bar's Undo no longer applies.
+          _dismissUndo();
           setState(() => _courseOverride = v);
           if (!v) {
             await ref
@@ -730,8 +993,8 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     final minutes = !s.intervalHalfway && s.intervalMinutes > 0;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: _WheelPair(
-        first: _WheelField<int>(
+      child: _WheelRow([
+        _wheel<int>(
           label: 'Every',
           options: [
             const WheelOption(0, 'Off'),
@@ -746,7 +1009,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
           value: every,
           parse: _range(1, 60),
           hint: '1 to 60 minutes',
-          onChanged: (v) {
+          apply: (v) {
             // The bell list's Off leaves no sound; choosing a rhythm turns
             // the bell back on with the default one, so the wheel and the
             // row never disagree.
@@ -754,44 +1017,37 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
                 ? cueBellSounds['Swell bell']!
                 : s.intervalSound;
             if (v == halfway) {
-              _edit(s.copyWith(intervalHalfway: true, intervalSound: sound));
-            } else {
-              // A shorter interval pulls the random window in with it, so
-              // the saved value never exceeds what the wheel can show.
-              _edit(
-                s.copyWith(
-                  intervalHalfway: false,
-                  intervalMinutes: v,
-                  intervalSound: sound,
-                  randomWindowMinutes: s.randomWindowMinutes.clamp(0, v),
-                ),
-              );
+              return s.copyWith(intervalHalfway: true, intervalSound: sound);
             }
+            // A shorter interval pulls the random window in with it, so the
+            // saved value never exceeds what the wheel can show.
+            return s.copyWith(
+              intervalHalfway: false,
+              intervalMinutes: v,
+              intervalSound: sound,
+              randomWindowMinutes: s.randomWindowMinutes.clamp(0, v),
+            );
           },
         ),
-        second: minutes
-            ? _WheelField<int>(
-                label: 'Random window',
-                options: [
-                  const WheelOption(0, 'Exact'),
-                  for (var m = 1; m <= s.intervalMinutes; m++)
-                    WheelOption(
-                      m,
-                      '± $m min',
-                      semanticsLabel: _spokenMinutes(m),
-                    ),
-                ],
-                value: s.randomWindowMinutes.clamp(0, s.intervalMinutes),
-                parse: _range(0, s.intervalMinutes),
-                hint: '0 to ${s.intervalMinutes} minutes',
-                onChanged: (v) => _edit(s.copyWith(randomWindowMinutes: v)),
-              )
-            : null,
-      ),
+        if (minutes)
+          _wheel<int>(
+            label: 'Random window',
+            options: [
+              const WheelOption(0, 'Exact'),
+              for (var m = 1; m <= s.intervalMinutes; m++)
+                WheelOption(m, '± $m min', semanticsLabel: _spokenMinutes(m)),
+            ],
+            value: s.randomWindowMinutes.clamp(0, s.intervalMinutes),
+            parse: _range(0, s.intervalMinutes),
+            hint: '0 to ${s.intervalMinutes} minutes',
+            apply: (v) => s.copyWith(randomWindowMinutes: v),
+          ),
+      ]),
     );
   }
 
   Widget _pulseEditor(CueSettings s) {
+    final l10n = _l10n;
     final bpm = [
       for (var b = 20; b <= 120; b++)
         WheelOption(
@@ -815,17 +1071,20 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         ),
         if (s.pulseSound.isNotEmpty) ...[
           const SizedBox(height: 12),
-          _WheelPair(
-            first: _WheelField<double>(
-              label: 'Rate',
+          // Rate · over · Ends at, read as one line like a date's wheels
+          // (#73). Ends at waits, dimmed, until there is a ramp to end.
+          _WheelRow([
+            _wheel<double>(
+              label: l10n.customizeRhythmRate,
               options: bpm,
               value: s.pulseBpm.roundToDouble(),
               parse: parseBpm,
               hint: '20 to 120 BPM',
-              onChanged: (v) => _edit(s.copyWith(pulseBpm: v)),
+              apply: (v) => s.copyWith(pulseBpm: v),
             ),
-            second: _WheelField<int>(
-              label: 'Slow down over',
+            _wheel<int>(
+              label: l10n.customizeRhythmSlowDownOver,
+              title: l10n.customizeRhythmOver,
               options: [
                 const WheelOption(0, 'Off'),
                 for (var m = 1; m <= 60; m++)
@@ -834,20 +1093,18 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
               value: s.pulseRampMinutes,
               parse: _range(0, 60),
               hint: '0 to 60 minutes',
-              onChanged: (v) => _edit(s.copyWith(pulseRampMinutes: v)),
+              apply: (v) => s.copyWith(pulseRampMinutes: v),
             ),
-          ),
-          if (s.pulseRampMinutes > 0)
-            _WheelPair(
-              first: _WheelField<double>(
-                label: 'Ends at',
-                options: bpm,
-                value: s.pulseEndBpm.roundToDouble(),
-                parse: parseBpm,
-                hint: '20 to 120 BPM',
-                onChanged: (v) => _edit(s.copyWith(pulseEndBpm: v)),
-              ),
+            _wheel<double>(
+              label: l10n.customizeRhythmEndsAt,
+              options: bpm,
+              value: s.pulseEndBpm.roundToDouble(),
+              parse: parseBpm,
+              hint: '20 to 120 BPM',
+              enabled: s.pulseRampMinutes > 0,
+              apply: (v) => s.copyWith(pulseEndBpm: v),
             ),
+          ]),
           _SliderRow(
             label: 'Pulse volume',
             value: s.pulseVolume,
@@ -1118,9 +1375,26 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
             )
             .key;
 
-  String _pulseRate(CueSettings s) => s.pulseRampMinutes > 0
-      ? '${s.pulseBpm.round()}→${s.pulseEndBpm.round()} BPM'
+  /// The Rhythm tile's second line, as a screen reader says it.
+  String _pulseRateSpoken(CueSettings s) => s.pulseRampMinutes > 0
+      ? _l10n.customizeRhythmRampSpoken(
+          s.pulseBpm.round(),
+          s.pulseEndBpm.round(),
+          s.pulseRampMinutes,
+        )
       : '${s.pulseBpm.round()} BPM';
+
+  /// The Rhythm tile's second line as shown: "60 ⟶ 40 BPM" with "over
+  /// 20 min" set small above the arrow (#73). Null without a ramp (the
+  /// plain rate) or a pulse.
+  Widget? _pulseRateView(CueSettings s) =>
+      s.pulseSound.isEmpty || s.pulseRampMinutes == 0
+      ? null
+      : _RampSummary(
+          from: '${s.pulseBpm.round()}',
+          to: '${s.pulseEndBpm.round()} BPM',
+          over: _l10n.customizeRhythmOverMinutes(s.pulseRampMinutes),
+        );
 
   /// The Length tile: the timer's length, or the recording's, which the
   /// sheet shows but does not set.
@@ -1454,6 +1728,7 @@ class _SlotTile extends StatelessWidget {
     required this.label,
     required this.value,
     this.detail,
+    this.detailView,
     required this.changed,
     required this.open,
     this.state,
@@ -1462,7 +1737,11 @@ class _SlotTile extends StatelessWidget {
 
   final Widget leading;
   final String label, value;
+
+  /// The second line; [detailView], when given, shows it instead (this
+  /// stays what a screen reader says).
   final String? detail;
+  final Widget? detailView;
 
   /// Read after the value: "changed" or "default", what the fill shows.
   final String? state;
@@ -1482,6 +1761,9 @@ class _SlotTile extends StatelessWidget {
         : enabled
         ? scheme.onSurface
         : scheme.onSurfaceVariant;
+    final detailStyle = type.baseline.bodySmall?.copyWith(
+      color: filled ? scheme.onSecondaryContainer : scheme.onSurfaceVariant,
+    );
     final side = open
         ? BorderSide(color: scheme.primary, width: 2)
         : filled
@@ -1538,16 +1820,14 @@ class _SlotTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: type.emphasized.titleMedium?.copyWith(color: onColor),
                 ),
-                if (detail != null)
+                if (detailView != null)
+                  DefaultTextStyle.merge(style: detailStyle, child: detailView!)
+                else if (detail != null)
                   Text(
                     detail!,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: type.baseline.bodySmall?.copyWith(
-                      color: filled
-                          ? scheme.onSecondaryContainer
-                          : scheme.onSurfaceVariant,
-                    ),
+                    style: detailStyle,
                   ),
               ],
             ),
@@ -1665,6 +1945,7 @@ class _SliderRow extends StatelessWidget {
 class _WheelField<T> extends StatelessWidget {
   const _WheelField({
     required this.label,
+    this.title,
     required this.options,
     required this.value,
     required this.onChanged,
@@ -1672,9 +1953,16 @@ class _WheelField<T> extends StatelessWidget {
     this.hint,
     this.visibleItems = 5,
     this.showLabel = true,
+    this.enabled = true,
   });
 
+  /// What the wheel sets: for a screen reader, the typing dialog and the
+  /// Undo bar.
   final String label;
+
+  /// The word shown above the wheel, when shorter than [label].
+  final String? title;
+  final bool enabled;
 
   /// Off where the row's own title already says it (a lone wheel).
   final bool showLabel;
@@ -1688,17 +1976,33 @@ class _WheelField<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final labelStyle = context.typography.baseline.labelLarge?.copyWith(
+      color: enabled
+          ? scheme.onSurfaceVariant
+          : scheme.onSurfaceVariant.withValues(alpha: 0.38),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (showLabel)
           Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 4, top: 4),
+            padding: const EdgeInsets.only(bottom: 4, top: 4),
             child: ExcludeSemantics(
-              child: Text(
-                label,
-                style: context.typography.baseline.labelLarge?.copyWith(
-                  color: scheme.onSurfaceVariant,
+              // Over a narrow wheel a long word shrinks rather than wraps,
+              // in a line of its full height, so the wheels in a row stay
+              // level.
+              child: SizedBox(
+                height: MediaQuery.textScalerOf(context).scale(
+                  (labelStyle?.fontSize ?? 14) * (labelStyle?.height ?? 1.43),
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    title ?? label,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: labelStyle,
+                  ),
                 ),
               ),
             ),
@@ -1712,46 +2016,210 @@ class _WheelField<T> extends StatelessWidget {
           parseEntry: parse,
           entryHint: hint,
           visibleItems: visibleItems,
+          enabled: enabled,
         ),
       ],
     );
   }
 }
 
-/// Two wheels side by side, or stacked when large text needs the width.
-class _WheelPair extends StatelessWidget {
-  const _WheelPair({required this.first, this.second});
+/// Wheels side by side (one to three), narrow and centred, with a gutter
+/// each side and a gap between them (#91): a thumb scrolling the sheet lands
+/// there and scrolls it, rather than turning a wheel. When large text needs
+/// the width they stack, each still centred between gutters.
+class _WheelRow extends StatelessWidget {
+  const _WheelRow(this.wheels);
 
-  final Widget first;
-  final Widget? second;
+  final List<Widget> wheels;
+
+  /// A wheel's widest, at 1× text (it grows with the text); narrower when
+  /// three share a row, to leave the gutters room.
+  static const wheelWidth = 120.0;
+  static const narrowWheelWidth = 80.0;
+
+  /// The least room left free each side of the wheels.
+  static const gutter = 28.0;
+  static const gap = 12.0;
 
   @override
   Widget build(BuildContext context) {
-    final stacked = MediaQuery.textScalerOf(context).scale(10) > 13;
-    if (stacked || second == null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (second == null && !stacked)
-            Row(
-              children: [
-                Expanded(child: first),
-                const Spacer(),
-              ],
-            )
-          else
-            first,
-          ?second,
-        ],
+    final scaler = MediaQuery.textScalerOf(context);
+    final stacked = wheels.length > 1 && scaler.scale(10) > 13;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final room = math.max(0.0, constraints.maxWidth - 2 * gutter);
+        final cap = wheels.length >= 3 ? narrowWheelWidth : wheelWidth;
+        final widest = math.min(math.max(scaler.scale(cap), cap), room);
+        if (stacked) {
+          return Column(
+            children: [
+              for (final wheel in wheels)
+                Center(
+                  child: SizedBox(width: widest, child: wheel),
+                ),
+            ],
+          );
+        }
+        final each = math.min(
+          widest,
+          (room - gap * (wheels.length - 1)) / wheels.length,
+        );
+        final row = Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final (i, wheel) in wheels.indexed) ...[
+              if (i > 0) const SizedBox(width: gap),
+              SizedBox(width: each, child: wheel),
+            ],
+          ],
+        );
+        if (wheels.length == 1) return Center(child: row);
+        // Spare room beyond the 28 dp gutters goes 1 : 4, the larger share
+        // on the right, where a right thumb scrolls: about 50 dp there for
+        // three wheels at 411 dp. Where there is no spare room (360 dp),
+        // both gutters stay at 28 dp.
+        final used = each * wheels.length + gap * (wheels.length - 1);
+        final spare = math.max(0.0, constraints.maxWidth - used - 2 * gutter);
+        return Padding(
+          padding: EdgeInsetsDirectional.only(start: gutter + spare * 0.2),
+          child: Align(alignment: AlignmentDirectional.centerStart, child: row),
+        );
+      },
+    );
+  }
+}
+
+/// "60 ⟶ 40 BPM" with [over] ("over 20 min") set small above the arrow:
+/// the pulse's ramp at a glance. Shrinks to fit a narrow tile.
+class _RampSummary extends StatelessWidget {
+  const _RampSummary({
+    required this.from,
+    required this.to,
+    required this.over,
+  });
+
+  final String from, to, over;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = DefaultTextStyle.of(context).style;
+    final small = context.typography.baseline.labelSmall?.copyWith(
+      color: style.color,
+    );
+    return ExcludeSemantics(
+      child: FittedBox(
+        key: const ValueKey('customize_rhythm_ramp'),
+        fit: BoxFit.scaleDown,
+        alignment: AlignmentDirectional.centerStart,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(from),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: IntrinsicWidth(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(over, style: small, textAlign: TextAlign.center),
+                    SizedBox(
+                      height: (style.fontSize ?? 12) * (style.height ?? 1.3),
+                      child: CustomPaint(
+                        painter: _ArrowPainter(style.color ?? Colors.black),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Text(to),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A long arrow across its box, at the middle of the line: "⟶".
+class _ArrowPainter extends CustomPainter {
+  const _ArrowPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    final y = size.height * 0.55;
+    final end = size.width - 1;
+    canvas
+      ..drawLine(Offset(1, y), Offset(end, y), paint)
+      ..drawPath(
+        Path()
+          ..moveTo(end - 5, y - 4)
+          ..lineTo(end, y)
+          ..lineTo(end - 5, y + 4),
+        paint,
       );
-    }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: first),
-        const SizedBox(width: 12),
-        Expanded(child: second!),
-      ],
+  }
+
+  @override
+  bool shouldRepaint(_ArrowPainter oldDelegate) => oldDelegate.color != color;
+}
+
+/// The bar a wheel's change brings up: what it set, and Undo. Styled as
+/// the app's snackbars; announced to a screen reader as it appears.
+class _UndoBar extends StatelessWidget {
+  const _UndoBar({super.key, required this.message, required this.onUndo});
+
+  final String message;
+  final VoidCallback onUndo;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final l10n =
+        AppLocalizations.of(context) ??
+        lookupAppLocalizations(const Locale('en'));
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      child: Material(
+        key: const ValueKey('customize_undo'),
+        color: scheme.inverseSurface,
+        shape: MeditejoShapes.rounded(MeditejoShapes.medium),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 2, 4, 2),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    message,
+                    style: context.typography.baseline.bodyMedium?.copyWith(
+                      color: scheme.onInverseSurface,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  key: const ValueKey('customize_undo_button'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: scheme.inversePrimary,
+                  ),
+                  onPressed: onUndo,
+                  child: Text(l10n.undo),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

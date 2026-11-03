@@ -45,6 +45,7 @@ import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
+import 'package:medito/widgets/inputs/wheel_picker.dart';
 import 'package:medito/views/player/widgets/autoplay_control.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -938,6 +939,8 @@ Future<ProviderContainer> _pumpCustomize(
   Locale? locale,
   List<Override> overrides = const [],
   Widget Function()? sheet,
+  double textScale = 1,
+  bool narrow = false,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
@@ -980,6 +983,11 @@ Future<ProviderContainer> _pumpCustomize(
     ),
   );
   await _phone(tester);
+  if (narrow) {
+    // 1080 px wide at 3 = 360 dp, the narrowest phones.
+    tester.view.devicePixelRatio = 3;
+    await tester.pump();
+  }
   unawaited(
     showModalBottomSheet<void>(
       context: navigator.currentContext!,
@@ -987,9 +995,10 @@ Future<ProviderContainer> _pumpCustomize(
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => MediaQuery(
-        data: MediaQuery.of(
-          navigator.currentContext!,
-        ).copyWith(disableAnimations: true),
+        data: MediaQuery.of(navigator.currentContext!).copyWith(
+          disableAnimations: true,
+          textScaler: TextScaler.linear(textScale),
+        ),
         child:
             sheet?.call() ??
             CustomizeSheet(
@@ -2113,6 +2122,64 @@ void main() {
       );
       await _openSlot(tester, 'rhythm');
       await _captureView(tester, 'customize-rhythm-${brightness.name}');
+    }, skip: !_enabled);
+
+    // The rhythm's wheels in one row (#73), with the ramp off (Ends at
+    // dimmed), and on the narrowest phone in German at a larger text size.
+    testWidgets('Customize rhythm ramp off, ${brightness.name}', (
+      tester,
+    ) async {
+      await _pumpCustomize(
+        tester,
+        brightness,
+        scope: course,
+        settings: courseCues.copyWith(pulseRampMinutes: 0),
+        beforeStart: true,
+      );
+      await _openSlot(tester, 'rhythm');
+      await _captureView(tester, 'customize-rhythm-off-${brightness.name}');
+    }, skip: !_enabled);
+
+    testWidgets('Customize rhythm narrow German, ${brightness.name}', (
+      tester,
+    ) async {
+      await _pumpCustomize(
+        tester,
+        brightness,
+        scope: course,
+        settings: courseCues,
+        beforeStart: true,
+        locale: const Locale('de'),
+        textScale: 1.3,
+        narrow: true,
+      );
+      await _openSlot(tester, 'rhythm');
+      // The wheels in view, the tiles above them.
+      await tester.ensureVisible(find.byType(WheelPicker<double>).first);
+      await tester.pumpAndSettle();
+      await _captureView(
+        tester,
+        'customize-rhythm-360-x1.3-de-${brightness.name}',
+      );
+    }, skip: !_enabled);
+
+    // #91: a wheel's change brings up its Undo bar.
+    testWidgets('Customize undo after a wheel, ${brightness.name}', (
+      tester,
+    ) async {
+      await _pumpCustomize(
+        tester,
+        brightness,
+        scope: course,
+        settings: courseCues,
+        beforeStart: true,
+      );
+      await _openSlot(tester, 'rhythm');
+      final over = find.byKey(const ValueKey('wheel_Slow down over'));
+      final wheel = tester.state<WheelPickerState<int>>(over);
+      wheel.moveTo(wheel.selectedIndex - 1);
+      await tester.pumpAndSettle();
+      await _captureView(tester, 'customize-undo-${brightness.name}');
     }, skip: !_enabled);
 
     testWidgets('Customize sound open, ${brightness.name}', (tester) async {

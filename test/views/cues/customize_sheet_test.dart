@@ -429,7 +429,13 @@ void main() {
       'Singing bowl, deep',
       'Start · Every 30 min · End',
     ]);
-    expect(_says(tester, 'rhythm'), ['Rhythm', 'Heartbeat', '90→30 BPM']);
+    expect(_says(tester, 'rhythm'), [
+      'Rhythm',
+      'Heartbeat',
+      '90',
+      'over 10 min',
+      '30 BPM',
+    ]);
     expect(_says(tester, 'length'), ['Length', '20 min', '+ 12 min silence']);
     expect(_filled(tester, 'bells'), isTrue);
     expect(_filled(tester, 'rhythm'), isTrue);
@@ -1352,7 +1358,7 @@ void main() {
       // Wheels sit side by side at 1x, stacked at 2x.
       // (Measured at the labels: the test font is wide enough to wrap one.)
       final rate = tester.getTopLeft(find.text('Rate'));
-      final slow = tester.getTopLeft(find.text('Slow down over'));
+      final slow = tester.getTopLeft(find.text('Over'));
       if (scale == 1) {
         expect(rate.dy, slow.dy);
       } else {
@@ -1361,6 +1367,514 @@ void main() {
       await _unmount(tester);
     });
   }
+
+  // #73: Rate · over · Ends at as one row of wheels, the ramp on the tile
+  // as an arrow. #91: the wheels stand between scroll gutters, and a wheel's
+  // change can be undone.
+  group('Rhythm wheels and scroll gutters', () {
+    final ramp = CueSettings.defaults(CueKind.practice).copyWith(
+      pulseSound: cuePulseSounds['Heartbeat'],
+      pulseBpm: 60,
+      pulseEndBpm: 40,
+      pulseRampMinutes: 20,
+    );
+    const undoBar = ValueKey('customize_undo');
+    const undoButton = ValueKey('customize_undo_button');
+
+    Future<ProviderContainer> pumpWith(
+      WidgetTester tester,
+      CueSettings settings, {
+      Size? size,
+    }) async {
+      final c = await _pump(tester, size: size);
+      await c.read(cueSettingsProvider(_practice).notifier).update(settings);
+      await tester.pumpAndSettle();
+      return c;
+    }
+
+    WheelPicker<dynamic> picker(WidgetTester tester, String label) =>
+        tester.widget<WheelPicker<dynamic>>(_wheel(label));
+
+    testWidgets('Rate, Over and Ends at sit in one row; Ends at waits, '
+        'dimmed, while the ramp is off', (tester) async {
+      final c = await pumpWith(tester, ramp.copyWith(pulseRampMinutes: 0));
+      await _slot(tester, 'rhythm');
+      await tester.ensureVisible(_wheel('Rate'));
+      await tester.pumpAndSettle();
+      final rate = tester.getRect(_wheel('Rate'));
+      final over = tester.getRect(_wheel('Slow down over'));
+      final ends = tester.getRect(_wheel('Ends at'));
+      expect(over.top, rate.top);
+      expect(ends.top, rate.top);
+      expect(rate.right, lessThan(over.left));
+      expect(over.right, lessThan(ends.left));
+      for (final label in ['Rate', 'Over', 'Ends at']) {
+        expect(
+          find.descendant(of: _section('rhythm'), matching: find.text(label)),
+          findsOneWidget,
+          reason: label,
+        );
+      }
+      expect(picker(tester, 'Rate').enabled, isTrue);
+      expect(picker(tester, 'Slow down over').enabled, isTrue);
+      expect(picker(tester, 'Ends at').enabled, isFalse);
+      // A drag on it scrolls past it rather than turning it.
+      await tester.drag(
+        _wheel('Ends at'),
+        const Offset(0, -80),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+      expect(_read(c).pulseEndBpm, 40);
+
+      await _turn(tester, 'Slow down over', '20 min');
+      expect(picker(tester, 'Ends at').enabled, isTrue);
+      await _turn(tester, 'Ends at', '45 BPM');
+      expect(_read(c).pulseEndBpm, 45);
+      await _unmount(tester);
+    });
+
+    testWidgets('the Rhythm tile reads 60 ⟶ 40 BPM, "over 20 min" set '
+        'small above the arrow', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final c = await pumpWith(tester, ramp);
+      expect(_says(tester, 'rhythm'), [
+        'Rhythm',
+        'Heartbeat',
+        '60',
+        'over 20 min',
+        '40 BPM',
+      ]);
+      Rect at(String text) => tester.getRect(
+        find.descendant(of: _tile('rhythm'), matching: find.text(text)),
+      );
+      final from = at('60'), over = at('over 20 min'), to = at('40 BPM');
+      // Above the line, between the two rates, over the arrow.
+      expect(over.center.dy, lessThan(from.top));
+      expect(over.left, greaterThan(from.right));
+      expect(over.right, lessThan(to.left));
+      expect(to.bottom, closeTo(from.bottom, 0.5));
+      final arrow = tester.getRect(
+        find.descendant(
+          of: find.byKey(const ValueKey('customize_rhythm_ramp')),
+          matching: find.byType(CustomPaint),
+        ),
+      );
+      expect(arrow.top, greaterThanOrEqualTo(over.bottom - 0.5));
+      // Set small: a smaller size than the rates either side.
+      double size(String text) => DefaultTextStyle.of(
+        tester.element(find.text(text)),
+      ).style.merge(tester.widget<Text>(find.text(text)).style).fontSize!;
+      expect(size('over 20 min'), lessThan(size('60')));
+      expect(size('40 BPM'), size('60'));
+      // A screen reader hears words, not an arrow.
+      expect(
+        find.semantics.byLabel(
+          'Rhythm, Heartbeat, 60 to 40 BPM over 20 min, changed',
+        ),
+        findsOne,
+      );
+      // Without a ramp, the plain rate.
+      await c
+          .read(cueSettingsProvider(_practice).notifier)
+          .update(_read(c).copyWith(pulseRampMinutes: 0));
+      await tester.pumpAndSettle();
+      expect(_says(tester, 'rhythm'), ['Rhythm', 'Heartbeat', '60 BPM']);
+      semantics.dispose();
+      await _unmount(tester);
+    });
+
+    testWidgets('a vertical drag in a gutter scrolls the sheet and turns '
+        'no wheel', (tester) async {
+      final c = await pumpWith(tester, ramp, size: const Size(411, 640));
+      await _slot(tester, 'rhythm');
+      final stored = _read(c).toJson();
+      final list = tester
+          .state<ScrollableState>(
+            find.descendant(
+              of: find.byKey(const ValueKey('customize_list')),
+              matching: find.byType(Scrollable),
+            ),
+          )
+          .position;
+      expect(list.maxScrollExtent, greaterThan(100), reason: 'it scrolls');
+      final section = tester.getRect(_section('rhythm'));
+      // Inside the section's inset, 28 dp at least each side of the row.
+      final firstRate = tester.getRect(_wheel('Rate'));
+      final firstEnds = tester.getRect(_wheel('Ends at'));
+      expect(firstRate.left - section.left, greaterThanOrEqualTo(16 + 28));
+      // The spare room goes mostly right, where a right thumb scrolls.
+      expect(section.right - firstEnds.right, greaterThanOrEqualTo(16 + 48));
+      // The left gutter, the gaps between the wheels, the right gutter
+      // (where a right thumb lands).
+      for (final x in <double Function(Rect, Rect, Rect)>[
+        (rate, over, ends) => (section.left + rate.left) / 2,
+        (rate, over, ends) => (rate.right + over.left) / 2,
+        (rate, over, ends) => (over.right + ends.left) / 2,
+        (rate, over, ends) => (ends.right + section.right) / 2,
+      ]) {
+        await tester.ensureVisible(_wheel('Rate'));
+        await tester.pumpAndSettle();
+        final rate = tester.getRect(_wheel('Rate'));
+        final at = Offset(
+          x(
+            rate,
+            tester.getRect(_wheel('Slow down over')),
+            tester.getRect(_wheel('Ends at')),
+          ),
+          rate.center.dy,
+        );
+        final from = list.pixels;
+        final dy = from > list.minScrollExtent + 50 ? 100.0 : -100.0;
+        await tester.dragFrom(at, Offset(0, dy));
+        await tester.pumpAndSettle();
+        expect(list.pixels, isNot(from), reason: 'the sheet scrolled at $at');
+        expect(_read(c).toJson(), stored, reason: 'no wheel turned at $at');
+        expect(find.byKey(undoBar), findsNothing);
+      }
+      await _unmount(tester);
+    });
+
+    testWidgets('a drag on a wheel turns it and offers Undo, which puts it '
+        'back', (tester) async {
+      final c = await pumpWith(tester, ramp);
+      await _slot(tester, 'rhythm');
+      await tester.ensureVisible(_wheel('Slow down over'));
+      await tester.pumpAndSettle();
+      await tester.drag(_wheel('Slow down over'), const Offset(0, -80));
+      await tester.pumpAndSettle();
+      final turned = _read(c).pulseRampMinutes;
+      expect(turned, greaterThan(20));
+      expect(_read(c).pulseBpm, 60, reason: 'only that wheel');
+      expect(find.byKey(undoBar), findsOneWidget);
+      expect(find.text('Slow down over: $turned min'), findsOneWidget);
+      await tester.tap(find.byKey(undoButton));
+      await tester.pumpAndSettle();
+      expect(_read(c).pulseRampMinutes, 20);
+      expect(find.byKey(undoBar), findsNothing);
+      // The wheel follows the value put back, and saving it is not a new
+      // change to undo.
+      expect(
+        tester
+            .state<WheelPickerState<dynamic>>(_wheel('Slow down over'))
+            .selectedIndex,
+        20,
+      );
+      expect(find.byKey(undoBar), findsNothing);
+      await _unmount(tester);
+    });
+
+    testWidgets('Undo leaves alone what has changed since', (tester) async {
+      final c = await pumpWith(tester, ramp);
+      await _slot(tester, 'rhythm');
+      // Another control after the wheel: its change stays.
+      await _turn(tester, 'Slow down over', '30 min');
+      await _drag(tester, 'Pulse volume', 0.6);
+      expect(find.text('Slow down over: 30 min'), findsOneWidget);
+      await tester.tap(find.byKey(undoButton));
+      await tester.pumpAndSettle();
+      expect(_read(c).pulseRampMinutes, 20);
+      expect(_read(c).pulseVolume, 0.6);
+
+      // The same setting changed again elsewhere before Undo: kept.
+      await _turn(tester, 'Rate', '90 BPM');
+      await c
+          .read(cueSettingsProvider(_practice).notifier)
+          .update(_read(c).copyWith(pulseBpm: 70));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(undoButton));
+      await tester.pumpAndSettle();
+      expect(_read(c).pulseBpm, 70);
+      expect(find.byKey(undoBar), findsNothing);
+      await _unmount(tester);
+    });
+
+    testWidgets('Undo puts back every field a wheel set', (tester) async {
+      // The interval's wheel also turns the bell on and pulls the random
+      // window in: Undo puts all of it back.
+      final c = await pumpWith(
+        tester,
+        CueSettings.defaults(
+          CueKind.practice,
+        ).copyWith(intervalSound: '', intervalMinutes: 10),
+      );
+      final before = _read(c).toJson();
+      await _slot(tester, 'bells');
+      await _row(tester, 'Interval bell');
+      await _turn(tester, 'Every', 'Halfway');
+      expect(_read(c).intervalHalfway, isTrue);
+      expect(_read(c).intervalSound, isNotEmpty);
+      expect(find.text('Every: Halfway'), findsOneWidget);
+      await tester.tap(find.byKey(undoButton));
+      await tester.pumpAndSettle();
+      expect(_read(c).toJson(), before);
+      await _unmount(tester);
+    });
+
+    testWidgets('the Undo bar goes by itself, and when a section folds', (
+      tester,
+    ) async {
+      await pumpWith(tester, ramp);
+      await _slot(tester, 'rhythm');
+      await _turn(tester, 'Slow down over', '30 min');
+      expect(find.byKey(undoBar), findsOneWidget);
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pumpAndSettle();
+      expect(find.byKey(undoBar), findsNothing);
+
+      await _turn(tester, 'Slow down over', '40 min');
+      expect(find.byKey(undoBar), findsOneWidget);
+      await _slot(tester, 'rhythm');
+      expect(find.byKey(undoBar), findsNothing);
+      await _unmount(tester);
+    });
+
+    testWidgets('steps of one wheel are one change: Undo goes back to '
+        'before the first', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final c = await pumpWith(tester, ramp);
+      await _slot(tester, 'rhythm');
+      // Over 20 → 30 → 40, then Undo: 20, not 30.
+      await _turn(tester, 'Slow down over', '30 min');
+      await _turn(tester, 'Slow down over', '40 min');
+      expect(find.text('Slow down over: 40 min'), findsOneWidget);
+      await tester.tap(find.byKey(undoButton));
+      await tester.pumpAndSettle();
+      expect(_read(c).pulseRampMinutes, 20);
+
+      // A screen reader's three steps up the Rate, then Undo: 60, not 62.
+      for (var i = 0; i < 3; i++) {
+        tester.semantics.increase(find.semantics.byLabel('Rate'));
+        await tester.pumpAndSettle();
+      }
+      expect(_read(c).pulseBpm, 63);
+      expect(find.text('Rate: 63 BPM'), findsOneWidget);
+      await tester.tap(find.byKey(undoButton));
+      await tester.pumpAndSettle();
+      expect(_read(c).pulseBpm, 60);
+
+      // Another wheel starts a change of its own.
+      await _turn(tester, 'Rate', '70 BPM');
+      await _turn(tester, 'Slow down over', '25 min');
+      await tester.tap(find.byKey(undoButton));
+      await tester.pumpAndSettle();
+      expect(_read(c).pulseRampMinutes, 20);
+      expect(_read(c).pulseBpm, 70);
+
+      // Turned back to where it started: the bar goes.
+      await _turn(tester, 'Slow down over', '30 min');
+      expect(find.byKey(undoBar), findsOneWidget);
+      await _turn(tester, 'Slow down over', '20 min');
+      expect(find.byKey(undoBar), findsNothing);
+      semantics.dispose();
+      await _unmount(tester);
+    });
+
+    testWidgets('with the bar up, the list scrolls what it covers clear', (
+      tester,
+    ) async {
+      await pumpWith(tester, ramp, size: const Size(411, 640));
+      await _slot(tester, 'rhythm');
+      await _turn(tester, 'Slow down over', '30 min');
+      expect(find.byKey(undoBar), findsOneWidget);
+      final list = tester
+          .state<ScrollableState>(
+            find.descendant(
+              of: find.byKey(const ValueKey('customize_list')),
+              matching: find.byType(Scrollable),
+            ),
+          )
+          .position;
+      list.jumpTo(list.maxScrollExtent);
+      await tester.pumpAndSettle();
+      final slider = find.descendant(
+        of: _section('rhythm'),
+        matching: find.byType(Slider),
+      );
+      expect(
+        tester.getRect(find.byKey(undoBar)).overlaps(tester.getRect(slider)),
+        isFalse,
+      );
+      final hit = tester.hitTestOnBinding(tester.getCenter(slider));
+      final target = tester.renderObject(slider);
+      expect(hit.path.any((entry) => entry.target == target), isTrue);
+      await _unmount(tester);
+    });
+
+    testWidgets('a step adds only what it changed: a bell chosen between '
+        'two turns of Every is kept by Undo', (tester) async {
+      final c = await pumpWith(
+        tester,
+        CueSettings.defaults(
+          CueKind.practice,
+        ).copyWith(intervalSound: '', intervalMinutes: 10),
+      );
+      await _slot(tester, 'bells');
+      await _row(tester, 'Interval bell');
+      // Off → 5 min also turns the bell on with the default sound.
+      await _turn(tester, 'Every', '5 min');
+      expect(_read(c).intervalSound, isNotEmpty);
+      final bowl = find.text('Singing bowl').first;
+      await tester.ensureVisible(bowl);
+      await tester.tap(bowl);
+      await tester.pumpAndSettle();
+      final chosen = _read(c).intervalSound;
+      await _turn(tester, 'Every', '7 min');
+      await tester.tap(find.byKey(undoButton));
+      await tester.pumpAndSettle();
+      // The interval goes back; the bell chosen by hand stays.
+      expect(_read(c).intervalMinutes, 10);
+      expect(_read(c).intervalSound, chosen);
+      await _unmount(tester);
+    });
+
+    testWidgets('the room under the list stays when the bar goes, until '
+        'the section folds', (tester) async {
+      await pumpWith(tester, ramp, size: const Size(411, 760));
+      await _slot(tester, 'rhythm');
+      final list = tester
+          .state<ScrollableState>(
+            find.descendant(
+              of: find.byKey(const ValueKey('customize_list')),
+              matching: find.byType(Scrollable),
+            ),
+          )
+          .position;
+      final before = list.maxScrollExtent;
+      await _turn(tester, 'Slow down over', '30 min');
+      expect(list.maxScrollExtent, greaterThan(before));
+      list.jumpTo(list.maxScrollExtent);
+      await tester.pumpAndSettle();
+      final top = tester.getRect(_wheel('Rate')).top;
+      final pixels = list.pixels;
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pumpAndSettle();
+      expect(find.byKey(undoBar), findsNothing);
+      // Nothing moved under the thumb.
+      expect(list.pixels, pixels);
+      expect(tester.getRect(_wheel('Rate')).top, top);
+      // Folding the section gives the room back.
+      await _slot(tester, 'rhythm');
+      await _slot(tester, 'rhythm');
+      expect(list.maxScrollExtent, before);
+      await _unmount(tester);
+    });
+
+    testWidgets('a step that lands after its section folded brings no bar', (
+      tester,
+    ) async {
+      final c = await pumpWith(tester, ramp);
+      await _slot(tester, 'rhythm');
+      final landing = tester
+          .widget<WheelPicker<int>>(_wheel('Slow down over'))
+          .onChanged;
+      await _slot(tester, 'rhythm');
+      await _slot(tester, 'bells');
+      landing(30);
+      await tester.pumpAndSettle();
+      expect(_read(c).pulseRampMinutes, 30, reason: 'still saved');
+      expect(find.byKey(undoBar), findsNothing);
+      await _unmount(tester);
+    });
+
+    testWidgets('Undo saves where the wheel saved, and flipping "only for '
+        'this course" takes the bar away', (tester) async {
+      const course = CueScope(CueKind.talks, courseId: 'c1');
+      const kind = CueScope(CueKind.talks);
+      const courseKey = 'cues.v1.talks.course.c1';
+      const kindKey = 'cues.v1.talks';
+      final c = await _pump(tester, scope: course);
+      final prefs = c.read(sharedPreferencesProvider);
+      final store = c.read(cueSettingsStoreProvider);
+      final start = store.read(kind).countdownSeconds;
+      final toggle = find.widgetWithText(
+        SwitchListTile,
+        'Use these only for this course',
+      );
+      Future<void> flip() async {
+        await tester.ensureVisible(toggle);
+        await tester.tap(toggle);
+        await tester.pumpAndSettle();
+      }
+
+      await _slot(tester, 'bells');
+      await _row(tester, 'Starting bell');
+
+      // The kind's defaults: the wheel and its Undo write the kind's key.
+      await _turn(tester, 'Countdown', '10 sec');
+      expect(prefs.containsKey(courseKey), isFalse);
+      expect(store.read(kind).countdownSeconds, 10);
+      await tester.tap(find.byKey(undoButton));
+      await tester.pumpAndSettle();
+      expect(store.read(kind).countdownSeconds, start);
+      expect(prefs.containsKey(courseKey), isFalse);
+
+      // The course's own: the wheel and its Undo write the course's key,
+      // and the kind's is left alone.
+      await flip();
+      expect(prefs.containsKey(courseKey), isTrue);
+      final kindSaved = prefs.getString(kindKey);
+      await _turn(tester, 'Countdown', '5 sec');
+      expect(store.read(course).countdownSeconds, 5);
+      await tester.tap(find.byKey(undoButton));
+      await tester.pumpAndSettle();
+      expect(store.read(course).countdownSeconds, start);
+      expect(prefs.getString(kindKey), kindSaved);
+
+      // A bar from the course's settings goes when the switch is flipped:
+      // its Undo no longer has anywhere to apply.
+      await _turn(tester, 'Countdown', '10 sec');
+      expect(find.byKey(undoBar), findsOneWidget);
+      await flip();
+      expect(find.byKey(undoBar), findsNothing);
+      expect(store.hasOverride(course), isFalse);
+      expect(store.read(kind).countdownSeconds, start);
+      // And on again: no bar was left behind to put anything back.
+      await flip();
+      expect(find.byKey(undoBar), findsNothing);
+      await _unmount(tester);
+    });
+
+    testWidgets('a wheel that lands where it was offers nothing to undo', (
+      tester,
+    ) async {
+      await pumpWith(tester, ramp);
+      await _slot(tester, 'rhythm');
+      await _turn(tester, 'Slow down over', '20 min');
+      expect(find.byKey(undoBar), findsNothing);
+      await _unmount(tester);
+    });
+
+    testWidgets('the timer\'s length wheel stands centred between gutters', (
+      tester,
+    ) async {
+      final c = await _pump(tester, isTimer: true, onStart: () {});
+      await _slot(tester, 'length');
+      final wheel = tester.getRect(_wheel('Duration'));
+      final section = tester.getRect(_section('length'));
+      expect(wheel.left - section.left, greaterThanOrEqualTo(16 + 28));
+      expect(section.right - wheel.right, greaterThanOrEqualTo(16 + 28));
+      expect(wheel.center.dx, closeTo(section.center.dx, 0.5));
+      // A drag beside it changes nothing; on it, it turns, with Undo.
+      final minutes = _read(c).durationMinutes;
+      await tester.dragFrom(
+        Offset((section.left + wheel.left) / 2, wheel.center.dy),
+        const Offset(0, -80),
+      );
+      await tester.pumpAndSettle();
+      expect(_read(c).durationMinutes, minutes);
+      await tester.ensureVisible(_wheel('Duration'));
+      await tester.pumpAndSettle();
+      await tester.drag(_wheel('Duration'), const Offset(0, -80));
+      await tester.pumpAndSettle();
+      expect(_read(c).durationMinutes, greaterThan(minutes));
+      expect(find.textContaining('Duration: '), findsOneWidget);
+      await tester.tap(find.byKey(undoButton));
+      await tester.pumpAndSettle();
+      expect(_read(c).durationMinutes, minutes);
+      await _unmount(tester);
+    });
+  });
 
   test(
     'active finish time uses the native extension remainder and spent countdown',
