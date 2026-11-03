@@ -3186,5 +3186,37 @@
   "playerAutoplayLast": "This is the last session of the course",
   "@playerAutoplayLast": {
     "description": "Player: no next session to autoplay"
+  },
+  "customizeCurrentMix": "Current mix",
+  "@customizeCurrentMix": {
+    "description": "Customize: Sound tile's value when the current mix plays under sessions"
+  },
+  "customizeSlotChanged": "changed",
+  "@customizeSlotChanged": {
+    "description": "Customize: read by a screen reader after a tile that differs from the defaults"
+  },
+  "customizeSlotDefault": "default",
+  "@customizeSlotDefault": {
+    "description": "Customize: read by a screen reader after a tile at its defaults"
+  },
+  "playerAutoplayForPractice": "For all practice",
+  "@playerAutoplayForPractice": {
+    "description": "Player: the autoplay setting applies to every practice course"
+  },
+  "playerAutoplayForTalks": "For all talks",
+  "@playerAutoplayForTalks": {
+    "description": "Player: the autoplay setting applies to every talks course"
+  },
+  "playerAutoplayForCourse": "For this course",
+  "@playerAutoplayForCourse": {
+    "description": "Player: the autoplay setting applies to this course only"
+  },
+  "playerAutoplayForPlaylist": "For this playlist",
+  "@playerAutoplayForPlaylist": {
+    "description": "Player: the autoplay setting applies to this playlist only"
+  },
+  "playerAutoplayLastOfPlaylist": "This is the last session of the playlist",
+  "@playerAutoplayLastOfPlaylist": {
+    "description": "Player: no next session to autoplay in a playlist"
   }
 }

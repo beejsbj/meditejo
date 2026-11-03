@@ -2836,4 +2836,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get playerAutoplayLast => 'This is the last session of the course';
+
+  @override
+  String get customizeCurrentMix => 'Current mix';
+
+  @override
+  String get customizeSlotChanged => 'changed';
+
+  @override
+  String get customizeSlotDefault => 'default';
+
+  @override
+  String get playerAutoplayForPractice => 'For all practice';
+
+  @override
+  String get playerAutoplayForTalks => 'For all talks';
+
+  @override
+  String get playerAutoplayForCourse => 'For this course';
+
+  @override
+  String get playerAutoplayForPlaylist => 'For this playlist';
+
+  @override
+  String get playerAutoplayLastOfPlaylist =>
+      'This is the last session of the playlist';
 }

@@ -5001,6 +5001,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This is the last session of the course'**
   String get playerAutoplayLast;
+
+  /// Customize: Sound tile's value when the current mix plays under sessions
+  ///
+  /// In en, this message translates to:
+  /// **'Current mix'**
+  String get customizeCurrentMix;
+
+  /// Customize: read by a screen reader after a tile that differs from the defaults
+  ///
+  /// In en, this message translates to:
+  /// **'changed'**
+  String get customizeSlotChanged;
+
+  /// Customize: read by a screen reader after a tile at its defaults
+  ///
+  /// In en, this message translates to:
+  /// **'default'**
+  String get customizeSlotDefault;
+
+  /// Player: the autoplay setting applies to every practice course
+  ///
+  /// In en, this message translates to:
+  /// **'For all practice'**
+  String get playerAutoplayForPractice;
+
+  /// Player: the autoplay setting applies to every talks course
+  ///
+  /// In en, this message translates to:
+  /// **'For all talks'**
+  String get playerAutoplayForTalks;
+
+  /// Player: the autoplay setting applies to this course only
+  ///
+  /// In en, this message translates to:
+  /// **'For this course'**
+  String get playerAutoplayForCourse;
+
+  /// Player: the autoplay setting applies to this playlist only
+  ///
+  /// In en, this message translates to:
+  /// **'For this playlist'**
+  String get playerAutoplayForPlaylist;
+
+  /// Player: no next session to autoplay in a playlist
+  ///
+  /// In en, this message translates to:
+  /// **'This is the last session of the playlist'**
+  String get playerAutoplayLastOfPlaylist;
 }
 
 class _AppLocalizationsDelegate

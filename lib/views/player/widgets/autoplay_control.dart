@@ -3,15 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
+import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
-
-/// The pauses a listener can put between a course's sessions, in seconds
-/// (what [CueSettings] stores).
-const autoplayPauses = [0, 5, 10, 30];
+import 'package:medito/providers/player/player_provider.dart';
+import 'package:medito/services/my_courses/my_course_models.dart';
 
 /// Autoplay for a session played in a course: whether the course's next
 /// session starts by itself when this one ends. It is about the queue, so it
@@ -79,18 +78,23 @@ class AutoplaySheet extends ConsumerWidget {
     final theme = Theme.of(context);
     final s = ref.watch(cueSettingsProvider(scope));
     // Saved where Customize saves for this session: the course's own
-    // settings when it has them, else its kind's.
+    // settings when it has them, else its kind's. The sheet says which, as
+    // a kind-wide switch reaches every course of that kind.
+    final own = ref.read(cueSettingsStoreProvider).hasOverride(scope);
     void edit(CueSettings value) => unawaited(
       ref
           .read(cueSettingsProvider(scope).notifier)
-          .update(
-            value,
-            courseOverride: ref
-                .read(cueSettingsStoreProvider)
-                .hasOverride(scope),
-          ),
+          .update(value, courseOverride: own),
     );
-    final next = _upNext(ref, l10n);
+    final playlist = isMyCourseId(scope.courseId ?? '');
+    final appliesTo = own
+        ? (playlist
+              ? l10n.playerAutoplayForPlaylist
+              : l10n.playerAutoplayForCourse)
+        : scope.kind == CueKind.practice
+        ? l10n.playerAutoplayForPractice
+        : l10n.playerAutoplayForTalks;
+    final next = _upNext(ref, l10n, playlist: playlist);
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -104,7 +108,17 @@ class AutoplaySheet extends ConsumerWidget {
                 header: true,
                 child: Text(
                   l10n.playerAutoplay,
-                  style: theme.textTheme.titleLarge,
+                  style: context.typography.emphasized.titleLarge,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 2, 8, 0),
+              child: Text(
+                appliesTo,
+                key: const ValueKey('autoplay_scope'),
+                style: context.typography.baseline.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -114,7 +128,7 @@ class AutoplaySheet extends ConsumerWidget {
                 child: Text(
                   next,
                   key: const ValueKey('autoplay_up_next'),
-                  style: theme.textTheme.bodyMedium?.copyWith(
+                  style: context.typography.baseline.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -132,7 +146,8 @@ class AutoplaySheet extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
                 child: Text(
                   l10n.playerAutoplayPause,
-                  style: theme.textTheme.labelLarge?.copyWith(
+                  // As Customize labels its wheels.
+                  style: context.typography.baseline.labelLarge?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -143,7 +158,7 @@ class AutoplaySheet extends ConsumerWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    for (final seconds in autoplayPauses)
+                    for (final seconds in cueInterludeSeconds)
                       ChoiceChip(
                         key: ValueKey('autoplay_pause_$seconds'),
                         label: Text(
@@ -167,10 +182,16 @@ class AutoplaySheet extends ConsumerWidget {
   }
 
   /// "Up next: …" from the course as its page lists it, once it is loaded;
-  /// nothing while it loads or when it cannot be read.
-  String? _upNext(WidgetRef ref, AppLocalizations l10n) {
+  /// nothing while it loads or when it cannot be read. It follows what is
+  /// playing, so it stays right when autoplay moves on with the sheet open.
+  String? _upNext(
+    WidgetRef ref,
+    AppLocalizations l10n, {
+    required bool playlist,
+  }) {
     final courseId = scope.courseId;
-    final id = trackId;
+    final playing = ref.watch(playerProvider.select((r) => r?.trackId));
+    final id = playing ?? trackId;
     if (courseId == null || id == null) return null;
     final pack = ref.watch(packDataProvider(packId: courseId)).value;
     if (pack == null) return null;
@@ -179,6 +200,8 @@ class AutoplaySheet extends ConsumerWidget {
     if (index < 0) return null;
     return index + 1 < items.length
         ? l10n.playerAutoplayUpNext(items[index + 1].title)
+        : playlist
+        ? l10n.playerAutoplayLastOfPlaylist
         : l10n.playerAutoplayLast;
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter/semantics.dart' show SemanticsNode;
 import 'dart:ui' show Tristate;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/background_sounds/background_sounds_model.dart';
 import 'package:medito/models/cues/cue_settings.dart';
@@ -13,6 +14,7 @@ import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
+import 'package:medito/services/identity/palettes.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:medito/widgets/inputs/wheel_picker.dart';
@@ -46,6 +48,8 @@ Future<ProviderContainer> _pump(
   bool reduceMotion = false,
   SessionBellPreview? preview,
   Map<String, Object> prefsValues = const {},
+  Locale? locale,
+  ThemeData? theme,
 }) async {
   if (size != null) {
     tester.view.physicalSize = size;
@@ -67,6 +71,8 @@ Future<ProviderContainer> _pump(
     UncontrolledProviderScope(
       container: container,
       child: MaterialApp(
+        locale: locale,
+        theme: theme,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         builder: (context, child) => MediaQuery(
@@ -1110,7 +1116,10 @@ void main() {
   ) async {
     final semantics = tester.ensureSemantics();
     await _pump(tester);
-    expect(find.semantics.byLabel('Bells, Swell bell, Start · End'), findsOne);
+    expect(
+      find.semantics.byLabel('Bells, Swell bell, Start · End, default'),
+      findsOne,
+    );
     SemanticsNode node(Finder of, String label) => tester.getSemantics(
       find.descendant(
         of: of,
@@ -1119,14 +1128,17 @@ void main() {
         ),
       ),
     );
-    final bells = node(_tile('bells'), 'Bells, Swell bell, Start · End');
+    final bells = node(
+      _tile('bells'),
+      'Bells, Swell bell, Start · End, default',
+    );
     expect(bells.flagsCollection.isExpanded, Tristate.isFalse);
     expect(bells.flagsCollection.isButton, isTrue);
     await _slot(tester, 'bells');
     expect(
       node(
         _tile('bells'),
-        'Bells, Swell bell, Start · End',
+        'Bells, Swell bell, Start · End, default',
       ).flagsCollection.isExpanded,
       Tristate.isTrue,
     );
@@ -1138,6 +1150,16 @@ void main() {
       ).flagsCollection.isButton,
       isFalse,
     );
+    // A change is said as well as shown.
+    await _row(tester, 'Interval bell');
+    await _turn(tester, 'Every', 'Halfway');
+    expect(
+      find.semantics.byLabel(
+        'Bells, Swell bell, Start · Halfway · End, changed',
+      ),
+      findsOne,
+    );
+    await _row(tester, 'Interval bell');
     // The rows inside open the same way.
     expect(find.semantics.byLabel('Starting bell, Swell bell'), findsOne);
     await _row(tester, 'Starting bell');
@@ -1148,8 +1170,9 @@ void main() {
       ).flagsCollection.isExpanded,
       Tristate.isTrue,
     );
-    // The play buttons are their own controls, named by their tooltip.
-    expect(find.byTooltip('Play Swell bell'), findsNWidgets(2));
+    // The play buttons are their own controls, named by their tooltip: one
+    // for each bell that rings (the interval bell is on now).
+    expect(find.byTooltip('Play Swell bell'), findsNWidgets(3));
     semantics.dispose();
     await _unmount(tester);
   });
@@ -1195,6 +1218,65 @@ void main() {
     await _unmount(tester);
   });
 
+  testWidgets('the tiles speak the app\'s language', (tester) async {
+    await _pump(tester, locale: const Locale('de'));
+    expect(_says(tester, 'sound'), ['Klang', 'Aus']);
+    expect(_says(tester, 'rhythm'), ['Rhythmus', 'Aus']);
+    expect(_says(tester, 'length').first, 'Dauer');
+    await _unmount(tester);
+  });
+
+  testWidgets('the current mix is named in the app\'s language', (
+    tester,
+  ) async {
+    const course = CueScope(CueKind.talks, courseId: 'c1');
+    final container = await _pump(
+      tester,
+      scope: course,
+      locale: const Locale('de'),
+    );
+    await container
+        .read(cueSettingsProvider(course).notifier)
+        .update(const CueSettings(soundscape: 'mix'), courseOverride: true);
+    await tester.pumpAndSettle();
+    expect(_says(tester, 'sound'), ['Klang', 'Aktueller Mix']);
+    await _unmount(tester);
+  });
+
+  for (final brightness in Brightness.values) {
+    testWidgets('a read-only Length tile keeps its text readable, '
+        '${brightness.name}', (tester) async {
+      final theme = meditejoTheme(brightness, IdentityPalettes.byId(null));
+      await _pump(tester, theme: theme);
+      final sheet = theme.colorScheme.surfaceContainerLow;
+      double ratio(Color a, Color b) {
+        final (hi, lo) = a.computeLuminance() > b.computeLuminance()
+            ? (a, b)
+            : (b, a);
+        return (hi.computeLuminance() + 0.05) / (lo.computeLuminance() + 0.05);
+      }
+
+      for (final text in ['Length', '20 min', 'Set by the session']) {
+        final shown = find.descendant(
+          of: _tile('length'),
+          matching: find.text(text),
+        );
+        final style = tester.widget<Text>(shown).style!;
+        expect(
+          ratio(style.color!, sheet),
+          greaterThanOrEqualTo(3),
+          reason: text,
+        );
+      }
+      // Nothing fades it: no Opacity over the tile.
+      expect(
+        find.ancestor(of: find.text('20 min'), matching: find.byType(Opacity)),
+        findsNothing,
+      );
+      await _unmount(tester);
+    });
+  }
+
   for (final scale in [1.0, 2.0]) {
     testWidgets('fits a 360 dp phone at ${scale}x text', (tester) async {
       const scope = CueScope(CueKind.talks, courseId: 'c1');
@@ -1227,6 +1309,18 @@ void main() {
       expect(
         tester.getBottomLeft(find.text('Start')).dy,
         lessThanOrEqualTo(720),
+      );
+      // The course card gives the tiles room: at 2x it is one line, after
+      // them.
+      expect(
+        find.text('Changes apply to all talks'),
+        scale == 1 ? findsOneWidget : findsNothing,
+      );
+      final list = tester.getRect(find.byKey(const ValueKey('customize_list')));
+      expect(
+        tester.getTopLeft(_tile('sound')).dy,
+        lessThan(list.bottom - 48),
+        reason: 'the first tiles are on screen as the sheet opens',
       );
       // Pinned at 1x; several lines at 2x, it ends the list instead.
       expect(

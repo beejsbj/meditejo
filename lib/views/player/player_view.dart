@@ -878,7 +878,8 @@ class PlayerScreenLayout extends StatelessWidget {
         isTimer && currentlyPlayingTrack.timerMode == TimerMode.stopwatch;
     // A timer ends with the stop button; tracks keep their repeat control.
     final onStop = isTimer ? onEndSession : null;
-    final autoplay = autoplayScope == null
+    // Autoplay moves through a course; a timer is not in one.
+    final autoplay = autoplayScope == null || isTimer
         ? null
         : AutoplayButton(
             scope: autoplayScope!,

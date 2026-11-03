@@ -30,6 +30,10 @@ const cuePulseSounds = <String, String>{
   'Footstep': 'assets/audio/pulse_footstep.wav',
 };
 
+/// The pauses autoplay can hold between a course's sessions, in seconds, as
+/// the player offers them; anything else stored reads as none.
+const cueInterludeSeconds = [0, 5, 10, 30];
+
 /// A small versioned JSON value; no generated model or database migration.
 class CueSettings {
   const CueSettings({
@@ -246,7 +250,7 @@ class CueSettings {
       backgroundVolume: number('backgroundVolume', 50, 0, 100),
       soundscape: soundscape(),
       autoplay: flag('autoplay', false),
-      interludeSeconds: [0, 5, 10, 30].contains(interlude) ? interlude : 0,
+      interludeSeconds: cueInterludeSeconds.contains(interlude) ? interlude : 0,
       hideBeforePractice: flag('hideBeforePractice', false),
     );
   }

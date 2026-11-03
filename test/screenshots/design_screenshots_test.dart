@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/constants/theme/app_theme.dart';
@@ -35,6 +36,7 @@ import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
+import 'package:medito/views/player/widgets/autoplay_control.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medito/constants/theme/palette_theme.dart';
@@ -336,6 +338,9 @@ Future<ProviderContainer> _pumpCustomize(
   required CueSettings settings,
   bool beforeStart = false,
   int positionMs = 0,
+  Locale? locale,
+  List<Override> overrides = const [],
+  Widget Function()? sheet,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
@@ -343,6 +348,7 @@ Future<ProviderContainer> _pumpCustomize(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       ...soundscapeTestOverrides(FakeSoundscapeEngine()),
+      ...overrides,
     ],
   );
   addTearDown(container.dispose);
@@ -356,6 +362,7 @@ Future<ProviderContainer> _pumpCustomize(
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         navigatorKey: navigator,
+        locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         theme: meditejoTheme(brightness, _palette),
@@ -386,14 +393,16 @@ Future<ProviderContainer> _pumpCustomize(
         data: MediaQuery.of(
           navigator.currentContext!,
         ).copyWith(disableAnimations: true),
-        child: CustomizeSheet(
-          scope: scope,
-          isActive: !beforeStart,
-          audioDurationMs: 45 * 60000,
-          positionMs: positionMs,
-          onStart: beforeStart ? () {} : null,
-          clock: () => DateTime(2026, 10, 26, 7, 30),
-        ),
+        child:
+            sheet?.call() ??
+            CustomizeSheet(
+              scope: scope,
+              isActive: !beforeStart,
+              audioDurationMs: 45 * 60000,
+              positionMs: positionMs,
+              onStart: beforeStart ? () {} : null,
+              clock: () => DateTime(2026, 10, 26, 7, 30),
+            ),
       ),
     ),
   );
@@ -816,6 +825,51 @@ void main() {
       await tester.ensureVisible(find.text('Interval bell'));
       await tester.pumpAndSettle();
       await _captureView(tester, 'customize-wheel-${brightness.name}');
+    }, skip: !_enabled);
+
+    testWidgets('Customize in German, ${brightness.name}', (tester) async {
+      await _pumpCustomize(
+        tester,
+        brightness,
+        scope: course,
+        settings: courseCues.copyWith(soundscape: 'mix'),
+        beforeStart: true,
+        locale: const Locale('de'),
+      );
+      await _captureView(tester, 'customize-de-${brightness.name}');
+    }, skip: !_enabled);
+
+    // Autoplay moved from Customize's Flow section to the player (#72).
+    testWidgets('Autoplay sheet, ${brightness.name}', (tester) async {
+      await _pumpCustomize(
+        tester,
+        brightness,
+        scope: course,
+        settings: courseCues.copyWith(autoplay: true, interludeSeconds: 10),
+        overrides: [
+          packDataProvider(packId: course.courseId!).overrideWith(
+            (ref) async => PackModel(
+              id: course.courseId!,
+              title: 'Practising the Jhānas',
+              items: [
+                for (final (i, title) in [
+                  'Settling the body and the breath',
+                  'Piti, and letting it build',
+                  'Sukha: the second jhāna',
+                ].indexed)
+                  PackItemsModel(
+                    type: 'track',
+                    id: 't$i',
+                    title: 'Day ${i + 1}: $title',
+                    path: '/tracks/t$i',
+                  ),
+              ],
+            ),
+          ),
+        ],
+        sheet: () => AutoplaySheet(scope: course, trackId: 't0'),
+      );
+      await _captureView(tester, 'autoplay-sheet-${brightness.name}');
     }, skip: !_enabled);
 
     testWidgets('Timer setup with its duration open, ${brightness.name}', (

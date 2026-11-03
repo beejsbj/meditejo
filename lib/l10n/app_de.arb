@@ -1338,5 +1338,13 @@
   "playerAutoplayNoPause": "Keine",
   "playerAutoplaySeconds": "{seconds} s",
   "playerAutoplayUpNext": "Als Nächstes: {title}",
-  "playerAutoplayLast": "Das ist die letzte Sitzung des Kurses"
+  "playerAutoplayLast": "Das ist die letzte Sitzung des Kurses",
+  "customizeCurrentMix": "Aktueller Mix",
+  "customizeSlotChanged": "geändert",
+  "customizeSlotDefault": "Standard",
+  "playerAutoplayForPractice": "Für alle Praxis-Sitzungen",
+  "playerAutoplayForTalks": "Für alle Vorträge",
+  "playerAutoplayForCourse": "Für diesen Kurs",
+  "playerAutoplayForPlaylist": "Für diese Playlist",
+  "playerAutoplayLastOfPlaylist": "Das ist die letzte Sitzung der Playlist"
 }

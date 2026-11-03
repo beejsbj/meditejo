@@ -314,8 +314,10 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (_scope.courseId != null) ...[
-            _scopeCard(s),
+          // With large text the course card follows the tiles, so a small
+          // phone opens on the tiles and not on the card.
+          if (_scope.courseId != null && pinSwitch) ...[
+            _scopeCard(s, compact: false),
             const SizedBox(height: 16),
           ],
           // A section opens right under its tile's row, so the two read
@@ -339,6 +341,10 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
               );
             },
           ),
+          if (_scope.courseId != null && !pinSwitch) ...[
+            const SizedBox(height: 16),
+            _scopeCard(s, compact: true),
+          ],
           if (!pinSwitch && showBefore != null) ...[
             const SizedBox(height: 16),
             showBefore,
@@ -471,6 +477,11 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         detail: detail,
         changed: changed,
         open: _slot == slot,
+        state: !enabled
+            ? null
+            : changed
+            ? _l10n.customizeSlotChanged
+            : _l10n.customizeSlotDefault,
         onTap: enabled ? () => _toggleSlot(slot) : null,
       ),
     );
@@ -618,16 +629,22 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   }
 
   /// "Use these only for this course": where an edit is saved.
-  Widget _scopeCard(CueSettings s) => _Section(
+  /// Compact with large text, where its second line would crowd a small
+  /// screen: the header's line already says whose settings these are.
+  Widget _scopeCard(CueSettings s, {required bool compact}) => _Section(
     children: [
       SwitchListTile(
+        key: const ValueKey('customize_scope_card'),
+        dense: compact,
         contentPadding: const EdgeInsets.symmetric(horizontal: 20),
         title: Text('Use these only for this $_scopeNoun'),
-        subtitle: Text(
-          _courseOverride
-              ? 'Changes apply to this $_scopeNoun'
-              : 'Changes apply to all ${_practice ? 'practice' : 'talks'}',
-        ),
+        subtitle: compact
+            ? null
+            : Text(
+                _courseOverride
+                    ? 'Changes apply to this $_scopeNoun'
+                    : 'Changes apply to all ${_practice ? 'practice' : 'talks'}',
+              ),
         value: _courseOverride,
         onChanged: (v) async {
           setState(() => _courseOverride = v);
@@ -1172,9 +1189,9 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     final choice = _soundscapeChoice(s, ref.watch(soundscapeProvider));
     switch (choice.kind) {
       case SoundscapeSelectionKind.none:
-        return 'Off';
+        return _l10n.customizeOff;
       case SoundscapeSelectionKind.mix:
-        return 'Current mix';
+        return _l10n.customizeCurrentMix;
       case SoundscapeSelectionKind.preset:
         final l10n = AppLocalizations.of(context);
         for (final p in ref.read(soundscapeProvider).presets) {
@@ -1439,12 +1456,16 @@ class _SlotTile extends StatelessWidget {
     this.detail,
     required this.changed,
     required this.open,
+    this.state,
     this.onTap,
   });
 
   final Widget leading;
   final String label, value;
   final String? detail;
+
+  /// Read after the value: "changed" or "default", what the fill shows.
+  final String? state;
   final bool changed, open;
   final VoidCallback? onTap;
 
@@ -1454,7 +1475,13 @@ class _SlotTile extends StatelessWidget {
     final type = context.typography;
     final enabled = onTap != null;
     final filled = changed && enabled;
-    final onColor = filled ? scheme.onSecondaryContainer : scheme.onSurface;
+    // A tile that only shows its value is quieter in its colours (not by
+    // fading it, which took its text under 3:1 on the light sheet).
+    final onColor = filled
+        ? scheme.onSecondaryContainer
+        : enabled
+        ? scheme.onSurface
+        : scheme.onSurfaceVariant;
     final side = open
         ? BorderSide(color: scheme.primary, width: 2)
         : filled
@@ -1531,10 +1558,10 @@ class _SlotTile extends StatelessWidget {
     return Semantics(
       button: enabled,
       expanded: enabled ? open : null,
-      label: [label, value, ?detail].join(', '),
+      label: [label, value, ?detail, ?state].join(', '),
       excludeSemantics: true,
       onTap: onTap,
-      child: enabled ? tile : Opacity(opacity: 0.6, child: tile),
+      child: tile,
     );
   }
 }

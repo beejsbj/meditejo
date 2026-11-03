@@ -2882,4 +2882,29 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get playerAutoplayLast => 'Das ist die letzte Sitzung des Kurses';
+
+  @override
+  String get customizeCurrentMix => 'Aktueller Mix';
+
+  @override
+  String get customizeSlotChanged => 'geändert';
+
+  @override
+  String get customizeSlotDefault => 'Standard';
+
+  @override
+  String get playerAutoplayForPractice => 'Für alle Praxis-Sitzungen';
+
+  @override
+  String get playerAutoplayForTalks => 'Für alle Vorträge';
+
+  @override
+  String get playerAutoplayForCourse => 'Für diesen Kurs';
+
+  @override
+  String get playerAutoplayForPlaylist => 'Für diese Playlist';
+
+  @override
+  String get playerAutoplayLastOfPlaylist =>
+      'Das ist die letzte Sitzung der Playlist';
 }
