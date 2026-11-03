@@ -94,12 +94,28 @@ void main() {
       handle.dispose();
     });
 
-    testWidgets('a position in some other session does not change the label', (
+    testWidgets('resumes the session left partway, not the first incomplete', (
       tester,
     ) async {
       final app = await LibraryTestApp.create(tester);
       await tester.runAsync(
         () => app.harness.store.savePosition('lib-track-2', 90000, 600000),
+      );
+      await pumpButton(tester, app, _pack());
+      final handle = tester.ensureSemantics();
+      expect(
+        find.bySemanticsLabel(RegExp('^${l10n.packContinue}: Session 2')),
+        findsOneWidget,
+      );
+      handle.dispose();
+    });
+
+    testWidgets('a position in a session outside the course is ignored', (
+      tester,
+    ) async {
+      final app = await LibraryTestApp.create(tester);
+      await tester.runAsync(
+        () => app.harness.store.savePosition('elsewhere', 90000, 600000),
       );
       await pumpButton(tester, app, _pack());
       final handle = tester.ensureSemantics();
