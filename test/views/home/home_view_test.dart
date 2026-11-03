@@ -162,7 +162,7 @@ void main() {
     final container = ProviderScope.containerOf(
       tester.element(find.byType(HomeView)),
     );
-    await tester.tap(find.byTooltip('More options'));
+    await tester.tap(find.byTooltip('More options for lib-course-gone'));
     await settle(tester);
     await tester.tap(find.byKey(const ValueKey('pinned_menu_unpin')));
     await settle(tester);

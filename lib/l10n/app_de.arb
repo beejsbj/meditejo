@@ -1380,5 +1380,6 @@
   "homeRestart": "Neu starten",
   "homeRemoveFromContinue": "Aus „Weitermachen“ entfernen",
   "homeUnpinned": "Von Start gelöst",
-  "homeCardMenu": "Weitere Optionen"
+  "homeRemovedFromContinue": "Aus „Weitermachen“ entfernt",
+  "homeCardMenu": "Weitere Optionen für {title}"
 }

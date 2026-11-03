@@ -27,8 +27,29 @@ class ContinueDismissedNotifier extends Notifier<Map<String, int>> {
     };
   }
 
-  Future<void> dismiss(String key, {DateTime? now}) =>
-      _set({...state, key: (now ?? DateTime.now()).millisecondsSinceEpoch});
+  /// The most remembered: the oldest go first, so the list cannot grow for
+  /// ever.
+  static const maxKept = 50;
+
+  Future<void> dismiss(String key, {DateTime? now}) {
+    final next = {...state}..remove(key);
+    next[key] = (now ?? DateTime.now()).millisecondsSinceEpoch;
+    if (next.length > maxKept) {
+      final oldest = next.entries.toList()
+        ..sort((a, b) => a.value.compareTo(b.value));
+      for (final e in oldest.take(next.length - maxKept)) {
+        next.remove(e.key);
+      }
+    }
+    return _set(next);
+  }
+
+  /// Undo of [dismiss]: puts back what [key] was before, or forgets it.
+  Future<void> restore(String key, int? before) {
+    final next = {...state}..remove(key);
+    if (before != null) next[key] = before;
+    return _set(next);
+  }
 
   Future<void> _set(Map<String, int> next) async {
     state = next;

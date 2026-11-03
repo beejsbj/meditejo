@@ -78,16 +78,17 @@ class PinnedCourseTile extends ConsumerWidget {
         playable.where((i) => i.isCompleted != true).firstOrNull ??
         playable.firstOrNull;
 
-    Future<void> unpin() async {
+    void unpin() {
+      // The card goes as soon as the pin does, so the snackbar and Undo are
+      // set up before anything is waited on.
       final pins = ref.read(pinnedCoursesProvider.notifier);
-      final index = ref.read(pinnedCoursesProvider).indexOf(id);
-      await pins.unpin(id);
-      if (!context.mounted) return;
+      final before = ref.read(pinnedCoursesProvider);
+      pins.unpin(id);
       showSnackBar(
         context,
         l10n.homeUnpinned,
         actionLabel: l10n.undo,
-        onActionPressed: () => pins.pinAt(id, index),
+        onActionPressed: () => pins.pinBack(id, before),
       );
     }
 

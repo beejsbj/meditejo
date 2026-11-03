@@ -1140,5 +1140,6 @@
   "homeRestart": "Reiniciar",
   "homeRemoveFromContinue": "Quitar de Continuar",
   "homeUnpinned": "Desfijado de Inicio",
-  "homeCardMenu": "Más opciones"
+  "homeRemovedFromContinue": "Quitado de Continuar",
+  "homeCardMenu": "Más opciones para {title}"
 }

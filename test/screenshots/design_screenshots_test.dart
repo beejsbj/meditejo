@@ -476,7 +476,10 @@ void main() {
       await tester.ensureVisible(pinned);
       await tester.pumpAndSettle();
       await tester.tap(
-        find.descendant(of: pinned, matching: find.byTooltip('More options')),
+        find.descendant(
+          of: pinned,
+          matching: find.byTooltip('More options for ${_pack.title}'),
+        ),
       );
       await tester.pumpAndSettle();
       await _captureView(tester, 'home-menu-pinned-${brightness.name}');

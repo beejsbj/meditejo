@@ -74,7 +74,7 @@ class CardMenuButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      tooltip: AppLocalizations.of(context)!.homeCardMenu,
+      tooltip: AppLocalizations.of(context)!.homeCardMenu(title),
       visualDensity: VisualDensity.compact,
       color: color,
       onPressed: () => showCardActions(context, title: title, actions: actions),

@@ -2851,5 +2851,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get homeUnpinned => 'Von Start gelöst';
 
   @override
-  String get homeCardMenu => 'Weitere Optionen';
+  String get homeRemovedFromContinue => 'Aus „Weitermachen“ entfernt';
+
+  @override
+  String homeCardMenu(String title) {
+    return 'Weitere Optionen für $title';
+  }
 }

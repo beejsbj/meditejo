@@ -4960,11 +4960,17 @@ abstract class AppLocalizations {
   /// **'Unpinned from Home'**
   String get homeUnpinned;
 
+  /// No description provided for @homeRemovedFromContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from Continue'**
+  String get homeRemovedFromContinue;
+
   /// No description provided for @homeCardMenu.
   ///
   /// In en, this message translates to:
-  /// **'More options'**
-  String get homeCardMenu;
+  /// **'More options for {title}'**
+  String homeCardMenu(String title);
 }
 
 class _AppLocalizationsDelegate

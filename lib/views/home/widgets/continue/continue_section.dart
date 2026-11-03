@@ -6,7 +6,6 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/providers/home/continue_dismissed_provider.dart';
 import 'package:medito/providers/home/continue_provider.dart';
-import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/services/home/continue_rules.dart';
 import 'package:medito/views/home/home_styles.dart';
@@ -14,6 +13,7 @@ import 'package:medito/views/library/library_format.dart';
 import 'package:medito/views/player/start_session.dart';
 import 'package:medito/widgets/cards/card_actions.dart';
 import 'package:medito/widgets/cover_art.dart';
+import 'package:medito/widgets/snackbar_widget.dart';
 import 'package:medito/widgets/network_image_widget.dart';
 
 /// What is in progress, up to three, each one tap from playing. With nothing
@@ -63,8 +63,9 @@ class ContinueSection extends ConsumerWidget {
 Future<void> startContinueItem(
   BuildContext context,
   WidgetRef ref,
-  ContinueItem item,
-) async {
+  ContinueItem item, {
+  bool fromStart = false,
+}) async {
   // The course Continue shows it under, for its cue scope and for where it
   // counts: startSession writes it before the session starts, which reads it.
   // An item with no course forgets the one it was last opened from.
@@ -74,6 +75,7 @@ Future<void> startContinueItem(
     trackId: item.trackId,
     path: item.path,
     courseId: item.courseId,
+    fromStart: fromStart,
   );
 }
 
@@ -122,18 +124,27 @@ class ContinueTile extends ConsumerWidget {
           key: const ValueKey('continue_menu_restart'),
           icon: Icons.restart_alt_rounded,
           label: l10n.homeRestart,
-          onSelected: () async {
-            await ref.read(libraryStoreProvider).clearPosition(item.trackId);
-            if (context.mounted) await startContinueItem(context, ref, item);
-          },
+          onSelected: () =>
+              startContinueItem(context, ref, item, fromStart: true),
         ),
       CardAction(
         key: const ValueKey('continue_menu_remove'),
         icon: Icons.remove_circle_outline_rounded,
         label: l10n.homeRemoveFromContinue,
-        onSelected: () => ref
-            .read(continueDismissedProvider.notifier)
-            .dismiss(continueKeyOf(item)),
+        onSelected: () {
+          // Everything is read before the card goes: removing it unmounts
+          // this tile.
+          final dismissed = ref.read(continueDismissedProvider.notifier);
+          final key = continueKeyOf(item);
+          final before = ref.read(continueDismissedProvider)[key];
+          dismissed.dismiss(key);
+          showSnackBar(
+            context,
+            l10n.homeRemovedFromContinue,
+            actionLabel: l10n.undo,
+            onActionPressed: () => dismissed.restore(key, before),
+          );
+        },
       ),
     ];
   }

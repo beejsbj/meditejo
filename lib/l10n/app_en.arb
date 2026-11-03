@@ -3108,5 +3108,13 @@
   "homeRestart": "Restart",
   "homeRemoveFromContinue": "Remove from Continue",
   "homeUnpinned": "Unpinned from Home",
-  "homeCardMenu": "More options"
+  "homeRemovedFromContinue": "Removed from Continue",
+  "homeCardMenu": "More options for {title}",
+  "@homeCardMenu": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  }
 }
