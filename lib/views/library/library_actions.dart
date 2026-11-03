@@ -48,6 +48,20 @@ Future<void> setLibraryGroup(
     .read(libraryStoreProvider)
     .setGroup(entry.sourceId, group == entry.detectedGroup ? null : group);
 
+/// Deletes the import [id] and takes it off Home: a pin of something deleted
+/// would only show an ID. A course takes its sessions' pins with it.
+Future<void> deleteImport(WidgetRef ref, String id) async {
+  final pins = ref.read(pinnedCoursesProvider.notifier);
+  final source = ref.read(libSourceProvider);
+  final gone = {
+    id,
+    if (isLibCourseId(id))
+      ...await ref.read(libraryDatabaseProvider).trackIdsOfCourse(id),
+  };
+  await source.remove(id);
+  await pins.unpinAll(gone);
+}
+
 /// Asks, then removes. Imported audio is deleted with its entry, so that asks
 /// first; a catalogue item is simply taken out, with Undo.
 Future<void> removeFromLibrary(
@@ -85,7 +99,7 @@ Future<void> removeFromLibrary(
       ),
     );
     if (confirmed != true) return;
-    await ref.read(libSourceProvider).remove(entry.sourceId);
+    await deleteImport(ref, entry.sourceId);
     if (context.mounted) showSnackBar(context, l10n.libraryRemovedSnack);
     return;
   }
@@ -230,28 +244,30 @@ Future<void> togglePin(
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final pins = ref.read(pinnedCoursesProvider.notifier);
+  final pinned = ref.read(pinnedCoursesProvider);
+  // Everything that needs the page is done before the first wait: the change
+  // can take the control that asked for it off screen (an unpin in a list).
+  // The snackbar goes through the app's messenger, so it outlives the page.
+  final messenger = scaffoldMessengerKey.currentState;
   // Replace rather than queue, so a quick re-tap reads the end state.
-  scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
-  if (pins.isPinned(id)) {
-    final before = ref.read(pinnedCoursesProvider);
+  messenger?.hideCurrentSnackBar();
+  final Future<void> saving;
+  if (pinned.contains(id)) {
     final wasSession = pins.isSession(id);
-    await pins.unpin(id);
-    if (!context.mounted) return;
+    saving = pins.unpin(id);
     showSnackBar(
       context,
       l10n.homeUnpinned,
       actionLabel: l10n.undo,
-      onActionPressed: () => pins.pinBack(id, before, session: wasSession),
+      onActionPressed: () => pins.pinBack(id, pinned, session: wasSession),
     );
-    return;
+  } else {
+    final onHome = pinned.length < PinnedCoursesNotifier.homeLimit;
+    saving = pins.pin(id, session: session);
+    showSnackBar(
+      context,
+      onHome ? l10n.pinnedCourseAdded : l10n.pinnedUnderSeeAll,
+    );
   }
-  await pins.pin(id, session: session);
-  if (!context.mounted) return;
-  final onHome =
-      ref.read(pinnedCoursesProvider).indexOf(id) <
-      PinnedCoursesNotifier.homeLimit;
-  showSnackBar(
-    context,
-    onHome ? l10n.pinnedCourseAdded : l10n.pinnedUnderSeeAll,
-  );
+  await saving;
 }

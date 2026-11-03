@@ -7,6 +7,36 @@ import 'package:medito/views/library/library_actions.dart';
 
 import 'bottom_action_bar.dart';
 
+/// A page header's Pin, beside "Add to library": an outlined round button
+/// that fills, in the accent colour, while [id] is pinned.
+class PinIconButton extends ConsumerWidget {
+  const PinIconButton({super.key, required this.id, this.session = false});
+
+  final String id;
+  final bool session;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final pinned = ref.watch(pinnedCoursesProvider).contains(id);
+    return IconButton.outlined(
+      key: const ValueKey('course_pin'),
+      tooltip: pinned ? l10n.unpinCourse : l10n.pinCourse,
+      isSelected: pinned,
+      onPressed: () => togglePin(context, ref, id, session: session),
+      style: IconButton.styleFrom(
+        minimumSize: const Size(44, 44),
+        side: BorderSide(
+          color: scheme.onSurface.withValues(alpha: pinned ? 0.7 : 0.3),
+        ),
+      ),
+      icon: Icon(Icons.push_pin_outlined, color: scheme.onSurface),
+      selectedIcon: Icon(Icons.push_pin, color: context.brandAccent),
+    );
+  }
+}
+
 /// The bottom bar's Pin: pins the course or ([session]) session [id] to
 /// Home, or takes it off. Filled and in the accent colour while pinned.
 BottomActionBarItem pinActionItem(

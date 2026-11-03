@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -88,6 +90,35 @@ Future<LibraryTestApp> _pumpHome(
 
 final _seeAll = find.byKey(const ValueKey('pinned_see_all'));
 
+class _GoneTrack extends Tracks {
+  @override
+  Future<Track> build({required String trackId}) async =>
+      throw StateError('gone');
+}
+
+Future<void> _pumpGone(WidgetTester tester, {String? savedTitle}) async {
+  final app = await LibraryTestApp.create(tester);
+  await app.prefs.setStringList(SharedPreferenceConstants.pinnedCourseIds, [
+    'ds-talk-gone',
+  ]);
+  await app.prefs.setStringList(SharedPreferenceConstants.pinnedSessionIds, [
+    'ds-talk-gone',
+  ]);
+  if (savedTitle != null) {
+    await app.prefs.setString(
+      SharedPreferenceConstants.pinnedTitles,
+      jsonEncode({'ds-talk-gone': savedTitle}),
+    );
+  }
+  await app.pump(
+    tester,
+    const PinnedListView(),
+    overrides: [
+      tracksProvider(trackId: 'ds-talk-gone').overrideWith(_GoneTrack.new),
+    ],
+  );
+}
+
 void main() {
   testWidgets('Home shows three pins and no See all when that is all', (
     tester,
@@ -168,6 +199,28 @@ void main() {
       container.read(pinnedCoursesProvider.notifier).isSession('t1'),
       isTrue,
     );
+  });
+
+  testWidgets('a pinned session whose track is gone says Unavailable', (
+    tester,
+  ) async {
+    await _pumpGone(tester);
+    expect(find.text('ds-talk-gone'), findsNothing);
+    expect(find.text('Unavailable'), findsOneWidget);
+    // It can still be unpinned, but not played.
+    await tester.tap(find.byTooltip('More options for Unavailable'));
+    await DharmaSeedTestApp.settle(tester);
+    expect(find.byKey(const ValueKey('pinned_menu_unpin')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pinned_menu_play')), findsNothing);
+  });
+
+  testWidgets('a gone session keeps the title it was saved with', (
+    tester,
+  ) async {
+    await _pumpGone(tester, savedTitle: 'Metta for a difficult person');
+    expect(find.text('Metta for a difficult person'), findsOneWidget);
+    expect(find.text('Unavailable'), findsOneWidget);
+    expect(find.text('ds-talk-gone'), findsNothing);
   });
 
   testWidgets('the list says how to pin when nothing is', (tester) async {

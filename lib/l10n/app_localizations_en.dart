@@ -1250,7 +1250,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get localIntroDeviceOnlyNote =>
-      'Your practice history, favourites and settings stay on this device.';
+      'Your practice history, pins and settings stay on this device.';
 
   @override
   String get aboutMeditejo => 'About Meditejo';
@@ -1996,6 +1996,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get pinnedEmptyHint =>
       'Pin a course or a session from its page to keep it on Home.';
+
+  @override
+  String get pinnedUnavailable => 'Unavailable';
 
   @override
   String get statsFeedbackNote => 'These numbers are feedback, not a score.';

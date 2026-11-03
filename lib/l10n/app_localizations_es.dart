@@ -1284,7 +1284,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get localIntroDeviceOnlyNote =>
-      'Tu historial de práctica, tus favoritos y tus ajustes se guardan en este dispositivo.';
+      'Tu historial de práctica, lo que has fijado y tus ajustes se guardan en este dispositivo.';
 
   @override
   String get aboutMeditejo => 'Acerca de Meditejo';
@@ -2024,11 +2024,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String pinnedSeeAll(int count) {
-    return 'Ver los $count';
+    return 'Ver todos ($count)';
   }
 
   @override
-  String get pinnedUnderSeeAll => 'Fijado en Inicio, en Ver todo';
+  String get pinnedUnderSeeAll => 'Fijado en Inicio, en «Ver todos»';
 
   @override
   String get pinnedEmpty => 'Aún no hay nada fijado';
@@ -2036,6 +2036,9 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get pinnedEmptyHint =>
       'Fija un curso o una sesión desde su página para tenerlo en Inicio.';
+
+  @override
+  String get pinnedUnavailable => 'No disponible';
 
   @override
   String get statsFeedbackNote =>

@@ -9,9 +9,16 @@ class SharedPreferenceConstants {
   static const String savedMinutes = 'savedMinutes';
   static const String lastSelectedGuideName = 'lastSelectedGuideName';
 
-  /// Favourites from before #79, read once to move them into pins, then
-  /// removed. Nothing writes it any more.
+  /// Favourites from before #79, read once to move them into pins and kept
+  /// for builds without pins. Nothing writes it any more.
   static const String legacyFavorites = 'favorites';
+
+  /// Set once the favourites have been moved into pins.
+  static const String favouritesMigrated = 'favourites_migrated_v1';
+
+  /// Titles kept for pins whose content may be gone, as a JSON map of id to
+  /// title (from the favourites they were).
+  static const String pinnedTitles = 'pinned_titles';
   static const String localAllStatsKey = 'local_all_stats';
   static const String streakCircleDisplayPreference =
       'streak_circle_display_preference';

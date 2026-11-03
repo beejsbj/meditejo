@@ -1275,7 +1275,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get localIntroDeviceOnlyNote =>
-      'Dein Praxisverlauf, deine Favoriten und deine Einstellungen bleiben auf diesem Gerät.';
+      'Dein Praxisverlauf, deine angehefteten Inhalte und deine Einstellungen bleiben auf diesem Gerät.';
 
   @override
   String get aboutMeditejo => 'Über Meditejo';
@@ -2031,6 +2031,9 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get pinnedEmptyHint =>
       'Hefte einen Kurs oder eine Sitzung auf ihrer Seite an, um sie auf Start zu behalten.';
+
+  @override
+  String get pinnedUnavailable => 'Nicht verfügbar';
 
   @override
   String get statsFeedbackNote =>

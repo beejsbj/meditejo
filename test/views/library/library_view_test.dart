@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/services/library/import_models.dart';
 import 'package:medito/services/library/library_models.dart';
@@ -286,6 +287,63 @@ void main() {
       expect(find.byType(PackView), findsOneWidget);
       expect(find.text('First sit: arriving'), findsOneWidget);
       expect(find.text('3 of 3 left'), findsOneWidget);
+    });
+
+    testWidgets('removing an imported course unpins it and its sessions', (
+      tester,
+    ) async {
+      final app = await LibraryTestApp.create(
+        tester,
+        routes: {
+          'https://example.org/evening.rss': xmlResponse(
+            libraryFixture('rss_podcast.xml'),
+          ),
+        },
+      );
+      late String courseId;
+      late List<String> sessionIds;
+      await tester.runAsync(() async {
+        final preview = await app.harness.service.resolve(
+          'https://example.org/evening.rss',
+        );
+        final result = await app.harness.service.add(
+          preview,
+          const ImportChoice(
+            kind: LibraryKind.course,
+            group: LibraryGroup.practice,
+          ),
+        );
+        courseId = result.entryId;
+        sessionIds = [...await app.harness.db.trackIdsOfCourse(courseId)];
+      });
+      await app.prefs.setStringList(SharedPreferenceConstants.pinnedCourseIds, [
+        'ds-retreat-1',
+        courseId,
+        sessionIds.first,
+      ]);
+      await app.prefs.setStringList(
+        SharedPreferenceConstants.pinnedSessionIds,
+        [sessionIds.first],
+      );
+      await app.pump(tester, const LibraryView());
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(LibraryView)),
+      );
+
+      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await settle(tester);
+      await tester.tap(find.text('Remove from library'));
+      await settle(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Remove from library'),
+        ),
+      );
+      await settle(tester);
+
+      // What is left is not an ID on Home.
+      expect(container.read(pinnedCoursesProvider), ['ds-retreat-1']);
     });
 
     testWidgets('removing an import from its own page closes the page', (

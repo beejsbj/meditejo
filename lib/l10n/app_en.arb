@@ -1201,9 +1201,9 @@
   "@localIntroPracticeBody": {
     "description": "Introduction to the local timer and its configurable bells and duration."
   },
-  "localIntroDeviceOnlyNote": "Your practice history, favourites and settings stay on this device.",
+  "localIntroDeviceOnlyNote": "Your practice history, pins and settings stay on this device.",
   "@localIntroDeviceOnlyNote": {
-    "description": "Explains that practice history, favourites and preferences are stored on the device."
+    "description": "Explains that practice history, pins and preferences are stored on the device."
   },
   "aboutMeditejo": "About Meditejo",
   "forkCredit": "Meditejo is based on Medito by the Medito Foundation (meditofoundation.org), licensed under AGPL-3.0.",
@@ -2068,6 +2068,10 @@
   "@pinnedEmptyHint": {
     "description": "Pinned list: how to pin something, under pinnedEmpty"
   },
+  "pinnedUnavailable": "Unavailable",
+  "@pinnedUnavailable": {
+    "description": "A pinned course or session whose source no longer has it: its title (or the line under its saved title)"
+  },
   "statsFeedbackNote": "These numbers are feedback, not a score.",
   "soundsYourMix": "Your mix",
   "@soundsYourMix": {
@@ -2587,7 +2591,7 @@
   },
   "navYou": "You",
   "@navYou": {
-    "description": "Title of the You page: the user's own place (stats, session history, favourites). Opened from the person button at the top right of Home, Library and Settings"
+    "description": "Title of the You page: the user's own place (stats, session history, pins). Opened from the person button at the top right of Home, Library and Settings"
   },
   "youButton": "You: stats and history",
   "@youButton": {
@@ -2595,7 +2599,7 @@
   },
   "youSectionPractice": "Your practice",
   "@youSectionPractice": {
-    "description": "Heading on the You page above the rows for session history and favourites"
+    "description": "Heading on the You page above the rows for session history and pins"
   },
   "navSettings": "Settings",
   "@navSettings": {
@@ -2674,7 +2678,7 @@
   },
   "settingsSectionLibrary": "Library & downloads",
   "@settingsSectionLibrary": {
-    "description": "Settings group: imports, favorites, downloads, catalogue sync"
+    "description": "Settings group: imports, downloads, catalogue sync"
   },
   "settingsSectionAppearance": "Appearance",
   "@settingsSectionAppearance": {

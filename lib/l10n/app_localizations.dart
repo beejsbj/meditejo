@@ -2278,10 +2278,10 @@ abstract class AppLocalizations {
   /// **'Use the timer for an unguided sit, with the bells and duration you prefer.'**
   String get localIntroPracticeBody;
 
-  /// Explains that practice history, favourites and preferences are stored on the device.
+  /// Explains that practice history, pins and preferences are stored on the device.
   ///
   /// In en, this message translates to:
-  /// **'Your practice history, favourites and settings stay on this device.'**
+  /// **'Your practice history, pins and settings stay on this device.'**
   String get localIntroDeviceOnlyNote;
 
   /// No description provided for @aboutMeditejo.
@@ -3520,6 +3520,12 @@ abstract class AppLocalizations {
   /// **'Pin a course or a session from its page to keep it on Home.'**
   String get pinnedEmptyHint;
 
+  /// A pinned course or session whose source no longer has it: its title (or the line under its saved title)
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get pinnedUnavailable;
+
   /// No description provided for @statsFeedbackNote.
   ///
   /// In en, this message translates to:
@@ -4186,7 +4192,7 @@ abstract class AppLocalizations {
   /// **'Edit'**
   String get myCourseEditAction;
 
-  /// Title of the You page: the user's own place (stats, session history, favourites). Opened from the person button at the top right of Home, Library and Settings
+  /// Title of the You page: the user's own place (stats, session history, pins). Opened from the person button at the top right of Home, Library and Settings
   ///
   /// In en, this message translates to:
   /// **'You'**
@@ -4198,7 +4204,7 @@ abstract class AppLocalizations {
   /// **'You: stats and history'**
   String get youButton;
 
-  /// Heading on the You page above the rows for session history and favourites
+  /// Heading on the You page above the rows for session history and pins
   ///
   /// In en, this message translates to:
   /// **'Your practice'**
@@ -4294,7 +4300,7 @@ abstract class AppLocalizations {
   /// **'Sounds & cues'**
   String get settingsSectionSounds;
 
-  /// Settings group: imports, favorites, downloads, catalogue sync
+  /// Settings group: imports, downloads, catalogue sync
   ///
   /// In en, this message translates to:
   /// **'Library & downloads'**

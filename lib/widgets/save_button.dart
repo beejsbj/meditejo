@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
 import 'package:medito/services/library/lib_ids.dart';
+import 'package:medito/views/library/library_actions.dart';
 
 /// Saves or unsaves the course or teacher with [id], when its source supports
 /// saving; renders nothing otherwise. Saved items lead Explore.
@@ -46,7 +47,13 @@ class SaveButton extends ConsumerWidget {
       );
       if (confirmed != true) return;
     }
-    await ref.read(savedProvider(id).notifier).toggle();
+    if (saved && id.startsWith(libPrefix)) {
+      // Unsaving an import deletes it, and its pins with it.
+      // The saved state follows the library's revision.
+      await deleteImport(ref, id);
+    } else {
+      await ref.read(savedProvider(id).notifier).toggle();
+    }
     // The page shows what was just deleted (a Play for a file that is gone),
     // so an imported item's page closes with it.
     if (saved && id.startsWith(libPrefix) && context.mounted) {

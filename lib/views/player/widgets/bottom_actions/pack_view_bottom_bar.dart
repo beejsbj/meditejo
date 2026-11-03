@@ -12,7 +12,6 @@ import '../../../../models/pack/pack_model.dart';
 import '../../../../widgets/add_to_siri_util.dart';
 import '../../../../widgets/medito_icon.dart';
 import 'bottom_action_bar.dart';
-import 'pin_action.dart';
 
 class PackViewBottomBar extends ConsumerStatefulWidget {
   final String packId;
@@ -152,7 +151,6 @@ class _PackViewBottomBarState extends ConsumerState<PackViewBottomBar> {
         ),
         semanticLabel: l10n.myCourseMore,
       ),
-      rightItem: pinActionItem(context, ref, widget.packId),
     );
   }
 }

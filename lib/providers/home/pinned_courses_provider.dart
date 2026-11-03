@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
+import 'package:medito/services/home/favourites_migration.dart';
 
 /// What the user pinned to Home, oldest pin first: courses and playlists, and
 /// single sessions. Home shows the first [PinnedCoursesNotifier.homeLimit];
@@ -18,12 +19,16 @@ class PinnedCoursesNotifier extends Notifier<List<String>> {
   /// because a bundled catalogue's IDs do not say which they are.
   Set<String> _sessions = {};
 
+  /// Titles kept from the favourites the pins were, for content now gone.
+  Map<String, String> _titles = {};
+
   @override
   List<String> build() {
     final prefs = ref.read(sharedPreferencesProvider);
     _sessions = {
       ...?prefs.getStringList(SharedPreferenceConstants.pinnedSessionIds),
     };
+    _titles = readPinnedTitles(prefs);
     final saved = prefs.getStringList(
       SharedPreferenceConstants.pinnedCourseIds,
     );
@@ -37,6 +42,9 @@ class PinnedCoursesNotifier extends Notifier<List<String>> {
 
   /// Whether the pin [id] is a single session rather than a course.
   bool isSession(String id) => _sessions.contains(id);
+
+  /// The title [id] had when it was saved, if one was kept.
+  String? savedTitle(String id) => _titles[id];
 
   /// Pins [id] last; [session] when it is a single session.
   Future<void> pin(String id, {bool session = false}) async {
@@ -61,10 +69,18 @@ class PinnedCoursesNotifier extends Notifier<List<String>> {
     );
   }
 
-  Future<void> unpin(String id) => _set([
-    for (final p in state)
-      if (p != id) p,
-  ]);
+  Future<void> unpin(String id) => unpinAll([id]);
+
+  /// Unpins every one of [ids] that is pinned, as when their content is
+  /// deleted.
+  Future<void> unpinAll(Iterable<String> ids) async {
+    final gone = ids.toSet();
+    if (!state.any(gone.contains)) return;
+    await _set([
+      for (final p in state)
+        if (!gone.contains(p)) p,
+    ]);
+  }
 
   Future<void> _set(List<String> ids, {String? session}) async {
     _sessions = {

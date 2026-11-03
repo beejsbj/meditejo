@@ -96,12 +96,20 @@ class PinnedCourseTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pack = ref.watch(packProvider(packId: id)).value;
+    final state = ref.watch(packProvider(packId: id));
+    final pack = state.value;
     final entries = ref.watch(libraryEntriesProvider).value;
     final entry = entries?.where((e) => e.sourceId == id).firstOrNull;
-    final title = entry?.displayTitle ?? pack?.title ?? id;
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    // Its source no longer has it: say so rather than show an ID.
+    final gone = pack == null && state.hasError;
+    final saved = ref.read(pinnedCoursesProvider.notifier).savedTitle(id);
+    final title =
+        entry?.displayTitle ??
+        pack?.title ??
+        saved ??
+        (gone ? l10n.pinnedUnavailable : '');
+    final theme = Theme.of(context);
     // As the course page counts: a session its source has lost is not one.
     final playable = pack?.playableTracks ?? const [];
     final total = playable.length;
@@ -137,7 +145,9 @@ class PinnedCourseTile extends ConsumerWidget {
               path: next.path,
               courseId: id,
             ),
-      below: total > 0
+      below: gone && title != l10n.pinnedUnavailable
+          ? _Unavailable(l10n.pinnedUnavailable)
+          : total > 0
           ? Row(
               children: [
                 Expanded(
@@ -173,10 +183,19 @@ class PinnedSessionTile extends ConsumerWidget {
     final track = ref.watch(tracksProvider(trackId: id));
     final entries = ref.watch(libraryEntriesProvider).value;
     final entry = entries?.where((e) => e.sourceId == id).firstOrNull;
-    // While it loads the card stays blank rather than showing an ID.
+    final l10n = AppLocalizations.of(context)!;
+    // Its source no longer has it: say so rather than show an ID. While it
+    // loads the card stays blank.
+    final gone = !track.hasValue && track.hasError;
+    final saved = ref.read(pinnedCoursesProvider.notifier).savedTitle(id);
     final title =
-        entry?.displayTitle ?? track.value?.title ?? (track.hasError ? id : '');
-    final detail = (track.value?.subtitle ?? entry?.subtitle ?? '').trim();
+        entry?.displayTitle ??
+        track.value?.title ??
+        saved ??
+        (gone ? l10n.pinnedUnavailable : '');
+    final detail = gone
+        ? (title == l10n.pinnedUnavailable ? '' : l10n.pinnedUnavailable)
+        : (track.value?.subtitle ?? entry?.subtitle ?? '').trim();
     final scheme = Theme.of(context).colorScheme;
     final type = context.typography;
 
@@ -188,8 +207,10 @@ class PinnedSessionTile extends ConsumerWidget {
       onOpen: () =>
           handleNavigation(TypeConstants.track, [id], context, ref: ref),
       openIcon: Icons.info_outline_rounded,
-      onPlay: () =>
-          startSession(context, ref, trackId: id, path: '/tracks/$id'),
+      // Nothing to play until it loads, and nothing once it is gone.
+      onPlay: track.hasValue
+          ? () => startSession(context, ref, trackId: id, path: '/tracks/$id')
+          : null,
       below: detail.isEmpty
           ? null
           : Text(
@@ -202,6 +223,23 @@ class PinnedSessionTile extends ConsumerWidget {
             ),
     );
   }
+}
+
+/// The line under a pin whose content is gone.
+class _Unavailable extends StatelessWidget {
+  const _Unavailable(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    style: context.typography.baseline.labelMedium?.copyWith(
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    ),
+  );
 }
 
 /// The card both kinds of pin share: art, title, a line below, and a menu

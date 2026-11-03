@@ -9,14 +9,14 @@ import 'package:medito/services/home/favourites_migration.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// A favourite as Medito saved it.
-Map<String, Object?> _fav(String id, String type, int at) => {
+Map<String, Object?> _fav(String id, String type, [int? at]) => {
   'id': id,
   'title': 'Title of $id',
   'subtitle': null,
   'coverUrl': null,
   'path': null,
   'type': type,
-  'timestamp': at,
+  'timestamp': ?at,
 };
 
 Future<SharedPreferences> _prefs(Map<String, Object> values) async {
@@ -30,19 +30,23 @@ List<String>? _pins(SharedPreferences prefs) =>
 List<String>? _sessions(SharedPreferences prefs) =>
     prefs.getStringList(SharedPreferenceConstants.pinnedSessionIds);
 
+bool _migrated(SharedPreferences prefs) =>
+    prefs.getBool(SharedPreferenceConstants.favouritesMigrated) ?? false;
+
 void main() {
   group('favourites become pins', () {
-    test('after what is pinned, oldest favourite first, no repeats', () async {
+    test('after what is pinned, in saved order, no repeats', () async {
+      final favourites = jsonEncode([
+        // Saved order wins, whatever the timestamps say (or lack).
+        _fav('lib-course-c', 'pack', 3000),
+        _fav('ds-talk-7', 'track'),
+        // Already pinned: keeps its place, is not added again.
+        _fav('yt-a', 'pack', 2000),
+        _fav('yt-video-1', 'track', 1000),
+      ]);
       final prefs = await _prefs({
         SharedPreferenceConstants.pinnedCourseIds: ['ds-retreat-1', 'yt-a'],
-        SharedPreferenceConstants.legacyFavorites: jsonEncode([
-          _fav('lib-course-c', 'pack', 3000),
-          _fav('ds-talk-7', 'track', 1000),
-          // Already pinned: keeps its place, is not added again.
-          _fav('yt-a', 'pack', 2000),
-          // Same time as the talk: their saved order breaks the tie.
-          _fav('yt-video-1', 'track', 1000),
-        ]),
+        SharedPreferenceConstants.legacyFavorites: favourites,
       });
 
       await migrateFavouritesToPins(prefs);
@@ -50,77 +54,79 @@ void main() {
       expect(_pins(prefs), [
         'ds-retreat-1',
         'yt-a',
+        'lib-course-c',
         'ds-talk-7',
         'yt-video-1',
-        'lib-course-c',
       ]);
       expect(_sessions(prefs), unorderedEquals(['ds-talk-7', 'yt-video-1']));
+      expect(_migrated(prefs), isTrue);
+      // The favourites stay, for a build without pins.
       expect(
-        prefs.containsKey(SharedPreferenceConstants.legacyFavorites),
-        isFalse,
+        prefs.getString(SharedPreferenceConstants.legacyFavorites),
+        favourites,
       );
     });
 
-    test('a second run changes nothing', () async {
+    test('reads a type in any case', () async {
       final prefs = await _prefs({
         SharedPreferenceConstants.legacyFavorites: jsonEncode([
-          _fav('a', 'pack', 1),
-          _fav('t', 'track', 2),
+          _fav('a', 'Pack'),
+          _fav('b', 'PACK'),
+          _fav('t', 'Track'),
         ]),
       });
       await migrateFavouritesToPins(prefs);
-      final pins = _pins(prefs);
-      final sessions = _sessions(prefs);
+      expect(_pins(prefs), ['a', 'b', 't']);
+      expect(_sessions(prefs), ['t']);
+    });
 
-      // The user unpins one: running again must not bring it back.
+    test('runs once: an unpinned favourite does not come back', () async {
+      final prefs = await _prefs({
+        SharedPreferenceConstants.legacyFavorites: jsonEncode([
+          _fav('a', 'pack'),
+          _fav('t', 'track'),
+        ]),
+      });
+      await migrateFavouritesToPins(prefs);
+      expect(_pins(prefs), ['a', 't']);
+      expect(_sessions(prefs), ['t']);
+
       await prefs.setStringList(SharedPreferenceConstants.pinnedCourseIds, [
         't',
       ]);
       await migrateFavouritesToPins(prefs);
-
-      expect(pins, ['a', 't']);
-      expect(sessions, ['t']);
       expect(_pins(prefs), ['t']);
     });
 
-    test('with no favourites it touches nothing', () async {
+    test('with no favourites it only marks itself done', () async {
       final prefs = await _prefs({
         SharedPreferenceConstants.pinnedCourseIds: ['a'],
       });
       await migrateFavouritesToPins(prefs);
       expect(_pins(prefs), ['a']);
       expect(_sessions(prefs), isNull);
+      expect(_migrated(prefs), isTrue);
 
       final empty = await _prefs({});
       await migrateFavouritesToPins(empty);
-      expect(empty.getKeys(), isEmpty);
+      expect(empty.getKeys(), {SharedPreferenceConstants.favouritesMigrated});
     });
 
-    test('an empty favourites list leaves the pins as they were', () async {
-      final prefs = await _prefs({
-        SharedPreferenceConstants.pinnedCourseIds: ['a'],
-        SharedPreferenceConstants.legacyFavorites: '[]',
-      });
-      await migrateFavouritesToPins(prefs);
-      expect(_pins(prefs), ['a']);
-      expect(_sessions(prefs), isEmpty);
-      expect(
-        prefs.containsKey(SharedPreferenceConstants.legacyFavorites),
-        isFalse,
-      );
-    });
-
-    test('unreadable favourites are dropped, the pins kept', () async {
-      final prefs = await _prefs({
-        SharedPreferenceConstants.pinnedCourseIds: ['a'],
-        SharedPreferenceConstants.legacyFavorites: '{not json',
-      });
-      await migrateFavouritesToPins(prefs);
-      expect(_pins(prefs), ['a']);
-      expect(
-        prefs.containsKey(SharedPreferenceConstants.legacyFavorites),
-        isFalse,
-      );
+    test('an empty or unreadable list leaves the pins as they were', () async {
+      for (final raw in ['[]', '{not json']) {
+        final prefs = await _prefs({
+          SharedPreferenceConstants.pinnedCourseIds: ['a'],
+          SharedPreferenceConstants.legacyFavorites: raw,
+        });
+        await migrateFavouritesToPins(prefs);
+        expect(_pins(prefs), ['a'], reason: raw);
+        expect(_migrated(prefs), isTrue, reason: raw);
+        expect(
+          prefs.getString(SharedPreferenceConstants.legacyFavorites),
+          raw,
+          reason: raw,
+        );
+      }
     });
 
     test('entries without an ID are skipped', () async {
@@ -146,7 +152,7 @@ void main() {
       expect(_pins(prefs), ['lib-course-old', 't']);
     });
 
-    test('the pins read them back, sessions as sessions', () async {
+    test('the pins read them back: sessions, and saved titles', () async {
       final prefs = await _prefs({
         SharedPreferenceConstants.legacyFavorites: jsonEncode([
           _fav('course', 'pack', 1),
@@ -163,6 +169,9 @@ void main() {
       final pins = container.read(pinnedCoursesProvider.notifier);
       expect(pins.isSession('talk'), isTrue);
       expect(pins.isSession('course'), isFalse);
+      expect(pins.savedTitle('talk'), 'Title of talk');
+      expect(pins.savedTitle('course'), 'Title of course');
+      expect(pins.savedTitle('other'), isNull);
     });
   });
 }
