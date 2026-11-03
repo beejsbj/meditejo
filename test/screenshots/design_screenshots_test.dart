@@ -15,6 +15,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/services/identity/palettes.dart';
 import 'package:medito/models/pack/pack_model.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
 import 'package:medito/views/explore/widgets/explore_view.dart';
@@ -55,6 +56,7 @@ import 'package:medito/views/you/you_view.dart';
 
 import '../helpers/dharma_seed_app.dart';
 import '../helpers/dharma_seed_catalogue.dart';
+import '../helpers/dharma_seed_fake_api.dart';
 import '../helpers/fake_session_source.dart';
 import '../helpers/library_app.dart';
 import '../helpers/stats_fixtures.dart';
@@ -316,9 +318,14 @@ Future<void> _pumpYou(
         .setMockMethodCallHandler(permissions, null),
   );
   final h = await UpdateHarness.create();
+  // The real database would open under the fake clock and leave a drift
+  // timer pending; an in-memory one stands in for it.
+  final dsDb = memoryDharmaSeedDb();
+  addTearDown(dsDb.close);
   final container = ProviderContainer(
     overrides: [
       ...h.overrides,
+      dharmaSeedDatabaseProvider.overrideWithValue(dsDb),
       statsProvider.overrideWith(() => _Stats(richStats(fixtureNow))),
       practiceClockProvider.overrideWithValue(() => fixtureNow),
     ],
