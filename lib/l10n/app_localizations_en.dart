@@ -1957,6 +1957,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'YouTube is busy or asking for a bot check. Try again later';
 
   @override
+  String get youtubeChannelOpen => 'Open on YouTube';
+
+  @override
+  String get youtubeChannelNoAbout => 'No channel description on YouTube.';
+
+  @override
   String get youtubePlaylistEmpty =>
       'Sessions aren\'t stored on this device yet. We\'ll try again shortly';
 
