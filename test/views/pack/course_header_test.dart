@@ -14,6 +14,7 @@ import 'package:medito/widgets/attribution_notice.dart';
 
 import '../../helpers/art_finders.dart';
 import '../../helpers/dharma_seed_app.dart';
+import '../../helpers/dharma_seed_catalogue.dart';
 import '../../helpers/library_app.dart';
 import '../dharma_seed/course_and_teacher_test.dart' show createApp;
 
@@ -185,6 +186,27 @@ void main() {
     testWidgets('the tabs stay under the title, and a new tab opens at its '
         'top', (tester) async {
       final app = await createApp(tester);
+      // Long enough to scroll well past the tabs: twelve more talks over
+      // four more days, as the rows are compact (#82).
+      await tester.runAsync(() async {
+        await app.db.upsertRetreatRecords({
+          500: {
+            'name': 'Long Retreat',
+            'description': 'Seven days of silence, then four days of talks.',
+            'start_date': '2020-05-01',
+            'talks': [for (var i = 1; i <= 24; i++) 500 + i],
+          },
+        });
+        await app.db.upsertTalkRecords({
+          for (var i = 13; i <= 24; i++)
+            500 + i: dsTalkRecord(
+              'Long talk $i',
+              teacher: 1,
+              retreat: 500,
+              date: '2020-05-0${1 + (i - 1) ~/ 3} 10:00:00',
+            ),
+        });
+      });
       await app.pump(tester, const PackView(id: 'ds-retreat-500'));
 
       final tabs = find.text(l10n.courseSessionsTab);

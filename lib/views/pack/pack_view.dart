@@ -555,8 +555,9 @@ class _PackViewState extends ConsumerState<PackView>
     );
   }
 
-  /// The session rows, with the "mark all" button after them. A long course
-  /// recorded over several days is grouped under day headings.
+  /// The session rows, with the "mark all" button after them. A retreat
+  /// recorded over several days shows each day as a group (#82); any other
+  /// dated course says the date in each row.
   List<Widget> _sessions(PackModel pack) {
     if (pack.items.isEmpty && pack.id.startsWith('yt-playlist-')) {
       return [YoutubePlaylistEmpty(packId: pack.id)];
@@ -564,36 +565,28 @@ class _PackViewState extends ConsumerState<PackView>
     if (pack.items.isEmpty && isMyCourseId(pack.id)) {
       return [_myCourseEmpty()];
     }
-    final groups = _dayGroups(pack.items);
-    final rows = <Widget>[];
+    final rows = _RowStyle.of(pack, Localizations.localeOf(context));
+    final days = _retreatDays(pack.items);
+    final widgets = <Widget>[];
     if (pack.items.any((i) => i.section != null)) {
-      rows.addAll(_sectioned(pack));
-    } else if (groups == null) {
-      rows.addAll(_listItems(pack, ref));
+      widgets.addAll(_sectioned(pack, rows));
+    } else if (days == null) {
+      widgets.addAll(_listItems(pack, rows));
     } else {
-      final first = _day(groups.first.date);
-      final last = _day(groups.last.date);
-      // A retreat reads as "Day 3"; a years-long series only by its dates.
-      final numbered =
-          first != null && last != null && last.difference(first).inDays <= 21;
-      for (final group in groups) {
-        rows.add(_dayHeader(group, first: numbered ? first : null));
-        for (final item in group.items) {
-          rows.add(
-            _buildListTile(
-              item,
-              item == group.items.last && group == groups.last,
-            ),
-          );
-        }
+      for (final group in days.groups) {
+        widgets.add(_dayGroup(group, first: days.first, rows: rows));
       }
     }
-    return [...rows, _markAllButton(pack)];
+    return [...widgets, _markAllButton(pack)];
   }
 
-  /// Consecutive sessions sharing a recording date, for a long course. Null
-  /// for a short one, one with an undated session, or one recorded in a day.
-  List<_DayGroup>? _dayGroups(List<PackItemsModel> items) {
+  /// A retreat's days: consecutive sessions sharing a recording date, for a
+  /// long course recorded within three weeks. Null for a short course, one
+  /// with an undated session, one recorded in a day, or a series over months
+  /// or years, whose rows say their own dates. Days count from [first].
+  ({List<_DayGroup> groups, DateTime first})? _retreatDays(
+    List<PackItemsModel> items,
+  ) {
     if (items.length < 8 || items.any((i) => i.date == null)) return null;
     final groups = <_DayGroup>[];
     for (final item in items) {
@@ -602,7 +595,15 @@ class _PackViewState extends ConsumerState<PackView>
       }
       groups.last.items.add(item);
     }
-    return groups.length < 2 ? null : groups;
+    if (groups.length < 2) return null;
+    final days = [for (final group in groups) ?_day(group.date)];
+    // Out of date order, a day would come back as a second group.
+    if (days.length != groups.length || days.toSet().length != days.length) {
+      return null;
+    }
+    days.sort();
+    final span = days.last.difference(days.first).inDays;
+    return span <= 21 ? (groups: groups, first: days.first) : null;
   }
 
   /// A `yyyy-MM-dd` date as a UTC day, so counting days between two of them
@@ -614,45 +615,72 @@ class _PackViewState extends ConsumerState<PackView>
         : DateTime.utc(parsed.year, parsed.month, parsed.day);
   }
 
-  Widget _dayHeader(_DayGroup group, {DateTime? first}) {
+  /// One day of a retreat: its sessions in a bordered box, the day ("Day 3 ·
+  /// Sun, Apr 16") as a small label inside, ticked once all are played. The
+  /// rows leave the date to it.
+  Widget _dayGroup(
+    _DayGroup group, {
+    required DateTime first,
+    required _RowStyle rows,
+  }) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final locale = Localizations.localeOf(context).toLanguageTag();
-    final date = _day(group.date);
-    final formatted = date == null
-        ? group.date
-        : (first == null ? DateFormat.yMMMd(locale) : DateFormat.MMMEd(locale))
-              .format(date);
-    final label = first == null || date == null
-        ? formatted
-        : '${l10n.courseDay(date.difference(first).inDays + 1)} · $formatted';
+    final date = _day(group.date)!;
+    final label =
+        '${l10n.courseDay(date.difference(first).inDays + 1)} · '
+        '${DateFormat.MMMEd(locale).format(date)}';
     final allDone = group.items.every((item) => item.isCompleted == true);
+    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.7);
     return Padding(
       key: ValueKey('day_${group.date}'),
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-      child: Row(
-        children: [
-          Expanded(
-            child: Semantics(
-              header: true,
-              child: Text(
-                label,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                  fontWeight: FontWeight.w600,
-                ),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      child: Material(
+        type: MaterialType.transparency,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Semantics(
+                      header: true,
+                      child: Text(
+                        label,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: muted,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (allDone) const PackCompleteBadge(size: 16),
+                ],
               ),
             ),
-          ),
-          if (allDone) const PackCompleteBadge(size: 20),
-        ],
+            for (final item in group.items)
+              _buildListTile(
+                item,
+                item == group.items.last,
+                rows: rows,
+                dated: false,
+              ),
+          ],
+        ),
       ),
     );
   }
 
   /// A personal course's sessions under the headings its maker gave them;
   /// sessions before the first heading stand on their own.
-  List<Widget> _sectioned(PackModel pack) {
+  List<Widget> _sectioned(PackModel pack, _RowStyle style) {
     final theme = Theme.of(context);
     final rows = <Widget>[];
     String? section;
@@ -681,6 +709,7 @@ class _PackViewState extends ConsumerState<PackView>
         _buildListTile(
           item,
           next == null || (next.section != null && next.section != section),
+          rows: style,
         ),
       );
     }
@@ -704,15 +733,24 @@ class _PackViewState extends ConsumerState<PackView>
     );
   }
 
-  List<Widget> _listItems(PackModel pack, WidgetRef ref) {
+  List<Widget> _listItems(PackModel pack, _RowStyle rows) {
     return [
       for (final packItem in pack.items)
-        _buildListTile(packItem, pack.items.last == packItem),
+        _buildListTile(packItem, pack.items.last == packItem, rows: rows),
     ];
   }
 
-  Widget _buildListTile(PackItemsModel item, bool isLast) {
+  /// One session (or sub-pack, or link) row. [dated] is false inside a
+  /// retreat's day, which says the date once for all its rows.
+  Widget _buildListTile(
+    PackItemsModel item,
+    bool isLast, {
+    required _RowStyle rows,
+    bool dated = true,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
     final unavailable = item.unavailable == true;
+    final date = dated ? rows.date(item) : null;
     final row = Semantics(
       button: true,
       child: InkWell(
@@ -723,19 +761,16 @@ class _PackViewState extends ConsumerState<PackView>
               )
             : _onListItemTap(item.id, item.type, context),
         splashColor: ColorConstants.charcoal,
-        child: unavailable
-            // Said in words too, not only by fading the row.
-            ? PackItemWidget(
-                item: item.copyWith(
-                  kind: AppLocalizations.of(context)!.myCourseUnavailable,
-                ),
-              )
-            : item.type == TypeConstants.pack
-            ? PackItemWidget(item: item)
-            : PackItemWidget(
-                item: item,
-                onSetComplete: (complete) => _setComplete(item, complete),
-              ),
+        child: PackItemWidget(
+          item: item,
+          // Unavailable said in words too, not only by fading the row.
+          badge: unavailable ? l10n.myCourseUnavailable : rows.kind(item),
+          courseTeacher: rows.teacher,
+          date: date,
+          onSetComplete: unavailable || item.type == TypeConstants.pack
+              ? null
+              : (complete) => _setComplete(item, complete),
+        ),
       ),
     );
     return Column(
@@ -845,6 +880,58 @@ class _PackViewState extends ConsumerState<PackView>
 
   @override
   bool get wantKeepAlive => true;
+}
+
+/// What a course's rows say beyond each session's own details, worked out
+/// once per course (#82): whose name rows need not repeat, whether kinds
+/// are worth a chip, and how to write a date.
+class _RowStyle {
+  _RowStyle._({required this.teacher, required bool mixed, this.dateFormat})
+    : _mixed = mixed;
+
+  factory _RowStyle.of(PackModel pack, Locale locale) {
+    final tracks = pack.playableTracks;
+    final kinds = {for (final item in tracks) ?item.kind};
+    final years = {
+      for (final item in tracks)
+        if ((item.date ?? '').length >= 4) item.date!.substring(0, 4),
+    };
+    final tag = locale.toLanguageTag();
+    // A Dharma Seed subtitle is a summary ("2014 · 38 talks"), not a name,
+    // and a playlist's sessions come from many teachers.
+    final subtitle = (pack.subtitle ?? '').trim();
+    final byline = pack.id.startsWith('ds-') || isMyCourseId(pack.id)
+        ? null
+        : subtitle;
+    return _RowStyle._(
+      teacher: pack.teacher?.name ?? (byline?.isEmpty ?? true ? null : byline),
+      mixed: kinds.length > 1,
+      // The header already gives a single year: "Mar 5", else "Mar 5, 2019".
+      dateFormat: years.isEmpty
+          ? null
+          : years.length == 1
+          ? DateFormat.MMMd(tag)
+          : DateFormat.yMMMd(tag),
+    );
+  }
+
+  /// Who leads the course; rows by them leave out the name.
+  final String? teacher;
+
+  /// Whether the course holds more than one kind of session.
+  final bool _mixed;
+
+  final DateFormat? dateFormat;
+
+  /// The kind chip for [item], only where the course mixes kinds.
+  String? kind(PackItemsModel item) => _mixed ? item.kind : null;
+
+  /// When [item] was recorded, as its row says it.
+  String? date(PackItemsModel item) {
+    final parsed = DateTime.tryParse(item.date ?? '');
+    if (parsed == null || dateFormat == null) return null;
+    return dateFormat!.format(parsed);
+  }
 }
 
 /// Sessions of a course recorded on one day.

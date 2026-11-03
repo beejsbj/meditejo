@@ -260,6 +260,170 @@ final _vervaeke = PackModel(
   ],
 );
 
+/// A nine-day Dharma Seed retreat with a teaching team (#82): instructions,
+/// guided sits, talks and Q & A, two to four a day, led by Joseph Goldstein
+/// with three other teachers taking sessions.
+final _insight = PackModel(
+  id: 'ds-retreat-7012',
+  title: 'Spring Insight Meditation Retreat',
+  subtitle: 'Joseph Goldstein · 2023 · 29 talks',
+  teacher: const PackTeacher(
+    id: 'ds-teacher-96',
+    name: 'Joseph Goldstein',
+    bio: 'A co-founder of the Insight Meditation Society.',
+  ),
+  attribution: const SourceAttribution(
+    source: 'Dharma Seed',
+    creator: 'Joseph Goldstein',
+    url: 'https://dharmaseed.org/retreats/7012/',
+    licenseName: 'CC BY-NC-ND 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-nc-nd/4.0/',
+  ),
+  items: [
+    for (final (i, (day, kind, teacher, title)) in const [
+      (14, 'Talk', 'Joseph Goldstein', 'Opening Talk: Arriving in Silence'),
+      (14, 'Guided meditation', 'Sharon Salzberg', 'Settling with the Breath'),
+      (
+        15,
+        'Guided meditation',
+        'Joseph Goldstein',
+        'Morning Instructions: Mindfulness of Breathing',
+      ),
+      (15, 'Guided meditation', 'Kamala Masters', 'Walking Meditation'),
+      (15, 'Talk', 'Sharon Salzberg', 'The Power of Attention'),
+      (
+        16,
+        'Guided meditation',
+        'Joseph Goldstein',
+        'Morning Instructions: Sensations in the Body',
+      ),
+      (16, 'Guided meditation', 'Tempel Smith', 'Metta for a Benefactor'),
+      (16, 'Talk', 'Joseph Goldstein', 'The Four Foundations of Mindfulness'),
+      (16, 'Q & A', 'Joseph Goldstein', 'Q & A: Sleepiness and Restlessness'),
+      (
+        17,
+        'Guided meditation',
+        'Sharon Salzberg',
+        'Morning Instructions: Hearing',
+      ),
+      (17, 'Talk', 'Kamala Masters', 'Patience as a Pāramī'),
+      (17, 'Guided meditation', 'Joseph Goldstein', 'Evening Sit'),
+      (
+        18,
+        'Guided meditation',
+        'Joseph Goldstein',
+        'Morning Instructions: Thoughts and Images',
+      ),
+      (18, 'Guided meditation', 'Tempel Smith', 'Metta for a Difficult Person'),
+      (18, 'Talk', 'Tempel Smith', 'Wise Effort: Not Too Tight, Not Too Loose'),
+      (
+        19,
+        'Guided meditation',
+        'Joseph Goldstein',
+        'Morning Instructions: Emotions',
+      ),
+      (19, 'Talk', 'Joseph Goldstein', 'Hindrances as Teachers'),
+      (19, 'Q & A', 'Sharon Salzberg', 'Q & A: Doubt and Self-Judgement'),
+      (
+        20,
+        'Guided meditation',
+        'Kamala Masters',
+        'Morning Instructions: Mind States',
+      ),
+      (20, 'Talk', 'Sharon Salzberg', 'Faith, Doubt and the Path'),
+      (20, 'Guided meditation', 'Sharon Salzberg', 'Metta for All Beings'),
+      (
+        21,
+        'Guided meditation',
+        'Joseph Goldstein',
+        'Morning Instructions: Choiceless Awareness',
+      ),
+      (
+        21,
+        'Talk',
+        'Joseph Goldstein',
+        'Emptiness of Self in Ordinary Experience',
+      ),
+      (21, 'Guided meditation', 'Tempel Smith', 'Equanimity Practice'),
+      (21, 'Q & A', 'Kamala Masters', 'Q & A: Practice at Home'),
+      (
+        22,
+        'Guided meditation',
+        'Sharon Salzberg',
+        'Morning Instructions: Returning',
+      ),
+      (
+        22,
+        'Talk',
+        'Joseph Goldstein',
+        'Closing Talk: Taking the Practice Home',
+      ),
+      (22, 'Guided meditation', 'Sharon Salzberg', 'Closing Metta'),
+      (22, 'Talk', 'Kamala Masters', 'Dedication of Merit'),
+    ].indexed)
+      PackItemsModel(
+        type: 'track',
+        id: 'ds-talk-7012-$i',
+        title: title,
+        path: '/tracks/ds-talk-7012-$i',
+        kind: kind,
+        teacher: teacher,
+        durationMs: (24 + (i * 11) % 39) * 60000,
+        date: '2023-04-$day',
+        isCompleted: i < 6,
+      ),
+  ],
+);
+
+/// A weekly podcast over five months (#82): talks only, by the feed's
+/// author with a few guests, each dated. No retreat days to group.
+final _podcast = PackModel(
+  id: 'lib-course-audiodharma',
+  title: 'Audio Dharma: Sunday Talks',
+  subtitle: 'Gil Fronsdal',
+  attribution: const SourceAttribution(
+    source: 'Audio Dharma',
+    creator: 'Gil Fronsdal',
+    url: 'https://www.audiodharma.org/',
+    licenseName: 'CC BY-NC-ND 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-nc-nd/4.0/',
+  ),
+  items: [
+    for (final (i, (teacher, title)) in const [
+      ('Gil Fronsdal', 'Equanimity in the Midst of Change'),
+      ('Gil Fronsdal', 'The Practice of Letting Be'),
+      ('Andrea Fella', 'Kindness Towards the Body'),
+      ('Gil Fronsdal', 'Mindfulness of Intentions'),
+      ('Gil Fronsdal', 'Three Ways of Knowing Suffering'),
+      ('Ines Freedman', 'Generosity as a Path of Freedom'),
+      ('Gil Fronsdal', 'Renunciation Without Rejection'),
+      ('Gil Fronsdal', 'The Gradual Training'),
+      ('Nikki Mirghafori', 'Joy and the Wholesome Mind'),
+      ('Gil Fronsdal', 'Not Clinging to Views'),
+      ('Gil Fronsdal', 'Peace Is Every Step We Take Together'),
+      ('Gil Fronsdal', 'Seclusion and Simplicity'),
+      ('Andrea Fella', 'Wise Speech in Difficult Conversations'),
+      ('Gil Fronsdal', 'The Wisdom of Not Knowing'),
+      ('Gil Fronsdal', 'Year-End Reflections on Practice'),
+      ('Gil Fronsdal', 'Beginning Again'),
+    ].indexed)
+      PackItemsModel(
+        type: 'track',
+        id: 'lib-ad-$i',
+        title: title,
+        subtitle: teacher,
+        path: '/tracks/lib-ad-$i',
+        teacher: teacher,
+        durationMs: (38 + (i * 7) % 24) * 60000,
+        date: DateTime.utc(
+          2024,
+          9,
+          1,
+        ).add(Duration(days: 7 * i)).toIso8601String().substring(0, 10),
+      ),
+  ],
+);
+
 const _pinTracks = [
   Track(
     id: 'ds-talk-77',
@@ -780,6 +944,74 @@ void main() {
           await _captureView(tester, '$name-scrolled-${brightness.name}');
         }
       }
+    }, skip: !_enabled);
+
+    // The session rows (#82): a retreat's days, a teaching team, a
+    // single-teacher retreat and a dated podcast, scrolled into the list;
+    // the team retreat again at 360 dp and a larger text size.
+    testWidgets('Course rows, ${brightness.name}', (tester) async {
+      WidgetsApp.debugAllowBannerOverride = false;
+      addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
+      final overrides = [
+        for (final p in [_insight, _jhanas, _podcast])
+          packProvider(packId: p.id).overrideWith(() => _PackOf(p)),
+      ];
+      for (final (pack, name, drags) in [
+        (_insight, 'insight', const [900.0, 1500.0, 1500.0]),
+        (_jhanas, 'jhanas', const [1400.0]),
+        (_podcast, 'podcast', const [700.0]),
+      ]) {
+        final app = await LibraryTestApp.create(tester);
+        await app.pump(
+          tester,
+          _frame(brightness, PackView(key: ValueKey(pack.id), id: pack.id)),
+          overrides: overrides,
+        );
+        await _phone(tester);
+        await tester.pump(const Duration(seconds: 1));
+        for (final (i, drag) in drags.indexed) {
+          await tester.drag(
+            find.byType(CustomScrollView).first,
+            Offset(0, -drag),
+          );
+          await tester.pump(const Duration(seconds: 1));
+          expect(tester.takeException(), isNull);
+          await _captureView(
+            tester,
+            'course-rows-$name-${i + 1}-${brightness.name}',
+          );
+        }
+      }
+      // The narrowest phones at a larger text size.
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(
+        tester,
+        _frame(
+          brightness,
+          Builder(
+            builder: (context) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(1.3)),
+              child: PackView(key: const ValueKey('narrow'), id: _insight.id),
+            ),
+          ),
+        ),
+        overrides: overrides,
+      );
+      tester.view.devicePixelRatio = 3;
+      tester.view.physicalSize = const Size(1080, 2340);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.drag(
+        find.byType(CustomScrollView).first,
+        const Offset(0, -1100),
+      );
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+      await _captureView(
+        tester,
+        'course-rows-insight-360-x1.3-${brightness.name}',
+      );
     }, skip: !_enabled);
 
     // The header's Play and toggles in long languages, on the narrowest

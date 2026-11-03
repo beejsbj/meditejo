@@ -137,14 +137,30 @@ void main() {
       expect(find.text('All 12 played'), findsOneWidget);
     });
 
-    testWidgets('rows show kind, title, teacher and length', (tester) async {
+    testWidgets('rows show kind, title and length', (tester) async {
       final app = await createApp(tester);
       await app.pump(tester, const PackView(id: 'ds-retreat-500'));
 
-      expect(find.text('GUIDED MEDITATION'), findsWidgets);
-      expect(find.text('TALK'), findsWidgets);
+      // The course mixes kinds, so each row has its kind as a chip (#82).
+      expect(
+        find.descendant(
+          of: find.byType(PackItemWidget),
+          matching: find.text('Guided meditation'),
+        ),
+        findsWidgets,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(PackItemWidget),
+          matching: find.text('Talk'),
+        ),
+        findsWidgets,
+      );
       expect(_row('Long talk 1'), findsOneWidget);
-      expect(find.text('Rob Burbea · 21 min'), findsOneWidget);
+      // Rob Burbea leads the course, so his rows do not repeat him, and the
+      // day group says the date.
+      expect(find.text('21\u00A0min'), findsOneWidget);
+      expect(find.textContaining('Rob\u00A0Burbea'), findsNothing);
     });
 
     testWidgets('a long retreat is grouped by day, numbered from the first', (
