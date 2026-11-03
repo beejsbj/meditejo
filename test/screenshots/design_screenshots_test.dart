@@ -487,7 +487,7 @@ Future<YoutubeSource> _seedYoutubeTeacher(
     db: app.harness.db,
     library: app.harness.store,
     api: api,
-    detailsPause: Duration.zero,
+    detailsPause: () => Duration.zero,
   );
   await tester.runAsync(() async {
     final preview = await source.preview(

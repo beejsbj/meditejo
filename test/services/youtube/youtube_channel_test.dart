@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/services/library/import_models.dart';
@@ -85,7 +86,7 @@ void main() {
       library: store,
       api: api,
       clock: clock.call,
-      detailsPause: Duration.zero,
+      detailsPause: () => Duration.zero,
     );
   });
 
@@ -213,24 +214,220 @@ void main() {
     expect(api.videoCalls, [videoA, videoB, videoC]);
   });
 
-  test(
-    'a video YouTube will not show is marked done, not asked again',
-    () async {
-      final id = await addPlaylist();
-      api.videos.remove(videoB); // unavailable
-      api.videoCalls.clear();
+  test('a private or age-restricted video is marked done, never asked '
+      'again', () async {
+    final id = await addPlaylist();
+    api.videoFailures[videoA] = PlatformException(code: 'private');
+    api.videoFailures[videoB] = PlatformException(code: 'age-restricted');
+    api.videoCalls.clear();
 
-      await source.fillDetails(id);
-      expect(api.videoCalls, [videoA, videoB, videoC]);
-      final gone = (await db.youtubeVideo(videoB))!;
-      expect(gone.resolvedAt, isNotNull);
-      expect(gone.description, '');
+    await source.fillDetails(id);
+    expect(api.videoCalls, [videoA, videoB, videoC]);
+    for (final videoId in [videoA, videoB]) {
+      final row = (await db.youtubeVideo(videoId))!;
+      expect(row.resolvedAt, isNotNull);
+      expect(row.retryAt, isNull);
+      expect(row.description, '');
+    }
 
-      api.videoCalls.clear();
-      await source.fillDetails(id);
-      expect(api.videoCalls, isEmpty);
-    },
-  );
+    clock.advance(const Duration(days: 30));
+    api.videoCalls.clear();
+    await source.fillDetails(id);
+    expect(api.videoCalls, isEmpty);
+  });
+
+  test('any other failure waits a week, then is tried again', () async {
+    final id = await addPlaylist();
+    api.videoFailures[videoB] = PlatformException(code: 'unavailable');
+    api.videoCalls.clear();
+
+    await source.fillDetails(id);
+    final waiting = (await db.youtubeVideo(videoB))!;
+    expect(waiting.resolvedAt, isNull, reason: 'not done for good');
+    expect(
+      waiting.retryAt!.isAtSameMomentAs(
+        clock.now.add(YoutubeSource.retryAfter),
+      ),
+      isTrue,
+    );
+
+    clock.advance(const Duration(days: 6));
+    api.videoCalls.clear();
+    await source.fillDetails(id);
+    expect(api.videoCalls, isEmpty, reason: 'still waiting');
+
+    clock.advance(const Duration(days: 2));
+    api.videoFailures.clear();
+    await source.fillDetails(id);
+    expect(api.videoCalls, [videoB]);
+    final read = (await db.youtubeVideo(videoB))!;
+    expect(read.description, 'Episode two, in full.');
+    expect(read.resolvedAt, isNotNull);
+    expect(read.retryAt, isNull);
+  });
+
+  test('a channel that fails to read waits a week too', () async {
+    final id = await addPlaylist();
+    api.channels.remove(vervaeke);
+    await source.fillDetails(id);
+    final channel = (await db.youtubeChannel(vervaeke))!;
+    expect(channel.checkedAt, isNull);
+    expect(channel.retryAt, isNotNull);
+    api.channelCalls.clear();
+    await source.fillDetails(id);
+    expect(api.channelCalls, isEmpty);
+  });
+
+  test('an empty answer never replaces a description', () async {
+    final id = await addPlaylist();
+    // A summary stored earlier, then a lookup that reads no description.
+    await (db.update(db.youtubeVideos)..where((v) => v.videoId.equals(videoA)))
+        .write(const YoutubeVideosCompanion(description: Value('Kept.')));
+    api.videos[videoA] = video(
+      videoA,
+      uploader: 'John Vervaeke',
+      description: '',
+      channel: vervaeke,
+    );
+    api.channels[vervaeke] = YoutubeChannel(
+      url: channelUrl(vervaeke),
+      name: '',
+      avatar: '',
+      description: '',
+    );
+    await (db.update(db.youtubeChannels)
+          ..where((c) => c.channelId.equals(vervaeke)))
+        .write(const YoutubeChannelsCompanion(description: Value('About.')));
+
+    await source.fillDetails(id);
+
+    final row = (await db.youtubeVideo(videoA))!;
+    expect(row.description, 'Kept.');
+    expect(row.resolvedAt, isNotNull);
+    final channel = (await db.youtubeChannel(vervaeke))!;
+    expect(channel.description, 'About.');
+    expect(channel.name, 'John Vervaeke');
+    expect(channel.avatar, 'https://yt3.example/vervaeke-small.jpg');
+  });
+
+  test('background lookups stop at the budget for this run; the next run '
+      'carries on', () async {
+    final id = await addPlaylist();
+    api.videoCalls.clear();
+    source = YoutubeSource(
+      db: db,
+      library: store,
+      api: api,
+      clock: clock.call,
+      detailsPause: () => Duration.zero,
+      backgroundLookups: 2,
+    );
+
+    await source.fillDetails(id);
+    expect(api.videoCalls, [videoA, videoB]);
+    expect(api.channelCalls, isEmpty);
+    expect((await db.youtubeVideo(videoC))!.resolvedAt, isNull);
+
+    api.videoCalls.clear();
+    await source.fillDetails(id);
+    expect(api.videoCalls, isEmpty, reason: 'spent for this run');
+
+    // Opening an episode is not a background lookup.
+    expect(await source.describe(ytVideoId(videoC)), isTrue);
+    expect(api.videoCalls, [videoC]);
+
+    // A new run of the app has a new budget.
+    source = YoutubeSource(
+      db: db,
+      library: store,
+      api: api,
+      clock: clock.call,
+      detailsPause: () => Duration.zero,
+      backgroundLookups: 2,
+    );
+    api.videoCalls.clear();
+    await source.fillDetails(id);
+    expect(api.videoCalls, isEmpty, reason: 'every video is done');
+    expect(
+      api.channelCalls,
+      unorderedEquals([channelUrl(vervaeke), channelUrl(guest)]),
+    );
+  });
+
+  test('the default pause is two to five seconds, and varies', () {
+    final source = YoutubeSource(db: db, library: store, api: api);
+    final pauses = {for (var i = 0; i < 50; i++) source.detailsPause()};
+    expect(pauses.length, greaterThan(1));
+    for (final pause in pauses) {
+      expect(pause.inMilliseconds, inInclusiveRange(2000, 5000));
+    }
+    expect(source.backgroundLookups, 25);
+  });
+
+  test('opening an episode reads its description once, at once', () async {
+    final id = await addPlaylist();
+    api.videoCalls.clear();
+    final revision = source.contentRevision.value;
+
+    expect(await source.describe(ytVideoId(videoB)), isTrue);
+    expect(api.videoCalls, [videoB]);
+    expect(source.contentRevision.value, revision + 1);
+    expect(
+      (await source.track(ytVideoId(videoB))).description,
+      'Episode two, in full.',
+    );
+
+    // Already read: no second lookup.
+    expect(await source.describe(ytVideoId(videoB)), isFalse);
+    expect(api.videoCalls, [videoB]);
+    // A playlist's own description comes with the playlist.
+    expect(await source.describe(id), isFalse);
+    expect(api.videoCalls, [videoB]);
+  });
+
+  test('opening an episode while offline changes nothing and throws '
+      'nothing', () async {
+    await addPlaylist();
+    api.failure = PlatformException(code: 'network');
+    expect(await source.describe(ytVideoId(videoB)), isFalse);
+    final row = (await db.youtubeVideo(videoB))!;
+    expect(row.resolvedAt, isNull);
+    expect(row.retryAt, isNull);
+  });
+
+  test('a one-video course\'s Summary reads its video on demand', () async {
+    // Saved before descriptions were kept: nothing resolved yet.
+    await source.storePlaylist(
+      'single-$videoA',
+      playlist([item(videoA, uploader: 'John Vervaeke')]),
+    );
+    final id = ytSingleCourseId(videoA);
+    expect((await db.youtubeVideo(videoA))!.resolvedAt, isNull);
+    api.videoCalls.clear();
+
+    expect(await source.describe(id), isTrue);
+    expect(api.videoCalls, [videoA]);
+    expect((await source.pack(id)).description, 'Episode one, in full.');
+  });
+
+  test('a channel page and a fill share one channel read', () async {
+    final id = await addPlaylist();
+    // Every video already looked up, so the fill goes straight to channels.
+    await (db.update(
+      db.youtubeVideos,
+    )).write(YoutubeVideosCompanion(resolvedAt: Value(clock.now)));
+    api.channelGate = Completer<void>();
+    final fill = source.fillDetails(id);
+    await pumpEventQueue();
+    await source.channelPage('yt-channel-$vervaeke');
+    await pumpEventQueue();
+    api.channelGate!.complete();
+    await fill;
+    expect(
+      api.channelCalls.where((u) => u == channelUrl(vervaeke)),
+      hasLength(1),
+    );
+  });
 
   test('two fills of the same course share one pass', () async {
     final id = await addPlaylist();

@@ -51,6 +51,27 @@ class _TrackViewState extends ConsumerState<TrackView>
   bool _isStarting = false;
 
   @override
+  void initState() {
+    super.initState();
+    // A YouTube episode whose description was never read: read it now that
+    // its page is open (#85), and show it when it arrives.
+    if (widget.trackId.startsWith('yt-video-') &&
+        ref.read(youtubeAvailableProvider)) {
+      _describe();
+    }
+  }
+
+  Future<void> _describe() async {
+    final changed = await ref
+        .read(youtubeSourceProvider)
+        .describe(widget.trackId);
+    // A refresh keeps the page showing while the track is read again.
+    if (changed && mounted) {
+      ref.invalidate(tracksProvider(trackId: widget.trackId));
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     super.build(context);
     final trackAsyncValue = ref.watch(tracksProvider(trackId: widget.trackId));

@@ -43,8 +43,13 @@ void main() {
   late TestClock clock;
   late YoutubeSource source;
 
-  YoutubeSource newSource() =>
-      YoutubeSource(db: db, library: store, api: api, clock: clock.call);
+  YoutubeSource newSource() => YoutubeSource(
+    db: db,
+    library: store,
+    api: api,
+    clock: clock.call,
+    detailsPause: () => Duration.zero,
+  );
 
   setUp(() {
     db = memoryLibraryDb();

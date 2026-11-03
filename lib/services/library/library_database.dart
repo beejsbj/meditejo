@@ -167,6 +167,10 @@ class YoutubeVideos extends Table {
   /// YouTube says rather than a playlist's summary; null when it never was.
   DateTimeColumn get resolvedAt => dateTime().nullable()();
 
+  /// Not to be looked up again before this, after a lookup that failed in
+  /// a way that may pass (the extractor could not read it); null otherwise.
+  DateTimeColumn get retryAt => dateTime().nullable()();
+
   @override
   Set<Column> get primaryKey => {videoId};
 }
@@ -204,6 +208,10 @@ class YoutubeChannels extends Table {
   TextColumn get avatar => text().withDefault(const Constant(''))();
   TextColumn get description => text().withDefault(const Constant(''))();
   DateTimeColumn get checkedAt => dateTime().nullable()();
+
+  /// As for a video: not to be read again before this, after a failure that
+  /// may pass.
+  DateTimeColumn get retryAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {channelId};
@@ -355,6 +363,7 @@ class LibraryDatabase extends _$LibraryDatabase {
         for (final (table, column) in <(TableInfo, GeneratedColumn)>[
           (youtubeVideos, youtubeVideos.channelId),
           (youtubeVideos, youtubeVideos.resolvedAt),
+          (youtubeVideos, youtubeVideos.retryAt),
           (youtubePlaylists, youtubePlaylists.description),
           (youtubePlaylists, youtubePlaylists.channelId),
         ]) {
@@ -364,6 +373,17 @@ class LibraryDatabase extends _$LibraryDatabase {
           }
         }
         await m.createTable(youtubeChannels);
+        // A video that already has a description was resolved by an
+        // earlier version: it is not looked up again, so the first launch
+        // after the upgrade does not re-read the whole library.
+        if (await _hasTable(youtubeVideos.actualTableName)) {
+          await customUpdate(
+            "UPDATE youtube_videos SET resolved_at = ? "
+            "WHERE description <> '' AND resolved_at IS NULL",
+            variables: [Variable<DateTime>(DateTime.now())],
+            updates: {youtubeVideos},
+          );
+        }
       }
     },
   );

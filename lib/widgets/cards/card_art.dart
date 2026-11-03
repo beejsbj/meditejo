@@ -36,6 +36,7 @@ class CardArt extends StatelessWidget {
         (subject.id.startsWith('yt-video-') ||
             subject.id.startsWith('yt-playlist-'))) {
       final cover = _cover();
+      if (NoChannelAvatars.of(context)) return cover;
       return Consumer(
         builder: (context, ref, _) {
           final avatar =
@@ -91,4 +92,16 @@ class CardArt extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Below this, YouTube cards leave out their channel's picture: on that
+/// channel's own page every card would carry the same face.
+class NoChannelAvatars extends InheritedWidget {
+  const NoChannelAvatars({super.key, required super.child});
+
+  static bool of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<NoChannelAvatars>() != null;
+
+  @override
+  bool updateShouldNotify(NoChannelAvatars oldWidget) => false;
 }

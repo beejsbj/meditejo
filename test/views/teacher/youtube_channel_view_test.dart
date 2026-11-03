@@ -51,7 +51,7 @@ Future<(DharmaSeedTestApp, YoutubeSource, FakeYoutubeApi)> _setUp(
     db: app.libraryDb,
     library: app.library,
     api: api,
-    detailsPause: Duration.zero,
+    detailsPause: () => Duration.zero,
   );
   await tester.runAsync(() async {
     final preview = await source.preview(
@@ -82,7 +82,19 @@ void main() {
     expect(find.byType(YoutubeChannelView), findsOneWidget);
     expect(find.text('John Vervaeke'), findsWidgets);
     expect(find.text('Cognitive science, wisdom and meaning.'), findsOneWidget);
-    expect(find.text('1 course · 0 sessions'), findsOneWidget);
+    expect(find.text('1 course'), findsOneWidget, reason: 'no zero counts');
+    // The channel's own page does not put its face on every card.
+    expect(
+      find.byWidgetPredicate(
+        (w) =>
+            w is NetworkImageWidget &&
+            w.url == 'https://yt3.example/vervaeke.jpg' &&
+            w.art is CoverArt &&
+            (w.art! as CoverArt).kind == ArtCoverKind.teacher &&
+            (w.art! as CoverArt).id == 'https://yt3.example/vervaeke.jpg',
+      ),
+      findsNothing,
+    );
     expect(find.byKey(const ValueKey('channel_open_youtube')), findsOneWidget);
     expect(find.text('Awakening from the Meaning Crisis'), findsOneWidget);
     expect(find.text('John Vervaeke · YouTube'), findsOneWidget);

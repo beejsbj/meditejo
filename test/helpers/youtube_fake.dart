@@ -90,6 +90,9 @@ class FakeYoutubeApi extends YoutubeExtractorApi {
   /// Thrown by every call when set.
   Object? failure;
 
+  /// Thrown when resolving these videos, by id.
+  final Map<String, Object> videoFailures = {};
+
   /// When set, audio resolution waits on this before answering.
   Completer<void>? audioGate;
 
@@ -104,12 +107,16 @@ class FakeYoutubeApi extends YoutubeExtractorApi {
   /// When set, video resolution waits on this before answering.
   Completer<void>? videoGate;
 
+  /// When set, channel resolution waits on this before answering.
+  Completer<void>? channelGate;
+
   @override
   Future<YoutubeVideo> resolveVideo(String urlOrId) async {
     videoCalls.add(urlOrId);
     await videoGate?.future;
     if (failure case final error?) throw error;
     final id = urlOrId.contains('v=') ? urlOrId.split('v=').last : urlOrId;
+    if (videoFailures[id] case final error?) throw error;
     return videos[id] ?? (throw PlatformException(code: 'unavailable'));
   }
 
@@ -133,6 +140,7 @@ class FakeYoutubeApi extends YoutubeExtractorApi {
   @override
   Future<YoutubeChannel> resolveChannel(String url) async {
     channelCalls.add(url);
+    await channelGate?.future;
     if (failure case final error?) throw error;
     final key = url.split('/').last;
     return channels[key] ?? (throw PlatformException(code: 'unavailable'));

@@ -11,6 +11,7 @@ import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
 import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 import 'package:medito/widgets/attribution_notice.dart';
+import 'package:medito/widgets/cards/card_art.dart';
 import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/section_header.dart';
 import 'package:medito/widgets/widgets.dart';
@@ -81,71 +82,80 @@ class _YoutubeChannelViewState extends ConsumerState<YoutubeChannelView> {
     final theme = Theme.of(context);
     final channel = page.channel;
     final about = channel.bio.trim();
-    return CustomScrollView(
-      controller: _scrollController,
-      slivers: [
-        MeditoAppBarLarge(
-          scrollController: _scrollController,
-          title: channel.name,
-          hasLeading: false,
-          coverUrl: channel.photoUrl,
-          art: teacherArt(channel.id),
-        ),
-        SliverToBoxAdapter(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: Text(
-                  '${l10n.teacherCourseCount(page.courses.length)} · '
-                  '${l10n.librarySessions(page.sessions.length)}',
-                  key: const ValueKey('channel_counts'),
-                  style: theme.textTheme.titleMedium,
-                ),
-              ),
-              if (channel.pageUrl.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                  child: OutlinedButton(
-                    key: const ValueKey('channel_open_youtube'),
-                    onPressed: () => launchURLInBrowser(channel.pageUrl),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 44),
-                      shape: const StadiumBorder(),
+    final counts = [
+      if (page.courses.isNotEmpty) l10n.teacherCourseCount(page.courses.length),
+      if (page.sessions.isNotEmpty) l10n.librarySessions(page.sessions.length),
+    ];
+    // Every card here is the channel's own: no need for its face on each.
+    return NoChannelAvatars(
+      child: CustomScrollView(
+        controller: _scrollController,
+        slivers: [
+          MeditoAppBarLarge(
+            scrollController: _scrollController,
+            title: channel.name,
+            hasLeading: false,
+            coverUrl: channel.photoUrl,
+            art: teacherArt(channel.id),
+          ),
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (counts.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    child: Text(
+                      counts.join(' · '),
+                      key: const ValueKey('channel_counts'),
+                      style: theme.textTheme.titleMedium,
                     ),
-                    child: Text(l10n.youtubeChannelOpen),
+                  ),
+                if (channel.pageUrl.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                    child: OutlinedButton(
+                      key: const ValueKey('channel_open_youtube'),
+                      onPressed: () => launchURLInBrowser(channel.pageUrl),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 44),
+                        shape: const StadiumBorder(),
+                      ),
+                      child: Text(l10n.youtubeChannelOpen),
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: SelectableText(
+                    about.isEmpty ? l10n.youtubeChannelNoAbout : about,
+                    style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
                   ),
                 ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: SelectableText(
-                  about.isEmpty ? l10n.youtubeChannelNoAbout : about,
-                  style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        if (page.courses.isNotEmpty) ...[
-          SliverToBoxAdapter(child: SectionHeader(title: l10n.teacherCourses)),
-          const SliverPadding(padding: EdgeInsets.only(top: padding8)),
-          CourseRowsSliver(courses: page.courses),
-        ],
-        if (page.sessions.isNotEmpty) ...[
+          if (page.courses.isNotEmpty) ...[
+            SliverToBoxAdapter(
+              child: SectionHeader(title: l10n.teacherCourses),
+            ),
+            const SliverPadding(padding: EdgeInsets.only(top: padding8)),
+            CourseRowsSliver(courses: page.courses),
+          ],
+          if (page.sessions.isNotEmpty) ...[
+            SliverToBoxAdapter(
+              child: SectionHeader(title: l10n.courseSessionsTab),
+            ),
+            const SliverPadding(padding: EdgeInsets.only(top: padding8)),
+            SessionRowsSliver(items: page.sessions),
+          ],
           SliverToBoxAdapter(
-            child: SectionHeader(title: l10n.courseSessionsTab),
+            child: AttributionNotice(
+              attribution: youtubeAttribution(channel.pageUrl, channel.name),
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+            ),
           ),
-          const SliverPadding(padding: EdgeInsets.only(top: padding8)),
-          SessionRowsSliver(items: page.sessions),
         ],
-        SliverToBoxAdapter(
-          child: AttributionNotice(
-            attribution: youtubeAttribution(channel.pageUrl, channel.name),
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

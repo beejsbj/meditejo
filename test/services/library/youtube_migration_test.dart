@@ -121,7 +121,11 @@ void main() {
     expect(a.description, 'Resolved before the upgrade.');
     expect(a.durationSeconds, 1800);
     expect(a.channelId, '');
-    expect(a.resolvedAt, isNull);
+    // Already described: counted as looked up, so the first launch does not
+    // read the whole library again.
+    expect(a.resolvedAt, isNotNull);
+    expect(a.retryAt, isNull);
+    expect((await db.youtubeVideo(videoB))!.resolvedAt, isNull);
     final list = (await db.youtubePlaylist(playlistOne))!;
     expect(list.title, 'Awakening from the Meaning Crisis');
     expect(list.videoIds, '["$videoA","$videoB"]');
@@ -142,12 +146,17 @@ void main() {
       db: db,
       library: store,
       api: api,
-      detailsPause: Duration.zero,
+      detailsPause: () => Duration.zero,
     );
     final pack = await source.pack('yt-playlist-$playlistOne');
     expect(pack.items, hasLength(2));
     expect(pack.teacher, isNull, reason: 'no channel known yet');
     await source.fillDetails('yt-playlist-$playlistOne');
+    expect(api.videoCalls, [videoB], reason: 'only the undescribed one');
+    expect(
+      (await db.youtubeVideo(videoA))!.description,
+      'Resolved before the upgrade.',
+    );
     final b = (await db.youtubeVideo(videoB))!;
     expect(b.description, 'Episode two.');
     expect(b.channelId, channel);

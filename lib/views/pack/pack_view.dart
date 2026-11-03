@@ -375,7 +375,16 @@ class _PackViewState extends ConsumerState<PackView>
           child: MeditoSegmentedTabs(
             labels: [for (final tab in tabs) tab.$1],
             selectedIndex: index,
-            onChanged: (i) => setState(() => _tab = i),
+            onChanged: (i) {
+              setState(() => _tab = i);
+              // A one-video YouTube course's Summary is its video's
+              // description: read it now if it never was (#85).
+              if (tabs[i].$1 == l10n.courseSummaryTab &&
+                  pack.id.startsWith('yt-') &&
+                  ref.read(youtubeAvailableProvider)) {
+                ref.read(youtubeSourceProvider).describe(pack.id);
+              }
+            },
           ),
         ),
       ...tabs[index].$2(),

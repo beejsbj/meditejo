@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
@@ -71,8 +72,11 @@ class YoutubeSource
     required this.api,
     DateTime Function()? clock,
     this.sessionCourse,
-    this.detailsPause = const Duration(milliseconds: 500),
-  }) : _clock = clock ?? DateTime.now;
+    Duration Function()? detailsPause,
+    this.backgroundLookups = 25,
+  }) : _clock = clock ?? DateTime.now,
+       detailsPause = detailsPause ?? _jitteredPause,
+       _budget = backgroundLookups;
 
   final LibraryDatabase db;
   final LibraryStore library;
@@ -89,10 +93,26 @@ class YoutubeSource
   final _refreshing = <String, Future<bool>>{};
   final _refreshErrors = <String, YoutubeUnavailableError>{};
   final _filling = <String, Future<bool>>{};
+  final _videoReads = <String, Future<bool>>{};
+  final _channelReads = <String, Future<bool>>{};
 
-  /// The wait between two lookups while filling in details, so a long
-  /// playlist does not reach YouTube as a burst.
-  final Duration detailsPause;
+  /// The wait between two background lookups, so a long playlist does not
+  /// reach YouTube as a burst: two to five seconds, never the same twice.
+  final Duration Function() detailsPause;
+
+  /// How many background lookups (videos and channels) one run of the app
+  /// may make; the rest wait for the next launch, or for the user to open
+  /// the item. Lookups the user asks for by opening a page are not counted.
+  final int backgroundLookups;
+  int _budget;
+
+  /// A lookup that failed in a way that may pass is not tried again before
+  /// this long.
+  static const retryAfter = Duration(days: 7);
+
+  static final _random = Random();
+  static Duration _jitteredPause() =>
+      Duration(milliseconds: 2000 + _random.nextInt(3001));
 
   /// Refresh outcomes, including failures that leave the library unchanged.
   /// Listen for UI state; do not reopen an empty pack on a failure notification.
@@ -538,9 +558,10 @@ class YoutubeSource
 
   /// Fills in what a playlist's rows leave out: each video's own description
   /// and each channel's picture and About text. One lookup at a time, with
-  /// [detailsPause] between them. Being offline or rate-limited stops it
-  /// until the next try; a video or channel YouTube will not show is marked
-  /// done, so it is not asked about again. Never throws.
+  /// [detailsPause] between them, and no more than [backgroundLookups] in a
+  /// run of the app. Being offline or rate-limited stops it until the next
+  /// try; a video or channel YouTube will not show (private, age-restricted)
+  /// is marked done; any other failure waits [retryAfter]. Never throws.
   ///
   /// [id] is a saved course or single. True when anything changed.
   Future<bool> fillDetails(String id) {
@@ -554,11 +575,16 @@ class YoutubeSource
   Future<bool> _fillDetails(String id) async {
     var changed = false;
     var asked = false;
-    Future<void> pace() async {
-      if (asked && detailsPause > Duration.zero) {
-        await Future<void>.delayed(detailsPause);
+    // False once this run's budget is spent.
+    Future<bool> next() async {
+      if (_budget <= 0) return false;
+      _budget--;
+      if (asked) {
+        final pause = detailsPause();
+        if (pause > Duration.zero) await Future<void>.delayed(pause);
       }
       asked = true;
+      return true;
     }
 
     try {
@@ -579,43 +605,17 @@ class YoutubeSource
       for (final videoId in videoIds.toSet()) {
         final row = await db.youtubeVideo(videoId);
         if (row == null) continue;
-        if (row.resolvedAt != null) {
-          if (row.channelId.isNotEmpty) channels.add(row.channelId);
-          continue;
+        if (_due(row.resolvedAt, row.retryAt)) {
+          if (!await next()) break;
+          changed = await _describeVideo(row) || changed;
         }
-        await pace();
-        YoutubeVideo? fresh;
-        try {
-          fresh = await api.resolveVideo(videoId);
-        } catch (e) {
-          if (_stopsLookups(e)) rethrow;
-        }
-        final channel = fresh == null
-            ? null
-            : await _noteChannel(
-                fresh.channelUrl,
-                fresh.uploader,
-                fresh.channelAvatar,
-              );
-        await (db.update(
-          db.youtubeVideos,
-        )..where((v) => v.videoId.equals(videoId))).write(
-          YoutubeVideosCompanion(
-            description: fresh == null
-                ? const Value.absent()
-                : Value(fresh.description),
-            channelId: channel == null ? const Value.absent() : Value(channel),
-            resolvedAt: Value(_clock()),
-          ),
-        );
-        final known = channel ?? row.channelId;
+        final known = (await db.youtubeVideo(videoId))?.channelId ?? '';
         if (known.isNotEmpty) channels.add(known);
-        changed = true;
       }
       for (final key in channels) {
         final row = await db.youtubeChannel(key);
-        if (row == null || row.checkedAt != null) continue;
-        await pace();
+        if (row == null || !_due(row.checkedAt, row.retryAt)) continue;
+        if (!await next()) break;
         changed = await _readChannel(row) || changed;
       }
     } catch (e) {
@@ -625,34 +625,140 @@ class YoutubeSource
     return changed;
   }
 
-  /// Offline and rate-limited apply to every lookup after this one too.
-  static bool _stopsLookups(Object error) {
-    final reason = _failure(error).reason;
-    return reason == YoutubeFailureReason.offline ||
-        reason == YoutubeFailureReason.rateLimited;
+  /// Never looked up, and not waiting out an earlier failure.
+  bool _due(DateTime? doneAt, DateTime? retryAt) =>
+      doneAt == null && (retryAt == null || !retryAt.isAfter(_clock()));
+
+  /// Looks up one video's description now, because its page (an episode, or
+  /// a one-video course's Summary) was opened. Outside the background
+  /// budget and without a pause; does nothing for a video already looked up
+  /// or waiting out a failure. Never throws. True when anything changed.
+  ///
+  /// [id] is `yt-video-…` or a one-video course `yt-playlist-single-…`. A
+  /// playlist's own description comes with the playlist, so a playlist has
+  /// nothing to look up here.
+  Future<bool> describe(String id) {
+    final String videoId;
+    if (id.startsWith('yt-video-')) {
+      videoId = id.substring('yt-video-'.length);
+    } else if (id.startsWith('yt-playlist-single-')) {
+      videoId = id.substring('yt-playlist-single-'.length);
+    } else {
+      return Future.value(false);
+    }
+    return () async {
+      try {
+        // A background fill already reading it: wait for that one.
+        final active = _videoReads[videoId];
+        if (active != null) return await active;
+        final row = await db.youtubeVideo(videoId);
+        if (row == null || !_due(row.resolvedAt, row.retryAt)) return false;
+        final changed = await _describeVideo(row);
+        if (changed) contentRevision.value++;
+        return changed;
+      } catch (e) {
+        AppLogger.d('YOUTUBE', 'Description not read for now: $e');
+        return false;
+      }
+    }();
   }
 
-  /// Reads a channel's own page into its row. Throws when lookups should
-  /// stop for now.
-  Future<bool> _readChannel(YoutubeChannelRow row) async {
-    YoutubeChannel? fresh;
+  /// Offline and rate-limited apply to every lookup after this one too.
+  static bool _stopsLookups(YoutubeUnavailableError failure) =>
+      failure.reason == YoutubeFailureReason.offline ||
+      failure.reason == YoutubeFailureReason.rateLimited;
+
+  /// YouTube will not show it to us, now or later.
+  static bool _isFinal(YoutubeUnavailableError failure) =>
+      failure.reason == YoutubeFailureReason.private ||
+      failure.reason == YoutubeFailureReason.ageRestricted;
+
+  /// Resolves [row]'s video into its row, sharing a lookup already under
+  /// way. Throws when lookups should stop for now. True when the row changed.
+  Future<bool> _describeVideo(YoutubeVideoRow row) {
+    final videoId = row.videoId;
+    return _videoReads[videoId] ??= _describeVideoNow(videoId).whenComplete(() {
+      _videoReads.remove(videoId);
+    });
+  }
+
+  Future<bool> _describeVideoNow(String videoId) async {
+    final YoutubeVideo fresh;
+    try {
+      fresh = await api.resolveVideo(videoId);
+    } catch (e) {
+      final failure = _failure(e);
+      if (_stopsLookups(failure)) throw failure;
+      await (db.update(
+        db.youtubeVideos,
+      )..where((v) => v.videoId.equals(videoId))).write(
+        _isFinal(failure)
+            ? YoutubeVideosCompanion(resolvedAt: Value(_clock()))
+            : YoutubeVideosCompanion(retryAt: Value(_clock().add(retryAfter))),
+      );
+      return true;
+    }
+    final channel = await _noteChannel(
+      fresh.channelUrl,
+      fresh.uploader,
+      fresh.channelAvatar,
+    );
+    await (db.update(
+      db.youtubeVideos,
+    )..where((v) => v.videoId.equals(videoId))).write(
+      YoutubeVideosCompanion(
+        // An empty answer never replaces a real description.
+        description: fresh.description.isEmpty
+            ? const Value.absent()
+            : Value(fresh.description),
+        channelId: channel == null ? const Value.absent() : Value(channel),
+        resolvedAt: Value(_clock()),
+        retryAt: const Value(null),
+      ),
+    );
+    return true;
+  }
+
+  /// Reads a channel's own page into its row, sharing a read already under
+  /// way. Throws when lookups should stop for now.
+  Future<bool> _readChannel(YoutubeChannelRow row) {
+    final key = row.channelId;
+    return _channelReads[key] ??= _readChannelNow(row).whenComplete(() {
+      _channelReads.remove(key);
+    });
+  }
+
+  Future<bool> _readChannelNow(YoutubeChannelRow row) async {
+    final YoutubeChannel fresh;
     try {
       fresh = await api.resolveChannel(row.url);
     } catch (e) {
-      if (_stopsLookups(e)) rethrow;
+      final failure = _failure(e);
+      if (_stopsLookups(failure)) throw failure;
+      await (db.update(
+        db.youtubeChannels,
+      )..where((c) => c.channelId.equals(row.channelId))).write(
+        _isFinal(failure)
+            ? YoutubeChannelsCompanion(checkedAt: Value(_clock()))
+            : YoutubeChannelsCompanion(
+                retryAt: Value(_clock().add(retryAfter)),
+              ),
+      );
+      return true;
     }
-    final name = fresh?.name ?? '';
-    final avatar = fresh?.avatar ?? '';
     await (db.update(
       db.youtubeChannels,
     )..where((c) => c.channelId.equals(row.channelId))).write(
       YoutubeChannelsCompanion(
-        name: name.isEmpty ? const Value.absent() : Value(name),
-        avatar: avatar.isEmpty ? const Value.absent() : Value(avatar),
-        description: fresh == null
+        name: fresh.name.isEmpty ? const Value.absent() : Value(fresh.name),
+        avatar: fresh.avatar.isEmpty
+            ? const Value.absent()
+            : Value(fresh.avatar),
+        description: fresh.description.isEmpty
             ? const Value.absent()
             : Value(fresh.description),
         checkedAt: Value(_clock()),
+        retryAt: const Value(null),
       ),
     );
     return true;
@@ -827,7 +933,9 @@ class YoutubeSource
     final key = ytChannelKeyOf(teacherId);
     final row = await db.youtubeChannel(key);
     if (row == null) return null;
-    if (row.checkedAt == null) {
+    // A read already under way (from a fill, or an earlier open) is the one
+    // that will tell the page.
+    if (_due(row.checkedAt, row.retryAt) && !_channelReads.containsKey(key)) {
       unawaited(
         _readChannel(row)
             .then((changed) {
