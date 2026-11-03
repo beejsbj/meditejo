@@ -78,6 +78,11 @@ class TrackView extends ConsumerStatefulWidget {
   ConsumerState<TrackView> createState() => _TrackViewState();
 }
 
+/// The course line's chevron: a no-break space and "›", so it stays on the
+/// line of the course name's last word.
+@visibleForTesting
+const courseChevron = '\u00A0›';
+
 /// Who leads the session, when their page is known.
 typedef _Teacher = ({String id, String name, String photoUrl});
 
@@ -355,19 +360,19 @@ class _TrackViewState extends ConsumerState<TrackView>
               ),
               const SizedBox(width: 8),
               Flexible(
-                // The chevron follows the last word, joined to it, so a
-                // long course name that wraps keeps it beside the words:
-                // never alone on a line, never out at the edge.
+                // The chevron is text, joined to the last word by a
+                // no-break space, so a long course name that wraps keeps it
+                // beside the words: never alone on a line, never out at the
+                // edge.
                 child: Text.rich(
                   TextSpan(
-                    text: '$label\u2060',
+                    text: label,
                     children: [
-                      WidgetSpan(
-                        alignment: PlaceholderAlignment.middle,
-                        child: Icon(
-                          Icons.chevron_right_rounded,
-                          size: 20,
+                      TextSpan(
+                        text: courseChevron,
+                        style: style?.copyWith(
                           color: muted,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],

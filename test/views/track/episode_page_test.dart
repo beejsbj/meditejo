@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/types/type_constants.dart';
@@ -338,8 +339,8 @@ void main() {
       expect(find.byKey(const ValueKey('course_share')), findsNothing);
     });
 
-    testWidgets('the course line is a full tap target, its chevron on the '
-        'last line at a large text size', (tester) async {
+    testWidgets('the course line is a full tap target; its chevron never '
+        'starts a line of its own', (tester) async {
       await _pump(
         tester,
         saved: {_courseId},
@@ -352,31 +353,36 @@ void main() {
           ),
         ),
       );
-      // "In Vervaeke Series" wraps after "Vervaeke" here (the test font's
-      // letters are a square each).
-      _listed = _course.copyWith(title: 'Vervaeke Series');
-      ProviderScope.containerOf(
-        tester.element(find.byType(TrackView)),
-      ).invalidate(packProvider(packId: _courseId));
       tester.view.physicalSize = const Size(360, 1200);
       await DharmaSeedTestApp.settle(tester);
       final line = find.byKey(const ValueKey('track_course'));
       expect(tester.getSize(line).height, greaterThanOrEqualTo(48));
-      final words = tester.getRect(
-        find.descendant(of: line, matching: find.byType(Text)),
+      RenderParagraph paragraph() => tester.renderObject<RenderParagraph>(
+        find.descendant(of: line, matching: find.byType(RichText)).last,
       );
-      final chevron = tester.getRect(
-        find.descendant(
-          of: line,
-          matching: find.byIcon(Icons.chevron_right_rounded),
-        ),
+      // The test font's letters are all one width: a course name that fills
+      // the first line exactly ("In IIIIIII Day"), so a breakable chevron
+      // would fall to the next line alone.
+      final letter = paragraph()
+          .getOffsetForCaret(const TextPosition(offset: 1), Rect.zero)
+          .dx;
+      final perLine = (paragraph().size.width / letter).floor();
+      final title = '${'I' * (perLine - 7)} Day';
+      _listed = _course.copyWith(title: title);
+      ProviderScope.containerOf(
+        tester.element(find.byType(TrackView)),
+      ).invalidate(packProvider(packId: _courseId));
+      await DharmaSeedTestApp.settle(tester);
+      final text = paragraph().text.toPlainText();
+      expect(text, 'In $title$courseChevron');
+      expect(text.length - courseChevron.length, perLine);
+      final chevron = paragraph().getOffsetForCaret(
+        TextPosition(offset: text.length - 1),
+        Rect.zero,
       );
-      final letter = 16 * 1.3;
-      // Two lines, the chevron on the second, after "Series" rather than
-      // alone at the start of a line of its own.
-      expect(words.height, greaterThan(letter * 1.5));
-      expect(chevron.center.dy, greaterThan(words.center.dy));
-      expect(chevron.left, greaterThan(words.left + letter * 5));
+      // On the second line, after "Day": not at the start of a line.
+      expect(chevron.dy, greaterThan(0));
+      expect(chevron.dx, greaterThan(letter * 2));
       expect(tester.takeException(), isNull);
     });
 

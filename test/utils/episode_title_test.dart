@@ -164,18 +164,49 @@ void main() {
           ['Understanding Dukkha - Meditation', 'Understanding Dukkha - Talk'],
           'Buddhist Studies',
         ),
-        (
-          [
-            'Liberation Through Kindness - Q & A Session',
-            'Liberation Through Kindness - Guided Meditation',
-          ],
-          'Liberation Through Kindness',
-        ),
       ]) {
         for (final title in titles) {
           expect(clean(title, titles, course: course), title);
         }
       }
+    });
+
+    test('a name may always go, even leaving a kind word', () {
+      final village = [
+        'Walking Meditation | Plum Village',
+        'How to Sit | Plum Village',
+      ];
+      expect(
+        clean(
+          village[0],
+          village,
+          course: 'Mindful Moments',
+          teacher: 'Plum Village',
+        ),
+        'Walking Meditation',
+      );
+      expect(
+        clean(
+          village[1],
+          village,
+          course: 'Mindful Moments',
+          teacher: 'Plum Village',
+        ),
+        'How to Sit',
+      );
+      // Real: "Meditation Day - Liberation Through Kindness".
+      final day = [
+        'Liberation Through Kindness - Q & A Session',
+        'Liberation Through Kindness - Guided Meditation',
+      ];
+      expect(
+        clean(
+          day[0],
+          day,
+          course: 'Meditation Day - Liberation Through Kindness',
+        ),
+        'Q & A Session',
+      );
     });
 
     test('never drops a kind of session (real)', () {

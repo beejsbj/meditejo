@@ -33,15 +33,22 @@ String episodeTitle(
     for (final n in [courseTitle, teacher])
       if (_norm(n ?? '').isNotEmpty) _norm(n!),
   ];
-  // A front that is not the course's or teacher's name is often the
-  // series' own ("Learning How To Live: Part 1" in a retreat named for
-  // something else): it stays. A repeated tail in a long course is noise.
-  bool mayDrop(String words, {required bool front}) {
+  // A name may always go: the page says it elsewhere. A front that is not
+  // one is often the series' own ("Learning How To Live: Part 1" in a
+  // retreat named for something else): it stays. A repeated tail in a long
+  // course is noise, unless it is a kind of session.
+  _Cut cutOf(String words, {required bool front}) {
     final dropped = _norm(words);
-    if (dropped.isEmpty || _isKind(dropped)) return false;
-    if (names.any((name) => _mostly(dropped, name))) return true;
-    return !front && others.length >= _noiseAt;
+    if (dropped.isEmpty) return _Cut.none;
+    if (names.any((name) => _mostly(dropped, name))) return _Cut.name;
+    if (_isKind(dropped)) return _Cut.none;
+    return !front && others.length >= _noiseAt ? _Cut.noise : _Cut.none;
   }
+
+  // Whether anything but a name was cut: then what is left must be more
+  // than a kind word ("Talk"). Cutting only a name is always safe
+  // ("Walking Meditation | Plum Village" by Plum Village).
+  var cutNoise = false;
 
   var start = 0;
   var end = whole.length;
@@ -49,17 +56,23 @@ String episodeTitle(
     final prefix = _commonPrefix(others);
     if (prefix.isNotEmpty && whole.startsWith(prefix)) {
       final cut = _lastSeparatorWithin(whole, prefix.length);
-      if (cut != null && mayDrop(whole.substring(0, cut.start), front: true)) {
-        start = cut.end;
+      final kind = cut == null
+          ? _Cut.none
+          : cutOf(whole.substring(0, cut.start), front: true);
+      if (kind != _Cut.none) {
+        start = cut!.end;
+        cutNoise = kind == _Cut.noise;
       }
     }
     final suffix = _commonSuffix(others);
     if (suffix.isNotEmpty && whole.endsWith(suffix)) {
       final cut = _firstSeparatorFrom(whole, whole.length - suffix.length);
-      if (cut != null &&
-          cut.start > start &&
-          mayDrop(whole.substring(cut.end), front: false)) {
-        end = cut.start;
+      final kind = cut == null || cut.start <= start
+          ? _Cut.none
+          : cutOf(whole.substring(cut.end), front: false);
+      if (kind != _Cut.none) {
+        end = cut!.start;
+        cutNoise = cutNoise || kind == _Cut.noise;
       }
     }
   }
@@ -79,12 +92,13 @@ String episodeTitle(
   if (start == 0 && end == whole.length) return whole;
   if (end <= start) return whole;
   final rest = whole.substring(start, end).trim();
-  // "Day 7" is a title; "7", "Talk" or "(Note" is not, nor what is left of
-  // a title that was all the course's name ("Releasing, Receiving and
-  // Awakening Our Life - A Dana Retreat" in that retreat).
+  // "Day 7" is a title; "7" or "(Note" is not, nor "Talk" once more than a
+  // name was cut, nor what is left of a title that was all the course's
+  // name ("Releasing, Receiving and Awakening Our Life - A Dana Retreat" in
+  // that retreat).
   final course = _norm(courseTitle ?? '');
   if (rest.replaceAll(RegExp(r'[^\p{L}]', unicode: true), '').length < 2 ||
-      _isKind(_norm(rest)) ||
+      (cutNoise && _isKind(_norm(rest))) ||
       !_balanced(rest) ||
       (course.isNotEmpty && _mostly(_norm(rest), course))) {
     return whole;
@@ -95,6 +109,10 @@ String episodeTitle(
 /// Below this many episodes a course's repeated words are only cut when
 /// they are its name or its teacher's.
 const _noiseAt = 5;
+
+/// What a shared part of the titles is, if it may go: a name (the course's
+/// or the teacher's) or, at the end of a long course's titles, noise.
+enum _Cut { none, name, noise }
 
 /// A separator between a title's parts: a colon or bar (also fullwidth),
 /// a dot, an em dash, or a hyphen or en dash with spaces round it. Not the
