@@ -696,6 +696,37 @@ void main() {
       );
     });
 
+    testWidgets('Done closes the drawer even with the mix panel open; '
+        'back folds it first', (tester) async {
+      phone(tester);
+      await pump(tester);
+      await open(tester, SoundscapeSessionKind.practice);
+      await tapPreset(tester, 'starter-night');
+      await tester.tap(find.byKey(const ValueKey('sounds_mix_toggle')).last);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('sounds_volume')),
+        findsOneWidget,
+        reason: 'the mix panel is open in the drawer',
+      );
+
+      // Back folds the panel, and only then leaves.
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(SoundsView), findsNWidgets(2));
+      expect(find.byKey(const ValueKey('sounds_volume')), findsNothing);
+
+      // Done leaves whatever is open.
+      await tester.tap(find.byKey(const ValueKey('sounds_mix_toggle')).last);
+      await tester.pumpAndSettle();
+      await done(tester);
+      expect(find.byType(SoundsView), findsOneWidget);
+      expect(
+        setting(SoundscapeSessionKind.practice).selection,
+        const SoundscapeSelection.preset('starter-night'),
+      );
+    });
+
     testWidgets('a mix of layers is named by its sounds', (tester) async {
       phone(tester);
       await pump(tester);

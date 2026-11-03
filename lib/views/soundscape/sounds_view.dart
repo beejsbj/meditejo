@@ -189,7 +189,7 @@ class SoundsViewState extends ConsumerState<SoundsView>
                   padding: const EdgeInsetsDirectional.only(end: 16),
                   child: FilledButton(
                     key: const ValueKey('sounds_chooser_done'),
-                    onPressed: () => Navigator.of(context).maybePop(),
+                    onPressed: () => Navigator.of(context).pop(),
                     child: Text(l10n.soundsDone),
                   ),
                 ),
