@@ -12,22 +12,55 @@ import 'package:medito/widgets/art/engine/place_figures.dart';
 import 'package:medito/widgets/art/engine/practice_figures_r1a.dart';
 import 'package:medito/widgets/art/engine/practice_figures_r1b.dart';
 import 'package:medito/widgets/art/engine/practice_figures_r2.dart';
+import 'package:medito/widgets/art/engine/practice_figures_r3a.dart';
+import 'package:medito/widgets/art/engine/practice_figures_r3b.dart';
+import 'package:medito/widgets/art/engine/practice_library_r2a.dart';
+import 'package:medito/widgets/art/engine/practice_library_r2b.dart';
+import 'package:medito/widgets/art/engine/practice_library_r2c.dart';
 import 'package:medito/widgets/art/engine/registry.dart';
 
-/// The practices' figures (ported from docs/fork/design/practices/): each
-/// practice's art builds and draws, moving and still, in light and dark.
+/// The practices' figures (ported from docs/fork/design/practices/, rounds
+/// 1–3) and the figure library: each builds and draws, moving and still.
 void main() {
   final catalogue = CategoryCatalogue.parse(
     File(categoriesAsset).readAsStringSync(),
   );
+  final practice = {
+    ...practiceFiguresR1a,
+    ...practiceFiguresR1b,
+    ...practiceFiguresR2,
+    ...practiceFiguresR3a,
+    ...practiceFiguresR3b,
+    ...practiceLibraryR2a,
+    ...practiceLibraryR2b,
+    ...practiceLibraryR2c,
+  };
+  final roles = artRoles(IdentityPalettes.fallback);
+
+  void drawAll(ArtComposition comp) {
+    for (final (t, still) in [
+      (0.0, false),
+      (3.7, false),
+      (14.2, false),
+      (61.0, false),
+      (0.0, true),
+    ]) {
+      final recorder = ui.PictureRecorder();
+      paintArt(
+        Canvas(recorder),
+        const Size(170, 148),
+        comp,
+        roles,
+        t,
+        still: still,
+      );
+      recorder.endRecording().dispose();
+    }
+  }
 
   test('the practice figures are in the registry and shadow nothing', () {
-    final practice = {
-      ...practiceFiguresR1a,
-      ...practiceFiguresR1b,
-      ...practiceFiguresR2,
-    };
-    expect(practice, hasLength(29));
+    // 29 from rounds 1 and 2, 7 picks from round 3, 38 library variants.
+    expect(practice, hasLength(74));
     final older = {...roundFourFigures.keys, ...placeFigures.keys, 'bell'};
     expect(practice.keys.toSet().intersection(older), isEmpty);
     for (final name in practice.keys) {
@@ -36,44 +69,77 @@ void main() {
   });
 
   test('every practice draws, at any moment and as a still', () {
-    for (final palette in [IdentityPalettes.fallback]) {
-      final roles = artRoles(palette);
-      for (final c in catalogue.categories) {
-        final comp = Compose.buildPractice(
+    for (final c in catalogue.categories) {
+      final comp = Compose.buildPractice(
+        c.id,
+        ground: c.ground,
+        figure: c.figure,
+      );
+      expect(comp.figure, isNotNull, reason: c.id);
+      // Ānāpānasati and Nature keep round 4's breath and grass.
+      expect(
+        {...practice.keys, 'breath', 'grass'},
+        contains(comp.figure!.name),
+        reason: c.id,
+      );
+      // Built the same way twice: the art never moves.
+      expect(
+        Compose.buildPractice(
           c.id,
           ground: c.ground,
           figure: c.figure,
-        );
-        expect(comp.figure, isNotNull, reason: c.id);
-        // Built the same way twice: the art never moves.
-        expect(
-          Compose.buildPractice(
-            c.id,
-            ground: c.ground,
-            figure: c.figure,
-          ).freeze(),
-          comp.freeze(),
-          reason: c.id,
-        );
-        for (final (t, still) in [
-          (0.0, false),
-          (3.7, false),
-          (14.2, false),
-          (61.0, false),
-          (0.0, true),
-        ]) {
-          final recorder = ui.PictureRecorder();
-          paintArt(
-            Canvas(recorder),
-            const Size(170, 148),
-            comp,
-            roles,
-            t,
-            still: still,
-          );
-          recorder.endRecording().dispose();
-        }
-      }
+        ).freeze(),
+        comp.freeze(),
+        reason: c.id,
+      );
+      drawAll(comp);
     }
+  });
+
+  test('every library variant draws on its own ground', () {
+    final pairs = [
+      ...ArtMap.figureLibrary,
+      for (final list in ArtMap.practiceLibrary.values) ...list,
+    ];
+    expect(ArtMap.figureLibrary, hasLength(33));
+    for (final (ground, figure) in pairs) {
+      expect(ArtRegistry.grounds, contains(ground), reason: '$figure');
+      expect(ArtRegistry.figures, contains(figure), reason: figure);
+      drawAll(
+        Compose.buildPractice(
+          'library:$figure',
+          ground: ground,
+          figure: figure,
+        ),
+      );
+    }
+  });
+
+  test('generated covers draw from the library; a practice\'s own variants '
+      'only for its content', () {
+    final library = {for (final (_, f) in ArtMap.figureLibrary) f};
+    final noting = {for (final (_, f) in ArtMap.practiceLibrary['noting']!) f};
+    var fromLibrary = 0, notingWithout = 0, notingWith = 0;
+    for (var i = 0; i < 400; i++) {
+      final plain = Compose.buildFor('lib-course-$i', 'course')!;
+      final name = plain.figure?.name;
+      if (library.contains(name)) fromLibrary++;
+      if (noting.contains(name)) notingWithout++;
+      final labelled = Compose.buildFor(
+        'lib-course-$i',
+        'course',
+        practice: 'noting',
+      )!;
+      if (noting.contains(labelled.figure?.name)) notingWith++;
+    }
+    // The library is most of a cover's choices now (33 beside 6 classics).
+    expect(fromLibrary, greaterThan(200));
+    expect(notingWithout, 0);
+    expect(notingWith, greaterThan(0));
+    // A sound's art is untouched: its class has no library.
+    expect(
+      Compose.buildFor('rain-terrace', 'sound')!.freeze(),
+      Compose.buildFor('rain-terrace', 'sound')!.freeze(),
+    );
   });
 }

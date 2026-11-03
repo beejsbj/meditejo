@@ -19,7 +19,11 @@ sealed class ArtSubject {
   const factory ArtSubject.sound(String id, [Map<String, Object?> params]) =
       SoundArt;
   const factory ArtSubject.layers(String id, List<SoundLayer> layers) = MixArt;
-  const factory ArtSubject.cover(ArtCoverKind kind, String id) = CoverArt;
+  const factory ArtSubject.cover(
+    ArtCoverKind kind,
+    String id, {
+    String? practice,
+  }) = CoverArt;
   const factory ArtSubject.bell(String asset, {bool icon}) = BellArt;
   const factory ArtSubject.practice(
     String id, {
@@ -87,13 +91,18 @@ enum ArtCoverKind { course, playlist, single, teacher }
 
 /// A course, playlist, single or teacher's cover.
 final class CoverArt extends ArtSubject {
-  const CoverArt(this.kind, this.id);
+  const CoverArt(this.kind, this.id, {this.practice});
 
   final ArtCoverKind kind;
   final String id;
 
+  /// A practice the item carries whose own figure variants it may draw
+  /// (`ArtMap.practiceLibrary`); null for most items.
+  final String? practice;
+
   @override
-  String get key => 'cover:${kind.name}:$id';
+  String get key =>
+      'cover:${kind.name}:$id${practice == null ? '' : ':$practice'}';
 
   @override
   bool operator ==(Object other) => other is CoverArt && other.key == key;
@@ -230,14 +239,14 @@ class CuratedArt extends ChangeNotifier {
             for (final l in layers) (artSoundId(l.soundId, l.params), l.volume),
           ],
         ));
-      case CoverArt(:final kind, :final id):
+      case CoverArt(:final kind, :final id, :final practice):
         return _frozen(id) ??
             Compose.buildFor(id, switch (kind) {
               ArtCoverKind.course => 'course',
               ArtCoverKind.playlist => 'playlist',
               ArtCoverKind.single => 'single',
               ArtCoverKind.teacher => 'teacher',
-            });
+            }, practice: practice);
       case PracticeArt(:final id, :final ground, :final figure):
         return Compose.buildPractice(id, ground: ground, figure: figure);
       case BellArt(:final asset, :final icon):
