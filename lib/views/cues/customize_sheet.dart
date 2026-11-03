@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
@@ -126,31 +125,83 @@ Future<bool> showCustomizeSheet(
 /// The longest timer [CueSettings] stores.
 const _maxDurationMinutes = 299;
 
-bool _sameSettings(CueSettings a, CueSettings b) =>
-    mapEquals(a.toJson(), b.toJson());
-
-/// A wheel's change, kept so the Undo bar can put it back.
+/// What a wheel changed, kept so the Undo bar can put it back. Steps of the
+/// same wheel while its bar is up (a turn, then another; a screen reader's
+/// three swipes) are one change: Undo goes back to before the first.
 class _WheelUndo {
   const _WheelUndo({
+    required this.label,
     required this.message,
-    required this.before,
-    required this.after,
+    required this.was,
+    required this.set,
     required this.courseOverride,
   });
 
-  final String message;
-  final CueSettings before, after;
+  /// The step from [before] to [after] of the wheel [label]; null when it
+  /// changed nothing.
+  static _WheelUndo? of(
+    String label,
+    String message,
+    CueSettings before,
+    CueSettings after, {
+    required bool courseOverride,
+  }) => const _WheelUndo(
+    label: '',
+    message: '',
+    was: {},
+    set: {},
+    courseOverride: false,
+  )._then(label, message, before, after, courseOverride: courseOverride);
 
-  /// Where the change was saved: a course's own settings or its kind's.
+  /// The wheel this is for, and where its change was saved (a course's own
+  /// settings or its kind's).
+  final String label;
   final bool courseOverride;
+  final String message;
 
-  /// [current] with each field this change set put back, where it still
-  /// holds what the change set; null when nothing is left to put back.
+  /// The fields the wheel touched: as they were before its first step, and
+  /// as its last step set them.
+  final Map<String, Object?> was, set;
+
+  /// Whether a step of [label] continues this change.
+  bool continuedBy(String label, {required bool courseOverride}) =>
+      label == this.label && courseOverride == this.courseOverride;
+
+  /// This change followed by the step [before] to [after] of [label];
+  /// null when, all told, nothing is changed (the wheel went back).
+  _WheelUndo? _then(
+    String label,
+    String message,
+    CueSettings before,
+    CueSettings after, {
+    required bool courseOverride,
+  }) {
+    final from = before.toJson(), to = after.toJson();
+    final was = {...this.was}, set = {...this.set};
+    for (final key in to.keys) {
+      if (to[key] == from[key] && !set.containsKey(key)) continue;
+      was.putIfAbsent(key, () => from[key]);
+      set[key] = to[key];
+    }
+    was.removeWhere((key, value) => set[key] == value);
+    set.removeWhere((key, _) => !was.containsKey(key));
+    if (set.isEmpty) return null;
+    return _WheelUndo(
+      label: label,
+      message: message,
+      was: was,
+      set: set,
+      courseOverride: courseOverride,
+    );
+  }
+
+  /// [current] with each field put back that still holds what the wheel
+  /// set; null when nothing is left to put back.
   CueSettings? revert(CueSettings current, CueKind kind) {
-    final was = before.toJson(), set = after.toJson(), now = current.toJson();
+    final now = current.toJson();
     var reverted = false;
-    for (final key in set.keys) {
-      if (set[key] == was[key] || now[key] != set[key]) continue;
+    for (final MapEntry(:key, :value) in set.entries) {
+      if (now[key] != value) continue;
       now[key] = was[key];
       reverted = true;
     }
@@ -284,27 +335,67 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     int visibleItems = 5,
     bool showLabel = true,
     bool enabled = true,
-  }) => _WheelField<T>(
-    label: label,
-    title: title,
-    options: options,
-    value: value,
-    parse: parse,
-    hint: hint,
-    visibleItems: visibleItems,
-    showLabel: showLabel,
-    enabled: enabled,
-    onChanged: (v) {
-      final shown = options.firstWhere((o) => o.value == v).label;
-      _turned(label, shown, apply(v));
-    },
-  );
+  }) {
+    // Where this wheel is: a step that lands after its section or row has
+    // closed is saved, but brings no bar up over what opened instead.
+    final slot = _slot, part = _open;
+    return _WheelField<T>(
+      label: label,
+      title: title,
+      options: options,
+      value: value,
+      parse: parse,
+      hint: hint,
+      visibleItems: visibleItems,
+      showLabel: showLabel,
+      enabled: enabled,
+      onChanged: (v) {
+        final shown = options.firstWhere((o) => o.value == v).label;
+        _turned(
+          label,
+          shown,
+          apply(v),
+          offerUndo: mounted && _slot == slot && _open == part,
+        );
+      },
+    );
+  }
 
-  /// Saves what a wheel landed on and offers it back.
-  void _turned(String label, String shown, CueSettings next) {
+  /// Saves what a wheel landed on and offers it back. Further steps of the
+  /// same wheel while its bar is up join its change.
+  void _turned(
+    String label,
+    String shown,
+    CueSettings next, {
+    bool offerUndo = true,
+  }) {
     final before = ref.read(cueSettingsProvider(_scope));
     _edit(next);
-    if (_sameSettings(before, next)) return;
+    if (!mounted) return;
+    if (!offerUndo) return _dismissUndo();
+    final message = _l10n.customizeUndoChange(label, shown);
+    final open = _undo;
+    final undo =
+        open != null && open.continuedBy(label, courseOverride: _courseOverride)
+        ? open._then(
+            label,
+            message,
+            before,
+            next,
+            courseOverride: _courseOverride,
+          )
+        : _WheelUndo.of(
+            label,
+            message,
+            before,
+            next,
+            courseOverride: _courseOverride,
+          );
+    // Back where it started: nothing to undo.
+    if (undo == null) {
+      if (open != null) _dismissUndo();
+      return;
+    }
     _undoTimer?.cancel();
     _undoTimer = Timer(
       MediaQuery.of(context).accessibleNavigation
@@ -312,15 +403,12 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
           : _undoFor,
       _dismissUndo,
     );
-    setState(
-      () => _undo = _WheelUndo(
-        message: _l10n.customizeUndoChange(label, shown),
-        before: before,
-        after: next,
-        courseOverride: _courseOverride,
-      ),
-    );
+    setState(() => _undo = undo);
   }
+
+  /// The bar's height and the space around it, at the current text size.
+  static double _undoBarRoom(BuildContext context) =>
+      MediaQuery.textScalerOf(context).scale(48) + 16;
 
   /// The bar goes when it has been read, and as soon as a section or row
   /// opens or folds: the person has moved on, and it would sit over what
@@ -431,7 +519,14 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
 
     final list = SingleChildScrollView(
       key: const ValueKey('customize_list'),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      // While the Undo bar is up the list ends below it, so whatever it
+      // covers can be scrolled clear.
+      padding: EdgeInsets.fromLTRB(
+        16,
+        8,
+        16,
+        16 + (_undo == null ? 0 : _undoBarRoom(context)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -801,6 +896,8 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
               ),
         value: _courseOverride,
         onChanged: (v) async {
+          // Where changes go moves: the bar's Undo no longer applies.
+          _dismissUndo();
           setState(() => _courseOverride = v);
           if (!v) {
             await ref
@@ -1923,8 +2020,10 @@ class _WheelRow extends StatelessWidget {
 
   final List<Widget> wheels;
 
-  /// A wheel's widest, at 1× text (it grows with the text).
+  /// A wheel's widest, at 1× text (it grows with the text); narrower when
+  /// three share a row, to leave the gutters room.
   static const wheelWidth = 120.0;
+  static const narrowWheelWidth = 80.0;
 
   /// The least room left free each side of the wheels.
   static const gutter = 28.0;
@@ -1937,10 +2036,8 @@ class _WheelRow extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final room = math.max(0.0, constraints.maxWidth - 2 * gutter);
-        final widest = math.min(
-          math.max(scaler.scale(wheelWidth), wheelWidth),
-          room,
-        );
+        final cap = wheels.length >= 3 ? narrowWheelWidth : wheelWidth;
+        final widest = math.min(math.max(scaler.scale(cap), cap), room);
         if (stacked) {
           return Column(
             children: [
@@ -1955,8 +2052,8 @@ class _WheelRow extends StatelessWidget {
           widest,
           (room - gap * (wheels.length - 1)) / wheels.length,
         );
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        final row = Row(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             for (final (i, wheel) in wheels.indexed) ...[
@@ -1964,6 +2061,15 @@ class _WheelRow extends StatelessWidget {
               SizedBox(width: each, child: wheel),
             ],
           ],
+        );
+        if (wheels.length == 1) return Center(child: row);
+        // Spare room beyond the gutters goes 1 : 4, the larger share on the
+        // right, where a right thumb scrolls.
+        final used = each * wheels.length + gap * (wheels.length - 1);
+        final spare = math.max(0.0, constraints.maxWidth - used - 2 * gutter);
+        return Padding(
+          padding: EdgeInsetsDirectional.only(start: gutter + spare * 0.2),
+          child: Align(alignment: AlignmentDirectional.centerStart, child: row),
         );
       },
     );
