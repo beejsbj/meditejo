@@ -8,18 +8,21 @@ Round 2 redraws Insight Dialogue, Noting, Effortless mindfulness, Kāyagatāsati
 
 Burooj on round 2 (2026-11-02): the picks stand except Kasiṇa (B, fire through the hole) and the Headless Way (none).
 
+Burooj on round 3 (2026-11-03): the picks stand except Forgiveness (B, mended with gold) and The Mind Illuminated. TMI combines A and B as "steadying upwards"; I made two variants, D and E, and picked E (the long climb).
+
 Round 3 redraws the Headless Way, quieter. It also redraws the six round 1 figures flagged in round 2: Caṅkama · Kinhin, Forgiveness, The Mind Illuminated, Anussati, Karuṇā and Jhāna. The figures are in `figures-r3.js` (`PracticesR3`), and the variants, picks and library flags in `r3.json`.
 
 ## The figure library
 
 Burooj wants the unpicked variants of rounds 2 and 3 in the figure library, drawn at random for user content (imports, playlists) the way the meaning map's cover kinds (`course`, `single`, `playlist` in `compose.dart`) draw theirs.
 
-Every unpicked variant in `r2.json` and `r3.json` carries one of two flags:
+Every unpicked variant in `r2.json` and `r3.json` carries one of three flags:
 
 - `"library": "any"`: generic enough for any item.
 - `"library": "practice"`: too tied to its practice; only for content about that practice.
+- `"library": "none"`: kept out of the library entirely.
 
-The practice-only ones are noting's two label figures, face to no-face, pointing back, the trāṭaka point and the gold-mended bowl. Adding the `any` figures to the cover kinds is the app change that follows the Dart port.
+The practice-only ones are noting's two label figures, face to no-face, pointing back and the trāṭaka point. Out entirely: Walking A and Forgiveness C (Burooj, 2026-11-03), and TMI A (superseded by its combination with B, and it read as a Christmas tree). Adding the `any` figures to the cover kinds is the app change that follows the Dart port.
 
 ## Files
 

@@ -35,14 +35,16 @@
         { "figure": "forgive_mend", "ground": "paper" },
         { "figure": "forgive_soften", "library": "none", "ground": "mist" }
       ] },
-    { "id": "tmi", "pick": 0, "group": "concentration", "name": "The Mind Illuminated", "script": "", "lang": "English",
+    { "id": "tmi", "pick": 4, "group": "concentration", "name": "The Mind Illuminated", "script": "", "lang": "English",
       "desc": "Culadasa's ten stages, from a wandering mind to effortless attention.",
       "was": { "figure": "stages", "ground": "paper" },
-      "why": "Ten small dots on an arc read as a loading spinner.",
+      "why": "Ten small dots on an arc read as a loading spinner. Round 3: Burooj asked for A and B combined, steadying upwards; D and E are that combination, without A's triangle (it read as a Christmas tree).",
       "variants": [
-        { "figure": "tmi_path", "ground": "mist" },
+        { "figure": "tmi_path", "library": "none", "ground": "mist" },
         { "figure": "tmi_steady", "library": "any", "ground": "paper" },
-        { "figure": "tmi_petals", "library": "any", "ground": "dawn" }
+        { "figure": "tmi_petals", "library": "any", "ground": "dawn" },
+        { "figure": "tmi_switchback", "library": "any", "ground": "mist" },
+        { "figure": "tmi_climb", "ground": "paper" }
       ] },
     { "id": "recollections", "pick": 1, "group": "concentration", "name": "Anussati", "script": "", "lang": "Pāli",
       "desc": "Recollecting the Buddha, Dhamma and Saṅgha, virtue, generosity and peace.",

@@ -54,7 +54,7 @@
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
   const esc = (s) => String(s).replace(/[&<>"]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[m]);
   const art = (id, v, theme) => { const cv = el('canvas', 'art'); cv.dataset.id = id; cv.dataset.theme = theme; cv.dataset.v = JSON.stringify(v); cv.style.width = '170px'; cv.style.height = '148px'; return cv; };
-  const LETTERS = 'ABC';
+  const LETTERS = 'ABCDE';
 
   function tile(p, v, theme, tag, pick) {
     const f = fig(v.figure), t = el('div', `tile${pick ? ' pick' : ''}${tag === 'R1' ? ' was' : ''}`);

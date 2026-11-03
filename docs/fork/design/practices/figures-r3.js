@@ -289,6 +289,52 @@ const PracticesR3 = (() => {
     },
   };
 
+  // Steadying upwards (Burooj, 2026-11-03: A and B combined). One path
+  // climbs; low down the line wavers, scattered, and it steadies as it
+  // rises, smooth and bright near the top. Ten stage marks sit along it and
+  // a light climbs it. No triangle: the path alone implies the mountain.
+  function climbDraw(ctx, p, k, t, still) {
+    const N = p.pts.length, tt = still ? 3 : t, off = (v) => p.s * 0.1 * Math.pow(1 - v, 1.7) * (0.6 * Math.sin(37 * v + tt * 1.4 + p.ph[0]) + 0.4 * Math.sin(61 * v - tt * 2.1 + p.ph[1]));
+    const at = (i) => { const v = i / (N - 1), o = off(v); return [p.pts[i][0] + p.nx[i] * o, p.pts[i][1] + p.ny[i] * o]; };
+    const u = still ? 0.62 : frac(t / (4 * B)), h = Math.min(1, u / 0.88), lit = (still ? 1 : C.ss(0, 0.03, u)) * (1 - C.ss(0.9, 1, u));
+    soft(ctx, p.pts[N - 1][0], p.pts[N - 1][1], p.s * 0.5, k.glow, 0.15 + 0.45 * C.ss(0.85, 1, h) * lit);
+    let prev = at(0);
+    for (let i = 1; i < N; i++) { const v = i / (N - 1), q = at(i); ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(q[0], q[1]); stroke(ctx, mix(k.main, k.glow, C.ss(0.35, 1, v)), 0.007 + 0.006 * v, 0.55 + 0.45 * v); prev = q; }
+    for (let j = 0; j < 10; j++) { const v = (j + 0.5) / 10, i = Math.round(v * (N - 1)), [x, y] = at(i), on = C.ss(v - 0.02, v + 0.02, h) * lit; dot(ctx, x, y, p.s * 0.03); fill(ctx, mix(k.main, k.glow, C.ss(0.35, 1, v)), 0.4 + 0.6 * on); }
+    const [x, y] = at(Math.round(C.easeInOut(h) * (N - 1)));
+    soft(ctx, x, y, p.s * 0.25, k.glow, 0.6 * lit); dot(ctx, x, y, p.s * 0.055); fill(ctx, k.alt, lit);
+  }
+  function climbPath(raw, pl, r) { const { pts } = C.resample(raw, 240), { nx, ny } = C.normals(pts, 2); return { ...pl, pts, nx, ny, ph: [r.range(0, TAU), r.range(0, TAU)] }; }
+
+  // A rounded switchback, five legs of even width, ten marks along it.
+  F.tmi_switchback = {
+    label: 'steadying upwards', says: 'The Mind Illuminated: ten stages up one winding path, the line wavering low down and steadying as it climbs.',
+    build(r, pl) {
+      const legs = 5, W = pl.s * 0.72, y0 = pl.cy + pl.s * 0.95, y1 = pl.cy - pl.s * 0.9, dy = (y0 - y1) / legs, R = dy * 0.32, pen = C.pen(pl.cx - W, y0);
+      for (let i = 0; i < legs; i++) {
+        const dir = i % 2 ? -1 : 1, yEnd = y0 - (i + 1) * dy + (i < legs - 1 ? R : 0), xEnd = pl.cx + dir * W;
+        pen.cubic(pl.cx - dir * W * 0.3, y0 - i * dy - dy * 0.15, pl.cx + dir * W * 0.3, yEnd + dy * 0.15, xEnd, yEnd, 70);
+        if (i < legs - 1) pen.arc(xEnd, yEnd - R, R, R, Math.PI / 2, dir > 0 ? -Math.PI / 2 : Math.PI * 1.5, 40); // round the bend, bottom to top
+      }
+      return climbPath(pen.pts, pl, r);
+    },
+    draw: climbDraw,
+  };
+
+  // One trail up a hillside: a long, gently winding climb from low left to
+  // high right over a soft hill, steadying as it goes.
+  F.tmi_climb = {
+    label: 'the long climb', says: 'The Mind Illuminated: one long climb through ten stages, from a scattered start to steady, bright attention.',
+    build(r, pl) {
+      const raw = C.pen(pl.cx - pl.s * 1.25, pl.cy + pl.s * 0.85).cubic(pl.cx - pl.s * 0.1, pl.cy + pl.s * 0.95, pl.cx - pl.s * 0.9, pl.cy + pl.s * 0.1, pl.cx + pl.s * 0.1, pl.cy - pl.s * 0.05, 90).cubic(pl.cx + pl.s * 1.0, pl.cy - pl.s * 0.2, pl.cx + 0.1 * pl.s, pl.cy - pl.s * 0.75, pl.cx + pl.s * 0.85, pl.cy - pl.s * 0.85, 90).pts;
+      return climbPath(raw, pl, r);
+    },
+    draw(ctx, p, k, t, still) {
+      ctx.beginPath(); ctx.moveTo(p.cx - p.s * 1.8, p.cy + p.s * 1.2); ctx.bezierCurveTo(p.cx - p.s * 0.6, p.cy + p.s * 0.6, p.cx + p.s * 0.2, p.cy - p.s * 1.05, p.cx + p.s * 0.95, p.cy - p.s * 0.98); ctx.bezierCurveTo(p.cx + p.s * 1.3, p.cy - p.s * 0.95, p.cx + p.s * 1.6, p.cy - p.s * 0.6, p.cx + p.s * 1.8, p.cy - p.s * 0.4); ctx.lineTo(p.cx + p.s * 1.8, p.cy + p.s * 1.2); ctx.closePath(); fill(ctx, k.main, 0.08);
+      climbDraw(ctx, p, k, t, still);
+    },
+  };
+
   // ================= Anussati =================
   // Three soft lights, recollected one after another; each warms in turn.
   F.jewels_lights = {
