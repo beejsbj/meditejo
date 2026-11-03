@@ -46,20 +46,31 @@ class _FilterChipBarState<T> extends State<FilterChipBar<T>> {
   // reads as "scrolls on" rather than as clipped.
   bool _moreBefore = false;
   bool _moreAfter = false;
+  bool _frameUpdateScheduled = false;
+  bool _pendingMoreBefore = false;
+  bool _pendingMoreAfter = false;
 
   bool _update(ScrollMetrics metrics) {
-    final before = metrics.extentBefore > 1;
-    final after = metrics.extentAfter > 1;
-    if (before != _moreBefore || after != _moreAfter) {
-      // Metrics arrive during layout, so the rebuild waits for the frame.
+    _pendingMoreBefore = metrics.extentBefore > 1;
+    _pendingMoreAfter = metrics.extentAfter > 1;
+    if (!_frameUpdateScheduled &&
+        (_pendingMoreBefore != _moreBefore ||
+            _pendingMoreAfter != _moreAfter)) {
+      _frameUpdateScheduled = true;
+      // Metrics arrive during layout, so the rebuild waits for the frame, and
+      // then applies the latest state rather than the one that queued it.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
+        _frameUpdateScheduled = false;
+        if (mounted &&
+            (_moreBefore != _pendingMoreBefore ||
+                _moreAfter != _pendingMoreAfter)) {
           setState(() {
-            _moreBefore = before;
-            _moreAfter = after;
+            _moreBefore = _pendingMoreBefore;
+            _moreAfter = _pendingMoreAfter;
           });
         }
       });
+      WidgetsBinding.instance.ensureVisualUpdate();
     }
     return false;
   }
