@@ -13,7 +13,10 @@ import '../../helpers/library_app.dart';
 import '../../helpers/soundscape_fakes.dart';
 
 void main() {
-  Future<ProviderContainer> pump(WidgetTester tester) async {
+  Future<ProviderContainer> pump(
+    WidgetTester tester, {
+    Map<String, int> savedPrefs = const {},
+  }) async {
     // Settings' reminder row asks for the notification permission's
     // status.
     const permissions = MethodChannel(
@@ -24,6 +27,11 @@ void main() {
     messenger.setMockMethodCallHandler(permissions, (_) async => 1);
     addTearDown(() => messenger.setMockMethodCallHandler(permissions, null));
     final app = await LibraryTestApp.create(tester);
+    await tester.runAsync(() async {
+      for (final entry in savedPrefs.entries) {
+        await app.prefs.setInt(entry.key, entry.value);
+      }
+    });
     await app.pump(
       tester,
       // Still, so Home's mark lets the frames settle.
@@ -90,6 +98,20 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('you_stats_card')), findsNothing);
+  });
+
+  testWidgets('a cold start opens Home, even with another tab saved', (
+    tester,
+  ) async {
+    // Keys an earlier build saved the last tab under: Sounds in that bar.
+    final container = await pump(
+      tester,
+      savedPrefs: const {'last_main_tab_index': 2, 'main_tab_layout': 3},
+    );
+    await settle(tester);
+    expect(container.read(mainTabProvider), MainTab.home);
+    expect(onScreen(tester, SoundsView), isFalse);
+    expect(find.byType(BottomNavigationBarView), findsOneWidget);
   });
 
   testWidgets('back folds an open mix on the Sounds tab, then goes Home', (
