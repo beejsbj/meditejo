@@ -99,9 +99,8 @@ class MeditoErrorWidget extends ConsumerWidget {
                     ),
                   if (isShowCheckDownload)
                     TextSpan(
-                      text: AppLocalizations.of(
-                        context,
-                      )!.downloads.toLowerCase(),
+                      text: AppLocalizations.of(context)!.downloads
+                          .toLowerCase(),
                       style: textStyle?.copyWith(
                         decoration: TextDecoration.underline,
                         color: ColorConstants.accentDark,

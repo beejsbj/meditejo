@@ -70,9 +70,10 @@ class HomeHiddenWidgetsNotifier extends Notifier<Set<HomeWidgetType>> {
 
   Future<void> setVisible(HomeWidgetType type, bool visible) async {
     state = visible ? ({...state}..remove(type)) : {...state, type};
-    await ref.read(sharedPreferencesProvider).setStringList(
-      SharedPreferenceConstants.homeWidgetHidden,
-      [for (final t in state) t.name],
-    );
+    await ref
+        .read(sharedPreferencesProvider)
+        .setStringList(SharedPreferenceConstants.homeWidgetHidden, [
+          for (final t in state) t.name,
+        ]);
   }
 }

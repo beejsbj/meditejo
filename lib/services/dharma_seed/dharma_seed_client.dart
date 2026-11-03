@@ -47,7 +47,10 @@ class DharmaSeedClient {
 
   /// IDs of every record of [kind], or of those changed since [edition].
   Future<DsIdList> fetchIds(DsKind kind, {String? edition}) async {
-    final json = await _post(kind, {'detail': '0', 'edition': ?edition});
+    final json = await _post(kind, {
+      'detail': '0',
+      'edition': ?edition,
+    });
     return DsIdList(
       edition: json['edition'] as String? ?? '',
       items: _ids(json['items']),
@@ -70,10 +73,7 @@ class DharmaSeedClient {
         }
       }
     }
-    return DsDetails(
-      edition: json['edition'] as String? ?? '',
-      records: records,
-    );
+    return DsDetails(edition: json['edition'] as String? ?? '', records: records);
   }
 
   Future<Map<String, Object?>> _post(
@@ -123,8 +123,7 @@ class DharmaSeedClient {
   /// Detail batches are hundreds of KB: decode those off the main isolate so
   /// the first sync does not drop frames. Small bodies are not worth the
   /// isolate.
-  static Future<Object?> _decode(Uint8List bytes) =>
-      bytes.length < _isolateAbove
+  static Future<Object?> _decode(Uint8List bytes) => bytes.length < _isolateAbove
       ? Future.value(_decodeJson(bytes))
       : Isolate.run(() => _decodeJson(bytes));
 
@@ -132,15 +131,15 @@ class DharmaSeedClient {
 
   static Object? _decodeJson(Uint8List bytes) => jsonDecode(utf8.decode(bytes));
 
-  static List<int> _ids(Object? value) =>
-      value is List ? [for (final id in value) ?_asInt(id)] : const [];
+  static List<int> _ids(Object? value) => value is List
+      ? [for (final id in value) ?_asInt(id)]
+      : const [];
 
   void close() => _http.close();
 }
 
-int? _asInt(Object? value) => value is int
-    ? value
-    : (value is num ? value.toInt() : int.tryParse('$value'));
+int? _asInt(Object? value) =>
+    value is int ? value : (value is num ? value.toInt() : int.tryParse('$value'));
 
 enum DsKind {
   teachers('teachers'),

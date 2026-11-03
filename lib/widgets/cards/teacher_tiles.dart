@@ -110,7 +110,12 @@ class TeacherRow extends StatelessWidget {
             ),
             child: Row(
               children: [
-                TeacherAvatar(id: id, name: name, photoUrl: photoUrl, size: 52),
+                TeacherAvatar(
+                  id: id,
+                  name: name,
+                  photoUrl: photoUrl,
+                  size: 52,
+                ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(

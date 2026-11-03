@@ -8,7 +8,9 @@ final searchRepositoryProvider = Provider<SearchRepository>((ref) {
 });
 
 final searchPacksProvider = FutureProvider.autoDispose
-    .family<List<PackItemsModel>, String>((ref, query) async {
-      final repository = ref.watch(searchRepositoryProvider);
-      return repository.searchPacks(query);
-    });
+    .family<List<PackItemsModel>, String>(
+  (ref, query) async {
+    final repository = ref.watch(searchRepositoryProvider);
+    return repository.searchPacks(query);
+  },
+);

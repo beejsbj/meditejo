@@ -150,7 +150,10 @@ Widget meditoTextFieldFocused() => Scaffold(
   body: SafeArea(
     child: Padding(
       padding: const EdgeInsets.all(16),
-      child: const MeditoTextField(hintText: 'Focused field', autofocus: true),
+      child: const MeditoTextField(
+        hintText: 'Focused field',
+        autofocus: true,
+      ),
     ),
   ),
 );

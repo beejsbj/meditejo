@@ -46,11 +46,8 @@ class UpdateDownloader {
   /// matches the published hash.
   Future<File?> verifiedExisting(UpdateRelease release) async {
     final file = await _target(release);
-    if (!await file.exists() || await file.length() != release.size)
-      return null;
-    return sha256Matches(await sha256OfFile(file), release.sha256)
-        ? file
-        : null;
+    if (!await file.exists() || await file.length() != release.size) return null;
+    return sha256Matches(await sha256OfFile(file), release.sha256) ? file : null;
   }
 
   /// Fetches the APK, reporting progress from 0 to 1. Throws
