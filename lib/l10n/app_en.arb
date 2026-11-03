@@ -75,8 +75,8 @@
   "backgroundSoundsDisabled": "Background sounds are disabled for this track",
   "neww": "New",
   "loading": "Loading...",
-  "currentStreak": "Current Streak",
-  "longestStreak": "Longest Streak",
+  "currentStreak": "Current streak",
+  "longestStreak": "Longest streak",
   "consistencyScore": "Consistency Score",
   "totalTracksCompleted": "Total Tracks Completed",
   "totalTimeListened": "Total Time Listened",
@@ -89,7 +89,6 @@
   "alwaysShowStreakOnHomepage": "Always show streak on homepage",
   "gotIt": "Got it",
   "goBack": "Go Back",
-  "editStatsTitle": "Edit stats",
   "path": "Path",
   "completed": "Completed",
   "submit": "Submit",
@@ -114,7 +113,7 @@
   "carouselTitle": "Featured",
   "quoteTitle": "Daily Quote",
   "customization": "Customisation",
-  "customiseHomeLayout": "Organize Home Layout",
+  "customiseHomeLayout": "Organize Home layout",
   "helpLegal": "Help & Legal",
   "advanced": "Advanced",
   "restore": "Restore",
@@ -280,7 +279,7 @@
   "errorServerMessage": "Server error, please try again later",
   "errorUnknownMessage": "Something went wrong, please try again",
   "enableDndDuringMeditation": "Silence phone during meditation",
-  "zenMode": "Zen Mode",
+  "zenMode": "Zen mode",
   "@zenMode": {
     "description": "Title for zen mode setting in customization section"
   },
@@ -363,7 +362,7 @@
   "@customizationSection": {
     "description": "Section title for customization settings"
   },
-  "addHomeScreenWidget": "Add Home Screen Widget",
+  "addHomeScreenWidget": "Add Home screen widget",
   "@addHomeScreenWidget": {
     "description": "Title for adding home screen widget option in customization section"
   },
@@ -394,10 +393,6 @@
   "themeTitle": "Theme",
   "@themeTitle": {
     "description": "Title for theme selection setting in customization section"
-  },
-  "appIconTitle": "App Icon",
-  "@appIconTitle": {
-    "description": "Title for app icon selection setting in customization section"
   },
   "appIconNearBlack": "Dark",
   "@appIconNearBlack": {
@@ -886,26 +881,6 @@
   "@manageDefaults": {
     "description": "Title for the manage defaults screen"
   },
-  "defaultGuideName": "Default Guide Name",
-  "@defaultGuideName": {
-    "description": "Label for default guide name setting"
-  },
-  "defaultDuration": "Default Duration",
-  "@defaultDuration": {
-    "description": "Label for default duration setting"
-  },
-  "defaultGuideNameCleared": "Default guide name cleared",
-  "@defaultGuideNameCleared": {
-    "description": "Message shown when default guide name is cleared"
-  },
-  "notSet": "Not set",
-  "@notSet": {
-    "description": "Text shown when a default value is not set"
-  },
-  "defaultsNote": "These defaults are set from your last selection on any track. Home uses them to skip the selection screen when you continue a pack.",
-  "@defaultsNote": {
-    "description": "Note explaining how defaults work in Up Next"
-  },
   "streakFreezeUsed": "Streak freeze used",
   "@streakFreezeUsed": {
     "description": "Text shown when a streak freeze was used on a particular day"
@@ -981,10 +956,6 @@
   "clearSearch": "Clear search",
   "@clearSearch": {
     "description": "Accessibility label for the clear search button"
-  },
-  "clearDefault": "Clear default guide",
-  "@clearDefault": {
-    "description": "Accessibility label for the button that clears the saved default guide preference"
   },
   "onboardingExperienceQuestion": "Have you meditated before?",
   "@onboardingExperienceQuestion": {
@@ -3103,5 +3074,17 @@
         "type": "String"
       }
     }
+  },
+  "settingsSessionHistory": "Session history",
+  "@settingsSessionHistory": {
+    "description": "Settings row that opens the History tab of Stats: the calendar where past sessions are added or edited"
+  },
+  "updateAutoCheck": "Check for updates automatically",
+  "@updateAutoCheck": {
+    "description": "Switch in About: whether the app checks GitHub for a newer Meditejo when it opens"
+  },
+  "updateAutoCheckDescription": "Looks at GitHub at most once a day when Meditejo opens. Off, it makes no request until you tap Check for updates.",
+  "@updateAutoCheckDescription": {
+    "description": "Caption under the automatic update check switch"
   }
 }

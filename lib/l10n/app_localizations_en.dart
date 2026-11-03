@@ -194,10 +194,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loading => 'Loading...';
 
   @override
-  String get currentStreak => 'Current Streak';
+  String get currentStreak => 'Current streak';
 
   @override
-  String get longestStreak => 'Longest Streak';
+  String get longestStreak => 'Longest streak';
 
   @override
   String get consistencyScore => 'Consistency Score';
@@ -234,9 +234,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get goBack => 'Go Back';
-
-  @override
-  String get editStatsTitle => 'Edit stats';
 
   @override
   String get path => 'Path';
@@ -316,7 +313,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customization => 'Customisation';
 
   @override
-  String get customiseHomeLayout => 'Organize Home Layout';
+  String get customiseHomeLayout => 'Organize Home layout';
 
   @override
   String get helpLegal => 'Help & Legal';
@@ -505,7 +502,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enableDndDuringMeditation => 'Silence phone during meditation';
 
   @override
-  String get zenMode => 'Zen Mode';
+  String get zenMode => 'Zen mode';
 
   @override
   String get zenModeEnabledMessage => 'Stats will be hidden throughout the app';
@@ -620,7 +617,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customizationSection => 'Customisation';
 
   @override
-  String get addHomeScreenWidget => 'Add Home Screen Widget';
+  String get addHomeScreenWidget => 'Add Home screen widget';
 
   @override
   String get addWidgetSheetTitle => 'Add a Meditejo widget';
@@ -646,9 +643,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeTitle => 'Theme';
-
-  @override
-  String get appIconTitle => 'App Icon';
 
   @override
   String get appIconNearBlack => 'Dark';
@@ -1028,22 +1022,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get manageDefaults => 'Manage Defaults';
 
   @override
-  String get defaultGuideName => 'Default Guide Name';
-
-  @override
-  String get defaultDuration => 'Default Duration';
-
-  @override
-  String get defaultGuideNameCleared => 'Default guide name cleared';
-
-  @override
-  String get notSet => 'Not set';
-
-  @override
-  String get defaultsNote =>
-      'These defaults are set from your last selection on any track. Home uses them to skip the selection screen when you continue a pack.';
-
-  @override
   String get streakFreezeUsed => 'Streak freeze used';
 
   @override
@@ -1099,9 +1077,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clearSearch => 'Clear search';
-
-  @override
-  String get clearDefault => 'Clear default guide';
 
   @override
   String get onboardingExperienceQuestion => 'Have you meditated before?';
@@ -2791,4 +2766,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String labelsRemoveTooltip(String label) {
     return 'Remove label $label';
   }
+
+  @override
+  String get settingsSessionHistory => 'Session history';
+
+  @override
+  String get updateAutoCheck => 'Check for updates automatically';
+
+  @override
+  String get updateAutoCheckDescription =>
+      'Looks at GitHub at most once a day when Meditejo opens. Off, it makes no request until you tap Check for updates.';
 }

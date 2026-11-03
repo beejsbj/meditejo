@@ -69,7 +69,6 @@
   "alwaysShowStreakOnHomepage": "Serie immer auf der Startseite anzeigen",
   "gotIt": "Verstanden",
   "goBack": "Zurück",
-  "editStatsTitle": "Statistiken bearbeiten",
   "path": "Pfad",
   "completed": "Abgeschlossen",
   "submit": "Absenden",
@@ -295,10 +294,6 @@
   "themeTitle": "Erscheinungsbild",
   "@themeTitle": {
     "description": "Title for theme selection setting in customization section"
-  },
-  "appIconTitle": "App-Symbol",
-  "@appIconTitle": {
-    "description": "Title for app icon selection setting in customization section"
   },
   "appIconNearBlack": "Dunkel",
   "@appIconNearBlack": {
@@ -741,26 +736,6 @@
   "@manageDefaults": {
     "description": "Title for the manage defaults screen"
   },
-  "defaultGuideName": "Bevorzugte Stimme",
-  "@defaultGuideName": {
-    "description": "Label for default guide name setting"
-  },
-  "defaultDuration": "Bevorzugte Dauer",
-  "@defaultDuration": {
-    "description": "Label for default duration setting"
-  },
-  "defaultGuideNameCleared": "Bevorzugte Stimme zurückgesetzt",
-  "@defaultGuideNameCleared": {
-    "description": "Message shown when default guide name is cleared"
-  },
-  "notSet": "Nicht festgelegt",
-  "@notSet": {
-    "description": "Text shown when a default value is not set"
-  },
-  "defaultsNote": "Diese Voreinstellungen entsprechen deiner letzten Auswahl bei einem Titel. Die Startseite verwendet sie, um den Auswahlbildschirm zu überspringen, wenn du ein Paket fortsetzt.",
-  "@defaultsNote": {
-    "description": "Note explaining how defaults work in Up Next"
-  },
   "streakFreezeUsed": "Serienschutz eingesetzt",
   "@streakFreezeUsed": {
     "description": "Text shown when a streak freeze was used on a particular day"
@@ -827,10 +802,6 @@
   "clearSearch": "Suche leeren",
   "@clearSearch": {
     "description": "Accessibility label for the clear search button"
-  },
-  "clearDefault": "Bevorzugte Stimme zurücksetzen",
-  "@clearDefault": {
-    "description": "Accessibility label for the button that clears the saved default guide preference"
   },
   "onboardingExperienceQuestion": "Hast du schon einmal meditiert?",
   "@onboardingExperienceQuestion": {
@@ -1375,5 +1346,8 @@
   "labelsCustomHeading": "Deine Labels",
   "labelsAddHint": "Label hinzufügen",
   "labelsAddButton": "Hinzufügen",
-  "labelsRemoveTooltip": "Label {label} entfernen"
+  "labelsRemoveTooltip": "Label {label} entfernen",
+  "settingsSessionHistory": "Verlauf der Sitzungen",
+  "updateAutoCheck": "Automatisch nach Updates suchen",
+  "updateAutoCheckDescription": "Fragt beim Öffnen von Meditejo höchstens einmal täglich bei GitHub nach. Ist es aus, gibt es keine Anfrage, bis du auf „Nach Updates suchen“ tippst."
 }

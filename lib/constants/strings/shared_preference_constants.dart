@@ -32,6 +32,7 @@ class SharedPreferenceConstants {
   static const String reminderPromptSnoozeUntil =
       'reminder_prompt_snooze_until';
   static const String zenModeEnabled = 'zen_mode_enabled';
+  static const String autoUpdateCheckEnabled = 'auto_update_check_enabled';
   static const String consistencyScoreHistory = 'consistency_score_history';
   static const String upNextPackId = 'up_next_pack_id';
   static const String upNextReturnPackId = 'up_next_return_pack_id';

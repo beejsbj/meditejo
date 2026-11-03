@@ -53,4 +53,56 @@ void main() {
       isTrue,
     );
   });
+
+  group('shouldCheckOnLaunch', () {
+    test('with the switch off, nothing is requested', () {
+      for (final lastCheckedAt in [
+        null,
+        now.subtract(const Duration(days: 9)),
+        now.add(const Duration(days: 3)),
+      ]) {
+        for (final buildChanged in [true, false]) {
+          expect(
+            shouldCheckOnLaunch(
+              autoCheckEnabled: false,
+              buildChanged: buildChanged,
+              lastCheckedAt: lastCheckedAt,
+              now: now,
+            ),
+            isFalse,
+          );
+        }
+      }
+    });
+
+    test('with the switch on, it follows the daily interval', () {
+      expect(
+        shouldCheckOnLaunch(
+          autoCheckEnabled: true,
+          buildChanged: false,
+          lastCheckedAt: null,
+          now: now,
+        ),
+        isTrue,
+      );
+      expect(
+        shouldCheckOnLaunch(
+          autoCheckEnabled: true,
+          buildChanged: false,
+          lastCheckedAt: now.subtract(const Duration(hours: 1)),
+          now: now,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldCheckOnLaunch(
+          autoCheckEnabled: true,
+          buildChanged: true,
+          lastCheckedAt: now.subtract(const Duration(hours: 1)),
+          now: now,
+        ),
+        isTrue,
+      );
+    });
+  });
 }

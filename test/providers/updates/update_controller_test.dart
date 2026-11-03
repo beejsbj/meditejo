@@ -143,6 +143,48 @@ void main() {
       expect(c.read(updateControllerProvider).phase, UpdatePhase.available);
     });
 
+    test('makes no request on launch when automatic checks are off', () async {
+      final h = await UpdateHarness.create(
+        prefs: {'auto_update_check_enabled': false},
+        latest: () => LatestFound(testRelease(), null),
+      );
+      final c = h.container();
+      addTearDown(c.dispose);
+
+      await c.read(updateControllerProvider.notifier).checkOnLaunch();
+
+      expect(h.client.calls, 0);
+      expect(c.read(updateControllerProvider).phase, UpdatePhase.idle);
+    });
+
+    test('the manual check still works with automatic checks off', () async {
+      final h = await UpdateHarness.create(
+        prefs: {'auto_update_check_enabled': false},
+        latest: () => LatestFound(testRelease(), null),
+      );
+      final c = h.container();
+      addTearDown(c.dispose);
+
+      await c.read(updateControllerProvider.notifier).check();
+
+      expect(h.client.calls, 1);
+      expect(c.read(updateControllerProvider).phase, UpdatePhase.available);
+    });
+
+    test('turning the switch off is remembered', () async {
+      final h = await UpdateHarness.create();
+      final c = h.container();
+      addTearDown(c.dispose);
+      expect(c.read(autoUpdateCheckProvider), isTrue);
+
+      await c.read(autoUpdateCheckProvider.notifier).set(false);
+
+      expect(h.prefs.getBool('auto_update_check_enabled'), isFalse);
+      final again = h.container();
+      addTearDown(again.dispose);
+      expect(again.read(autoUpdateCheckProvider), isFalse);
+    });
+
     test(
       'does not ask again within a day, but still shows the cached release',
       () async {

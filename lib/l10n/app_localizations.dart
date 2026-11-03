@@ -445,13 +445,13 @@ abstract class AppLocalizations {
   /// No description provided for @currentStreak.
   ///
   /// In en, this message translates to:
-  /// **'Current Streak'**
+  /// **'Current streak'**
   String get currentStreak;
 
   /// No description provided for @longestStreak.
   ///
   /// In en, this message translates to:
-  /// **'Longest Streak'**
+  /// **'Longest streak'**
   String get longestStreak;
 
   /// No description provided for @consistencyScore.
@@ -525,12 +525,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go Back'**
   String get goBack;
-
-  /// No description provided for @editStatsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit stats'**
-  String get editStatsTitle;
 
   /// No description provided for @path.
   ///
@@ -679,7 +673,7 @@ abstract class AppLocalizations {
   /// No description provided for @customiseHomeLayout.
   ///
   /// In en, this message translates to:
-  /// **'Organize Home Layout'**
+  /// **'Organize Home layout'**
   String get customiseHomeLayout;
 
   /// No description provided for @helpLegal.
@@ -985,7 +979,7 @@ abstract class AppLocalizations {
   /// Title for zen mode setting in customization section
   ///
   /// In en, this message translates to:
-  /// **'Zen Mode'**
+  /// **'Zen mode'**
   String get zenMode;
 
   /// Message shown when zen mode is enabled
@@ -1195,7 +1189,7 @@ abstract class AppLocalizations {
   /// Title for adding home screen widget option in customization section
   ///
   /// In en, this message translates to:
-  /// **'Add Home Screen Widget'**
+  /// **'Add Home screen widget'**
   String get addHomeScreenWidget;
 
   /// Title of the iOS sheet explaining how to add a home screen widget
@@ -1239,12 +1233,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Theme'**
   String get themeTitle;
-
-  /// Title for app icon selection setting in customization section
-  ///
-  /// In en, this message translates to:
-  /// **'App Icon'**
-  String get appIconTitle;
 
   /// Label for the near-black app icon option
   ///
@@ -1912,36 +1900,6 @@ abstract class AppLocalizations {
   /// **'Manage Defaults'**
   String get manageDefaults;
 
-  /// Label for default guide name setting
-  ///
-  /// In en, this message translates to:
-  /// **'Default Guide Name'**
-  String get defaultGuideName;
-
-  /// Label for default duration setting
-  ///
-  /// In en, this message translates to:
-  /// **'Default Duration'**
-  String get defaultDuration;
-
-  /// Message shown when default guide name is cleared
-  ///
-  /// In en, this message translates to:
-  /// **'Default guide name cleared'**
-  String get defaultGuideNameCleared;
-
-  /// Text shown when a default value is not set
-  ///
-  /// In en, this message translates to:
-  /// **'Not set'**
-  String get notSet;
-
-  /// Note explaining how defaults work in Up Next
-  ///
-  /// In en, this message translates to:
-  /// **'These defaults are set from your last selection on any track. Home uses them to skip the selection screen when you continue a pack.'**
-  String get defaultsNote;
-
   /// Text shown when a streak freeze was used on a particular day
   ///
   /// In en, this message translates to:
@@ -2055,12 +2013,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear search'**
   String get clearSearch;
-
-  /// Accessibility label for the button that clears the saved default guide preference
-  ///
-  /// In en, this message translates to:
-  /// **'Clear default guide'**
-  String get clearDefault;
 
   /// Question on onboarding screen 1 — asking about the user's meditation experience
   ///
@@ -4935,6 +4887,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove label {label}'**
   String labelsRemoveTooltip(String label);
+
+  /// Settings row that opens the History tab of Stats: the calendar where past sessions are added or edited
+  ///
+  /// In en, this message translates to:
+  /// **'Session history'**
+  String get settingsSessionHistory;
+
+  /// Switch in About: whether the app checks GitHub for a newer Meditejo when it opens
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates automatically'**
+  String get updateAutoCheck;
+
+  /// Caption under the automatic update check switch
+  ///
+  /// In en, this message translates to:
+  /// **'Looks at GitHub at most once a day when Meditejo opens. Off, it makes no request until you tap Check for updates.'**
+  String get updateAutoCheckDescription;
 }
 
 class _AppLocalizationsDelegate

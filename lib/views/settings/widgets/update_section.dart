@@ -117,6 +117,19 @@ class _UpdateSectionState extends ConsumerState<UpdateSection>
           ..add(const _Progress());
     }
 
+    if (!state.isBusy) {
+      children.add(
+        SwitchListTile.adaptive(
+          key: const ValueKey('settings_auto_update_check'),
+          contentPadding: EdgeInsets.zero,
+          title: Text(l10n.updateAutoCheck),
+          subtitle: Text(l10n.updateAutoCheckDescription),
+          value: ref.watch(autoUpdateCheckProvider),
+          onChanged: (v) => ref.read(autoUpdateCheckProvider.notifier).set(v),
+        ),
+      );
+    }
+
     final notes = release?.notes ?? '';
     if (release != null &&
         notes.isNotEmpty &&

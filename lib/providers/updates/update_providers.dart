@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/updates/update_state.dart';
 import 'package:medito/services/updates/apk_installer.dart';
@@ -62,6 +63,28 @@ final installedBuildProvider = FutureProvider<InstalledBuild>((_) async {
   );
 });
 
+/// "Check for updates automatically": on unless the person turned it off. Off
+/// means the app makes no update request on launch; the manual check works.
+final autoUpdateCheckProvider = NotifierProvider<AutoUpdateCheckNotifier, bool>(
+  AutoUpdateCheckNotifier.new,
+);
+
+class AutoUpdateCheckNotifier extends Notifier<bool> {
+  @override
+  bool build() =>
+      ref
+          .watch(sharedPreferencesProvider)
+          .getBool(SharedPreferenceConstants.autoUpdateCheckEnabled) ??
+      true;
+
+  Future<void> set(bool enabled) async {
+    state = enabled;
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool(SharedPreferenceConstants.autoUpdateCheckEnabled, enabled);
+  }
+}
+
 final updateControllerProvider =
     NotifierProvider<UpdateController, UpdateState>(UpdateController.new);
 
@@ -117,8 +140,12 @@ class UpdateController extends Notifier<UpdateState> {
       // update itself.
       final updated = _store.seenVersionCode != installed.versionCode;
       final checkedBefore = _store.lastCheckedAt;
-      if (updated ||
-          isAutoCheckDue(lastCheckedAt: _store.lastCheckedAt, now: _now())) {
+      if (shouldCheckOnLaunch(
+        autoCheckEnabled: ref.read(autoUpdateCheckProvider),
+        buildChanged: updated,
+        lastCheckedAt: _store.lastCheckedAt,
+        now: _now(),
+      )) {
         await check(manual: false);
       }
       // The build counts as seen only once a check has succeeded under it
@@ -159,7 +186,8 @@ class UpdateController extends Notifier<UpdateState> {
       final checkedAt = _now();
       await _store.setLastCheckedAt(checkedAt);
       if (!ref.mounted) return;
-      final newer = release != null && release.isNewerThan(installed.versionCode);
+      final newer =
+          release != null && release.isNewerThan(installed.versionCode);
       state = UpdateState(
         phase: newer ? UpdatePhase.available : UpdatePhase.upToDate,
         release: newer ? release : null,
@@ -245,7 +273,10 @@ class UpdateController extends Notifier<UpdateState> {
       switch (outcome) {
         case InstallSucceeded():
           await downloader.delete(release);
-          state = state.copyWith(phase: UpdatePhase.upToDate, clearRelease: true);
+          state = state.copyWith(
+            phase: UpdatePhase.upToDate,
+            clearRelease: true,
+          );
         case InstallCancelled():
           // Closing the prompt is a choice, not an error.
           state = state.copyWith(phase: UpdatePhase.available);

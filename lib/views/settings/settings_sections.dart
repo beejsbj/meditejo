@@ -3,8 +3,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/constants/theme/tokens.dart';
@@ -23,7 +21,6 @@ import 'package:medito/views/library/import_view.dart';
 import 'package:medito/views/onboarding/onboarding_pager_screen.dart';
 import 'package:medito/views/settings/health_sync_tile.dart';
 import 'package:medito/views/settings/widgets/add_widget_sheet.dart';
-import 'package:medito/views/settings/widgets/app_icon_tile.dart';
 import 'package:medito/views/settings/widgets/dharma_seed_sync_tile.dart';
 import 'package:medito/views/settings/widgets/dnd_setting_tile.dart';
 import 'package:medito/views/settings/widgets/identity_tiles.dart';
@@ -101,8 +98,6 @@ class SettingsSections extends ConsumerWidget {
         key: const ValueKey('settings_practice'),
         title: l10n.settingsSectionPractice,
         rows: [
-          (last) => DefaultGuideTile(hasUnderline: !last),
-          (last) => DefaultLengthTile(hasUnderline: !last),
           (last) => DayStartTile(hasUnderline: !last),
           if (_isDndSupported)
             (last) => DndSettingTile(
@@ -119,7 +114,7 @@ class SettingsSections extends ConsumerWidget {
           (last) => RowItemWidget(
             key: const ValueKey('settings_edit_stats'),
             icon: MeditoIcon(assetName: MeditoIcons.graphUp, color: onSurface),
-            title: l10n.editStatsTitle,
+            title: l10n.settingsSessionHistory,
             hasUnderline: !last,
             onTap: () => _push(context, const StatsScreen(initialTabIndex: 1)),
           ),
@@ -174,11 +169,6 @@ class SettingsSections extends ConsumerWidget {
           ),
           (last) => PaletteTile(hasUnderline: !last),
           (last) => HomeMarkTile(hasUnderline: !last),
-          (last) => AppIconTile(
-            icon: _AppIconGlyph(color: onSurface),
-            title: l10n.appIconTitle,
-            hasUnderline: !last,
-          ),
           (last) => RowItemWidget(
             icon: MeditoIcon(assetName: MeditoIcons.pencil, color: onSurface),
             title: l10n.customiseHomeLayout,
@@ -257,27 +247,6 @@ class SettingsGroup extends StatelessWidget {
       ],
     );
   }
-}
-
-class _AppIconGlyph extends StatelessWidget {
-  const _AppIconGlyph({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 24,
-    height: 24,
-    decoration: BoxDecoration(
-      border: Border.all(color: color, width: 1.5),
-      borderRadius: BorderRadius.circular(6),
-    ),
-    padding: const EdgeInsets.all(3),
-    child: SvgPicture.asset(
-      AssetConstants.icLogo,
-      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-    ),
-  );
 }
 
 /// The app and the build installed. Check for updates sits directly under it.

@@ -239,9 +239,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get goBack => 'Zurück';
 
   @override
-  String get editStatsTitle => 'Statistiken bearbeiten';
-
-  @override
   String get path => 'Pfad';
 
   @override
@@ -663,9 +660,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get themeTitle => 'Erscheinungsbild';
 
   @override
-  String get appIconTitle => 'App-Symbol';
-
-  @override
   String get appIconNearBlack => 'Dunkel';
 
   @override
@@ -1050,22 +1044,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get manageDefaults => 'Voreinstellungen verwalten';
 
   @override
-  String get defaultGuideName => 'Bevorzugte Stimme';
-
-  @override
-  String get defaultDuration => 'Bevorzugte Dauer';
-
-  @override
-  String get defaultGuideNameCleared => 'Bevorzugte Stimme zurückgesetzt';
-
-  @override
-  String get notSet => 'Nicht festgelegt';
-
-  @override
-  String get defaultsNote =>
-      'Diese Voreinstellungen entsprechen deiner letzten Auswahl bei einem Titel. Die Startseite verwendet sie, um den Auswahlbildschirm zu überspringen, wenn du ein Paket fortsetzt.';
-
-  @override
   String get streakFreezeUsed => 'Serienschutz eingesetzt';
 
   @override
@@ -1121,9 +1099,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get clearSearch => 'Suche leeren';
-
-  @override
-  String get clearDefault => 'Bevorzugte Stimme zurücksetzen';
 
   @override
   String get onboardingExperienceQuestion => 'Hast du schon einmal meditiert?';
@@ -2837,4 +2812,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String labelsRemoveTooltip(String label) {
     return 'Label $label entfernen';
   }
+
+  @override
+  String get settingsSessionHistory => 'Verlauf der Sitzungen';
+
+  @override
+  String get updateAutoCheck => 'Automatisch nach Updates suchen';
+
+  @override
+  String get updateAutoCheckDescription =>
+      'Fragt beim Öffnen von Meditejo höchstens einmal täglich bei GitHub nach. Ist es aus, gibt es keine Anfrage, bis du auf „Nach Updates suchen“ tippst.';
 }

@@ -195,10 +195,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get loading => 'Cargando...';
 
   @override
-  String get currentStreak => 'Racha Actual';
+  String get currentStreak => 'Racha actual';
 
   @override
-  String get longestStreak => 'Racha Más Larga';
+  String get longestStreak => 'Racha más larga';
 
   @override
   String get consistencyScore => 'Puntuación de Consistencia';
@@ -236,9 +236,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get goBack => 'Regresar';
-
-  @override
-  String get editStatsTitle => 'Editar estadísticas';
 
   @override
   String get path => 'Ruta';
@@ -318,7 +315,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get customization => 'Personalización';
 
   @override
-  String get customiseHomeLayout => 'Organizar Diseño de Inicio';
+  String get customiseHomeLayout => 'Organizar el diseño de Inicio';
 
   @override
   String get helpLegal => 'Ayuda y Legal';
@@ -514,7 +511,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Silenciar teléfono durante la meditación';
 
   @override
-  String get zenMode => 'Modo Zen';
+  String get zenMode => 'Modo zen';
 
   @override
   String get zenModeEnabledMessage =>
@@ -630,7 +627,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get customizationSection => 'Personalización';
 
   @override
-  String get addHomeScreenWidget => 'Añadir Widget a la Pantalla de Inicio';
+  String get addHomeScreenWidget => 'Añadir widget a la pantalla de inicio';
 
   @override
   String get addWidgetSheetTitle => 'Añade un widget de Meditejo';
@@ -656,9 +653,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get themeTitle => 'Tema';
-
-  @override
-  String get appIconTitle => 'Icono de la app';
 
   @override
   String get appIconNearBlack => 'Casi negro';
@@ -1042,22 +1036,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get manageDefaults => 'Gestionar Predeterminados';
 
   @override
-  String get defaultGuideName => 'Guía Predeterminado';
-
-  @override
-  String get defaultDuration => 'Duración Predeterminada';
-
-  @override
-  String get defaultGuideNameCleared => 'Guía predeterminado eliminado';
-
-  @override
-  String get notSet => 'Sin configurar';
-
-  @override
-  String get defaultsNote =>
-      'Estos valores predeterminados se basan en tu última selección en cualquier pista. Inicio los usa para omitir la pantalla de selección cuando continúas un paquete.';
-
-  @override
   String get streakFreezeUsed => 'Congelación de racha usada';
 
   @override
@@ -1113,9 +1091,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get clearSearch => 'Borrar búsqueda';
-
-  @override
-  String get clearDefault => 'Borrar guía predeterminada';
 
   @override
   String get onboardingExperienceQuestion => '¿Has meditado antes?';
@@ -2835,4 +2810,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String labelsRemoveTooltip(String label) {
     return 'Quitar la etiqueta $label';
   }
+
+  @override
+  String get settingsSessionHistory => 'Historial de sesiones';
+
+  @override
+  String get updateAutoCheck => 'Buscar actualizaciones automáticamente';
+
+  @override
+  String get updateAutoCheckDescription =>
+      'Consulta GitHub como máximo una vez al día al abrir Meditejo. Desactivado, no hace ninguna petición hasta que pulses Buscar actualizaciones.';
 }
