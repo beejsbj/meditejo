@@ -89,6 +89,15 @@ void main() {
       // pack knows nothing about completion.
       expect(nextSessionIn(pack, {'t1', 't2', 't3', 't4', 't5'})!.id, 't6');
       expect(nextSessionIn(pack, const {})!.id, 't1');
+      // A session left partway wins, as on the course page and Home.
+      expect(
+        nextSessionIn(
+          pack,
+          {'t1', 't2'},
+          partial: {'t5': DateTime(2026, 10, 1)},
+        )!.id,
+        't5',
+      );
       expect(
         nextSessionIn(pack, {for (var i = 1; i <= 8; i++) 't$i'})!.id,
         't1',

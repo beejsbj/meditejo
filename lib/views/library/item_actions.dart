@@ -10,6 +10,7 @@ import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/stats_provider.dart';
+import 'package:medito/services/home/next_session.dart';
 import 'package:medito/services/library/lib_ids.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/providers/meditation/downloaded_track_ids_provider.dart';
@@ -386,15 +387,22 @@ Future<void> _run(
   }
 }
 
-/// The session a course's Play starts: the first playable one not yet
-/// played, else the first (a finished course starts over).
+/// The session a course's Play starts: the shared "next session" rule
+/// (partway first, else the first unfinished), or the first session again
+/// for a finished course. [played] is the global finished set.
 @visibleForTesting
-PackItemsModel? nextSessionIn(PackModel pack, Set<String> played) {
-  final tracks = pack.playableTracks;
-  return tracks
-          .where((i) => i.isCompleted != true && !played.contains(i.id))
-          .firstOrNull ??
-      tracks.firstOrNull;
+PackItemsModel? nextSessionIn(
+  PackModel pack,
+  Set<String> played, {
+  Map<String, DateTime> partial = const {},
+}) {
+  final done = {
+    ...played,
+    for (final i in pack.items)
+      if (i.isCompleted == true) i.id,
+  };
+  return nextSessionFor(pack, partial: partial, completedIds: done)?.item ??
+      pack.playableTracks.firstOrNull;
 }
 
 /// A session starts as it would from its course; a course starts at its
@@ -418,7 +426,12 @@ Future<void> _play(
     // Read the raw pack first so the derived one (with completion) is ready.
     final raw = await ref.read(packDataProvider(packId: id).future);
     final PackModel pack = ref.read(packProvider(packId: id)).value ?? raw;
-    final next = nextSessionIn(pack, ref.read(playedTrackIdsProvider));
+    final partial = await ref.read(partialPlacesProvider.future);
+    final next = nextSessionIn(
+      pack,
+      ref.read(playedTrackIdsProvider),
+      partial: partial,
+    );
     if (!context.mounted) return;
     if (next == null) {
       await openCourse(context, ref, id);
