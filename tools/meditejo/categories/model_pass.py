@@ -237,18 +237,25 @@ def final():
                 raise SystemExit(f'split.jsonl: bad row {row}')
             result[rid] = [c for c in result[rid] if c not in four] + row['split']
     # Vipassanā narrowed (2026-11-03): a re-read keeps it only where insight
-    # is the practice (pass/vipassana/, Haiku, with Sonnet's audit in
-    # pass/vipassana-audit.jsonl overriding it).
+    # is the practice. Later readings win: Haiku (pass/vipassana/), Sonnet's
+    # audit of its keeps (pass/vipassana-audit.jsonl), then Sonnet's re-read
+    # of affinity retreats and of empty descriptions with every talk title
+    # (pass/vipassana-reread.jsonl).
     keep = {}
-    for path in sorted((WORK / 'vipassana').glob('batch-*.jsonl')):
+    readings = sorted((WORK / 'vipassana').glob('batch-*.jsonl')) + [
+        WORK / 'vipassana-audit.jsonl',
+        WORK / 'vipassana-reread.jsonl',
+    ]
+    for path in readings:
+        if not path.exists():
+            continue
         for row in read_jsonl(path):
-            keep[int(row['id'])] = bool(row['vipassana'])
-    audit = WORK / 'vipassana-audit.jsonl'
-    if audit.exists():
-        for row in read_jsonl(audit):
-            keep[int(row['id'])] = bool(row['vipassana'])
+            rid = int(row['id'])
+            if rid not in result or not isinstance(row['vipassana'], bool):
+                raise SystemExit(f'{path.name}: bad row {row}')
+            keep[rid] = row['vipassana']
     for rid, stays in keep.items():
-        if rid in result and not stays:
+        if not stays:
             result[rid] = [c for c in result[rid] if c != 'vipassana']
     corrections = WORK / 'corrections.jsonl'
     if corrections.exists():

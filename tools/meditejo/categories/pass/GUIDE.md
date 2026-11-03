@@ -57,7 +57,20 @@ a wrong label puts a retreat in front of someone looking for something else.
   talks", "some metta". That alone is **not** `walking` or `metta`. Tag
   `walking` only when walking practice is a theme; `metta` when loving-kindness
   or the brahmavihāras are a stated focus or a large share of the talks.
-- `vipassana` (narrowed 2026-11-03): the retreat's **practice is insight**: it is named vipassanā, satipaṭṭhāna (the foundations of mindfulness) or noting, or its description or talk titles show insight as the method (the three characteristics, seeing arising and passing, the foundations of mindfulness, noting). **Not** every event from an "Insight Meditation" centre or series: when "insight meditation" is only the centre's or the series' label and the stated content is something else (metta, a sutta study, a community or affinity gathering, daily life, general Dharma talks), it is not `vipassana`.
+- `vipassana` (narrowed 2026-11-03): the retreat's **practice is insight**.
+  - It is a vipassanā retreat by its own title or description, or its
+    description or talk titles teach insight as the method: satipaṭṭhāna
+    (the foundations of mindfulness), noting, the three characteristics,
+    seeing arising and passing.
+  - "Insight meditation" in a title or description counts only with that
+    support: it is also the name of the movement, its centres and their
+    series.
+  - **Not** when insight is only a label and the stated content is something
+    else (mettā, a sutta study, daily life, general Dharma talks), or when
+    one insight-sounding talk sits among unrelated ones.
+  - Who a retreat is for doesn't matter: a young adults', women's, LGBTQ+ or
+    people-of-colour retreat that practises insight is `vipassana`.
+  - With no description, judge from all the talk titles, not a sample.
 - `samatha` for retreats about calm and concentration; `jhana` only when the
   absorptions themselves are taught. Both may apply.
 - `breath` when breathing (ānāpānasati) is the stated main object, not merely
