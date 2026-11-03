@@ -337,7 +337,9 @@ class CategoryService {
       for (final r in await db.retreatsById([
         for (final id in ids) ?parseDsRetreatId(id),
       ]))
-        if (DharmaSeedDatabase.talkIdsOf(r).isNotEmpty) r,
+        if (DharmaSeedDatabase.talkIdsOf(r).isNotEmpty &&
+            !DharmaSeedDatabase.hiddenRetreatIds.contains(r.id))
+          r,
     ];
     final curatedRows = await withTalks(catalogue.curatedIn(category.id));
     // Vipassanā alone has some 1,600: sort and cut in SQL.
@@ -352,6 +354,7 @@ class CategoryService {
             'SELECT r.* FROM ds_retreats_fts f JOIN ds_retreats r '
             'ON r.id = f.rowid WHERE ds_retreats_fts MATCH ? '
             "AND r.talk_ids != '[]' "
+            'AND ${DharmaSeedDatabase.notHiddenRetreat('r')} '
             'ORDER BY r.start_date DESC, r.id DESC LIMIT ?',
             variables: [
               Variable.withString(match),
@@ -429,6 +432,7 @@ class CategoryService {
               'SELECT t.* FROM ds_talks_fts f JOIN ds_talks t ON t.id = f.rowid '
               'WHERE ds_talks_fts MATCH ? AND '
               '${DharmaSeedDatabase.groupCondition(group, 't')} '
+              'AND ${DharmaSeedDatabase.notHiddenTalk('t')} '
               'ORDER BY t.rec_date DESC, t.id DESC LIMIT ?',
               variables: [
                 Variable.withString(talkMatch),
@@ -489,6 +493,7 @@ class CategoryService {
           'SELECT * FROM ds_retreats WHERE id IN '
           '(${List.filled(ids.length, '?').join(',')}) '
           "AND talk_ids != '[]' "
+          'AND ${DharmaSeedDatabase.notHiddenRetreat('ds_retreats')} '
           'ORDER BY start_date DESC, id DESC LIMIT ?',
           variables: [
             for (final id in ids) Variable.withInt(id),
