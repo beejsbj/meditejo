@@ -78,6 +78,7 @@ class WheelPicker<T> extends StatefulWidget {
     this.entryText,
     this.visibleItems = 5,
     this.itemExtent = 40,
+    this.enabled = true,
   }) : assert(visibleItems >= 3 && visibleItems % 2 == 1);
 
   /// What the wheel sets, for the screen reader and the typing dialog.
@@ -107,6 +108,10 @@ class WheelPicker<T> extends StatefulWidget {
 
   /// One row's height at 1× text; it grows with the text size.
   final double itemExtent;
+
+  /// Off: the wheel shows its value, dimmed, and cannot be turned (a drag
+  /// on it scrolls whatever is around it).
+  final bool enabled;
 
   @override
   State<WheelPicker<T>> createState() => WheelPickerState<T>();
@@ -313,19 +318,33 @@ class WheelPickerState<T> extends State<WheelPicker<T>> {
       ),
     );
 
+    final enabled = widget.enabled;
     return Semantics(
       label: widget.label,
       value: spoken(_selected),
-      increasedValue: _selected < last ? spoken(_selected + 1) : null,
-      decreasedValue: _selected > 0 ? spoken(_selected - 1) : null,
-      onIncrease: _selected < last ? () => moveTo(_selected + 1) : null,
-      onDecrease: _selected > 0 ? () => moveTo(_selected - 1) : null,
-      customSemanticsActions: widget.parseEntry == null
+      // Said only when off, so an ordinary wheel reads as before.
+      enabled: enabled ? null : false,
+      increasedValue: enabled && _selected < last
+          ? spoken(_selected + 1)
+          : null,
+      decreasedValue: enabled && _selected > 0 ? spoken(_selected - 1) : null,
+      onIncrease: enabled && _selected < last
+          ? () => moveTo(_selected + 1)
+          : null,
+      onDecrease: enabled && _selected > 0 ? () => moveTo(_selected - 1) : null,
+      customSemanticsActions: !enabled || widget.parseEntry == null
           ? null
           : {const CustomSemanticsAction(label: 'Type a value'): typeEntry},
       // The rows are a run of loose labels to a screen reader; the control
       // above says which is chosen and what it sets.
-      child: ExcludeSemantics(child: wheel),
+      // The same widgets on or off, so turning it on keeps its scroll
+      // view (and its controller on one view).
+      child: ExcludeSemantics(
+        child: IgnorePointer(
+          ignoring: !enabled,
+          child: Opacity(opacity: enabled ? 1 : 0.38, child: wheel),
+        ),
+      ),
     );
   }
 }
@@ -363,12 +382,19 @@ class _WheelItem extends StatelessWidget {
             opacity: (1 - distance * 0.3).clamp(0.2, 1.0),
             child: Transform.scale(
               scale: 1 - distance.clamp(0.0, 2.0) * 0.07,
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.fade,
-                softWrap: false,
-                style: TextStyle.lerp(centre, neighbour, t),
+              // A narrow wheel (three in a row) shrinks a long value to fit
+              // rather than cutting it.
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: TextStyle.lerp(centre, neighbour, t),
+                  ),
+                ),
               ),
             ),
           ),

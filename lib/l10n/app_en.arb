@@ -3303,6 +3303,58 @@
   "@customizeSlotDefault": {
     "description": "Customize: read by a screen reader after a tile at its defaults"
   },
+  "customizeRhythmRate": "Rate",
+  "@customizeRhythmRate": {
+    "description": "Customize › Rhythm: label over the wheel that sets the pulse's beats a minute"
+  },
+  "customizeRhythmSlowDownOver": "Slow down over",
+  "@customizeRhythmSlowDownOver": {
+    "description": "Customize › Rhythm: what the ramp wheel sets (minutes the pulse takes to slow to its end rate); read by a screen reader and in the Undo bar"
+  },
+  "customizeRhythmOver": "Over",
+  "@customizeRhythmOver": {
+    "description": "Customize › Rhythm: short label over the ramp wheel, in the row 'Rate · Over · Ends at'"
+  },
+  "customizeRhythmEndsAt": "Ends at",
+  "@customizeRhythmEndsAt": {
+    "description": "Customize › Rhythm: label over the wheel that sets the rate the pulse slows to; dimmed while the ramp is Off"
+  },
+  "customizeRhythmOverMinutes": "over {minutes} min",
+  "@customizeRhythmOverMinutes": {
+    "description": "Customize › Rhythm tile: small text set above the arrow in '60 ⟶ 40 BPM'",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "customizeRhythmRampSpoken": "{from} to {to} BPM over {minutes} min",
+  "@customizeRhythmRampSpoken": {
+    "description": "Customize › Rhythm tile, for a screen reader: the pulse slowing from one rate to another",
+    "placeholders": {
+      "from": {
+        "type": "int"
+      },
+      "to": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "customizeUndoChange": "{setting}: {value}",
+  "@customizeUndoChange": {
+    "description": "Customize: the bar shown after a wheel changes a setting, with an Undo button, e.g. 'Slow down over: 9 min'",
+    "placeholders": {
+      "setting": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "playerAutoplayForPractice": "For all practice",
   "@playerAutoplayForPractice": {
     "description": "Player: the autoplay setting applies to every practice course"
