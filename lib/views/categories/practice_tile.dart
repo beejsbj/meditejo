@@ -128,7 +128,7 @@ class PracticeTile extends StatelessWidget {
       body = Stack(
         fit: StackFit.expand,
         children: [
-          ArtCover(subject: _art, scrim: true),
+          ArtCover(subject: _art, scrim: true, live: true),
           Positioned(
             left: 12,
             // Clear of the tick's badge.
@@ -190,9 +190,10 @@ class PracticeTile extends StatelessWidget {
         children: [
           AspectRatio(
             aspectRatio: tall ? 170 / 148 : 148 / 132,
-            // Still frames, as every list in the app: lists scroll over
-            // rasters rather than painting (ArtRasters).
-            child: ArtCover(subject: _art),
+            // Live, but only while some of the tile is on screen and the
+            // app is in front; reduce motion gives the still frame
+            // (ArtCover). Burooj, 2026-11-02.
+            child: ArtCover(subject: _art, live: true),
           ),
           // The slot's height is fixed (a carousel row, a grid cell), so the
           // words take what is left and clip under large text.

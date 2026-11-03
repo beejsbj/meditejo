@@ -185,7 +185,7 @@ class ArtCover extends StatefulWidget {
 }
 
 class _ArtCoverState extends State<ArtCover>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final Ticker _ticker = createTicker(_tick);
   final _time = ValueNotifier<double>(60);
   ui.Image? _still;
@@ -195,6 +195,14 @@ class _ArtCoverState extends State<ArtCover>
   Duration _strikeLength = Duration.zero;
   var _frames = 0;
   var _onScreen = true;
+
+  /// Whether the app is in front. In the background nothing animates.
+  var _appActive = true;
+
+  /// Every scroll position this cover sits in (a carousel inside a page):
+  /// scrolling one re-checks whether the cover is in the window, so a live
+  /// cover's ticker runs only while some of it shows.
+  final _positions = <ScrollPosition>[];
 
   @override
   void initState() {
@@ -206,6 +214,46 @@ class _ArtCoverState extends State<ArtCover>
       ..addListener(_changed)
       ..load();
     widget.strike?.addListener(_struck);
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final found = <ScrollPosition>[];
+    for (
+      var s = Scrollable.maybeOf(context);
+      s != null;
+      s = Scrollable.maybeOf(s.context)
+    ) {
+      found.add(s.position);
+    }
+    for (final p in _positions) {
+      p.removeListener(_scrolled);
+    }
+    _positions
+      ..clear()
+      ..addAll(found);
+    for (final p in _positions) {
+      p.addListener(_scrolled);
+    }
+    if (widget.live) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrolled());
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final active = state == AppLifecycleState.resumed;
+    if (active != _appActive && mounted) setState(() => _appActive = active);
+  }
+
+  // A scroll moved: start or stop the ticker as the cover enters or leaves
+  // the window.
+  void _scrolled() {
+    if (!mounted || !widget.live) return;
+    final visible = _visible();
+    if (visible != _onScreen) setState(() => _onScreen = visible);
   }
 
   @override
@@ -222,6 +270,10 @@ class _ArtCoverState extends State<ArtCover>
     CuratedArt.instance.removeListener(_changed);
     ArtTextures.instance.removeListener(_changed);
     widget.strike?.removeListener(_struck);
+    WidgetsBinding.instance.removeObserver(this);
+    for (final p in _positions) {
+      p.removeListener(_scrolled);
+    }
     _ticker.dispose();
     _time.dispose();
     _still?.dispose();
@@ -260,8 +312,12 @@ class _ArtCoverState extends State<ArtCover>
     // Up to 30 fps.
     if (elapsed - _lastFrame < const Duration(microseconds: 33000)) return;
     _lastFrame = elapsed;
-    if (++_frames % 15 == 0) _onScreen = _visible();
-    if (!_onScreen) return;
+    // Moves the scroll positions don't report (a route transition, a resize)
+    // are caught here; leaving the window stops the ticker.
+    if (++_frames % 15 == 0 && !_visible()) {
+      setState(() => _onScreen = false);
+      return;
+    }
     final s =
         (struck == null ? elapsed : elapsed - struck).inMicroseconds / 1e6;
     _time.value = struck == null ? 60 + s : s;
@@ -288,10 +344,17 @@ class _ArtCoverState extends State<ArtCover>
           ? widget.placeholder ?? _blank(context)
           : _blank(context);
     }
+    // Only what can be seen moves: a live cover in the window, in the app
+    // in front, with motion allowed, on the current route (TickerMode).
     final animate =
         _motionAllowed &&
-        (widget.live || _striking) &&
+        _appActive &&
+        ((widget.live && _onScreen) || _striking) &&
         TickerMode.valuesOf(context).enabled;
+    if (widget.live && !_onScreen) {
+      // Re-checked after layout too, for moves no scroll position reports.
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrolled());
+    }
     if (_striking && widget.strike != null) {
       _strikeLength = bellStrikeLength(comp);
     }
