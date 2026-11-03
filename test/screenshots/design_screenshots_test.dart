@@ -19,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/services/identity/palettes.dart';
+import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
@@ -139,6 +140,125 @@ final _pinPacks = [
       ],
     ),
 ];
+
+/// The course page at full length (#81): a 32-session retreat over eight
+/// days with real-length titles, in progress, and an 18-part YouTube series
+/// that has not been started.
+final _jhanas = PackModel(
+  id: 'ds-retreat-4496',
+  title: 'Practising the Jhānas',
+  subtitle: 'Rob Burbea · 2019 · 32 talks',
+  description:
+      'A retreat on the jhānas as a path of samatha: developing pīti and '
+      'sukha, working with the energy body, and letting concentration open '
+      'into insight.',
+  teacher: const PackTeacher(
+    id: 'ds-teacher-210',
+    name: 'Rob Burbea',
+    bio: 'Rob Burbea was resident teacher at Gaia House, Devon.',
+  ),
+  attribution: const SourceAttribution(
+    source: 'Dharma Seed',
+    creator: 'Rob Burbea',
+    url: 'https://dharmaseed.org/retreats/4496/',
+    licenseName: 'CC BY-NC-ND 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-nc-nd/4.0/',
+  ),
+  items: [
+    for (final (i, title) in const [
+      'Opening Talk: Why Practise the Jhānas?',
+      'Guided Meditation: Settling and Finding the Pleasant',
+      'Developing Pīti, Developing Focus',
+      'Guided Meditation: The Energy Body',
+      'Working with Hindrances in Samatha Practice',
+      'Q & A: Restlessness, Sleepiness and Doubt',
+      'Guided Meditation: Breath and Well-being',
+      'The Place of Pleasure on the Path',
+      'Guided Meditation: Opening to Pīti',
+      'First Jhāna: Vitakka and Vicāra',
+      'Guided Meditation: Steadying Attention',
+      'Second Jhāna: Pīti Without Effort',
+      'Q & A: Is This Jhāna Yet?',
+      'Guided Meditation: Sukha, Softening',
+      'Third Jhāna: Contentment and Equanimity',
+      'Guided Meditation: Resting in Sukha',
+      'Fourth Jhāna: Stillness and Brightness',
+      'Guided Meditation: Wide, Still Awareness',
+      'The Formless Realms: Infinite Space',
+      'Q & A: Fear, Intensity and Letting Go',
+      'Guided Meditation: Boundless Space',
+      'Infinite Consciousness and Nothingness',
+      'Guided Meditation: Neither Perception nor Non-perception',
+      'Jhāna and Insight: Seeing Emptiness',
+      'Guided Meditation: Fabrication and Fading',
+      'The Jhānas in Daily Life',
+      'Q & A: Practice After the Retreat',
+      'Guided Meditation: Metta as a Samatha Object',
+      'Beauty, Eros and the Imaginal',
+      'Guided Meditation: Gratitude',
+      'Closing Talk: Carrying the Practice On',
+      'Closing Meditation and Dedication of Merit',
+    ].indexed)
+      PackItemsModel(
+        type: 'track',
+        id: 'ds-talk-4496-$i',
+        title: title,
+        path: '/tracks/ds-talk-4496-$i',
+        kind: title.startsWith('Guided') || title.startsWith('Closing Med')
+            ? 'Guided meditation'
+            : title.startsWith('Q & A')
+            ? 'Q & A'
+            : 'Talk',
+        teacher: 'Rob Burbea',
+        durationMs: (38 + (i * 7) % 31) * 60000,
+        date: '2019-03-0${1 + i ~/ 4}',
+        isCompleted: i < 11,
+      ),
+  ],
+);
+
+final _vervaeke = PackModel(
+  id: 'yt-playlist-vervaeke',
+  title: 'Meditating with John Vervaeke',
+  subtitle: 'John Vervaeke',
+  attribution: const SourceAttribution(
+    source: 'YouTube',
+    creator: 'John Vervaeke',
+    url: 'https://www.youtube.com/playlist?list=vervaeke',
+    licenseName: '',
+    licenseUrl: '',
+  ),
+  items: [
+    for (final (i, topic) in const [
+      'Mindfulness',
+      'Breath and Body',
+      'Sitting with Distraction',
+      'Contemplation',
+      'Insight',
+      'Loving-Kindness',
+      'Flow',
+      'Walking Meditation',
+      'Tai Chi and Embodiment',
+      'Dialectic into Dialogos',
+      'Imaginal Practice',
+      'Compassion',
+      'Wisdom and Virtue',
+      'Equanimity',
+      'Self-Transcendence',
+      'Participatory Knowing',
+      'Relevance Realisation',
+      'Closing Reflections',
+    ].indexed)
+      PackItemsModel(
+        type: 'track',
+        id: 'yt-video-v$i',
+        title: 'Meditating with John Vervaeke: Day ${i + 1} - $topic',
+        path: '/tracks/yt-video-v$i',
+        teacher: 'John Vervaeke',
+        durationMs: (24 + (i * 5) % 22) * 60000,
+      ),
+  ],
+);
 
 const _pinTracks = [
   Track(
@@ -622,6 +742,111 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       expect(tester.takeException(), isNull);
       await _captureView(tester, 'course-page-${brightness.name}');
+    }, skip: !_enabled);
+
+    // The course page's header, actions and tabs at full length (#81, #92):
+    // a long retreat in progress (top and scrolled) and a fresh series.
+    testWidgets('Course page header, ${brightness.name}', (tester) async {
+      WidgetsApp.debugAllowBannerOverride = false;
+      addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
+      for (final (pack, name) in [
+        (_jhanas, 'course-jhanas'),
+        (_vervaeke, 'course-vervaeke'),
+      ]) {
+        final app = await LibraryTestApp.create(tester);
+        await app.pump(
+          tester,
+          // Keyed: the second course is a page of its own, not the first
+          // one's page (and scroll position) reused.
+          _frame(brightness, PackView(key: ValueKey(pack.id), id: pack.id)),
+          // Both, every time: one ProviderScope is pumped twice.
+          overrides: [
+            for (final p in [_jhanas, _vervaeke])
+              packProvider(packId: p.id).overrideWith(() => _PackOf(p)),
+          ],
+        );
+        await _phone(tester);
+        await tester.pump(const Duration(seconds: 1));
+        expect(tester.takeException(), isNull);
+        await _captureView(tester, '$name-${brightness.name}');
+        if (pack == _jhanas) {
+          // Scrolled into the sessions: what stays in reach.
+          await tester.drag(
+            find.byType(CustomScrollView).first,
+            const Offset(0, -900),
+          );
+          await tester.pump(const Duration(seconds: 1));
+          expect(tester.takeException(), isNull);
+          await _captureView(tester, '$name-scrolled-${brightness.name}');
+        }
+      }
+    }, skip: !_enabled);
+
+    // The header's Play and toggles in long languages, on the narrowest
+    // phones and at a larger text size (#81): no word may be cut.
+    testWidgets('Course page fit, ${brightness.name}', (tester) async {
+      WidgetsApp.debugAllowBannerOverride = false;
+      addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
+      final finished = _jhanas.copyWith(
+        id: 'ds-retreat-4497',
+        items: [
+          for (final item in _jhanas.items) item.copyWith(isCompleted: true),
+        ],
+      );
+      // The same three every pump: one ProviderScope is pumped repeatedly.
+      final overrides = [
+        for (final p in [_jhanas, _vervaeke, finished])
+          packProvider(packId: p.id).overrideWith(() => _PackOf(p)),
+      ];
+      for (final lang in const ['en', 'de', 'es']) {
+        for (final width in const [360, 411]) {
+          for (final scale in const [1.0, 1.3]) {
+            final app = await LibraryTestApp.create(tester);
+            await app.pump(
+              tester,
+              _frame(
+                brightness,
+                Builder(
+                  builder: (context) => Localizations.override(
+                    context: context,
+                    locale: Locale(lang),
+                    child: MediaQuery(
+                      data: MediaQuery.of(
+                        context,
+                      ).copyWith(textScaler: TextScaler.linear(scale)),
+                      child: PackView(
+                        key: ValueKey('$lang-$width-$scale'),
+                        id: _jhanas.id,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              overrides: overrides,
+            );
+            // 1080 px wide at 3 = 360 dp; at 2.625 = 411 dp (S23+).
+            tester.view.devicePixelRatio = width == 360 ? 3 : 2.625;
+            tester.view.physicalSize = const Size(1080, 2340);
+            await tester.pump(const Duration(seconds: 1));
+            expect(tester.takeException(), isNull);
+            await _captureView(
+              tester,
+              'course-fit-$lang-$width-x$scale-${brightness.name}',
+            );
+          }
+        }
+      }
+      // Finished: a quiet "All 32 played" and Play again.
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(
+        tester,
+        _frame(brightness, PackView(id: finished.id)),
+        overrides: overrides,
+      );
+      await _phone(tester);
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+      await _captureView(tester, 'course-finished-${brightness.name}');
     }, skip: !_enabled);
 
     testWidgets('Home menus, ${brightness.name}', (tester) async {

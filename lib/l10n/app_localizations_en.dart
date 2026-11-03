@@ -1374,13 +1374,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchLengthOver45 => 'Over 45 min';
 
   @override
-  String courseLeft(int count, int total) {
-    return '$count of $total left';
+  String coursePlayed(int count, int total) {
+    return '$count of $total played';
   }
 
   @override
   String courseAllPlayed(int total) {
     return 'All $total played';
+  }
+
+  @override
+  String get coursePlayAgain => 'Play again';
+
+  @override
+  String courseSessionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sessions',
+      one: '1 session',
+    );
+    return '$_temp0';
   }
 
   @override

@@ -2506,17 +2506,29 @@ abstract class AppLocalizations {
   /// **'Over 45 min'**
   String get searchLengthOver45;
 
-  /// Course progress line
+  /// Course progress, beside its bar: sessions played of all
   ///
   /// In en, this message translates to:
-  /// **'{count} of {total} left'**
-  String courseLeft(int count, int total);
+  /// **'{count} of {total} played'**
+  String coursePlayed(int count, int total);
 
   /// Course progress line when every session is done
   ///
   /// In en, this message translates to:
   /// **'All {total} played'**
   String courseAllPlayed(int total);
+
+  /// A finished course's play button: starts it again from its first session
+  ///
+  /// In en, this message translates to:
+  /// **'Play again'**
+  String get coursePlayAgain;
+
+  /// How many sessions a course holds, in its header's meta line (the word its Sessions tab uses)
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 session} other{{count} sessions}}'**
+  String courseSessionCount(int count);
 
   /// Button to save a course
   ///

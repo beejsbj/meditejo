@@ -1362,9 +1362,9 @@
   "@searchLengthOver45": {
     "description": "Session-length filter"
   },
-  "courseLeft": "{count} of {total} left",
-  "@courseLeft": {
-    "description": "Course progress line",
+  "coursePlayed": "{count} of {total} played",
+  "@coursePlayed": {
+    "description": "Course progress, beside its bar: sessions played of all",
     "placeholders": {
       "count": {
         "type": "int"
@@ -1379,6 +1379,19 @@
     "description": "Course progress line when every session is done",
     "placeholders": {
       "total": {
+        "type": "int"
+      }
+    }
+  },
+  "coursePlayAgain": "Play again",
+  "@coursePlayAgain": {
+    "description": "A finished course's play button: starts it again from its first session"
+  },
+  "courseSessionCount": "{count, plural, =1{1 session} other{{count} sessions}}",
+  "@courseSessionCount": {
+    "description": "How many sessions a course holds, in its header's meta line (the word its Sessions tab uses)",
+    "placeholders": {
+      "count": {
         "type": "int"
       }
     }

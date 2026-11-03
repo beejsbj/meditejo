@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/constants/types/type_constants.dart';
@@ -72,6 +75,7 @@ void main() {
     WidgetTester tester,
     PackModel pack, {
     List<PackModel> others = const [],
+    List<Override> extra = const [],
   }) async {
     final packs = [pack, ...others]..sort((a, b) => a.id.compareTo(b.id));
     await tester.pumpWidget(
@@ -81,17 +85,14 @@ void main() {
           libraryStoreProvider.overrideWithValue(store),
           for (final p in packs)
             packProvider(packId: p.id).overrideWith(() => _FakePack(p)),
+          ...extra,
         ],
         child: MaterialApp(
           scaffoldMessengerKey: scaffoldMessengerKey,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
-            body: PackPathButton(
-              pack: pack,
-              onStartSession: fakeStart,
-              child: const SizedBox(height: 40),
-            ),
+            body: PackPlayButton(pack: pack, onStartSession: fakeStart),
           ),
         ),
       ),
@@ -139,18 +140,46 @@ void main() {
     expect(find.byType(SnackBar), findsNothing);
   });
 
-  testWidgets('a finished pack shows "All sessions done" and does nothing', (
+  testWidgets('a finished pack offers Play again, from its first session', (
     tester,
   ) async {
     await pump(tester, _pack('done', 'Done', tracks: 2, done: 2));
 
-    await tester.tap(find.byIcon(Icons.check_rounded));
+    expect(find.text(l10n.coursePlayAgain), findsOneWidget);
+    expect(find.text('Session 0'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.replay_rounded));
     await tester.pumpAndSettle();
 
-    expect(started, isEmpty);
+    expect(started, ['done-0']);
+    expect(courses, ['done']);
   });
 
-  testWidgets('hidden for packs that contain sub-packs', (tester) async {
+  testWidgets('names no session until the places are read', (tester) async {
+    // Sleep has 3 of 7 done: without its places it could say "Resume:
+    // Session 3" and then turn to the session left partway. It waits.
+    final places = Completer<Map<String, DateTime>>();
+    await pump(
+      tester,
+      sleep,
+      extra: [partialPlacesProvider.overrideWith((ref) => places.future)],
+    );
+    final handle = tester.ensureSemantics();
+    expect(find.text(l10n.play), findsOneWidget);
+    expect(find.text(l10n.packContinue), findsNothing);
+    expect(find.textContaining('Session'), findsNothing);
+    expect(find.bySemanticsLabel(l10n.play), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.pump();
+    expect(started, isEmpty);
+
+    places.complete({'sleep-5': DateTime(2026, 10, 25)});
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.packContinue), findsOneWidget);
+    expect(find.text('Session 5'), findsOneWidget);
+    handle.dispose();
+  });
+
+  test('not offered for packs that contain sub-packs', () {
     final nested = PackModel(
       id: 'nested',
       title: 'Nested',
@@ -163,8 +192,8 @@ void main() {
         ),
       ],
     );
-    await pump(tester, nested);
-
-    expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+    // The header's action row leaves Play out for it.
+    expect(PackPlayButton.isPlayable(nested), isFalse);
+    expect(PackPlayButton.isPlayable(sleep), isTrue);
   });
 }
