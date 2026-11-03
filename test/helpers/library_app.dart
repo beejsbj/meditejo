@@ -166,6 +166,7 @@ class LibraryTestApp {
           downloadedTrackIdsProvider.overrideWithValue(downloaded),
           // An empty catalogue stands in for Dharma Seed.
           dharmaSeedSourceProvider.overrideWithValue(harness.dharmaSeed),
+          dharmaSeedDatabaseProvider.overrideWithValue(harness.dsDb),
           ...overrides,
         ],
         child: Builder(

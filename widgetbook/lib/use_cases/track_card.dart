@@ -8,6 +8,7 @@ Widget trackCardWithImage(BuildContext context) {
   return Padding(
     padding: const EdgeInsets.all(16),
     child: TrackCardWidget(
+      id: 'track-1',
       title: context.knobs.string(
         label: 'Title',
         initialValue: 'Breathing for Anxiety',
@@ -30,6 +31,7 @@ Widget trackCardNoImage(BuildContext context) {
   return Padding(
     padding: const EdgeInsets.all(16),
     child: TrackCardWidget(
+      id: 'track-1',
       title: 'Breathing for Anxiety',
       subTitle: '10 min · Guided meditation',
       onTap: () {},
