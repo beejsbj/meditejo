@@ -155,11 +155,12 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
   Widget build(BuildContext context) {
     final tracks = pack.playableTracks;
     final completed = tracks.where((item) => item.isCompleted == true).length;
-    final next = nextSessionFor(
-      pack,
-      partial: ref.watch(partialPlacesProvider).value ?? const {},
-    );
-    return _playButton(context, next, completed, tracks.length);
+    final places = ref.watch(partialPlacesProvider);
+    final next = nextSessionFor(pack, partial: places.value ?? const {});
+    // Until the places are read the answer could be the wrong session, so
+    // the button waits (an error reads as no places).
+    final ready = places.hasValue || places.hasError;
+    return _playButton(context, next, completed, tracks.length, ready);
   }
 
   Widget _playButton(
@@ -167,6 +168,7 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
     NextSession? nextSession,
     int completed,
     int total,
+    bool ready,
   ) {
     final l10n = AppLocalizations.of(context)!;
     final onSurface = Theme.of(context).colorScheme.onSurface;
@@ -200,7 +202,7 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
                 )
               : context.brandAccent,
           child: InkWell(
-            onTap: done ? null : () => _start(context, next!),
+            onTap: done || !ready ? null : () => _start(context, next!),
             child: SizedBox.square(
               dimension: PackPathButton.buttonSize,
               child: Center(

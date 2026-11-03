@@ -42,6 +42,7 @@ Future<List<ContinueItem>> _readContinue(
   final router = ref.watch(libraryContentRouterProvider);
 
   final entries = await store.entries();
+  if (!ref.mounted) return const [];
   final entryById = {for (final e in entries) e.sourceId: e};
 
   Future<PackModel?> packOf(String id) async {
@@ -58,6 +59,7 @@ Future<List<ContinueItem>> _readContinue(
   final places = {
     for (final place in await store.savedPlaces()) place.trackId: place,
   };
+  if (!ref.mounted) return const [];
   final partial = {
     for (final place in places.values) place.trackId: place.updatedAt,
   };
@@ -157,9 +159,13 @@ Future<List<ContinueItem>> _readContinue(
   );
   for (final entry in started) {
     final pack = await packOf(entry.sourceId);
+    if (!ref.mounted) return const [];
     if (pack == null) continue;
     final next = nextIn(pack);
     if (doneIn(pack) == 0 || next == null) continue;
+    // A session in several courses, left partway after opening it from
+    // another, is already offered there: not twice.
+    if (candidates.any((c) => c.trackId == next.item.id)) continue;
     candidates.add(fromItem(pack, next, entry));
   }
 
@@ -175,6 +181,7 @@ Future<List<ContinueItem>> _readContinue(
   ];
   for (final id in order) {
     final pack = await packOf(id);
+    if (!ref.mounted) return const [];
     final next = pack == null ? null : nextIn(pack);
     if (pack != null && next != null) {
       return [fromItem(pack, next, entryById[id])];

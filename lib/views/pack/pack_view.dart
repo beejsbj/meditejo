@@ -264,10 +264,11 @@ class _PackViewState extends ConsumerState<PackView>
     final tracks = pack.playableTracks;
     final total = tracks.length;
     final done = tracks.where((i) => i.isCompleted == true).length;
-    final nextSession = nextSessionFor(
-      pack,
-      partial: ref.watch(partialPlacesProvider).value ?? const {},
-    );
+    final places = ref.watch(partialPlacesProvider);
+    final nextSession = nextSessionFor(pack, partial: places.value ?? const {});
+    // Hold the "Start:" line until the places are read, so it never flashes
+    // a session that is not the one to resume.
+    final placesReady = places.hasValue || places.hasError;
     final next = nextSession?.item;
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.7);
 
@@ -302,7 +303,7 @@ class _PackViewState extends ConsumerState<PackView>
                   : l10n.courseLeft(total - done, total),
               style: theme.textTheme.headlineMedium,
             ),
-            if (next != null)
+            if (next != null && placesReady)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(

@@ -14,6 +14,7 @@ import 'package:medito/services/library/library_models.dart';
 import 'package:medito/views/home/widgets/continue/continue_section.dart';
 import 'package:medito/views/pack/widgets/pack_path_button.dart';
 
+import '../../helpers/dharma_seed_app.dart';
 import '../../helpers/library_app.dart';
 
 /// Courses `x-course-NAME` holding sessions `x-NAME-N`, titled
@@ -178,6 +179,33 @@ void main() {
     expect(label, contains('${l10n.packContinue}: Lesson 3'));
     expect(find.byKey(const ValueKey('continue_x-a-3')), findsOneWidget);
     expect(find.text('Lesson 3'), findsOneWidget);
+    handle.dispose();
+  });
+
+  testWidgets('the label turns from Start to Resume after a pause', (
+    tester,
+  ) async {
+    final app = await LibraryTestApp.create(tester);
+    final handle = tester.ensureSemantics();
+    final pack = _course({});
+    await app.pump(
+      tester,
+      Scaffold(body: PackPlayButton(pack: pack)),
+      overrides: [
+        packDataProvider(packId: pack.id).overrideWith((ref) async => pack),
+      ],
+    );
+    String label() => tester.getSemantics(find.byType(PackPlayButton)).label;
+
+    expect(label(), contains('${l10n.packStart}: Lesson 1'));
+
+    // The player pauses Lesson 3: the store saves it and notifies.
+    await tester.runAsync(
+      () => app.harness.store.savePosition('x-a-3', 90000, 600000),
+    );
+    await DharmaSeedTestApp.settle(tester);
+
+    expect(label(), contains('${l10n.packContinue}: Lesson 3'));
     handle.dispose();
   });
 }
