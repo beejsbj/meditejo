@@ -104,7 +104,7 @@ class CueSettings {
   /// What the soundscape mixer plays under this scope's sessions, in
   /// [SoundscapeSelection]'s grammar (`mix`, `preset:<id>`, `sound:<id>`,
   /// `none`). Empty: whatever the mixer's own default for the kind says
-  /// ("Play under practice/talks" and its selection). A selection only: the
+  /// ("Plays under practice/talks" and its selection). A selection only: the
   /// mixer owns the on/off default and the volume.
   final String soundscape;
 

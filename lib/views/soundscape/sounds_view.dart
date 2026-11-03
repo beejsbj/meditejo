@@ -13,15 +13,19 @@ import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/synth.dart';
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
+import 'package:medito/widgets/art/art_cover.dart';
 
 import 'sound_cards.dart';
 import 'sound_credits_view.dart';
+import 'sound_drawer.dart';
 import 'sound_labels.dart';
 import 'sound_mix_panel.dart';
 
-/// Opens the Sounds screen as a page of its own, over whatever is open (the
-/// player, its Customize sheet), so a session stays where it was. Home opens
-/// the Sounds tab instead.
+/// Opens the mixer at full screen as a page of its own, over whatever is
+/// open, so a session stays where it was: the Sounds tab's own mix, not a
+/// choice for sessions. Choosing what plays under sessions is the drawer
+/// ([showSoundDrawer]); this is the way in for a one-tap Sounds path
+/// without the tab (#89).
 Future<void> openSoundsPage(BuildContext context) {
   retryLegacySounds(ProviderScope.containerOf(context));
   return Navigator.of(context).push(
@@ -44,18 +48,26 @@ void retryLegacySounds(ProviderContainer container) {
 /// docked under it.
 const kSoundsTwoPaneWidth = 840.0;
 
-/// The Sounds tab: presets to start in one tap, the library shelf by shelf
-/// as cards, whether the mix plays under sessions, and the credits. The
-/// current mix is docked at the foot (a bar with play/pause that opens into
-/// a panel) or, on a wide window, a panel beside the library.
+/// The mixer (#66). As the Sounds tab: presets to start in one tap, the
+/// library shelf by shelf as cards, what plays under sessions, and the
+/// credits. The current mix is docked at the foot (a bar with play/pause
+/// that opens into a panel) or, on a wide window, a panel beside the
+/// library.
+///
+/// With a [chooser] it is the same mixer as a drawer (Customize › Sound,
+/// the Timer, the player's Sounds button, the "Plays under" lines): the mix
+/// it edits is the choice for those sessions. See [showSoundDrawer].
 ///
 /// Bells are not here: the cue scheduler owns them, set in Customize.
 class SoundsView extends ConsumerStatefulWidget {
-  const SoundsView({super.key, this.standalone = false});
+  const SoundsView({super.key, this.standalone = false, this.chooser});
 
-  /// Pushed as a page of its own (from the player or Customize): it closes
-  /// with a button, and back folds an open mix first.
+  /// Pushed as a page of its own: it closes with a button, and back folds
+  /// an open mix first.
   final bool standalone;
+
+  /// The drawer form: chooses what plays under one kind of session.
+  final SoundChooser? chooser;
 
   @override
   ConsumerState<SoundsView> createState() => SoundsViewState();
@@ -88,6 +100,35 @@ class SoundsViewState extends ConsumerState<SoundsView>
   void dispose() {
     _dock.dispose();
     super.dispose();
+  }
+
+  /// Set once the drawer has started to leave because a session overtook it.
+  bool _leaving = false;
+
+  /// In the drawer: a session that started or ended under it (the sit
+  /// ended, autoplay moved on) owns the mixer, and what the drawer would
+  /// edit is no longer its draft. It leaves rather than go on as the
+  /// Sounds tab's own mix. [showSoundDrawer] says so as it closes.
+  void _leaveIfOvertaken() {
+    final mixer = ref.read(soundscapeProvider.notifier);
+    if (_leaving || !mixer.auditioning || mixer.auditionIntact) return;
+    _leaving = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      final navigator = Navigator.of(context);
+      if (route == null || !route.isActive) return;
+      // What the drawer opened over itself (a synth editor, the preset
+      // name) goes with it; a page pushed over it (a deep link, the player
+      // the new session opened) stays, and the drawer is taken out from
+      // under it.
+      navigator.popUntil((r) => r == route || r is PageRoute);
+      if (route.isCurrent) {
+        navigator.pop();
+      } else {
+        navigator.removeRoute(route);
+      }
+    });
   }
 
   /// Folds an open mix panel. True when there was one to fold, so Android's
@@ -143,33 +184,62 @@ class SoundsViewState extends ConsumerState<SoundsView>
   /// the user's text size) and the safe area beneath.
   double _barHeight(BuildContext context) =>
       20 +
-      math.max(56, MediaQuery.textScalerOf(context).scale(44)) +
+      math.max(
+        56,
+        // The drawer's title ("Plays under practice") may take two lines.
+        MediaQuery.textScalerOf(
+          context,
+        ).scale(widget.chooser == null ? 44 : 72),
+      ) +
       16 +
       MediaQuery.paddingOf(context).bottom;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final chooser = widget.chooser;
+    if (chooser != null) {
+      ref.listen(soundscapeProvider, (_, _) => _leaveIfOvertaken());
+    }
     final page = Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.backgroundSoundsSection),
-        actions: [
-          IconButton(
-            key: const ValueKey('sound_credits'),
-            tooltip: l10n.soundsCredits,
-            onPressed: () => _openCredits(context),
-            icon: const Icon(Symbols.info_rounded),
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
+      // A drawer takes the sheet's colour.
+      backgroundColor: chooser == null ? null : Colors.transparent,
+      appBar: chooser == null
+          ? AppBar(
+              title: Text(l10n.backgroundSoundsSection),
+              actions: [
+                IconButton(
+                  key: const ValueKey('sound_credits'),
+                  tooltip: l10n.soundsCredits,
+                  onPressed: () => _openCredits(context),
+                  icon: const Icon(Symbols.info_rounded),
+                ),
+                const SizedBox(width: 4),
+              ],
+            )
+          : AppBar(
+              automaticallyImplyLeading: false,
+              backgroundColor: Colors.transparent,
+              toolbarHeight: 48,
+              title: Text(l10n.backgroundSoundsSection),
+              actions: [
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 16),
+                  child: FilledButton(
+                    key: const ValueKey('sounds_chooser_done'),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(l10n.soundsDone),
+                  ),
+                ),
+              ],
+            ),
       body: LayoutBuilder(
         builder: (context, box) => box.maxWidth >= kSoundsTwoPaneWidth
             ? _twoPane(context)
             : _docked(context, box),
       ),
     );
-    if (!widget.standalone) return page;
+    if (!widget.standalone && chooser == null) return page;
     return PopScope(
       canPop: !_open,
       onPopInvokedWithResult: (didPop, _) {
@@ -185,7 +255,12 @@ class SoundsViewState extends ConsumerState<SoundsView>
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(child: _SoundsLibrary(bottomPadding: bottom + 24)),
+        Expanded(
+          child: _SoundsLibrary(
+            bottomPadding: bottom + 24,
+            chooser: widget.chooser != null,
+          ),
+        ),
         SizedBox(
           width: 400,
           child: Padding(
@@ -196,9 +271,9 @@ class SoundsViewState extends ConsumerState<SoundsView>
               clipBehavior: Clip.antiAlias,
               child: Column(
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 16, 8, 8),
-                    child: SoundsMixHeader(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+                    child: SoundsMixHeader(chooser: widget.chooser),
                   ),
                   Expanded(
                     child: SoundsMixBody(
@@ -222,7 +297,12 @@ class SoundsViewState extends ConsumerState<SoundsView>
     final bottom = MediaQuery.paddingOf(context).bottom;
     return Stack(
       children: [
-        Positioned.fill(child: _SoundsLibrary(bottomPadding: bar + 24)),
+        Positioned.fill(
+          child: _SoundsLibrary(
+            bottomPadding: bar + 24,
+            chooser: widget.chooser != null,
+          ),
+        ),
         // A scrim over the library while the mix is open; tap it to fold.
         Positioned.fill(
           child: AnimatedBuilder(
@@ -282,6 +362,7 @@ class SoundsViewState extends ConsumerState<SoundsView>
                             child: SoundsMixHeader(
                               expanded: _open,
                               onToggle: _toggle,
+                              chooser: widget.chooser,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -342,11 +423,15 @@ class _DragHandle extends StatelessWidget {
   );
 }
 
-/// Presets, then the library shelf by shelf, then sessions and credits.
+/// Presets, then the library shelf by shelf, then (on the Sounds tab) what
+/// plays under sessions, and the credits.
 class _SoundsLibrary extends ConsumerWidget {
-  const _SoundsLibrary({required this.bottomPadding});
+  const _SoundsLibrary({required this.bottomPadding, this.chooser = false});
 
   final double bottomPadding;
+
+  /// In the drawer, which is itself the choice for sessions.
+  final bool chooser;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -451,9 +536,11 @@ class _SoundsLibrary extends ConsumerWidget {
               ],
             ),
         ],
-        SliverToBoxAdapter(child: _SectionTitle(l10n.soundsUnderSessions)),
-        const SliverToBoxAdapter(child: SoundsSessionDefaults()),
-        const SliverToBoxAdapter(child: _CreditsLink()),
+        if (!chooser) ...[
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          const SliverToBoxAdapter(child: SoundsSessionDefaults()),
+          const SliverToBoxAdapter(child: _CreditsLink()),
+        ],
         SliverPadding(padding: EdgeInsets.only(bottom: bottomPadding)),
       ],
     );
@@ -566,8 +653,10 @@ class _ShelfTitle extends StatelessWidget {
   );
 }
 
-/// Whether the mix plays under Practice and under Talks (decisions 8 and
-/// 17). The player's Customize sheet offers the full per-kind choice.
+/// What plays under practice and under talks (decisions 8 and 17, kept
+/// apart since #75 was reversed), one line each: "Plays under practice:
+/// Night". A tap opens the mixer as a drawer to choose it (#66), the same
+/// choice as Customize › Sound for that kind.
 class SoundsSessionDefaults extends ConsumerWidget {
   const SoundsSessionDefaults({super.key});
 
@@ -576,16 +665,31 @@ class SoundsSessionDefaults extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(soundscapeProvider);
-    final controller = ref.read(soundscapeProvider.notifier);
+    final library = ref.watch(soundLibraryProvider).value;
     Widget row(SoundscapeSessionKind kind, String label) {
-      final value = state.sessionDefault(kind);
-      return SwitchListTile(
+      final mixer = ref.read(soundscapeProvider.notifier);
+      final choice = mixer.sessionChoice(kind, null, library: library);
+      final art = soundChoiceArt(state, choice);
+      return ListTile(
         key: ValueKey('under_${kind.name}'),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        leading: SizedBox.square(
+          dimension: 40,
+          child: art == null
+              ? Icon(Symbols.graphic_eq_rounded, color: scheme.onSurfaceVariant)
+              : ClipRRect(
+                  borderRadius: BorderRadius.circular(MeditejoShapes.medium),
+                  child: ArtCover(subject: art),
+                ),
+        ),
         title: Text(label),
-        value: value.enabled,
-        onChanged: (on) =>
-            controller.setSessionDefault(kind, value.copyWith(enabled: on)),
+        subtitle: Text(
+          soundChoiceLabel(l10n, state, library ?? SoundLibrary.empty, choice),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: const Icon(Symbols.chevron_right_rounded),
+        onTap: () => _choose(context, ref, kind),
       );
     }
 
@@ -600,22 +704,35 @@ class SoundsSessionDefaults extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              row(SoundscapeSessionKind.practice, l10n.soundsUnderPractice),
-              row(SoundscapeSessionKind.talks, l10n.soundsUnderTalks),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                child: Text(
-                  l10n.soundsUnderSessionsHint,
-                  style: context.typography.baseline.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
+              row(
+                SoundscapeSessionKind.practice,
+                l10n.soundsPlaysUnderPractice,
               ),
+              row(SoundscapeSessionKind.talks, l10n.soundsPlaysUnderTalks),
             ],
           ),
         ),
       ),
     );
+  }
+
+  /// The kind's own default: no course's choice is in play here.
+  static Future<void> _choose(
+    BuildContext context,
+    WidgetRef ref,
+    SoundscapeSessionKind kind,
+  ) async {
+    final mixer = ref.read(soundscapeProvider.notifier);
+    final choice = await showSoundDrawer(
+      context,
+      kind: kind,
+      current: mixer.sessionChoice(
+        kind,
+        null,
+        library: ref.read(soundLibraryProvider).value,
+      ),
+    );
+    if (choice != null) mixer.setSessionChoice(kind, choice);
   }
 }
 

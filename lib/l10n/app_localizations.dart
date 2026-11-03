@@ -3622,29 +3622,35 @@ abstract class AppLocalizations {
   /// **'This sound could not be played'**
   String get soundsCouldNotPlay;
 
-  /// Sounds screen: soundsUnderSessions
+  /// Sounds tab line and mixer drawer: what plays under practice sessions; its value (Off, a preset, sounds) follows
   ///
   /// In en, this message translates to:
-  /// **'Under sessions'**
-  String get soundsUnderSessions;
+  /// **'Plays under practice'**
+  String get soundsPlaysUnderPractice;
 
-  /// Sounds screen: soundsUnderPractice
+  /// Sounds tab line and mixer drawer: what plays under talks; its value follows
   ///
   /// In en, this message translates to:
-  /// **'Play under practice'**
-  String get soundsUnderPractice;
+  /// **'Plays under talks'**
+  String get soundsPlaysUnderTalks;
 
-  /// Sounds screen: soundsUnderTalks
+  /// Closes the mixer drawer, keeping what is in it as the choice
   ///
   /// In en, this message translates to:
-  /// **'Play under talks'**
-  String get soundsUnderTalks;
+  /// **'Done'**
+  String get soundsDone;
 
-  /// Sounds screen: soundsUnderSessionsHint
+  /// Mixer drawer, when nothing is chosen for these sessions
   ///
   /// In en, this message translates to:
-  /// **'Your mix plays beneath the session, at its own volume'**
-  String get soundsUnderSessionsHint;
+  /// **'Off. Tap a sound or a preset to choose it.'**
+  String get soundsChooserEmpty;
+
+  /// Snackbar when a session starts or ends while the mixer drawer is open: the drawer closes and keeps nothing
+  ///
+  /// In en, this message translates to:
+  /// **'The session changed, so the sound was left as it was.'**
+  String get soundsChooserOvertaken;
 
   /// Sounds screen: soundsCredits
   ///
@@ -4227,12 +4233,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Adjust'**
   String get soundsAdjust;
-
-  /// In the player's Customize sheet, under Background sound: opens the Sounds screen
-  ///
-  /// In en, this message translates to:
-  /// **'Edit your mix in Sounds'**
-  String get soundsEditMix;
 
   /// Names what the user makes (a Playlist), shown beside a course on Library rows and as the kind on a playlist page. A course comes from a source.
   ///

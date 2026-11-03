@@ -2066,17 +2066,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get soundsCouldNotPlay => 'This sound could not be played';
 
   @override
-  String get soundsUnderSessions => 'Under sessions';
+  String get soundsPlaysUnderPractice => 'Plays under practice';
 
   @override
-  String get soundsUnderPractice => 'Play under practice';
+  String get soundsPlaysUnderTalks => 'Plays under talks';
 
   @override
-  String get soundsUnderTalks => 'Play under talks';
+  String get soundsDone => 'Done';
 
   @override
-  String get soundsUnderSessionsHint =>
-      'Your mix plays beneath the session, at its own volume';
+  String get soundsChooserEmpty => 'Off. Tap a sound or a preset to choose it.';
+
+  @override
+  String get soundsChooserOvertaken =>
+      'The session changed, so the sound was left as it was.';
 
   @override
   String get soundsCredits => 'Sound credits';
@@ -2413,9 +2416,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get soundsAdjust => 'Adjust';
-
-  @override
-  String get soundsEditMix => 'Edit your mix in Sounds';
 
   @override
   String get playlistKind => 'Playlist';

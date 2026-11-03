@@ -2105,17 +2105,21 @@ class AppLocalizationsEs extends AppLocalizations {
   String get soundsCouldNotPlay => 'No se pudo reproducir este sonido';
 
   @override
-  String get soundsUnderSessions => 'Durante las sesiones';
+  String get soundsPlaysUnderPractice => 'Suena en la práctica';
 
   @override
-  String get soundsUnderPractice => 'Reproducir durante la práctica';
+  String get soundsPlaysUnderTalks => 'Suena en las charlas';
 
   @override
-  String get soundsUnderTalks => 'Reproducir durante las charlas';
+  String get soundsDone => 'Listo';
 
   @override
-  String get soundsUnderSessionsHint =>
-      'Tu mezcla suena bajo la sesión, con su propio volumen';
+  String get soundsChooserEmpty =>
+      'Apagado. Toca un sonido o un preajuste para elegirlo.';
+
+  @override
+  String get soundsChooserOvertaken =>
+      'La sesión cambió, así que el sonido se quedó como estaba.';
 
   @override
   String get soundsCredits => 'Créditos de sonido';
@@ -2454,9 +2458,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get soundsAdjust => 'Ajustar';
-
-  @override
-  String get soundsEditMix => 'Editar tu mezcla en Sonidos';
 
   @override
   String get playlistKind => 'Lista';

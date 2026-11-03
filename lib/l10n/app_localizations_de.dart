@@ -2100,17 +2100,21 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieses Geräusch konnte nicht abgespielt werden';
 
   @override
-  String get soundsUnderSessions => 'Während Sitzungen';
+  String get soundsPlaysUnderPractice => 'Läuft bei Übungen';
 
   @override
-  String get soundsUnderPractice => 'Bei Übungen abspielen';
+  String get soundsPlaysUnderTalks => 'Läuft bei Vorträgen';
 
   @override
-  String get soundsUnderTalks => 'Bei Vorträgen abspielen';
+  String get soundsDone => 'Fertig';
 
   @override
-  String get soundsUnderSessionsHint =>
-      'Dein Mix läuft unter der Sitzung, mit eigener Lautstärke';
+  String get soundsChooserEmpty =>
+      'Aus. Tippe auf einen Klang oder eine Voreinstellung.';
+
+  @override
+  String get soundsChooserOvertaken =>
+      'Die Sitzung hat sich geändert, der Klang bleibt wie er war.';
 
   @override
   String get soundsCredits => 'Geräusch-Nachweise';
@@ -2451,9 +2455,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get soundsAdjust => 'Anpassen';
-
-  @override
-  String get soundsEditMix => 'Mix in Klänge bearbeiten';
 
   @override
   String get playlistKind => 'Playlist';

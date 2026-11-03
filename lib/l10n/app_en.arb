@@ -2159,21 +2159,25 @@
   "@soundsCouldNotPlay": {
     "description": "Sounds screen: soundsCouldNotPlay"
   },
-  "soundsUnderSessions": "Under sessions",
-  "@soundsUnderSessions": {
-    "description": "Sounds screen: soundsUnderSessions"
+  "soundsPlaysUnderPractice": "Plays under practice",
+  "@soundsPlaysUnderPractice": {
+    "description": "Sounds tab line and mixer drawer: what plays under practice sessions; its value (Off, a preset, sounds) follows"
   },
-  "soundsUnderPractice": "Play under practice",
-  "@soundsUnderPractice": {
-    "description": "Sounds screen: soundsUnderPractice"
+  "soundsPlaysUnderTalks": "Plays under talks",
+  "@soundsPlaysUnderTalks": {
+    "description": "Sounds tab line and mixer drawer: what plays under talks; its value follows"
   },
-  "soundsUnderTalks": "Play under talks",
-  "@soundsUnderTalks": {
-    "description": "Sounds screen: soundsUnderTalks"
+  "soundsDone": "Done",
+  "@soundsDone": {
+    "description": "Closes the mixer drawer, keeping what is in it as the choice"
   },
-  "soundsUnderSessionsHint": "Your mix plays beneath the session, at its own volume",
-  "@soundsUnderSessionsHint": {
-    "description": "Sounds screen: soundsUnderSessionsHint"
+  "soundsChooserEmpty": "Off. Tap a sound or a preset to choose it.",
+  "@soundsChooserEmpty": {
+    "description": "Mixer drawer, when nothing is chosen for these sessions"
+  },
+  "soundsChooserOvertaken": "The session changed, so the sound was left as it was.",
+  "@soundsChooserOvertaken": {
+    "description": "Snackbar when a session starts or ends while the mixer drawer is open: the drawer closes and keeps nothing"
   },
   "soundsCredits": "Sound credits",
   "@soundsCredits": {
@@ -2628,10 +2632,6 @@
   "soundsAdjust": "Adjust",
   "@soundsAdjust": {
     "description": "Button on a generated layer (noise, drone, binaural beats) that opens its settings"
-  },
-  "soundsEditMix": "Edit your mix in Sounds",
-  "@soundsEditMix": {
-    "description": "In the player's Customize sheet, under Background sound: opens the Sounds screen"
   },
   "playlistKind": "Playlist",
   "@playlistKind": {
