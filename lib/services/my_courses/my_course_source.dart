@@ -275,12 +275,16 @@ class MyCourseSource implements ContentSource, CourseMembershipSource {
   );
 
   /// What to call a session's source on its row when it has no kind of its
-  /// own. Source names are not translated.
+  /// own. Source names are not translated; [importedLabel] is, by the view.
   static String sourceLabel(String id) {
     if (id.startsWith('ds-')) return 'Dharma Seed';
     if (id.startsWith('yt-')) return 'YouTube';
-    return 'Imported';
+    return importedLabel;
   }
+
+  /// The [sourceLabel] of the user's own links and files: a word, not a
+  /// source's name, so the course page shows it in the app's language.
+  static const importedLabel = 'Imported';
 
   /// "3 sessions", as the library's other courses say it.
   static String sessionCountText(int count) =>

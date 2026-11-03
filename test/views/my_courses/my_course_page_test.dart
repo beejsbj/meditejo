@@ -90,8 +90,8 @@ void main() {
     await pump(tester, id);
 
     expect(find.text('Session x-1'), findsOneWidget);
-    // The kind label, in capitals like every kind.
-    expect(find.text('UNAVAILABLE'), findsOneWidget);
+    // Said in words, as a chip in its row (#82).
+    expect(find.text('Unavailable'), findsOneWidget);
     // The header counts the one session that can still be played.
     expect(find.textContaining('1 session ·'), findsOneWidget);
 

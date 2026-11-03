@@ -1464,6 +1464,21 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get sessionKindMeditation => 'Meditación';
+
+  @override
+  String get sessionKindChanting => 'Cantos';
+
+  @override
+  String get sessionKindTalk => 'Charla';
+
+  @override
+  String get sessionKindQuestions => 'Preguntas';
+
+  @override
+  String get sessionKindRecording => 'Grabación';
+
+  @override
   String get teacherSave => 'Añadir a la biblioteca';
 
   @override
