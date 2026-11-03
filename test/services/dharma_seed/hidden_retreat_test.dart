@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/native.dart';
@@ -90,11 +91,49 @@ void main() {
     expect(recent.map((x) => x.talk.retreatId), isNot(contains(hidden)));
   });
 
-  test('is left out of category pages', () async {
+  test('is left out of teacher counts', () async {
+    Future<int> count(String where) async =>
+        (await ds
+                .customSelect(
+                  'SELECT COUNT(*) AS n FROM ds_talk_teachers tt '
+                  'JOIN ds_talks t ON t.id = tt.talk_id '
+                  'WHERE tt.teacher_id = $sucitto AND $where',
+                )
+                .getSingle())
+            .read<int>('n');
+    final all = await count('1');
+    final inHidden = await count('t.retreat_id = $hidden');
+    expect(inHidden, greaterThan(0));
+    expect((await ds.talkCounts([sucitto]))[sucitto], all - inHidden);
+    final top = await ds.topTeachers(limit: 100000);
+    expect(
+      top.firstWhere((t) => t.teacher.id == sucitto).talkCount,
+      all - inHidden,
+    );
+  });
+
+  test('is left out of category pages, even when hand-picked', () async {
+    // TMI has nothing on Dharma Seed, so hand-picking the hidden retreat and
+    // one of its talks into it is the only way anything could show there.
+    final talk = (await ds.talksOfRetreat(hidden)).first;
+    final json =
+        jsonDecode(File(categoriesAsset).readAsStringSync())
+            as Map<String, dynamic>;
+    (json['curated'] as List).addAll([
+      {
+        'id': 'ds-retreat-$hidden',
+        'categories': ['tmi'],
+      },
+      {
+        'id': 'ds-talk-${talk.id}',
+        'categories': ['tmi'],
+      },
+    ]);
     final catalogue = CategoryCatalogue.parse(
-      File(categoriesAsset).readAsStringSync(),
+      jsonEncode(json),
       modelPass: File(categoriesPassAsset).readAsStringSync(),
     );
+    expect(catalogue.curatedFor('ds-retreat-$hidden'), ['tmi']);
     final db = memoryLibraryDb();
     final store = LibraryStore(db);
     addTearDown(() async {
@@ -106,19 +145,10 @@ void main() {
       library: store,
       dharmaSeed: ds,
     );
-    // Its talks include guided metta and talks on citta and the aggregates.
-    for (final id in ['metta', 'vipassana', 'samatha']) {
-      final listing = await service.listing(id, entries: const []);
-      expect(
-        listing.courses.map((c) => c.id),
-        isNot(contains('ds-retreat-$hidden')),
-        reason: id,
-      );
-      final sessions = [...listing.practiceSessions, ...listing.talkSessions];
-      for (final s in sessions) {
-        final talk = await ds.talkById(int.parse(s.id.split('-').last));
-        expect(talk?.retreatId, isNot(hidden), reason: '$id ${s.title}');
-      }
-    }
+    final listing = await service.listing('tmi', entries: const []);
+    expect(listing.courses, isEmpty);
+    expect(listing.practiceSessions, isEmpty);
+    expect(listing.talkSessions, isEmpty);
+    expect(await service.nonEmpty(entries: const []), isNot(contains('tmi')));
   });
 }

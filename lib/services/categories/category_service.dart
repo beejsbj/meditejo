@@ -246,7 +246,9 @@ class CategoryService {
     }
     for (final id in listed) {
       final talk = parseDsTalkId(id);
-      if (talk != null && await db.talkById(talk) != null) return true;
+      if (talk == null) continue;
+      final row = await db.talkById(talk);
+      if (row != null && !DharmaSeedDatabase.isHiddenTalk(row)) return true;
     }
     // The rules: ask exactly what the category page would list, so a chip
     // never opens an empty page and a page with something on it always has
@@ -422,7 +424,7 @@ class CategoryService {
 
     for (final id in curatedTalkIds) {
       final talk = await db.talkById(id);
-      if (talk != null) addTalk(talk);
+      if (talk != null && !DharmaSeedDatabase.isHiddenTalk(talk)) addTalk(talk);
     }
     final talkMatch = _match(category.id, titleColumn: 'title');
     if (talkMatch != null) {

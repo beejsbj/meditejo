@@ -686,6 +686,11 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
   static String notHiddenTalk(String alias) =>
       '($alias.retreat_id IS NULL OR $alias.retreat_id NOT IN ($_hiddenList))';
 
+  /// Whether [talk] belongs to a hidden retreat: for talks fetched by id
+  /// into a listing (curated ones), which no SQL filter sees.
+  static bool isHiddenTalk(DsTalk talk) =>
+      talk.retreatId != null && hiddenRetreatIds.contains(talk.retreatId);
+
   /// SQL for "this talk is in [group]" on a `ds_talks` row aliased [alias].
   /// Untyped and unknown recordings are Talks.
   static String groupCondition(DsContentGroup group, String alias) {
