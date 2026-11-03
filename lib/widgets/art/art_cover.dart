@@ -279,7 +279,11 @@ class _ArtCoverState extends State<ArtCover>
     if (!mounted || !widget.live) return;
     final visible = _visible();
     if (visible != _onScreen) setState(() => _onScreen = visible);
-    if (visible) {
+    // Look again only while coming into view is all that stands between
+    // the cover and moving. When something else stops it (a hidden tab,
+    // the background, reduce motion, a covered route), the rebuild that
+    // lifts it checks again.
+    if (visible || !_couldAnimate) {
       _lookAgain?.cancel();
       _lookAgain = null;
     } else {
@@ -338,6 +342,12 @@ class _ArtCoverState extends State<ArtCover>
   }
 
   bool get _motionAllowed => !MediaQuery.disableAnimationsOf(context);
+
+  bool get _couldAnimate =>
+      _motionAllowed &&
+      _appActive &&
+      Visibility.of(context) &&
+      TickerMode.valuesOf(context).enabled;
 
   bool get _striking => _struckAt != null;
 

@@ -1,7 +1,7 @@
 {
   "format": 1,
   "version": 5,
-  "updated": "2026-11-02",
+  "updated": "2026-11-03",
   "categories": [
     {"id": "metta", "name": "Mettā", "group": "heart", "langs": ["pi"], "blurb": {"en": "Wishing beings well, from the easy ones outward until no one is left out.", "de": "Allen Wesen Gutes wünschen, angefangen bei denen, die es uns leicht machen, bis niemand mehr fehlt.", "es": "Desear el bien a todos los seres, de los más fáciles hacia fuera, hasta no dejar a nadie fuera."}, "aliases": ["Loving-kindness", "Lovingkindness", "Brahmaviharas"], "art": {"ground": "dawn", "figure": "metta"}},
     {"id": "compassion", "name": "Compassion", "group": "heart", "label": "Karuṇā · Tonglen", "blurb": {"en": "Letting suffering in and meeting it with care; in tonglen, breathing it in and sending ease out.", "de": "Leid hereinlassen und ihm mit Fürsorge begegnen; im Tonglen es einatmen und Leichtigkeit ausatmen.", "es": "Dejar entrar el sufrimiento y recibirlo con cuidado; en tonglen, inspirarlo y exhalar alivio."}, "aliases": ["Karuna", "Karuṇā", "Tonglen", "Self-compassion"], "art": {"ground": "mist", "figure": "karuna_breath"}},

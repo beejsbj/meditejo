@@ -1154,8 +1154,9 @@ Burooj's round 3 picks: Headless Way B (full of what passes), Caṅkama · Kinhi
 - **The figure library** (Burooj: the variants that weren't picked are drawn at random for user content). The designer flagged each unpicked variant in `r2.json` and `r3.json`:
   - **`any` (33):** they join the course, single and playlist classes as `ArtClass.library`, as (ground, figure) pairs. Each figure stays on the ground it was designed for (decision 22: a tight meaning map, no arbitrary pairings), centred and without an accent. A cover picks the library over its classic figures in proportion to how many each offers.
   - **`practice` (5):** Noting's two label figures, the Headless Way's face and point, and the trāṭaka point. They are drawn only for content carrying that practice (`ArtMap.practiceLibrary`).
-    - `CoverArt` gains an optional `practice`. The Library's tiles pass the first practice an item carries that has variants of its own (`artPractice`).
-    - Other covers (Explore's catalogue rows, Home's Continue) don't look up labels, so they draw the shared library only. That is the cost of not threading labels into a dozen call sites.
+    - **The practice comes from one place, so every screen agrees** (review). `artPractices` (`art_subject.dart`) maps each library item to the first practice it carries that has variants of its own. The app shell keeps it current from the library's labels, guessed or the user's.
+    - Every cover of that item reads it, whether in the Library, on Home, in Explore or in the player. A change re-resolves only the covers it affects, because the practice is part of the cover's key.
+    - Items not in the library have no labels here, so they draw the shared library only.
   - **`none`** (Walking A, Forgiveness C, TMI A): never drawn.
 - **Generated covers re-roll once.** A cover class with a library draws one more random number, so every non-curated course, single and playlist gets new art with this build. Curated art (shipped items, sounds, presets, bells) doesn't move, and neither does sound and preset art, whose classes have no library.
 - **The port:** 45 figures by five Sonnet workers from one brief, a file each, split by practice so shared private helpers stay together.
@@ -1169,6 +1170,7 @@ Burooj's round 3 picks: Headless Way B (full of what passes), Caṅkama · Kinhi
   - Covers measure themselves after layout, because scroll positions notify before it. The tests found that bug.
   - Each scroll view's viewport bounds what counts as showing.
   - An unfocused window keeps animating; only hidden and paused stop it.
+  - The half-second look runs only while coming into view is all that stops a cover. A hidden tab, the background, reduce motion or a covered route cancels it, and the rebuild that lifts the block checks again (review).
 - **Verified:**
   - Tests: 74 practice figures registered, none shadowed; all 38 practices and 38 library pairs draw; covers draw from the library, and Noting's variants appear only with that practice.
   - Visibility: 3 of 12 covers tick, again after scrolling away and back; 2 in a 200-wide list; 0 on a hidden tab, in the background, or under reduce motion.

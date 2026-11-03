@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/services/categories/category_catalogue.dart';
 import 'package:medito/services/identity/palettes.dart';
 import 'package:medito/widgets/art/art_cover.dart';
+import 'package:medito/widgets/art/art_subject.dart';
 import 'package:medito/widgets/art/engine/compose.dart';
 import 'package:medito/widgets/art/engine/figures.dart';
 import 'package:medito/widgets/art/engine/place_figures.dart';
@@ -136,10 +137,35 @@ void main() {
     expect(fromLibrary, greaterThan(200));
     expect(notingWithout, 0);
     expect(notingWith, greaterThan(0));
-    // A sound's art is untouched: its class has no library.
+    // Only the generated covers carry a library, and build draws its extra
+    // number only for a class with one: sounds, presets, places, bells and
+    // teachers build exactly as before.
     expect(
-      Compose.buildFor('rain-terrace', 'sound')!.freeze(),
-      Compose.buildFor('rain-terrace', 'sound')!.freeze(),
+      {
+        for (final MapEntry(:key, :value) in ArtMap.classes.entries)
+          if (value.library.isNotEmpty) key,
+      },
+      {'course', 'single', 'playlist'},
+    );
+  });
+
+  test('an item\'s practice comes from one place, so every screen agrees', () {
+    CuratedArt.instance.useJson('{"items": {}}');
+    addTearDown(() => artPractices.value = const {});
+    const cover = ArtSubject.cover(ArtCoverKind.course, 'lib-course-noted');
+    final before = cover.key;
+    artPractices.value = const {'lib-course-noted': 'noting'};
+    // The same subject, wherever it is built, now draws for Noting.
+    expect(cover.key, isNot(before));
+    expect(cover.key, endsWith(':noting'));
+    final comp = CuratedArt.instance.resolve(cover)!;
+    expect(
+      comp.freeze(),
+      Compose.buildFor(
+        'lib-course-noted',
+        'course',
+        practice: 'noting',
+      )!.freeze(),
     );
   });
 }

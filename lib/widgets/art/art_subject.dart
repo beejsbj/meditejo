@@ -96,13 +96,20 @@ final class CoverArt extends ArtSubject {
   final ArtCoverKind kind;
   final String id;
 
-  /// A practice the item carries whose own figure variants it may draw
-  /// (`ArtMap.practiceLibrary`); null for most items.
+  /// A practice whose own figure variants the item may draw
+  /// (`ArtMap.practiceLibrary`). Null asks [artPractices], so every screen
+  /// showing the item agrees.
   final String? practice;
 
+  /// The practice this cover draws for: its own, or the one the app knows
+  /// the item by.
+  String? get drawnPractice => practice ?? artPractices.value[id];
+
   @override
-  String get key =>
-      'cover:${kind.name}:$id${practice == null ? '' : ':$practice'}';
+  String get key {
+    final p = drawnPractice;
+    return 'cover:${kind.name}:$id${p == null ? '' : ':$p'}';
+  }
 
   @override
   bool operator ==(Object other) => other is CoverArt && other.key == key;
@@ -150,6 +157,13 @@ final class PracticeArt extends ArtSubject {
   int get hashCode => key.hashCode;
 }
 
+/// For the library's items, the first practice each carries that has figure
+/// variants of its own (Noting, the Headless Way, Trāṭaka), by content id.
+/// Kept up to date from the library's labels (the app shell listens), and
+/// read by every cover of the item, so the Library, Home, Explore and the
+/// player draw the same art.
+final artPractices = ValueNotifier<Map<String, String>>(const {});
+
 /// The id the meaning map knows a mix layer by. Generated layers are named
 /// for what they are: the noise by its colour (`noise-brown`), the drone
 /// and binaural beats by their kind.
@@ -167,7 +181,11 @@ String artSoundId(String soundId, Map<String, Object?> params) =>
 /// frozen params and never rebuilt, so later engine changes can't move it
 /// (decision 22). Everything else is built from its id by [Compose].
 class CuratedArt extends ChangeNotifier {
-  CuratedArt._();
+  // A cover's key includes its item's practice, so a change there only
+  // needs the covers to look again.
+  CuratedArt._() {
+    artPractices.addListener(notifyListeners);
+  }
 
   static final instance = CuratedArt._();
 
@@ -239,7 +257,8 @@ class CuratedArt extends ChangeNotifier {
             for (final l in layers) (artSoundId(l.soundId, l.params), l.volume),
           ],
         ));
-      case CoverArt(:final kind, :final id, :final practice):
+      case CoverArt(:final kind, :final id, :final drawnPractice):
+        final practice = drawnPractice;
         return _frozen(id) ??
             Compose.buildFor(id, switch (kind) {
               ArtCoverKind.course => 'course',

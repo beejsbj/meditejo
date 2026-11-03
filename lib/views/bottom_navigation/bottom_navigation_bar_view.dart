@@ -3,6 +3,9 @@ import 'package:medito/views/bottom_navigation/widgets/medito_sidebar.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:medito/widgets/cover_art.dart';
+import 'package:medito/widgets/art/art_subject.dart';
+import 'package:medito/providers/categories/category_providers.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -126,6 +129,16 @@ class _BottomNavigationBarViewState
     final currentTab = ref.watch(mainTabProvider);
     final currentIndex = currentTab.index;
     ref.listen(mainTabProvider, (_, next) => _onTabChanged(next));
+    // Which library items carry a practice with its own figure variants,
+    // for their covers on every screen (art_subject.dart, artPractices).
+    ref.listen(libraryLabelsProvider, (_, next) {
+      final labels = next.value;
+      if (labels == null) return;
+      artPractices.value = {
+        for (final MapEntry(:key, :value) in labels.entries)
+          key: ?artPractice(value),
+      };
+    });
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;

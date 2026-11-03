@@ -148,4 +148,45 @@ void main() {
     await settle(tester);
     expect(ticking(), 0);
   });
+
+  testWidgets('a cover that slides into view without a scroll starts', (
+    tester,
+  ) async {
+    // As a route sliding in moves its page: no scroll position reports it,
+    // so the half-second look catches it.
+    phone(tester);
+    final left = ValueNotifier(1000.0);
+    // One widget instance: moving it re-lays it out without rebuilding it,
+    // so only the half-second look can notice.
+    final moving = SizedBox(height: 150, child: cover(0));
+    await tester.pumpWidget(
+      app(
+        ValueListenableBuilder(
+          valueListenable: left,
+          builder: (_, x, _) => Stack(
+            children: [Positioned(left: x, top: 0, child: moving)],
+          ),
+        ),
+      ),
+    );
+    await settle(tester);
+    expect(ticking(), 0);
+
+    left.value = 0;
+    await tester.pump();
+    expect(ticking(), 0);
+    await tester.pump(const Duration(milliseconds: 600));
+    await settle(tester);
+    expect(ticking(), 1);
+  });
+
+  testWidgets('an unfocused app (split screen) keeps moving', (tester) async {
+    phone(tester);
+    await tester.pumpWidget(app(row()));
+    await settle(tester);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await settle(tester);
+    expect(ticking(), 3);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+  });
 }

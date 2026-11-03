@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:medito/providers/categories/category_providers.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/library/library_view_provider.dart';
@@ -110,13 +109,7 @@ class LibraryEntryTile extends ConsumerWidget {
             progress: libraryProgress(ref, l10n, entry),
             art: CardArt(
               url: entry.coverUrl,
-              art: libraryArt(
-                entry.kind,
-                entry.sourceId,
-                practice: artPractice(
-                  ref.watch(libraryLabelsProvider).value?[entry.sourceId],
-                ),
-              ),
+              art: libraryArt(entry.kind, entry.sourceId),
               avatarSize: 28,
             ),
             onTap: open,
@@ -132,13 +125,7 @@ class LibraryEntryTile extends ConsumerWidget {
           title: entry.displayTitle,
           detail: entry.subtitle,
           artUrl: entry.coverUrl,
-          art: libraryArt(
-            entry.kind,
-            entry.sourceId,
-            practice: artPractice(
-              ref.watch(libraryLabelsProvider).value?[entry.sourceId],
-            ),
-          ),
+          art: libraryArt(entry.kind, entry.sourceId),
           completed: played,
           downloaded: ref
               .watch(downloadedTrackIdsProvider)
@@ -179,13 +166,7 @@ class LibraryEntryCard extends ConsumerWidget {
       progress: libraryProgress(ref, l10n, entry),
       art: CardArt(
         url: entry.coverUrl,
-        art: libraryArt(
-          entry.kind,
-          entry.sourceId,
-          practice: artPractice(
-            ref.watch(libraryLabelsProvider).value?[entry.sourceId],
-          ),
-        ),
+        art: libraryArt(entry.kind, entry.sourceId),
         avatarSize: 32,
       ),
       onTap: () => openLibraryEntry(context, ref, entry),
