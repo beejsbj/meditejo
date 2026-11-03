@@ -151,8 +151,8 @@ void main() {
 
   testWidgets('streak and consistency are worded as feedback', (tester) async {
     await _pump(tester, const StatsScreen());
-    expect(_figure(tester, 'Current Streak'), '2 days');
-    expect(_figure(tester, 'Longest Streak'), '9 days');
+    expect(_figure(tester, 'Current streak'), '2 days');
+    expect(_figure(tester, 'Longest streak'), '9 days');
     expect(
       find.text('You practised on 5 of the last 30 days.'),
       findsOneWidget,
@@ -186,7 +186,7 @@ void main() {
     expect(
       find.bySemanticsLabel(
         'Stats, This week: 1 h 30 min, Total time: 3 h 20 min, '
-        'Current Streak: 2 days',
+        'Current streak: 2 days',
       ),
       findsOneWidget,
     );

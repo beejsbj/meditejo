@@ -65,6 +65,7 @@ Future<void> startSession(
         context,
         ref: ref,
         courseId: courseId,
+        fromStart: fromStart,
       );
       return;
     }

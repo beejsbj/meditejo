@@ -58,10 +58,10 @@
   "backgroundSoundsDisabled": "Los sonidos de fondo están deshabilitados para esta pista",
   "neww": "Nuevo",
   "loading": "Cargando...",
-  "currentStreak": "Racha Actual",
-  "longestStreak": "Racha Más Larga",
+  "currentStreak": "Racha actual",
+  "longestStreak": "Racha más larga",
   "consistencyScore": "Puntuación de Consistencia",
-  "totalTracksCompleted": "Total de Pistas Completadas",
+  "totalTracksCompleted": "Total de pistas completadas",
   "totalTimeListened": "Tiempo Total Escuchado",
   "days": "días",
   "day": "día",
@@ -73,7 +73,6 @@
   "alwaysShowStreakOnHomepage": "Mostrar siempre la racha en la página de inicio",
   "gotIt": "Entendido",
   "goBack": "Regresar",
-  "editStatsTitle": "Editar estadísticas",
   "path": "Ruta",
   "completed": "Completado",
   "submit": "Enviar",
@@ -98,7 +97,7 @@
   "carouselTitle": "Destacados",
   "quoteTitle": "Cita Diaria",
   "customization": "Personalización",
-  "customiseHomeLayout": "Organizar Diseño de Inicio",
+  "customiseHomeLayout": "Organizar el diseño de Inicio",
   "helpLegal": "Ayuda y Legal",
   "advanced": "Avanzado",
   "restore": "Restaurar",
@@ -169,14 +168,14 @@
   "onboardingBatteryOptimize": "Desactivar Optimización de Batería",
   "skipForNow": "Omitir por Ahora",
   "skip": "Omitir",
-  "notNow": "Ahora No",
+  "notNow": "Ahora no",
   "errorNoInternetMessage": "Sin conexión a internet",
   "errorTimeoutMessage": "Tiempo de conexión agotado",
   "errorNotFoundMessage": "Contenido no encontrado",
   "errorServerMessage": "Error del servidor, por favor inténtalo más tarde",
   "errorUnknownMessage": "Algo salió mal, por favor inténtalo de nuevo",
   "enableDndDuringMeditation": "Silenciar teléfono durante la meditación",
-  "zenMode": "Modo Zen",
+  "zenMode": "Modo zen",
   "@zenMode": {
     "description": "Title for zen mode setting in customization section"
   },
@@ -209,7 +208,7 @@
   "tracks": "Pistas",
   "packs": "Paquetes",
   "noResultsFound": "No se encontraron resultados para tu búsqueda",
-  "consistencyScoreInfoTitle": "Puntuación de Consistencia",
+  "consistencyScoreInfoTitle": "Puntuación de consistencia",
   "consistencyScoreInfoMessage": "Tu puntuación de consistencia refleja con qué regularidad has meditado desde que empezaste. Los días recientes pesan más, pero los días que faltaste antes siguen afectando ligeramente la puntuación. A diferencia de las rachas, no se reinicia cuando faltas un día.",
   "systemLanguage": "Sistema",
   "english": "English",
@@ -223,7 +222,7 @@
   "@customizationSection": {
     "description": "Section title for customization settings"
   },
-  "addHomeScreenWidget": "Añadir Widget a la Pantalla de Inicio",
+  "addHomeScreenWidget": "Añadir widget a la pantalla de inicio",
   "addWidgetSheetTitle": "Añade un widget de Meditejo",
   "addWidgetStepHold": "Mantén pulsado un espacio vacío de la pantalla de inicio hasta que las apps empiecen a moverse.",
   "addWidgetStepEdit": "Toca Editar en la esquina superior y luego Añadir widget. En versiones anteriores de iOS, toca +.",
@@ -247,7 +246,7 @@
   "@darkTheme": {
     "description": "Dark theme option"
   },
-  "selectTheme": "Seleccionar Tema",
+  "selectTheme": "Seleccionar tema",
   "@selectTheme": {
     "description": "Dialog title for theme selection"
   },
@@ -610,16 +609,6 @@
   "@completedAt": {
     "description": "Etiqueta de prefijo para la hora de finalización de la meditación"
   },
-  "appIconTitle": "Icono de la app",
-  "appIconNearBlack": "Casi negro",
-  "appIconDusk": "Crepúsculo",
-  "appIconPurple": "Morado",
-  "appIconClassic": "Clásico",
-  "appIconBlush": "Rubor",
-  "appIconOcean": "Océano",
-  "appIconForest": "Bosque",
-  "appIconPink": "Hora dorada",
-  "appIconChanged": "Icono actualizado. Reiniciando…",
   "play": "Reproducir",
   "pause": "Pausar",
   "skipBackward10Seconds": "Retroceder 10 segundos",
@@ -635,7 +624,6 @@
   "refresh": "Actualizar",
   "upNext": "Continuar",
   "clearSearch": "Borrar búsqueda",
-  "clearDefault": "Borrar guía predeterminada",
   "onboardingExperienceQuestion": "¿Has meditado antes?",
   "onboardingExperienceSubtext": "Esto nos ayuda a mostrarte el punto de partida correcto.",
   "onboardingExperienceNever": "Nunca lo he intentado",
@@ -661,11 +649,6 @@
   "upNextPathCompletedSubtitle": "Explora la biblioteca para encontrar lo siguiente.",
   "upNextNextPackPinnedSnack": "{packTitle} está listo en Inicio",
   "manageDefaults": "Gestionar Predeterminados",
-  "defaultGuideName": "Guía Predeterminado",
-  "defaultDuration": "Duración Predeterminada",
-  "defaultGuideNameCleared": "Guía predeterminado eliminado",
-  "notSet": "Sin configurar",
-  "defaultsNote": "Estos valores predeterminados se basan en tu última selección en cualquier pista. Inicio los usa para omitir la pantalla de selección cuando continúas un paquete.",
   "streakFreezeUsed": "Congelación de racha usada",
   "session": "sesión",
   "sessions": "sesiones",
@@ -1141,5 +1124,8 @@
   "homeRemoveFromContinue": "Quitar de Continuar",
   "homeUnpinned": "Desfijado de Inicio",
   "homeRemovedFromContinue": "Quitado de Continuar",
-  "homeCardMenu": "Más opciones para {title}"
+  "homeCardMenu": "Más opciones para {title}",
+  "settingsSessionHistory": "Historial de sesiones",
+  "updateAutoCheck": "Buscar actualizaciones automáticamente",
+  "updateAutoCheckDescription": "Consulta GitHub una vez al día al abrir Meditejo."
 }

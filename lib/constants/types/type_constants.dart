@@ -19,7 +19,6 @@ class TypeConstants {
   static const String toggleStreakFreeze = 'toggle_streak_freeze';
   static const String toggleZenMode = 'toggle_zen_mode';
   static const String theme = 'theme';
-  static const String appIcon = 'app_icon';
   static const String addWidget = 'add_widget';
 
   /// Deep links that select a tab: `meditejo://library` and so on.

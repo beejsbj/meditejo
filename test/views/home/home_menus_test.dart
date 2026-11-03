@@ -17,6 +17,7 @@ import 'package:medito/services/home/continue_rules.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/pack/pack_view.dart';
+import 'package:medito/views/track/track_view.dart';
 
 import '../../helpers/dharma_seed_app.dart';
 import '../../helpers/library_app.dart';
@@ -88,6 +89,31 @@ class _GatedTrack extends Tracks {
   Future<Track> build({required String trackId}) async {
     await _gate.future;
     return _track(trackId);
+  }
+}
+
+/// Two voices: nothing picks one, so the track page opens.
+class _TwoVoiceTrack extends Tracks {
+  @override
+  Future<Track> build({required String trackId}) async {
+    final base = _track(trackId);
+    return Track(
+      id: base.id,
+      title: base.title,
+      description: '',
+      coverUrl: '',
+      isPublished: true,
+      hasBackgroundSound: true,
+      voices: [
+        for (final name in ['Ana', 'Ben'])
+          TrackVoice(
+            guideName: name,
+            audioFiles: [
+              TrackAudioFile(id: 'f-$name', path: 'a.mp3', duration: 600000),
+            ],
+          ),
+      ],
+    );
   }
 }
 
@@ -225,6 +251,47 @@ void main() {
       expect(
         await tester.runAsync(() => app.harness.store.resumePoint('t1')),
         isNotNull,
+      );
+    });
+
+    // With a choice to make the track page opens; it must still restart.
+    testWidgets('Restart via the track page still plays from the start', (
+      tester,
+    ) async {
+      _prepared.clear();
+      final app = await _pumpHome(
+        tester,
+        extra: [
+          tracksProvider(trackId: 't1').overrideWith(_TwoVoiceTrack.new),
+          playerProvider.overrideWith(_RecordingPlayer.new),
+        ],
+      );
+      await tester.runAsync(
+        () => app.harness.store.savePosition('t1', 120000, 600000),
+      );
+      await tester.longPress(find.byKey(const ValueKey('continue_t1')));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('continue_menu_restart')));
+      for (var i = 0; i < 10; i++) {
+        await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 20)),
+        );
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      final page = tester.widget<TrackView>(find.byType(TrackView));
+      expect(page.fromStart, isTrue);
+      expect(_prepared, isEmpty);
+      await tester.tap(find.byType(ElevatedButton).first);
+      for (var i = 0; i < 10; i++) {
+        await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 20)),
+        );
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      expect(_prepared.single.startPositionMs, 0);
+      expect(
+        await tester.runAsync(() => app.harness.store.resumePoint('t1')),
+        isNull,
       );
     });
 
