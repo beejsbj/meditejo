@@ -805,6 +805,8 @@ class _PackViewState extends ConsumerState<PackView>
           // Unavailable said in words too, not only by fading the row.
           badge: unavailable ? l10n.myCourseUnavailable : rows.kind(item, l10n),
           courseTeacher: rows.teacher,
+          courseTeacherId: rows.teacherId,
+          courseByline: rows.byline,
           date: date,
           onSetComplete: unavailable || item.type == TypeConstants.pack
               ? null
@@ -942,8 +944,13 @@ class _PackViewState extends ConsumerState<PackView>
 /// once per course (#82): whose name rows need not repeat, whether kinds
 /// are worth a chip, and how to write a date.
 class _RowStyle {
-  _RowStyle._({required this.teacher, required bool mixed, this.dateFormat})
-    : _mixed = mixed;
+  _RowStyle._({
+    required this.teacher,
+    required this.teacherId,
+    required this.byline,
+    required bool mixed,
+    this.dateFormat,
+  }) : _mixed = mixed;
 
   factory _RowStyle.of(PackModel pack, Locale locale) {
     final tracks = pack.playableTracks;
@@ -964,7 +971,9 @@ class _RowStyle {
         ? null
         : subtitle;
     return _RowStyle._(
-      teacher: pack.teacher?.name ?? (byline?.isEmpty ?? true ? null : byline),
+      teacher: pack.teacher?.name,
+      teacherId: pack.teacher?.id,
+      byline: byline?.isEmpty ?? true ? null : byline,
       // Sits and talks side by side; talks with a Q & A stay quiet.
       mixed:
           kinds.any((kind) => kind.isPractice) &&
@@ -979,8 +988,15 @@ class _RowStyle {
     );
   }
 
-  /// Who leads the course; rows by them leave out the name.
+  /// Who leads the course; rows by them leave out the name. Matched by
+  /// [teacherId] first, then by this name or the [byline].
   final String? teacher;
+
+  /// The app ID of the course's teacher, when it has one.
+  final String? teacherId;
+
+  /// The name under the title, where it is a name and not a summary.
+  final String? byline;
 
   /// Whether the course holds both practice and talks.
   final bool _mixed;

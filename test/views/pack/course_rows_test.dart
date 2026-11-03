@@ -451,6 +451,65 @@ void main() {
     expect(find.byKey(const ValueKey('day_2025-01-01')), findsNothing);
   });
 
+  testWidgets('a YouTube series drops its channel by ID, whatever its name', (
+    tester,
+  ) async {
+    // The channel page is "Tara Brach", the playlist's uploader string
+    // something else again, and each video's uploader a third spelling; the
+    // channel ID is the same throughout. A guest's video keeps its name.
+    final series = PackModel(
+      id: 'yt-playlist-PLtara',
+      title: 'Guided Meditations',
+      subtitle: 'Tara Brach Official',
+      teacher: const PackTeacher(id: 'yt-channel-UCtara', name: 'Tara Brach'),
+      items: [
+        for (var i = 0; i < 3; i++)
+          PackItemsModel(
+            type: 'track',
+            id: 'yt-video-v$i',
+            title: 'Video ${i + 1}',
+            path: '/tracks/yt-video-v$i',
+            teacher: i == 1 ? 'Jack Kornfield' : 'tarabrach',
+            teacherId: i == 1 ? 'yt-channel-UCjack' : 'yt-channel-UCtara',
+            durationMs: 20 * 60000,
+            date: '2025-02-0${i + 1}',
+          ),
+      ],
+    );
+    await open(tester, series);
+    expect(_meta(tester, 'Video 1'), 'Feb 1 · 20 min');
+    expect(_meta(tester, 'Video 2'), 'Jack Kornfield · Feb 2 · 20 min');
+    expect(_meta(tester, 'Video 3'), 'Feb 3 · 20 min');
+  });
+
+  testWidgets('a course drops a session by its byline when the IDs differ', (
+    tester,
+  ) async {
+    // The channel's page name differs from the uploader string the videos
+    // carry, and a video saved before channels had IDs has none.
+    final series = PackModel(
+      id: 'yt-playlist-PLbyline',
+      title: 'Talks',
+      subtitle: 'Tara Brach Official',
+      teacher: const PackTeacher(id: 'yt-channel-UCtara', name: 'Tara Brach'),
+      items: [
+        for (var i = 0; i < 2; i++)
+          PackItemsModel(
+            type: 'track',
+            id: 'yt-video-b$i',
+            title: 'Video ${i + 1}',
+            path: '/tracks/yt-video-b$i',
+            teacher: i == 0 ? ' tara brach official ' : 'TARA BRACH',
+            durationMs: 20 * 60000,
+            date: '2025-02-0${i + 1}',
+          ),
+      ],
+    );
+    await open(tester, series);
+    expect(_meta(tester, 'Video 1'), 'Feb 1 · 20 min');
+    expect(_meta(tester, 'Video 2'), 'Feb 2 · 20 min');
+  });
+
   testWidgets('a long retreat\'s rows fit at 360 dp and a larger text size', (
     tester,
   ) async {

@@ -15,6 +15,8 @@ class PackItemWidget extends ConsumerWidget {
     this.onSetComplete,
     this.badge,
     this.courseTeacher,
+    this.courseTeacherId,
+    this.courseByline,
     this.date,
   });
 
@@ -33,6 +35,15 @@ class PackItemWidget extends ConsumerWidget {
   /// Who leads the course. The row leaves out a teacher who is the same, so
   /// a one-teacher retreat does not repeat the name on every session.
   final String? courseTeacher;
+
+  /// The app ID of the course's teacher (`ds-teacher-96`,
+  /// `yt-channel-…`). A session by the same ID is theirs even when its
+  /// name is written differently (a channel's uploader string).
+  final String? courseTeacherId;
+
+  /// The name under the course's title, where it is a name (a podcast's
+  /// author, a channel's uploader string); rows by it leave it out too.
+  final String? courseByline;
 
   /// When the session was recorded, as the course page shows it ("Mar 5"),
   /// or null where the row does not say it (a retreat's day already does).
@@ -110,7 +121,7 @@ class PackItemWidget extends ConsumerWidget {
     // A narrow row breaks the line between parts, never inside a name or
     // "42 min".
     final text = [
-      if (teacher.isNotEmpty && !_sameName(teacher, courseTeacher)) teacher,
+      if (teacher.isNotEmpty && !_byCourseTeacher(teacher)) teacher,
       ?date,
       if (minutes > 0) l10n.courseSessionLength(minutes),
     ].map((part) => part.replaceAll(' ', ' ')).join(' · ');
@@ -136,8 +147,17 @@ class PackItemWidget extends ConsumerWidget {
     );
   }
 
+  /// Whether the session's [teacher] leads the course: the same teacher ID
+  /// first, else the same name as the course's teacher or byline.
+  bool _byCourseTeacher(String teacher) {
+    final id = item.teacherId;
+    if (id != null && id.isNotEmpty && id == courseTeacherId) return true;
+    return _sameName(teacher, courseTeacher) ||
+        _sameName(teacher, courseByline);
+  }
+
   static bool _sameName(String name, String? other) =>
-      other != null && name.toLowerCase() == other.trim().toLowerCase();
+      other != null && name.trim().toLowerCase() == other.trim().toLowerCase();
 
   Widget _downloadedMark(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
