@@ -3322,5 +3322,31 @@
   "playerAutoplayLastOfPlaylist": "This is the last session of the playlist",
   "@playerAutoplayLastOfPlaylist": {
     "description": "Player: no next session to autoplay in a playlist"
+  },
+  "trackPartOf": "Part of {course}",
+  "@trackPartOf": {
+    "description": "Episode page: the course the session belongs to, tappable, when the course is not in the library",
+    "placeholders": {
+      "course": {
+        "type": "String"
+      }
+    }
+  },
+  "trackInCourse": "In {course}",
+  "@trackInCourse": {
+    "description": "Episode page: the saved course the session belongs to, shown instead of Add to library",
+    "placeholders": {
+      "course": {
+        "type": "String"
+      }
+    }
+  },
+  "trackShowMore": "Show more",
+  "@trackShowMore": {
+    "description": "Episode page: expands a long description"
+  },
+  "trackShowLess": "Show less",
+  "@trackShowLess": {
+    "description": "Episode page: collapses the expanded description"
   }
 }

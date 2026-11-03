@@ -5157,6 +5157,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This is the last session of the playlist'**
   String get playerAutoplayLastOfPlaylist;
+
+  /// Episode page: the course the session belongs to, tappable, when the course is not in the library
+  ///
+  /// In en, this message translates to:
+  /// **'Part of {course}'**
+  String trackPartOf(String course);
+
+  /// Episode page: the saved course the session belongs to, shown instead of Add to library
+  ///
+  /// In en, this message translates to:
+  /// **'In {course}'**
+  String trackInCourse(String course);
+
+  /// Episode page: expands a long description
+  ///
+  /// In en, this message translates to:
+  /// **'Show more'**
+  String get trackShowMore;
+
+  /// Episode page: collapses the expanded description
+  ///
+  /// In en, this message translates to:
+  /// **'Show less'**
+  String get trackShowLess;
 }
 
 class _AppLocalizationsDelegate

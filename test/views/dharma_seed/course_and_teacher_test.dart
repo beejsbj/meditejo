@@ -355,14 +355,23 @@ void main() {
   });
 
   group('track details', () {
-    testWidgets('show kind, teacher and length, then credit and licence', (
-      tester,
-    ) async {
+    testWidgets('show course, teacher, kind and date, length on Play, then '
+        'credit and licence', (tester) async {
       final app = await DharmaSeedTestApp.create(tester);
       await app.pump(tester, const TrackView(trackId: 'ds-talk-2'));
 
       expect(find.text('Jhana basics'), findsOneWidget);
-      expect(find.text('Talk · Rob Burbea · 60 min'), findsOneWidget);
+      // The retreat it is part of, and who gave it, each a link (#84).
+      expect(find.textContaining('Part of Jhana Retreat'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('track_teacher')),
+          matching: find.text('Rob Burbea'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Talk · Mar 1, 2014'), findsOneWidget);
+      expect(find.text('Play · 60 min'), findsOneWidget);
       expect(find.text('Rob Burbea · Dharma Seed'), findsOneWidget);
       expect(find.text('Licence: CC BY-NC-ND 4.0'), findsOneWidget);
       expect(find.text('Streamed as recorded, unmodified.'), findsOneWidget);

@@ -281,7 +281,7 @@ void main() {
       final page = tester.widget<TrackView>(find.byType(TrackView));
       expect(page.fromStart, isTrue);
       expect(_prepared, isEmpty);
-      await tester.tap(find.byType(ElevatedButton).first);
+      await tester.tap(find.byKey(const ValueKey('track_play')));
       for (var i = 0; i < 10; i++) {
         await tester.runAsync(
           () => Future.delayed(const Duration(milliseconds: 20)),

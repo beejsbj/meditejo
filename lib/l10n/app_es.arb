@@ -1190,5 +1190,9 @@
   "playerAutoplayForTalks": "Para todas las charlas",
   "playerAutoplayForCourse": "Para este curso",
   "playerAutoplayForPlaylist": "Para esta lista de reproducción",
-  "playerAutoplayLastOfPlaylist": "Es la última sesión de la lista de reproducción"
+  "playerAutoplayLastOfPlaylist": "Es la última sesión de la lista de reproducción",
+  "trackPartOf": "Parte de {course}",
+  "trackInCourse": "En {course}",
+  "trackShowMore": "Mostrar más",
+  "trackShowLess": "Mostrar menos"
 }

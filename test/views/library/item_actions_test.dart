@@ -8,6 +8,7 @@ import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
 import 'package:medito/views/library/item_actions.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/pack/widgets/course_actions.dart';
+import 'package:medito/views/track/track_view.dart';
 
 import '../../helpers/dharma_seed_app.dart';
 import '../../helpers/library_app.dart';
@@ -79,6 +80,47 @@ void main() {
         ),
         containsAll([ItemAction.play, ItemAction.pin, ItemAction.share]),
       );
+    });
+
+    test('a course header\'s ⋮ never repeats its Add to library or Edit; '
+        'an episode page\'s leaves out its own buttons (#84)', () {
+      // Not yet saved: the header shows Add to library as a button.
+      final unsaved = itemActionsFor(
+        const ItemActionsSpec(id: 'ds-retreat-1'),
+        canSave: true,
+      );
+      expect(unsaved, contains(ItemAction.save));
+      expect(
+        itemActionsFor(
+          const ItemActionsSpec(
+            id: 'ds-retreat-1',
+            hide: CourseMoreButton.shownAsButtons,
+          ),
+          canSave: true,
+        ),
+        isNot(contains(ItemAction.save)),
+      );
+      // A playlist the user made: the header shows Edit as a button.
+      const mine = 'my-course-0123456789abcdef';
+      expect(
+        itemActionsFor(const ItemActionsSpec(id: mine)),
+        contains(ItemAction.edit),
+      );
+      final header = itemActionsFor(
+        const ItemActionsSpec(id: mine, hide: CourseMoreButton.shownAsButtons),
+      );
+      expect(header, isNot(contains(ItemAction.edit)));
+      expect(header, contains(ItemAction.delete));
+
+      final episode = itemActionsFor(
+        const ItemActionsSpec(
+          id: 'ds-talk-1',
+          teacherId: 'ds-teacher-1',
+          hide: TrackView.shownAsButtons,
+        ),
+        canSave: true,
+      );
+      expect(episode, [ItemAction.download, ItemAction.markPlayed]);
     });
 
     test('no teacher id hides Go to teacher (a YouTube row)', () {

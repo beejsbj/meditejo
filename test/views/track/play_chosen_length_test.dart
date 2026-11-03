@@ -59,7 +59,7 @@ void main() {
     await tester.pump();
     expect(app.prefs.getInt('meditation_duration_preference'), 20 * 60000);
 
-    await tester.tap(find.byType(ElevatedButton));
+    await tester.tap(find.byKey(const ValueKey('track_play')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
     expect(container.read(playerProvider)?.fileId, 'a20');

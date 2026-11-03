@@ -1358,5 +1358,9 @@
   "playerAutoplayForTalks": "Für alle Vorträge",
   "playerAutoplayForCourse": "Für diesen Kurs",
   "playerAutoplayForPlaylist": "Für diese Playlist",
-  "playerAutoplayLastOfPlaylist": "Das ist die letzte Sitzung der Playlist"
+  "playerAutoplayLastOfPlaylist": "Das ist die letzte Sitzung der Playlist",
+  "trackPartOf": "Teil von {course}",
+  "trackInCourse": "In {course}",
+  "trackShowMore": "Mehr anzeigen",
+  "trackShowLess": "Weniger anzeigen"
 }
