@@ -6,6 +6,7 @@ import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
+import 'package:medito/views/library/item_actions.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/pack/widgets/pack_path_button.dart';
 import 'package:medito/views/player/widgets/bottom_actions/pin_action.dart';
@@ -153,7 +154,8 @@ class CourseShareButton extends StatelessWidget {
 }
 
 /// ⋮: the one item-actions sheet (#83), the same a course row's ⋮ and
-/// long-press open, so the course offers the same actions everywhere.
+/// long-press open, less what the header already shows as buttons (Play,
+/// Pin, Share). Rows, long-press and the Library keep them.
 class CourseMoreButton extends ConsumerWidget {
   const CourseMoreButton({
     super.key,
@@ -164,14 +166,26 @@ class CourseMoreButton extends ConsumerWidget {
   final String packId;
   final String title;
 
+  /// The header's own buttons, not repeated in its ⋮.
+  static const shownAsButtons = {
+    ItemAction.play,
+    ItemAction.pin,
+    ItemAction.share,
+  };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return _RoundIconButton(
       key: const ValueKey('pack_actions'),
       tooltip: AppLocalizations.of(context)!.myCourseMore,
       icon: Icons.more_vert_rounded,
-      onPressed: () =>
-          showContentActionsSheet(context, ref, id: packId, title: title),
+      onPressed: () => showContentActionsSheet(
+        context,
+        ref,
+        id: packId,
+        title: title,
+        hide: shownAsButtons,
+      ),
     );
   }
 }

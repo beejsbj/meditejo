@@ -7,6 +7,7 @@ import 'package:medito/services/library/library_models.dart';
 import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
 import 'package:medito/views/library/item_actions.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
+import 'package:medito/views/pack/widgets/course_actions.dart';
 
 import '../../helpers/dharma_seed_app.dart';
 import '../../helpers/library_app.dart';
@@ -43,6 +44,41 @@ void main() {
         ItemAction.goToTeacher,
         ItemAction.share,
       ]);
+    });
+
+    test('a course header\'s ⋮ hides what it shows as buttons; the '
+        'Library\'s ⋮ and a row\'s keep them', () {
+      final all = itemActionsFor(
+        const ItemActionsSpec(id: 'ds-retreat-1'),
+        saved: true,
+      );
+      expect(
+        all,
+        containsAll([ItemAction.play, ItemAction.pin, ItemAction.share]),
+      );
+      final header = itemActionsFor(
+        const ItemActionsSpec(
+          id: 'ds-retreat-1',
+          hide: CourseMoreButton.shownAsButtons,
+        ),
+        saved: true,
+      );
+      expect(header, [
+        for (final action in all)
+          if (action != ItemAction.play &&
+              action != ItemAction.pin &&
+              action != ItemAction.share)
+            action,
+      ]);
+      expect(
+        itemActionsFor(
+          ItemActionsSpec(
+            id: 'ds-retreat-1',
+            entry: entry('ds-retreat-1', kind: LibraryKind.course),
+          ),
+        ),
+        containsAll([ItemAction.play, ItemAction.pin, ItemAction.share]),
+      );
     });
 
     test('no teacher id hides Go to teacher (a YouTube row)', () {

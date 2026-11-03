@@ -7,6 +7,7 @@ import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/views/pack/pack_view.dart';
+import 'package:medito/views/pack/widgets/pack_item_widget.dart';
 import 'package:medito/views/pack/widgets/pack_path_button.dart';
 import 'package:medito/views/player/widgets/bottom_actions/pack_view_bottom_bar.dart';
 import 'package:medito/views/teacher/teacher_view.dart';
@@ -150,6 +151,54 @@ void main() {
           greaterThanOrEqualTo(44),
         );
       }
+    });
+
+    testWidgets('the header\'s ⋮ leaves out Play, Pin and Share; rows keep '
+        'them', (tester) async {
+      final app = await createApp(tester);
+      await app.pump(tester, const PackView(id: 'ds-retreat-500'));
+
+      Future<Set<String>> sheet() async {
+        await DharmaSeedTestApp.settle(tester);
+        final titles = {
+          for (final tile in tester.widgetList<ListTile>(
+            find.descendant(
+              of: find.byKey(const ValueKey('item_actions_sheet')),
+              matching: find.byType(ListTile),
+            ),
+          ))
+            (tile.title! as Text).data!,
+        };
+        await tester.tapAt(const Offset(20, 20));
+        await DharmaSeedTestApp.settle(tester);
+        return titles;
+      }
+
+      // In the library, so Pin applies; the header shows it as a button.
+      await tester.tap(find.byKey(const ValueKey('course_library')));
+      await DharmaSeedTestApp.settle(tester);
+
+      await tester.tap(find.byKey(const ValueKey('pack_actions')));
+      final header = await sheet();
+      expect(header, contains(l10n.myCourseAddTo));
+      expect(header, contains(l10n.myCourseDuplicate));
+      for (final repeated in [l10n.play, l10n.pinCourse, l10n.share]) {
+        expect(header, isNot(contains(repeated)), reason: repeated);
+      }
+
+      // A session row's ⋮ and long-press still offer them.
+      final row = find.byKey(const ValueKey('content_actions_ds-talk-501'));
+      await tester.ensureVisible(row);
+      await DharmaSeedTestApp.settle(tester);
+      await tester.tap(row);
+      expect(await sheet(), containsAll([l10n.play, l10n.share]));
+      await tester.longPress(
+        find.descendant(
+          of: find.byType(PackItemWidget),
+          matching: find.text('Long talk 1'),
+        ),
+      );
+      expect(await sheet(), containsAll([l10n.play, l10n.share]));
     });
 
     testWidgets('the bottom bar is Back, and Play once the header is gone', (

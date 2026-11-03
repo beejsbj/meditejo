@@ -67,6 +67,7 @@ class ItemActionsSpec {
     this.onSetComplete,
     this.playable = true,
     this.popOnDelete = false,
+    this.hide = const {},
   });
 
   final String id;
@@ -101,6 +102,11 @@ class ItemActionsSpec {
   /// the thing deleted. A row on a list just disappears from it.
   final bool popOnDelete;
 
+  /// Actions the place that opens the sheet already shows as buttons (a
+  /// course header's Play, Pin and Share), left out so the sheet does not
+  /// repeat them. Empty everywhere else.
+  final Set<ItemAction> hide;
+
   bool get isTeacher => entry?.kind == LibraryKind.teacher;
   bool get isCourse => isCourseId(id) || (entry?.isCourse ?? false);
 }
@@ -122,7 +128,7 @@ List<ItemAction> itemActionsFor(
   final isCourse = spec.isCourse;
   final inLibrary = entry != null || saved;
   if (isTeacher) return [ItemAction.remove];
-  return [
+  final actions = [
     if (spec.playable) ItemAction.play,
     ItemAction.addToPlaylist,
     if (mine) ItemAction.edit,
@@ -152,6 +158,11 @@ List<ItemAction> itemActionsFor(
       ItemAction.removeFromCourse,
     if (entry != null && !mine) ItemAction.remove,
     if (mine) ItemAction.delete,
+  ];
+  if (spec.hide.isEmpty) return actions;
+  return [
+    for (final action in actions)
+      if (!spec.hide.contains(action)) action,
   ];
 }
 

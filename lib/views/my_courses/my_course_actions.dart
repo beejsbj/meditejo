@@ -262,6 +262,7 @@ Future<void> showContentActionsSheet(
   String title = '',
   MyItemDraft? fallback,
   String? teacherId,
+  Set<ItemAction> hide = const {},
 }) => showItemActions(
   context,
   ref,
@@ -271,6 +272,7 @@ Future<void> showContentActionsSheet(
     fallback: fallback,
     teacherId: teacherId,
     popOnDelete: true,
+    hide: hide,
   ),
 );
 
