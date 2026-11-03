@@ -8,6 +8,7 @@ Widget packCardWithImage(BuildContext context) {
   return Padding(
     padding: const EdgeInsets.all(16),
     child: PackCardWidget(
+      id: 'pack-1',
       title: context.knobs.string(
         label: 'Title',
         initialValue: 'Mindfulness Basics',
@@ -30,6 +31,7 @@ Widget packCardNoImage(BuildContext context) {
   return Padding(
     padding: const EdgeInsets.all(16),
     child: PackCardWidget(
+      id: 'pack-1',
       title: 'Mindfulness Basics',
       subTitle: '8 sessions · Beginner',
       onTap: () {},
@@ -42,6 +44,7 @@ Widget packCardCompleted(BuildContext context) {
   return Padding(
     padding: const EdgeInsets.all(16),
     child: PackCardWidget(
+      id: 'pack-1',
       title: 'Mindfulness Basics',
       subTitle: '8 sessions · Beginner',
       coverUrlPath: 'https://picsum.photos/seed/pack/800/450',
