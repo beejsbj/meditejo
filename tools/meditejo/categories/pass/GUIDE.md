@@ -70,7 +70,10 @@ a wrong label puts a retreat in front of someone looking for something else.
     one insight-sounding talk sits among unrelated ones.
   - Who a retreat is for doesn't matter: a young adults', women's, LGBTQ+ or
     people-of-colour retreat that practises insight is `vipassana`.
-  - With no description, judge from all the talk titles, not a sample.
+  - With no description, the 8 sampled titles can miss the practice. A
+    retreat dropped on them is re-read with every talk title (the
+    2026-11-03 re-read did this for empty descriptions with more than 8
+    talks).
 - `samatha` for retreats about calm and concentration; `jhana` only when the
   absorptions themselves are taught. Both may apply.
 - `breath` when breathing (ānāpānasati) is the stated main object, not merely

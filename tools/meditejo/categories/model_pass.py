@@ -241,6 +241,9 @@ def final():
     # audit of its keeps (pass/vipassana-audit.jsonl), then Sonnet's re-read
     # of affinity retreats and of empty descriptions with every talk title
     # (pass/vipassana-reread.jsonl).
+    # The readings only remove Vipassanā; a `true` row keeps it, so one for
+    # a retreat that never had it is a mistake, not a regain.
+    had = {rid for rid, cats in result.items() if 'vipassana' in cats}
     keep = {}
     readings = sorted((WORK / 'vipassana').glob('batch-*.jsonl')) + [
         WORK / 'vipassana-audit.jsonl',
@@ -251,7 +254,11 @@ def final():
             continue
         for row in read_jsonl(path):
             rid = int(row['id'])
-            if rid not in result or not isinstance(row['vipassana'], bool):
+            if (
+                rid not in result
+                or not isinstance(row['vipassana'], bool)
+                or (row['vipassana'] and rid not in had)
+            ):
                 raise SystemExit(f'{path.name}: bad row {row}')
             keep[rid] = row['vipassana']
     for rid, stays in keep.items():
