@@ -27,6 +27,14 @@ void main() {
     }
   });
 
+  test('the tab keys an earlier build saved are removed on startup', () async {
+    final container = await _open({_savedTabKey: 2, _savedLayoutKey: 3});
+    expect(container.read(mainTabProvider), MainTab.home);
+    final prefs = container.read(sharedPreferencesProvider);
+    expect(prefs.containsKey(_savedTabKey), isFalse);
+    expect(prefs.containsKey(_savedLayoutKey), isFalse);
+  });
+
   test('a fresh install opens Home', () async {
     final container = await _open({});
     expect(container.read(mainTabProvider), MainTab.home);
