@@ -29,6 +29,7 @@ import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/bottom_navigation/widgets/medito_nav_bar.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/library/library_view.dart';
+import 'package:medito/views/soundscape/sound_credits_view.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:medito/views/timer/timer_view.dart';
 import 'package:medito/models/cues/cue_settings.dart';
@@ -562,6 +563,45 @@ void main() {
         await _capture(tester, '$name-${brightness.name}');
       }, skip: !_enabled);
     }
+
+    // Sound credits: long titles ("Summer Rain on Terrace") wrap to a second
+    // line, where the licence and source chips used to overlap it.
+    testWidgets('sound-credits, ${brightness.name}', (tester) async {
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(
+        tester,
+        _frame(brightness, const SoundCreditsView()),
+        overrides: soundscapeTestOverrides(FakeSoundscapeEngine()),
+      );
+      await _phone(tester);
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+      await _capture(tester, 'sound-credits-${brightness.name}');
+    }, skip: !_enabled);
+
+    // The same screen at a larger system text size, where titles wrap more.
+    testWidgets('sound-credits-large-text, ${brightness.name}', (tester) async {
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(
+        tester,
+        _frame(
+          brightness,
+          Builder(
+            builder: (context) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(1.6)),
+              child: const SoundCreditsView(),
+            ),
+          ),
+        ),
+        overrides: soundscapeTestOverrides(FakeSoundscapeEngine()),
+      );
+      await _phone(tester);
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+      await _capture(tester, 'sound-credits-large-text-${brightness.name}');
+    }, skip: !_enabled);
 
     // Decision 18: what the user makes is a Playlist, what a source gives is
     // a Course. The Library lists both; the add-to sheet offers playlists.
