@@ -169,11 +169,13 @@ void main() {
   });
 
   group('the model pass', () {
-    test('no category but Vipassanā holds more than a quarter of it', () {
+    test('no category holds more than a quarter of it', () {
       // Dharma Seed is largely the Insight Meditation movement's archive, so
-      // most of its retreats really are insight retreats: the pass reads
-      // Vipassanā on well over a quarter (DECISIONS.md, 2026-10-28). That is
-      // the one category allowed past the bound, and only up to 45%.
+      // a faithful reading put Vipassanā on 38% of it. Narrowed to retreats
+      // whose practice is insight (DECISIONS.md, 2026-11-03), it filters:
+      // about a fifth. A quarter is the bound for every category, Vipassanā
+      // included; Vipassanā also stays above a tenth, so the narrowing has
+      // not emptied it.
       final total =
           snapshot
                   .select(
@@ -183,8 +185,10 @@ void main() {
               as int;
       for (final c in catalogue.categories) {
         final share = catalogue.modelIn(c.id).length / total;
-        final bound = c.id == 'vipassana' ? 0.45 : 0.25;
-        expect(share, lessThan(bound), reason: '${c.id}: $share');
+        if (c.id == 'vipassana') {
+          expect(share, greaterThan(0.1), reason: 'vipassana: $share');
+        }
+        expect(share, lessThan(0.25), reason: '${c.id}: $share');
       }
     });
 
