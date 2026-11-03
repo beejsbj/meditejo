@@ -9,6 +9,7 @@ import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/services/my_courses/my_course_source.dart';
+import 'package:medito/views/library/item_actions.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/my_courses/my_course_edit_view.dart';
 
@@ -270,7 +271,7 @@ void main() {
 
       await tester.tap(find.byKey(ValueKey('content_actions_$id')));
       await settle(tester);
-      await tester.tap(find.byKey(const ValueKey('content_action_duplicate')));
+      await tester.tap(find.byKey(const ValueKey('item_action_duplicate')));
       await settle(tester);
 
       // The editor is on top without the copy's page having been closed.
@@ -362,19 +363,28 @@ void main() {
     });
 
     test('a personal course\'s actions include Edit and Delete', () {
-      expect(contentActionsFor('my-course-1'), [
-        ContentAction.edit,
-        ContentAction.addToCourse,
-        ContentAction.duplicate,
-        ContentAction.delete,
+      const mine = ItemActionsSpec(id: 'my-course-1');
+      expect(itemActionsFor(mine, saved: true), [
+        ItemAction.play,
+        ItemAction.addToPlaylist,
+        ItemAction.edit,
+        ItemAction.duplicate,
+        ItemAction.pin,
+        ItemAction.share,
+        ItemAction.delete,
       ]);
-      expect(contentActionsFor('x-1', inCourse: 'my-course-1'), [
-        ContentAction.addToCourse,
-        ContentAction.removeFromCourse,
-      ]);
-      expect(contentActionsFor('x-1', inCourse: 'ds-retreat-1'), [
-        ContentAction.addToCourse,
-      ]);
+      expect(
+        itemActionsFor(
+          const ItemActionsSpec(id: 'x-1', inCourse: 'my-course-1'),
+        ),
+        contains(ItemAction.removeFromCourse),
+      );
+      expect(
+        itemActionsFor(
+          const ItemActionsSpec(id: 'x-1', inCourse: 'ds-retreat-1'),
+        ),
+        isNot(contains(ItemAction.removeFromCourse)),
+      );
     });
   });
 }

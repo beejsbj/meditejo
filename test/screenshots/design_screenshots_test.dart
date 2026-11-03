@@ -28,6 +28,7 @@ import 'package:medito/services/my_courses/my_course_source.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/bottom_navigation/widgets/medito_nav_bar.dart';
 import 'package:medito/views/home/home_view.dart';
+import 'package:medito/views/library/item_actions.dart';
 import 'package:medito/views/library/library_view.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:medito/views/timer/timer_view.dart';
@@ -671,6 +672,43 @@ void main() {
       await DharmaSeedTestApp.settle(tester);
       expect(tester.takeException(), isNull);
       await _captureView(tester, 'add-to-playlist-${brightness.name}');
+    }, skip: !_enabled);
+
+    testWidgets('Episode actions sheet, ${brightness.name}', (tester) async {
+      final app = await LibraryTestApp.create(tester);
+      final (source, _) = await seedPlaylists(tester, app);
+      WidgetsApp.debugAllowBannerOverride = false;
+      addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
+      late Future<void> Function() open;
+      await app.pump(
+        tester,
+        _frame(
+          brightness,
+          Consumer(
+            builder: (context, ref, _) {
+              open = () => showItemActions(
+                context,
+                ref,
+                ItemActionsSpec(
+                  id: 'ds-talk-99944',
+                  title:
+                      'Developing Piti, Developing Focus, Developing Wellbeing',
+                  teacherId: 'ds-teacher-210',
+                  isComplete: false,
+                  onSetComplete: (_) async => true,
+                ),
+              );
+              return const LibraryView();
+            },
+          ),
+        ),
+        overrides: [myCourseSourceProvider.overrideWithValue(source)],
+      );
+      await _phone(tester);
+      unawaited(open());
+      await DharmaSeedTestApp.settle(tester);
+      expect(tester.takeException(), isNull);
+      await _captureView(tester, 'episode-actions-${brightness.name}');
     }, skip: !_enabled);
 
     // The Customize sheet (design PR 5): before a Practice session, during

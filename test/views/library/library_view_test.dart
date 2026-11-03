@@ -432,7 +432,7 @@ void main() {
         );
         await tester.tap(menu);
         await settle(tester);
-        await tester.tap(find.byKey(const ValueKey('library_menu_pin')));
+        await tester.tap(find.byKey(const ValueKey('item_action_pin')));
         await settle(tester);
       }
 

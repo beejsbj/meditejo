@@ -472,6 +472,7 @@ class DharmaSeedSource
       path: '/tracks/${dsTalkId(talk.id)}',
       kind: DharmaSeedKind.fromRecordingType(talk.recordingType).label,
       teacher: hit.teacher?.name,
+      teacherId: hit.teacher == null ? null : dsTeacherId(hit.teacher!.id),
       durationMs: talk.durationMs,
       date: talk.recDate.length >= 10 ? talk.recDate.substring(0, 10) : null,
     );
