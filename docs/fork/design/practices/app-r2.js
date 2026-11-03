@@ -59,7 +59,7 @@
   function tile(p, v, theme, tag, pick) {
     const f = fig(v.figure), t = el('div', `tile${pick ? ' pick' : ''}${tag === 'R1' ? ' was' : ''}`);
     t.append(art(p.id, v, theme));
-    t.append(el('div', 'txt', `<div class="tag">${tag === 'R1' ? 'Round 1' : tag.length > 1 ? tag : `Variant ${tag}`}${pick ? '<span class="badge">pick</span>' : ''}</div><div class="name">${esc(f.label)}</div><div class="says">${esc(f.says)}</div><div class="gr">${esc(v.ground)}${v.library ? `<span class="lib" title="figure library: ${v.library === 'any' ? 'may be drawn for any user content' : 'only for content about this practice'}">${v.library === 'any' ? 'library: any' : 'library: practice'}</span>` : ''}</div>`));
+    t.append(el('div', 'txt', `<div class="tag">${tag === 'R1' ? 'Round 1' : tag.length > 1 ? tag : `Variant ${tag}`}${pick ? '<span class="badge">pick</span>' : ''}</div><div class="name">${esc(f.label)}</div><div class="says">${esc(f.says)}</div><div class="gr">${esc(v.ground)}${v.library ? `<span class="lib" title="figure library: ${({ any: 'may be drawn for any user content', practice: 'only for content about this practice', none: 'kept out of the library' })[v.library]}">library: ${esc(v.library)}</span>` : ''}</div>`));
     return t;
   }
   function block(p, compact = false) {

@@ -1,7 +1,8 @@
 {
   "title": "round 3",
   "lede": "Burooj on round 2 (2026-11-02): the picks stand except Kasiṇa (B) and the Headless Way, which none of the three caught; it is redrawn here with the six round 1 figures flagged last round. Same rules: <b>abstract, quiet, graceful</b>, a slow ~10 s breath, <b>something true about the practice</b>, <b>no human shapes</b>, varied grounds. Each practice shows <b>round 1's tile first</b> (and the Headless Way's rejected round 2 variants), then two or three variants, on phone-sized tiles (170 dp) in Tidewater light and dark. The orange outline is the variant I'd ship; <i>library: any</i> marks an unpicked variant generic enough for the figure library, <i>library: practice</i> one too tied to its practice.",
-  "library": "Unpicked variants join the art engine's figure library, to be drawn at random for user content (imports, playlists) as other figures are. `any`: generic enough for any item. `practice`: too tied to its practice to appear on an unrelated import; only for content about that practice.",
+  "library": "Unpicked variants join the art engine's figure library, to be drawn at random for user content (imports, playlists) as other figures are. `any`: generic enough for any item. `practice`: too tied to its practice to appear on an unrelated import; only for content about that practice. `none`: kept out of the library entirely (Burooj, 2026-11-03).",
+  "decided": "Burooj, 2026-11-03: the picks stand except Forgiveness (B, mended with gold) and The Mind Illuminated (a combination of A and B: steadying upwards). Walking A and Forgiveness C are out of the library.",
   "practices": [
     { "id": "headless", "pick": 1, "group": "awareness", "name": "Headless Way", "script": "", "lang": "English",
       "desc": "Looking back at where your head should be, and finding open space.",
@@ -21,18 +22,18 @@
       "was": { "figure": "steps", "ground": "paper" },
       "why": "Footprints were the last people-shape.",
       "variants": [
-        { "figure": "walk_path", "library": "any", "ground": "paper", "gopts": { "key": "mid" } },
+        { "figure": "walk_path", "library": "none", "ground": "paper", "gopts": { "key": "mid" } },
         { "figure": "walk_arcs", "ground": "dawn" },
         { "figure": "walk_stones", "library": "any", "ground": "mist" }
       ] },
-    { "id": "forgiveness", "pick": 0, "group": "heart", "name": "Forgiveness", "script": "", "lang": "English",
+    { "id": "forgiveness", "pick": 1, "group": "heart", "name": "Forgiveness", "script": "", "lang": "English",
       "desc": "Loosening resentment, towards others and towards yourself.",
       "was": { "figure": "knot", "ground": "paper" },
       "why": "The still was a near-straight scribble.",
       "variants": [
-        { "figure": "forgive_knot", "ground": "dawn" },
-        { "figure": "forgive_mend", "library": "practice", "ground": "paper" },
-        { "figure": "forgive_soften", "library": "any", "ground": "mist" }
+        { "figure": "forgive_knot", "library": "any", "ground": "dawn" },
+        { "figure": "forgive_mend", "ground": "paper" },
+        { "figure": "forgive_soften", "library": "none", "ground": "mist" }
       ] },
     { "id": "tmi", "pick": 0, "group": "concentration", "name": "The Mind Illuminated", "script": "", "lang": "English",
       "desc": "Culadasa's ten stages, from a wandering mind to effortless attention.",
