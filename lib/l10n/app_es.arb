@@ -815,6 +815,7 @@
   "libraryAddToLibrary": "Añadir a la biblioteca",
   "libraryInLibrary": "En la biblioteca",
   "libraryResumeAt": "Reanudar en {position}",
+  "playForMinutes": "Reproducir · {minutes} min",
   "importTitle": "Añadir a tu biblioteca",
   "importFieldHint": "Pega un enlace",
   "importHelp": "Páginas de Dharma Seed, feeds de podcast, enlaces de audio o archivos de tu teléfono.",

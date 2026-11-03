@@ -1697,6 +1697,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String playForMinutes(int minutes) {
+    return 'Play · $minutes min';
+  }
+
+  @override
   String get importTitle => 'Add to your library';
 
   @override
