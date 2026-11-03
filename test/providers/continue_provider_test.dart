@@ -543,4 +543,45 @@ void main() {
       expect(PinnedCoursesNotifier.maxPinned, 3);
     });
   });
+
+  group('what the user removed from Continue', () {
+    test('stays off until the course is played again', () async {
+      await addCourse('a', played: true);
+      await leftAt('x-a-2', DateTime(2026, 10, 18));
+      final day = DateTime.now().add(const Duration(days: 1));
+      await prefs.setStringList('continue_dismissed', [
+        'x-course-a|${day.millisecondsSinceEpoch}',
+      ]);
+
+      expect(await read(packs: [_course('a')]), isEmpty);
+
+      // Left partway again after it was removed: it is back.
+      await leftAt('x-a-2', day.add(const Duration(days: 1)));
+      final items = await read(packs: [_course('a')]);
+      expect(items.single.trackId, 'x-a-2');
+    });
+
+    test('a removed course is not offered as the next session', () async {
+      await addCourse('a', played: true);
+      final removed = DateTime.now().millisecondsSinceEpoch;
+      await prefs.setStringList('continue_dismissed', ['x-course-a|$removed']);
+
+      final items = await read(checked: ['x-a-1'], packs: [_course('a')]);
+
+      expect(items, isEmpty);
+    });
+
+    test('only the removed one goes', () async {
+      await addCourse('a', played: true);
+      await addCourse('b', played: true);
+      await leftAt('x-a-2', DateTime(2026, 10, 18));
+      await leftAt('x-b-1', DateTime(2026, 10, 17));
+      final removed = DateTime(2026, 10, 19).millisecondsSinceEpoch;
+      await prefs.setStringList('continue_dismissed', ['x-course-a|$removed']);
+
+      final items = await read(packs: [_course('a'), _course('b')]);
+
+      expect(items.map((i) => i.trackId), ['x-b-1']);
+    });
+  });
 }

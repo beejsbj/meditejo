@@ -1121,6 +1121,30 @@
   "labelsAddHint": "Añadir una etiqueta",
   "labelsAddButton": "Añadir",
   "labelsRemoveTooltip": "Quitar la etiqueta {label}",
+  "homeOpenCourse": "Abrir curso",
+  "@homeOpenCourse": {
+    "description": "Card menu action on a Home Continue card that opens the course page"
+  },
+  "homeRestart": "Reiniciar",
+  "@homeRestart": {
+    "description": "Card menu action on a Home Continue card that plays the session from 0:00"
+  },
+  "homeRemoveFromContinue": "Quitar de Continuar",
+  "@homeRemoveFromContinue": {
+    "description": "Card menu action that takes an item off Home's Continue section"
+  },
+  "homeUnpinned": "Desfijado de Inicio",
+  "@homeUnpinned": {
+    "description": "Snackbar after unpinning a course from Home; offers Undo"
+  },
+  "homeRemovedFromContinue": "Quitado de Continuar",
+  "@homeRemovedFromContinue": {
+    "description": "Snackbar after removing an item from Continue; offers Undo"
+  },
+  "homeCardMenu": "Más opciones para {title}",
+  "@homeCardMenu": {
+    "description": "Tooltip and screen-reader label of the more-options button on a Home card"
+  },
   "settingsSessionHistory": "Historial de sesiones",
   "updateAutoCheck": "Buscar actualizaciones automáticamente",
   "updateAutoCheckDescription": "Consulta GitHub una vez al día al abrir Meditejo."

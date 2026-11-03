@@ -31,6 +31,17 @@ class PinnedCoursesNotifier extends Notifier<List<String>> {
     return true;
   }
 
+  /// Undo of [unpin]: pins [id] back before the first of the courses that
+  /// followed it in [before] that is still pinned, else last. Undoing several
+  /// unpins, in either order, restores the order they had. No-op past the
+  /// limit.
+  Future<void> pinBack(String id, List<String> before) async {
+    if (state.contains(id) || state.length >= maxPinned) return;
+    final after = before.skip(before.indexOf(id) + 1);
+    final at = state.indexWhere(after.contains);
+    await _set([...state]..insert(at < 0 ? state.length : at, id));
+  }
+
   Future<void> unpin(String id) => _set([
     for (final p in state)
       if (p != id) p,

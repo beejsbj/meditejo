@@ -11,12 +11,16 @@ class PressableCard extends StatefulWidget {
     required this.color,
     required this.radius,
     required this.onTap,
+    this.onLongPress,
     required this.child,
   });
 
   final Color color;
   final double radius;
   final VoidCallback onTap;
+
+  /// Holding the card, for the actions its menu offers.
+  final VoidCallback? onLongPress;
   final Widget child;
 
   @override
@@ -42,6 +46,7 @@ class _PressableCardState extends State<PressableCard> {
         child: InkWell(
           customBorder: shape,
           onTap: widget.onTap,
+          onLongPress: widget.onLongPress,
           onHighlightChanged: (pressed) => setState(() => _pressed = pressed),
           child: widget.child,
         ),
