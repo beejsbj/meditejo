@@ -908,6 +908,7 @@
   "itemMarkPlayed": "Marcar como escuchada",
   "itemMarkUnplayed": "Marcar como no escuchada",
   "itemGoToTeacher": "Ir al docente",
+  "itemMarkPlayedFailed": "No se pudo actualizar el estado de escuchada. Inténtalo de nuevo.",
   "pinnedLimitReached": "Inicio admite hasta tres cursos o listas fijados. Quita uno primero.",
   "pinnedCourseAdded": "Fijado en Inicio",
   "statsFeedbackNote": "Estas cifras son una guía, no una puntuación.",

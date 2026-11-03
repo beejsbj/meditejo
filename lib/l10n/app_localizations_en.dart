@@ -2018,6 +2018,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get itemGoToTeacher => 'Go to teacher';
 
   @override
+  String get itemMarkPlayedFailed =>
+      'Couldn\'t update the played state. Please try again.';
+
+  @override
   String get pinnedLimitReached =>
       'Home holds up to three pinned courses or playlists. Unpin one first.';
 

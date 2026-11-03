@@ -367,10 +367,14 @@ Future<void> _run(
       return _download(context, ref, id);
     case ItemAction.markPlayed:
       final set = spec.onSetComplete;
-      if (set != null) {
-        await set(!played);
-      } else {
-        await _setPlayed(ref, id, !played);
+      final ok = set != null
+          ? await set(!played)
+          : await _setPlayed(ref, id, !played);
+      if (!ok && context.mounted) {
+        showSnackBar(
+          context,
+          AppLocalizations.of(context)!.itemMarkPlayedFailed,
+        );
       }
     case ItemAction.goToTeacher:
       return handleNavigation(

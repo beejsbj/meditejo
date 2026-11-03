@@ -3568,6 +3568,12 @@ abstract class AppLocalizations {
   /// **'Go to teacher'**
   String get itemGoToTeacher;
 
+  /// No description provided for @itemMarkPlayedFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the played state. Please try again.'**
+  String get itemMarkPlayedFailed;
+
   /// No description provided for @pinnedLimitReached.
   ///
   /// In en, this message translates to:

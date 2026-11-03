@@ -2053,6 +2053,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get itemGoToTeacher => 'Zur Lehrperson';
 
   @override
+  String get itemMarkPlayedFailed =>
+      'Der Status „gehört“ konnte nicht geändert werden. Bitte versuche es erneut.';
+
+  @override
   String get pinnedLimitReached =>
       'Auf Start passen bis zu drei angeheftete Kurse oder Playlists. Löse zuerst eins davon.';
 

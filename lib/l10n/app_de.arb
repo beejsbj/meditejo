@@ -1100,6 +1100,7 @@
   "itemMarkPlayed": "Als gehört markieren",
   "itemMarkUnplayed": "Als ungehört markieren",
   "itemGoToTeacher": "Zur Lehrperson",
+  "itemMarkPlayedFailed": "Der Status „gehört“ konnte nicht geändert werden. Bitte versuche es erneut.",
   "pinnedLimitReached": "Auf Start passen bis zu drei angeheftete Kurse oder Playlists. Löse zuerst eins davon.",
   "pinnedCourseAdded": "An Start angeheftet",
   "statsFeedbackNote": "Diese Zahlen sind Rückmeldung, keine Bewertung.",

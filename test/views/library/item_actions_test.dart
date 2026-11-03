@@ -333,6 +333,31 @@ void main() {
     expect(find.text('Mark as unplayed'), findsOneWidget);
   });
 
+  testWidgets('a failed Mark as played says so', (tester) async {
+    final app = await LibraryTestApp.create(tester);
+    await app.pump(
+      tester,
+      Scaffold(
+        body: Center(
+          child: ContentActionsButton(
+            id: 'ds-talk-5',
+            isComplete: false,
+            onSetComplete: (_) async => false,
+          ),
+        ),
+      ),
+      asRoute: true,
+    );
+    await tester.tap(find.byKey(const ValueKey('content_actions_ds-talk-5')));
+    await settle(tester);
+    await tester.tap(find.text('Mark as played'));
+    await settle(tester);
+    expect(
+      find.textContaining('Couldn\'t update the played state'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('long-pressing a session row opens the same sheet', (
     tester,
   ) async {

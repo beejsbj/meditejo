@@ -2058,6 +2058,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get itemGoToTeacher => 'Ir al docente';
 
   @override
+  String get itemMarkPlayedFailed =>
+      'No se pudo actualizar el estado de escuchada. Inténtalo de nuevo.';
+
+  @override
   String get pinnedLimitReached =>
       'Inicio admite hasta tres cursos o listas fijados. Quita uno primero.';
 
