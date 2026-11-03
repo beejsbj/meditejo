@@ -119,8 +119,9 @@ void main() {
       expect(find.text('3 sessions'), findsOneWidget);
       expect(find.text('Dharma Seed'), findsOneWidget);
       expect(find.text('Tara Brach'), findsOneWidget);
+      // New playlist lives behind the header's "+" (#62).
       expect(find.text('New playlist'), findsNothing);
-      expect(find.byTooltip('New playlist'), findsOneWidget);
+      expect(find.byTooltip('Add to your library'), findsOneWidget);
     });
 
     testWidgets('empty, it invites the first addition', (tester) async {

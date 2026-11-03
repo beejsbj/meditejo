@@ -2848,12 +2848,6 @@ abstract class AppLocalizations {
   /// **'Your library'**
   String get libraryTitle;
 
-  /// Button that opens the import screen
-  ///
-  /// In en, this message translates to:
-  /// **'Add'**
-  String get libraryAdd;
-
   /// Library section for guided practice
   ///
   /// In en, this message translates to:
@@ -3010,11 +3004,29 @@ abstract class AppLocalizations {
   /// **'Play · {minutes} min'**
   String playForMinutes(int minutes);
 
-  /// Title of the import screen
+  /// Title of the import screen, and the tooltip and heading of Library's + and its sheet
   ///
   /// In en, this message translates to:
   /// **'Add to your library'**
   String get importTitle;
+
+  /// Library's + sheet: opens the import screen
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get libraryAddImport;
+
+  /// Library's + sheet: what Import takes, under its label
+  ///
+  /// In en, this message translates to:
+  /// **'A link, a podcast feed, a YouTube playlist, or files on your phone'**
+  String get libraryAddImportHint;
+
+  /// Library's + sheet: what a new playlist is, under New playlist
+  ///
+  /// In en, this message translates to:
+  /// **'Your own list of sessions, in your order'**
+  String get libraryAddNewPlaylistHint;
 
   /// Hint in the link field
   ///
@@ -3493,7 +3505,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeContinueEmpty.
   ///
   /// In en, this message translates to:
-  /// **'Nothing in progress. Add something to your library, or open Explore.'**
+  /// **'Nothing in progress. Start something in Explore or your library, or pin it there to keep it on Home.'**
   String get homeContinueEmpty;
 
   /// No description provided for @homeContinueResume.
@@ -3519,12 +3531,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{time} left'**
   String homeContinueTimeLeft(String time);
-
-  /// No description provided for @homeShortcutAdd.
-  ///
-  /// In en, this message translates to:
-  /// **'Add'**
-  String get homeShortcutAdd;
 
   /// Screen-reader label of a Home tile that starts the timer with a saved background-sound preset.
   ///
@@ -3595,7 +3601,7 @@ abstract class AppLocalizations {
   /// Pinned list: how to pin something, under pinnedEmpty
   ///
   /// In en, this message translates to:
-  /// **'Pin a course or a session from its page to keep it on Home.'**
+  /// **'Pin a course or a session in Explore or your library to keep it on Home.'**
   String get pinnedEmptyHint;
 
   /// A pinned course or session whose source no longer has it: its title (or the line under its saved title)

@@ -1505,8 +1505,8 @@ void main() {
       }, skip: !_enabled);
     }
 
-    // Library's header where it is tight: Add folds to a "+" so the title
-    // stays whole.
+    // Library's header where it is tight: the title stays whole beside the
+    // "+" and You (#62).
     for (final (name, lang, width, scale) in [
       ('library-header-360-large', 'en', 945.0, 1.3),
       ('library-header-de', 'de', 1080.0, 1.0),
