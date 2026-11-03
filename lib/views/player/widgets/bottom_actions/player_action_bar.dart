@@ -9,7 +9,7 @@ import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_downloa
 import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_speed_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/bg_sound_widget.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
-import 'package:medito/views/soundscape/sounds_view.dart';
+import 'package:medito/views/soundscape/sound_drawer.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/speed_sheet.dart';
 
 import 'bottom_action_bar.dart';
@@ -43,7 +43,7 @@ class PlayerActionBar extends StatelessWidget {
         ),
         rightCenterItem: BottomActionBarItem(
           child: _buildBackgroundSoundWidget(),
-          onTap: () => openSoundsPage(context),
+          onTap: () => unawaited(openSessionSounds(context, request)),
           semanticLabel: l10n.backgroundSounds,
         ),
         rightItem: BottomActionBarItem(
@@ -70,10 +70,11 @@ class PlayerActionBar extends StatelessWidget {
       ),
       // Open for every session: the Sounds mixer can play under a talk too
       // (its Talks default or a Customize choice), so it must be reachable
-      // here to adjust or stop it.
+      // here to adjust or stop it. The mixer drawer, the same choice as
+      // Customize › Sound (#66).
       centerItem: BottomActionBarItem(
         child: _buildBackgroundSoundWidget(),
-        onTap: () => openSoundsPage(context),
+        onTap: () => unawaited(openSessionSounds(context, request)),
         semanticLabel: l10n.backgroundSounds,
       ),
       rightCenterItem: BottomActionBarItem(

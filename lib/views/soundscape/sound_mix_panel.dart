@@ -11,6 +11,7 @@ import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/widgets/art/art_cover.dart';
 import 'package:medito/widgets/art/art_subject.dart';
 
+import 'sound_drawer.dart';
 import 'sound_labels.dart';
 import 'synth_editors.dart';
 
@@ -73,12 +74,21 @@ String mixSummary(
 /// Play/pause the whole mix, what it is, Stop, and (in the dock) the button
 /// that opens or folds the panel.
 class SoundsMixHeader extends ConsumerWidget {
-  const SoundsMixHeader({super.key, this.expanded = false, this.onToggle});
+  const SoundsMixHeader({
+    super.key,
+    this.expanded = false,
+    this.onToggle,
+    this.chooser,
+  });
 
   final bool expanded;
 
   /// Opens or folds the dock; null where the panel is always open.
   final VoidCallback? onToggle;
+
+  /// In the drawer, the mix is what plays under [SoundChooser.kind]'s
+  /// sessions, and says so.
+  final SoundChooser? chooser;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -89,7 +99,10 @@ class SoundsMixHeader extends ConsumerWidget {
     final state = ref.watch(soundscapeProvider);
     final library = ref.watch(soundLibraryProvider).value ?? SoundLibrary.empty;
     final controller = ref.read(soundscapeProvider.notifier);
-    final summary = mixSummary(l10n, state, library);
+    final chooser = this.chooser;
+    final summary = chooser != null && state.mix.isEmpty
+        ? l10n.soundsChooserEmpty
+        : mixSummary(l10n, state, library);
     const motion = MeditejoMotion.standardSpatial;
     return Row(
       children: [
@@ -149,7 +162,12 @@ class SoundsMixHeader extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                l10n.soundsYourMix,
+                switch (chooser?.kind) {
+                  null => l10n.soundsYourMix,
+                  SoundscapeSessionKind.practice =>
+                    l10n.soundsPlaysUnderPractice,
+                  SoundscapeSessionKind.talks => l10n.soundsPlaysUnderTalks,
+                },
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: type.emphasized.titleMedium,
@@ -181,8 +199,10 @@ class SoundsMixHeader extends ConsumerWidget {
             icon: const Icon(Symbols.stop_rounded, fill: 1),
           ),
         // Clear takes the whole mix off the deck; Undo in the snackbar puts
-        // it back. Only where the panel is open (the dock's chevron stays).
-        if ((expanded || onToggle == null) && !state.mix.isEmpty)
+        // it back. Only where the panel is open (the dock's chevron stays),
+        // except in the drawer, where an empty mix is the choice Off.
+        if ((expanded || onToggle == null || chooser != null) &&
+            !state.mix.isEmpty)
           TextButton(
             key: const ValueKey('sounds_clear'),
             onPressed: () => _clear(context, ref),

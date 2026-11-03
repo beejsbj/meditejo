@@ -19,8 +19,7 @@ import 'package:medito/services/audio/session_bell_preview.dart';
 import 'package:medito/widgets/art/art_cover.dart';
 import 'package:medito/widgets/art/art_subject.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
-import 'package:medito/views/soundscape/sound_labels.dart';
-import 'package:medito/views/soundscape/sounds_view.dart';
+import 'package:medito/views/soundscape/sound_drawer.dart';
 import 'package:medito/widgets/inputs/wheel_picker.dart';
 
 /// When a session started or running now will end. While playing
@@ -736,19 +735,26 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         detailView: slot == _Slot.rhythm ? _pulseRateView(s) : null,
         changed: changed,
         open: _slot == slot,
+        // Sound is the mixer itself, in its drawer (#66), not a section.
+        opensDrawer: slot == _Slot.sound,
         state: !enabled
             ? null
             : changed
             ? _l10n.customizeSlotChanged
             : _l10n.customizeSlotDefault,
-        onTap: enabled ? () => _toggleSlot(slot) : null,
+        onTap: !enabled
+            ? null
+            : slot == _Slot.sound
+            ? _chooseSound
+            : () => _toggleSlot(slot),
       ),
     );
   }
 
-  /// The controls behind a tile.
+  /// The controls behind a tile. Sound has none here: its tile opens the
+  /// mixer drawer.
   Widget _section(_Slot slot, CueSettings s) => switch (slot) {
-    _Slot.sound => _Section(children: [_Inset(_backgroundEditor(s))]),
+    _Slot.sound => const SizedBox.shrink(),
     _Slot.bells => _bellsSection(s),
     _Slot.rhythm => _Section(children: [_Inset(_pulseEditor(s))]),
     _Slot.length => _Section(children: [_Inset(_durationWheel(s))]),
@@ -1136,8 +1142,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     return _FinishesPill('Finishes at $time');
   }
 
-  SoundscapeSessionKind get _soundscapeKind =>
-      _practice ? SoundscapeSessionKind.practice : SoundscapeSessionKind.talks;
+  SoundscapeSessionKind get _soundscapeKind => soundscapeKindFor(_scope.kind);
 
   /// What plays under this scope's sessions: its own choice, or the mixer's
   /// default for the kind (Off while that is switched off).
@@ -1159,106 +1164,34 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     );
   }
 
-  /// A course override keeps its choice in its own cue settings. Otherwise
-  /// the choice is the kind's, and the mixer holds it (with the on/off and
-  /// the volume), so the Sounds screen's switches show the same thing.
-  void _chooseSoundscape(CueSettings s, SoundscapeSelection choice) {
-    if (_courseOverride) {
-      _edit(s.copyWith(soundscape: choice.encode()));
-      return;
-    }
-    final mixer = ref.read(soundscapeProvider.notifier);
-    final current = mixer.sessionDefault(_soundscapeKind);
-    final off = choice.kind == SoundscapeSelectionKind.none;
-    mixer.setSessionDefault(
-      _soundscapeKind,
-      current.copyWith(
-        enabled: !off,
-        selection: off ? current.selection : choice,
+  /// Opens the mixer drawer on what plays under these sessions; what is
+  /// left in it is kept: for the course when it has its own settings,
+  /// otherwise for the kind (the Sounds tab's "Plays under" line shows the
+  /// same). During a session it plays at once.
+  Future<void> _chooseSound() async {
+    _dismissUndo();
+    _silence();
+    // Taken now: the sheet may be gone by the time the drawer closes.
+    final container = ProviderScope.containerOf(context);
+    final scope = _scope;
+    final courseOverride = _courseOverride;
+    final inSession = widget.isActive;
+    final choice = await showSoundDrawer(
+      context,
+      kind: _soundscapeKind,
+      current: _soundscapeChoice(
+        ref.read(cueSettingsProvider(scope)),
+        ref.read(soundscapeProvider),
       ),
+      inSession: inSession,
     );
-    // A kind-wide choice lives in the mixer only; clear any stored here.
-    if (s.soundscape.isNotEmpty) _edit(s.copyWith(soundscape: ''));
-  }
-
-  Widget _backgroundEditor(CueSettings s) {
-    return Consumer(
-      builder: (context, ref, _) {
-        final l10n = AppLocalizations.of(context);
-        final mixer = ref.watch(soundscapeProvider);
-        final library =
-            ref.watch(soundLibraryProvider).value ?? SoundLibrary.empty;
-        final selected = _soundscapeChoice(s, mixer).encode();
-        void pick(String value) =>
-            _chooseSoundscape(s, SoundscapeSelection.parse(value));
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const _Caption(
-              'What plays under these sessions. Nothing is chosen until you '
-              'pick it.',
-            ),
-            _Chips<String>(
-              options: {
-                SoundscapeSelection.none.encode(): 'Off',
-                SoundscapeSelection.currentMix.encode(): 'Current mix',
-              },
-              selected: selected,
-              onSelected: pick,
-            ),
-            _SubLabel(l10n?.soundsPresets ?? 'Presets'),
-            _Chips<String>(
-              options: {
-                for (final p in mixer.presets)
-                  SoundscapeSelection.preset(p.id).encode(): l10n == null
-                      ? p.name
-                      : soundPresetLabel(l10n, p),
-              },
-              selected: selected,
-              onSelected: pick,
-            ),
-            for (final category in library.categories) ...[
-              _SubLabel(
-                l10n == null
-                    ? category.name
-                    : soundCategoryLabel(l10n, category),
-              ),
-              _Chips<String>(
-                options: {
-                  for (final e in library.inCategory(category))
-                    SoundscapeSelection.sound(e.id).encode(): e.title,
-                },
-                selected: selected,
-                onSelected: pick,
-              ),
-            ],
-            if (selected != SoundscapeSelection.none.encode())
-              _SliderRow(
-                label: 'Volume',
-                value: mixer.sessionDefault(_soundscapeKind).volume,
-                format: _percent,
-                onChanged: (v) => ref
-                    .read(soundscapeProvider.notifier)
-                    .setSessionVolume(_soundscapeKind, v),
-              ),
-            // The mix itself (what "Current mix" plays) is made on the
-            // Sounds screen, full height over the sheet.
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: OutlinedButton.icon(
-                key: const ValueKey('customize_open_sounds'),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  shape: MeditejoShapes.stadium,
-                ),
-                onPressed: () => openSoundsPage(context),
-                icon: const Icon(Icons.graphic_eq_rounded),
-                label: Text(l10n?.soundsEditMix ?? 'Edit your mix in Sounds'),
-              ),
-            ),
-          ],
-        );
-      },
+    if (choice == null) return;
+    chooseScopeSound(
+      container,
+      scope,
+      choice,
+      courseOverride: courseOverride,
+      inSession: inSession,
     );
   }
 
@@ -1436,21 +1369,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   /// screen; null when nothing plays.
   Widget? _soundArt(CueSettings s) {
     final mixer = ref.watch(soundscapeProvider);
-    final choice = _soundscapeChoice(s, mixer);
-    final ArtSubject? subject = switch (choice.kind) {
-      SoundscapeSelectionKind.none => null,
-      SoundscapeSelectionKind.mix =>
-        mixer.mix.isEmpty
-            ? null
-            : ArtSubject.layers(MixArt.current, mixer.mix.layers),
-      SoundscapeSelectionKind.preset => () {
-        for (final p in mixer.presets) {
-          if (p.id == choice.id) return ArtSubject.layers(p.id, p.mix.layers);
-        }
-        return null;
-      }(),
-      SoundscapeSelectionKind.sound => ArtSubject.sound(choice.id),
-    };
+    final subject = soundChoiceArt(mixer, _soundscapeChoice(s, mixer));
     if (subject == null) return null;
     return ClipRRect(
       key: const ValueKey('customize_sound_art'),
@@ -1460,24 +1379,13 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   }
 
   String _backgroundValue(CueSettings s) {
-    final choice = _soundscapeChoice(s, ref.watch(soundscapeProvider));
-    switch (choice.kind) {
-      case SoundscapeSelectionKind.none:
-        return _l10n.customizeOff;
-      case SoundscapeSelectionKind.mix:
-        return _l10n.customizeCurrentMix;
-      case SoundscapeSelectionKind.preset:
-        final l10n = AppLocalizations.of(context);
-        for (final p in ref.read(soundscapeProvider).presets) {
-          if (p.id == choice.id) {
-            return l10n == null ? p.name : soundPresetLabel(l10n, p);
-          }
-        }
-        return 'Preset';
-      case SoundscapeSelectionKind.sound:
-        return ref.watch(soundLibraryProvider).value?[choice.id]?.title ??
-            'Sound';
-    }
+    final mixer = ref.watch(soundscapeProvider);
+    return soundChoiceLabel(
+      _l10n,
+      mixer,
+      ref.watch(soundLibraryProvider).value ?? SoundLibrary.empty,
+      _soundscapeChoice(s, mixer),
+    );
   }
 }
 
@@ -1731,11 +1639,15 @@ class _SlotTile extends StatelessWidget {
     this.detailView,
     required this.changed,
     required this.open,
+    this.opensDrawer = false,
     this.state,
     this.onTap,
   });
 
   final Widget leading;
+
+  /// Opens a drawer over the sheet rather than a section under its row.
+  final bool opensDrawer;
   final String label, value;
 
   /// The second line; [detailView], when given, shows it instead (this
@@ -1792,7 +1704,12 @@ class _SlotTile extends StatelessWidget {
                       child: Center(child: leading),
                     ),
                     const Spacer(),
-                    if (enabled)
+                    if (enabled && opensDrawer)
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: scheme.onSurfaceVariant,
+                      )
+                    else if (enabled)
                       AnimatedRotation(
                         turns: open ? 0.5 : 0,
                         duration: MediaQuery.of(context).disableAnimations
@@ -1837,7 +1754,7 @@ class _SlotTile extends StatelessWidget {
     );
     return Semantics(
       button: enabled,
-      expanded: enabled ? open : null,
+      expanded: enabled && !opensDrawer ? open : null,
       label: [label, value, ?detail, ?state].join(', '),
       excludeSemantics: true,
       onTap: onTap,
@@ -2234,22 +2151,6 @@ class _Caption extends StatelessWidget {
     child: Text(
       text,
       style: context.typography.baseline.bodyMedium?.copyWith(
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
-    ),
-  );
-}
-
-class _SubLabel extends StatelessWidget {
-  const _SubLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 12, bottom: 4, left: 4),
-    child: Text(
-      text,
-      style: context.typography.baseline.labelLarge?.copyWith(
         color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     ),
