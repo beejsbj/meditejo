@@ -660,33 +660,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get themeTitle => 'Erscheinungsbild';
 
   @override
-  String get appIconNearBlack => 'Dunkel';
-
-  @override
-  String get appIconDusk => 'Abenddämmerung';
-
-  @override
-  String get appIconPurple => 'Violett';
-
-  @override
-  String get appIconClassic => 'Klassisch';
-
-  @override
-  String get appIconBlush => 'Rosé';
-
-  @override
-  String get appIconOcean => 'Ozean';
-
-  @override
-  String get appIconForest => 'Wald';
-
-  @override
-  String get appIconPink => 'Gold';
-
-  @override
-  String get appIconChanged => 'App-Symbol aktualisiert. Neustart...';
-
-  @override
   String get systemTheme => 'System';
 
   @override

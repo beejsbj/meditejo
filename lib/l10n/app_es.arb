@@ -61,7 +61,7 @@
   "currentStreak": "Racha actual",
   "longestStreak": "Racha más larga",
   "consistencyScore": "Puntuación de Consistencia",
-  "totalTracksCompleted": "Total de Pistas Completadas",
+  "totalTracksCompleted": "Total de pistas completadas",
   "totalTimeListened": "Tiempo Total Escuchado",
   "days": "días",
   "day": "día",
@@ -168,7 +168,7 @@
   "onboardingBatteryOptimize": "Desactivar Optimización de Batería",
   "skipForNow": "Omitir por Ahora",
   "skip": "Omitir",
-  "notNow": "Ahora No",
+  "notNow": "Ahora no",
   "errorNoInternetMessage": "Sin conexión a internet",
   "errorTimeoutMessage": "Tiempo de conexión agotado",
   "errorNotFoundMessage": "Contenido no encontrado",
@@ -208,7 +208,7 @@
   "tracks": "Pistas",
   "packs": "Paquetes",
   "noResultsFound": "No se encontraron resultados para tu búsqueda",
-  "consistencyScoreInfoTitle": "Puntuación de Consistencia",
+  "consistencyScoreInfoTitle": "Puntuación de consistencia",
   "consistencyScoreInfoMessage": "Tu puntuación de consistencia refleja con qué regularidad has meditado desde que empezaste. Los días recientes pesan más, pero los días que faltaste antes siguen afectando ligeramente la puntuación. A diferencia de las rachas, no se reinicia cuando faltas un día.",
   "systemLanguage": "Sistema",
   "english": "English",
@@ -246,7 +246,7 @@
   "@darkTheme": {
     "description": "Dark theme option"
   },
-  "selectTheme": "Seleccionar Tema",
+  "selectTheme": "Seleccionar tema",
   "@selectTheme": {
     "description": "Dialog title for theme selection"
   },
@@ -609,15 +609,6 @@
   "@completedAt": {
     "description": "Etiqueta de prefijo para la hora de finalización de la meditación"
   },
-  "appIconNearBlack": "Casi negro",
-  "appIconDusk": "Crepúsculo",
-  "appIconPurple": "Morado",
-  "appIconClassic": "Clásico",
-  "appIconBlush": "Rubor",
-  "appIconOcean": "Océano",
-  "appIconForest": "Bosque",
-  "appIconPink": "Hora dorada",
-  "appIconChanged": "Icono actualizado. Reiniciando…",
   "play": "Reproducir",
   "pause": "Pausar",
   "skipBackward10Seconds": "Retroceder 10 segundos",

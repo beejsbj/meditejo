@@ -203,7 +203,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get consistencyScore => 'Consistency Score';
 
   @override
-  String get totalTracksCompleted => 'Total Tracks Completed';
+  String get totalTracksCompleted => 'Total tracks completed';
 
   @override
   String get totalTimeListened => 'Total Time Listened';
@@ -433,7 +433,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Meditejo can\'t send reminders because notifications are switched off for the app in your phone\'s settings. You can switch them back on there.';
 
   @override
-  String get openSettings => 'Open Settings';
+  String get openSettings => 'Open settings';
 
   @override
   String get turnOnInSettings => 'Turn On in Settings';
@@ -481,7 +481,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get skip => 'Skip';
 
   @override
-  String get notNow => 'Not Now';
+  String get notNow => 'Not now';
 
   @override
   String get errorNoInternetMessage => 'No internet connection';
@@ -592,7 +592,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noResultsFound => 'No results found for your search';
 
   @override
-  String get consistencyScoreInfoTitle => 'Consistency Score';
+  String get consistencyScoreInfoTitle => 'Consistency score';
 
   @override
   String get consistencyScoreInfoMessage =>
@@ -645,33 +645,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeTitle => 'Theme';
 
   @override
-  String get appIconNearBlack => 'Dark';
-
-  @override
-  String get appIconDusk => 'Dusk';
-
-  @override
-  String get appIconPurple => 'Purple';
-
-  @override
-  String get appIconClassic => 'Classic';
-
-  @override
-  String get appIconBlush => 'Blush';
-
-  @override
-  String get appIconOcean => 'Ocean';
-
-  @override
-  String get appIconForest => 'Forest';
-
-  @override
-  String get appIconPink => 'Golden';
-
-  @override
-  String get appIconChanged => 'Icon updated. Restarting…';
-
-  @override
   String get systemTheme => 'System';
 
   @override
@@ -684,7 +657,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get darkTheme => 'Dark';
 
   @override
-  String get selectTheme => 'Select Theme';
+  String get selectTheme => 'Select theme';
 
   @override
   String get dailyReminders => 'Daily Reminders';

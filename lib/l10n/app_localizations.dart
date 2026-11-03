@@ -463,7 +463,7 @@ abstract class AppLocalizations {
   /// No description provided for @totalTracksCompleted.
   ///
   /// In en, this message translates to:
-  /// **'Total Tracks Completed'**
+  /// **'Total tracks completed'**
   String get totalTracksCompleted;
 
   /// No description provided for @totalTimeListened.
@@ -847,7 +847,7 @@ abstract class AppLocalizations {
   /// Button that opens the phone's settings app on the Meditejo page
   ///
   /// In en, this message translates to:
-  /// **'Open Settings'**
+  /// **'Open settings'**
   String get openSettings;
 
   /// Call to action replacing 'Turn on Daily reminders' when notification permission is permanently denied
@@ -937,7 +937,7 @@ abstract class AppLocalizations {
   /// No description provided for @notNow.
   ///
   /// In en, this message translates to:
-  /// **'Not Now'**
+  /// **'Not now'**
   String get notNow;
 
   /// No description provided for @errorNoInternetMessage.
@@ -1141,7 +1141,7 @@ abstract class AppLocalizations {
   /// No description provided for @consistencyScoreInfoTitle.
   ///
   /// In en, this message translates to:
-  /// **'Consistency Score'**
+  /// **'Consistency score'**
   String get consistencyScoreInfoTitle;
 
   /// No description provided for @consistencyScoreInfoMessage.
@@ -1234,60 +1234,6 @@ abstract class AppLocalizations {
   /// **'Theme'**
   String get themeTitle;
 
-  /// Label for the near-black app icon option
-  ///
-  /// In en, this message translates to:
-  /// **'Dark'**
-  String get appIconNearBlack;
-
-  /// Label for the dusk gradient app icon option (now the default)
-  ///
-  /// In en, this message translates to:
-  /// **'Dusk'**
-  String get appIconDusk;
-
-  /// Label for the original purple app icon option
-  ///
-  /// In en, this message translates to:
-  /// **'Purple'**
-  String get appIconPurple;
-
-  /// Label for the classic app icon option (purple M on white)
-  ///
-  /// In en, this message translates to:
-  /// **'Classic'**
-  String get appIconClassic;
-
-  /// Label for the blush pink gradient app icon option
-  ///
-  /// In en, this message translates to:
-  /// **'Blush'**
-  String get appIconBlush;
-
-  /// Label for the ocean blue gradient app icon option
-  ///
-  /// In en, this message translates to:
-  /// **'Ocean'**
-  String get appIconOcean;
-
-  /// Label for the forest green gradient app icon option
-  ///
-  /// In en, this message translates to:
-  /// **'Forest'**
-  String get appIconForest;
-
-  /// Label for the pink-to-gold sunset gradient app icon option
-  ///
-  /// In en, this message translates to:
-  /// **'Golden'**
-  String get appIconPink;
-
-  /// Snackbar message shown on Android after changing the app icon
-  ///
-  /// In en, this message translates to:
-  /// **'Icon updated. Restarting…'**
-  String get appIconChanged;
-
   /// System theme option that follows device settings
   ///
   /// In en, this message translates to:
@@ -1315,7 +1261,7 @@ abstract class AppLocalizations {
   /// Dialog title for theme selection
   ///
   /// In en, this message translates to:
-  /// **'Select Theme'**
+  /// **'Select theme'**
   String get selectTheme;
 
   /// Label for the daily reminders opt-in card on the end screen

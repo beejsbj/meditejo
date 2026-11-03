@@ -186,13 +186,27 @@ void main() {
     expect(tile, findsOneWidget);
     expect(find.text('Check for updates automatically'), findsOneWidget);
     expect(container.read(autoUpdateCheckProvider), isTrue);
-    expect(tester.widget<SwitchListTile>(tile).value, isTrue);
+    expect(
+      tester
+          .widget<Switch>(
+            find.descendant(of: tile, matching: find.byType(Switch)),
+          )
+          .value,
+      isTrue,
+    );
 
-    await tester.tap(tile);
+    await tester.tap(find.descendant(of: tile, matching: find.byType(Switch)));
     await tester.pumpAndSettle();
 
     expect(container.read(autoUpdateCheckProvider), isFalse);
-    expect(tester.widget<SwitchListTile>(tile).value, isFalse);
+    expect(
+      tester
+          .widget<Switch>(
+            find.descendant(of: tile, matching: find.byType(Switch)),
+          )
+          .value,
+      isFalse,
+    );
     // The manual path stays.
     expect(
       find.widgetWithText(OutlinedButton, 'Check for updates'),

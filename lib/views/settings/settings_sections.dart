@@ -112,8 +112,8 @@ class SettingsSections extends ConsumerWidget {
           ),
           if (_isMobile) (last) => HealthSyncTile(hasUnderline: !last),
           (last) => RowItemWidget(
-            key: const ValueKey('settings_edit_stats'),
-            icon: MeditoIcon(assetName: MeditoIcons.graphUp, color: onSurface),
+            key: const ValueKey('settings_session_history'),
+            icon: MeditoIcon(assetName: MeditoIcons.calendar, color: onSurface),
             title: l10n.settingsSessionHistory,
             hasUnderline: !last,
             onTap: () => _push(context, const StatsScreen(initialTabIndex: 1)),

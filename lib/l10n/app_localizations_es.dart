@@ -204,7 +204,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get consistencyScore => 'Puntuación de Consistencia';
 
   @override
-  String get totalTracksCompleted => 'Total de Pistas Completadas';
+  String get totalTracksCompleted => 'Total de pistas completadas';
 
   @override
   String get totalTimeListened => 'Tiempo Total Escuchado';
@@ -487,7 +487,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get skip => 'Omitir';
 
   @override
-  String get notNow => 'Ahora No';
+  String get notNow => 'Ahora no';
 
   @override
   String get errorNoInternetMessage => 'Sin conexión a internet';
@@ -602,7 +602,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noResultsFound => 'No se encontraron resultados para tu búsqueda';
 
   @override
-  String get consistencyScoreInfoTitle => 'Puntuación de Consistencia';
+  String get consistencyScoreInfoTitle => 'Puntuación de consistencia';
 
   @override
   String get consistencyScoreInfoMessage =>
@@ -655,33 +655,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get themeTitle => 'Tema';
 
   @override
-  String get appIconNearBlack => 'Casi negro';
-
-  @override
-  String get appIconDusk => 'Crepúsculo';
-
-  @override
-  String get appIconPurple => 'Morado';
-
-  @override
-  String get appIconClassic => 'Clásico';
-
-  @override
-  String get appIconBlush => 'Rubor';
-
-  @override
-  String get appIconOcean => 'Océano';
-
-  @override
-  String get appIconForest => 'Bosque';
-
-  @override
-  String get appIconPink => 'Hora dorada';
-
-  @override
-  String get appIconChanged => 'Icono actualizado. Reiniciando…';
-
-  @override
   String get systemTheme => 'Sistema';
 
   @override
@@ -695,7 +668,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get darkTheme => 'Oscuro';
 
   @override
-  String get selectTheme => 'Seleccionar Tema';
+  String get selectTheme => 'Seleccionar tema';
 
   @override
   String get dailyReminders => 'Recordatorios Diarios';

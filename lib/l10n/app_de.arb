@@ -295,42 +295,6 @@
   "@themeTitle": {
     "description": "Title for theme selection setting in customization section"
   },
-  "appIconNearBlack": "Dunkel",
-  "@appIconNearBlack": {
-    "description": "Label for the near-black app icon option"
-  },
-  "appIconDusk": "Abenddämmerung",
-  "@appIconDusk": {
-    "description": "Label for the dusk gradient app icon option (now the default)"
-  },
-  "appIconPurple": "Violett",
-  "@appIconPurple": {
-    "description": "Label for the original purple app icon option"
-  },
-  "appIconClassic": "Klassisch",
-  "@appIconClassic": {
-    "description": "Label for the classic app icon option (purple M on white)"
-  },
-  "appIconBlush": "Rosé",
-  "@appIconBlush": {
-    "description": "Label for the blush pink gradient app icon option"
-  },
-  "appIconOcean": "Ozean",
-  "@appIconOcean": {
-    "description": "Label for the ocean blue gradient app icon option"
-  },
-  "appIconForest": "Wald",
-  "@appIconForest": {
-    "description": "Label for the forest green gradient app icon option"
-  },
-  "appIconPink": "Gold",
-  "@appIconPink": {
-    "description": "Label for the pink-to-gold sunset gradient app icon option"
-  },
-  "appIconChanged": "App-Symbol aktualisiert. Neustart...",
-  "@appIconChanged": {
-    "description": "Snackbar message shown on Android after changing the app icon"
-  },
   "systemTheme": "System",
   "@systemTheme": {
     "description": "System theme option that follows device settings"

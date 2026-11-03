@@ -117,18 +117,12 @@ class _UpdateSectionState extends ConsumerState<UpdateSection>
           ..add(const _Progress());
     }
 
-    if (!state.isBusy) {
-      children.add(
-        SwitchListTile.adaptive(
-          key: const ValueKey('settings_auto_update_check'),
-          contentPadding: EdgeInsets.zero,
-          title: Text(l10n.updateAutoCheck),
-          subtitle: Text(l10n.updateAutoCheckDescription),
-          value: ref.watch(autoUpdateCheckProvider),
-          onChanged: (v) => ref.read(autoUpdateCheckProvider.notifier).set(v),
-        ),
-      );
-    }
+    children.add(
+      _AutoCheckSwitch(
+        // Stays put while a check or download runs, so the card does not jump.
+        enabled: !state.isBusy,
+      ),
+    );
 
     final notes = release?.notes ?? '';
     if (release != null &&
@@ -216,6 +210,49 @@ class _UpdateSectionState extends ConsumerState<UpdateSection>
         UpdateFailure.notMeditejo => l10n.updateErrorNotMeditejo,
         UpdateFailure.installFailed => l10n.updateErrorInstall,
       };
+}
+
+/// "Check for updates automatically", beside the manual button. Styled like
+/// the section's own headline and caption, not a default list tile.
+class _AutoCheckSwitch extends ConsumerWidget {
+  const _AutoCheckSwitch({required this.enabled});
+
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: padding12),
+      child: MergeSemantics(
+        child: Row(
+          key: const ValueKey('settings_auto_update_check'),
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.updateAutoCheck,
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  _Caption(l10n.updateAutoCheckDescription),
+                ],
+              ),
+            ),
+            const SizedBox(width: padding16),
+            Switch.adaptive(
+              value: ref.watch(autoUpdateCheckProvider),
+              onChanged: enabled
+                  ? (v) => ref.read(autoUpdateCheckProvider.notifier).set(v)
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _Headline extends StatelessWidget {

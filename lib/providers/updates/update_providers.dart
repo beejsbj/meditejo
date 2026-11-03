@@ -186,8 +186,7 @@ class UpdateController extends Notifier<UpdateState> {
       final checkedAt = _now();
       await _store.setLastCheckedAt(checkedAt);
       if (!ref.mounted) return;
-      final newer =
-          release != null && release.isNewerThan(installed.versionCode);
+      final newer = release != null && release.isNewerThan(installed.versionCode);
       state = UpdateState(
         phase: newer ? UpdatePhase.available : UpdatePhase.upToDate,
         release: newer ? release : null,
@@ -273,10 +272,7 @@ class UpdateController extends Notifier<UpdateState> {
       switch (outcome) {
         case InstallSucceeded():
           await downloader.delete(release);
-          state = state.copyWith(
-            phase: UpdatePhase.upToDate,
-            clearRelease: true,
-          );
+          state = state.copyWith(phase: UpdatePhase.upToDate, clearRelease: true);
         case InstallCancelled():
           // Closing the prompt is a choice, not an error.
           state = state.copyWith(phase: UpdatePhase.available);
