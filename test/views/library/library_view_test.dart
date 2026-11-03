@@ -129,7 +129,21 @@ void main() {
       await app.pump(tester, const LibraryView(), asRoute: true);
 
       expect(find.text('Your library is empty'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('library_empty_add')));
+      // "Import", so it is not a second "Add to your library" beside the
+      // header's "+" (#62).
+      final emptyAdd = find.byKey(const ValueKey('library_empty_add'));
+      expect(
+        find.descendant(of: emptyAdd, matching: find.text('Import')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: emptyAdd,
+          matching: find.text('Add to your library'),
+        ),
+        findsNothing,
+      );
+      await tester.tap(emptyAdd);
       await settle(tester);
       expect(find.byType(ImportView), findsOneWidget);
     });

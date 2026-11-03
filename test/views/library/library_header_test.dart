@@ -119,4 +119,14 @@ void main() {
       _titleWhole(tester, 'Deine Bibliothek');
     });
   }
+
+  testWidgets('in German at 360 dp with 1.3x text, the title is whole', (
+    tester,
+  ) async {
+    await _pump(tester, width: 360, scale: 1.3, locale: const Locale('de'));
+    _titleWhole(tester, 'Deine Bibliothek');
+    expect(_add, findsOneWidget);
+    expect(find.byKey(const ValueKey('you_button')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

@@ -408,7 +408,9 @@ class _EmptyMessage extends ConsumerWidget {
                   key: addKey,
                   onPressed: () => openImport(context, ref),
                   icon: const Icon(Icons.add_rounded),
-                  label: Text(l10n.importTitle),
+                  // "Import", not the header "+"'s "Add to your library",
+                  // so a screen reader hears two different buttons (#62).
+                  label: Text(l10n.libraryAddImport),
                 ),
               ],
             ),

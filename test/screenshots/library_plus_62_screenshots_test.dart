@@ -206,7 +206,10 @@ void main() {
         expect(tester.takeException(), isNull);
         await _capture(tester, 'library-top-$tag');
 
-        // The "+" sheet, where there is one (after #62).
+        // The "+" sheet, where there is one (after #62). It opens above
+        // [_frame], so its text size comes from the platform.
+        tester.platformDispatcher.textScaleFactorTestValue = scale;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
         await _size(tester, dp, 800);
         await tester.tap(find.byKey(const ValueKey('library_add')));
         await tester.pump();
