@@ -48,7 +48,7 @@ class _PackViewBottomBarState extends ConsumerState<PackViewBottomBar> {
     final deepLink = 'meditejo://meditejo/packs/${widget.packId}';
     final shareText = AppLocalizations.of(
       context,
-    )!.sharePackText(widget.packName, deepLink);
+    )!.sharePackText(deepLink, widget.packName);
     SharePlus.instance.share(ShareParams(text: shareText));
   }
 
