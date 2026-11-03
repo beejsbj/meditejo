@@ -213,22 +213,31 @@ void _clear(BuildContext context, WidgetRef ref) {
   final controller = ref.read(soundscapeProvider.notifier);
   final before = ref.read(soundscapeProvider);
   controller.clearMix();
+  // A paused mix is loaded but not playing; Undo brings it back paused.
+  final wasPaused =
+      before.owner == SoundscapeOwner.standalone && !before.playing;
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
         content: Text(l10n.soundsMixCleared),
+        // An action keeps a SnackBar up until dismissed; Undo is for the
+        // moment after Clear, so let it time out.
+        persist: false,
         action: SnackBarAction(
           label: l10n.undo,
-          onPressed: () =>
-              controller.restoreMix(before.mix, play: before.playing),
+          onPressed: () => controller.restoreMix(
+            before.mix,
+            play: before.playing || wasPaused,
+            paused: wasPaused,
+          ),
         ),
       ),
     );
 }
 
 /// The open panel under the header: the mix's volume, its layers (each
-/// with volume, mute, drift, settings for a generated one, and remove) and
+/// with volume, mute, swell, settings for a generated one, and remove) and
 /// Save mix. Scrolls with [controller].
 class SoundsMixBody extends ConsumerWidget {
   const SoundsMixBody({super.key, this.controller, this.padding});

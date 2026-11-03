@@ -137,6 +137,54 @@ void main() {
     expect(container.read(soundscapeProvider).playing, isTrue);
   });
 
+  testWidgets('a late Undo keeps what was added after Clear', (tester) async {
+    phone(tester);
+    await pump(tester);
+    await openMix(tester);
+    final controller = container.read(soundscapeProvider.notifier);
+    await tester.tap(find.byKey(const ValueKey('sounds_clear')));
+    await tester.pumpAndSettle();
+    controller.toggleSound('river');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(mix().layers.map((l) => l.soundId), ['river']);
+  });
+
+  testWidgets('the snackbar times out; it does not wait for Undo', (
+    tester,
+  ) async {
+    phone(tester);
+    await pump(tester);
+    await openMix(tester);
+    await tester.tap(find.byKey(const ValueKey('sounds_clear')));
+    await tester.pump();
+    expect(find.text('Mix cleared'), findsOneWidget);
+    // The entrance, then the default window, then the exit.
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 30));
+    await tester.pumpAndSettle();
+    expect(find.text('Mix cleared'), findsNothing);
+  });
+
+  testWidgets('Clear and Undo also work in the always-open wide panel', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(1280, 900)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pump(tester);
+    expect(find.byKey(const ValueKey('sounds_mix_toggle')), findsNothing);
+    final before = mix();
+    await tester.tap(find.byKey(const ValueKey('sounds_clear')));
+    await tester.pumpAndSettle();
+    expect(mix().isEmpty, isTrue);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(mix().layers, before.layers);
+  });
+
   testWidgets('a layer says what Swell does, beside its chip', (tester) async {
     phone(tester);
     await pump(tester);
