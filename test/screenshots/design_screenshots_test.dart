@@ -31,6 +31,9 @@ import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/library/library_view.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:medito/views/timer/timer_view.dart';
+import 'package:medito/views/track/track_view.dart';
+import 'package:medito/models/track/track.dart';
+import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
@@ -97,6 +100,14 @@ Future<void> _loadFonts() async {
 }
 
 final _boundary = GlobalKey();
+
+class _FakeTracks extends Tracks {
+  _FakeTracks(this.track);
+  final Track track;
+
+  @override
+  Future<Track> build({required String trackId}) async => track;
+}
 
 /// Lets the generated art finish: its stills rasterise off the test's fake
 /// clock, then land on the next frame.
@@ -642,6 +653,42 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       expect(tester.takeException(), isNull);
       await _capture(tester, 'library-playlists-${brightness.name}');
+    }, skip: !_enabled);
+
+    // A track with one guide and one length: no pickers (#84).
+    testWidgets('Track page, one option, ${brightness.name}', (tester) async {
+      WidgetsApp.debugAllowBannerOverride = false;
+      addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
+      const track = Track(
+        id: 'ds-talk-1',
+        title: 'Wise Attention and the Practice of Loving-Kindness',
+        subtitle: 'Talk · Ajahn Sucitto · 42 min',
+        description: 'A talk given on retreat about steadying the mind.',
+        coverUrl: '',
+        isPublished: true,
+        hasBackgroundSound: false,
+        voices: [
+          TrackVoice(
+            guideName: 'Ajahn Sucitto',
+            audioFiles: [
+              TrackAudioFile(id: 'f1', path: 'f1.mp3', duration: 42 * 60000),
+            ],
+          ),
+        ],
+      );
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(
+        tester,
+        _frame(brightness, const TrackView(trackId: 'ds-talk-1')),
+        overrides: [
+          tracksProvider(
+            trackId: 'ds-talk-1',
+          ).overrideWith(() => _FakeTracks(track)),
+        ],
+      );
+      await _phone(tester);
+      expect(tester.takeException(), isNull);
+      await _captureView(tester, 'track-one-option-${brightness.name}');
     }, skip: !_enabled);
 
     testWidgets('Add to playlist sheet, ${brightness.name}', (tester) async {
