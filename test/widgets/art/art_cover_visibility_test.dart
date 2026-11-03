@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/widgets/art/art_cover.dart';
@@ -23,7 +24,7 @@ void main() {
               key: const ValueKey('row'),
               scrollDirection: Axis.horizontal,
               // Everything is built, so off-screen covers exist and could tick.
-              cacheExtent: 5000,
+              scrollCacheExtent: const ScrollCacheExtent.pixels(5000),
               children: [
                 for (var i = 0; i < 12; i++)
                   SizedBox(
