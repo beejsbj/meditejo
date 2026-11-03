@@ -9,6 +9,7 @@ import 'package:medito/services/library/lib_ids.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/utils/logger.dart';
+import 'package:medito/views/library/item_actions.dart';
 import 'package:medito/widgets/snackbar_widget.dart';
 
 /// Opens a library entry on its own page: a course, a single or a teacher.
@@ -235,3 +236,14 @@ Future<void> togglePinnedCourse(
     showSnackBar(context, l10n.pinnedLimitReached);
   }
 }
+
+/// Opens the one actions sheet for a library entry (its "⋮" and long-press).
+Future<void> showLibraryEntryActions(
+  BuildContext context,
+  WidgetRef ref,
+  LibraryEntry entry,
+) => showItemActions(
+  context,
+  ref,
+  ItemActionsSpec(id: entry.sourceId, title: entry.title, entry: entry),
+);

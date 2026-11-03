@@ -19,6 +19,7 @@ import 'package:medito/views/library/lib_course_settings.dart';
 import 'package:medito/views/library/library_actions.dart';
 import 'package:medito/services/home/next_session.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
+import 'package:medito/views/library/item_actions.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/pack/widgets/pack_item_widget.dart';
@@ -625,6 +626,10 @@ class _PackViewState extends ConsumerState<PackView>
     final row = Semantics(
       button: true,
       child: InkWell(
+        onLongPress: item.type == TypeConstants.track
+            // InkWell gives the long-press haptic itself.
+            ? () => showItemActions(context, ref, _actionsFor(item).spec)
+            : null,
         onTap: () => unavailable
             ? showSnackBar(
                 context,
@@ -657,11 +662,7 @@ class _PackViewState extends ConsumerState<PackView>
             child: Row(
               children: [
                 Expanded(child: row),
-                ContentActionsButton(
-                  id: item.id,
-                  fallback: MyItemDraft.fromPackItem(item),
-                  inCourse: widget.id,
-                ),
+                _actionsFor(item),
               ],
             ),
           )
@@ -676,6 +677,18 @@ class _PackViewState extends ConsumerState<PackView>
       ],
     );
   }
+
+  /// The session row's "⋮", and the spec its long-press opens too.
+  ContentActionsButton _actionsFor(PackItemsModel item) => ContentActionsButton(
+    id: item.id,
+    title: item.title,
+    fallback: MyItemDraft.fromPackItem(item),
+    inCourse: widget.id,
+    teacherId: item.teacherId,
+    isComplete: item.isCompleted ?? false,
+    onSetComplete: (complete) => _setComplete(item, complete),
+    playable: item.unavailable != true,
+  );
 
   Future<bool> _setComplete(PackItemsModel item, bool complete) {
     return ref

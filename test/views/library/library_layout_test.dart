@@ -400,10 +400,13 @@ void main() {
       await tester.tap(menu);
       await settle(tester);
       final items = {
-        for (final item in tester.widgetList<PopupMenuItem<Object?>>(
-          find.byWidgetPredicate((w) => w is PopupMenuItem),
+        for (final tile in tester.widgetList<ListTile>(
+          find.descendant(
+            of: find.byKey(const ValueKey('item_actions_sheet')),
+            matching: find.byType(ListTile),
+          ),
         ))
-          ((item.child as Text?)?.data ?? ''),
+          (tile.title! as Text).data!,
       };
       await tester.tapAt(Offset.zero);
       await settle(tester);
@@ -422,26 +425,33 @@ void main() {
         expect(find.byTooltip('New playlist'), findsOneWidget);
 
         expect(await menuOf(tester, 'ds-retreat-1'), {
+          'Play',
           'Add to playlist…',
           'Copy as playlist',
+          'Pin to Home',
+          'Share',
           'Move to Talks',
           'Rename',
           'Categories and labels',
-          'Pin to Home',
           'Remove from library',
         });
         expect(await menuOf(tester, 'my-course-0123456789abcdef'), {
+          'Play',
           'Edit playlist',
           'Add to playlist…',
           'Copy as playlist',
+          'Pin to Home',
           'Move to Talks',
           'Rename',
           'Categories and labels',
-          'Pin to Home',
           'Delete playlist',
         });
         expect(await menuOf(tester, 'ds-talk-2'), {
+          'Play',
           'Add to playlist…',
+          'Download audio',
+          'Mark as played',
+          'Share',
           'Move to Practice',
           'Rename',
           'Categories and labels',
