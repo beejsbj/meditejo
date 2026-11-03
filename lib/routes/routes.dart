@@ -16,6 +16,7 @@ import 'package:medito/views/stats/stats_screen.dart';
 import 'package:medito/views/teacher/teacher_view.dart';
 import 'package:medito/views/timer/timer_view.dart';
 import 'package:medito/views/track/track_view.dart';
+import 'package:medito/views/you/you_view.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 extension SanitisePath on String {
@@ -25,14 +26,14 @@ extension SanitisePath on String {
 final navigatorKey = GlobalKey<NavigatorState>();
 
 /// The tab a link such as `meditejo://library` opens; `search` is Explore with
-/// the cursor in its field, and `settings` is You, where Settings lives. Null
-/// for anything else.
+/// the cursor in its field. Null for anything else, `you` included: You is a
+/// page, not a tab.
 MainTab? tabForLink(String type) => switch (type) {
   TypeConstants.tabHome => MainTab.home,
   TypeConstants.tabExplore || TypeConstants.tabSearch => MainTab.explore,
   TypeConstants.tabSounds => MainTab.sounds,
   TypeConstants.tabLibrary => MainTab.library,
-  TypeConstants.tabYou || TypeConstants.tabSettings => MainTab.you,
+  TypeConstants.tabSettings => MainTab.settings,
   _ => null,
 };
 
@@ -77,7 +78,11 @@ Future<void> handleNavigation(
     return;
   }
   Widget? page;
-  if (type.contains('track') && values.isNotEmpty) {
+  if (type == TypeConstants.tabYou) {
+    // The old You tab's link: the You page, alone over the tabs.
+    navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    page = const YouView();
+  } else if (type.contains('track') && values.isNotEmpty) {
     if (values.first != kLegacyTimerTrackId && context.mounted) {
       final store = ref != null
           ? ref.read(libraryStoreProvider)

@@ -14,6 +14,7 @@ import 'package:medito/views/home/widgets/continue/continue_section.dart';
 import 'package:medito/views/home/widgets/pinned/pinned_section.dart';
 import 'package:medito/views/home/widgets/shortcuts/shortcuts_section.dart';
 import 'package:medito/views/home/widgets/update_notice.dart';
+import 'package:medito/views/you/you_button.dart';
 import 'package:medito/widgets/adaptive/adaptive_home_sections.dart';
 import 'package:medito/providers/identity/identity_providers.dart';
 import 'package:medito/widgets/branding/home_mark_sheet.dart';
@@ -62,19 +63,27 @@ class _HomeViewState extends ConsumerState<HomeView>
                         padding: const EdgeInsets.only(top: 28, bottom: 12),
                         child: Center(child: _HomeMark(animate: _markInView)),
                       ),
+                      // Where an app bar's actions sit on Library and
+                      // Settings, so the You button is in the same place.
                       Positioned(
-                        top: 4,
-                        right: 4,
-                        child: IconButton(
-                          key: const ValueKey('home_customize'),
-                          tooltip: l10n.homeCustomize,
-                          icon: const Icon(Icons.tune_rounded),
-                          onPressed: () => handleNavigation(
-                            TypeConstants.route,
-                            [TypeConstants.customiseHomeLayout],
-                            context,
-                            ref: ref,
-                          ),
+                        top: YouButton.inset,
+                        right: YouButton.inset,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              key: const ValueKey('home_customize'),
+                              tooltip: l10n.homeCustomize,
+                              icon: const Icon(Icons.tune_rounded),
+                              onPressed: () => handleNavigation(
+                                TypeConstants.route,
+                                [TypeConstants.customiseHomeLayout],
+                                context,
+                                ref: ref,
+                              ),
+                            ),
+                            const YouButton(),
+                          ],
                         ),
                       ),
                     ],

@@ -27,7 +27,7 @@ import 'package:medito/services/identity/mark_generator.dart';
 import 'package:medito/services/identity/palettes.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/views/home/home_view.dart';
-import 'package:medito/views/you/you_view.dart';
+import 'package:medito/views/settings/settings_screen.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
 
 import '../helpers/library_app.dart';
@@ -187,7 +187,7 @@ Future<void> _pumpYou(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             theme: meditejoTheme(brightness, p),
-            home: _frame(brightness, p, const YouView()),
+            home: _frame(brightness, p, const SettingsScreen()),
           );
         },
       ),
