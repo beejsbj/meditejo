@@ -339,14 +339,7 @@
   "custom": "Custom Amount",
   "impactCardHelpMessage": "Help millions worldwide access free meditation",
   "impactCardTestimonial": "\"Medito pulled me through a seriously dark period in my life\" - Medito meditator",
-  "favorites": "Favorites",
-  "noFavoriteTracksYet": "No favorite tracks yet",
-  "noFavoritePacksYet": "No favorite packs yet",
-  "noFavoritesYet": "No favorites yet",
-  "addItemsToFavoritesMessage": "Add items to your favorites to see them here",
-  "all": "All",
   "tracks": "Tracks",
-  "packs": "Packs",
   "noResultsFound": "No results found for your search",
   "consistencyScoreInfoTitle": "Consistency score",
   "consistencyScoreInfoMessage": "Your consistency score reflects how regularly you've meditated since you started. Recent days carry more weight, but earlier missed days still gently affect the score. Unlike streaks, it doesn't reset on a missed day.",
@@ -944,22 +937,6 @@
   "onboardingResultCta": "Get started",
   "@onboardingResultCta": {
     "description": "CTA button label on the onboarding result screen"
-  },
-  "addToFavorites": "Add to favorites",
-  "@addToFavorites": {
-    "description": "Accessibility label for the favorite button when the item is not yet favorited"
-  },
-  "addedToFavorites": "Added to Favorites",
-  "@addedToFavorites": {
-    "description": "Snackbar after the star button adds a pack or track to Favorites"
-  },
-  "removedFromFavorites": "Removed from Favorites",
-  "@removedFromFavorites": {
-    "description": "Snackbar after the star button removes a pack or track from Favorites"
-  },
-  "removeFromFavorites": "Remove from favorites",
-  "@removeFromFavorites": {
-    "description": "Accessibility label for the favorite button when the item is already favorited"
   },
   "openPack": "Open pack",
   "@openPack": {
@@ -2069,8 +2046,28 @@
   },
   "pinCourse": "Pin to Home",
   "unpinCourse": "Unpin from Home",
-  "pinnedLimitReached": "Home holds up to three pinned courses or playlists. Unpin one first.",
   "pinnedCourseAdded": "Pinned to Home",
+  "pinnedSeeAll": "See all {count}",
+  "@pinnedSeeAll": {
+    "description": "Home's Pinned section: opens the full list of pins when there are more than Home shows",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pinnedUnderSeeAll": "Pinned to Home, under See all",
+  "@pinnedUnderSeeAll": {
+    "description": "Snackbar after pinning a fourth or later item: Home shows the first three pins, the rest are under See all"
+  },
+  "pinnedEmpty": "Nothing pinned yet",
+  "@pinnedEmpty": {
+    "description": "Pinned list: title when nothing is pinned"
+  },
+  "pinnedEmptyHint": "Pin a course or a session from its page to keep it on Home.",
+  "@pinnedEmptyHint": {
+    "description": "Pinned list: how to pin something, under pinnedEmpty"
+  },
   "statsFeedbackNote": "These numbers are feedback, not a score.",
   "soundsYourMix": "Your mix",
   "@soundsYourMix": {

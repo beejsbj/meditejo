@@ -20,7 +20,7 @@ import 'package:path/path.dart' as p;
 /// The user's own imports as a [ContentSource]: a feed or a set of files is a
 /// course (a pack whose sessions are its episodes or files), and a URL or a
 /// file on its own is a single (a track). PackView, the player, downloads,
-/// favourites and completion work on these exactly as on any other source.
+/// pins and completion work on these exactly as on any other source.
 ///
 /// The library entry, not this source, says whether something is *kept*;
 /// this holds the content behind the entries. Adding to the library is saving

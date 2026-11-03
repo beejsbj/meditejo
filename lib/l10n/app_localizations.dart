@@ -1084,53 +1084,11 @@ abstract class AppLocalizations {
   /// **'\"Medito pulled me through a seriously dark period in my life\" - Medito meditator'**
   String get impactCardTestimonial;
 
-  /// No description provided for @favorites.
-  ///
-  /// In en, this message translates to:
-  /// **'Favorites'**
-  String get favorites;
-
-  /// No description provided for @noFavoriteTracksYet.
-  ///
-  /// In en, this message translates to:
-  /// **'No favorite tracks yet'**
-  String get noFavoriteTracksYet;
-
-  /// No description provided for @noFavoritePacksYet.
-  ///
-  /// In en, this message translates to:
-  /// **'No favorite packs yet'**
-  String get noFavoritePacksYet;
-
-  /// No description provided for @noFavoritesYet.
-  ///
-  /// In en, this message translates to:
-  /// **'No favorites yet'**
-  String get noFavoritesYet;
-
-  /// No description provided for @addItemsToFavoritesMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Add items to your favorites to see them here'**
-  String get addItemsToFavoritesMessage;
-
-  /// No description provided for @all.
-  ///
-  /// In en, this message translates to:
-  /// **'All'**
-  String get all;
-
   /// No description provided for @tracks.
   ///
   /// In en, this message translates to:
   /// **'Tracks'**
   String get tracks;
-
-  /// No description provided for @packs.
-  ///
-  /// In en, this message translates to:
-  /// **'Packs'**
-  String get packs;
 
   /// No description provided for @noResultsFound.
   ///
@@ -1995,30 +1953,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Get started'**
   String get onboardingResultCta;
-
-  /// Accessibility label for the favorite button when the item is not yet favorited
-  ///
-  /// In en, this message translates to:
-  /// **'Add to favorites'**
-  String get addToFavorites;
-
-  /// Snackbar after the star button adds a pack or track to Favorites
-  ///
-  /// In en, this message translates to:
-  /// **'Added to Favorites'**
-  String get addedToFavorites;
-
-  /// Snackbar after the star button removes a pack or track from Favorites
-  ///
-  /// In en, this message translates to:
-  /// **'Removed from Favorites'**
-  String get removedFromFavorites;
-
-  /// Accessibility label for the favorite button when the item is already favorited
-  ///
-  /// In en, this message translates to:
-  /// **'Remove from favorites'**
-  String get removeFromFavorites;
 
   /// Swipe action on the home Your Path card that opens the pack
   ///
@@ -3556,17 +3490,35 @@ abstract class AppLocalizations {
   /// **'Unpin from Home'**
   String get unpinCourse;
 
-  /// No description provided for @pinnedLimitReached.
-  ///
-  /// In en, this message translates to:
-  /// **'Home holds up to three pinned courses or playlists. Unpin one first.'**
-  String get pinnedLimitReached;
-
   /// No description provided for @pinnedCourseAdded.
   ///
   /// In en, this message translates to:
   /// **'Pinned to Home'**
   String get pinnedCourseAdded;
+
+  /// Home's Pinned section: opens the full list of pins when there are more than Home shows
+  ///
+  /// In en, this message translates to:
+  /// **'See all {count}'**
+  String pinnedSeeAll(int count);
+
+  /// Snackbar after pinning a fourth or later item: Home shows the first three pins, the rest are under See all
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned to Home, under See all'**
+  String get pinnedUnderSeeAll;
+
+  /// Pinned list: title when nothing is pinned
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing pinned yet'**
+  String get pinnedEmpty;
+
+  /// Pinned list: how to pin something, under pinnedEmpty
+  ///
+  /// In en, this message translates to:
+  /// **'Pin a course or a session from its page to keep it on Home.'**
+  String get pinnedEmptyHint;
 
   /// No description provided for @statsFeedbackNote.
   ///

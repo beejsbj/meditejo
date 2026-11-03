@@ -38,7 +38,14 @@ Future<List<ContinueItem>> _readContinue(
   ref.watch(libraryRevisionProvider);
   ref.watch(playbackPositionsRevisionProvider);
   final checked = {...?ref.watch(statsProvider).value?.tracksChecked};
-  final pinned = fallback ? ref.watch(pinnedCoursesProvider) : const <String>[];
+  // Only pinned courses have a next session; a pinned session is its own.
+  final pins = ref.read(pinnedCoursesProvider.notifier);
+  final pinned = fallback
+      ? [
+          for (final id in ref.watch(pinnedCoursesProvider))
+            if (!pins.isSession(id)) id,
+        ]
+      : const <String>[];
   // Only Home honours what the user removed from Continue.
   final dismissed = fallback
       ? ref.watch(continueDismissedProvider)

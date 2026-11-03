@@ -535,12 +535,26 @@ void main() {
       expect(items.single.group, LibraryGroup.talks);
     });
 
+    test(
+      'a pinned session is passed over for the next pinned course',
+      () async {
+        await addCourse('a');
+        await addCourse('b');
+        await prefs.setStringList('pinned_course_ids', ['x-a-1', 'x-course-b']);
+        await prefs.setStringList('pinned_session_ids', ['x-a-1']);
+
+        final items = await read(packs: [_course('a'), _course('b')]);
+
+        expect(items.single.trackId, 'x-b-1');
+      },
+    );
+
     test('an empty library has nothing to offer', () async {
       expect(await read(), isEmpty);
     });
 
     test('pins are only read from the pinned list', () {
-      expect(PinnedCoursesNotifier.maxPinned, 3);
+      expect(PinnedCoursesNotifier.homeLimit, 3);
     });
   });
 

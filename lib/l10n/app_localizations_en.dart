@@ -564,29 +564,7 @@ class AppLocalizationsEn extends AppLocalizations {
       '\"Medito pulled me through a seriously dark period in my life\" - Medito meditator';
 
   @override
-  String get favorites => 'Favorites';
-
-  @override
-  String get noFavoriteTracksYet => 'No favorite tracks yet';
-
-  @override
-  String get noFavoritePacksYet => 'No favorite packs yet';
-
-  @override
-  String get noFavoritesYet => 'No favorites yet';
-
-  @override
-  String get addItemsToFavoritesMessage =>
-      'Add items to your favorites to see them here';
-
-  @override
-  String get all => 'All';
-
-  @override
   String get tracks => 'Tracks';
-
-  @override
-  String get packs => 'Packs';
 
   @override
   String get noResultsFound => 'No results found for your search';
@@ -1069,18 +1047,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingResultCta => 'Get started';
-
-  @override
-  String get addToFavorites => 'Add to favorites';
-
-  @override
-  String get addedToFavorites => 'Added to Favorites';
-
-  @override
-  String get removedFromFavorites => 'Removed from Favorites';
-
-  @override
-  String get removeFromFavorites => 'Remove from favorites';
 
   @override
   String get openPack => 'Open pack';
@@ -2014,11 +1980,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unpinCourse => 'Unpin from Home';
 
   @override
-  String get pinnedLimitReached =>
-      'Home holds up to three pinned courses or playlists. Unpin one first.';
+  String get pinnedCourseAdded => 'Pinned to Home';
 
   @override
-  String get pinnedCourseAdded => 'Pinned to Home';
+  String pinnedSeeAll(int count) {
+    return 'See all $count';
+  }
+
+  @override
+  String get pinnedUnderSeeAll => 'Pinned to Home, under See all';
+
+  @override
+  String get pinnedEmpty => 'Nothing pinned yet';
+
+  @override
+  String get pinnedEmptyHint =>
+      'Pin a course or a session from its page to keep it on Home.';
 
   @override
   String get statsFeedbackNote => 'These numbers are feedback, not a score.';

@@ -412,7 +412,9 @@ void main() {
       expect(find.byType(TrackView), findsOneWidget);
     });
 
-    testWidgets('a course can be pinned to Home, up to three', (tester) async {
+    testWidgets('courses can be pinned; past three, See all has them', (
+      tester,
+    ) async {
       final app = await LibraryTestApp.create(tester);
       for (final n in ['a', 'b', 'c', 'd']) {
         await add(tester, app.harness.store, 'ds-retreat-$n', 'Course $n');
@@ -440,14 +442,41 @@ void main() {
       await pin('Course b');
       await pin('Course c');
       expect(container.read(pinnedCoursesProvider), hasLength(3));
+      expect(find.text('Pinned to Home'), findsOneWidget);
       await pin('Course d');
-      expect(container.read(pinnedCoursesProvider), hasLength(3));
-      expect(
-        find.text(
-          'Home holds up to three pinned courses or playlists. Unpin one first.',
-        ),
-        findsOneWidget,
+      expect(container.read(pinnedCoursesProvider), [
+        'ds-retreat-a',
+        'ds-retreat-b',
+        'ds-retreat-c',
+        'ds-retreat-d',
+      ]);
+      expect(find.text('Pinned to Home, under See all'), findsOneWidget);
+    });
+
+    testWidgets('a single session is pinned as a session', (tester) async {
+      final app = await LibraryTestApp.create(tester);
+      await add(
+        tester,
+        app.harness.store,
+        'ds-talk-9',
+        'Metta',
+        kind: LibraryKind.single,
       );
+      await app.pump(tester, const LibraryView());
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(LibraryView)),
+      );
+      await tester.tap(find.byTooltip('Show menu').first);
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('library_menu_pin')));
+      await settle(tester);
+      expect(container.read(pinnedCoursesProvider), ['ds-talk-9']);
+      expect(
+        container.read(pinnedCoursesProvider.notifier).isSession('ds-talk-9'),
+        isTrue,
+      );
+      // The row shows it is pinned.
+      expect(find.bySemanticsLabel('Pinned to Home'), findsOneWidget);
     });
   });
 }

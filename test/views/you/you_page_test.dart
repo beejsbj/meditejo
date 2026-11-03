@@ -14,10 +14,14 @@ import 'package:medito/views/library/library_view.dart';
 import 'package:medito/views/settings/settings_screen.dart';
 import 'package:medito/views/stats/stats_screen.dart';
 import 'package:medito/views/you/you_view.dart';
+import 'package:medito/views/home/widgets/pinned/pinned_list_view.dart';
+import 'package:medito/models/track/track.dart';
+import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/dharma_seed_app.dart';
 import '../../helpers/library_app.dart';
+import '../../helpers/no_hearts.dart';
 import '../../helpers/stats_fixtures.dart';
 
 final _youButton = find.byKey(const ValueKey('you_button'));
@@ -47,6 +51,19 @@ Future<void> _pumpTab(WidgetTester tester, Widget page) async {
   );
 }
 
+class _Talk extends Tracks {
+  @override
+  Future<Track> build({required String trackId}) async => Track(
+    id: trackId,
+    title: 'Metta',
+    description: '',
+    coverUrl: '',
+    isPublished: true,
+    hasBackgroundSound: false,
+    voices: const [],
+  );
+}
+
 class _Stats extends StatsNotifier {
   _Stats(this.stats);
   final LocalAllStats stats;
@@ -55,9 +72,14 @@ class _Stats extends StatsNotifier {
 }
 
 /// The You page on the fixed stats history.
-Future<void> _pumpYou(WidgetTester tester, {bool zen = false}) async {
+Future<void> _pumpYou(
+  WidgetTester tester, {
+  bool zen = false,
+  Map<String, Object> pins = const {},
+}) async {
   SharedPreferences.setMockInitialValues({
     if (zen) SharedPreferenceConstants.zenModeEnabled: true,
+    ...pins,
   });
   final prefs = await SharedPreferences.getInstance();
   tester.view.devicePixelRatio = 1;
@@ -69,6 +91,7 @@ Future<void> _pumpYou(WidgetTester tester, {bool zen = false}) async {
         sharedPreferencesProvider.overrideWithValue(prefs),
         statsProvider.overrideWith(() => _Stats(fixtureStats())),
         practiceClockProvider.overrideWithValue(() => fixtureNow),
+        tracksProvider(trackId: 'ds-talk-1').overrideWith(_Talk.new),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -134,16 +157,15 @@ void main() {
       }
       expect(find.byKey(const ValueKey('you_stats_card')), findsNothing);
       expect(find.text('Session history'), findsNothing);
-      expect(find.text('Favorites'), findsNothing);
+      expect(find.byKey(const ValueKey('you_pinned')), findsNothing);
+      expectNoHearts();
       // At the top of the tabs there is nothing to go back to.
       expect(find.byType(BackButton), findsNothing);
     });
   });
 
   group('the You page', () {
-    testWidgets('shows the stats summary, history and favourites', (
-      tester,
-    ) async {
+    testWidgets('shows the stats summary, history and pins', (tester) async {
       await _pumpYou(tester);
       expect(find.text('You'), findsOneWidget);
       expect(
@@ -155,7 +177,16 @@ void main() {
       );
       expect(find.text('Your practice'), findsOneWidget);
       expect(find.text('Session history'), findsOneWidget);
-      expect(find.text('Favorites'), findsOneWidget);
+      expect(find.text('Pinned'), findsOneWidget);
+      // Pins, with a pin: nothing is a favourite any more (#79).
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('you_pinned')),
+          matching: find.byIcon(Icons.push_pin_outlined),
+        ),
+        findsOneWidget,
+      );
+      expectNoHearts();
       // No settings on it.
       expect(find.byKey(const ValueKey('settings_practice')), findsNothing);
       expect(find.text('Check for updates'), findsNothing);
@@ -182,6 +213,20 @@ void main() {
         tester.widget<StatsScreen>(find.byType(StatsScreen)).initialTabIndex,
         1,
       );
+    });
+
+    testWidgets('Pinned opens the full list of pins', (tester) async {
+      await _pumpYou(
+        tester,
+        pins: {
+          SharedPreferenceConstants.pinnedCourseIds: ['ds-talk-1'],
+          SharedPreferenceConstants.pinnedSessionIds: ['ds-talk-1'],
+        },
+      );
+      await tester.tap(find.byKey(const ValueKey('you_pinned')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PinnedListView), findsOneWidget);
+      expect(find.byKey(const ValueKey('pinned_ds-talk-1')), findsOneWidget);
     });
 
     testWidgets('Zen mode hides the stats but keeps history', (tester) async {

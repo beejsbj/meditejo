@@ -7,6 +7,11 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:medito/services/home/favourites_migration.dart';
+import 'package:medito/views/home/widgets/pinned/pinned_list_view.dart';
+import 'package:medito/views/pack/pack_view.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -109,6 +114,100 @@ class _FakeTracks extends Tracks {
   @override
   Future<Track> build({required String trackId}) async => track;
 }
+
+/// Courses and sessions to pin, with real titles and counts (#79).
+final _pinPacks = [
+  for (final (id, title, total, done) in [
+    ('ds-retreat-4496', 'Practising the Jhānas', 32, 11),
+    ('yt-playlist-vervaeke', 'Meditating with John Vervaeke', 18, 4),
+    ('lib-course-c', 'The Art of Concentration', 9, 3),
+  ])
+    PackModel(
+      id: id,
+      title: title,
+      subtitle: 'Leigh Brasington',
+      items: [
+        for (var i = 0; i < total; i++)
+          PackItemsModel(
+            type: 'track',
+            id: '$id-$i',
+            title: 'Session ${i + 1}',
+            path: '/tracks/$id-$i',
+            kind: i.isEven ? 'Meditation' : 'Talk',
+            isCompleted: i < done,
+          ),
+      ],
+    ),
+];
+
+const _pinTracks = [
+  Track(
+    id: 'ds-talk-77',
+    title: 'Wise Attention and the Practice of Loving-Kindness',
+    subtitle: 'Talk · Ajahn Sucitto · 42 min',
+    description: '',
+    coverUrl: '',
+    isPublished: true,
+    hasBackgroundSound: false,
+    voices: [],
+  ),
+  Track(
+    id: 'yt-video-1',
+    title: 'Meditating with John Vervaeke: Day 1 - Mindfulness',
+    subtitle: 'John Vervaeke · 44 min',
+    description: '',
+    coverUrl: '',
+    isPublished: true,
+    hasBackgroundSound: false,
+    voices: [],
+  ),
+];
+
+/// What a user who favourited before #79 has saved: the third course, both
+/// sessions, and a course they had pinned as well.
+final _pinFavouritesJson = jsonEncode([
+  {
+    'id': _pinPacks[2].id,
+    'title': _pinPacks[2].title,
+    'type': 'pack',
+    'timestamp': 1000,
+  },
+  {
+    'id': _pinTracks[0].id,
+    'title': _pinTracks[0].title,
+    'subtitle': _pinTracks[0].subtitle,
+    'type': 'track',
+    'timestamp': 2000,
+  },
+  {
+    'id': _pinPacks[1].id,
+    'title': _pinPacks[1].title,
+    'type': 'pack',
+    'timestamp': 3000,
+  },
+  {
+    'id': _pinTracks[1].id,
+    'title': _pinTracks[1].title,
+    'subtitle': _pinTracks[1].subtitle,
+    'type': 'track',
+    'timestamp': 4000,
+  },
+]);
+
+class _PackOf extends Pack {
+  _PackOf(this.pack);
+  final PackModel pack;
+  @override
+  AsyncValue<PackModel> build({required String packId}) => AsyncData(pack);
+}
+
+List<Override> get _pinOverrides => [
+  continueItemsProvider.overrideWith((ref) async => _items),
+  for (final p in _pinPacks)
+    packProvider(packId: p.id).overrideWith(() => _PackOf(p)),
+  for (final t in _pinTracks)
+    tracksProvider(trackId: t.id).overrideWith(() => _FakeTracks(t)),
+];
 
 /// Lets the generated art finish: its stills rasterise off the test's fake
 /// clock, then land on the next frame.
@@ -466,6 +565,63 @@ void main() {
       tester.view.physicalSize = const Size(1080, 3150);
       await tester.pump(const Duration(seconds: 1));
       await _capture(tester, 'home-full-${brightness.name}');
+    }, skip: !_enabled);
+
+    // Two pinned courses and four favourites from before #79, one of them a
+    // pinned course too: moved into pins, Home shows three and See all.
+    testWidgets('Pinned and favourites, ${brightness.name}', (tester) async {
+      final app = await LibraryTestApp.create(tester);
+      await app.prefs.setStringList('pinned_course_ids', [
+        _pinPacks[0].id,
+        _pinPacks[1].id,
+      ]);
+      await app.prefs.setString('favorites', _pinFavouritesJson);
+      await migrateFavouritesToPins(app.prefs);
+      await app.pump(
+        tester,
+        _frame(
+          brightness,
+          Scaffold(
+            body: const HomeView(),
+            bottomNavigationBar: MeditoNavBar(
+              items: nav,
+              selectedIndex: 0,
+              onSelected: (_) {},
+            ),
+          ),
+        ),
+        overrides: _pinOverrides,
+      );
+      await _phone(tester);
+      tester.view.physicalSize = const Size(1080, 3150);
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+      await _capture(tester, 'pinned-home-${brightness.name}');
+      await app.pump(
+        tester,
+        _frame(brightness, const PinnedListView()),
+        overrides: _pinOverrides,
+      );
+      await _phone(tester);
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+      await _capture(tester, 'pinned-list-${brightness.name}');
+    }, skip: !_enabled);
+
+    // A course page: its Pin control and its bottom bar (#79).
+    testWidgets('Course page pin, ${brightness.name}', (tester) async {
+      WidgetsApp.debugAllowBannerOverride = false;
+      addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(
+        tester,
+        _frame(brightness, PackView(id: _pinPacks[0].id)),
+        overrides: _pinOverrides,
+      );
+      await _phone(tester);
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+      await _captureView(tester, 'course-page-${brightness.name}');
     }, skip: !_enabled);
 
     testWidgets('Home menus, ${brightness.name}', (tester) async {

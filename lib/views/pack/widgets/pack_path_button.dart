@@ -16,8 +16,8 @@ import 'package:medito/views/player/start_session.dart';
 /// a second [PackPlayButton] under the app bar and hides this one via
 /// [hideButton].
 ///
-/// Packs that contain sub-packs and the favourites pseudo-pack get the plain
-/// surface: Home walks a flat list of tracks.
+/// Packs that contain sub-packs get the plain surface: Home walks a flat list
+/// of tracks.
 class PackPathButton extends StatelessWidget {
   const PackPathButton({
     super.key,
@@ -49,9 +49,7 @@ class PackPathButton extends StatelessWidget {
   /// Whether [pack] gets a play button at all.
   static bool isPlayable(PackModel pack) {
     final tracks = pack.items.where((i) => i.type == TypeConstants.track);
-    return pack.playableTracks.isNotEmpty &&
-        tracks.length == pack.items.length &&
-        pack.id != PackPlayButton._favoritesPackId;
+    return pack.playableTracks.isNotEmpty && tracks.length == pack.items.length;
   }
 
   @override
@@ -139,8 +137,6 @@ class PackPlayButton extends ConsumerStatefulWidget {
 
   final PackModel pack;
   final StartSessionFn onStartSession;
-
-  static const _favoritesPackId = 'favorites';
 
   @override
   ConsumerState<PackPlayButton> createState() => _PackPlayButtonState();

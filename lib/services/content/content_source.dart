@@ -8,12 +8,12 @@ import 'package:medito/services/local_catalogue.dart';
 ///
 /// A source owns every ID that starts with [prefix] (`ds-`, `lib-`, `yt-`)
 /// and maps its own records into [PackModel] (a course), [Track] (a single
-/// session) and search rows, so PackView, the player, downloads, favourites
+/// session) and search rows, so PackView, the player, downloads, pins
 /// and completion work without knowing where content came from.
 ///
 /// Rules for implementers:
 /// - IDs are stable for the life of the content. They are stored in stats,
-///   favourites, downloads and the native completion queue.
+///   pins, downloads and the native completion queue.
 /// - Pack items are tracks in play order, `type: 'track'`, with
 ///   `path: '/tracks/<id>'`.
 /// - [track] returns one voice holding one audio file whose `path` is the URL

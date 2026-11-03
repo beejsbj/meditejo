@@ -46,7 +46,7 @@ CardProgress? libraryProgress(
   return CardProgress.of(p.done, p.total, l10n.upNextProgress(p.done, p.total));
 }
 
-/// A mark on a course pinned to Home.
+/// A mark on a course or session pinned to Home.
 class _PinMark extends StatelessWidget {
   const _PinMark({this.disc = false});
 
@@ -131,7 +131,11 @@ class LibraryEntryTile extends ConsumerWidget {
               .watch(downloadedTrackIdsProvider)
               .contains(entry.sourceId),
           onTap: open,
-          trailing: [menu],
+          trailing: [
+            if (ref.watch(pinnedCoursesProvider).contains(entry.sourceId))
+              const _PinMark(),
+            menu,
+          ],
         );
       case LibraryKind.teacher:
         return TeacherRow(
@@ -317,7 +321,12 @@ class LibraryEntryMenu extends ConsumerWidget {
           id: entry.sourceId,
           title: entry.title,
         ),
-        _Action.pin => togglePinnedCourse(context, ref, entry.sourceId),
+        _Action.pin => togglePin(
+          context,
+          ref,
+          entry.sourceId,
+          session: entry.kind == LibraryKind.single,
+        ),
         _Action.remove => removeFromLibrary(context, ref, entry),
       },
       itemBuilder: (context) => [
@@ -357,7 +366,7 @@ class LibraryEntryMenu extends ConsumerWidget {
             value: _Action.labels,
             child: Text(l10n.libraryMenuLabels),
           ),
-        if (entry.isCourse)
+        if (!isTeacher)
           PopupMenuItem(
             key: const ValueKey('library_menu_pin'),
             value: _Action.pin,

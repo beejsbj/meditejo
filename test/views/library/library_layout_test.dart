@@ -445,6 +445,7 @@ void main() {
           'Move to Practice',
           'Rename',
           'Categories and labels',
+          'Pin to Home',
           'Remove from library',
         });
         expect(await menuOf(tester, 'ds-teacher-210'), {'Remove from library'});

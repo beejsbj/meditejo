@@ -5,6 +5,7 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/routes/routes.dart';
+import 'package:medito/scaffold_messenger_key.dart';
 import 'package:medito/services/library/lib_ids.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
@@ -218,20 +219,39 @@ class _RenameDialogState extends State<_RenameDialog> {
   }
 }
 
-/// Pins a course to Home, or takes it off. Home holds three: a fourth says so
-/// instead of silently replacing one.
-Future<void> togglePinnedCourse(
+/// Pins a course, playlist or ([session]) single session to Home, or takes
+/// it off. Home shows the first three pins; a later one says it is under
+/// "See all".
+Future<void> togglePin(
   BuildContext context,
   WidgetRef ref,
-  String courseId,
-) async {
+  String id, {
+  bool session = false,
+}) async {
   final l10n = AppLocalizations.of(context)!;
   final pins = ref.read(pinnedCoursesProvider.notifier);
-  if (pins.isPinned(courseId)) {
-    await pins.unpin(courseId);
-  } else if (await pins.pin(courseId)) {
-    if (context.mounted) showSnackBar(context, l10n.pinnedCourseAdded);
-  } else if (context.mounted) {
-    showSnackBar(context, l10n.pinnedLimitReached);
+  // Replace rather than queue, so a quick re-tap reads the end state.
+  scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
+  if (pins.isPinned(id)) {
+    final before = ref.read(pinnedCoursesProvider);
+    final wasSession = pins.isSession(id);
+    await pins.unpin(id);
+    if (!context.mounted) return;
+    showSnackBar(
+      context,
+      l10n.homeUnpinned,
+      actionLabel: l10n.undo,
+      onActionPressed: () => pins.pinBack(id, before, session: wasSession),
+    );
+    return;
   }
+  await pins.pin(id, session: session);
+  if (!context.mounted) return;
+  final onHome =
+      ref.read(pinnedCoursesProvider).indexOf(id) <
+      PinnedCoursesNotifier.homeLimit;
+  showSnackBar(
+    context,
+    onHome ? l10n.pinnedCourseAdded : l10n.pinnedUnderSeeAll,
+  );
 }

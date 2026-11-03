@@ -8,7 +8,7 @@ import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/downloads/downloads_view.dart';
-import 'package:medito/views/favorites/favorites_view.dart';
+import 'package:medito/views/home/widgets/pinned/pinned_list_view.dart';
 import 'package:medito/views/home/customise_home_layout_screen.dart';
 import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/settings/settings_screen.dart';
@@ -105,8 +105,9 @@ Future<void> handleNavigation(
         ? 1
         : 0;
     if (index >= values.length) return;
+    // Medito's favourites "pack" is now the list of pins (#79).
     page = values[index] == 'favorites'
-        ? const FavoritesView()
+        ? const PinnedListView()
         : PackView(id: values[index]);
   } else if (type == TypeConstants.url || type == TypeConstants.link) {
     if (values.isEmpty) return;

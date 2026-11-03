@@ -574,29 +574,7 @@ class AppLocalizationsEs extends AppLocalizations {
       '\"Medito me ayudó a superar un período realmente oscuro en mi vida\" - Meditador de Medito';
 
   @override
-  String get favorites => 'Favoritos';
-
-  @override
-  String get noFavoriteTracksYet => 'Aún no hay pistas favoritas';
-
-  @override
-  String get noFavoritePacksYet => 'Aún no hay paquetes favoritos';
-
-  @override
-  String get noFavoritesYet => 'Aún no hay favoritos';
-
-  @override
-  String get addItemsToFavoritesMessage =>
-      'Agrega elementos a tus favoritos para verlos aquí';
-
-  @override
-  String get all => 'Todos';
-
-  @override
   String get tracks => 'Pistas';
-
-  @override
-  String get packs => 'Paquetes';
 
   @override
   String get noResultsFound => 'No se encontraron resultados para tu búsqueda';
@@ -1083,18 +1061,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get onboardingResultCta => 'Empezar';
-
-  @override
-  String get addToFavorites => 'Agregar a favoritos';
-
-  @override
-  String get addedToFavorites => 'Añadido a Favoritos';
-
-  @override
-  String get removedFromFavorites => 'Quitado de Favoritos';
-
-  @override
-  String get removeFromFavorites => 'Quitar de favoritos';
 
   @override
   String get openPack => 'Abrir paquete';
@@ -2054,11 +2020,22 @@ class AppLocalizationsEs extends AppLocalizations {
   String get unpinCourse => 'Quitar de Inicio';
 
   @override
-  String get pinnedLimitReached =>
-      'Inicio admite hasta tres cursos o listas fijados. Quita uno primero.';
+  String get pinnedCourseAdded => 'Fijado en Inicio';
 
   @override
-  String get pinnedCourseAdded => 'Fijado en Inicio';
+  String pinnedSeeAll(int count) {
+    return 'Ver los $count';
+  }
+
+  @override
+  String get pinnedUnderSeeAll => 'Fijado en Inicio, en Ver todo';
+
+  @override
+  String get pinnedEmpty => 'Aún no hay nada fijado';
+
+  @override
+  String get pinnedEmptyHint =>
+      'Fija un curso o una sesión desde su página para tenerlo en Inicio.';
 
   @override
   String get statsFeedbackNote =>
