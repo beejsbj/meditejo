@@ -1,0 +1,3 @@
+tags:
+  golden:
+    description: Pixel goldens rendered on Linux; run with `-t golden`, skip with `-x golden`.
