@@ -2753,6 +2753,26 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get homeOpenCourse => 'Open course';
+
+  @override
+  String get homeRestart => 'Restart';
+
+  @override
+  String get homeRemoveFromContinue => 'Remove from Continue';
+
+  @override
+  String get homeUnpinned => 'Unpinned from Home';
+
+  @override
+  String get homeRemovedFromContinue => 'Removed from Continue';
+
+  @override
+  String homeCardMenu(String title) {
+    return 'More options for $title';
+  }
+
+  @override
   String get settingsSessionHistory => 'Session history';
 
   @override

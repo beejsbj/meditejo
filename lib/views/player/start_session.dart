@@ -36,6 +36,11 @@ Future<void> startSession(
   required String trackId,
   required String path,
   String? courseId,
+
+  /// Play from the beginning: the saved place is forgotten right before the
+  /// player is prepared, after the last wait, so a session that never starts
+  /// (offline) keeps it.
+  bool fromStart = false,
 }) async {
   await noteSessionOrigin(ref.read(libraryStoreProvider), trackId, courseId);
   if (!context.mounted) return;
@@ -60,6 +65,7 @@ Future<void> startSession(
         context,
         ref: ref,
         courseId: courseId,
+        fromStart: fromStart,
       );
       return;
     }
@@ -70,17 +76,27 @@ Future<void> startSession(
             guideName: guideName,
             durationMs: preferredDuration,
           );
-    final request = await withResumePosition(
-      ref,
-      PlaybackRequest.fromTrack(track, selection.voice, selection.file),
+    var request = PlaybackRequest.fromTrack(
+      track,
+      selection.voice,
+      selection.file,
     );
     if (!context.mounted) return;
+    final player = ref.read(playerProvider.notifier);
+    final navigator = Navigator.of(context);
+    if (fromStart) {
+      // Forgetting the place may rebuild the list this was started from and
+      // unmount its card, so nothing below reads the context or ref.
+      await ref.read(libraryStoreProvider).clearPosition(trackId);
+    } else {
+      request = await withResumePosition(ref, request);
+      if (!context.mounted) return;
+    }
     // Prepare + open the player immediately; PlayerView starts playback and
     // shows its own loading state. Callers' spinners cover only the fetch.
-    ref.read(playerProvider.notifier).prepare(request);
+    player.prepare(request);
     unawaited(
-      Navigator.push(
-        context,
+      navigator.push(
         MaterialPageRoute(builder: (context) => const PlayerView()),
       ),
     );

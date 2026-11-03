@@ -2798,6 +2798,26 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get homeOpenCourse => 'Kurs öffnen';
+
+  @override
+  String get homeRestart => 'Neu starten';
+
+  @override
+  String get homeRemoveFromContinue => 'Aus „Weitermachen“ entfernen';
+
+  @override
+  String get homeUnpinned => 'Von Start gelöst';
+
+  @override
+  String get homeRemovedFromContinue => 'Aus „Weitermachen“ entfernt';
+
+  @override
+  String homeCardMenu(String title) {
+    return 'Weitere Optionen für $title';
+  }
+
+  @override
   String get settingsSessionHistory => 'Verlauf der Sitzungen';
 
   @override

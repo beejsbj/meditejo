@@ -562,6 +562,38 @@ void main() {
       await _capture(tester, 'home-full-${brightness.name}');
     }, skip: !_enabled);
 
+    testWidgets('Home menus, ${brightness.name}', (tester) async {
+      final app = await LibraryTestApp.create(tester);
+      await app.prefs.setStringList('pinned_course_ids', [_pack.id]);
+      await app.pump(
+        tester,
+        _frame(brightness, const Scaffold(body: HomeView())),
+        overrides: [
+          continueItemsProvider.overrideWith((ref) async => _items),
+          packProvider(packId: _pack.id).overrideWith(_FakePack.new),
+        ],
+      );
+      await _phone(tester);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.longPress(find.byKey(const ValueKey('continue_t1')));
+      await tester.pumpAndSettle();
+      await _captureView(tester, 'home-menu-continue-${brightness.name}');
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+      final pinned = find.byKey(ValueKey('pinned_${_pack.id}'));
+      await tester.ensureVisible(pinned);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: pinned,
+          matching: find.byTooltip('More options for ${_pack.title}'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _captureView(tester, 'home-menu-pinned-${brightness.name}');
+      expect(tester.takeException(), isNull);
+    }, skip: !_enabled);
+
     testWidgets('five tabs, ${brightness.name}', (tester) async {
       await tester.pumpWidget(
         MaterialApp(

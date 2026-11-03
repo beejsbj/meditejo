@@ -2797,6 +2797,26 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get homeOpenCourse => 'Abrir curso';
+
+  @override
+  String get homeRestart => 'Reiniciar';
+
+  @override
+  String get homeRemoveFromContinue => 'Quitar de Continuar';
+
+  @override
+  String get homeUnpinned => 'Desfijado de Inicio';
+
+  @override
+  String get homeRemovedFromContinue => 'Quitado de Continuar';
+
+  @override
+  String homeCardMenu(String title) {
+    return 'Más opciones para $title';
+  }
+
+  @override
   String get settingsSessionHistory => 'Historial de sesiones';
 
   @override
