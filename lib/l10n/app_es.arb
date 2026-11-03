@@ -1135,5 +1135,10 @@
   "labelsCustomHeading": "Tus etiquetas",
   "labelsAddHint": "Añadir una etiqueta",
   "labelsAddButton": "Añadir",
-  "labelsRemoveTooltip": "Quitar la etiqueta {label}"
+  "labelsRemoveTooltip": "Quitar la etiqueta {label}",
+  "homeOpenCourse": "Abrir curso",
+  "homeRestart": "Reiniciar",
+  "homeRemoveFromContinue": "Quitar de Continuar",
+  "homeUnpinned": "Desfijado de Inicio",
+  "homeCardMenu": "Más opciones"
 }

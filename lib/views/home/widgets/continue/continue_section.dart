@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/constants/constants.dart';
+import 'package:medito/providers/home/continue_dismissed_provider.dart';
 import 'package:medito/providers/home/continue_provider.dart';
+import 'package:medito/providers/library/library_providers.dart';
+import 'package:medito/routes/routes.dart';
 import 'package:medito/services/home/continue_rules.dart';
 import 'package:medito/views/home/home_styles.dart';
 import 'package:medito/views/library/library_format.dart';
 import 'package:medito/views/player/start_session.dart';
+import 'package:medito/widgets/cards/card_actions.dart';
 import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/network_image_widget.dart';
 
@@ -79,18 +85,57 @@ class ContinueTile extends ConsumerWidget {
   final ContinueItem item;
   final bool lead;
 
-  String _subtitle(AppLocalizations l10n) {
-    final parts = [
-      if (item.courseTitle.isNotEmpty) item.courseTitle,
-      if (item.sessionNumber != null && item.sessionTotal != null)
-        l10n.homeContinueSessionOf(item.sessionNumber!, item.sessionTotal!),
-      if (item.resume != null &&
-          item.resume!.durationMs > item.resume!.positionMs)
-        l10n.homeContinueTimeLeft(
-          formatClock(item.resume!.durationMs - item.resume!.positionMs),
+  /// The course, then where in it. Kept apart so a long course title cannot
+  /// push "Session 4 of 32" off the card.
+  List<String> _where(AppLocalizations l10n) => [
+    if (item.sessionNumber != null && item.sessionTotal != null)
+      l10n.homeContinueSessionOf(item.sessionNumber!, item.sessionTotal!),
+    if (item.resume != null &&
+        item.resume!.durationMs > item.resume!.positionMs)
+      l10n.homeContinueTimeLeft(
+        formatClock(item.resume!.durationMs - item.resume!.positionMs),
+      ),
+  ];
+
+  List<CardAction> _actions(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) {
+    final courseId = item.courseId;
+    return [
+      if (courseId != null)
+        CardAction(
+          key: const ValueKey('continue_menu_open_course'),
+          icon: Icons.menu_book_outlined,
+          label: l10n.homeOpenCourse,
+          onSelected: () => handleNavigation(
+            TypeConstants.pack,
+            [courseId, '/packs/$courseId'],
+            context,
+            ref: ref,
+          ),
         ),
+      // A course's next session has nothing to restart: it starts at the top.
+      if (item.resume != null)
+        CardAction(
+          key: const ValueKey('continue_menu_restart'),
+          icon: Icons.restart_alt_rounded,
+          label: l10n.homeRestart,
+          onSelected: () async {
+            await ref.read(libraryStoreProvider).clearPosition(item.trackId);
+            if (context.mounted) await startContinueItem(context, ref, item);
+          },
+        ),
+      CardAction(
+        key: const ValueKey('continue_menu_remove'),
+        icon: Icons.remove_circle_outline_rounded,
+        label: l10n.homeRemoveFromContinue,
+        onSelected: () => ref
+            .read(continueDismissedProvider.notifier)
+            .dismiss(continueKeyOf(item)),
+      ),
     ];
-    return parts.join(' · ');
   }
 
   @override
@@ -100,7 +145,13 @@ class ContinueTile extends ConsumerWidget {
     final label = item.resume != null
         ? l10n.homeContinueResume
         : l10n.homeContinueStart;
-    final subtitle = _subtitle(l10n);
+    final parts = _where(l10n);
+    final where = parts.join(' · ');
+    final subtitle = [
+      if (item.courseTitle.isNotEmpty) item.courseTitle,
+      if (where.isNotEmpty) where,
+    ].join(' · ');
+    final actions = _actions(context, ref, l10n);
     Future<void> start() => startContinueItem(context, ref, item);
 
     final scheme = theme.colorScheme;
@@ -121,11 +172,19 @@ class ContinueTile extends ConsumerWidget {
       label: '$label: ${item.title}. $subtitle',
       excludeSemantics: true,
       onTap: start,
+      // The card hides its children from screen readers, so its menu's
+      // actions are offered on the card itself.
+      customSemanticsActions: {
+        for (final a in actions)
+          CustomSemanticsAction(label: a.label): a.onSelected,
+      },
       child: HomePressable(
         key: ValueKey('continue_${item.trackId}'),
         color: fill,
         radius: kHomeCardRadius,
         onTap: start,
+        onLongPress: () =>
+            showCardActions(context, title: item.title, actions: actions),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -156,11 +215,11 @@ class ContinueTile extends ConsumerWidget {
                         color: onFill,
                       ),
                     ),
-                    if (subtitle.isNotEmpty)
+                    if (item.courseTitle.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          subtitle,
+                          item.courseTitle,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: type.baseline.bodyMedium?.copyWith(
@@ -168,24 +227,50 @@ class ContinueTile extends ConsumerWidget {
                           ),
                         ),
                       ),
+                    if (parts.isNotEmpty)
+                      // Each part stays whole: it wraps between them.
+                      Wrap(
+                        key: ValueKey('continue_where_${item.trackId}'),
+                        spacing: 4,
+                        children: [
+                          for (final (i, part) in parts.indexed)
+                            Text(
+                              i < parts.length - 1 ? '$part ·' : part,
+                              style: type.baseline.bodyMedium?.copyWith(
+                                color: muted,
+                              ),
+                            ),
+                        ],
+                      ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              lead
-                  ? FilledButton.icon(
-                      key: ValueKey('continue_play_${item.trackId}'),
-                      style: buttonStyle,
-                      onPressed: start,
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      label: Text(label),
-                    )
-                  : FilledButton.tonal(
-                      key: ValueKey('continue_play_${item.trackId}'),
-                      style: buttonStyle,
-                      onPressed: start,
-                      child: Text(label),
-                    ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  CardMenuButton(
+                    title: item.title,
+                    actions: actions,
+                    color: muted,
+                  ),
+                  lead
+                      ? FilledButton.icon(
+                          key: ValueKey('continue_play_${item.trackId}'),
+                          style: buttonStyle,
+                          onPressed: start,
+                          icon: const Icon(Icons.play_arrow_rounded),
+                          label: Text(label),
+                        )
+                      : FilledButton.tonal(
+                          key: ValueKey('continue_play_${item.trackId}'),
+                          style: buttonStyle,
+                          onPressed: start,
+                          child: Text(label),
+                        ),
+                ],
+              ),
             ],
           ),
         ),

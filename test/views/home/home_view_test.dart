@@ -67,7 +67,8 @@ void main() {
     expect(find.byKey(const ValueKey('shortcut_timer')), findsOneWidget);
     expect(find.byKey(const ValueKey('continue_t1')), findsOneWidget);
     expect(find.text('Title t1'), findsOneWidget);
-    expect(find.textContaining('Course A · Session 2 of 5'), findsNWidgets(2));
+    expect(find.text('Course A'), findsNWidgets(2));
+    expect(find.textContaining('Session 2 of 5'), findsNWidgets(2));
     expect(find.textContaining('8:00 left'), findsOneWidget);
     // Resume where it was left; Start for the next session of a course.
     expect(find.widgetWithText(FilledButton, 'Resume'), findsOneWidget);
@@ -161,8 +162,9 @@ void main() {
     final container = ProviderScope.containerOf(
       tester.element(find.byType(HomeView)),
     );
-    expect(find.byTooltip('Unpin from Home'), findsOneWidget);
-    await tester.tap(find.byTooltip('Unpin from Home'));
+    await tester.tap(find.byTooltip('More options'));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('pinned_menu_unpin')));
     await settle(tester);
     expect(container.read(pinnedCoursesProvider), isEmpty);
     expect(app.prefs.getStringList('pinned_course_ids'), isEmpty);

@@ -14,7 +14,9 @@ class PinnedCoursesNotifier extends Notifier<List<String>> {
   @override
   List<String> build() {
     final prefs = ref.read(sharedPreferencesProvider);
-    final saved = prefs.getStringList(SharedPreferenceConstants.pinnedCourseIds);
+    final saved = prefs.getStringList(
+      SharedPreferenceConstants.pinnedCourseIds,
+    );
     if (saved != null) return saved.toSet().take(maxPinned).toList();
     // The one course Home used to continue becomes the first pin.
     final legacy = prefs.getString(SharedPreferenceConstants.upNextPackId);
@@ -29,6 +31,14 @@ class PinnedCoursesNotifier extends Notifier<List<String>> {
     if (state.length >= maxPinned) return false;
     await _set([...state, id]);
     return true;
+  }
+
+  /// Pins [id] back at [index], where Undo of an unpin puts it. No-op past
+  /// the limit.
+  Future<void> pinAt(String id, int index) async {
+    if (state.contains(id) || state.length >= maxPinned) return;
+    final next = [...state]..insert(index.clamp(0, state.length), id);
+    await _set(next);
   }
 
   Future<void> unpin(String id) => _set([

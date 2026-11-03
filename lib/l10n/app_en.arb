@@ -3103,5 +3103,10 @@
         "type": "String"
       }
     }
-  }
+  },
+  "homeOpenCourse": "Open course",
+  "homeRestart": "Restart",
+  "homeRemoveFromContinue": "Remove from Continue",
+  "homeUnpinned": "Unpinned from Home",
+  "homeCardMenu": "More options"
 }

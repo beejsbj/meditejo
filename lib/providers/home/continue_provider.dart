@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/models/pack/pack_model.dart';
+import 'package:medito/providers/home/continue_dismissed_provider.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
@@ -37,6 +38,15 @@ Future<List<ContinueItem>> _readContinue(
   ref.watch(playbackPositionsRevisionProvider);
   final checked = {...?ref.watch(statsProvider).value?.tracksChecked};
   final pinned = fallback ? ref.watch(pinnedCoursesProvider) : const <String>[];
+  // Only Home honours what the user removed from Continue.
+  final dismissed = fallback
+      ? ref.watch(continueDismissedProvider)
+      : const <String, int>{};
+  bool hidden(String key, DateTime lastPlayed) {
+    final at = dismissed[key];
+    return at != null && lastPlayed.millisecondsSinceEpoch <= at;
+  }
+
   final store = ref.watch(libraryStoreProvider);
   final router = ref.watch(libraryContentRouterProvider);
 
@@ -158,6 +168,7 @@ Future<List<ContinueItem>> _readContinue(
     candidates.add(fromItem(pack, next, entry));
   }
 
+  candidates.removeWhere((c) => hidden(continueKeyOf(c), c.lastPlayed));
   final ranked = rankContinue(candidates, limit: limit);
   if (ranked.isNotEmpty || !fallback) return ranked;
 
@@ -172,7 +183,9 @@ Future<List<ContinueItem>> _readContinue(
     final pack = await packOf(id);
     final next = pack == null ? null : nextIn(pack);
     if (pack != null && next != null) {
-      return [fromItem(pack, next, entryById[id])];
+      final item = fromItem(pack, next, entryById[id]);
+      if (hidden(continueKeyOf(item), item.lastPlayed)) continue;
+      return [item];
     }
   }
   return const [];

@@ -1375,5 +1375,10 @@
   "labelsCustomHeading": "Deine Labels",
   "labelsAddHint": "Label hinzufügen",
   "labelsAddButton": "Hinzufügen",
-  "labelsRemoveTooltip": "Label {label} entfernen"
+  "labelsRemoveTooltip": "Label {label} entfernen",
+  "homeOpenCourse": "Kurs öffnen",
+  "homeRestart": "Neu starten",
+  "homeRemoveFromContinue": "Aus „Weitermachen“ entfernen",
+  "homeUnpinned": "Von Start gelöst",
+  "homeCardMenu": "Weitere Optionen"
 }

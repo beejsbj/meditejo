@@ -9,6 +9,9 @@ import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/views/home/home_styles.dart';
+import 'package:medito/views/player/start_session.dart';
+import 'package:medito/widgets/cards/card_actions.dart';
+import 'package:medito/widgets/snackbar_widget.dart';
 import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/network_image_widget.dart';
 
@@ -70,10 +73,58 @@ class PinnedCourseTile extends ConsumerWidget {
       ref: ref,
     );
 
+    // The first session not done, else the first there is.
+    final next =
+        playable.where((i) => i.isCompleted != true).firstOrNull ??
+        playable.firstOrNull;
+
+    Future<void> unpin() async {
+      final pins = ref.read(pinnedCoursesProvider.notifier);
+      final index = ref.read(pinnedCoursesProvider).indexOf(id);
+      await pins.unpin(id);
+      if (!context.mounted) return;
+      showSnackBar(
+        context,
+        l10n.homeUnpinned,
+        actionLabel: l10n.undo,
+        onActionPressed: () => pins.pinAt(id, index),
+      );
+    }
+
+    final actions = [
+      CardAction(
+        key: const ValueKey('pinned_menu_open'),
+        icon: Icons.menu_book_outlined,
+        label: l10n.libraryOpen,
+        onSelected: open,
+      ),
+      if (next != null)
+        CardAction(
+          key: const ValueKey('pinned_menu_play'),
+          icon: Icons.play_arrow_rounded,
+          label: l10n.play,
+          onSelected: () => startSession(
+            context,
+            ref,
+            trackId: next.id,
+            path: next.path,
+            courseId: id,
+          ),
+        ),
+      CardAction(
+        key: const ValueKey('pinned_menu_unpin'),
+        icon: Icons.push_pin_outlined,
+        label: l10n.unpinCourse,
+        onSelected: unpin,
+      ),
+    ];
+
     return HomePressable(
       color: scheme.surfaceContainer,
       radius: kHomeCardRadius,
       onTap: open,
+      onLongPress: () =>
+          showCardActions(context, title: title, actions: actions),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 4, 12),
         child: Row(
@@ -124,12 +175,7 @@ class PinnedCourseTile extends ConsumerWidget {
                 ],
               ),
             ),
-            IconButton(
-              tooltip: l10n.unpinCourse,
-              onPressed: () =>
-                  ref.read(pinnedCoursesProvider.notifier).unpin(id),
-              icon: Icon(Icons.push_pin_rounded, color: scheme.primary),
-            ),
+            CardMenuButton(title: title, actions: actions),
           ],
         ),
       ),

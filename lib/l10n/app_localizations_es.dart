@@ -2835,4 +2835,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String labelsRemoveTooltip(String label) {
     return 'Quitar la etiqueta $label';
   }
+
+  @override
+  String get homeOpenCourse => 'Abrir curso';
+
+  @override
+  String get homeRestart => 'Reiniciar';
+
+  @override
+  String get homeRemoveFromContinue => 'Quitar de Continuar';
+
+  @override
+  String get homeUnpinned => 'Desfijado de Inicio';
+
+  @override
+  String get homeCardMenu => 'Más opciones';
 }

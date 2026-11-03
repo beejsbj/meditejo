@@ -4935,6 +4935,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove label {label}'**
   String labelsRemoveTooltip(String label);
+
+  /// No description provided for @homeOpenCourse.
+  ///
+  /// In en, this message translates to:
+  /// **'Open course'**
+  String get homeOpenCourse;
+
+  /// No description provided for @homeRestart.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get homeRestart;
+
+  /// No description provided for @homeRemoveFromContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from Continue'**
+  String get homeRemoveFromContinue;
+
+  /// No description provided for @homeUnpinned.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpinned from Home'**
+  String get homeUnpinned;
+
+  /// No description provided for @homeCardMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'More options'**
+  String get homeCardMenu;
 }
 
 class _AppLocalizationsDelegate
