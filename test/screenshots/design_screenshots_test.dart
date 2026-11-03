@@ -15,6 +15,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/services/identity/palettes.dart';
 import 'package:medito/models/pack/pack_model.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
 import 'package:medito/views/explore/widgets/explore_view.dart';
@@ -29,8 +30,12 @@ import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/bottom_navigation/widgets/medito_nav_bar.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/library/library_view.dart';
+import 'package:medito/views/soundscape/sound_credits_view.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:medito/views/timer/timer_view.dart';
+import 'package:medito/views/track/track_view.dart';
+import 'package:medito/models/track/track.dart';
+import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
@@ -51,6 +56,7 @@ import 'package:medito/views/you/you_view.dart';
 
 import '../helpers/dharma_seed_app.dart';
 import '../helpers/dharma_seed_catalogue.dart';
+import '../helpers/dharma_seed_fake_api.dart';
 import '../helpers/fake_session_source.dart';
 import '../helpers/library_app.dart';
 import '../helpers/stats_fixtures.dart';
@@ -97,6 +103,14 @@ Future<void> _loadFonts() async {
 }
 
 final _boundary = GlobalKey();
+
+class _FakeTracks extends Tracks {
+  _FakeTracks(this.track);
+  final Track track;
+
+  @override
+  Future<Track> build({required String trackId}) async => track;
+}
 
 /// Lets the generated art finish: its stills rasterise off the test's fake
 /// clock, then land on the next frame.
@@ -304,9 +318,14 @@ Future<void> _pumpYou(
         .setMockMethodCallHandler(permissions, null),
   );
   final h = await UpdateHarness.create();
+  // The real database would open under the fake clock and leave a drift
+  // timer pending; an in-memory one stands in for it.
+  final dsDb = memoryDharmaSeedDb();
+  addTearDown(dsDb.close);
   final container = ProviderContainer(
     overrides: [
       ...h.overrides,
+      dharmaSeedDatabaseProvider.overrideWithValue(dsDb),
       statsProvider.overrideWith(() => _Stats(richStats(fixtureNow))),
       practiceClockProvider.overrideWithValue(() => fixtureNow),
     ],
@@ -454,6 +473,38 @@ void main() {
       await _capture(tester, 'home-full-${brightness.name}');
     }, skip: !_enabled);
 
+    testWidgets('Home menus, ${brightness.name}', (tester) async {
+      final app = await LibraryTestApp.create(tester);
+      await app.prefs.setStringList('pinned_course_ids', [_pack.id]);
+      await app.pump(
+        tester,
+        _frame(brightness, const Scaffold(body: HomeView())),
+        overrides: [
+          continueItemsProvider.overrideWith((ref) async => _items),
+          packProvider(packId: _pack.id).overrideWith(_FakePack.new),
+        ],
+      );
+      await _phone(tester);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.longPress(find.byKey(const ValueKey('continue_t1')));
+      await tester.pumpAndSettle();
+      await _captureView(tester, 'home-menu-continue-${brightness.name}');
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+      final pinned = find.byKey(ValueKey('pinned_${_pack.id}'));
+      await tester.ensureVisible(pinned);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: pinned,
+          matching: find.byTooltip('More options for ${_pack.title}'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _captureView(tester, 'home-menu-pinned-${brightness.name}');
+      expect(tester.takeException(), isNull);
+    }, skip: !_enabled);
+
     testWidgets('five tabs, ${brightness.name}', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -506,6 +557,7 @@ void main() {
     for (final (name, empty, open, wide) in [
       ('sounds', false, false, false),
       ('sounds-mix', false, true, false),
+      ('sounds-cleared', false, true, false),
       ('sounds-empty', true, false, false),
       ('sounds-wide', false, false, true),
     ]) {
@@ -550,10 +602,56 @@ void main() {
           await tester.tap(find.byKey(const ValueKey('sounds_mix_toggle')));
           await tester.pump(const Duration(seconds: 1));
         }
+        if (name == 'sounds-cleared') {
+          // Clear, with its Undo snackbar showing.
+          await tester.tap(find.byKey(const ValueKey('sounds_clear')));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 500));
+          await tester.pump(const Duration(milliseconds: 500));
+        }
         expect(tester.takeException(), isNull);
         await _capture(tester, '$name-${brightness.name}');
       }, skip: !_enabled);
     }
+
+    // Sound credits: long titles ("Summer Rain on Terrace") wrap to a second
+    // line, where the licence and source chips used to overlap it.
+    testWidgets('sound-credits, ${brightness.name}', (tester) async {
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(
+        tester,
+        _frame(brightness, const SoundCreditsView()),
+        overrides: soundscapeTestOverrides(FakeSoundscapeEngine()),
+      );
+      await _phone(tester);
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+      await _capture(tester, 'sound-credits-${brightness.name}');
+    }, skip: !_enabled);
+
+    // The same screen at a larger system text size, where titles wrap more.
+    testWidgets('sound-credits-large-text, ${brightness.name}', (tester) async {
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(
+        tester,
+        _frame(
+          brightness,
+          Builder(
+            builder: (context) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(1.6)),
+              child: const SoundCreditsView(),
+            ),
+          ),
+        ),
+        overrides: soundscapeTestOverrides(FakeSoundscapeEngine()),
+      );
+      await _phone(tester);
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+      await _capture(tester, 'sound-credits-large-text-${brightness.name}');
+    }, skip: !_enabled);
 
     // Decision 18: what the user makes is a Playlist, what a source gives is
     // a Course. The Library lists both; the add-to sheet offers playlists.
@@ -634,6 +732,80 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       expect(tester.takeException(), isNull);
       await _capture(tester, 'library-playlists-${brightness.name}');
+    }, skip: !_enabled);
+
+    // A track with one guide and one length: no pickers (#84).
+    testWidgets('Track page, one option, ${brightness.name}', (tester) async {
+      WidgetsApp.debugAllowBannerOverride = false;
+      addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
+      const track = Track(
+        id: 'ds-talk-1',
+        title: 'Wise Attention and the Practice of Loving-Kindness',
+        subtitle: 'Talk · Ajahn Sucitto · 42 min',
+        description: 'A talk given on retreat about steadying the mind.',
+        coverUrl: '',
+        isPublished: true,
+        hasBackgroundSound: false,
+        voices: [
+          TrackVoice(
+            guideName: 'Ajahn Sucitto',
+            audioFiles: [
+              TrackAudioFile(id: 'f1', path: 'f1.mp3', duration: 42 * 60000),
+            ],
+          ),
+        ],
+      );
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(
+        tester,
+        _frame(brightness, const TrackView(trackId: 'ds-talk-1')),
+        overrides: [
+          tracksProvider(
+            trackId: 'ds-talk-1',
+          ).overrideWith(() => _FakeTracks(track)),
+        ],
+      );
+      await _phone(tester);
+      expect(tester.takeException(), isNull);
+      await _captureView(tester, 'track-one-option-${brightness.name}');
+    }, skip: !_enabled);
+
+    // A YouTube-style track: a channel name as its subtitle, no guide, so the
+    // length is only on Play (#84).
+    testWidgets('Track page, youtube style, ${brightness.name}', (
+      tester,
+    ) async {
+      WidgetsApp.debugAllowBannerOverride = false;
+      addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
+      const track = Track(
+        id: 'yt-video-1',
+        title: 'Meditating with John Vervaeke: Day 1 - Mindfulness',
+        subtitle: 'John Vervaeke',
+        description: '',
+        coverUrl: '',
+        isPublished: true,
+        hasBackgroundSound: false,
+        voices: [
+          TrackVoice(
+            audioFiles: [
+              TrackAudioFile(id: 'yt1', path: 'yt1', duration: 44 * 60000),
+            ],
+          ),
+        ],
+      );
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(
+        tester,
+        _frame(brightness, const TrackView(trackId: 'yt-video-1')),
+        overrides: [
+          tracksProvider(
+            trackId: 'yt-video-1',
+          ).overrideWith(() => _FakeTracks(track)),
+        ],
+      );
+      await _phone(tester);
+      expect(tester.takeException(), isNull);
+      await _captureView(tester, 'track-youtube-style-${brightness.name}');
     }, skip: !_enabled);
 
     testWidgets('Add to playlist sheet, ${brightness.name}', (tester) async {

@@ -4,6 +4,7 @@ import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/services/categories/category_catalogue.dart';
 import 'package:medito/services/categories/category_service.dart';
 import 'package:medito/services/categories/entry_labels.dart';
+import 'package:medito/services/library/library_models.dart';
 
 /// The curated mapping, read once from the bundled asset.
 final categoryCatalogueProvider = FutureProvider<CategoryCatalogue>(
@@ -18,13 +19,29 @@ final categoryServiceProvider = FutureProvider<CategoryService>((ref) async {
   );
 });
 
+/// The library's entries as they are now, re-running the caller when the
+/// library changes.
+///
+/// It follows the library's revision and reads the entries, rather than
+/// watching `libraryEntriesProvider`: Riverpod 3.2.1 (pinned, see pubspec)
+/// miscounts paused subscriptions on a provider that a provider, which a
+/// covered screen watches, depends on. When the library changes under a page
+/// pushed on top and the screen comes back, that trips its
+/// `pausedActiveSubscriptionCount` assertion. Riverpod 3.3.2 fixes it
+/// ("Fixes assertion error when providers are unpaused"), but
+/// riverpod_annotation 4.0.2 holds riverpod at 3.2.1.
+Future<List<LibraryEntry>> _libraryEntriesNow(Ref ref) {
+  ref.watch(libraryRevisionProvider);
+  return ref.read(libraryEntriesProvider.future);
+}
+
 /// The labels of everything in the library, by content ID: the app's guesses
 /// with the user's own on top. Re-read when the library changes, which
 /// includes every label edit.
 final libraryLabelsProvider =
     FutureProvider.autoDispose<Map<String, EntryLabels>>((ref) async {
       final service = await ref.watch(categoryServiceProvider.future);
-      final entries = await ref.watch(libraryEntriesProvider.future);
+      final entries = await _libraryEntriesNow(ref);
       return service.labelsOfEntries(entries);
     });
 
@@ -65,7 +82,7 @@ final categoryListingProvider = FutureProvider.autoDispose
     .family<CategoryListing, String>((ref, categoryId) async {
       ref.watch(dharmaSeedRevisionProvider);
       final service = await ref.watch(categoryServiceProvider.future);
-      final entries = await ref.watch(libraryEntriesProvider.future);
+      final entries = await _libraryEntriesNow(ref);
       return service.listing(categoryId, entries: entries);
     });
 

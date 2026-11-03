@@ -7,6 +7,7 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/updates/update_providers.dart';
 import 'package:medito/providers/updates/update_state.dart';
 import 'package:medito/services/updates/update_failure.dart';
+import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
 
 /// "Up to date" or "Update available", with the controls for each state. Shows
 /// nothing where in-app updates are not supported (iOS).
@@ -135,15 +136,21 @@ class _UpdateSectionState extends ConsumerState<UpdateSection>
         );
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: padding16,
-        vertical: padding12,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: padding16,
+            vertical: padding12,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: children,
+          ),
+        ),
+        _AutoCheckSwitch(enabled: !state.isBusy),
+      ],
     );
   }
 
@@ -203,6 +210,36 @@ class _UpdateSectionState extends ConsumerState<UpdateSection>
         UpdateFailure.notMeditejo => l10n.updateErrorNotMeditejo,
         UpdateFailure.installFailed => l10n.updateErrorInstall,
       };
+}
+
+/// "Check for updates automatically", a row like the About rows below it.
+class _AutoCheckSwitch extends ConsumerWidget {
+  const _AutoCheckSwitch({required this.enabled});
+
+  /// False while a check or download runs: the row stays, so the card does not
+  /// jump, but cannot be changed.
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final on = ref.watch(autoUpdateCheckProvider);
+    void set(bool v) => ref.read(autoUpdateCheckProvider.notifier).set(v);
+    return RowItemWidget(
+      key: const ValueKey('settings_auto_update_check'),
+      icon: Icon(
+        Icons.autorenew_rounded,
+        color: Theme.of(context).colorScheme.onSurface,
+      ),
+      title: l10n.updateAutoCheck,
+      subTitle: l10n.updateAutoCheckDescription,
+      hasUnderline: false,
+      isSwitch: true,
+      switchValue: on,
+      onSwitchChanged: enabled ? set : null,
+      onTap: enabled ? () => set(!on) : null,
+    );
+  }
 }
 
 class _Headline extends StatelessWidget {

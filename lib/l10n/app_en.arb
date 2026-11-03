@@ -75,10 +75,10 @@
   "backgroundSoundsDisabled": "Background sounds are disabled for this track",
   "neww": "New",
   "loading": "Loading...",
-  "currentStreak": "Current Streak",
-  "longestStreak": "Longest Streak",
+  "currentStreak": "Current streak",
+  "longestStreak": "Longest streak",
   "consistencyScore": "Consistency Score",
-  "totalTracksCompleted": "Total Tracks Completed",
+  "totalTracksCompleted": "Total tracks completed",
   "totalTimeListened": "Total Time Listened",
   "days": "days",
   "day": "day",
@@ -89,7 +89,6 @@
   "alwaysShowStreakOnHomepage": "Always show streak on homepage",
   "gotIt": "Got it",
   "goBack": "Go Back",
-  "editStatsTitle": "Edit stats",
   "path": "Path",
   "completed": "Completed",
   "submit": "Submit",
@@ -114,7 +113,7 @@
   "carouselTitle": "Featured",
   "quoteTitle": "Daily Quote",
   "customization": "Customisation",
-  "customiseHomeLayout": "Organize Home Layout",
+  "customiseHomeLayout": "Organize Home layout",
   "helpLegal": "Help & Legal",
   "advanced": "Advanced",
   "restore": "Restore",
@@ -228,7 +227,7 @@
   "@notificationsBlockedBody": {
     "description": "Body of the dialog shown when notification permission is permanently denied"
   },
-  "openSettings": "Open Settings",
+  "openSettings": "Open settings",
   "@openSettings": {
     "description": "Button that opens the phone's settings app on the Meditejo page"
   },
@@ -273,14 +272,14 @@
   "onboardingBatteryOptimize": "Update Setting",
   "skipForNow": "Skip for Now",
   "skip": "Skip",
-  "notNow": "Not Now",
+  "notNow": "Not now",
   "errorNoInternetMessage": "No internet connection",
   "errorTimeoutMessage": "Connection timed out",
   "errorNotFoundMessage": "Content not found",
   "errorServerMessage": "Server error, please try again later",
   "errorUnknownMessage": "Something went wrong, please try again",
   "enableDndDuringMeditation": "Silence phone during meditation",
-  "zenMode": "Zen Mode",
+  "zenMode": "Zen mode",
   "@zenMode": {
     "description": "Title for zen mode setting in customization section"
   },
@@ -349,7 +348,7 @@
   "tracks": "Tracks",
   "packs": "Packs",
   "noResultsFound": "No results found for your search",
-  "consistencyScoreInfoTitle": "Consistency Score",
+  "consistencyScoreInfoTitle": "Consistency score",
   "consistencyScoreInfoMessage": "Your consistency score reflects how regularly you've meditated since you started. Recent days carry more weight, but earlier missed days still gently affect the score. Unlike streaks, it doesn't reset on a missed day.",
   "systemLanguage": "System",
   "english": "English",
@@ -363,7 +362,7 @@
   "@customizationSection": {
     "description": "Section title for customization settings"
   },
-  "addHomeScreenWidget": "Add Home Screen Widget",
+  "addHomeScreenWidget": "Add Home screen widget",
   "@addHomeScreenWidget": {
     "description": "Title for adding home screen widget option in customization section"
   },
@@ -395,46 +394,6 @@
   "@themeTitle": {
     "description": "Title for theme selection setting in customization section"
   },
-  "appIconTitle": "App Icon",
-  "@appIconTitle": {
-    "description": "Title for app icon selection setting in customization section"
-  },
-  "appIconNearBlack": "Dark",
-  "@appIconNearBlack": {
-    "description": "Label for the near-black app icon option"
-  },
-  "appIconDusk": "Dusk",
-  "@appIconDusk": {
-    "description": "Label for the dusk gradient app icon option (now the default)"
-  },
-  "appIconPurple": "Purple",
-  "@appIconPurple": {
-    "description": "Label for the original purple app icon option"
-  },
-  "appIconClassic": "Classic",
-  "@appIconClassic": {
-    "description": "Label for the classic app icon option (purple M on white)"
-  },
-  "appIconBlush": "Blush",
-  "@appIconBlush": {
-    "description": "Label for the blush pink gradient app icon option"
-  },
-  "appIconOcean": "Ocean",
-  "@appIconOcean": {
-    "description": "Label for the ocean blue gradient app icon option"
-  },
-  "appIconForest": "Forest",
-  "@appIconForest": {
-    "description": "Label for the forest green gradient app icon option"
-  },
-  "appIconPink": "Golden",
-  "@appIconPink": {
-    "description": "Label for the pink-to-gold sunset gradient app icon option"
-  },
-  "appIconChanged": "Icon updated. Restarting…",
-  "@appIconChanged": {
-    "description": "Snackbar message shown on Android after changing the app icon"
-  },
   "systemTheme": "System",
   "@systemTheme": {
     "description": "System theme option that follows device settings"
@@ -451,7 +410,7 @@
   "@darkTheme": {
     "description": "Dark theme option"
   },
-  "selectTheme": "Select Theme",
+  "selectTheme": "Select theme",
   "@selectTheme": {
     "description": "Dialog title for theme selection"
   },
@@ -886,26 +845,6 @@
   "@manageDefaults": {
     "description": "Title for the manage defaults screen"
   },
-  "defaultGuideName": "Default Guide Name",
-  "@defaultGuideName": {
-    "description": "Label for default guide name setting"
-  },
-  "defaultDuration": "Default Duration",
-  "@defaultDuration": {
-    "description": "Label for default duration setting"
-  },
-  "defaultGuideNameCleared": "Default guide name cleared",
-  "@defaultGuideNameCleared": {
-    "description": "Message shown when default guide name is cleared"
-  },
-  "notSet": "Not set",
-  "@notSet": {
-    "description": "Text shown when a default value is not set"
-  },
-  "defaultsNote": "These defaults are set from your last selection on any track. Home uses them to skip the selection screen when you continue a pack.",
-  "@defaultsNote": {
-    "description": "Note explaining how defaults work in Up Next"
-  },
   "streakFreezeUsed": "Streak freeze used",
   "@streakFreezeUsed": {
     "description": "Text shown when a streak freeze was used on a particular day"
@@ -981,10 +920,6 @@
   "clearSearch": "Clear search",
   "@clearSearch": {
     "description": "Accessibility label for the clear search button"
-  },
-  "clearDefault": "Clear default guide",
-  "@clearDefault": {
-    "description": "Accessibility label for the button that clears the saved default guide preference"
   },
   "onboardingExperienceQuestion": "Have you meditated before?",
   "@onboardingExperienceQuestion": {
@@ -1791,6 +1726,15 @@
       }
     }
   },
+  "playForMinutes": "Play · {minutes} min",
+  "@playForMinutes": {
+    "description": "Label of the track page's Play button, with the length in minutes",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "importTitle": "Add to your library",
   "@importTitle": {
     "description": "Title of the import screen"
@@ -2166,13 +2110,21 @@
       }
     }
   },
-  "soundsDrift": "Drift",
-  "@soundsDrift": {
-    "description": "Sounds screen: soundsDrift"
+  "soundsSwell": "Swell",
+  "@soundsSwell": {
+    "description": "Chip on a mix layer: lets its level rise and fall slowly"
   },
-  "soundsDriftHint": "Let the level rise and fall slowly",
-  "@soundsDriftHint": {
-    "description": "Sounds screen: soundsDriftHint"
+  "soundsSwellHint": "Rises and falls slowly",
+  "@soundsSwellHint": {
+    "description": "Caption beside the Swell chip"
+  },
+  "soundsClear": "Clear",
+  "@soundsClear": {
+    "description": "Button in the open mix panel that takes every sound out of the mix"
+  },
+  "soundsMixCleared": "Mix cleared",
+  "@soundsMixCleared": {
+    "description": "Snackbar after Clear, with an Undo action"
   },
   "soundsPresets": "Presets",
   "@soundsPresets": {
@@ -3151,5 +3103,46 @@
         "type": "String"
       }
     }
+  },
+  "homeOpenCourse": "Open course",
+  "@homeOpenCourse": {
+    "description": "Card menu action on a Home Continue card that opens the course page"
+  },
+  "homeRestart": "Restart",
+  "@homeRestart": {
+    "description": "Card menu action on a Home Continue card that plays the session from 0:00"
+  },
+  "homeRemoveFromContinue": "Remove from Continue",
+  "@homeRemoveFromContinue": {
+    "description": "Card menu action that takes an item off Home's Continue section"
+  },
+  "homeUnpinned": "Unpinned from Home",
+  "@homeUnpinned": {
+    "description": "Snackbar after unpinning a course from Home; offers Undo"
+  },
+  "homeRemovedFromContinue": "Removed from Continue",
+  "@homeRemovedFromContinue": {
+    "description": "Snackbar after removing an item from Continue; offers Undo"
+  },
+  "homeCardMenu": "More options for {title}",
+  "@homeCardMenu": {
+    "description": "Tooltip and screen-reader label of the more-options button on a Home card",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSessionHistory": "Session history",
+  "@settingsSessionHistory": {
+    "description": "Settings row that opens the History tab of Stats: the calendar where past sessions are added or edited"
+  },
+  "updateAutoCheck": "Check for updates automatically",
+  "@updateAutoCheck": {
+    "description": "Switch in About: whether the app checks GitHub for a newer Meditejo when it opens"
+  },
+  "updateAutoCheckDescription": "Asks GitHub once a day when Meditejo opens.",
+  "@updateAutoCheckDescription": {
+    "description": "Caption under the automatic update check switch"
   }
 }

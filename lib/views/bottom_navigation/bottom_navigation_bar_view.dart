@@ -51,12 +51,6 @@ class _BottomNavigationBarViewState
     super.initState();
     _pages = [for (final tab in MainTab.values) _page(tab)];
 
-    if (ref.read(mainTabProvider) == MainTab.explore) {
-      // Restored straight into Explore.
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => catchUpDharmaSeed(ref),
-      );
-    }
     _initializeStats();
     _trackPlaybackPositions();
     // Completions replayed by the platform after launch arrive late (Android

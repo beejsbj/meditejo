@@ -29,9 +29,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class TrackView extends ConsumerStatefulWidget {
-  const TrackView({super.key, required this.trackId});
+  const TrackView({super.key, required this.trackId, this.fromStart = false});
 
   final String trackId;
+
+  /// Opened to restart: Play begins at 0:00 instead of resuming.
+  final bool fromStart;
 
   @override
   ConsumerState<TrackView> createState() => _TrackViewState();
@@ -57,9 +60,6 @@ class _TrackViewState extends ConsumerState<TrackView>
     void popContext() => Navigator.pop(context);
 
     final backButton = SingleBackButtonActionBar(onBackPressed: popContext);
-
-    // Using 700 as a threshold for "cramped" vertical space where compact layout is preferred
-    final useCompactLayout = MediaQuery.of(context).size.height < 700;
 
     return Scaffold(
       bottomNavigationBar: trackAsyncValue.when(
@@ -90,7 +90,6 @@ class _TrackViewState extends ConsumerState<TrackView>
                     track,
                     selection.voice,
                     selection.file,
-                    useCompactLayout,
                   );
                 },
                 loading: () => const TrackShimmerWidget(),
@@ -115,19 +114,13 @@ class _TrackViewState extends ConsumerState<TrackView>
     Track track,
     TrackVoice activeVoice,
     TrackAudioFile activeFile,
-    bool useCompactLayout,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AspectRatio(aspectRatio: 16 / 9, child: _buildCoverImage(track)),
         const SizedBox(height: 24),
-        _buildTrackContent(
-          track,
-          activeVoice,
-          activeFile,
-          useCompactLayout: useCompactLayout,
-        ),
+        _buildTrackContent(track, activeVoice, activeFile),
       ],
     );
   }
@@ -153,13 +146,8 @@ class _TrackViewState extends ConsumerState<TrackView>
   Widget _buildTrackContent(
     Track track,
     TrackVoice activeVoice,
-    TrackAudioFile activeFile, {
-    required bool useCompactLayout,
-  }) {
-    final showGuideNameDropdown = track.voices.first.guideName
-        .isNotNullAndNotEmpty();
-    final guideName = ref.watch(guideNamePreferenceProvider);
-
+    TrackAudioFile activeFile,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -182,20 +170,9 @@ class _TrackViewState extends ConsumerState<TrackView>
           ),
         _tags(track),
         const SizedBox(height: 24),
-        if (useCompactLayout && showGuideNameDropdown)
-          _buildCompactPickers(track, activeVoice, activeFile, guideName)
-        else ...[
-          if (showGuideNameDropdown) ...[
-            _guideNameDropdown(
-              track,
-              activeVoice,
-              isLandscape: false,
-              guideNameState: guideName,
-            ),
-            const SizedBox(height: 12),
-          ],
-          _durationDropdown(activeVoice, activeFile, isLandscape: false),
-        ],
+        // A picker with one option is not a choice, so it is not shown
+        // (playing still uses that option).
+        ..._pickers(track, activeVoice, activeFile),
         const SizedBox(height: 12),
         // Add to the library (a talk or an imported recording), when the
         // source allows it.
@@ -214,6 +191,7 @@ class _TrackViewState extends ConsumerState<TrackView>
   /// The saved place, if it is in the file shown (another length of the same
   /// track has its own).
   ResumePoint? _resumeIn(Track track, TrackAudioFile file) {
+    if (widget.fromStart) return null;
     final point = ref.watch(resumePointProvider(track.id)).value;
     return point != null && point.appliesTo(file.id) ? point : null;
   }
@@ -235,30 +213,6 @@ class _TrackViewState extends ConsumerState<TrackView>
     ];
   }
 
-  Widget _buildCompactPickers(
-    Track track,
-    TrackVoice activeVoice,
-    TrackAudioFile activeFile,
-    String? guideNameState,
-  ) {
-    return Row(
-      children: [
-        Expanded(
-          child: _guideNameDropdown(
-            track,
-            activeVoice,
-            isLandscape: false,
-            guideNameState: guideNameState,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _durationDropdown(activeVoice, activeFile, isLandscape: false),
-        ),
-      ],
-    );
-  }
-
   Widget _playBtn(
     WidgetRef ref,
     Track track,
@@ -272,6 +226,9 @@ class _TrackViewState extends ConsumerState<TrackView>
     // (near-black accent) with a white icon for light mode.
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final resume = _resumeIn(track, activeFile);
+    final l10n = AppLocalizations.of(context)!;
+    // "Play · 44 min": the length, unless it is unknown.
+    final minutes = convertDurationToMinutes(milliseconds: activeFile.duration);
     return SizedBox(
       height: 56,
       width: isFullWidth ? double.infinity : null,
@@ -291,7 +248,7 @@ class _TrackViewState extends ConsumerState<TrackView>
               ? ColorConstants.black
               : Theme.of(context).colorScheme.onPrimary,
         ),
-        child: resume == null
+        child: resume == null && minutes <= 0
             ? Icon(
                 Icons.play_arrow_rounded,
                 size: 32,
@@ -303,9 +260,9 @@ class _TrackViewState extends ConsumerState<TrackView>
                   const Icon(Icons.play_arrow_rounded, size: 32),
                   const SizedBox(width: 8),
                   Text(
-                    AppLocalizations.of(
-                      context,
-                    )!.libraryResumeAt(formatClock(resume.positionMs)),
+                    resume == null
+                        ? l10n.playForMinutes(minutes)
+                        : l10n.libraryResumeAt(formatClock(resume.positionMs)),
                   ),
                 ],
               ),
@@ -394,6 +351,7 @@ class _TrackViewState extends ConsumerState<TrackView>
     bool fromStart = false,
   }) async {
     if (_isStarting) return;
+    fromStart = fromStart || widget.fromStart;
     setState(() => _isStarting = true);
 
     // Prepare the request (sets player state synchronously) then open the
@@ -418,63 +376,72 @@ class _TrackViewState extends ConsumerState<TrackView>
     });
   }
 
-  Widget _durationDropdown(
+  /// The guide and length choices, each as chips and only when there is more
+  /// than one to choose from.
+  List<Widget> _pickers(
+    Track track,
     TrackVoice activeVoice,
-    TrackAudioFile activeFile, {
-    required bool isLandscape,
-  }) {
-    return DropdownWidget<TrackAudioFile>(
-      value: activeFile,
-      iconData: Icons.timer_sharp,
-      topLeft: 7,
-      topRight: 7,
-      bottomRight: 7,
-      bottomLeft: 7,
-      disabledLabelText:
-          '${convertDurationToMinutes(milliseconds: activeFile.duration)} ${AppLocalizations.of(context)!.min}',
-      items: activeVoice.audioFiles.map<DropdownMenuItem<TrackAudioFile>>((
-        TrackAudioFile value,
-      ) {
-        return DropdownMenuItem<TrackAudioFile>(
-          value: value,
-          child: Text(
-            '${convertDurationToMinutes(milliseconds: value.duration)} ${AppLocalizations.of(context)!.min}',
-          ),
-        );
-      }).toList(),
-      onChanged: _handleOnDurationChange,
-      isLandscape: isLandscape,
-    );
+    TrackAudioFile activeFile,
+  ) {
+    final guides = [
+      for (final v in track.voices)
+        if (v.guideName.isNotNullAndNotEmpty()) v,
+    ];
+    final lengths = activeVoice.audioFiles;
+    return [
+      if (guides.length > 1 && track.voices.length > 1)
+        _chipRow(
+          key: const ValueKey('track_guide_chips'),
+          icon: Icons.face,
+          chips: [
+            for (final v in guides)
+              (
+                label: v.guideName!,
+                selected: v == activeVoice,
+                onSelected: () => _handleOnGuideNameChange(v),
+              ),
+          ],
+        ),
+      if (lengths.length > 1)
+        _chipRow(
+          key: const ValueKey('track_length_chips'),
+          icon: Icons.timer_sharp,
+          chips: [
+            for (final f in lengths)
+              (
+                label:
+                    '${convertDurationToMinutes(milliseconds: f.duration)} ${AppLocalizations.of(context)!.min}',
+                selected: f == activeFile,
+                onSelected: () => _handleOnDurationChange(f),
+              ),
+          ],
+        ),
+    ];
   }
 
-  Widget _guideNameDropdown(
-    Track track,
-    TrackVoice activeVoice, {
-    required bool isLandscape,
-    required String? guideNameState,
+  Widget _chipRow({
+    required Key key,
+    required IconData icon,
+    required List<({String label, bool selected, VoidCallback onSelected})>
+    chips,
   }) {
-    if (activeVoice.guideName.isNotNullAndNotEmpty()) {
-      return DropdownWidget<TrackVoice>(
-        value: activeVoice,
-        iconData: Icons.face,
-        bottomRight: 7,
-        topLeft: 7,
-        topRight: 7,
-        bottomLeft: 7,
-        disabledLabelText: '${activeVoice.guideName}',
-        items: track.voices.map<DropdownMenuItem<TrackVoice>>((
-          TrackVoice value,
-        ) {
-          return DropdownMenuItem<TrackVoice>(
-            value: value,
-            child: Text(value.guideName ?? ''),
-          );
-        }).toList(),
-        onChanged: _handleOnGuideNameChange,
-        isLandscape: isLandscape,
-      );
-    }
-
-    return const SizedBox();
+    return Padding(
+      key: key,
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Icon(icon, size: 20),
+          for (final c in chips)
+            ChoiceChip(
+              label: Text(c.label),
+              selected: c.selected,
+              onSelected: (_) => c.onSelected(),
+            ),
+        ],
+      ),
+    );
   }
 }

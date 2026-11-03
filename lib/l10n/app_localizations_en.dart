@@ -194,16 +194,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loading => 'Loading...';
 
   @override
-  String get currentStreak => 'Current Streak';
+  String get currentStreak => 'Current streak';
 
   @override
-  String get longestStreak => 'Longest Streak';
+  String get longestStreak => 'Longest streak';
 
   @override
   String get consistencyScore => 'Consistency Score';
 
   @override
-  String get totalTracksCompleted => 'Total Tracks Completed';
+  String get totalTracksCompleted => 'Total tracks completed';
 
   @override
   String get totalTimeListened => 'Total Time Listened';
@@ -234,9 +234,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get goBack => 'Go Back';
-
-  @override
-  String get editStatsTitle => 'Edit stats';
 
   @override
   String get path => 'Path';
@@ -316,7 +313,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customization => 'Customisation';
 
   @override
-  String get customiseHomeLayout => 'Organize Home Layout';
+  String get customiseHomeLayout => 'Organize Home layout';
 
   @override
   String get helpLegal => 'Help & Legal';
@@ -436,7 +433,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Meditejo can\'t send reminders because notifications are switched off for the app in your phone\'s settings. You can switch them back on there.';
 
   @override
-  String get openSettings => 'Open Settings';
+  String get openSettings => 'Open settings';
 
   @override
   String get turnOnInSettings => 'Turn On in Settings';
@@ -484,7 +481,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get skip => 'Skip';
 
   @override
-  String get notNow => 'Not Now';
+  String get notNow => 'Not now';
 
   @override
   String get errorNoInternetMessage => 'No internet connection';
@@ -505,7 +502,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enableDndDuringMeditation => 'Silence phone during meditation';
 
   @override
-  String get zenMode => 'Zen Mode';
+  String get zenMode => 'Zen mode';
 
   @override
   String get zenModeEnabledMessage => 'Stats will be hidden throughout the app';
@@ -595,7 +592,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noResultsFound => 'No results found for your search';
 
   @override
-  String get consistencyScoreInfoTitle => 'Consistency Score';
+  String get consistencyScoreInfoTitle => 'Consistency score';
 
   @override
   String get consistencyScoreInfoMessage =>
@@ -620,7 +617,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customizationSection => 'Customisation';
 
   @override
-  String get addHomeScreenWidget => 'Add Home Screen Widget';
+  String get addHomeScreenWidget => 'Add Home screen widget';
 
   @override
   String get addWidgetSheetTitle => 'Add a Meditejo widget';
@@ -648,36 +645,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeTitle => 'Theme';
 
   @override
-  String get appIconTitle => 'App Icon';
-
-  @override
-  String get appIconNearBlack => 'Dark';
-
-  @override
-  String get appIconDusk => 'Dusk';
-
-  @override
-  String get appIconPurple => 'Purple';
-
-  @override
-  String get appIconClassic => 'Classic';
-
-  @override
-  String get appIconBlush => 'Blush';
-
-  @override
-  String get appIconOcean => 'Ocean';
-
-  @override
-  String get appIconForest => 'Forest';
-
-  @override
-  String get appIconPink => 'Golden';
-
-  @override
-  String get appIconChanged => 'Icon updated. Restarting…';
-
-  @override
   String get systemTheme => 'System';
 
   @override
@@ -690,7 +657,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get darkTheme => 'Dark';
 
   @override
-  String get selectTheme => 'Select Theme';
+  String get selectTheme => 'Select theme';
 
   @override
   String get dailyReminders => 'Daily Reminders';
@@ -1028,22 +995,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get manageDefaults => 'Manage Defaults';
 
   @override
-  String get defaultGuideName => 'Default Guide Name';
-
-  @override
-  String get defaultDuration => 'Default Duration';
-
-  @override
-  String get defaultGuideNameCleared => 'Default guide name cleared';
-
-  @override
-  String get notSet => 'Not set';
-
-  @override
-  String get defaultsNote =>
-      'These defaults are set from your last selection on any track. Home uses them to skip the selection screen when you continue a pack.';
-
-  @override
   String get streakFreezeUsed => 'Streak freeze used';
 
   @override
@@ -1099,9 +1050,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clearSearch => 'Clear search';
-
-  @override
-  String get clearDefault => 'Clear default guide';
 
   @override
   String get onboardingExperienceQuestion => 'Have you meditated before?';
@@ -1749,6 +1697,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String playForMinutes(int minutes) {
+    return 'Play · $minutes min';
+  }
+
+  @override
   String get importTitle => 'Add to your library';
 
   @override
@@ -2102,10 +2055,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get soundsDrift => 'Drift';
+  String get soundsSwell => 'Swell';
 
   @override
-  String get soundsDriftHint => 'Let the level rise and fall slowly';
+  String get soundsSwellHint => 'Rises and falls slowly';
+
+  @override
+  String get soundsClear => 'Clear';
+
+  @override
+  String get soundsMixCleared => 'Mix cleared';
 
   @override
   String get soundsPresets => 'Presets';
@@ -2827,4 +2786,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String labelsRemoveTooltip(String label) {
     return 'Remove label $label';
   }
+
+  @override
+  String get homeOpenCourse => 'Open course';
+
+  @override
+  String get homeRestart => 'Restart';
+
+  @override
+  String get homeRemoveFromContinue => 'Remove from Continue';
+
+  @override
+  String get homeUnpinned => 'Unpinned from Home';
+
+  @override
+  String get homeRemovedFromContinue => 'Removed from Continue';
+
+  @override
+  String homeCardMenu(String title) {
+    return 'More options for $title';
+  }
+
+  @override
+  String get settingsSessionHistory => 'Session history';
+
+  @override
+  String get updateAutoCheck => 'Check for updates automatically';
+
+  @override
+  String get updateAutoCheckDescription =>
+      'Asks GitHub once a day when Meditejo opens.';
 }

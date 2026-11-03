@@ -239,9 +239,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get goBack => 'Zurück';
 
   @override
-  String get editStatsTitle => 'Statistiken bearbeiten';
-
-  @override
   String get path => 'Pfad';
 
   @override
@@ -663,36 +660,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get themeTitle => 'Erscheinungsbild';
 
   @override
-  String get appIconTitle => 'App-Symbol';
-
-  @override
-  String get appIconNearBlack => 'Dunkel';
-
-  @override
-  String get appIconDusk => 'Abenddämmerung';
-
-  @override
-  String get appIconPurple => 'Violett';
-
-  @override
-  String get appIconClassic => 'Klassisch';
-
-  @override
-  String get appIconBlush => 'Rosé';
-
-  @override
-  String get appIconOcean => 'Ozean';
-
-  @override
-  String get appIconForest => 'Wald';
-
-  @override
-  String get appIconPink => 'Gold';
-
-  @override
-  String get appIconChanged => 'App-Symbol aktualisiert. Neustart...';
-
-  @override
   String get systemTheme => 'System';
 
   @override
@@ -1050,22 +1017,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get manageDefaults => 'Voreinstellungen verwalten';
 
   @override
-  String get defaultGuideName => 'Bevorzugte Stimme';
-
-  @override
-  String get defaultDuration => 'Bevorzugte Dauer';
-
-  @override
-  String get defaultGuideNameCleared => 'Bevorzugte Stimme zurückgesetzt';
-
-  @override
-  String get notSet => 'Nicht festgelegt';
-
-  @override
-  String get defaultsNote =>
-      'Diese Voreinstellungen entsprechen deiner letzten Auswahl bei einem Titel. Die Startseite verwendet sie, um den Auswahlbildschirm zu überspringen, wenn du ein Paket fortsetzt.';
-
-  @override
   String get streakFreezeUsed => 'Serienschutz eingesetzt';
 
   @override
@@ -1121,9 +1072,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get clearSearch => 'Suche leeren';
-
-  @override
-  String get clearDefault => 'Bevorzugte Stimme zurücksetzen';
 
   @override
   String get onboardingExperienceQuestion => 'Hast du schon einmal meditiert?';
@@ -1780,6 +1728,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String playForMinutes(int minutes) {
+    return 'Abspielen · $minutes Min.';
+  }
+
+  @override
   String get importTitle => 'Zu deiner Bibliothek hinzufügen';
 
   @override
@@ -2139,11 +2092,16 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get soundsDrift => 'Wandern';
+  String get soundsSwell => 'Anschwellen';
 
   @override
-  String get soundsDriftHint =>
-      'Die Lautstärke langsam an- und abschwellen lassen';
+  String get soundsSwellHint => 'Steigt und fällt langsam';
+
+  @override
+  String get soundsClear => 'Leeren';
+
+  @override
+  String get soundsMixCleared => 'Mix geleert';
 
   @override
   String get soundsPresets => 'Voreinstellungen';
@@ -2872,4 +2830,34 @@ class AppLocalizationsDe extends AppLocalizations {
   String labelsRemoveTooltip(String label) {
     return 'Label $label entfernen';
   }
+
+  @override
+  String get homeOpenCourse => 'Kurs öffnen';
+
+  @override
+  String get homeRestart => 'Neu starten';
+
+  @override
+  String get homeRemoveFromContinue => 'Aus „Weitermachen“ entfernen';
+
+  @override
+  String get homeUnpinned => 'Von Start gelöst';
+
+  @override
+  String get homeRemovedFromContinue => 'Aus „Weitermachen“ entfernt';
+
+  @override
+  String homeCardMenu(String title) {
+    return 'Weitere Optionen für $title';
+  }
+
+  @override
+  String get settingsSessionHistory => 'Verlauf der Sitzungen';
+
+  @override
+  String get updateAutoCheck => 'Automatisch nach Updates suchen';
+
+  @override
+  String get updateAutoCheckDescription =>
+      'Fragt beim Öffnen von Meditejo einmal täglich bei GitHub nach.';
 }

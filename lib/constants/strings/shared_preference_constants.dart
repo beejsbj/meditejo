@@ -32,17 +32,15 @@ class SharedPreferenceConstants {
   static const String reminderPromptSnoozeUntil =
       'reminder_prompt_snooze_until';
   static const String zenModeEnabled = 'zen_mode_enabled';
+  static const String autoUpdateCheckEnabled = 'auto_update_check_enabled';
   static const String consistencyScoreHistory = 'consistency_score_history';
   static const String upNextPackId = 'up_next_pack_id';
   static const String upNextReturnPackId = 'up_next_return_pack_id';
-  static const String lastMainTabIndex = 'last_main_tab_index';
-
-  /// Which tab bar wrote [lastMainTabIndex]: absent for Home · Explore ·
-  /// Search · Settings, 2 for Home · Explore · Library · Settings, 3 for
-  /// Home · Explore · Sounds · Library · You ([MainTab.layout]).
-  static const String mainTabLayout = 'main_tab_layout';
   static const String homeWidgetHidden = 'homeWidgetHidden';
   static const String pinnedCourseIds = 'pinned_course_ids';
+
+  /// Items taken off Home's Continue: `key|millis` each.
+  static const String continueDismissed = 'continue_dismissed';
 
   /// How the Library tab sorts and lays out what is kept.
   static const String librarySort = 'library_sort';

@@ -38,15 +38,6 @@ abstract class MeditoWidgetManager {
   bool pinWidget(String widgetType);
 }
 
-@HostApi()
-abstract class MeditoAppIconManager {
-  @async
-  String? getAlternateIconName();
-
-  @async
-  void setAlternateIconName(String? iconName);
-}
-
 enum HealthConnectStatus { available, notInstalled, notSupported }
 
 @HostApi()

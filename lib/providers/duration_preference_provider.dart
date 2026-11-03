@@ -22,10 +22,6 @@ class DurationPreferenceNotifier extends Notifier<int?> {
       sharedPreferences.remove(_durationPreferenceKey);
     }
   }
-
-  void clearDuration() {
-    setDuration(null);
-  }
 }
 
 final durationPreferenceProvider =

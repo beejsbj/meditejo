@@ -23,10 +23,6 @@ class GuideNamePreferenceNotifier extends Notifier<String?> {
       prefs.remove(SharedPreferenceConstants.lastSelectedGuideName);
     }
   }
-
-  void clearGuideName() {
-    setGuideName(null);
-  }
 }
 
 final guideNamePreferenceProvider =

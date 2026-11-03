@@ -445,13 +445,13 @@ abstract class AppLocalizations {
   /// No description provided for @currentStreak.
   ///
   /// In en, this message translates to:
-  /// **'Current Streak'**
+  /// **'Current streak'**
   String get currentStreak;
 
   /// No description provided for @longestStreak.
   ///
   /// In en, this message translates to:
-  /// **'Longest Streak'**
+  /// **'Longest streak'**
   String get longestStreak;
 
   /// No description provided for @consistencyScore.
@@ -463,7 +463,7 @@ abstract class AppLocalizations {
   /// No description provided for @totalTracksCompleted.
   ///
   /// In en, this message translates to:
-  /// **'Total Tracks Completed'**
+  /// **'Total tracks completed'**
   String get totalTracksCompleted;
 
   /// No description provided for @totalTimeListened.
@@ -525,12 +525,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go Back'**
   String get goBack;
-
-  /// No description provided for @editStatsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit stats'**
-  String get editStatsTitle;
 
   /// No description provided for @path.
   ///
@@ -679,7 +673,7 @@ abstract class AppLocalizations {
   /// No description provided for @customiseHomeLayout.
   ///
   /// In en, this message translates to:
-  /// **'Organize Home Layout'**
+  /// **'Organize Home layout'**
   String get customiseHomeLayout;
 
   /// No description provided for @helpLegal.
@@ -853,7 +847,7 @@ abstract class AppLocalizations {
   /// Button that opens the phone's settings app on the Meditejo page
   ///
   /// In en, this message translates to:
-  /// **'Open Settings'**
+  /// **'Open settings'**
   String get openSettings;
 
   /// Call to action replacing 'Turn on Daily reminders' when notification permission is permanently denied
@@ -943,7 +937,7 @@ abstract class AppLocalizations {
   /// No description provided for @notNow.
   ///
   /// In en, this message translates to:
-  /// **'Not Now'**
+  /// **'Not now'**
   String get notNow;
 
   /// No description provided for @errorNoInternetMessage.
@@ -985,7 +979,7 @@ abstract class AppLocalizations {
   /// Title for zen mode setting in customization section
   ///
   /// In en, this message translates to:
-  /// **'Zen Mode'**
+  /// **'Zen mode'**
   String get zenMode;
 
   /// Message shown when zen mode is enabled
@@ -1147,7 +1141,7 @@ abstract class AppLocalizations {
   /// No description provided for @consistencyScoreInfoTitle.
   ///
   /// In en, this message translates to:
-  /// **'Consistency Score'**
+  /// **'Consistency score'**
   String get consistencyScoreInfoTitle;
 
   /// No description provided for @consistencyScoreInfoMessage.
@@ -1195,7 +1189,7 @@ abstract class AppLocalizations {
   /// Title for adding home screen widget option in customization section
   ///
   /// In en, this message translates to:
-  /// **'Add Home Screen Widget'**
+  /// **'Add Home screen widget'**
   String get addHomeScreenWidget;
 
   /// Title of the iOS sheet explaining how to add a home screen widget
@@ -1240,66 +1234,6 @@ abstract class AppLocalizations {
   /// **'Theme'**
   String get themeTitle;
 
-  /// Title for app icon selection setting in customization section
-  ///
-  /// In en, this message translates to:
-  /// **'App Icon'**
-  String get appIconTitle;
-
-  /// Label for the near-black app icon option
-  ///
-  /// In en, this message translates to:
-  /// **'Dark'**
-  String get appIconNearBlack;
-
-  /// Label for the dusk gradient app icon option (now the default)
-  ///
-  /// In en, this message translates to:
-  /// **'Dusk'**
-  String get appIconDusk;
-
-  /// Label for the original purple app icon option
-  ///
-  /// In en, this message translates to:
-  /// **'Purple'**
-  String get appIconPurple;
-
-  /// Label for the classic app icon option (purple M on white)
-  ///
-  /// In en, this message translates to:
-  /// **'Classic'**
-  String get appIconClassic;
-
-  /// Label for the blush pink gradient app icon option
-  ///
-  /// In en, this message translates to:
-  /// **'Blush'**
-  String get appIconBlush;
-
-  /// Label for the ocean blue gradient app icon option
-  ///
-  /// In en, this message translates to:
-  /// **'Ocean'**
-  String get appIconOcean;
-
-  /// Label for the forest green gradient app icon option
-  ///
-  /// In en, this message translates to:
-  /// **'Forest'**
-  String get appIconForest;
-
-  /// Label for the pink-to-gold sunset gradient app icon option
-  ///
-  /// In en, this message translates to:
-  /// **'Golden'**
-  String get appIconPink;
-
-  /// Snackbar message shown on Android after changing the app icon
-  ///
-  /// In en, this message translates to:
-  /// **'Icon updated. Restarting…'**
-  String get appIconChanged;
-
   /// System theme option that follows device settings
   ///
   /// In en, this message translates to:
@@ -1327,7 +1261,7 @@ abstract class AppLocalizations {
   /// Dialog title for theme selection
   ///
   /// In en, this message translates to:
-  /// **'Select Theme'**
+  /// **'Select theme'**
   String get selectTheme;
 
   /// Label for the daily reminders opt-in card on the end screen
@@ -1912,36 +1846,6 @@ abstract class AppLocalizations {
   /// **'Manage Defaults'**
   String get manageDefaults;
 
-  /// Label for default guide name setting
-  ///
-  /// In en, this message translates to:
-  /// **'Default Guide Name'**
-  String get defaultGuideName;
-
-  /// Label for default duration setting
-  ///
-  /// In en, this message translates to:
-  /// **'Default Duration'**
-  String get defaultDuration;
-
-  /// Message shown when default guide name is cleared
-  ///
-  /// In en, this message translates to:
-  /// **'Default guide name cleared'**
-  String get defaultGuideNameCleared;
-
-  /// Text shown when a default value is not set
-  ///
-  /// In en, this message translates to:
-  /// **'Not set'**
-  String get notSet;
-
-  /// Note explaining how defaults work in Up Next
-  ///
-  /// In en, this message translates to:
-  /// **'These defaults are set from your last selection on any track. Home uses them to skip the selection screen when you continue a pack.'**
-  String get defaultsNote;
-
   /// Text shown when a streak freeze was used on a particular day
   ///
   /// In en, this message translates to:
@@ -2055,12 +1959,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear search'**
   String get clearSearch;
-
-  /// Accessibility label for the button that clears the saved default guide preference
-  ///
-  /// In en, this message translates to:
-  /// **'Clear default guide'**
-  String get clearDefault;
 
   /// Question on onboarding screen 1 — asking about the user's meditation experience
   ///
@@ -3130,6 +3028,12 @@ abstract class AppLocalizations {
   /// **'Resume at {position}'**
   String libraryResumeAt(String position);
 
+  /// Label of the track page's Play button, with the length in minutes
+  ///
+  /// In en, this message translates to:
+  /// **'Play · {minutes} min'**
+  String playForMinutes(int minutes);
+
   /// Title of the import screen
   ///
   /// In en, this message translates to:
@@ -3712,17 +3616,29 @@ abstract class AppLocalizations {
   /// **'Remove {sound}'**
   String soundsRemove(String sound);
 
-  /// Sounds screen: soundsDrift
+  /// Chip on a mix layer: lets its level rise and fall slowly
   ///
   /// In en, this message translates to:
-  /// **'Drift'**
-  String get soundsDrift;
+  /// **'Swell'**
+  String get soundsSwell;
 
-  /// Sounds screen: soundsDriftHint
+  /// Caption beside the Swell chip
   ///
   /// In en, this message translates to:
-  /// **'Let the level rise and fall slowly'**
-  String get soundsDriftHint;
+  /// **'Rises and falls slowly'**
+  String get soundsSwellHint;
+
+  /// Button in the open mix panel that takes every sound out of the mix
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get soundsClear;
+
+  /// Snackbar after Clear, with an Undo action
+  ///
+  /// In en, this message translates to:
+  /// **'Mix cleared'**
+  String get soundsMixCleared;
 
   /// Sounds screen: soundsPresets
   ///
@@ -5007,6 +4923,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove label {label}'**
   String labelsRemoveTooltip(String label);
+
+  /// Card menu action on a Home Continue card that opens the course page
+  ///
+  /// In en, this message translates to:
+  /// **'Open course'**
+  String get homeOpenCourse;
+
+  /// Card menu action on a Home Continue card that plays the session from 0:00
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get homeRestart;
+
+  /// Card menu action that takes an item off Home's Continue section
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from Continue'**
+  String get homeRemoveFromContinue;
+
+  /// Snackbar after unpinning a course from Home; offers Undo
+  ///
+  /// In en, this message translates to:
+  /// **'Unpinned from Home'**
+  String get homeUnpinned;
+
+  /// Snackbar after removing an item from Continue; offers Undo
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from Continue'**
+  String get homeRemovedFromContinue;
+
+  /// Tooltip and screen-reader label of the more-options button on a Home card
+  ///
+  /// In en, this message translates to:
+  /// **'More options for {title}'**
+  String homeCardMenu(String title);
+
+  /// Settings row that opens the History tab of Stats: the calendar where past sessions are added or edited
+  ///
+  /// In en, this message translates to:
+  /// **'Session history'**
+  String get settingsSessionHistory;
+
+  /// Switch in About: whether the app checks GitHub for a newer Meditejo when it opens
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates automatically'**
+  String get updateAutoCheck;
+
+  /// Caption under the automatic update check switch
+  ///
+  /// In en, this message translates to:
+  /// **'Asks GitHub once a day when Meditejo opens.'**
+  String get updateAutoCheckDescription;
 }
 
 class _AppLocalizationsDelegate

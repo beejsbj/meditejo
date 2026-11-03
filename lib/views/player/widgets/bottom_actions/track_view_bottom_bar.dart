@@ -50,7 +50,7 @@ class _TrackViewBottomBarState extends ConsumerState<TrackViewBottomBar> {
     final deepLink = 'meditejo://meditejo/tracks/${widget.trackId}';
     final shareText = AppLocalizations.of(
       context,
-    )!.shareTrackText(widget.trackTitle, deepLink);
+    )!.shareTrackText(deepLink, widget.trackTitle);
     SharePlus.instance.share(ShareParams(text: shareText));
   }
 
