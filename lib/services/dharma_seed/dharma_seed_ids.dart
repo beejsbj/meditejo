@@ -44,7 +44,8 @@ String dsTalkPageUrl(int talkId) => '$dharmaSeedSite/talks/$talkId/';
 
 String dsTeacherPageUrl(int teacherId) => '$dharmaSeedSite/teacher/$teacherId/';
 
-String dsRetreatPageUrl(int retreatId) => '$dharmaSeedSite/retreats/$retreatId/';
+String dsRetreatPageUrl(int retreatId) =>
+    '$dharmaSeedSite/retreats/$retreatId/';
 
 /// Teacher artwork, resized by Dharma Seed. Empty when the teacher has none.
 String dsTeacherPhotoUrl(int teacherId, String photo, {int maxWidth = 400}) {
@@ -61,8 +62,7 @@ bool dsHasPortraitCover(String id) =>
 
 /// The cover URL to draw for [id]: none for a retreat or talk, whose
 /// `coverUrl` is the lead teacher's photo (see [dsHasPortraitCover]).
-String dsCoverUrl(String id, String url) =>
-    dsHasPortraitCover(id) ? '' : url;
+String dsCoverUrl(String id, String url) => dsHasPortraitCover(id) ? '' : url;
 
 /// The two content groups of the Explore chips. Practice is what you do along
 /// with the audio; Talks is everything you listen to, including `Other` and
@@ -71,7 +71,11 @@ enum DsContentGroup { practice, talks }
 
 /// `recording_type` values (lower-cased) that count as practice. Keep in step
 /// with [DharmaSeedKind.isPractice]; the database filters on this list.
-const dsPracticeRecordingTypes = ['meditation', 'guided meditation', 'chanting'];
+const dsPracticeRecordingTypes = [
+  'meditation',
+  'guided meditation',
+  'chanting',
+];
 
 /// What a recording is, from Dharma Seed's `recording_type`.
 ///

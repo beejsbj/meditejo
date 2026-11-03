@@ -2102,10 +2102,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get soundsDrift => 'Drift';
+  String get soundsSwell => 'Swell';
 
   @override
-  String get soundsDriftHint => 'Let the level rise and fall slowly';
+  String get soundsSwellHint => 'Rises and falls slowly';
+
+  @override
+  String get soundsClear => 'Clear';
+
+  @override
+  String get soundsMixCleared => 'Mix cleared';
 
   @override
   String get soundsPresets => 'Presets';

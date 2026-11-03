@@ -100,6 +100,52 @@ void main() {
 
   SoundMix mix() => container.read(soundscapeProvider).mix;
 
+  testWidgets('Clear is in the open dock only; Undo restores the exact mix', (
+    tester,
+  ) async {
+    phone(tester);
+    await pump(tester);
+    final clear = find.byKey(const ValueKey('sounds_clear'));
+    expect(clear, findsNothing, reason: 'not on the docked bar');
+    await openMix(tester);
+    expect(clear, findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('sounds_mix_toggle')),
+      findsOneWidget,
+      reason: 'the chevron stays',
+    );
+
+    final controller = container.read(soundscapeProvider.notifier);
+    controller.setLayerVolume(starter.mix.layers.first.soundId, 0.37);
+    controller.setLayerAnimate(starter.mix.layers.first.soundId, true);
+    await tester.pumpAndSettle();
+    controller.togglePlay();
+    await tester.pumpAndSettle();
+    expect(container.read(soundscapeProvider).playing, isTrue);
+    final before = mix();
+    expect(before.isEmpty, isFalse);
+
+    await tester.tap(clear);
+    await tester.pumpAndSettle();
+    expect(mix().isEmpty, isTrue);
+    expect(container.read(soundscapeProvider).active, isFalse);
+    expect(find.text('Mix cleared'), findsOneWidget);
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(mix().layers, before.layers);
+    expect(container.read(soundscapeProvider).playing, isTrue);
+  });
+
+  testWidgets('a layer says what Swell does, beside its chip', (tester) async {
+    phone(tester);
+    await pump(tester);
+    await openMix(tester);
+    expect(find.text('Swell'), findsWidgets);
+    expect(find.text('Rises and falls slowly'), findsWidgets);
+    expect(find.text('Drift'), findsNothing);
+  });
+
   testWidgets('presets, the library as cards, and the mix in the dock', (
     tester,
   ) async {
@@ -292,10 +338,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(mix().layer(id)!.volume, dragged, reason: 'back to its level');
 
-    final drift = mix().layer(id)!.animate;
-    await tester.tap(find.byKey(ValueKey('drift_$id')));
+    final swell = mix().layer(id)!.animate;
+    await tester.tap(find.byKey(ValueKey('swell_$id')));
     await tester.pumpAndSettle();
-    expect(mix().layer(id)!.animate, !drift);
+    expect(mix().layer(id)!.animate, !swell);
 
     await tester.tap(find.byKey(ValueKey('remove_$id')));
     await tester.pumpAndSettle();

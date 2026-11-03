@@ -37,13 +37,11 @@ class ThemeNotifier extends Notifier<ThemeMode> {
     // Save theme preference to widget when loading. Pass the theme actually
     // in use: with nothing saved the app is dark, and the widget would
     // otherwise follow the system.
-    HomeWidgetService.saveThemePreference(
-      switch (themeMode) {
-        ThemeMode.light => 'light',
-        ThemeMode.dark => 'dark',
-        ThemeMode.system => 'system',
-      },
-    );
+    HomeWidgetService.saveThemePreference(switch (themeMode) {
+      ThemeMode.light => 'light',
+      ThemeMode.dark => 'dark',
+      ThemeMode.system => 'system',
+    });
 
     return themeMode;
   }

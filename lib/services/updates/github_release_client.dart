@@ -40,7 +40,9 @@ class GithubReleaseClient {
   }) : _http = httpClient ?? http.Client(),
        latestUri =
            latestUri ??
-           Uri.parse('https://api.github.com/repos/$kReleaseRepo/releases/latest');
+           Uri.parse(
+             'https://api.github.com/repos/$kReleaseRepo/releases/latest',
+           );
 
   static const userAgent =
       'Meditejo (personal meditation app; +https://github.com/$kReleaseRepo)';
@@ -81,7 +83,8 @@ class GithubReleaseClient {
     try {
       final listing = ReleaseListing.fromApi(_json(response));
       final manifestUrl = listing.manifestUrl;
-      if (manifestUrl == null || !manifestUrl.startsWith(kReleaseDownloadPrefix)) {
+      if (manifestUrl == null ||
+          !manifestUrl.startsWith(kReleaseDownloadPrefix)) {
         throw const FormatException('The release has no update manifest');
       }
       final manifest = await _get(Uri.parse(manifestUrl), {

@@ -331,6 +331,13 @@ class SoundscapeController extends Notifier<SoundscapeState> {
 
   void clearMix() => _editMix(SoundMix.empty);
 
+  /// Puts back a mix [clearMix] took away (Undo), layer for layer, and plays
+  /// it again if it was playing.
+  void restoreMix(SoundMix mix, {bool play = false}) {
+    if (mix.isEmpty) return;
+    _editMix(mix, start: play);
+  }
+
   /// Master volume. Under a session it is that session kind's level.
   void setVolume(double volume) {
     final kind = state.sessionKind;

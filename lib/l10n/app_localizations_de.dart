@@ -2139,11 +2139,16 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get soundsDrift => 'Wandern';
+  String get soundsSwell => 'Anschwellen';
 
   @override
-  String get soundsDriftHint =>
-      'Die Lautstärke langsam an- und abschwellen lassen';
+  String get soundsSwellHint => 'Steigt und fällt langsam';
+
+  @override
+  String get soundsClear => 'Leeren';
+
+  @override
+  String get soundsMixCleared => 'Mix geleert';
 
   @override
   String get soundsPresets => 'Voreinstellungen';
