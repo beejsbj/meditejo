@@ -723,6 +723,44 @@ void main() {
       await _captureView(tester, 'track-one-option-${brightness.name}');
     }, skip: !_enabled);
 
+    // A YouTube-style track: a channel name as its subtitle, no guide, so the
+    // length is only on Play (#84).
+    testWidgets('Track page, youtube style, ${brightness.name}', (
+      tester,
+    ) async {
+      WidgetsApp.debugAllowBannerOverride = false;
+      addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
+      const track = Track(
+        id: 'yt-video-1',
+        title: 'Meditating with John Vervaeke: Day 1 - Mindfulness',
+        subtitle: 'John Vervaeke',
+        description: '',
+        coverUrl: '',
+        isPublished: true,
+        hasBackgroundSound: false,
+        voices: [
+          TrackVoice(
+            audioFiles: [
+              TrackAudioFile(id: 'yt1', path: 'yt1', duration: 44 * 60000),
+            ],
+          ),
+        ],
+      );
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(
+        tester,
+        _frame(brightness, const TrackView(trackId: 'yt-video-1')),
+        overrides: [
+          tracksProvider(
+            trackId: 'yt-video-1',
+          ).overrideWith(() => _FakeTracks(track)),
+        ],
+      );
+      await _phone(tester);
+      expect(tester.takeException(), isNull);
+      await _captureView(tester, 'track-youtube-style-${brightness.name}');
+    }, skip: !_enabled);
+
     testWidgets('Add to playlist sheet, ${brightness.name}', (tester) async {
       final app = await LibraryTestApp.create(tester);
       final (source, _) = await seedPlaylists(tester, app);

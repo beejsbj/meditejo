@@ -226,6 +226,9 @@ class _TrackViewState extends ConsumerState<TrackView>
     // (near-black accent) with a white icon for light mode.
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final resume = _resumeIn(track, activeFile);
+    final l10n = AppLocalizations.of(context)!;
+    // "Play · 44 min": the length, unless it is unknown.
+    final minutes = convertDurationToMinutes(milliseconds: activeFile.duration);
     return SizedBox(
       height: 56,
       width: isFullWidth ? double.infinity : null,
@@ -245,7 +248,7 @@ class _TrackViewState extends ConsumerState<TrackView>
               ? ColorConstants.black
               : Theme.of(context).colorScheme.onPrimary,
         ),
-        child: resume == null
+        child: resume == null && minutes <= 0
             ? Icon(
                 Icons.play_arrow_rounded,
                 size: 32,
@@ -257,9 +260,9 @@ class _TrackViewState extends ConsumerState<TrackView>
                   const Icon(Icons.play_arrow_rounded, size: 32),
                   const SizedBox(width: 8),
                   Text(
-                    AppLocalizations.of(
-                      context,
-                    )!.libraryResumeAt(formatClock(resume.positionMs)),
+                    resume == null
+                        ? l10n.playForMinutes(minutes)
+                        : l10n.libraryResumeAt(formatClock(resume.positionMs)),
                   ),
                 ],
               ),
@@ -394,7 +397,7 @@ class _TrackViewState extends ConsumerState<TrackView>
             for (final v in guides)
               (
                 label: v.guideName!,
-                selected: identical(v, activeVoice) || v == activeVoice,
+                selected: v == activeVoice,
                 onSelected: () => _handleOnGuideNameChange(v),
               ),
           ],

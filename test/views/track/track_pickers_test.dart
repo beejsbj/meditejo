@@ -46,8 +46,16 @@ const _guideChips = ValueKey('track_guide_chips');
 const _lengthChips = ValueKey('track_length_chips');
 
 void main() {
-  Future<void> pumpTrack(WidgetTester tester, Track track) async {
+  Future<LibraryTestApp> pumpTrack(
+    WidgetTester tester,
+    Track track, {
+    Map<String, Object> prefs = const {},
+  }) async {
     final app = await LibraryTestApp.create(tester);
+    for (final MapEntry(:key, :value) in prefs.entries) {
+      if (value is int) await app.prefs.setInt(key, value);
+      if (value is String) await app.prefs.setString(key, value);
+    }
     await app.pump(
       tester,
       const TrackView(trackId: 'tr'),
@@ -55,6 +63,7 @@ void main() {
         tracksProvider(trackId: 'tr').overrideWith(() => _FakeTracks(track)),
       ],
     );
+    return app;
   }
 
   ProviderContainer containerOf(WidgetTester tester) =>
@@ -118,8 +127,65 @@ void main() {
         isTrue,
       );
     });
+
+    testWidgets('a remembered guide that is not offered falls back to the '
+        'first voice and is not overwritten', (tester) async {
+      final app = await pumpTrack(
+        tester,
+        _several,
+        prefs: {
+          'lastSelectedGuideName': 'Nobody',
+          'meditation_duration_preference': 20 * 60000,
+        },
+      );
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.widgetWithText(ChoiceChip, 'Ajahn Sucitto'),
+            )
+            .selected,
+        isTrue,
+      );
+      // The length closest to the remembered one in that voice is selected.
+      expect(
+        tester
+            .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '20 min'))
+            .selected,
+        isTrue,
+      );
+      // Showing the fallback saves nothing.
+      expect(app.prefs.getString('lastSelectedGuideName'), 'Nobody');
+      expect(app.prefs.getInt('meditation_duration_preference'), 20 * 60000);
+    });
+
+    testWidgets('a track with a name only (YouTube or imported) shows its '
+        'length on Play', (tester) async {
+      await pumpTrack(
+        tester,
+        _track([
+          TrackVoice(audioFiles: [_file('yt', 44)]),
+        ]),
+      );
+      expect(find.byKey(_guideChips), findsNothing);
+      expect(find.byKey(_lengthChips), findsNothing);
+      expect(find.text('Play · 44 min'), findsOneWidget);
+    });
+
+    testWidgets('Play shows no length when it is unknown', (tester) async {
+      await pumpTrack(
+        tester,
+        _track([
+          TrackVoice(audioFiles: [_file('yt', 0)]),
+        ]),
+      );
+      expect(find.textContaining('Play ·'), findsNothing);
+      expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+    });
   });
 
+  // Tests that open the player leak Riverpod state into the next test in the
+  // same file, so only one may run here, and it must stay last. Others go in
+  // their own file.
   group('starting with a single option', () {
     testWidgets('the Play button uses the only guide and length', (
       tester,
