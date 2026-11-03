@@ -15,7 +15,7 @@ class FilterOption<T> {
 /// the Library's kinds, Explore's Practice and Talks, search's talk lengths.
 /// With [allowDeselect], tapping the chosen chip again clears the choice
 /// (null).
-class FilterChipBar<T> extends StatelessWidget {
+class FilterChipBar<T> extends StatefulWidget {
   const FilterChipBar({
     super.key,
     required this.options,
@@ -34,29 +34,103 @@ class FilterChipBar<T> extends StatelessWidget {
   final EdgeInsets padding;
 
   @override
+  State<FilterChipBar<T>> createState() => _FilterChipBarState<T>();
+}
+
+/// How wide the edge fade is, in dp.
+const _kFadeWidth = 48.0;
+
+class _FilterChipBarState<T> extends State<FilterChipBar<T>> {
+  // Whether there is more to scroll to before / after what is showing. The
+  // row fades out at an edge with more behind it, so a chip cut off there
+  // reads as "scrolls on" rather than as clipped.
+  bool _moreBefore = false;
+  bool _moreAfter = false;
+  bool _frameUpdateScheduled = false;
+  bool _pendingMoreBefore = false;
+  bool _pendingMoreAfter = false;
+
+  bool _update(ScrollMetrics metrics) {
+    _pendingMoreBefore = metrics.extentBefore > 1;
+    _pendingMoreAfter = metrics.extentAfter > 1;
+    if (!_frameUpdateScheduled &&
+        (_pendingMoreBefore != _moreBefore ||
+            _pendingMoreAfter != _moreAfter)) {
+      _frameUpdateScheduled = true;
+      // Metrics arrive during layout, so the rebuild waits for the frame, and
+      // then applies the latest state rather than the one that queued it.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _frameUpdateScheduled = false;
+        if (mounted &&
+            (_moreBefore != _pendingMoreBefore ||
+                _moreAfter != _pendingMoreAfter)) {
+          setState(() {
+            _moreBefore = _pendingMoreBefore;
+            _moreAfter = _pendingMoreAfter;
+          });
+        }
+      });
+      WidgetsBinding.instance.ensureVisualUpdate();
+    }
+    return false;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    final (moreLeft, moreRight) = rtl
+        ? (_moreAfter, _moreBefore)
+        : (_moreBefore, _moreAfter);
     return Semantics(
       container: true,
-      label: semanticsLabel,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: padding,
-        child: Row(
-          children: [
-            for (final (i, option) in options.indexed) ...[
-              if (i > 0) const SizedBox(width: 8),
-              ChoiceChip(
-                key: option.key,
-                label: Text(option.label),
-                selected: option.value == selected,
-                onSelected: (_) => onSelected(
-                  option.value == selected && allowDeselect
-                      ? null
-                      : option.value,
+      label: widget.semanticsLabel,
+      child: NotificationListener<ScrollMetricsNotification>(
+        onNotification: (n) => _update(n.metrics),
+        child: NotificationListener<ScrollNotification>(
+          onNotification: (n) => _update(n.metrics),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final fade = constraints.maxWidth.isFinite
+                  ? (_kFadeWidth / constraints.maxWidth).clamp(0.0, 0.5)
+                  : 0.0;
+              final scroller = SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: widget.padding,
+                child: Row(
+                  children: [
+                    for (final (i, option) in widget.options.indexed) ...[
+                      if (i > 0) const SizedBox(width: 8),
+                      ChoiceChip(
+                        key: option.key,
+                        label: Text(option.label),
+                        selected: option.value == widget.selected,
+                        onSelected: (_) => widget.onSelected(
+                          option.value == widget.selected &&
+                                  widget.allowDeselect
+                              ? null
+                              : option.value,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-              ),
-            ],
-          ],
+              );
+              if (!moreLeft && !moreRight) return scroller;
+              return ShaderMask(
+                blendMode: BlendMode.dstIn,
+                shaderCallback: (rect) => LinearGradient(
+                  colors: const [
+                    Color(0x00FFFFFF),
+                    Color(0xFFFFFFFF),
+                    Color(0xFFFFFFFF),
+                    Color(0x00FFFFFF),
+                  ],
+                  stops: [0, moreLeft ? fade : 0, moreRight ? 1 - fade : 1, 1],
+                ).createShader(rect),
+                child: scroller,
+              );
+            },
+          ),
         ),
       ),
     );
