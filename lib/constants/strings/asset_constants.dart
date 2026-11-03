@@ -38,7 +38,6 @@ class AssetConstants {
   static const String iconFire = 'assets/images/fire-flame.svg';
   static const String iconForward15 = 'assets/images/forward15-seconds.svg';
   static const String iconGraphUp = 'assets/images/graph-up.svg';
-  static const String iconHeart = 'assets/images/heart-solid.svg';
   static const String iconHelpCircle = 'assets/images/help-circle.svg';
   static const String iconHome = 'assets/images/home-simple-door.svg';
   static const String iconHourglass = 'assets/images/hourglass.svg';

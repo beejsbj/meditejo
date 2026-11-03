@@ -28,7 +28,6 @@ const _allIcons = <String, String>{
   'fire': MeditoIcons.fire,
   'forward15': MeditoIcons.forward15,
   'graphUp': MeditoIcons.graphUp,
-  'heart': MeditoIcons.heart,
   'health': MeditoIcons.health,
   'help': MeditoIcons.help,
   'home': MeditoIcons.home,
@@ -93,7 +92,7 @@ Widget singleMeditoIcon(BuildContext context) {
   final name = context.knobs.object.dropdown(
     label: 'Icon',
     options: _allIcons.keys.toList(),
-    initialOption: 'heart',
+    initialOption: 'home',
   );
   final size = context.knobs.double.slider(
     label: 'Size',

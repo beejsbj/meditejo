@@ -127,7 +127,9 @@ List<ItemAction> itemActionsFor(
     ItemAction.addToPlaylist,
     if (mine) ItemAction.edit,
     if (isCourse) ItemAction.duplicate,
-    if (isCourse && inLibrary) ItemAction.pin,
+    // Anything in the Library can go on Home: a course, a playlist or a
+    // single session (#79).
+    if (inLibrary) ItemAction.pin,
     if (!inLibrary && canSave) ItemAction.save,
     if (!isCourse && spec.playable && downloadable && !downloaded)
       ItemAction.download,
@@ -360,7 +362,7 @@ Future<void> _run(
         title: entry?.displayTitle ?? spec.title,
       );
     case ItemAction.pin:
-      return togglePinnedCourse(context, ref, id);
+      return togglePin(context, ref, id, session: !spec.isCourse);
     case ItemAction.save:
       return _save(context, ref, id);
     case ItemAction.download:

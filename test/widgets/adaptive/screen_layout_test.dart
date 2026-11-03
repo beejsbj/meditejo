@@ -11,8 +11,6 @@ import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/track/track_view.dart';
 import 'package:medito/views/end_screen/end_screen_view.dart';
 import 'package:medito/providers/meditation/track_provider.dart';
-import 'package:medito/providers/favorites/favorites_provider.dart';
-import 'package:medito/models/favorites/favorite_item.dart';
 import 'package:medito/models/explore/explore_list_item.dart';
 import 'package:medito/models/track/track.dart' as model;
 import 'package:medito/views/settings/settings_screen.dart';
@@ -157,11 +155,6 @@ class _JourneyTracks extends Tracks {
       ),
     ],
   );
-}
-
-class _JourneyFavorites extends FavoritesNotifier {
-  @override
-  Future<List<FavoriteItem>> build() async => [];
 }
 
 void main() {
@@ -810,7 +803,6 @@ void main() {
                 tracksProvider(
                   trackId: 'preview',
                 ).overrideWith(_JourneyTracks.new),
-                favoritesNotifierProvider.overrideWith(_JourneyFavorites.new),
                 statsProvider.overrideWith(_OnboardingStats.new),
               ],
               child: RepaintBoundary(

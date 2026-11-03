@@ -39,7 +39,7 @@ typedef SettingsRow = Widget Function(bool last);
 /// Every setting, grouped by what a person is trying to do: Practice, Sounds
 /// & cues, Library & downloads, Appearance, Notifications & reminders, and
 /// About, which holds the version and Check for updates. Stats, session
-/// history and favourites are on the You page, not here.
+/// history and pins are on the You page, not here.
 ///
 /// Not a screen: the Settings tab ([SettingsScreen]) puts it in its own
 /// scroll view. When an update is waiting, About moves to the top.
@@ -324,7 +324,7 @@ class _AboutLinks extends StatelessWidget {
         ),
         RowItemWidget(
           key: const ValueKey('about_upstream'),
-          icon: Icon(Icons.favorite_border_rounded, color: onSurface),
+          icon: Icon(Icons.public_rounded, color: onSurface),
           title: l10n.upstreamProject,
           subTitle: 'Medito Foundation',
           isTrailingIcon: false,

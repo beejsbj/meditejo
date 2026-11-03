@@ -578,29 +578,7 @@ class AppLocalizationsDe extends AppLocalizations {
       '\"Medito hat mir durch eine sehr schwere Zeit in meinem Leben geholfen\" – eine Person, die mit Medito meditiert';
 
   @override
-  String get favorites => 'Favoriten';
-
-  @override
-  String get noFavoriteTracksYet => 'Noch keine favorisierten Titel';
-
-  @override
-  String get noFavoritePacksYet => 'Noch keine favorisierten Pakete';
-
-  @override
-  String get noFavoritesYet => 'Noch keine Favoriten';
-
-  @override
-  String get addItemsToFavoritesMessage =>
-      'Füge Favoriten hinzu, damit sie hier angezeigt werden.';
-
-  @override
-  String get all => 'Alle';
-
-  @override
   String get tracks => 'Titel';
-
-  @override
-  String get packs => 'Pakete';
 
   @override
   String get noResultsFound => 'Keine Ergebnisse für deine Suche gefunden';
@@ -1093,18 +1071,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get onboardingResultCta => 'Loslegen';
 
   @override
-  String get addToFavorites => 'Zu Favoriten hinzufügen';
-
-  @override
-  String get addedToFavorites => 'Zu Favoriten hinzugefügt';
-
-  @override
-  String get removedFromFavorites => 'Aus Favoriten entfernt';
-
-  @override
-  String get removeFromFavorites => 'Aus Favoriten entfernen';
-
-  @override
   String get openPack => 'Paket öffnen';
 
   @override
@@ -1309,7 +1275,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get localIntroDeviceOnlyNote =>
-      'Dein Praxisverlauf, deine Favoriten und deine Einstellungen bleiben auf diesem Gerät.';
+      'Dein Praxisverlauf, deine angehefteten Inhalte und deine Einstellungen bleiben auf diesem Gerät.';
 
   @override
   String get aboutMeditejo => 'Über Meditejo';
@@ -2068,11 +2034,25 @@ class AppLocalizationsDe extends AppLocalizations {
       'Der Status „gehört“ konnte nicht geändert werden. Bitte versuche es erneut.';
 
   @override
-  String get pinnedLimitReached =>
-      'Auf Start passen bis zu drei angeheftete Kurse oder Playlists. Löse zuerst eins davon.';
+  String get pinnedCourseAdded => 'An Start angeheftet';
 
   @override
-  String get pinnedCourseAdded => 'An Start angeheftet';
+  String pinnedSeeAll(int count) {
+    return 'Alle $count anzeigen';
+  }
+
+  @override
+  String get pinnedUnderSeeAll => 'An Start angeheftet, unter „Alle anzeigen“';
+
+  @override
+  String get pinnedEmpty => 'Noch nichts angeheftet';
+
+  @override
+  String get pinnedEmptyHint =>
+      'Hefte einen Kurs oder eine Sitzung auf ihrer Seite an, um sie auf Start zu behalten.';
+
+  @override
+  String get pinnedUnavailable => 'Nicht verfügbar';
 
   @override
   String get statsFeedbackNote =>

@@ -44,7 +44,7 @@ CardProgress? libraryProgress(
   return CardProgress.of(p.done, p.total, l10n.upNextProgress(p.done, p.total));
 }
 
-/// A mark on a course pinned to Home.
+/// A mark on a course or session pinned to Home.
 class _PinMark extends StatelessWidget {
   const _PinMark({this.disc = false});
 
@@ -137,7 +137,11 @@ class LibraryEntryTile extends ConsumerWidget {
               .watch(downloadedTrackIdsProvider)
               .contains(entry.sourceId),
           onTap: open,
-          trailing: [menu],
+          trailing: [
+            if (ref.watch(pinnedCoursesProvider).contains(entry.sourceId))
+              const _PinMark(),
+            menu,
+          ],
         );
       case LibraryKind.teacher:
         return TeacherRow(

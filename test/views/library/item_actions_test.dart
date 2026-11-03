@@ -182,6 +182,23 @@ void main() {
       expect(actions, isNot(contains(ItemAction.save)));
     });
 
+    test('a session in the Library can be pinned; one outside cannot', () {
+      expect(
+        itemActionsFor(
+          ItemActionsSpec(id: 'ds-talk-1', entry: entry('ds-talk-1')),
+        ),
+        contains(ItemAction.pin),
+      );
+      expect(
+        itemActionsFor(const ItemActionsSpec(id: 'ds-talk-1'), saved: true),
+        contains(ItemAction.pin),
+      );
+      expect(
+        itemActionsFor(const ItemActionsSpec(id: 'ds-talk-1'), canSave: true),
+        isNot(contains(ItemAction.pin)),
+      );
+    });
+
     test('a teacher entry can only be removed', () {
       final actions = itemActionsFor(
         ItemActionsSpec(
@@ -249,7 +266,7 @@ void main() {
           'Share',
         ]),
       );
-      // The owner removed Favourites; Pin is for courses only.
+      // The owner removed Favourites; Pin is for what is in the Library.
       expect(items.any((t) => t.contains('avourite')), isFalse);
       expect(items, isNot(contains('Pin to Home')));
       expect(find.byIcon(Icons.favorite_border), findsNothing);
