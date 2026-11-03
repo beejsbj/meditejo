@@ -405,6 +405,8 @@ abstract final class ArtMap {
         : {
             for (final g in m.grounds)
               for (final f in m.figures) (name(g)!, name(f)),
+            // The figure library's pairs, each on its own ground.
+            for (final (g, f) in m.library) (name(g)!, name(f)),
           };
     return (pairs: pairs, accents: {for (final a in m.accents) name(a)});
   }
