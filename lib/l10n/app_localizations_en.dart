@@ -2078,6 +2078,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get soundsChooserEmpty => 'Off. Tap a sound or a preset to choose it.';
 
   @override
+  String get soundsChooserOvertaken =>
+      'The session changed, so the sound was left as it was.';
+
+  @override
   String get soundsCredits => 'Sound credits';
 
   @override

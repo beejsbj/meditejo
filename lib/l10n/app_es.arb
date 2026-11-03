@@ -918,6 +918,7 @@
   "soundsPlaysUnderTalks": "Suena en las charlas",
   "soundsDone": "Listo",
   "soundsChooserEmpty": "Apagado. Toca un sonido o un preajuste para elegirlo.",
+  "soundsChooserOvertaken": "La sesión cambió, así que el sonido se quedó como estaba.",
   "soundsCredits": "Créditos de sonido",
   "soundsNotificationText": "Sonando tu mezcla",
   "soundCategoryRain": "Lluvia",

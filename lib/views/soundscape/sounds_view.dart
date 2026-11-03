@@ -102,6 +102,29 @@ class SoundsViewState extends ConsumerState<SoundsView>
     super.dispose();
   }
 
+  /// Set once the drawer has started to leave because a session overtook it.
+  bool _leaving = false;
+
+  /// In the drawer: a session that started or ended under it (the sit
+  /// ended, autoplay moved on) owns the mixer, and what the drawer would
+  /// edit is no longer its draft. It leaves rather than go on as the
+  /// Sounds tab's own mix. [showSoundDrawer] says so as it closes.
+  void _leaveIfOvertaken() {
+    final mixer = ref.read(soundscapeProvider.notifier);
+    if (_leaving || !mixer.auditioning || mixer.auditionIntact) return;
+    _leaving = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      final navigator = Navigator.of(context);
+      if (route == null || !route.isActive) return;
+      // Anything opened over the drawer (a synth editor, the preset name)
+      // goes with it.
+      navigator.popUntil((r) => r == route);
+      navigator.pop();
+    });
+  }
+
   /// Folds an open mix panel. True when there was one to fold, so Android's
   /// back is spent on it.
   bool collapseMix() {
@@ -155,7 +178,13 @@ class SoundsViewState extends ConsumerState<SoundsView>
   /// the user's text size) and the safe area beneath.
   double _barHeight(BuildContext context) =>
       20 +
-      math.max(56, MediaQuery.textScalerOf(context).scale(44)) +
+      math.max(
+        56,
+        // The drawer's title ("Plays under practice") may take two lines.
+        MediaQuery.textScalerOf(
+          context,
+        ).scale(widget.chooser == null ? 44 : 72),
+      ) +
       16 +
       MediaQuery.paddingOf(context).bottom;
 
@@ -163,6 +192,9 @@ class SoundsViewState extends ConsumerState<SoundsView>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final chooser = widget.chooser;
+    if (chooser != null) {
+      ref.listen(soundscapeProvider, (_, _) => _leaveIfOvertaken());
+    }
     final page = Scaffold(
       // A drawer takes the sheet's colour.
       backgroundColor: chooser == null ? null : Colors.transparent,

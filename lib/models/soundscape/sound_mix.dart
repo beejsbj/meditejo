@@ -258,12 +258,14 @@ class SoundscapeSelection {
     if (v.startsWith('sound:') && v.length > 6) {
       return SoundscapeSelection.sound(v.substring(6));
     }
+    // A damaged mix of its own is silence: falling back to the current mix
+    // would play something that was never chosen.
     if (v.startsWith('layers:')) {
       try {
         final mix = SoundMix.fromJson(jsonDecode(v.substring(7)));
         return mix.isEmpty ? none : SoundscapeSelection.layers(mix);
       } on FormatException {
-        return null;
+        return none;
       }
     }
     return null;

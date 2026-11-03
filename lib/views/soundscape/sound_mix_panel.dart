@@ -168,7 +168,9 @@ class SoundsMixHeader extends ConsumerWidget {
                     l10n.soundsPlaysUnderPractice,
                   SoundscapeSessionKind.talks => l10n.soundsPlaysUnderTalks,
                 },
-                maxLines: 1,
+                // The drawer's longer title wraps rather than cut ("Läuft
+                // bei Übungen" at 360 dp with large text).
+                maxLines: chooser == null ? 1 : 2,
                 overflow: TextOverflow.ellipsis,
                 style: type.emphasized.titleMedium,
               ),

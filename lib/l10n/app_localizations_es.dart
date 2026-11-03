@@ -2118,6 +2118,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Apagado. Toca un sonido o un preajuste para elegirlo.';
 
   @override
+  String get soundsChooserOvertaken =>
+      'La sesión cambió, así que el sonido se quedó como estaba.';
+
+  @override
   String get soundsCredits => 'Créditos de sonido';
 
   @override

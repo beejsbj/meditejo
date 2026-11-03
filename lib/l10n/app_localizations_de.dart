@@ -2113,6 +2113,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Aus. Tippe auf einen Klang oder eine Voreinstellung.';
 
   @override
+  String get soundsChooserOvertaken =>
+      'Die Sitzung hat sich geändert, der Klang bleibt wie er war.';
+
+  @override
   String get soundsCredits => 'Geräusch-Nachweise';
 
   @override

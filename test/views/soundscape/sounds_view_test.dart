@@ -727,6 +727,113 @@ void main() {
       );
     });
 
+    testWidgets('a session that starts while the drawer is open closes it, '
+        'and nothing is kept', (tester) async {
+      phone(tester);
+      await pump(tester);
+      await open(tester, SoundscapeSessionKind.practice);
+      await tapPreset(tester, 'starter-night');
+      expect(find.byType(SoundsView), findsNWidgets(2));
+
+      // Autoplay moves on, or a sit starts elsewhere.
+      await container
+          .read(soundscapeProvider.notifier)
+          .startSession(SoundscapeSessionKind.talks);
+      await tester.pumpAndSettle();
+      expect(find.byType(SoundsView), findsOneWidget, reason: 'it left');
+      expect(
+        find.text('The session changed, so the sound was left as it was.'),
+        findsOneWidget,
+      );
+      expect(setting(SoundscapeSessionKind.practice).enabled, isFalse);
+      expect(
+        container.read(soundscapeProvider).sessionKind,
+        SoundscapeSessionKind.talks,
+        reason: 'the session owns the mixer',
+      );
+    });
+
+    testWidgets('a session that ends while the drawer is open closes it too', (
+      tester,
+    ) async {
+      phone(tester);
+      await pump(tester);
+      final mixer = container.read(soundscapeProvider.notifier);
+      mixer.setSessionDefault(
+        SoundscapeSessionKind.practice,
+        const SoundscapeSessionDefault(enabled: true),
+      );
+      await mixer.startSession(SoundscapeSessionKind.practice);
+      await tester.pumpAndSettle();
+      await open(tester, SoundscapeSessionKind.practice);
+      await tapCard(tester, kSynthNoiseId);
+
+      mixer.endSession();
+      await tester.pumpAndSettle();
+      expect(find.byType(SoundsView), findsOneWidget);
+      // The tab's own mix, silent; the noise was never kept anywhere.
+      expect(mix(), starter.mix);
+      expect(container.read(soundscapeProvider).active, isFalse);
+      expect(
+        setting(SoundscapeSessionKind.practice).selection,
+        SoundscapeSelection.currentMix,
+      );
+    });
+
+    testWidgets('chosen during a sit of that kind, it plays on under it', (
+      tester,
+    ) async {
+      phone(tester);
+      await pump(tester);
+      final mixer = container.read(soundscapeProvider.notifier);
+      mixer.setSessionDefault(
+        SoundscapeSessionKind.practice,
+        const SoundscapeSessionDefault(enabled: true),
+      );
+      await mixer.startSession(SoundscapeSessionKind.practice);
+      await tester.pumpAndSettle();
+
+      await open(tester, SoundscapeSessionKind.practice);
+      await tapPreset(tester, 'starter-night');
+      final night = container.read(soundscapeProvider).mix;
+      await done(tester);
+      final state = container.read(soundscapeProvider);
+      expect(state.owner, SoundscapeOwner.session);
+      expect(state.mix, night, reason: 'the new choice, under the sit');
+      expect(
+        setting(SoundscapeSessionKind.practice).selection,
+        const SoundscapeSelection.preset('starter-night'),
+      );
+    });
+
+    testWidgets('a double tap opens one drawer', (tester) async {
+      phone(tester);
+      await pump(tester);
+      await reveal(tester, line(SoundscapeSessionKind.practice));
+      await tester.tap(line(SoundscapeSessionKind.practice));
+      await tester.tap(line(SoundscapeSessionKind.practice));
+      await tester.pumpAndSettle();
+      expect(find.byType(SoundsView), findsNWidgets(2), reason: 'tab + one');
+      await done(tester);
+      expect(find.byType(SoundsView), findsOneWidget);
+    });
+
+    testWidgets('the drawer\'s title wraps at 360 dp in German with large '
+        'text', (tester) async {
+      tester.view
+        ..physicalSize = const Size(360, 740)
+        ..devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.view.reset);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pump(tester, locale: const Locale('de'));
+      await open(tester, SoundscapeSessionKind.practice);
+      expect(tester.takeException(), isNull);
+      final title = tester.widget<Text>(find.text('Läuft bei Übungen').last);
+      expect(title.maxLines, 2);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('a mix of layers is named by its sounds', (tester) async {
       phone(tester);
       await pump(tester);

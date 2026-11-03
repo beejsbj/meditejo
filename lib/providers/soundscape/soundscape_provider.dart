@@ -139,6 +139,14 @@ class SoundscapeState {
             !library.contains(selection.id) &&
             !isSynthId(selection.id) =>
       SoundscapeSelection.currentMix,
+    // A mix chosen in the drawer is its own: with none of its sounds left
+    // it is silence, never the Sounds tab's mix, which it never named.
+    SoundscapeSelectionKind.layers
+        when library != null &&
+            !(selection.mix ?? SoundMix.empty).layers.any(
+              (l) => library.contains(l.soundId) || isSynthId(l.soundId),
+            ) =>
+      SoundscapeSelection.none,
     _ => selection,
   };
 
@@ -357,7 +365,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
 
   /// Master volume. Under a session it is that session kind's level.
   void setVolume(double volume) {
-    final kind = state.sessionKind ?? _audition?.kind;
+    final kind = _levelKind;
     if (kind != null) {
       setSessionVolume(kind, volume);
     } else {
@@ -376,13 +384,17 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       kind: state.sessionDefault(kind).copyWith(volume: v),
     };
     _store.writeSessionDefaults(defaults);
-    final audible =
-        state.sessionKind == kind ||
-        (state.sessionKind == null && _audition?.kind == kind);
+    final audible = _levelKind == kind;
     _update(
       state.copyWith(volume: audible ? v : null, sessionDefaults: defaults),
     );
   }
+
+  /// Whose level the mixer plays at: while a chooser is open, the kind it
+  /// chooses for (a talks drawer opened during a sit is heard, and sets its
+  /// level, as talks); otherwise the running session's kind; null on its
+  /// own.
+  SoundscapeSessionKind? get _levelKind => _audition?.kind ?? state.sessionKind;
 
   /// Play or pause. Starting from silence plays the current mix on its own.
   void togglePlay() {
@@ -412,6 +424,16 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   /// Stops the sounds (the Sounds screen's Stop; the notification's Stop).
   /// A running session stays a session: sounds added later join it.
   void stop() {
+    // Stopped by hand while a chooser is open (its dock's Stop, the
+    // notification's): what played before it opened stays stopped when it
+    // closes.
+    _audition = _audition?.stopped();
+    _halt();
+  }
+
+  /// Stops the sounds because nothing is left to play (an emptied mix, a
+  /// mix none of whose sounds would load): not a Stop the user asked for.
+  void _halt() {
     _pausedByFocus = false;
     if (state.inSession) {
       _update(state.copyWith(playing: false, owner: SoundscapeOwner.none));
@@ -448,7 +470,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       if (state.underSession) {
         _update(state.copyWith(playing: false));
       } else {
-        stop();
+        _halt();
       }
       return;
     }
@@ -459,7 +481,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
           mix: mix,
           playing: _sessionPlaying,
           owner: SoundscapeOwner.session,
-          volume: volume ?? state.sessionDefault(state.sessionKind!).volume,
+          volume: volume ?? state.sessionDefault(_levelKind!).volume,
           failed: const {},
         ),
       );
@@ -589,6 +611,18 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   /// Whether a chooser is open.
   bool get auditioning => _audition != null;
 
+  /// A chooser is opening or open (one at a time: a double tap opens one).
+  bool _chooserClaimed = false;
+
+  /// Claims the one chooser; false when one is already opening or open.
+  /// [releaseChooser] gives it back.
+  bool claimChooser() {
+    if (_chooserClaimed) return false;
+    return _chooserClaimed = true;
+  }
+
+  void releaseChooser() => _chooserClaimed = false;
+
   /// Whether the open chooser still holds the mixer: false once a session
   /// has started or ended under it, when what plays is no longer its draft
   /// and nothing in the drawer should be kept.
@@ -617,9 +651,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         playing: false,
         owner: SoundscapeOwner.none,
         sessionKind: before.sessionKind,
-        volume: before.inSession
-            ? state.sessionDefault(before.sessionKind!).volume
-            : state.sessionDefault(kind).volume,
+        volume: state.sessionDefault(kind).volume,
         failed: const {},
       ),
     );
@@ -647,8 +679,18 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       }
       return;
     }
-    if (keep && state.inSession) return;
     final before = audition.before;
+    // Back in the same running session: its level is what is stored for
+    // its kind now (the drawer's slider may have moved it), not the one it
+    // had when the drawer opened. On its own, the Sounds volume.
+    final sessionKind = before.sessionKind;
+    final volume = sessionKind != null
+        ? state.sessionDefault(sessionKind).volume
+        : _store.readVolume();
+    if (keep && state.inSession) {
+      if (state.volume != volume) _update(state.copyWith(volume: volume));
+      return;
+    }
     final owner = before.owner;
     _update(
       state.copyWith(
@@ -657,8 +699,8 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         playing: owner == SoundscapeOwner.session
             ? _sessionPlaying
             : before.playing,
-        sessionKind: before.sessionKind,
-        volume: before.volume,
+        sessionKind: sessionKind,
+        volume: volume,
         failed: before.failed,
       ),
     );
@@ -799,7 +841,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     if (_audition == null) _store.writeMix(mix);
     if (mix.isEmpty && state.active) {
       _update(state.copyWith(mix: mix, failed: failed));
-      stop();
+      _halt();
       return;
     }
     _update(state.copyWith(mix: mix, failed: failed));
@@ -809,8 +851,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   /// Plays the current mix: under the running session if there is one,
   /// otherwise on its own.
   void _start({double? volume}) {
-    final kind = state.sessionKind;
-    if (kind == null) {
+    if (state.sessionKind == null) {
       _startStandalone(volume: volume);
       return;
     }
@@ -818,7 +859,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       state.copyWith(
         playing: _sessionPlaying,
         owner: SoundscapeOwner.session,
-        volume: volume ?? state.sessionDefault(kind).volume,
+        volume: volume ?? state.sessionDefault(_levelKind!).volume,
         failed: const {},
       ),
     );
@@ -1022,7 +1063,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         _applied.isEmpty &&
         state.active &&
         state.mix == s.mix) {
-      stop();
+      _halt();
     }
     // Silent and nothing loaded: close the output stream too.
     if (ref.mounted && !s.active && _applied.isEmpty && !state.active) {
@@ -1057,6 +1098,14 @@ class SoundscapeController extends Notifier<SoundscapeState> {
 /// What a chooser found when it opened, to put back as it closes.
 class _Audition {
   const _Audition(this.before, this.token, this.kind);
+
+  /// The same, with what played before it silenced: a Stop while the
+  /// chooser was open.
+  _Audition stopped() => _Audition(
+    before.copyWith(playing: false, owner: SoundscapeOwner.none),
+    token,
+    kind,
+  );
 
   final SoundscapeState before;
 

@@ -2175,6 +2175,10 @@
   "@soundsChooserEmpty": {
     "description": "Mixer drawer, when nothing is chosen for these sessions"
   },
+  "soundsChooserOvertaken": "The session changed, so the sound was left as it was.",
+  "@soundsChooserOvertaken": {
+    "description": "Snackbar when a session starts or ends while the mixer drawer is open: the drawer closes and keeps nothing"
+  },
   "soundsCredits": "Sound credits",
   "@soundsCredits": {
     "description": "Sounds screen: soundsCredits"

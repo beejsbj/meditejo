@@ -1157,8 +1157,10 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     final selection = setting.selection;
     return mixer.playable(
       selection,
-      // Only a single sound needs the library (loaded on demand).
-      selection.kind == SoundscapeSelectionKind.sound
+      // Only a single sound, or a mix of its own, needs the library
+      // (loaded on demand).
+      selection.kind == SoundscapeSelectionKind.sound ||
+              selection.kind == SoundscapeSelectionKind.layers
           ? ref.read(soundLibraryProvider).value
           : null,
     );

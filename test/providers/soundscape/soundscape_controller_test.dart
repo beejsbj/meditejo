@@ -1344,6 +1344,132 @@ void main() {
       await drain();
     });
 
+    test(
+      'in a running sit, a level changed in the drawer stays on Done',
+      () async {
+        practiceOn();
+        await ctl().startSession(SoundscapeSessionKind.practice);
+        await drain();
+        expect(st().volume, 0.5);
+
+        // Opened from the sit, on what it plays; only the level moves.
+        ctl().beginAudition(SoundscapeSessionKind.practice, st().mix);
+        ctl().setVolume(0.2);
+        await drain();
+        ctl().endAudition();
+        await drain();
+        expect(st().volume, 0.2, reason: 'heard');
+        expect(
+          st().sessionDefault(SoundscapeSessionKind.practice).volume,
+          0.2,
+          reason: 'stored',
+        );
+        expect(engine.master, closeTo(layerGain(0.2), 1e-9));
+      },
+    );
+
+    test('a talks drawer opened during a sit is heard and set at the talks '
+        'level', () async {
+      practiceOn();
+      ctl().setSessionVolume(SoundscapeSessionKind.talks, 0.2);
+      await ctl().startSession(SoundscapeSessionKind.practice);
+      await drain();
+      expect(st().volume, 0.5);
+
+      ctl().beginAudition(SoundscapeSessionKind.talks, SoundMix.empty);
+      ctl().toggleSound('river');
+      await drain();
+      expect(st().volume, 0.2, reason: 'the talks level, not practice');
+      expect(engine.master, closeTo(layerGain(0.2), 1e-9));
+
+      ctl().setVolume(0.4);
+      await drain();
+      expect(st().sessionDefault(SoundscapeSessionKind.talks).volume, 0.4);
+      expect(
+        st().sessionDefault(SoundscapeSessionKind.practice).volume,
+        0.5,
+        reason: 'the sit\'s own level is untouched',
+      );
+      expect(st().volume, 0.4);
+
+      ctl().endAudition();
+      await drain();
+      expect(st().volume, 0.5, reason: 'the sit, at its level again');
+    });
+
+    test(
+      'a Stop while the drawer is open is not undone as it closes',
+      () async {
+        ctl().clearMix();
+        ctl().toggleSound('river');
+        await drain();
+        expect(st().playing, isTrue);
+
+        ctl().beginAudition(SoundscapeSessionKind.practice, SoundMix.empty);
+        ctl().toggleSound('cafe');
+        await drain();
+        ctl().stop();
+        await drain();
+        ctl().endAudition();
+        await drain();
+        expect(st().active, isFalse);
+        expect(engine.playing, isEmpty);
+        expect(st().mix.layers.map((l) => l.soundId), ['river']);
+
+        // Clearing the draft is not a Stop: the tab's mix comes back.
+        ctl().resume();
+        await drain();
+        expect(st().playing, isTrue);
+        ctl().beginAudition(SoundscapeSessionKind.practice, SoundMix.empty);
+        ctl().toggleSound('cafe');
+        await drain();
+        ctl().clearMix();
+        await drain();
+        ctl().endAudition();
+        await drain();
+        expect(st().playing, isTrue);
+        expect(engine.playing.keys, ['river']);
+      },
+    );
+
+    test(
+      'a damaged or emptied mix of its own is Off, never the Sounds mix',
+      () async {
+        expect(
+          SoundscapeSelection.parse('layers:{not json'),
+          SoundscapeSelection.none,
+        );
+        expect(
+          SoundscapeSelection.parse('layers:[]'),
+          SoundscapeSelection.none,
+        );
+        final gone = SoundscapeSelection.layers(
+          SoundMix([const SoundLayer(soundId: 'a-sound-since-dropped')]),
+        );
+        expect(st().playable(gone, _library), SoundscapeSelection.none);
+        expect(
+          ctl().sessionChoice(
+            SoundscapeSessionKind.practice,
+            gone,
+            library: _library,
+          ),
+          SoundscapeSelection.none,
+        );
+
+        // Stored for a kind, damaged: it plays nothing.
+        container = await make({
+          SoundscapeStore.sessionDefaultsKey:
+              '{"practice":{"enabled":true,"selection":"layers:{oops",'
+              '"volume":0.5}}',
+          SoundscapeStore.sessionDefaultsVersionKey: 2,
+        });
+        await ctl().startSession(SoundscapeSessionKind.practice);
+        await drain();
+        expect(st().active, isFalse);
+        expect(engine.playing, isEmpty);
+      },
+    );
+
     test('what is chosen: nothing, a preset, or the layers themselves', () {
       expect(st().selectionFor(SoundMix.empty), SoundscapeSelection.none);
       expect(

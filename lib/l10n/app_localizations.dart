@@ -3646,6 +3646,12 @@ abstract class AppLocalizations {
   /// **'Off. Tap a sound or a preset to choose it.'**
   String get soundsChooserEmpty;
 
+  /// Snackbar when a session starts or ends while the mixer drawer is open: the drawer closes and keeps nothing
+  ///
+  /// In en, this message translates to:
+  /// **'The session changed, so the sound was left as it was.'**
+  String get soundsChooserOvertaken;
+
   /// Sounds screen: soundsCredits
   ///
   /// In en, this message translates to:

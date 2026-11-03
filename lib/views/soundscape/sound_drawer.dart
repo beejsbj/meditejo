@@ -24,23 +24,60 @@ class SoundChooser {
   final SoundscapeSessionKind kind;
 }
 
+/// Runs [open] unless a drawer is already opening or open: a second tap (a
+/// double tap on the player's button, a tile tapped while the scope
+/// resolves) opens nothing, and gets null.
+Future<T?> _once<T>(BuildContext context, Future<T?> Function() open) async {
+  final mixer = ProviderScope.containerOf(
+    context,
+  ).read(soundscapeProvider.notifier);
+  if (!mixer.claimChooser()) return null;
+  try {
+    return await open();
+  } finally {
+    mixer.releaseChooser();
+  }
+}
+
 /// Opens the mixer as a drawer to choose what plays under sessions of
 /// [kind], starting from [current]. Choosing is editing the mix: a card or a
 /// preset is heard as it goes in, and several layer up. What is left in the
 /// drawer when it closes (Done, back, a swipe down) is the choice; it
-/// returns it, or null when it is what [current] already played.
+/// returns it, or null when it is what [current] already played (or another
+/// drawer was already opening).
 ///
 /// The drawer holds the speaker while it is open. As it closes, whatever
-/// played before comes back (the Sounds tab's mix, a session's sound), except
-/// that [inSession], opened from the running session (its player, its
-/// Customize), a new choice keeps playing under it.
+/// played before comes back (the Sounds tab's mix, a session's sound),
+/// except that a new choice made while a session of [kind] runs keeps
+/// playing under it. [inSession]: opened from that running session (its
+/// player, its Customize), so the drawer starts from what it plays.
+///
+/// A session that starts or ends while it is open (the sit ends, autoplay
+/// moves on) owns the mixer: the drawer closes, keeps nothing, and says so.
 Future<SoundscapeSelection?> showSoundDrawer(
   BuildContext context, {
   required SoundscapeSessionKind kind,
   required SoundscapeSelection current,
   bool inSession = false,
+}) => _once(
+  context,
+  () => _showSoundDrawer(
+    context,
+    kind: kind,
+    current: current,
+    inSession: inSession,
+  ),
+);
+
+Future<SoundscapeSelection?> _showSoundDrawer(
+  BuildContext context, {
+  required SoundscapeSessionKind kind,
+  required SoundscapeSelection current,
+  required bool inSession,
 }) async {
   final container = ProviderScope.containerOf(context);
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  final l10n = AppLocalizations.of(context);
   final mixer = container.read(soundscapeProvider.notifier);
   final now = container.read(soundscapeProvider);
   // From inside a session, what you hear is what you edit.
@@ -51,6 +88,7 @@ Future<SoundscapeSelection?> showSoundDrawer(
   retryLegacySounds(container);
   mixer.beginAudition(kind, draft);
   SoundscapeSelection? selection;
+  var overtaken = false;
   try {
     await showModalBottomSheet<void>(
       context: context,
@@ -69,12 +107,22 @@ Future<SoundscapeSelection?> showSoundDrawer(
   } finally {
     // A session that started or ended meanwhile owns the mixer: what plays
     // is no longer this drawer's draft, so nothing is kept from it.
-    final chosen = container.read(soundscapeProvider).mix;
-    final changed = mixer.auditionIntact && chosen != draft;
-    if (changed) {
-      selection = container.read(soundscapeProvider).selectionFor(chosen);
-    }
-    mixer.endAudition(keep: changed && inSession);
+    overtaken = !mixer.auditionIntact;
+    final state = container.read(soundscapeProvider);
+    final chosen = state.mix;
+    final changed = !overtaken && chosen != draft;
+    if (changed) selection = state.selectionFor(chosen);
+    // Chosen while a session of this kind runs: it goes on playing (the
+    // session then plays its own choice, which may be this one), rather
+    // than the old sound coming back for a moment first.
+    mixer.endAudition(
+      keep: changed && state.inSession && state.sessionKind == kind,
+    );
+  }
+  if (overtaken && l10n != null) {
+    messenger?.showSnackBar(
+      SnackBar(content: Text(l10n.soundsChooserOvertaken)),
+    );
   }
   return selection;
 }
@@ -123,7 +171,10 @@ void chooseScopeSound(
 
 /// The player's Sounds button: the drawer for the running session's scope,
 /// the same choice as its Customize › Sound.
-Future<void> openSessionSounds(
+Future<void> openSessionSounds(BuildContext context, PlaybackRequest request) =>
+    _once(context, () => _openSessionSounds(context, request));
+
+Future<void> _openSessionSounds(
   BuildContext context,
   PlaybackRequest request,
 ) async {
@@ -143,7 +194,7 @@ Future<void> openSessionSounds(
         container.read(cueSettingsProvider(scope)).soundscapeSelection,
         library: container.read(soundLibraryProvider).value,
       );
-  final choice = await showSoundDrawer(
+  final choice = await _showSoundDrawer(
     context,
     kind: kind,
     current: current,

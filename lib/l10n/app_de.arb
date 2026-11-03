@@ -1065,6 +1065,7 @@
   "soundsPlaysUnderTalks": "Läuft bei Vorträgen",
   "soundsDone": "Fertig",
   "soundsChooserEmpty": "Aus. Tippe auf einen Klang oder eine Voreinstellung.",
+  "soundsChooserOvertaken": "Die Sitzung hat sich geändert, der Klang bleibt wie er war.",
   "soundsCredits": "Geräusch-Nachweise",
   "soundsNotificationText": "Dein Mix läuft",
   "soundCategoryRain": "Regen",
