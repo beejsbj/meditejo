@@ -77,8 +77,12 @@ class _CreditTile extends StatelessWidget {
             ),
             style: theme.textTheme.bodyMedium,
           ),
+          // Clear of the credit line even when a long title wraps onto a
+          // second line.
+          const SizedBox(height: 6),
           Wrap(
             spacing: padding8,
+            runSpacing: 4,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               _Link(label: license.label, url: license.url),

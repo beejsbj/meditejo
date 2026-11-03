@@ -1,140 +1,54 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Future<(SharedPreferences, ProviderContainer)> _open(
-  Map<String, Object> values,
-) async {
+// The keys an earlier build saved the last tab under. Nothing reads them now.
+const _savedTabKey = 'last_main_tab_index';
+const _savedLayoutKey = 'main_tab_layout';
+
+Future<ProviderContainer> _open(Map<String, Object> values) async {
   SharedPreferences.setMockInitialValues(values);
   final prefs = await SharedPreferences.getInstance();
   final container = ProviderContainer(
     overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
   );
   addTearDown(container.dispose);
-  return (prefs, container);
+  return container;
 }
 
 void main() {
-  group(
-    'the saved tab index from the Home · Explore · Search · Settings bar',
-    () {
-      test('Home and Explore carry over unchanged', () async {
-        for (final (saved, tab) in [(0, MainTab.home), (1, MainTab.explore)]) {
-          final (prefs, container) = await _open({
-            SharedPreferenceConstants.lastMainTabIndex: saved,
-          });
-          expect(container.read(mainTabProvider), tab);
-          // Rewritten in the new bar's terms, once.
-          expect(prefs.getInt(SharedPreferenceConstants.mainTabLayout), 3);
-          expect(
-            prefs.getInt(SharedPreferenceConstants.lastMainTabIndex),
-            saved,
-          );
-        }
-      });
+  test('a cold start opens Home, even when another tab was saved', () async {
+    for (final saved in [1, 2, 3, 4]) {
+      final container = await _open({_savedTabKey: saved, _savedLayoutKey: 3});
+      expect(container.read(mainTabProvider), MainTab.home, reason: '$saved');
+    }
+  });
 
-      test(
-        'an index that named Search or Settings opens Home, never Library',
-        () async {
-          for (final saved in [2, 3, 4, -1, 99]) {
-            final (prefs, container) = await _open({
-              SharedPreferenceConstants.lastMainTabIndex: saved,
-            });
-            expect(
-              container.read(mainTabProvider),
-              MainTab.home,
-              reason: '$saved',
-            );
-            expect(prefs.getInt(SharedPreferenceConstants.lastMainTabIndex), 0);
-          }
-        },
-      );
+  test('the tab keys an earlier build saved are removed on startup', () async {
+    final container = await _open({_savedTabKey: 2, _savedLayoutKey: 3});
+    expect(container.read(mainTabProvider), MainTab.home);
+    final prefs = container.read(sharedPreferencesProvider);
+    expect(prefs.containsKey(_savedTabKey), isFalse);
+    expect(prefs.containsKey(_savedLayoutKey), isFalse);
+  });
 
-      test('a fresh install opens Home', () async {
-        final (_, container) = await _open({});
-        expect(container.read(mainTabProvider), MainTab.home);
-      });
-    },
-  );
+  test('a fresh install opens Home', () async {
+    final container = await _open({});
+    expect(container.read(mainTabProvider), MainTab.home);
+  });
 
-  group(
-    'the saved tab index from the Home · Explore · Library · Settings bar',
-    () {
-      test(
-        'each index opens the tab it named; Settings (now You) opens Home',
-        () async {
-          for (final (saved, tab) in [
-            (0, MainTab.home),
-            (1, MainTab.explore),
-            (2, MainTab.library),
-            (3, MainTab.home),
-            (4, MainTab.home),
-            (-1, MainTab.home),
-          ]) {
-            final (prefs, container) = await _open({
-              SharedPreferenceConstants.lastMainTabIndex: saved,
-              SharedPreferenceConstants.mainTabLayout: 2,
-            });
-            expect(container.read(mainTabProvider), tab, reason: '$saved');
-            // Rewritten in the five-tab bar's terms, once.
-            expect(prefs.getInt(SharedPreferenceConstants.mainTabLayout), 3);
-            expect(
-              prefs.getInt(SharedPreferenceConstants.lastMainTabIndex),
-              tab.index,
-              reason: '$saved',
-            );
-          }
-        },
-      );
-    },
-  );
+  test('selecting a tab moves to it', () async {
+    final container = await _open({});
+    final tabs = container.read(mainTabProvider.notifier);
 
-  group('the five-tab bar', () {
-    test('restores Sounds and Library, but never You', () async {
-      for (final (saved, tab) in [
-        (0, MainTab.home),
-        (1, MainTab.explore),
-        (2, MainTab.sounds),
-        (3, MainTab.library),
-        (4, MainTab.home),
-        (5, MainTab.home),
-      ]) {
-        final (_, container) = await _open({
-          SharedPreferenceConstants.lastMainTabIndex: saved,
-          SharedPreferenceConstants.mainTabLayout: 3,
-        });
-        expect(container.read(mainTabProvider), tab, reason: '$saved');
-      }
-    });
+    tabs.select(MainTab.sounds);
+    expect(container.read(mainTabProvider), MainTab.sounds);
 
-    test('a layout this build does not know opens Home', () async {
-      final (_, container) = await _open({
-        SharedPreferenceConstants.lastMainTabIndex: 2,
-        SharedPreferenceConstants.mainTabLayout: 4,
-      });
-      expect(container.read(mainTabProvider), MainTab.home);
-    });
-
-    test('selecting remembers every tab but You', () async {
-      final (prefs, container) = await _open({});
-      final tabs = container.read(mainTabProvider.notifier);
-
-      tabs.select(MainTab.sounds);
-      expect(container.read(mainTabProvider), MainTab.sounds);
-      expect(prefs.getInt(SharedPreferenceConstants.lastMainTabIndex), 2);
-      expect(prefs.getInt(SharedPreferenceConstants.mainTabLayout), 3);
-
-      tabs.select(MainTab.library);
-      expect(prefs.getInt(SharedPreferenceConstants.lastMainTabIndex), 3);
-
-      tabs.select(MainTab.you);
-      expect(container.read(mainTabProvider), MainTab.you);
-      expect(prefs.getInt(SharedPreferenceConstants.lastMainTabIndex), 3);
-    });
+    tabs.select(MainTab.you);
+    expect(container.read(mainTabProvider), MainTab.you);
   });
 
   group('links that open a tab', () {
@@ -150,7 +64,7 @@ void main() {
       expect(tabForLink('tracks'), isNull);
     });
 
-    test('the tab order is the saved format', () {
+    test('the tab order is the bar order', () {
       expect(MainTab.values.map((t) => t.name), [
         'home',
         'explore',
@@ -158,7 +72,6 @@ void main() {
         'library',
         'you',
       ]);
-      expect(MainTab.layout, 3);
     });
   });
 }
