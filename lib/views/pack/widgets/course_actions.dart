@@ -152,7 +152,8 @@ class CourseShareButton extends StatelessWidget {
   }
 }
 
-/// ⋮: Add to playlist…, Copy as playlist; Edit and Delete for the user's own.
+/// ⋮: the one item-actions sheet (#83), the same a course row's ⋮ and
+/// long-press open, so the course offers the same actions everywhere.
 class CourseMoreButton extends ConsumerWidget {
   const CourseMoreButton({
     super.key,
