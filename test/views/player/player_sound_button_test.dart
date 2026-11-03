@@ -138,6 +138,26 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
     expect(find.byType(SoundsView), findsNothing);
+
+    // Opened again during the talk, which then simply ends: the drawer
+    // closes without a word over the end screen.
+    final mixer = container.read(soundscapeProvider.notifier);
+    await mixer.startSession(SoundscapeSessionKind.talks);
+    await tester.tap(find.byType(BgSoundWidget));
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byType(SoundsView), findsOneWidget);
+    mixer.endSession();
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byType(SoundsView), findsNothing);
+    expect(
+      find.text('The session changed, so the sound was left as it was.'),
+      findsNothing,
+    );
+    expect(find.byType(SoundsView), findsNothing);
     final talks = container
         .read(soundscapeProvider)
         .sessionDefault(SoundscapeSessionKind.talks);

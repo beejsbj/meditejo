@@ -1186,6 +1186,11 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         ref.read(soundscapeProvider),
       ),
       inSession: inSession,
+      // A course's own choice, made away from its session, is not what a
+      // running sit of the kind plays.
+      playsNow: inSession || !courseOverride,
+      // Its messenger's snackbars would sit under this sheet.
+      announce: false,
     );
     if (choice == null) return;
     chooseScopeSound(

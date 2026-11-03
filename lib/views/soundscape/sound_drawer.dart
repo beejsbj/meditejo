@@ -48,17 +48,25 @@ Future<T?> _once<T>(BuildContext context, Future<T?> Function() open) async {
 ///
 /// The drawer holds the speaker while it is open. As it closes, whatever
 /// played before comes back (the Sounds tab's mix, a session's sound),
-/// except that a new choice made while a session of [kind] runs keeps
-/// playing under it. [inSession]: opened from that running session (its
-/// player, its Customize), so the drawer starts from what it plays.
+/// except that a new choice keeps playing under a running session of
+/// [kind] when [playsNow]: the caller's choice is what that session plays
+/// (its player, its Customize, the kind's default). A course's own choice
+/// made from another course's page is not, and the sit's sound comes back.
+/// [inSession]: opened from that running session, so the drawer starts from
+/// what it plays.
 ///
-/// A session that starts or ends while it is open (the sit ends, autoplay
-/// moves on) owns the mixer: the drawer closes, keeps nothing, and says so.
+/// A session that starts or ends while it is open (autoplay moves on, a
+/// sit starts or ends) owns the mixer: the drawer closes and keeps nothing.
+/// [announce] says so in a snackbar on [context]'s messenger, except when
+/// the drawer was opened in the session that has simply ended; a caller
+/// whose messenger is hidden (under the Customize sheet) passes false.
 Future<SoundscapeSelection?> showSoundDrawer(
   BuildContext context, {
   required SoundscapeSessionKind kind,
   required SoundscapeSelection current,
   bool inSession = false,
+  bool playsNow = true,
+  bool announce = true,
 }) => _once(
   context,
   () => _showSoundDrawer(
@@ -66,6 +74,8 @@ Future<SoundscapeSelection?> showSoundDrawer(
     kind: kind,
     current: current,
     inSession: inSession,
+    playsNow: playsNow,
+    announce: announce,
   ),
 );
 
@@ -74,6 +84,8 @@ Future<SoundscapeSelection?> _showSoundDrawer(
   required SoundscapeSessionKind kind,
   required SoundscapeSelection current,
   required bool inSession,
+  bool playsNow = true,
+  bool announce = true,
 }) async {
   final container = ProviderScope.containerOf(context);
   final messenger = ScaffoldMessenger.maybeOf(context);
@@ -112,14 +124,16 @@ Future<SoundscapeSelection?> _showSoundDrawer(
     final chosen = state.mix;
     final changed = !overtaken && chosen != draft;
     if (changed) selection = state.selectionFor(chosen);
-    // Chosen while a session of this kind runs: it goes on playing (the
-    // session then plays its own choice, which may be this one), rather
-    // than the old sound coming back for a moment first.
+    // Chosen for a session of this kind that is running and will play it:
+    // it goes on playing (the session then plays its own choice, which may
+    // be this one), rather than the old sound coming back for a moment.
     mixer.endAudition(
-      keep: changed && state.inSession && state.sessionKind == kind,
+      keep: changed && playsNow && state.inSession && state.sessionKind == kind,
     );
+    // Opened in a sit that has since ended: the end screen says enough.
+    if (inSession && !state.inSession) announce = false;
   }
-  if (overtaken && l10n != null) {
+  if (overtaken && announce && l10n != null) {
     messenger?.showSnackBar(
       SnackBar(content: Text(l10n.soundsChooserOvertaken)),
     );

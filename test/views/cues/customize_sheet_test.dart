@@ -997,6 +997,42 @@ void main() {
     await _unmount(tester);
   });
 
+  testWidgets('a course\'s own choice, made during an unrelated sit, '
+      'leaves the sit\'s sound playing', (tester) async {
+    const course = CueScope(CueKind.practice, courseId: 'c1');
+    final container = await _pump(
+      tester,
+      scope: course,
+      size: const Size(412, 915),
+    );
+    // A practice sit runs elsewhere, playing the kind's default.
+    final mixer = container.read(soundscapeProvider.notifier);
+    mixer.setSessionDefault(
+      SoundscapeSessionKind.practice,
+      const SoundscapeSessionDefault(enabled: true),
+    );
+    await mixer.startSession(SoundscapeSessionKind.practice);
+    await tester.pumpAndSettle();
+    final sitMix = container.read(soundscapeProvider).mix;
+
+    await tester.tap(
+      find.widgetWithText(SwitchListTile, 'Use these only for this course'),
+    );
+    await tester.pumpAndSettle();
+    await _slot(tester, 'sound');
+    await _tapPreset(tester, 'starter-night');
+    await _closeDrawer(tester);
+
+    expect(
+      container.read(cueSettingsStoreProvider).read(course).soundscape,
+      'preset:starter-night',
+    );
+    final state = container.read(soundscapeProvider);
+    expect(state.owner, SoundscapeOwner.session);
+    expect(state.mix, sitMix, reason: 'the sit plays what it played');
+    await _unmount(tester);
+  });
+
   testWidgets('a playlist says playlist', (tester) async {
     await _pump(
       tester,

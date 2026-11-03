@@ -753,6 +753,36 @@ void main() {
       );
     });
 
+    testWidgets('a page pushed over the drawer stays when a session closes '
+        'the drawer', (tester) async {
+      phone(tester);
+      await pump(tester);
+      await open(tester, SoundscapeSessionKind.practice);
+      // A deep link, or the player of the session about to start.
+      unawaited(
+        Navigator.of(
+          tester.element(find.byKey(const ValueKey('sounds_chooser_done'))),
+        ).push(
+          MaterialPageRoute<void>(
+            builder: (_) => const Scaffold(body: Text('a page over it')),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await container
+          .read(soundscapeProvider.notifier)
+          .startSession(SoundscapeSessionKind.practice);
+      await tester.pumpAndSettle();
+      expect(find.text('a page over it'), findsOneWidget, reason: 'it stays');
+      expect(
+        find.byType(SoundsView, skipOffstage: false),
+        findsOneWidget,
+        reason: 'only the tab: the drawer was taken out from under the page',
+      );
+      expect(container.read(soundscapeProvider.notifier).auditioning, isFalse);
+    });
+
     testWidgets('a session that ends while the drawer is open closes it too', (
       tester,
     ) async {

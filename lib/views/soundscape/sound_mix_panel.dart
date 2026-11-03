@@ -631,7 +631,9 @@ Future<void> saveMixAsPreset(BuildContext context, WidgetRef ref) async {
     context: context,
     builder: (context) => const _PresetNameDialog(),
   );
-  if (name == null || name.trim().isEmpty) return;
+  // The drawer may have closed under the dialog (a session took the
+  // mixer): what it held is no longer the mix to save.
+  if (!context.mounted || name == null || name.trim().isEmpty) return;
   final saved = ref.read(soundscapeProvider.notifier).savePreset(name);
   if (saved != null && context.mounted) {
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(

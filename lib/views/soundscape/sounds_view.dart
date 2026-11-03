@@ -118,10 +118,16 @@ class SoundsViewState extends ConsumerState<SoundsView>
       final route = ModalRoute.of(context);
       final navigator = Navigator.of(context);
       if (route == null || !route.isActive) return;
-      // Anything opened over the drawer (a synth editor, the preset name)
-      // goes with it.
-      navigator.popUntil((r) => r == route);
-      navigator.pop();
+      // What the drawer opened over itself (a synth editor, the preset
+      // name) goes with it; a page pushed over it (a deep link, the player
+      // the new session opened) stays, and the drawer is taken out from
+      // under it.
+      navigator.popUntil((r) => r == route || r is PageRoute);
+      if (route.isCurrent) {
+        navigator.pop();
+      } else {
+        navigator.removeRoute(route);
+      }
     });
   }
 
