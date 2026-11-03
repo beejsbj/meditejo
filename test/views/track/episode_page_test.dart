@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/library/episode_course_provider.dart';
 import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
+import 'package:medito/routes/routes.dart';
 import 'package:medito/views/library/item_actions.dart';
 import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
@@ -23,12 +27,12 @@ class _FakeTracks extends Tracks {
   Future<Track> build({required String trackId}) async => track;
 }
 
-class _FakePack extends Pack {
-  _FakePack(this.pack);
-  final PackModel pack;
+/// What the course lists right now: a test takes a session out of it.
+PackModel _listed = _course;
 
+class _FakePack extends Pack {
   @override
-  AsyncValue<PackModel> build({required String packId}) => AsyncData(pack);
+  AsyncValue<PackModel> build({required String packId}) => AsyncData(_listed);
 }
 
 /// Saves anything YouTube, as the real source does.
@@ -91,11 +95,15 @@ Future<void> _pump(
   Track? track,
   String? courseId = _courseId,
   Set<String> saved = const {},
+  Widget page = const TrackView(trackId: _trackId),
+  bool asRoute = false,
 }) async {
+  _listed = _course;
   final app = await LibraryTestApp.create(tester);
   await app.pump(
     tester,
-    const TrackView(trackId: _trackId),
+    page,
+    asRoute: asRoute,
     overrides: [
       contentSourcesProvider.overrideWith(
         (ref) => [_YoutubeSaves(saved: saved)],
@@ -104,7 +112,7 @@ Future<void> _pump(
         trackId: _trackId,
       ).overrideWith(() => _FakeTracks(track ?? _track())),
       episodeCourseIdProvider(_trackId).overrideWith((ref) async => courseId),
-      packProvider(packId: _courseId).overrideWith(() => _FakePack(_course)),
+      packProvider(packId: _courseId).overrideWith(_FakePack.new),
     ],
   );
   await DharmaSeedTestApp.settle(tester);
@@ -228,6 +236,150 @@ void main() {
       }
     });
 
+    testWidgets('opened over its course\'s page, the course line goes back '
+        'to it (through the router)', (tester) async {
+      await _pump(
+        tester,
+        saved: {_courseId},
+        page: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => handleNavigation(TypeConstants.pack, [
+              _courseId,
+              '/packs/$_courseId',
+            ], context),
+            child: const Text('open'),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.byType(PackView), findsOneWidget);
+      // The course page opens one of its sessions.
+      unawaited(
+        handleNavigation(
+          TypeConstants.track,
+          [_trackId, '/tracks/$_trackId'],
+          tester.element(find.byType(PackView)),
+          courseId: _courseId,
+        ),
+      );
+      await DharmaSeedTestApp.settle(tester);
+      final page = tester.widget<TrackView>(find.byType(TrackView));
+      expect(page.openedOver, coursePageRouteName(_courseId));
+
+      await tester.tap(find.byKey(const ValueKey('track_course')));
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.byType(TrackView), findsNothing);
+      // Back on the page it came from, not a second copy of it.
+      expect(find.byType(PackView), findsOneWidget);
+    });
+
+    testWidgets('opened from elsewhere, the course line opens the course', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        saved: {_courseId},
+        asRoute: true,
+        page: const TrackView(trackId: _trackId, openedOver: '/packs/other'),
+      );
+      await tester.tap(find.byKey(const ValueKey('track_course')));
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.byType(PackView), findsOneWidget);
+      expect(find.byType(TrackView, skipOffstage: false), findsOneWidget);
+    });
+
+    testWidgets('with its Add to library hidden (course saved), its ⋮ '
+        'keeps Add to library', (tester) async {
+      await _pump(tester, saved: {_courseId});
+      expect(_saveToggle, findsNothing);
+      final actions = await _sheetActions(tester);
+      expect(actions, contains(ItemAction.save.name));
+    });
+
+    testWidgets('taken out of its playlist: no course line, Add to library '
+        'back, nothing to remove', (tester) async {
+      await _pump(tester, saved: {_courseId});
+      expect(find.byKey(const ValueKey('track_course')), findsOneWidget);
+      // The course no longer lists it (its revision moved on).
+      _listed = _course.copyWith(
+        items: [
+          for (final i in _course.items)
+            if (i.id != _trackId) i,
+        ],
+      );
+      ProviderScope.containerOf(
+        tester.element(find.byType(TrackView)),
+      ).invalidate(packProvider(packId: _courseId));
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.byKey(const ValueKey('track_course')), findsNothing);
+      expect(_saveToggle, findsOneWidget);
+      expect(
+        await _sheetActions(tester),
+        isNot(contains(ItemAction.removeFromCourse.name)),
+      );
+    });
+
+    testWidgets('an imported file has no Share', (tester) async {
+      const imported = 'lib-track-metta';
+      final app = await LibraryTestApp.create(tester);
+      await app.pump(
+        tester,
+        const TrackView(trackId: imported),
+        overrides: [
+          tracksProvider(
+            trackId: imported,
+          ).overrideWith(() => _FakeTracks(_track().copyWith(id: imported))),
+          episodeCourseIdProvider(imported).overrideWith((ref) async => null),
+        ],
+      );
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.byKey(const ValueKey('track_actions')), findsOneWidget);
+      expect(find.byKey(const ValueKey('course_share')), findsNothing);
+    });
+
+    testWidgets('the course line is a full tap target, its chevron on the '
+        'last line at a large text size', (tester) async {
+      await _pump(
+        tester,
+        saved: {_courseId},
+        page: Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(1.3)),
+            child: const TrackView(trackId: _trackId),
+          ),
+        ),
+      );
+      // "In Vervaeke Series" wraps after "Vervaeke" here (the test font's
+      // letters are a square each).
+      _listed = _course.copyWith(title: 'Vervaeke Series');
+      ProviderScope.containerOf(
+        tester.element(find.byType(TrackView)),
+      ).invalidate(packProvider(packId: _courseId));
+      tester.view.physicalSize = const Size(360, 1200);
+      await DharmaSeedTestApp.settle(tester);
+      final line = find.byKey(const ValueKey('track_course'));
+      expect(tester.getSize(line).height, greaterThanOrEqualTo(48));
+      final words = tester.getRect(
+        find.descendant(of: line, matching: find.byType(Text)),
+      );
+      final chevron = tester.getRect(
+        find.descendant(
+          of: line,
+          matching: find.byIcon(Icons.chevron_right_rounded),
+        ),
+      );
+      final letter = 16 * 1.3;
+      // Two lines, the chevron on the second, after "Series" rather than
+      // alone at the start of a line of its own.
+      expect(words.height, greaterThan(letter * 1.5));
+      expect(chevron.center.dy, greaterThan(words.center.dy));
+      expect(chevron.left, greaterThan(words.left + letter * 5));
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('a long description opens folded, with Show more', (
       tester,
     ) async {
@@ -249,6 +401,34 @@ void main() {
         tester.getSize(find.byKey(const ValueKey('track_description'))).height,
         greaterThan(folded * 2),
       );
+    });
+
+    testWidgets('the fold grows with the text size', (tester) async {
+      final long = List.generate(
+        30,
+        (i) => 'Line ${i + 1} of a long YouTube description, with links.',
+      ).join('\n');
+      Future<double> folded(double scale) async {
+        await _pump(
+          tester,
+          track: _track(description: long),
+          page: Builder(
+            builder: (context) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: TextScaler.linear(scale)),
+              child: TrackView(key: ValueKey(scale), trackId: _trackId),
+            ),
+          ),
+        );
+        return tester
+            .getSize(find.byKey(const ValueKey('track_description')))
+            .height;
+      }
+
+      final normal = await folded(1);
+      final large = await folded(1.6);
+      expect(large, greaterThan(normal * 1.3));
     });
 
     testWidgets('a short description shows whole', (tester) async {

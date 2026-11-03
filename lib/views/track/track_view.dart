@@ -15,6 +15,7 @@ import 'package:medito/providers/providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
+import 'package:medito/services/library/lib_ids.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/utils/episode_title.dart';
@@ -44,19 +45,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Share, ⋮), its description, and the credit, small, at the end. Laid out
 /// as a course's header is (#81).
 class TrackView extends ConsumerStatefulWidget {
-  const TrackView({super.key, required this.trackId, this.fromStart = false});
+  const TrackView({
+    super.key,
+    required this.trackId,
+    this.fromStart = false,
+    this.openedOver,
+  });
 
   final String trackId;
 
   /// Opened to restart: Play begins at 0:00 instead of resuming.
   final bool fromStart;
 
-  /// What the page shows as buttons, so its ⋮ does not repeat them: Play,
-  /// Add to playlist, Add to library, Pin, Share, and the teacher's line.
+  /// The route name of the page this one was opened over. When that is
+  /// its course's page ([coursePageRouteName]), the course line goes back
+  /// to it instead of opening it again.
+  final String? openedOver;
+
+  /// What the page always shows as buttons, so its ⋮ does not repeat them:
+  /// Play, Add to playlist, Pin, Share, and the teacher's line. Add to
+  /// library joins them while its button shows; with the button hidden (a
+  /// saved course holds the episode) the ⋮ keeps it.
   static const shownAsButtons = {
     ItemAction.play,
     ItemAction.addToPlaylist,
-    ItemAction.save,
     ItemAction.pin,
     ItemAction.share,
     ItemAction.goToTeacher,
@@ -192,10 +204,13 @@ class _TrackViewState extends ConsumerState<TrackView>
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.7);
     final courseId = ref.watch(episodeCourseIdProvider(track.id)).value;
-    final course = courseId == null
+    final listed = courseId == null
         ? null
         : ref.watch(packProvider(packId: courseId)).value;
-    final item = course?.items.where((i) => i.id == track.id).firstOrNull;
+    final item = listed?.items.where((i) => i.id == track.id).firstOrNull;
+    // A course that no longer lists the session (taken out of a playlist
+    // just now) is not its course.
+    final course = item == null ? null : listed;
     // A playlist the user made is in the library by being made.
     final courseSaved =
         course != null &&
@@ -206,6 +221,7 @@ class _TrackViewState extends ConsumerState<TrackView>
         : episodeTitle(
             track.title,
             courseTitle: course.title,
+            teacher: item?.teacher ?? course.teacher?.name,
             siblings: [
               for (final i in course.items)
                 if (i.type == TypeConstants.track) i.title,
@@ -298,6 +314,13 @@ class _TrackViewState extends ConsumerState<TrackView>
     final label = saved
         ? l10n.trackInCourse(course.title)
         : l10n.trackPartOf(course.title);
+    final style = theme.textTheme.bodyLarge?.copyWith(
+      color: theme.colorScheme.onSurface,
+      fontWeight: FontWeight.w500,
+    );
+    final lineHeight =
+        MediaQuery.textScalerOf(context).scale(style?.fontSize ?? 16) *
+        (style?.height ?? 1.5);
     return Semantics(
       button: true,
       label: label,
@@ -305,25 +328,39 @@ class _TrackViewState extends ConsumerState<TrackView>
       child: InkWell(
         key: const ValueKey('track_course'),
         borderRadius: BorderRadius.circular(12),
-        onTap: () => openCourse(context, ref, course.id),
+        // Back to the course's page when this one was opened over it;
+        // else to it.
+        onTap: () => widget.openedOver == coursePageRouteName(course.id)
+            ? Navigator.of(context).pop()
+            : openCourse(context, ref, course.id),
         child: Container(
-          constraints: const BoxConstraints(minHeight: 44),
-          padding: const EdgeInsets.symmetric(vertical: 2),
+          constraints: const BoxConstraints(minHeight: 48),
+          alignment: AlignmentDirectional.centerStart,
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                saved ? Icons.bookmark_rounded : Icons.playlist_play_rounded,
-                size: 20,
-                color: saved ? context.brandAccent : muted,
+              // Centred on the first line, however many the name takes.
+              SizedBox(
+                height: lineHeight,
+                child: Center(
+                  child: Icon(
+                    saved
+                        ? Icons.bookmark_rounded
+                        : Icons.playlist_play_rounded,
+                    size: 20,
+                    color: saved ? context.brandAccent : muted,
+                  ),
+                ),
               ),
               const SizedBox(width: 8),
               Flexible(
-                // The chevron follows the last word, so a long course name
-                // that wraps keeps it beside the words, not out at the edge.
+                // The chevron follows the last word, joined to it, so a
+                // long course name that wraps keeps it beside the words:
+                // never alone on a line, never out at the edge.
                 child: Text.rich(
                   TextSpan(
-                    text: label,
+                    text: '$label\u2060',
                     children: [
                       WidgetSpan(
                         alignment: PlaceholderAlignment.middle,
@@ -337,10 +374,7 @@ class _TrackViewState extends ConsumerState<TrackView>
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurface,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: style,
                 ),
               ),
             ],
@@ -431,7 +465,10 @@ class _TrackViewState extends ConsumerState<TrackView>
       ),
       if (track.id != dailyMeditationId)
         PinIconButton(id: track.id, session: true),
-      CourseShareButton.session(trackId: track.id, title: track.title),
+      // A link to a file that lives only on this device opens nothing for
+      // the person it is sent to (#107's rule).
+      if (!isLibTrackId(track.id))
+        CourseShareButton.session(trackId: track.id, title: track.title),
       RoundIconButton(
         key: const ValueKey('track_actions'),
         tooltip: l10n.myCourseMore,
@@ -445,7 +482,7 @@ class _TrackViewState extends ConsumerState<TrackView>
             fallback: MyItemDraft.fromTrack(track),
             inCourse: courseId,
             teacherId: teacherId,
-            hide: TrackView.shownAsButtons,
+            hide: {...TrackView.shownAsButtons, if (showSave) ItemAction.save},
           ),
         ),
       ),
@@ -761,7 +798,10 @@ class _DescriptionState extends State<_Description> {
         widget.body.length > _Description._foldAt ||
         '\n'.allMatches(widget.body).length > _Description._foldLines;
     if (!long) return text;
-    final lineHeight = (style?.fontSize ?? 15) * (style?.height ?? 1.5);
+    // Five lines at the reader's text size.
+    final lineHeight =
+        MediaQuery.textScalerOf(context).scale(style?.fontSize ?? 15) *
+        (style?.height ?? 1.5);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

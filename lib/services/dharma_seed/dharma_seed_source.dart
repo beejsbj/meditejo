@@ -255,7 +255,10 @@ class DharmaSeedSource
     final talkId = parseDsTalkId(trackId);
     if (talkId == null) return null;
     final retreat = (await db.talkById(talkId))?.retreatId;
-    return retreat == null || retreat == 0 ? null : dsRetreatId(retreat);
+    // The catch-all "Unknown" retreat is not a course a talk is part of.
+    return retreat == null || retreat == 0 || retreat == dsUnknownRetreat
+        ? null
+        : dsRetreatId(retreat);
   }
 
   // ------------------------------------------------- Dharma Seed screens

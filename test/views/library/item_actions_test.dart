@@ -116,11 +116,23 @@ void main() {
         const ItemActionsSpec(
           id: 'ds-talk-1',
           teacherId: 'ds-teacher-1',
-          hide: TrackView.shownAsButtons,
+          hide: {...TrackView.shownAsButtons, ItemAction.save},
         ),
         canSave: true,
       );
       expect(episode, [ItemAction.download, ItemAction.markPlayed]);
+      // Its Add to library button hidden (a saved course holds it), the ⋮
+      // keeps Add to library.
+      expect(
+        itemActionsFor(
+          const ItemActionsSpec(
+            id: 'ds-talk-1',
+            hide: TrackView.shownAsButtons,
+          ),
+          canSave: true,
+        ),
+        [ItemAction.save, ItemAction.download, ItemAction.markPlayed],
+      );
     });
 
     test('no teacher id hides Go to teacher (a YouTube row)', () {

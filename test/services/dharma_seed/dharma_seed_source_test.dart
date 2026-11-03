@@ -16,6 +16,7 @@ import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
 import 'package:medito/services/local_catalogue.dart';
 
+import '../../helpers/dharma_seed_catalogue.dart';
 import '../../helpers/dharma_seed_fake_api.dart';
 import '../../helpers/library_fixtures.dart';
 
@@ -121,6 +122,30 @@ void main() {
   });
 
   group('talk → single', () {
+    test('a talk in the catch-all "Unknown" retreat is in no course', () async {
+      final fresh = memoryDharmaSeedDb();
+      addTearDown(fresh.close);
+      await fresh.upsertRetreatRecords({
+        dsUnknownRetreat: {
+          'name': 'Unknown',
+          'talks': [10],
+        },
+        7: {
+          'name': 'Jhana Retreat',
+          'talks': [11],
+        },
+      });
+      await fresh.upsertTalkRecords({
+        10: dsTalkRecord('A talk at no retreat', teacher: 1, retreat: 1),
+        11: dsTalkRecord('Settling', teacher: 1, retreat: 7),
+        12: dsTalkRecord('No retreat at all', teacher: 1),
+      });
+      final offline = DharmaSeedSource(db: fresh, library: library);
+      expect(await offline.parentOf('ds-talk-10'), isNull);
+      expect(await offline.parentOf('ds-talk-11'), 'ds-retreat-7');
+      expect(await offline.parentOf('ds-talk-12'), isNull);
+    });
+
     test('one voice, one original file, with attribution link', () async {
       await sync.sync();
       final track = await source.track('ds-talk-95073');
