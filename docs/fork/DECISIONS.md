@@ -1145,3 +1145,31 @@ Burooj's picks on the figure round 2 (branch `fork/practice-figures`, merged her
   - **Rasterising on the CPU: 29–65 ms.** The phone rasterises on the GPU, so this only ranks the figures. The heaviest are Open awareness's veils and Dzogchen and Mahāmudrā.
   - A profile run on the S23+ would settle it, and needs an APK, which Burooj will call for.
 - **The random pool of unpicked variants: not done.** Burooj wants the variants that weren't picked to join the random library for user content. The designer marks each one generic or practice-tied in round 3, and that flag isn't on the branch yet. When it lands, port the generic ones into the random pool. It is the last step.
+
+## 2026-11-03 (practice figures round 3, and the figure library)
+
+Burooj's round 3 picks: Headless Way B (full of what passes), Caṅkama · Kinhin B (one step, then the next), **Forgiveness B (mended with gold)**, **The Mind Illuminated E (the long climb)**, Anussati B (the triple gem), Karuṇā A (taking in, sending out), Jhāna A (light gathering in). `fork/practice-figures` was merged again.
+
+- **No stand-ins left.** The seven picks are ported (`practice_figures_r3a.dart`, `_r3b.dart`), and `categories.json` version 5 names them.
+- **The figure library** (Burooj: the variants that weren't picked are drawn at random for user content). The designer flagged each unpicked variant in `r2.json` and `r3.json`:
+  - **`any` (33):** they join the course, single and playlist classes as `ArtClass.library`, as (ground, figure) pairs. Each figure stays on the ground it was designed for (decision 22: a tight meaning map, no arbitrary pairings), centred and without an accent. A cover picks the library over its classic figures in proportion to how many each offers.
+  - **`practice` (5):** Noting's two label figures, the Headless Way's face and point, and the trāṭaka point. They are drawn only for content carrying that practice (`ArtMap.practiceLibrary`).
+    - `CoverArt` gains an optional `practice`. The Library's tiles pass the first practice an item carries that has variants of its own (`artPractice`).
+    - Other covers (Explore's catalogue rows, Home's Continue) don't look up labels, so they draw the shared library only. That is the cost of not threading labels into a dozen call sites.
+  - **`none`** (Walking A, Forgiveness C, TMI A): never drawn.
+- **Generated covers re-roll once.** A cover class with a library draws one more random number, so every non-curated course, single and playlist gets new art with this build. Curated art (shipped items, sounds, presets, bells) doesn't move, and neither does sound and preset art, whose classes have no library.
+- **The port:** 45 figures by five Sonnet workers from one brief, a file each, split by practice so shared private helpers stay together.
+  - `clearDisc` and the five lights became shared helpers.
+  - Round 3's pen-drawn figures use `stroke_engine.dart`'s `Pen` and `makeStroke`, with private copies of `resample` and `drawStroke`.
+  - Yoga nidrā's moon uses the same full-circle workaround as Kasiṇa.
+  - `dialogue_strokes` keeps its strokes as objects in its params, so a composition holding it can't be frozen to JSON. Nothing in the app freezes generated art, but curating one later would need it rebuilt from a seed.
+- **Live art, after review:**
+  - A hidden tab stops ticking (`Visibility.of`).
+  - A cover off screen re-checks every half second, so it notices coming back by a way no scroll reports.
+  - Covers measure themselves after layout, because scroll positions notify before it. The tests found that bug.
+  - Each scroll view's viewport bounds what counts as showing.
+  - An unfocused window keeps animating; only hidden and paused stop it.
+- **Verified:**
+  - Tests: 74 practice figures registered, none shadowed; all 38 practices and 38 library pairs draw; covers draw from the library, and Noting's variants appear only with that practice.
+  - Visibility: 3 of 12 covers tick, again after scrolling away and back; 2 in a 200-wide list; 0 on a hidden tab, in the background, or under reduce motion.
+  - A Dart contact sheet of every new figure, checked by eye. **No APK** (Burooj will say when).
