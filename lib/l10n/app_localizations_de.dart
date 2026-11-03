@@ -2753,10 +2753,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get libraryPinned => 'Auf Home angeheftet';
 
   @override
-  String get exploreCategories => 'Arten zu üben';
+  String get exploreCategories => 'Übungswege';
 
   @override
-  String get exploreCategoriesLabel => 'Arten zu üben durchsuchen';
+  String get exploreCategoriesLabel => 'Übungswege durchsuchen';
 
   @override
   String get practicesSeeAll => 'Alle anzeigen';
