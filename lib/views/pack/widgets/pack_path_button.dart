@@ -7,6 +7,7 @@ import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/providers/library/library_providers.dart';
+import 'package:medito/services/home/next_session.dart';
 import 'package:medito/views/player/start_session.dart';
 
 /// The pack's header surface with its play button sitting on the lower edge,
@@ -154,37 +155,41 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
   Widget build(BuildContext context) {
     final tracks = pack.playableTracks;
     final completed = tracks.where((item) => item.isCompleted == true).length;
-    final next = tracks.where((item) => item.isCompleted != true).firstOrNull;
-    return _playButton(context, next, completed, tracks.length);
+    final places = ref.watch(partialPlacesProvider);
+    final next = nextSessionFor(pack, partial: places.value ?? const {});
+    // Until the places are read the answer could be the wrong session, so
+    // the button waits (an error reads as no places).
+    final ready = places.hasValue || places.hasError;
+    return _playButton(context, next, completed, tracks.length, ready);
   }
 
   Widget _playButton(
     BuildContext context,
-    PackItemsModel? next,
+    NextSession? nextSession,
     int completed,
     int total,
+    bool ready,
   ) {
     final l10n = AppLocalizations.of(context)!;
     final onSurface = Theme.of(context).colorScheme.onSurface;
-    final done = next == null;
+    final next = nextSession?.item;
+    final done = nextSession == null;
     // A session left partway also reads Resume, even in an unstarted course.
-    final partway =
-        next != null && ref.watch(resumePointProvider(next.id)).value != null;
     final action = done
         ? l10n.yourPathAllDone
-        : completed == 0 && !partway
-        ? l10n.packStart
-        : l10n.packContinue;
+        : nextSession.isResume
+        ? l10n.packContinue
+        : l10n.packStart;
     final label = done
         ? action
-        : '$action: ${next.title}. ${l10n.upNextProgress(completed, total)}';
+        : '$action: ${next!.title}. ${l10n.upNextProgress(completed, total)}';
 
     return Semantics(
       button: !done,
       label: label,
       excludeSemantics: true,
       child: Tooltip(
-        message: done ? action : '$action: ${next.title}',
+        message: done ? action : '$action: ${next!.title}',
         excludeFromSemantics: true,
         child: Material(
           shape: const CircleBorder(),
@@ -197,7 +202,7 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
                 )
               : context.brandAccent,
           child: InkWell(
-            onTap: done ? null : () => _start(context, next),
+            onTap: done || !ready ? null : () => _start(context, next!),
             child: SizedBox.square(
               dimension: PackPathButton.buttonSize,
               child: Center(
