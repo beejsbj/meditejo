@@ -19,6 +19,7 @@ import 'package:medito/views/library/lib_course_settings.dart';
 import 'package:medito/views/library/library_format.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
+import 'package:medito/services/my_courses/my_course_source.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/pack/widgets/pack_item_widget.dart';
@@ -586,7 +587,8 @@ class _PackViewState extends ConsumerState<PackView>
   /// dates instead:
   /// - a short course, one with an undated session, or one recorded in a day;
   /// - days out of order (a feed listed newest first);
-  /// - about one session a day, which would be a box per row;
+  /// - about one session a day on average, or more than half the days with
+  ///   a single session, which would be boxes of one row;
   /// - a feed or other source spread over more than three weeks (a podcast,
   ///   a series). A Dharma Seed retreat is a retreat by its record, so a
   ///   month-long one keeps its days, up to [_longestRetreat].
@@ -607,14 +609,19 @@ class _PackViewState extends ConsumerState<PackView>
     for (var i = 1; i < days.length; i++) {
       if (!days[i].isAfter(days[i - 1])) return null;
     }
-    if (items.length / groups.length < _densestSparse) return null;
+    // About a session a day, or mostly lone sessions: a box per row says
+    // nothing a dated row does not.
+    if (items.length / groups.length < _minSessionsPerDay) return null;
+    final lone = groups.where((group) => group.items.length == 1).length;
+    if (lone * 2 > groups.length) return null;
     final span = days.last.difference(days.first).inDays;
     final longest = pack.id.startsWith('ds-retreat-') ? _longestRetreat : 21;
     return span <= longest ? (groups: groups, first: days.first) : null;
   }
 
-  /// Sessions per recorded day below which a retreat's days are not boxed.
-  static const _densestSparse = 1.3;
+  /// Sessions per recorded day, on average, below which a retreat's days
+  /// are not boxed.
+  static const _minSessionsPerDay = 1.3;
 
   /// The longest Dharma Seed retreat, in days, still shown by its days (a
   /// three-month retreat's part).
@@ -969,6 +976,7 @@ class _RowStyle {
         DharmaSeedKind.other => l10n.sessionKindRecording,
       };
     }
+    if (kind == MyCourseSource.importedLabel) return l10n.librarySourceImported;
     // A source's own name ("YouTube") is not translated.
     return kind;
   }

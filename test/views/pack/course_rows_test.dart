@@ -389,25 +389,56 @@ void main() {
     }
   });
 
-  testWidgets('chips speak the app\'s language', (tester) async {
+  Future<void> openIn(WidgetTester tester, String lang, PackModel pack) async {
     final app = await LibraryTestApp.create(tester);
     await app.pump(
       tester,
       Builder(
         builder: (context) => Localizations.override(
           context: context,
-          locale: const Locale('de'),
-          child: PackView(id: _retreat.id),
+          locale: Locale(lang),
+          child: PackView(id: pack.id),
         ),
       ),
       overrides: [
-        packProvider(
-          packId: _retreat.id,
-        ).overrideWith(() => _FakePack(_retreat)),
+        packProvider(packId: pack.id).overrideWith(() => _FakePack(pack)),
       ],
     );
+  }
+
+  testWidgets('chips speak the app\'s language', (tester) async {
+    await openIn(tester, 'de', _retreat);
     expect(find.text('Vortrag'), findsWidgets);
     expect(find.text('Talk'), findsNothing);
+  });
+
+  testWidgets('a playlist\'s "Imported" chip is translated, YouTube is not', (
+    tester,
+  ) async {
+    // A playlist's rows without a kind of their own name their source.
+    const sources = ['Guided meditation', 'Imported', 'YouTube'];
+    await openIn(
+      tester,
+      'es',
+      _dated('my-course-mix', _days(1, 3), kind: (i) => sources[i]),
+    );
+    expect(_chip(tester, 'Talk 1'), 'Meditación');
+    expect(_chip(tester, 'Talk 2'), 'Importado');
+    expect(_chip(tester, 'Talk 3'), 'YouTube');
+  });
+
+  testWidgets('a retreat of mostly one-talk days is dated rows, not boxes', (
+    tester,
+  ) async {
+    // 25 talks over 19 days: three days of three, sixteen of one. On
+    // average 1.3 a day, but most boxes would hold a single row.
+    final dates = [
+      ..._days(3, 3),
+      for (final date in _days(19, 1).skip(3)) date,
+    ];
+    await open(tester, _dated('ds-retreat-9004', dates));
+    expect(find.byKey(const ValueKey('day_2024-03-01')), findsNothing);
+    expect(_meta(tester, 'Talk 1'), 'Mar 1 · 30 min');
   });
 
   testWidgets('a podcast drops its author from rows, not its guests', (
