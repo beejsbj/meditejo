@@ -184,9 +184,13 @@ void main() {
     phone(tester);
     await tester.pumpWidget(app(row()));
     await settle(tester);
+    addTearDown(
+      () => tester.binding.handleAppLifecycleStateChanged(
+        AppLifecycleState.resumed,
+      ),
+    );
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     await settle(tester);
     expect(ticking(), 3);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
   });
 }

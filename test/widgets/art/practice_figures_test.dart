@@ -168,4 +168,19 @@ void main() {
       )!.freeze(),
     );
   });
+
+  test('the saved practices read back, and junk reads as none', () {
+    expect(readArtPractices('{"lib-1": "noting", "x": 3}'), {
+      'lib-1': 'noting',
+    });
+    expect(readArtPractices('not json'), isEmpty);
+    expect(readArtPractices(null), isEmpty);
+  });
+
+  test('a teacher\'s cover never takes a practice', () {
+    addTearDown(() => artPractices.value = const {});
+    artPractices.value = const {'ds-teacher-1': 'noting'};
+    const teacher = ArtSubject.cover(ArtCoverKind.teacher, 'ds-teacher-1');
+    expect((teacher as CoverArt).drawnPractice, isNull);
+  });
 }

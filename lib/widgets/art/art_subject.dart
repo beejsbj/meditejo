@@ -103,7 +103,8 @@ final class CoverArt extends ArtSubject {
 
   /// The practice this cover draws for: its own, or the one the app knows
   /// the item by.
-  String? get drawnPractice => practice ?? artPractices.value[id];
+  String? get drawnPractice =>
+      kind == ArtCoverKind.teacher ? null : practice ?? artPractices.value[id];
 
   @override
   String get key {
@@ -163,6 +164,22 @@ final class PracticeArt extends ArtSubject {
 /// read by every cover of the item, so the Library, Home, Explore and the
 /// player draw the same art.
 final artPractices = ValueNotifier<Map<String, String>>(const {});
+
+/// [artPractices] as saved (a JSON object of id → practice); empty when
+/// missing or unreadable.
+Map<String, String> readArtPractices(String? saved) {
+  if (saved == null) return const {};
+  try {
+    final m = jsonDecode(saved);
+    if (m is! Map) return const {};
+    return {
+      for (final MapEntry(:key, :value) in m.entries)
+        if (key is String && value is String) key: value,
+    };
+  } on FormatException {
+    return const {};
+  }
+}
 
 /// The id the meaning map knows a mix layer by. Generated layers are named
 /// for what they are: the noise by its colour (`noise-brown`), the drone

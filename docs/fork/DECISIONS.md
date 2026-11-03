@@ -1157,6 +1157,9 @@ Burooj's round 3 picks: Headless Way B (full of what passes), Caṅkama · Kinhi
     - **The practice comes from one place, so every screen agrees** (review). `artPractices` (`art_subject.dart`) maps each library item to the first practice it carries that has variants of its own. The app shell keeps it current from the library's labels, guessed or the user's.
     - Every cover of that item reads it, whether in the Library, on Home, in Explore or in the player. A change re-resolves only the covers it affects, because the practice is part of the cover's key.
     - Items not in the library have no labels here, so they draw the shared library only.
+    - The map is saved (`art_practices` in shared preferences) and loaded before the first frame, so a launch draws the same covers from the start, without flicking while the labels load (delta review). It changes only when it really changes.
+    - Teachers never take a practice.
+    - **By design:** a catalogue item draws the practice's variants only while it's in the Library. Saved, it becomes yours, and its cover can change; removed, the cover goes back.
   - **`none`** (Walking A, Forgiveness C, TMI A): never drawn.
 - **Generated covers re-roll once.** A cover class with a library draws one more random number, so every non-curated course, single and playlist gets new art with this build. Curated art (shipped items, sounds, presets, bells) doesn't move, and neither does sound and preset art, whose classes have no library.
 - **The port:** 45 figures by five Sonnet workers from one brief, a file each, split by practice so shared private helpers stay together.

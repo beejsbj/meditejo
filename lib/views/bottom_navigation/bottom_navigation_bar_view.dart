@@ -1,8 +1,11 @@
 import 'package:medito/widgets/adaptive/adaptive_content.dart';
 import 'package:medito/views/bottom_navigation/widgets/medito_sidebar.dart';
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:medito/constants/strings/shared_preference_constants.dart';
+import 'package:flutter/foundation.dart';
 import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/art/art_subject.dart';
 import 'package:medito/providers/categories/category_providers.dart';
@@ -134,10 +137,22 @@ class _BottomNavigationBarViewState
     ref.listen(libraryLabelsProvider, (_, next) {
       final labels = next.value;
       if (labels == null) return;
-      artPractices.value = {
+      final practices = <String, String>{
         for (final MapEntry(:key, :value) in labels.entries)
           key: ?artPractice(value),
       };
+      // Only a real change refreshes covers; it is saved so the next launch
+      // draws the same covers from its first frame (main.dart).
+      if (mapEquals(practices, artPractices.value)) return;
+      artPractices.value = practices;
+      unawaited(
+        ref
+            .read(sharedPreferencesProvider)
+            .setString(
+              SharedPreferenceConstants.artPractices,
+              jsonEncode(practices),
+            ),
+      );
     });
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
