@@ -48,10 +48,10 @@ void main() {
     expect(find.text(_c('emptiness').blurb), findsOneWidget);
     expect(
       findArt(
-        const ArtSubject.practice(
+        ArtSubject.practice(
           'emptiness',
-          ground: 'mist',
-          figure: 'rings:target',
+          ground: _c('emptiness').ground,
+          figure: _c('emptiness').figure,
         ),
       ),
       findsOneWidget,
