@@ -244,9 +244,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get completed => 'Completado';
 
   @override
-  String get submit => 'Enviar';
-
-  @override
   String get duration => 'Duración';
 
   @override
@@ -420,10 +417,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get reminderPrimerContinue => 'Continuar';
 
   @override
-  String get reminderCustomCancelled =>
-      'Aún no has elegido una hora: elige una arriba u omite por ahora.';
-
-  @override
   String get reminderTitle => 'Recordatorio diario';
 
   @override
@@ -441,6 +434,20 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get batteryGuidanceOpen => 'Abrir ajustes de batería';
+
+  @override
+  String get batteryAutoStartTitle => 'Deja que Meditejo se inicie solo';
+
+  @override
+  String get batteryAutoStartBody =>
+      'Tu teléfono impide que las apps se inicien en segundo plano. Sigue los pasos para permitir que Meditejo se inicie y te lleguen los recordatorios.';
+
+  @override
+  String get batteryManufacturerTitle => 'Un ajuste de batería más';
+
+  @override
+  String get batteryManufacturerBody =>
+      'Tu teléfono también tiene su propio ahorro de batería. Sigue los pasos para dejar que Meditejo funcione y las sesiones no se pausen.';
 
   @override
   String get skip => 'Omitir';
@@ -2506,7 +2513,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get introPractice =>
-      'Sigue un curso sesión a sesión, escucha charlas o siéntate con el temporizador.';
+      'Sigue un curso sesión a sesión, escucha charlas o medita con el temporizador.';
 
   @override
   String get introSources =>

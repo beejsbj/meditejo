@@ -14,11 +14,6 @@ abstract final class FirstRunIntro {
   static Future<void> markSeen(SharedPreferences prefs) =>
       prefs.setBool(SharedPreferenceConstants.introSeen, true);
 
-  /// Debug only: show the intro again on the next launch. An explicit false,
-  /// so [settleForExistingInstall] leaves it alone.
-  static Future<void> reset(SharedPreferences prefs) =>
-      prefs.setBool(SharedPreferenceConstants.introSeen, false);
-
   /// Run at startup, before this launch records its version. An install that
   /// was in use before the intro existed has already met the app, so it
   /// skips the intro: anyone who answered Medito's questionnaire, and any

@@ -71,7 +71,6 @@
   "goBack": "Zurück",
   "path": "Pfad",
   "completed": "Abgeschlossen",
-  "submit": "Absenden",
   "duration": "Dauer",
   "monday": "Mo",
   "tuesday": "Di",
@@ -131,7 +130,7 @@
   "enableNotificationsBody": "Aktiviere Benachrichtigungen, damit du keine Sitzung verpasst.",
   "reminderChipsQuestion": "Wann möchtest du meditieren?",
   "@reminderChipsQuestion": {
-    "description": "Question above the time-of-day chips in the onboarding notifications screen (chips arm of the reminder experiment)"
+    "description": "Question above the reminder time choices (Morning, Evening, Night, custom), in the sheet opened from Settings and from the end-of-session reminder card"
   },
   "reminderSlotMorning": "Morgens",
   "@reminderSlotMorning": {
@@ -181,10 +180,6 @@
   "@reminderPrimerContinue": {
     "description": "Button on the pre-permission dialog that proceeds to the OS notification permission prompt"
   },
-  "reminderCustomCancelled": "Noch keine Uhrzeit ausgewählt – wähle oben eine aus oder überspringe diesen Schritt vorerst.",
-  "@reminderCustomCancelled": {
-    "description": "Feedback shown when the user opens the custom time picker and dismisses it without choosing, so the tap is not a silent dead end"
-  },
   "reminderTitle": "Tägliche Erinnerung",
   "@reminderTitle": {
     "description": "Title of the settings tile that opens the reminder time bottom sheet (replaced the Smart Reminders switch)"
@@ -200,6 +195,10 @@
   "batteryGuidanceTitle": "Meditejo weiterlaufen lassen",
   "batteryGuidanceBody": "Dein Handy kann Meditejo während einer Sitzung anhalten oder eine Erinnerung zurückhalten. Darf Meditejo im Hintergrund laufen, passiert das nicht.",
   "batteryGuidanceOpen": "Akku-Einstellungen öffnen",
+  "batteryAutoStartTitle": "Meditejo selbst starten lassen",
+  "batteryAutoStartBody": "Dein Handy hindert Apps daran, im Hintergrund zu starten. Folge den Schritten, damit Meditejo starten darf und Erinnerungen ankommen.",
+  "batteryManufacturerTitle": "Noch eine Akku-Einstellung",
+  "batteryManufacturerBody": "Dein Handy spart zusätzlich selbst Akku. Folge den Schritten, damit Meditejo laufen darf und Sitzungen nicht angehalten werden.",
   "skip": "Überspringen",
   "notNow": "Jetzt nicht",
   "errorNoInternetMessage": "Keine Internetverbindung",
@@ -1181,14 +1180,14 @@
   "settingsSoundCredits": "Klang-Nachweise",
   "settingsLicenses": "Open-Source-Lizenzen",
   "introLead": "Ein ruhiger Ort für deine Praxis.",
-  "introPractice": "Folge einem Kurs Sitzung für Sitzung, höre Vorträge oder sitze mit dem Timer.",
+  "introPractice": "Folge einem Kurs Sitzung für Sitzung, höre Vorträge oder meditiere mit dem Timer.",
   "introSources": "Dharma Seed ist eingebaut. Füge Podcasts, YouTube oder eigene Dateien hinzu.",
   "introPrivate": "Kein Konto. Dein Verlauf und deine Einstellungen bleiben auf diesem Handy.",
   "introMeaning": "Meditejo ist Esperanto für „Ort der Meditation“.",
   "introStart": "Beginnen",
   "introTour": "Rundgang machen",
-  "aboutWhatIsMeditejo": "Was Meditejo ist",
-  "batteryGuidanceRow": "Dein Handy kann Sitzungen und Erinnerungen anhalten",
+  "aboutWhatIsMeditejo": "Was ist Meditejo?",
+  "batteryGuidanceRow": "Dein Handy kann Sitzungen und Erinnerungen zurückhalten",
   "statsTimePractised": "Geübte Zeit",
   "statsToday": "Heute",
   "statsThisWeek": "Diese Woche",

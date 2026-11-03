@@ -91,7 +91,6 @@
   "goBack": "Go Back",
   "path": "Path",
   "completed": "Completed",
-  "submit": "Submit",
   "duration": "Duration",
   "monday": "M",
   "tuesday": "T",
@@ -151,7 +150,7 @@
   "enableNotificationsBody": "Enable notifications so you never miss a session.",
   "reminderChipsQuestion": "When will you meditate?",
   "@reminderChipsQuestion": {
-    "description": "Question above the time-of-day chips in the onboarding notifications screen (chips arm of the reminder experiment)"
+    "description": "Question above the reminder time choices (Morning, Evening, Night, custom), in the sheet opened from Settings and from the end-of-session reminder card"
   },
   "reminderSlotMorning": "Morning",
   "@reminderSlotMorning": {
@@ -201,10 +200,6 @@
   "@reminderPrimerContinue": {
     "description": "Button on the pre-permission dialog that proceeds to the OS notification permission prompt"
   },
-  "reminderCustomCancelled": "No time picked yet — choose one above, or skip for now.",
-  "@reminderCustomCancelled": {
-    "description": "Feedback shown when the user opens the custom time picker and dismisses it without choosing, so the tap is not a silent dead end"
-  },
   "reminderTitle": "Daily reminder",
   "@reminderTitle": {
     "description": "Title of the settings tile that opens the reminder time bottom sheet (replaced the Daily reminders switch)"
@@ -228,6 +223,22 @@
   "batteryGuidanceOpen": "Open battery settings",
   "@batteryGuidanceOpen": {
     "description": "Button opening the phone's battery optimisation settings"
+  },
+  "batteryAutoStartTitle": "Let Meditejo start on its own",
+  "@batteryAutoStartTitle": {
+    "description": "Title of the phone's own dialog that leads to its auto-start setting (shown by the battery page's button)"
+  },
+  "batteryAutoStartBody": "Your phone stops apps from starting in the background. Follow the steps to let Meditejo start, so reminders arrive.",
+  "@batteryAutoStartBody": {
+    "description": "Body of the phone's own auto-start dialog"
+  },
+  "batteryManufacturerTitle": "One more battery setting",
+  "@batteryManufacturerTitle": {
+    "description": "Title of the dialog that leads to the manufacturer's extra battery optimisation setting"
+  },
+  "batteryManufacturerBody": "Your phone has its own battery saving as well. Follow the steps to let Meditejo run, so sessions are not paused.",
+  "@batteryManufacturerBody": {
+    "description": "Body of the manufacturer's extra battery optimisation dialog"
   },
   "skip": "Skip",
   "notNow": "Not now",

@@ -538,12 +538,6 @@ abstract class AppLocalizations {
   /// **'Completed'**
   String get completed;
 
-  /// No description provided for @submit.
-  ///
-  /// In en, this message translates to:
-  /// **'Submit'**
-  String get submit;
-
   /// No description provided for @duration.
   ///
   /// In en, this message translates to:
@@ -742,7 +736,7 @@ abstract class AppLocalizations {
   /// **'Enable notifications so you never miss a session.'**
   String get enableNotificationsBody;
 
-  /// Question above the time-of-day chips in the onboarding notifications screen (chips arm of the reminder experiment)
+  /// Question above the reminder time choices (Morning, Evening, Night, custom), in the sheet opened from Settings and from the end-of-session reminder card
   ///
   /// In en, this message translates to:
   /// **'When will you meditate?'**
@@ -820,12 +814,6 @@ abstract class AppLocalizations {
   /// **'Continue'**
   String get reminderPrimerContinue;
 
-  /// Feedback shown when the user opens the custom time picker and dismisses it without choosing, so the tap is not a silent dead end
-  ///
-  /// In en, this message translates to:
-  /// **'No time picked yet — choose one above, or skip for now.'**
-  String get reminderCustomCancelled;
-
   /// Title of the settings tile that opens the reminder time bottom sheet (replaced the Daily reminders switch)
   ///
   /// In en, this message translates to:
@@ -861,6 +849,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open battery settings'**
   String get batteryGuidanceOpen;
+
+  /// Title of the phone's own dialog that leads to its auto-start setting (shown by the battery page's button)
+  ///
+  /// In en, this message translates to:
+  /// **'Let Meditejo start on its own'**
+  String get batteryAutoStartTitle;
+
+  /// Body of the phone's own auto-start dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone stops apps from starting in the background. Follow the steps to let Meditejo start, so reminders arrive.'**
+  String get batteryAutoStartBody;
+
+  /// Title of the dialog that leads to the manufacturer's extra battery optimisation setting
+  ///
+  /// In en, this message translates to:
+  /// **'One more battery setting'**
+  String get batteryManufacturerTitle;
+
+  /// Body of the manufacturer's extra battery optimisation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone has its own battery saving as well. Follow the steps to let Meditejo run, so sessions are not paused.'**
+  String get batteryManufacturerBody;
 
   /// No description provided for @skip.
   ///

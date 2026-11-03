@@ -245,9 +245,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get completed => 'Abgeschlossen';
 
   @override
-  String get submit => 'Absenden';
-
-  @override
   String get duration => 'Dauer';
 
   @override
@@ -422,10 +419,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get reminderPrimerContinue => 'Weiter';
 
   @override
-  String get reminderCustomCancelled =>
-      'Noch keine Uhrzeit ausgewählt – wähle oben eine aus oder überspringe diesen Schritt vorerst.';
-
-  @override
   String get reminderTitle => 'Tägliche Erinnerung';
 
   @override
@@ -443,6 +436,20 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get batteryGuidanceOpen => 'Akku-Einstellungen öffnen';
+
+  @override
+  String get batteryAutoStartTitle => 'Meditejo selbst starten lassen';
+
+  @override
+  String get batteryAutoStartBody =>
+      'Dein Handy hindert Apps daran, im Hintergrund zu starten. Folge den Schritten, damit Meditejo starten darf und Erinnerungen ankommen.';
+
+  @override
+  String get batteryManufacturerTitle => 'Noch eine Akku-Einstellung';
+
+  @override
+  String get batteryManufacturerBody =>
+      'Dein Handy spart zusätzlich selbst Akku. Folge den Schritten, damit Meditejo laufen darf und Sitzungen nicht angehalten werden.';
 
   @override
   String get skip => 'Überspringen';
@@ -2504,7 +2511,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get introPractice =>
-      'Folge einem Kurs Sitzung für Sitzung, höre Vorträge oder sitze mit dem Timer.';
+      'Folge einem Kurs Sitzung für Sitzung, höre Vorträge oder meditiere mit dem Timer.';
 
   @override
   String get introSources =>
@@ -2524,11 +2531,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get introTour => 'Rundgang machen';
 
   @override
-  String get aboutWhatIsMeditejo => 'Was Meditejo ist';
+  String get aboutWhatIsMeditejo => 'Was ist Meditejo?';
 
   @override
   String get batteryGuidanceRow =>
-      'Dein Handy kann Sitzungen und Erinnerungen anhalten';
+      'Dein Handy kann Sitzungen und Erinnerungen zurückhalten';
 
   @override
   String get statsTimePractised => 'Geübte Zeit';

@@ -13,13 +13,25 @@ import 'package:medito/providers/shared_preference/shared_preference_provider.da
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
 import 'package:medito/widgets/medito_icon.dart';
 
+/// Asks the phone whether Meditejo is still held back
+/// ([shouldShowBatteryOptimizationScreen]). Tests stand in for it.
+final batteryGuidanceCheckProvider = Provider<Future<bool> Function()>(
+  (_) => shouldShowBatteryOptimizationScreen,
+);
+
 /// Whether this phone is one known to stop apps in the background and
-/// Meditejo is still held back by it. Re-read after the page is left.
+/// Meditejo is still held back by it.
+///
+/// Read again every time the app comes back to the foreground, while anything
+/// watches it: the change is made in the phone's settings, outside the app,
+/// and Settings stays alive underneath, so nothing else would re-read it.
 final batteryGuidanceNeededProvider = FutureProvider.autoDispose<bool>((
-  _,
+  ref,
 ) async {
+  final listener = AppLifecycleListener(onResume: ref.invalidateSelf);
+  ref.onDispose(listener.dispose);
   try {
-    return await shouldShowBatteryOptimizationScreen();
+    return await ref.read(batteryGuidanceCheckProvider)();
   } catch (_) {
     // Device-specific guidance is optional.
     return false;
@@ -31,56 +43,41 @@ final batteryGuidanceNeededProvider = FutureProvider.autoDispose<bool>((
 /// Medito's onboarding until #87; it is now a Settings row under Reminders
 /// ([BatteryGuidanceTile]) and is offered once, right after a daily reminder
 /// is turned on ([offerBatteryGuidanceOnce]).
-class BatteryOptimizationScreen extends StatefulWidget {
+///
+/// It closes itself once the phone lets Meditejo run. Coming back without
+/// that change (or from the plugin's own dialog, which also pauses and
+/// resumes the app) leaves it open, with Done instead of Not now.
+class BatteryOptimizationScreen extends ConsumerStatefulWidget {
   const BatteryOptimizationScreen({super.key});
 
   @override
-  State<BatteryOptimizationScreen> createState() =>
+  ConsumerState<BatteryOptimizationScreen> createState() =>
       _BatteryOptimizationScreenState();
 }
 
-class _BatteryOptimizationScreenState extends State<BatteryOptimizationScreen>
-    with WidgetsBindingObserver {
+class _BatteryOptimizationScreenState
+    extends ConsumerState<BatteryOptimizationScreen> {
   bool _isProcessing = false;
   bool _openedSettings = false;
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  // Back from the phone's settings: the page has done its job.
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _openedSettings && mounted) {
-      _openedSettings = false;
-      Navigator.of(context).maybePop();
-    }
-  }
-
   Future<void> _handleOptimize() async {
     if (!mounted) return;
-    setState(() => _isProcessing = true);
+    final l10n = AppLocalizations.of(context)!;
+    setState(() {
+      _isProcessing = true;
+      _openedSettings = true;
+    });
 
     try {
-      // This opens the system dialog; the observer above fires on return.
-      _openedSettings = true;
+      // The plugin shows its own dialogs before the phone's settings.
       await DisableBatteryOptimization.showDisableAllOptimizationsSettings(
-        'Enable Auto Start',
-        'Follow the steps and enable the auto start of this app',
-        'Your device has additional battery optimization',
-        'Follow the steps and disable the optimizations to allow smooth functioning of this app',
+        l10n.batteryAutoStartTitle,
+        l10n.batteryAutoStartBody,
+        l10n.batteryManufacturerTitle,
+        l10n.batteryManufacturerBody,
       );
     } catch (_) {
-      // If the system dialog isn't available, just close.
-      _openedSettings = false;
+      // No settings to open on this phone: nothing more this page can do.
       if (mounted) Navigator.of(context).maybePop();
     }
 
@@ -92,6 +89,13 @@ class _BatteryOptimizationScreenState extends State<BatteryOptimizationScreen>
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final type = context.typography;
+    // Done once the phone lets Meditejo run: re-read on every return to
+    // the app (see [batteryGuidanceNeededProvider]).
+    ref.listen(batteryGuidanceNeededProvider, (_, next) {
+      if (_openedSettings && next.value == false) {
+        Navigator.of(context).maybePop();
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(),
@@ -143,7 +147,9 @@ class _BatteryOptimizationScreenState extends State<BatteryOptimizationScreen>
                       TextButton(
                         key: const ValueKey('battery_not_now'),
                         onPressed: () => Navigator.of(context).maybePop(),
-                        child: Text(l10n.notNow),
+                        child: Text(
+                          _openedSettings ? l10n.endScreenDone : l10n.notNow,
+                        ),
                       ),
                     ],
                   ),
@@ -195,7 +201,6 @@ class BatteryGuidanceTile extends ConsumerWidget {
 Future<void> offerBatteryGuidanceOnce({
   required NavigatorState navigator,
   required ProviderContainer container,
-  Future<bool> Function() needed = shouldShowBatteryOptimizationScreen,
 }) async {
   final prefs = container.read(sharedPreferencesProvider);
   if (prefs.getBool(SharedPreferenceConstants.batteryGuidanceOffered) ??
@@ -204,7 +209,7 @@ Future<void> offerBatteryGuidanceOnce({
   }
   bool show;
   try {
-    show = await needed();
+    show = await container.read(batteryGuidanceCheckProvider)();
   } catch (_) {
     show = false;
   }

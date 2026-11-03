@@ -74,16 +74,6 @@ void main() {
         expect(FirstRunIntro.isDue(prefs), isFalse, reason: key);
       }
     });
-
-    test('the debug reset outlasts the upgrade check', () async {
-      final prefs = await _prefs({
-        SharedPreferenceConstants.installedVersionHistory: '[]',
-      });
-      await FirstRunIntro.settleForExistingInstall(prefs);
-      await FirstRunIntro.reset(prefs);
-      await FirstRunIntro.settleForExistingInstall(prefs);
-      expect(FirstRunIntro.isDue(prefs), isTrue);
-    });
   });
 
   testWidgets('first launch shows the intro once; Start lands on Home', (
@@ -184,10 +174,14 @@ void main() {
   group('battery guidance, after the first reminder', () {
     Future<(NavigatorState, ProviderContainer)> pumpHost(
       WidgetTester tester,
-      SharedPreferences prefs,
-    ) async {
+      SharedPreferences prefs, {
+      required bool needed,
+    }) async {
       final container = ProviderContainer(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          batteryGuidanceCheckProvider.overrideWithValue(() async => needed),
+        ],
       );
       addTearDown(container.dispose);
       final key = GlobalKey<NavigatorState>();
@@ -207,14 +201,14 @@ void main() {
 
     testWidgets('is offered once, on a phone that needs it', (tester) async {
       final prefs = await _prefs();
-      final (navigator, container) = await pumpHost(tester, prefs);
+      final (navigator, container) = await pumpHost(
+        tester,
+        prefs,
+        needed: true,
+      );
 
       unawaited(
-        offerBatteryGuidanceOnce(
-          navigator: navigator,
-          container: container,
-          needed: () async => true,
-        ),
+        offerBatteryGuidanceOnce(navigator: navigator, container: container),
       );
       await tester.pumpAndSettle();
       expect(find.byType(BatteryOptimizationScreen), findsOneWidget);
@@ -225,11 +219,7 @@ void main() {
 
       // A second reminder later does not ask again.
       unawaited(
-        offerBatteryGuidanceOnce(
-          navigator: navigator,
-          container: container,
-          needed: () async => true,
-        ),
+        offerBatteryGuidanceOnce(navigator: navigator, container: container),
       );
       await tester.pumpAndSettle();
       expect(find.byType(BatteryOptimizationScreen), findsNothing);
@@ -239,11 +229,14 @@ void main() {
       tester,
     ) async {
       final prefs = await _prefs();
-      final (navigator, container) = await pumpHost(tester, prefs);
+      final (navigator, container) = await pumpHost(
+        tester,
+        prefs,
+        needed: false,
+      );
       await offerBatteryGuidanceOnce(
         navigator: navigator,
         container: container,
-        needed: () async => false,
       );
       await tester.pumpAndSettle();
       expect(find.byType(BatteryOptimizationScreen), findsNothing);
