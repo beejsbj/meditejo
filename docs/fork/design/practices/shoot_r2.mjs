@@ -2,6 +2,7 @@
 // round 1 first), the fixes, and a contact sheet (sheet.png; the JPEG is
 // made from it). Console errors fail the run.
 //   node shoot_r2.mjs <page.html> <out dir> [ids...] [--t=S] [--anim]
+// With no ids, every block on the page is shot, then the sheet.
 // Calm still frames by default; --anim freezes the moving figures at t.
 import { mkdirSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -10,9 +11,10 @@ const { chromium } = await import(PW);
 const args = process.argv.slice(2), flags = args.filter((a) => a.startsWith('--')), [page, out, ...only] = args.filter((a) => !a.startsWith('--'));
 const t = Number((flags.find((f) => f.startsWith('--t=')) || '--t=4').slice(4)), anim = flags.includes('--anim');
 mkdirSync(out, { recursive: true });
-const ids = only.length ? only : ['relational', 'noting', 'glimpses', 'body', 'energy', 'focusing', 'yoga-nidra', 'headless', 'dzogchen', 'mahamudra', 'trataka', 'kasina', 'fixes', 'sheet'];
 const b = await chromium.launch({ headless: true, executablePath: process.env.CHROME || '/usr/bin/google-chrome' });
 const ctx = await b.newContext({ deviceScaleFactor: 2, viewport: { width: 830, height: 900 } });
+let ids = only;
+if (!ids.length) { const p = await ctx.newPage(); await p.goto(pathToFileURL(page).href + '?t=0'); await p.waitForFunction(() => window.__ready === true); ids = [...(await p.evaluate(() => [...document.querySelectorAll('.block')].map((e) => e.id))), 'sheet']; await p.close(); }
 let bad = 0;
 for (const id of ids) {
   const p = await ctx.newPage();
