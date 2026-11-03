@@ -627,10 +627,8 @@ class _PackViewState extends ConsumerState<PackView>
       button: true,
       child: InkWell(
         onLongPress: item.type == TypeConstants.track
-            ? () {
-                Feedback.forLongPress(context);
-                showItemActions(context, ref, _actionsFor(item).spec);
-              }
+            // InkWell gives the long-press haptic itself.
+            ? () => showItemActions(context, ref, _actionsFor(item).spec)
             : null,
         onTap: () => unavailable
             ? showSnackBar(
