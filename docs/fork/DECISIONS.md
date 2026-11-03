@@ -1221,7 +1221,7 @@ Burooj left the names to the orchestrator ("You know more about the names than m
   - **So Sonnet re-read 214 retreats with every talk title** (120 affinity, and 97 with no description and more than 8 talks). 36 regained Vipassanā and 2 lost it (`pass/vipassana-reread.jsonl`).
     - U Tejaniya's 1446 regained it on its titles.
     - His 2470 and 2511 did not: their titles are only "instructions" and "group sessions", and a teacher's reputation alone does not count.
-  - **One correction stands** (`pass/corrections.jsonl`): Sayadaw U Pandita's three-month retreat (2898, 89 talks) keeps Vipassanā and gains Noting. The title says "with Sayadaw U Pandita", and its 89 talks are his Mahāsi course. The correction was made before the full re-read.
+  - **One correction stands** (`pass/corrections.jsonl`): Sayadaw U Pandita's three-month retreat (2898, 89 talks) keeps Vipassanā and gains Noting. It meets the rule on its own titles, read in full, not on his name: "Vipassana Jhanas", the seven factors of enlightenment taught one by one, and "Factors Conducive to Wisdom". Noting is added because he teaches the Mahāsi method.
   - **Result:** 913 of 4,184 retreats (21.8%), down from 1,599. Retreats the pass gives no label rise from 1,332 to 1,810, and keyword rules still don't reach them.
   - **The bound test holds every category under a quarter, Vipassanā included,** and Vipassanā above a tenth, so it can't quietly empty.
   - Pass meta v3.
