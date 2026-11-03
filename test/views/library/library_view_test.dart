@@ -346,6 +346,73 @@ void main() {
       expect(container.read(pinnedCoursesProvider), ['ds-retreat-1']);
     });
 
+    testWidgets('removing a course episode kept on its own keeps its pin', (
+      tester,
+    ) async {
+      final app = await LibraryTestApp.create(
+        tester,
+        routes: {
+          'https://example.org/evening.rss': xmlResponse(
+            libraryFixture('rss_podcast.xml'),
+          ),
+        },
+      );
+      late String episode;
+      await tester.runAsync(() async {
+        final preview = await app.harness.service.resolve(
+          'https://example.org/evening.rss',
+        );
+        final result = await app.harness.service.add(
+          preview,
+          const ImportChoice(
+            kind: LibraryKind.course,
+            group: LibraryGroup.practice,
+          ),
+        );
+        episode = (await app.harness.db.trackIdsOfCourse(result.entryId)).first;
+        // The episode also saved as a single of its own.
+        await app.harness.store.add(
+          LibraryDraft(
+            sourceId: episode,
+            kind: LibraryKind.single,
+            title: 'An episode on its own',
+            group: LibraryGroup.practice,
+          ),
+        );
+      });
+      await app.prefs.setStringList(SharedPreferenceConstants.pinnedCourseIds, [
+        episode,
+      ]);
+      await app.prefs.setStringList(
+        SharedPreferenceConstants.pinnedSessionIds,
+        [episode],
+      );
+      await app.pump(tester, const LibraryView());
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(LibraryView)),
+      );
+
+      await tester.tap(find.byKey(ValueKey('library_menu_$episode')));
+      await settle(tester);
+      await tester.tap(find.text('Remove from library'));
+      await settle(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Remove from library'),
+        ),
+      );
+      await settle(tester);
+
+      // Only its own library entry went; the episode is still in its course.
+      expect(find.text('An episode on its own'), findsNothing);
+      expect(container.read(pinnedCoursesProvider), [episode]);
+      expect(
+        container.read(pinnedCoursesProvider.notifier).isSession(episode),
+        isTrue,
+      );
+    });
+
     testWidgets('removing an import from its own page closes the page', (
       tester,
     ) async {

@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
 import 'package:medito/services/library/lib_ids.dart';
+import 'package:medito/utils/logger.dart';
 import 'package:medito/views/library/library_actions.dart';
+import 'package:medito/widgets/snackbar_widget.dart';
 
 /// Saves or unsaves the course or teacher with [id], when its source supports
 /// saving; renders nothing otherwise. Saved items lead Explore.
@@ -26,8 +28,8 @@ class SaveButton extends ConsumerWidget {
   /// Taking an imported item out deletes its audio from the device, so that
   /// asks first; a catalogue item toggles at once.
   Future<void> _toggle(BuildContext context, WidgetRef ref, bool saved) async {
+    final l10n = AppLocalizations.of(context)!;
     if (saved && id.startsWith(libPrefix)) {
-      final l10n = AppLocalizations.of(context)!;
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -48,9 +50,16 @@ class SaveButton extends ConsumerWidget {
       if (confirmed != true) return;
     }
     if (saved && id.startsWith(libPrefix)) {
-      // Unsaving an import deletes it, and its pins with it.
-      // The saved state follows the library's revision.
-      await deleteImport(ref, id);
+      // Unsaving an import deletes it, and its pins with it. The saved state
+      // follows the library's revision.
+      try {
+        await deleteImport(ref, id);
+      } catch (e, st) {
+        AppLogger.e('LIBRARY', 'Could not remove $id', e, st);
+        // The app's messenger shows it, so it survives the page.
+        showSnackBar(context.mounted ? context : null, l10n.someThingWentWrong);
+        return;
+      }
     } else {
       await ref.read(savedProvider(id).notifier).toggle();
     }

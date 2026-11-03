@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
@@ -88,6 +90,11 @@ class PinnedCoursesNotifier extends Notifier<List<String>> {
         if (ids.contains(s)) s,
       ?session,
     };
+    final hadTitles = _titles.length;
+    _titles = {
+      for (final MapEntry(:key, :value) in _titles.entries)
+        if (ids.contains(key)) key: value,
+    };
     state = ids;
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setStringList(SharedPreferenceConstants.pinnedCourseIds, ids);
@@ -95,5 +102,11 @@ class PinnedCoursesNotifier extends Notifier<List<String>> {
       SharedPreferenceConstants.pinnedSessionIds,
       _sessions.toList(),
     );
+    if (_titles.length != hadTitles) {
+      await prefs.setString(
+        SharedPreferenceConstants.pinnedTitles,
+        jsonEncode(_titles),
+      );
+    }
   }
 }

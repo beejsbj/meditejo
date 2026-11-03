@@ -306,11 +306,14 @@ class LibSource
   ].join(' · ');
 
   /// Removes the entry and deletes what was imported for it, including files
-  /// copied into app storage.
-  Future<void> remove(String id) async {
+  /// copied into app storage. Returns the IDs whose content is now gone: a
+  /// course and its sessions, or a session of its own. A session that belongs
+  /// to a course only loses its library entry, so it is not among them.
+  Future<Set<String>> remove(String id) async {
     await library.remove(id);
     final paths = <String>[];
     final removed = <String>[];
+    final deleted = <String>{};
     if (isLibCourseId(id)) {
       // Sessions of the course that were also added on their own go too.
       final children = await db.trackIdsOfCourse(id);
@@ -319,6 +322,7 @@ class LibSource
       }
       paths.addAll(await db.deleteCourse(id));
       removed.addAll(children);
+      deleted.add(id);
     } else if (isLibTrackId(id)) {
       // A session inside a course belongs to the course: taking it out of the
       // library as its own entry leaves the course (and its audio) alone.
@@ -339,6 +343,7 @@ class LibSource
         AppLogger.w('LIBRARY', 'Could not delete $path: $e');
       }
     }
+    return {...deleted, ...removed};
   }
 
   // --------------------------------------------------------- storing imports

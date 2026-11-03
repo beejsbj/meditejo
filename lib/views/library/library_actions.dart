@@ -48,17 +48,13 @@ Future<void> setLibraryGroup(
     .read(libraryStoreProvider)
     .setGroup(entry.sourceId, group == entry.detectedGroup ? null : group);
 
-/// Deletes the import [id] and takes it off Home: a pin of something deleted
-/// would only show an ID. A course takes its sessions' pins with it.
+/// Deletes the import [id] and takes what is gone off Home: a pin of
+/// something deleted would only show an ID. A course takes its sessions' pins
+/// with it; a session that belongs to a course only leaves the library, so
+/// its pin stays.
 Future<void> deleteImport(WidgetRef ref, String id) async {
   final pins = ref.read(pinnedCoursesProvider.notifier);
-  final source = ref.read(libSourceProvider);
-  final gone = {
-    id,
-    if (isLibCourseId(id))
-      ...await ref.read(libraryDatabaseProvider).trackIdsOfCourse(id),
-  };
-  await source.remove(id);
+  final gone = await ref.read(libSourceProvider).remove(id);
   await pins.unpinAll(gone);
 }
 

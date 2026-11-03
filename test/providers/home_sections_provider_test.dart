@@ -69,6 +69,27 @@ void main() {
       expect(again.isSession('talk'), isTrue);
     });
 
+    test('an unpinned pin leaves no saved title behind', () async {
+      final (prefs, open) = await _prefs({
+        SharedPreferenceConstants.pinnedCourseIds: ['a', 'b'],
+        SharedPreferenceConstants.pinnedTitles: '{"a": "Title a", "b": "B"}',
+      });
+      final pins = open().read(pinnedCoursesProvider.notifier);
+      expect(pins.savedTitle('a'), 'Title a');
+
+      await pins.unpin('a');
+      expect(pins.savedTitle('a'), isNull);
+      expect(pins.savedTitle('b'), 'B');
+      expect(
+        prefs.getString(SharedPreferenceConstants.pinnedTitles),
+        '{"b":"B"}',
+      );
+      expect(
+        open().read(pinnedCoursesProvider.notifier).savedTitle('a'),
+        isNull,
+      );
+    });
+
     test('survive a restart', () async {
       final (_, open) = await _prefs({});
       await open().read(pinnedCoursesProvider.notifier).pin('x');
