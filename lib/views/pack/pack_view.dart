@@ -5,6 +5,7 @@ import 'package:medito/views/pack/widgets/youtube_playlist_empty.dart';
 
 import 'dart:math' as math;
 
+import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
@@ -15,20 +16,18 @@ import 'package:medito/providers/providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/views/dharma_seed/widgets/teacher_avatar.dart';
 import 'package:medito/views/library/lib_course_settings.dart';
-import 'package:medito/services/home/next_session.dart';
+import 'package:medito/views/library/library_format.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
-import 'package:medito/views/player/widgets/bottom_actions/pin_action.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/pack/widgets/pack_item_widget.dart';
-import 'package:medito/views/pack/widgets/pack_path_button.dart';
+import 'package:medito/views/pack/widgets/course_actions.dart';
 import 'package:medito/views/player/widgets/bottom_actions/pack_view_bottom_bar.dart';
 import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
 import 'package:medito/views/categories/category_chips.dart';
 import 'package:medito/widgets/attribution_notice.dart';
 import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/inputs/medito_segmented_tabs.dart';
-import 'package:medito/widgets/save_button.dart';
 import 'package:medito/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,15 +46,16 @@ class PackView extends ConsumerStatefulWidget {
 class _PackViewState extends ConsumerState<PackView>
     with AutomaticKeepAliveClientMixin<PackView> {
   final ScrollController _scrollController = ScrollController();
-  // The inline play button and the Stack it docks into, measured on scroll.
-  final _playButtonKey = GlobalKey();
-  final _bodyKey = GlobalKey();
 
-  /// Where the inline play button's slot sits at scroll offset 0. The slot's
-  /// on-screen top is always this minus the offset (content below the app bar
-  /// moves 1:1 with scrolling), so the floating button can be placed from the
-  /// current offset without waiting a frame for a measurement.
-  double? _playSlotTopAtZero;
+  /// The header's Play, measured on scroll to know when it has gone.
+  final _playButtonKey = GlobalKey();
+
+  /// Whether the header's Play has scrolled under the app bar, so the bottom
+  /// bar shows its copy.
+  bool _barPlay = false;
+
+  /// The pinned tab bar, to keep it in place when the tab changes.
+  final _tabsKey = GlobalKey(debugLabel: 'course_tabs');
 
   /// SliverAppBar.large's collapsed toolbar height (Material 3).
   static const _collapsedAppBarHeight = 64.0;
@@ -72,6 +72,7 @@ class _PackViewState extends ConsumerState<PackView>
 
   @override
   void dispose() {
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -89,8 +90,8 @@ class _PackViewState extends ConsumerState<PackView>
       bottomNavigationBar: packAsyncValue.when(
         data: (pack) => PackViewBottomBar(
           packId: widget.id,
-          packName: pack.title,
           onBackPressed: popContext,
+          showPlay: _barPlay,
         ),
         loading: () => backButton,
         error: (_, _) => backButton,
@@ -100,37 +101,7 @@ class _PackViewState extends ConsumerState<PackView>
         child: packAsyncValue.when(
           skipLoadingOnRefresh: false,
           skipLoadingOnReload: false,
-          data: (data) {
-            final playable = PackPathButton.isPlayable(data);
-            if (playable) {
-              WidgetsBinding.instance.addPostFrameCallback(
-                (_) => mounted ? _measurePlaySlot() : null,
-              );
-            }
-            final slotTop = _playSlotTopAtZero;
-            final offset = _scrollController.hasClients
-                ? _scrollController.offset
-                : 0.0;
-            return Stack(
-              key: _bodyKey,
-              children: [
-                _buildScaffoldWithData(
-                  data,
-                  ref,
-                  floatingPlay: playable && slotTop != null,
-                ),
-                // One button, drawn above the app bar: it rides with the
-                // content, then sticks straddling the collapsed bar's edge
-                // (Spotify-style). No swap between copies, so no jump.
-                if (playable && slotTop != null)
-                  Positioned(
-                    top: math.max(slotTop - offset, _dockedPlayTop),
-                    right: PackPathButton.rightInset,
-                    child: PackPlayButton(pack: data),
-                  ),
-              ],
-            );
-          },
+          data: (data) => _buildScaffoldWithData(data, ref),
           error: (err, stack) {
             final error = err is AppError ? err : const UnknownError();
             return MeditoErrorWidget(
@@ -146,35 +117,28 @@ class _PackViewState extends ConsumerState<PackView>
   }
 
   void _scrollListener() {
+    // The app bar fades its art with the offset.
     setState(() => {});
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateBarPlay());
   }
 
-  /// Re-measures the play slot after layout (description, tags or text scale
-  /// can move it); only rebuilds when it actually moved.
-  void _measurePlaySlot() {
-    final slot = _playButtonKey.currentContext?.findRenderObject();
-    final body = _bodyKey.currentContext?.findRenderObject();
-    if (slot is! RenderBox || body is! RenderBox || !slot.attached) return;
-    final offset = _scrollController.hasClients
-        ? _scrollController.offset
-        : 0.0;
-    final atZero = slot.localToGlobal(Offset.zero, ancestor: body).dy + offset;
-    final previous = _playSlotTopAtZero;
-    if (previous == null || (previous - atZero).abs() > 0.5) {
-      setState(() => _playSlotTopAtZero = atZero);
+  /// Shows Play in the bottom bar once the header's own has scrolled under
+  /// the collapsed app bar, and takes it away when it comes back.
+  void _updateBarPlay() {
+    if (!mounted) return;
+    final box = _playButtonKey.currentContext?.findRenderObject();
+    var gone = false;
+    if (box is RenderBox && box.attached && box.hasSize) {
+      final bottom = box.localToGlobal(Offset(0, box.size.height)).dy;
+      gone =
+          bottom <= MediaQuery.paddingOf(context).top + _collapsedAppBarHeight;
     }
+    if (gone != _barPlay) setState(() => _barPlay = gone);
   }
 
-  double get _dockedPlayTop =>
-      MediaQuery.paddingOf(context).top +
-      _collapsedAppBarHeight -
-      PackPathButton.buttonSize / 2;
-
-  RefreshIndicator _buildScaffoldWithData(
-    PackModel pack,
-    WidgetRef ref, {
-    bool floatingPlay = false,
-  }) {
+  RefreshIndicator _buildScaffoldWithData(PackModel pack, WidgetRef ref) {
+    final tabs = _isCourse(pack) ? _tabs(pack) : null;
+    final index = tabs == null ? 0 : _tab.clamp(0, tabs.length - 1);
     return RefreshIndicator(
       onRefresh: () async {
         if (widget.id.startsWith('yt-playlist-')) {
@@ -212,32 +176,32 @@ class _PackViewState extends ConsumerState<PackView>
             coverUrl: pack.coverUrl ?? '',
             art: courseArt(pack.id),
           ),
+          SliverToBoxAdapter(
+            child: ColoredBox(
+              color: Theme.of(context).cardColor,
+              child: _header(pack),
+            ),
+          ),
+          // The tabs stay under the collapsed title while the sessions
+          // scroll (#92). A lone Sessions tab shows no bar.
+          if (tabs != null && tabs.length > 1)
+            PinnedHeaderSliver(
+              child: ColoredBox(
+                key: _tabsKey,
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: MeditoSegmentedTabs(
+                    labels: [for (final tab in tabs) tab.$1],
+                    selectedIndex: index,
+                    onChanged: _selectTab,
+                  ),
+                ),
+              ),
+            ),
           SliverList(
             delegate: SliverChildListDelegate([
-              // Header surface with the play button on its lower edge.
-              PackPathButton(
-                pack: pack,
-                buttonKey: _playButtonKey,
-                // The floating copy takes over once the slot is measured.
-                hideButton: floatingPlay,
-                child: _isCourse(pack)
-                    ? _courseHeader(pack)
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          DescriptionWidget(
-                            description: pack.description ?? '',
-                            endReserve: PackPathButton.endReserve,
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                            child: PinIconButton(id: pack.id),
-                          ),
-                          _packTags(pack),
-                        ],
-                      ),
-              ),
-              if (_isCourse(pack)) ..._courseBody(pack) else ..._sessions(pack),
+              if (tabs != null) ...tabs[index].$2() else ..._sessions(pack),
               if (pack.attribution case final attribution?)
                 AttributionNotice(
                   attribution: attribution,
@@ -246,6 +210,15 @@ class _PackViewState extends ConsumerState<PackView>
               height32,
             ]),
           ),
+          // A short tab (Summary, Teacher) opened from deep in the sessions
+          // keeps the tabs pinned, with room below, instead of the page
+          // springing back down under them.
+          if (tabs != null && tabs.length > 1)
+            SliverLayoutBuilder(
+              builder: (context, constraints) => SliverToBoxAdapter(
+                child: SizedBox(height: _roomBelowTabs(constraints)),
+              ),
+            ),
         ],
       ),
     );
@@ -260,121 +233,229 @@ class _PackViewState extends ConsumerState<PackView>
       pack.attribution != null ||
       pack.items.any((item) => item.kind != null);
 
-  /// Progress, the next session, and Save, on the header surface; the play
-  /// button sits on its lower-right edge, so text keeps clear of it.
-  Widget _courseHeader(PackModel pack) {
+  /// The header (#81): who leads the course, what it holds, how far along
+  /// the user is, then one row of actions: Play / Resume, Library, Pin,
+  /// Share, ⋮. A plain pack shows its description in place of the first two.
+  Widget _header(PackModel pack) {
+    final course = _isCourse(pack);
+    final who = course ? _who(pack) : null;
+    final meta = course ? _meta(pack) : '';
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.7);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!course) DescriptionWidget(description: pack.description ?? ''),
+        Padding(
+          padding: EdgeInsets.fromLTRB(20, course ? 20 : 0, 20, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ?who,
+              if (meta.isNotEmpty)
+                Padding(
+                  padding: EdgeInsets.only(top: who == null ? 0 : 8),
+                  child: Text(
+                    meta,
+                    key: const ValueKey('course_meta'),
+                    style: theme.textTheme.bodyMedium?.copyWith(color: muted),
+                  ),
+                ),
+              if (pack.playableTracks.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _progress(pack),
+              ],
+              const SizedBox(height: 20),
+              CourseActionRow(pack: pack, playKey: _playButtonKey),
+              LibCourseSettings(courseId: pack.id),
+            ],
+          ),
+        ),
+        _packTags(pack),
+      ],
+    );
+  }
+
+  /// Who the course is by: the teacher (avatar and name, opening their
+  /// page), the channel or author an import names, or, for one the user
+  /// made, that it is a playlist.
+  Widget? _who(PackModel pack) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.7);
+    if (isMyCourseId(pack.id)) {
+      return Text(
+        l10n.playlistKind,
+        style: theme.textTheme.titleMedium?.copyWith(color: muted),
+      );
+    }
+    final teacher = pack.teacher;
+    if (teacher != null) {
+      return Semantics(
+        button: true,
+        child: InkWell(
+          key: const ValueKey('course_teacher'),
+          borderRadius: BorderRadius.circular(24),
+          onTap: () => handleNavigation(
+            TypeConstants.teacher,
+            [teacher.id],
+            context,
+            ref: ref,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(0, 4, 12, 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ExcludeSemantics(
+                  child: TeacherAvatar(
+                    id: teacher.id,
+                    name: teacher.name,
+                    photoUrl: teacher.photoUrl,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Text(
+                    teacher.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, size: 20, color: muted),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    // A Dharma Seed subtitle is a summary ("2014 · 38 talks"), not a name.
+    final subtitle = (pack.subtitle ?? '').trim();
+    if (subtitle.isEmpty || pack.id.startsWith('ds-')) return null;
+    return Text(
+      subtitle,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: theme.textTheme.titleMedium,
+    );
+  }
+
+  /// "2019 · 32 sessions · 21 h": when it was recorded, how many sessions
+  /// (whatever the source calls them) and how long they run together. Each
+  /// part is left out when the course does not know it.
+  String _meta(PackModel pack) {
+    final l10n = AppLocalizations.of(context)!;
+    final tracks = pack.playableTracks;
+    final years = {
+      for (final item in tracks)
+        if ((item.date ?? '').length >= 4) item.date!.substring(0, 4),
+    }.toList()..sort();
+    final totalMs = tracks.fold<int>(0, (sum, i) => sum + (i.durationMs ?? 0));
+    return [
+      if (years.length == 1) years.single,
+      if (years.length > 1) '${years.first}–${years.last}',
+      if (tracks.isNotEmpty) l10n.librarySessions(tracks.length),
+      if (totalMs > 0) _length(totalMs),
+    ].join(' · ');
+  }
+
+  /// A course's running time: to the minute under ten hours, to the hour
+  /// beyond, where the minutes stop meaning anything.
+  static String _length(int ms) {
+    final minutes = (ms / Duration.millisecondsPerMinute).round();
+    if (minutes < 600) return formatLongDuration(ms);
+    return '${(minutes / 60).round()} h';
+  }
+
+  /// A thin bar of the sessions played, with the count beside it.
+  Widget _progress(PackModel pack) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
     final tracks = pack.playableTracks;
     final total = tracks.length;
     final done = tracks.where((i) => i.isCompleted == true).length;
-    final places = ref.watch(partialPlacesProvider);
-    final nextSession = nextSessionFor(pack, partial: places.value ?? const {});
-    // Hold the "Start:" line until the places are read, so it never flashes
-    // a session that is not the one to resume.
-    final placesReady = places.hasValue || places.hasError;
-    final next = nextSession?.item;
-    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.7);
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        20,
-        20,
-        20 + PackPathButton.endReserve,
-        20,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final label = done == total
+        ? l10n.courseAllPlayed(total)
+        : l10n.coursePlayed(done, total);
+    return Semantics(
+      label: label,
+      excludeSemantics: true,
+      child: Row(
         children: [
-          // A course shows its source (teacher or channel); a playlist says
-          // what it is.
-          if (isMyCourseId(pack.id))
-            Text(
-              l10n.playlistKind,
-              style: theme.textTheme.titleMedium?.copyWith(color: muted),
-            )
-          else if ((pack.subtitle ?? '').isNotEmpty)
-            Text(
-              pack.subtitle!,
-              style: theme.textTheme.titleMedium?.copyWith(color: muted),
-            ),
-          if (total > 0) ...[
-            const SizedBox(height: 12),
-            Text(
-              key: const ValueKey('course_progress'),
-              next == null
-                  ? l10n.courseAllPlayed(total)
-                  : l10n.courseLeft(total - done, total),
-              style: theme.textTheme.headlineMedium,
-            ),
-            if (next != null && placesReady)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  '${nextSession!.isResume ? l10n.packContinue : l10n.packStart}: '
-                  '${next.title}',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(color: muted),
-                ),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                value: done / total,
+                minHeight: 4,
+                backgroundColor: onSurface.withValues(alpha: 0.1),
+                color: context.brandAccent,
               ),
-          ],
-          const SizedBox(height: 16),
-          // What keeps the course: the library and a pin on Home (#79, #81).
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              // A personal course lives in the library; it is deleted, not
-              // unsaved.
-              if (isMyCourseId(pack.id))
-                FilledButton.tonalIcon(
-                  key: const ValueKey('my_course_edit'),
-                  onPressed: () => openMyCourseEditor(context, pack.id),
-                  icon: const Icon(Icons.edit_rounded),
-                  label: Text(l10n.myCourseEditAction),
-                )
-              else
-                SaveButton(
-                  id: pack.id,
-                  label: l10n.courseSave,
-                  savedLabel: l10n.courseSaved,
-                ),
-              PinIconButton(id: pack.id),
-            ],
+            ),
           ),
-          LibCourseSettings(courseId: pack.id),
-          _packTags(pack),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            key: const ValueKey('course_progress'),
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: onSurface.withValues(alpha: 0.7),
+              fontSize: 14,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  /// Tabs (Sessions, Summary, Teacher) and the chosen tab's content. A tab
-  /// with nothing to show is left out, and a lone Sessions tab shows no bar.
-  List<Widget> _courseBody(PackModel pack) {
+  /// The space a short tab needs below its content for the page to still
+  /// scroll until the tabs pin under the title: the viewport under the
+  /// collapsed title bar, less the tabs and what the tab shows.
+  double _roomBelowTabs(SliverConstraints constraints) {
+    final tabs = _tabsKey.currentContext
+        ?.findAncestorRenderObjectOfType<RenderSliver>();
+    if (tabs == null || !tabs.attached) return 0;
+    final tabsAndContent =
+        constraints.precedingScrollExtent -
+        tabs.constraints.precedingScrollExtent;
+    final underTitle =
+        constraints.viewportMainAxisExtent -
+        MediaQuery.paddingOf(context).top -
+        _collapsedAppBarHeight;
+    return math.max(0, underTitle - tabsAndContent);
+  }
+
+  /// Switches tab. Once the tabs are pinned under the title, the new tab
+  /// opens at its top, under them, rather than wherever the old tab's
+  /// scroll position (deep in 32 sessions) would leave it.
+  void _selectTab(int index) {
+    final tabs = _tabsKey.currentContext
+        ?.findAncestorRenderObjectOfType<RenderSliver>();
+    if (tabs != null && tabs.attached && _scrollController.hasClients) {
+      final pinnedAt =
+          tabs.constraints.precedingScrollExtent -
+          MediaQuery.paddingOf(context).top -
+          _collapsedAppBarHeight;
+      if (_scrollController.offset > pinnedAt) {
+        _scrollController.jumpTo(math.max(0, pinnedAt));
+      }
+    }
+    setState(() => _tab = index);
+  }
+
+  /// The course's tabs (Sessions, Summary, Teacher), each with what it
+  /// shows. A tab with nothing to show is left out.
+  List<(String, List<Widget> Function())> _tabs(PackModel pack) {
     final l10n = AppLocalizations.of(context)!;
     final hasSummary =
         (pack.description ?? '').trim().isNotEmpty || pack.attribution != null;
-    final tabs = <(String, List<Widget> Function())>[
+    return [
       (l10n.courseSessionsTab, () => _sessions(pack)),
       if (hasSummary) (l10n.courseSummaryTab, () => _summary(pack)),
       if (pack.teacher != null)
         (l10n.courseTeacherTab, () => [_teacher(pack.teacher!)]),
-    ];
-    final index = _tab.clamp(0, tabs.length - 1);
-    return [
-      if (tabs.length > 1)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
-          child: MeditoSegmentedTabs(
-            labels: [for (final tab in tabs) tab.$1],
-            selectedIndex: index,
-            onChanged: (i) => setState(() => _tab = i),
-          ),
-        ),
-      ...tabs[index].$2(),
     ];
   }
 
@@ -450,13 +531,7 @@ class _PackViewState extends ConsumerState<PackView>
       alignment: Alignment.centerLeft,
       child: CategoryChips(
         subject: (id: pack.id, title: pack.title),
-        // Right inset clears the play button on the header's lower edge.
-        padding: const EdgeInsets.fromLTRB(
-          20,
-          0,
-          20 + PackPathButton.endReserve,
-          16,
-        ),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
       ),
     );
   }

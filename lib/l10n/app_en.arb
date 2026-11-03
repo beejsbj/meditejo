@@ -1362,9 +1362,9 @@
   "@searchLengthOver45": {
     "description": "Session-length filter"
   },
-  "courseLeft": "{count} of {total} left",
-  "@courseLeft": {
-    "description": "Course progress line",
+  "coursePlayed": "{count} of {total} played",
+  "@coursePlayed": {
+    "description": "Course progress, beside its bar: sessions played of all",
     "placeholders": {
       "count": {
         "type": "int"

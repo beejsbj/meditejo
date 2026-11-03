@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/colors/color_constants.dart';
@@ -10,113 +8,6 @@ import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/services/home/next_session.dart';
 import 'package:medito/views/player/start_session.dart';
 
-/// The pack's header surface with its play button sitting on the lower edge,
-/// half over the header and half over the track list (Spotify-style). The
-/// edge doubles as the pack's progress bar. On scroll, the pack screen docks
-/// a second [PackPlayButton] under the app bar and hides this one via
-/// [hideButton].
-///
-/// Packs that contain sub-packs get the plain surface: Home walks a flat list
-/// of tracks.
-class PackPathButton extends StatelessWidget {
-  const PackPathButton({
-    super.key,
-    required this.pack,
-    required this.child,
-    this.buttonKey,
-    this.hideButton = false,
-    @visibleForTesting this.onStartSession = startSession,
-  });
-
-  final PackModel pack;
-
-  /// The header content (description, tags) drawn on the card surface.
-  final Widget child;
-
-  /// Lets the pack screen find the inline button to know when to dock it.
-  final GlobalKey? buttonKey;
-  final bool hideButton;
-  final StartSessionFn onStartSession;
-
-  static const buttonSize = 56.0;
-  static const rightInset = 16.0;
-  static const _progressHeight = 3.0;
-
-  /// How much of the header's bottom-right corner the button covers, measured
-  /// from the content's usual 20px right padding: text there must make room.
-  static const endReserve = rightInset + buttonSize + 8 - 20;
-
-  /// Whether [pack] gets a play button at all.
-  static bool isPlayable(PackModel pack) {
-    final tracks = pack.items.where((i) => i.type == TypeConstants.track);
-    return pack.playableTracks.isNotEmpty && tracks.length == pack.items.length;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cardColor = Theme.of(context).cardColor;
-    if (!isPlayable(pack)) {
-      return ColoredBox(color: cardColor, child: child);
-    }
-
-    final tracks = pack.playableTracks;
-    final completed = tracks.where((item) => item.isCompleted == true).length;
-    const half = buttonSize / 2;
-
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // The button's top half overlaps the last line of the header;
-            // the header content keeps [endReserve] clear there.
-            ColoredBox(color: cardColor, child: child),
-            _progressEdge(context, completed, tracks.length),
-            // The button's lower half hangs over the list background; this
-            // keeps it inside the Stack so the whole circle takes taps.
-            const SizedBox(height: half - _progressHeight),
-          ],
-        ),
-        Positioned(
-          right: rightInset,
-          bottom: 0,
-          // Holds its place while the docked copy is shown, but is not a second
-          // button to a screen reader (maintainSemantics stays off).
-          child: Visibility(
-            visible: !hideButton,
-            maintainSize: true,
-            maintainAnimation: true,
-            maintainState: true,
-            child: PackPlayButton(
-              key: buttonKey,
-              pack: pack,
-              onStartSession: onStartSession,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _progressEdge(BuildContext context, int completed, int total) {
-    final onSurface = Theme.of(context).colorScheme.onSurface;
-    // The play button's label already says "3 of 7"; a bare "43%" here added
-    // nothing.
-    return SizedBox(
-      height: _progressHeight,
-      child: ExcludeSemantics(
-        child: LinearProgressIndicator(
-          value: total == 0 ? 0 : completed / total,
-          backgroundColor: onSurface.withValues(alpha: 0.08),
-          color: context.brandAccent,
-        ),
-      ),
-    );
-  }
-}
-
 typedef StartSessionFn =
     Future<void> Function(
       BuildContext context,
@@ -126,17 +17,32 @@ typedef StartSessionFn =
       String? courseId,
     });
 
-/// Plays the pack's next unfinished session. Home's Continue follows what the
-/// user plays; pinning a course is a separate, deliberate action.
+/// The course's one Play: a filled button that plays the next session
+/// ([nextSessionFor]) and names it, "Resume: Second Jhāna". It leads the
+/// header's action row; the bottom bar shows a [compact] copy once the header
+/// has scrolled away (#81). Home's Continue follows what the user plays;
+/// pinning a course is a separate, deliberate action.
 class PackPlayButton extends ConsumerStatefulWidget {
   const PackPlayButton({
     super.key,
     required this.pack,
+    this.compact = false,
     this.onStartSession = startSession,
   });
 
   final PackModel pack;
+
+  /// One line ("Resume: Second Jhāna…") at the bottom bar's height, instead
+  /// of the header's two (the action over the session's title).
+  final bool compact;
   final StartSessionFn onStartSession;
+
+  /// Whether [pack] gets a Play at all: it has something to play and holds
+  /// only sessions (a pack of packs is walked from its rows).
+  static bool isPlayable(PackModel pack) {
+    final tracks = pack.items.where((i) => i.type == TypeConstants.track);
+    return pack.playableTracks.isNotEmpty && tracks.length == pack.items.length;
+  }
 
   @override
   ConsumerState<PackPlayButton> createState() => _PackPlayButtonState();
@@ -167,7 +73,8 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
     bool ready,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
     final next = nextSession?.item;
     final done = nextSession == null;
     // A session left partway also reads Resume, even in an unstarted course.
@@ -179,6 +86,59 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
     final label = done
         ? action
         : '$action: ${next!.title}. ${l10n.upNextProgress(completed, total)}';
+    final foreground = done ? onSurface : context.onBrandAccent;
+    final height = widget.compact ? 48.0 : 56.0;
+
+    final icon = _starting
+        ? SizedBox.square(
+            dimension: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              color: foreground,
+            ),
+          )
+        : Icon(
+            done ? Icons.check_rounded : Icons.play_arrow_rounded,
+            size: done ? 22 : 28,
+            color: foreground,
+          );
+
+    final actionStyle = theme.textTheme.labelLarge?.copyWith(
+      color: foreground,
+      fontWeight: FontWeight.w700,
+      fontSize: 15,
+    );
+    final Widget text;
+    if (done) {
+      text = Text(action, maxLines: 1, style: actionStyle);
+    } else if (widget.compact) {
+      text = Text(
+        '$action: ${next!.title}',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: actionStyle,
+      );
+    } else {
+      text = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(action, maxLines: 1, style: actionStyle),
+          Text(
+            next!.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: foreground.withValues(alpha: 0.85),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.1,
+              height: 1.25,
+            ),
+          ),
+        ],
+      );
+    }
 
     return Semantics(
       button: !done,
@@ -188,33 +148,28 @@ class _PackPlayButtonState extends ConsumerState<PackPlayButton> {
         message: done ? action : '$action: ${next!.title}',
         excludeFromSemantics: true,
         child: Material(
-          shape: const CircleBorder(),
+          shape: const StadiumBorder(),
           clipBehavior: Clip.antiAlias,
-          elevation: done ? 0 : 3,
           color: done
               ? Color.alphaBlend(
                   onSurface.withValues(alpha: 0.08),
-                  Theme.of(context).cardColor,
+                  theme.cardColor,
                 )
               : context.brandAccent,
           child: InkWell(
             onTap: done || !ready ? null : () => _start(context, next!),
-            child: SizedBox.square(
-              dimension: PackPathButton.buttonSize,
-              child: Center(
-                child: _starting
-                    ? SizedBox.square(
-                        dimension: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: context.onBrandAccent,
-                        ),
-                      )
-                    : Icon(
-                        done ? Icons.check_rounded : Icons.play_arrow_rounded,
-                        size: done ? 26 : 32,
-                        color: done ? onSurface : context.onBrandAccent,
-                      ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: height),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 6, 16, 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox.square(dimension: 26, child: Center(child: icon)),
+                    const SizedBox(width: 6),
+                    Flexible(child: text),
+                  ],
+                ),
               ),
             ),
           ),

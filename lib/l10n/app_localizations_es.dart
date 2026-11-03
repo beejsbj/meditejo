@@ -1409,8 +1409,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get searchLengthOver45 => 'Más de 45 min';
 
   @override
-  String courseLeft(int count, int total) {
-    return 'Quedan $count de $total';
+  String coursePlayed(int count, int total) {
+    return '$count de $total escuchadas';
   }
 
   @override

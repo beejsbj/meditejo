@@ -14,6 +14,7 @@ import 'package:medito/providers/meditation/downloaded_track_ids_provider.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/routes/routes.dart';
+import 'package:medito/scaffold_messenger_key.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
 import 'package:medito/services/library/library_database.dart';
@@ -143,6 +144,8 @@ class DharmaSeedTestApp {
         child: Builder(
           builder: (context) => MaterialApp(
             navigatorKey: navigatorKey,
+            // The app's messenger, which snackbars go through.
+            scaffoldMessengerKey: scaffoldMessengerKey,
             theme: appTheme(context, ThemeMode.light),
             darkTheme: appTheme(context, ThemeMode.dark),
             themeMode: ThemeMode.dark,

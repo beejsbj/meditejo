@@ -844,7 +844,7 @@ void main() {
             expect(tester.takeException(), isNull);
           }
           if (name == 'course') {
-            expect(find.text('10 of 10 left'), findsOneWidget);
+            expect(find.text('0 of 10 played'), findsOneWidget);
             // On a short viewport the tabs start below the fold.
             await tester.scrollUntilVisible(
               find.text('Teacher'),

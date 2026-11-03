@@ -87,11 +87,7 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
-            body: PackPathButton(
-              pack: pack,
-              onStartSession: fakeStart,
-              child: const SizedBox(height: 40),
-            ),
+            body: PackPlayButton(pack: pack, onStartSession: fakeStart),
           ),
         ),
       ),
@@ -150,7 +146,7 @@ void main() {
     expect(started, isEmpty);
   });
 
-  testWidgets('hidden for packs that contain sub-packs', (tester) async {
+  test('not offered for packs that contain sub-packs', () {
     final nested = PackModel(
       id: 'nested',
       title: 'Nested',
@@ -163,8 +159,8 @@ void main() {
         ),
       ],
     );
-    await pump(tester, nested);
-
-    expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+    // The header's action row leaves Play out for it.
+    expect(PackPlayButton.isPlayable(nested), isFalse);
+    expect(PackPlayButton.isPlayable(sleep), isTrue);
   });
 }

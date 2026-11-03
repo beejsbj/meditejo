@@ -2506,11 +2506,11 @@ abstract class AppLocalizations {
   /// **'Over 45 min'**
   String get searchLengthOver45;
 
-  /// Course progress line
+  /// Course progress, beside its bar: sessions played of all
   ///
   /// In en, this message translates to:
-  /// **'{count} of {total} left'**
-  String courseLeft(int count, int total);
+  /// **'{count} of {total} played'**
+  String coursePlayed(int count, int total);
 
   /// Course progress line when every session is done
   ///

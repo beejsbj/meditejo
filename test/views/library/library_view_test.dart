@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:medito/views/pack/widgets/pack_item_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -285,8 +286,14 @@ void main() {
       await tester.tap(find.text('Evening Sits'));
       await settle(tester);
       expect(find.byType(PackView), findsOneWidget);
-      expect(find.text('First sit: arriving'), findsOneWidget);
-      expect(find.text('3 of 3 left'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(PackItemWidget),
+          matching: find.text('First sit: arriving'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('0 of 3 played'), findsOneWidget);
     });
 
     testWidgets('removing an imported course unpins it and its sessions', (
@@ -441,8 +448,8 @@ void main() {
       await settle(tester);
       expect(find.byType(PackView), findsOneWidget);
 
-      await tester.ensureVisible(find.byType(SaveButton));
-      await tester.tap(find.byType(SaveButton));
+      await tester.ensureVisible(find.byType(SaveIconButton));
+      await tester.tap(find.byType(SaveIconButton));
       await settle(tester);
       await tester.tap(
         find.descendant(
@@ -481,7 +488,15 @@ void main() {
         });
         await app.pump(tester, PackView(id: id));
 
-        double top(String title) => tester.getTopLeft(find.text(title)).dy;
+        // A row's title (the Play button names the next one too).
+        double top(String title) => tester
+            .getTopLeft(
+              find.descendant(
+                of: find.byType(PackItemWidget),
+                matching: find.text(title),
+              ),
+            )
+            .dy;
         expect(
           top('First sit: arriving'),
           lessThan(top('Third sit: open awareness')),

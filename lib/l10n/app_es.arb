@@ -728,7 +728,7 @@
   "searchLength20to30": "20–30 min",
   "searchLength30to45": "30–45 min",
   "searchLengthOver45": "Más de 45 min",
-  "courseLeft": "Quedan {count} de {total}",
+  "coursePlayed": "{count} de {total} escuchadas",
   "courseAllPlayed": "Las {total} escuchadas",
   "courseSave": "Añadir a la biblioteca",
   "courseSaved": "En la biblioteca",
