@@ -18,6 +18,7 @@ import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/views/library/lib_course_settings.dart';
 import 'package:medito/views/library/library_actions.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
+import 'package:medito/services/youtube/youtube_ids.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/pack/widgets/pack_item_widget.dart';
@@ -418,7 +419,11 @@ class _PackViewState extends ConsumerState<PackView>
           ),
           const SizedBox(height: 16),
           SelectableText(
-            bio.isEmpty ? l10n.teacherNoBio : bio,
+            bio.isNotEmpty
+                ? bio
+                : isYtChannelId(teacher.id)
+                ? l10n.youtubeChannelNoAbout
+                : l10n.teacherNoBio,
             style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
           ),
           const SizedBox(height: 16),

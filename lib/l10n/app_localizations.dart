@@ -3454,6 +3454,18 @@ abstract class AppLocalizations {
   /// **'YouTube is busy or asking for a bot check. Try again later'**
   String get youtubeRateLimited;
 
+  /// Button on a YouTube channel's teacher page that opens the channel on YouTube
+  ///
+  /// In en, this message translates to:
+  /// **'Open on YouTube'**
+  String get youtubeChannelOpen;
+
+  /// Shown on a YouTube channel's teacher page, and a YouTube course's Teacher tab, when the channel has no description
+  ///
+  /// In en, this message translates to:
+  /// **'No channel description on YouTube.'**
+  String get youtubeChannelNoAbout;
+
   /// No description provided for @youtubePlaylistEmpty.
   ///
   /// In en, this message translates to:

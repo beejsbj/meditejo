@@ -145,6 +145,24 @@ final youtubeRefreshErrorProvider = Provider.autoDispose
       return ref.watch(youtubeSourceProvider).refreshError(id);
     });
 
+/// The channel's picture on a YouTube course's or video's card (#85); empty
+/// until the channel's page has given one.
+final youtubeAvatarProvider = FutureProvider.autoDispose.family<String, String>(
+  (ref, id) {
+    ref.watch(youtubeContentRevisionProvider);
+    return ref.watch(youtubeSourceProvider).avatarFor(id);
+  },
+);
+
+/// A YouTube channel as a teacher (`yt-channel-<key>`): itself and what of
+/// its own is saved. Null when the channel is not stored.
+final youtubeChannelPageProvider = FutureProvider.autoDispose
+    .family<YoutubeChannelPage?, String>((ref, id) {
+      ref.watch(youtubeContentRevisionProvider);
+      ref.watch(libraryRevisionProvider);
+      return ref.watch(youtubeSourceProvider).channelPage(id);
+    });
+
 final importHttpProvider = Provider<ImportHttp>((ref) {
   final http = ImportHttp();
   ref.onDispose(http.close);

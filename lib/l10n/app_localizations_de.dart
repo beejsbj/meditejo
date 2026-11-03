@@ -1987,6 +1987,12 @@ class AppLocalizationsDe extends AppLocalizations {
       'YouTube ist ausgelastet oder verlangt eine Bot-Prüfung. Versuche es später erneut';
 
   @override
+  String get youtubeChannelOpen => 'Auf YouTube öffnen';
+
+  @override
+  String get youtubeChannelNoAbout => 'Keine Kanalbeschreibung auf YouTube.';
+
+  @override
   String get youtubePlaylistEmpty =>
       'Die Sitzungen sind noch nicht auf diesem Gerät gespeichert. Wir versuchen es gleich erneut';
 

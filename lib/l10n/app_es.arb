@@ -889,6 +889,8 @@
   "youtubePrivate": "Este vídeo es privado",
   "youtubePlaylistPrivate": "Esta lista de reproducción es privada",
   "youtubeRateLimited": "YouTube está ocupado o solicita una comprobación de bots. Inténtalo más tarde",
+  "youtubeChannelOpen": "Abrir en YouTube",
+  "youtubeChannelNoAbout": "Sin descripción del canal en YouTube.",
   "youtubePlaylistEmpty": "Las sesiones aún no están guardadas en este dispositivo. Volveremos a intentarlo en breve",
   "navLibrary": "Biblioteca",
   "exploreSearchHint": "Buscar en tu biblioteca y en Dharma Seed",

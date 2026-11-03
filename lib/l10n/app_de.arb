@@ -1081,6 +1081,8 @@
   "youtubePrivate": "Dieses Video ist privat",
   "youtubePlaylistPrivate": "Diese Playlist ist privat",
   "youtubeRateLimited": "YouTube ist ausgelastet oder verlangt eine Bot-Prüfung. Versuche es später erneut",
+  "youtubeChannelOpen": "Auf YouTube öffnen",
+  "youtubeChannelNoAbout": "Keine Kanalbeschreibung auf YouTube.",
   "youtubePlaylistEmpty": "Die Sitzungen sind noch nicht auf diesem Gerät gespeichert. Wir versuchen es gleich erneut",
   "navLibrary": "Bibliothek",
   "exploreSearchHint": "Bibliothek und Dharma Seed durchsuchen",
