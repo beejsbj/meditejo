@@ -3047,6 +3047,35 @@
       }
     }
   },
+  "homeOpenCourse": "Open course",
+  "@homeOpenCourse": {
+    "description": "Card menu action on a Home Continue card that opens the course page"
+  },
+  "homeRestart": "Restart",
+  "@homeRestart": {
+    "description": "Card menu action on a Home Continue card that plays the session from 0:00"
+  },
+  "homeRemoveFromContinue": "Remove from Continue",
+  "@homeRemoveFromContinue": {
+    "description": "Card menu action that takes an item off Home's Continue section"
+  },
+  "homeUnpinned": "Unpinned from Home",
+  "@homeUnpinned": {
+    "description": "Snackbar after unpinning a course from Home; offers Undo"
+  },
+  "homeRemovedFromContinue": "Removed from Continue",
+  "@homeRemovedFromContinue": {
+    "description": "Snackbar after removing an item from Continue; offers Undo"
+  },
+  "homeCardMenu": "More options for {title}",
+  "@homeCardMenu": {
+    "description": "Tooltip and screen-reader label of the more-options button on a Home card",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "settingsSessionHistory": "Session history",
   "@settingsSessionHistory": {
     "description": "Settings row that opens the History tab of Stats: the calendar where past sessions are added or edited"

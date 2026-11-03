@@ -29,9 +29,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class TrackView extends ConsumerStatefulWidget {
-  const TrackView({super.key, required this.trackId});
+  const TrackView({super.key, required this.trackId, this.fromStart = false});
 
   final String trackId;
+
+  /// Opened to restart: Play begins at 0:00 instead of resuming.
+  final bool fromStart;
 
   @override
   ConsumerState<TrackView> createState() => _TrackViewState();
@@ -188,6 +191,7 @@ class _TrackViewState extends ConsumerState<TrackView>
   /// The saved place, if it is in the file shown (another length of the same
   /// track has its own).
   ResumePoint? _resumeIn(Track track, TrackAudioFile file) {
+    if (widget.fromStart) return null;
     final point = ref.watch(resumePointProvider(track.id)).value;
     return point != null && point.appliesTo(file.id) ? point : null;
   }
@@ -344,6 +348,7 @@ class _TrackViewState extends ConsumerState<TrackView>
     bool fromStart = false,
   }) async {
     if (_isStarting) return;
+    fromStart = fromStart || widget.fromStart;
     setState(() => _isStarting = true);
 
     // Prepare the request (sets player state synchronously) then open the

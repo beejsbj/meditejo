@@ -51,6 +51,7 @@ Future<void> handleNavigation(
   String? sourceRouteName,
   String? timerSource,
   String? courseId,
+  bool fromStart = false,
 }) async {
   final values = ids.whereType<String>().where((id) => id.isNotEmpty).toList();
   if (type == null) return;
@@ -89,7 +90,7 @@ Future<void> handleNavigation(
     }
     page = values.first == kLegacyTimerTrackId
         ? const TimerView()
-        : TrackView(trackId: values.first);
+        : TrackView(trackId: values.first, fromStart: fromStart);
   } else if (type == TypeConstants.teacher && values.isNotEmpty) {
     page = TeacherView(teacherId: values.first);
   } else if (type.contains('pack') && values.isNotEmpty) {

@@ -45,6 +45,9 @@ class SharedPreferenceConstants {
   static const String homeWidgetHidden = 'homeWidgetHidden';
   static const String pinnedCourseIds = 'pinned_course_ids';
 
+  /// Items taken off Home's Continue: `key|millis` each.
+  static const String continueDismissed = 'continue_dismissed';
+
   /// How the Library tab sorts and lays out what is kept.
   static const String librarySort = 'library_sort';
   static const String libraryLayout = 'library_layout';
