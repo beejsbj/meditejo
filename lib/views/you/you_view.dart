@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/settings/settings_providers.dart';
-import 'package:medito/views/favorites/favorites_view.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
+import 'package:medito/views/home/widgets/pinned/pinned_list_view.dart';
 import 'package:medito/views/settings/settings_sections.dart';
 import 'package:medito/views/stats/stats_screen.dart';
 import 'package:medito/views/you/stats_summary_card.dart';
@@ -13,7 +13,7 @@ import 'package:medito/widgets/medito_icon.dart';
 
 /// The You page: the practice kept on this device and the user's own things.
 /// The stats summary (which opens the full stats page), then session history
-/// and favourites. No settings: those are the Settings tab.
+/// and everything pinned. No settings: those are the Settings tab.
 ///
 /// Pushed over the tabs by the person button at the top right of Home,
 /// Library and Settings (`YouButton`) and by the `meditejo://you` link.
@@ -52,16 +52,14 @@ class YouView extends ConsumerWidget {
                   onTap: () =>
                       _push(context, const StatsScreen(initialTabIndex: 1)),
                 ),
-                // Favourites stay until Pin replaces them (#79).
+                // Home shows three pins and only while its Pinned section is
+                // on; the whole list is always here.
                 (last) => RowItemWidget(
-                  key: const ValueKey('you_favorites'),
-                  icon: MeditoIcon(
-                    assetName: MeditoIcons.heart,
-                    color: onSurface,
-                  ),
-                  title: l10n.favorites,
+                  key: const ValueKey('you_pinned'),
+                  icon: Icon(Icons.push_pin_outlined, color: onSurface),
+                  title: l10n.homePinnedTitle,
                   hasUnderline: !last,
-                  onTap: () => _push(context, const FavoritesView()),
+                  onTap: () => openPinnedList(context),
                 ),
               ],
             ),

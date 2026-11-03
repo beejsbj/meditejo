@@ -1,4 +1,4 @@
-/// Stable IDs shared by the library, downloads, favourites and completion.
+/// Stable IDs shared by the library, downloads, pins and completion.
 String ytVideoId(String videoId) => 'yt-video-$videoId';
 String ytPlaylistId(String playlistId) => 'yt-playlist-$playlistId';
 String ytSingleCourseId(String videoId) => ytPlaylistId('single-$videoId');

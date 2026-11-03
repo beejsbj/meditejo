@@ -1084,53 +1084,11 @@ abstract class AppLocalizations {
   /// **'\"Medito pulled me through a seriously dark period in my life\" - Medito meditator'**
   String get impactCardTestimonial;
 
-  /// No description provided for @favorites.
-  ///
-  /// In en, this message translates to:
-  /// **'Favorites'**
-  String get favorites;
-
-  /// No description provided for @noFavoriteTracksYet.
-  ///
-  /// In en, this message translates to:
-  /// **'No favorite tracks yet'**
-  String get noFavoriteTracksYet;
-
-  /// No description provided for @noFavoritePacksYet.
-  ///
-  /// In en, this message translates to:
-  /// **'No favorite packs yet'**
-  String get noFavoritePacksYet;
-
-  /// No description provided for @noFavoritesYet.
-  ///
-  /// In en, this message translates to:
-  /// **'No favorites yet'**
-  String get noFavoritesYet;
-
-  /// No description provided for @addItemsToFavoritesMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Add items to your favorites to see them here'**
-  String get addItemsToFavoritesMessage;
-
-  /// No description provided for @all.
-  ///
-  /// In en, this message translates to:
-  /// **'All'**
-  String get all;
-
   /// No description provided for @tracks.
   ///
   /// In en, this message translates to:
   /// **'Tracks'**
   String get tracks;
-
-  /// No description provided for @packs.
-  ///
-  /// In en, this message translates to:
-  /// **'Packs'**
-  String get packs;
 
   /// No description provided for @noResultsFound.
   ///
@@ -1996,30 +1954,6 @@ abstract class AppLocalizations {
   /// **'Get started'**
   String get onboardingResultCta;
 
-  /// Accessibility label for the favorite button when the item is not yet favorited
-  ///
-  /// In en, this message translates to:
-  /// **'Add to favorites'**
-  String get addToFavorites;
-
-  /// Snackbar after the star button adds a pack or track to Favorites
-  ///
-  /// In en, this message translates to:
-  /// **'Added to Favorites'**
-  String get addedToFavorites;
-
-  /// Snackbar after the star button removes a pack or track from Favorites
-  ///
-  /// In en, this message translates to:
-  /// **'Removed from Favorites'**
-  String get removedFromFavorites;
-
-  /// Accessibility label for the favorite button when the item is already favorited
-  ///
-  /// In en, this message translates to:
-  /// **'Remove from favorites'**
-  String get removeFromFavorites;
-
   /// Swipe action on the home Your Path card that opens the pack
   ///
   /// In en, this message translates to:
@@ -2344,10 +2278,10 @@ abstract class AppLocalizations {
   /// **'Use the timer for an unguided sit, with the bells and duration you prefer.'**
   String get localIntroPracticeBody;
 
-  /// Explains that practice history, favourites and preferences are stored on the device.
+  /// Explains that practice history, pins and preferences are stored on the device.
   ///
   /// In en, this message translates to:
-  /// **'Your practice history, favourites and settings stay on this device.'**
+  /// **'Your practice history, pins and settings stay on this device.'**
   String get localIntroDeviceOnlyNote;
 
   /// No description provided for @aboutMeditejo.
@@ -3556,17 +3490,41 @@ abstract class AppLocalizations {
   /// **'Unpin from Home'**
   String get unpinCourse;
 
-  /// No description provided for @pinnedLimitReached.
-  ///
-  /// In en, this message translates to:
-  /// **'Home holds up to three pinned courses or playlists. Unpin one first.'**
-  String get pinnedLimitReached;
-
   /// No description provided for @pinnedCourseAdded.
   ///
   /// In en, this message translates to:
   /// **'Pinned to Home'**
   String get pinnedCourseAdded;
+
+  /// Home's Pinned section: opens the full list of pins when there are more than Home shows
+  ///
+  /// In en, this message translates to:
+  /// **'See all {count}'**
+  String pinnedSeeAll(int count);
+
+  /// Snackbar after pinning a fourth or later item: Home shows the first three pins, the rest are under See all
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned to Home, under See all'**
+  String get pinnedUnderSeeAll;
+
+  /// Pinned list: title when nothing is pinned
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing pinned yet'**
+  String get pinnedEmpty;
+
+  /// Pinned list: how to pin something, under pinnedEmpty
+  ///
+  /// In en, this message translates to:
+  /// **'Pin a course or a session from its page to keep it on Home.'**
+  String get pinnedEmptyHint;
+
+  /// A pinned course or session whose source no longer has it: its title (or the line under its saved title)
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get pinnedUnavailable;
 
   /// No description provided for @statsFeedbackNote.
   ///
@@ -4234,7 +4192,7 @@ abstract class AppLocalizations {
   /// **'Edit'**
   String get myCourseEditAction;
 
-  /// Title of the You page: the user's own place (stats, session history, favourites). Opened from the person button at the top right of Home, Library and Settings
+  /// Title of the You page: the user's own place (stats, session history, pins). Opened from the person button at the top right of Home, Library and Settings
   ///
   /// In en, this message translates to:
   /// **'You'**
@@ -4246,7 +4204,7 @@ abstract class AppLocalizations {
   /// **'You: stats and history'**
   String get youButton;
 
-  /// Heading on the You page above the rows for session history and favourites
+  /// Heading on the You page above the rows for session history and pins
   ///
   /// In en, this message translates to:
   /// **'Your practice'**
@@ -4342,7 +4300,7 @@ abstract class AppLocalizations {
   /// **'Sounds & cues'**
   String get settingsSectionSounds;
 
-  /// Settings group: imports, favorites, downloads, catalogue sync
+  /// Settings group: imports, downloads, catalogue sync
   ///
   /// In en, this message translates to:
   /// **'Library & downloads'**

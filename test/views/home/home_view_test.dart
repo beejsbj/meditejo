@@ -144,9 +144,7 @@ void main() {
     );
   });
 
-  testWidgets('an unavailable pin can be removed to free its slot', (
-    tester,
-  ) async {
+  testWidgets('an unavailable pin says so and can be removed', (tester) async {
     final app = await LibraryTestApp.create(tester);
     await app.prefs.setStringList('pinned_course_ids', ['lib-course-gone']);
     await app.pump(
@@ -162,7 +160,10 @@ void main() {
     final container = ProviderScope.containerOf(
       tester.element(find.byType(HomeView)),
     );
-    await tester.tap(find.byTooltip('More options for lib-course-gone'));
+    // It says it is gone rather than show its ID (#79).
+    expect(find.text('lib-course-gone'), findsNothing);
+    expect(find.text('Unavailable'), findsOneWidget);
+    await tester.tap(find.byTooltip('More options for Unavailable'));
     await settle(tester);
     await tester.tap(find.byKey(const ValueKey('pinned_menu_unpin')));
     await settle(tester);

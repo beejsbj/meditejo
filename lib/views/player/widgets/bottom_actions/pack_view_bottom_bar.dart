@@ -1,4 +1,3 @@
-import 'package:medito/constants/colors/color_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io' show Platform;
@@ -9,14 +8,9 @@ import 'package:medito/providers/providers.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
 
 import '../../../../l10n/app_localizations.dart';
-import '../../../../models/favorites/favorite_item.dart';
 import '../../../../models/pack/pack_model.dart';
-import '../../../../providers/favorites/favorites_provider.dart';
 import '../../../../widgets/add_to_siri_util.dart';
 import '../../../../widgets/medito_icon.dart';
-import '../../../../scaffold_messenger_key.dart';
-import '../../../../widgets/snackbar_widget.dart';
-import 'animated_favourite_icon.dart';
 import 'bottom_action_bar.dart';
 
 class PackViewBottomBar extends ConsumerStatefulWidget {
@@ -36,14 +30,6 @@ class PackViewBottomBar extends ConsumerStatefulWidget {
 }
 
 class _PackViewBottomBarState extends ConsumerState<PackViewBottomBar> {
-  final _favoriteController = FavoriteIconController();
-
-  @override
-  void dispose() {
-    _favoriteController.dispose();
-    super.dispose();
-  }
-
   void _sharePack(BuildContext context) {
     final deepLink = 'meditejo://meditejo/packs/${widget.packId}';
     final shareText = AppLocalizations.of(
@@ -114,68 +100,18 @@ class _PackViewBottomBarState extends ConsumerState<PackViewBottomBar> {
     );
   }
 
-  void _toggleFavorite(bool isFavorite, PackModel pack) {
-    final notifier = ref.read(favoritesNotifierProvider.notifier);
-
-    _favoriteController
-        .trigger(
-          () => isFavorite
-              ? notifier.removeFromFavorites(widget.packId)
-              : notifier.addToFavorites(
-                  FavoriteItem(
-                    id: widget.packId,
-                    title: widget.packName,
-                    coverUrl: pack.coverUrl,
-                    subtitle: pack.subtitle,
-                    type: FavoriteItemType.pack,
-                    timestamp: DateTime.now().millisecondsSinceEpoch,
-                  ),
-                ),
-          direction: isFavorite
-              ? FavoriteToggleDirection.remove
-              : FavoriteToggleDirection.add,
-        )
-        .then((_) {
-          // The star alone is easy to miss; say what happened.
-          if (!mounted) return;
-          final l10n = AppLocalizations.of(context)!;
-          // Replace rather than queue, so a quick re-tap reads the end state.
-          scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
-          showSnackBar(
-            context,
-            isFavorite ? l10n.removedFromFavorites : l10n.addedToFavorites,
-          );
-        });
-  }
-
   @override
   Widget build(BuildContext context) {
     final packData = ref.watch(packProvider(packId: widget.packId));
-    final favoritesState = ref.watch(favoritesNotifierProvider);
 
     return packData.when(
-      data: (pack) {
-        final isFavorite = favoritesState.maybeWhen(
-          data: (favorites) =>
-              favorites.any((item) => item.id == widget.packId),
-          orElse: () => false,
-        );
-        return _buildBottomBar(context, pack, isFavorite);
-      },
+      data: (pack) => _buildBottomBar(context, pack),
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
     );
   }
 
-  Widget _buildBottomBar(
-    BuildContext context,
-    PackModel pack,
-    bool isFavorite,
-  ) {
-    final favouriteColour = isFavorite
-        ? context.brandAccent
-        : Theme.of(context).colorScheme.onSurface;
-
+  Widget _buildBottomBar(BuildContext context, PackModel pack) {
     final l10n = AppLocalizations.of(context)!;
 
     return BottomActionBar(
@@ -214,17 +150,6 @@ class _PackViewBottomBarState extends ConsumerState<PackViewBottomBar> {
           title: widget.packName,
         ),
         semanticLabel: l10n.myCourseMore,
-      ),
-      rightItem: BottomActionBarItem(
-        child: AnimatedFavouriteIcon(
-          isFavorite: isFavorite,
-          color: favouriteColour,
-          controller: _favoriteController,
-        ),
-        semanticLabel: isFavorite
-            ? l10n.removeFromFavorites
-            : l10n.addToFavorites,
-        onTap: () => _toggleFavorite(isFavorite, pack),
       ),
     );
   }

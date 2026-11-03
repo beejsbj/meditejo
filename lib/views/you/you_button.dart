@@ -4,7 +4,7 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/views/you/you_view.dart';
 
 /// The person button at the top right of Home, Library and Settings. It opens
-/// the You page (stats, session history, favourites) over the tabs.
+/// the You page (stats, session history, pins) over the tabs.
 ///
 /// The same 48 dp button in the same place on all three: the rightmost
 /// control of the header, 4 dp in from the edge and 4 dp down from the top of

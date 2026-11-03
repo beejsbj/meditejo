@@ -258,14 +258,7 @@
   "custom": "Eigener Betrag",
   "impactCardHelpMessage": "Ermögliche Millionen Menschen weltweit den Zugang zu kostenloser Meditation",
   "impactCardTestimonial": "\"Medito hat mir durch eine sehr schwere Zeit in meinem Leben geholfen\" – eine Person, die mit Medito meditiert",
-  "favorites": "Favoriten",
-  "noFavoriteTracksYet": "Noch keine favorisierten Titel",
-  "noFavoritePacksYet": "Noch keine favorisierten Pakete",
-  "noFavoritesYet": "Noch keine Favoriten",
-  "addItemsToFavoritesMessage": "Füge Favoriten hinzu, damit sie hier angezeigt werden.",
-  "all": "Alle",
   "tracks": "Titel",
-  "packs": "Pakete",
   "noResultsFound": "Keine Ergebnisse für deine Suche gefunden",
   "consistencyScoreInfoTitle": "Beständigkeitswert",
   "consistencyScoreInfoMessage": "Dein Beständigkeitswert spiegelt wider, wie regelmäßig du seit Beginn meditiert hast. Die letzten Tage haben ein größeres Gewicht, aber auch früher versäumte Tage wirken sich noch leicht auf den Wert aus. Anders als bei den Meditationsserien wird der Wert an einem versäumten Tag nicht zurückgesetzt.",
@@ -791,14 +784,6 @@
   "@onboardingResultCta": {
     "description": "CTA button label on the onboarding result screen"
   },
-  "addToFavorites": "Zu Favoriten hinzufügen",
-  "@addToFavorites": {
-    "description": "Accessibility label for the favorite button when the item is not yet favorited"
-  },
-  "removeFromFavorites": "Aus Favoriten entfernen",
-  "@removeFromFavorites": {
-    "description": "Accessibility label for the favorite button when the item is already favorited"
-  },
   "markAllComplete": "Alle als abgeschlossen markieren",
   "@markAllComplete": {
     "description": "Button at the bottom of a pack track list that marks every track complete"
@@ -841,8 +826,6 @@
   "upNextProgress": "{completed} von {total}",
   "speedReset": "Zurücksetzen",
   "backgroundSoundsSection": "Klänge",
-  "addedToFavorites": "Zu Favoriten hinzugefügt",
-  "removedFromFavorites": "Aus Favoriten entfernt",
   "openPack": "Paket öffnen",
   "yourPathAllDone": "Alle Sitzungen abgeschlossen",
   "sessionBells": "Sitzungsglocken",
@@ -893,7 +876,7 @@
   "localIntroBeginBody": "Setze dich bequem hin, stelle den Timer auf ein paar Minuten und nimm deinen Atem wahr. Wenn deine Aufmerksamkeit abschweift, beginne sanft von Neuem.",
   "localIntroReturnBody": "Beginne mit ein paar ruhigen Minuten. Der Timer ist bereit, sobald du es bist.",
   "localIntroPracticeBody": "Nutze den Timer für eine Meditation ohne Anleitung, mit den Glocken und der Dauer deiner Wahl.",
-  "localIntroDeviceOnlyNote": "Dein Praxisverlauf, deine Favoriten und deine Einstellungen bleiben auf diesem Gerät.",
+  "localIntroDeviceOnlyNote": "Dein Praxisverlauf, deine angehefteten Inhalte und deine Einstellungen bleiben auf diesem Gerät.",
   "aboutMeditejo": "Über Meditejo",
   "forkCredit": "Meditejo basiert auf Medito von der Medito Foundation (meditofoundation.org), lizenziert unter AGPL-3.0.",
   "sourceCode": "Quellcode",
@@ -1098,8 +1081,12 @@
   "homeShortcutPresetTimer": "Timer mit {preset} starten",
   "pinCourse": "An Start anheften",
   "unpinCourse": "Von Start lösen",
-  "pinnedLimitReached": "Auf Start passen bis zu drei angeheftete Kurse oder Playlists. Löse zuerst eins davon.",
   "pinnedCourseAdded": "An Start angeheftet",
+  "pinnedSeeAll": "Alle {count} anzeigen",
+  "pinnedUnderSeeAll": "An Start angeheftet, unter „Alle anzeigen“",
+  "pinnedEmpty": "Noch nichts angeheftet",
+  "pinnedUnavailable": "Nicht verfügbar",
+  "pinnedEmptyHint": "Hefte einen Kurs oder eine Sitzung auf ihrer Seite an, um sie auf Start zu behalten.",
   "statsFeedbackNote": "Diese Zahlen sind Rückmeldung, keine Bewertung.",
   "soundsYourMix": "Dein Mix",
   "soundsEmptyMix": "Tippe unten auf ein Geräusch, um einen Mix zu beginnen.",
