@@ -57,10 +57,7 @@ a wrong label puts a retreat in front of someone looking for something else.
   talks", "some metta". That alone is **not** `walking` or `metta`. Tag
   `walking` only when walking practice is a theme; `metta` when loving-kindness
   or the brahmavihāras are a stated focus or a large share of the talks.
-- `vipassana`: insight or mindfulness meditation in the Theravāda / Insight
-  Meditation Society style is the method (an "Insight Meditation Retreat",
-  "vipassana", "satipaṭṭhāna", "mindfulness retreat" in that lineage). A
-  generic Dharma-talk series with no stated method is not enough.
+- `vipassana` (narrowed 2026-11-03): the retreat's **practice is insight**: it is named vipassanā, satipaṭṭhāna (the foundations of mindfulness) or noting, or its description or talk titles show insight as the method (the three characteristics, seeing arising and passing, the foundations of mindfulness, noting). **Not** every event from an "Insight Meditation" centre or series: when "insight meditation" is only the centre's or the series' label and the stated content is something else (metta, a sutta study, a community or affinity gathering, daily life, general Dharma talks), it is not `vipassana`.
 - `samatha` for retreats about calm and concentration; `jhana` only when the
   absorptions themselves are taught. Both may apply.
 - `breath` when breathing (ānāpānasati) is the stated main object, not merely

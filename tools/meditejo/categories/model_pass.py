@@ -216,7 +216,8 @@ def cmd_audit_batches(args):
 
 
 def final():
-    """Haiku's proposals with Sonnet's audit, the splits, then the corrections.
+    """Haiku's proposals with Sonnet's audit, the splits, Vipassanā's
+    narrowing, then the corrections.
 
     `pass/corrections.jsonl` holds the few readings fixed after review, each
     with its reason; it outranks both models.
@@ -235,6 +236,20 @@ def final():
             if rid not in result or not set(row['split']) <= four:
                 raise SystemExit(f'split.jsonl: bad row {row}')
             result[rid] = [c for c in result[rid] if c not in four] + row['split']
+    # Vipassanā narrowed (2026-11-03): a re-read keeps it only where insight
+    # is the practice (pass/vipassana/, Haiku, with Sonnet's audit in
+    # pass/vipassana-audit.jsonl overriding it).
+    keep = {}
+    for path in sorted((WORK / 'vipassana').glob('batch-*.jsonl')):
+        for row in read_jsonl(path):
+            keep[int(row['id'])] = bool(row['vipassana'])
+    audit = WORK / 'vipassana-audit.jsonl'
+    if audit.exists():
+        for row in read_jsonl(audit):
+            keep[int(row['id'])] = bool(row['vipassana'])
+    for rid, stays in keep.items():
+        if rid in result and not stays:
+            result[rid] = [c for c in result[rid] if c != 'vipassana']
     corrections = WORK / 'corrections.jsonl'
     if corrections.exists():
         ids = {c['id'] for c in categories()}
