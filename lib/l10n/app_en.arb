@@ -1622,10 +1622,6 @@
   "@libraryTitle": {
     "description": "Heading of the screen and Home section listing what the user added"
   },
-  "libraryAdd": "Add",
-  "@libraryAdd": {
-    "description": "Button that opens the import screen"
-  },
   "libraryPractice": "Practice",
   "@libraryPractice": {
     "description": "Library section for guided practice"
@@ -1747,7 +1743,19 @@
   },
   "importTitle": "Add to your library",
   "@importTitle": {
-    "description": "Title of the import screen"
+    "description": "Title of the import screen, and the tooltip and heading of Library's + and its sheet"
+  },
+  "libraryAddImport": "Import",
+  "@libraryAddImport": {
+    "description": "Library's + sheet: opens the import screen"
+  },
+  "libraryAddImportHint": "A link, a podcast feed, a YouTube playlist, or files on your phone",
+  "@libraryAddImportHint": {
+    "description": "Library's + sheet: what Import takes, under its label"
+  },
+  "libraryAddNewPlaylistHint": "Your own list of sessions, in your order",
+  "@libraryAddNewPlaylistHint": {
+    "description": "Library's + sheet: what a new playlist is, under New playlist"
   },
   "importFieldHint": "Paste a link",
   "@importFieldHint": {
@@ -2053,7 +2061,7 @@
   },
   "homeCustomize": "Customize",
   "homeCustomizeHint": "Switch sections on or off, and drag to put them in your order.",
-  "homeContinueEmpty": "Nothing in progress. Add something to your library, or open Explore.",
+  "homeContinueEmpty": "Nothing in progress. Start something in Explore or your library, or pin it there to keep it on Home.",
   "homeContinueResume": "Resume",
   "homeContinueStart": "Start",
   "homeContinueSessionOf": "Session {number} of {total}",
@@ -2075,7 +2083,6 @@
       }
     }
   },
-  "homeShortcutAdd": "Add",
   "homeShortcutPresetTimer": "Start the timer with {preset}",
   "@homeShortcutPresetTimer": {
     "description": "Screen-reader label of a Home tile that starts the timer with a saved background-sound preset.",
@@ -2109,7 +2116,7 @@
   "@pinnedEmpty": {
     "description": "Pinned list: title when nothing is pinned"
   },
-  "pinnedEmptyHint": "Pin a course or a session from its page to keep it on Home.",
+  "pinnedEmptyHint": "Pin a course or a session in Explore or your library to keep it on Home.",
   "@pinnedEmptyHint": {
     "description": "Pinned list: how to pin something, under pinnedEmpty"
   },

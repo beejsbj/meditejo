@@ -1600,9 +1600,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryTitle => 'Your library';
 
   @override
-  String get libraryAdd => 'Add';
-
-  @override
   String get libraryPractice => 'Practice';
 
   @override
@@ -1698,6 +1695,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importTitle => 'Add to your library';
+
+  @override
+  String get libraryAddImport => 'Import';
+
+  @override
+  String get libraryAddImportHint =>
+      'A link, a podcast feed, a YouTube playlist, or files on your phone';
+
+  @override
+  String get libraryAddNewPlaylistHint =>
+      'Your own list of sessions, in your order';
 
   @override
   String get importFieldHint => 'Paste a link';
@@ -1982,7 +1990,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeContinueEmpty =>
-      'Nothing in progress. Add something to your library, or open Explore.';
+      'Nothing in progress. Start something in Explore or your library, or pin it there to keep it on Home.';
 
   @override
   String get homeContinueResume => 'Resume';
@@ -1999,9 +2007,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String homeContinueTimeLeft(String time) {
     return '$time left';
   }
-
-  @override
-  String get homeShortcutAdd => 'Add';
 
   @override
   String homeShortcutPresetTimer(String preset) {
@@ -2043,7 +2048,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pinnedEmptyHint =>
-      'Pin a course or a session from its page to keep it on Home.';
+      'Pin a course or a session in Explore or your library to keep it on Home.';
 
   @override
   String get pinnedUnavailable => 'Unavailable';

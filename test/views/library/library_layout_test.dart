@@ -421,8 +421,8 @@ void main() {
           await tester.tap(find.byTooltip('Show as grid'));
           await settle(tester);
         }
-        // The new-playlist button stays in the app bar.
-        expect(find.byTooltip('New playlist'), findsOneWidget);
+        // New playlist stays one tap behind the app bar's "+" (#62).
+        expect(find.byTooltip('Add to your library'), findsOneWidget);
 
         expect(await menuOf(tester, 'ds-retreat-1'), {
           'Play',

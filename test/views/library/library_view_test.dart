@@ -119,8 +119,9 @@ void main() {
       expect(find.text('3 sessions'), findsOneWidget);
       expect(find.text('Dharma Seed'), findsOneWidget);
       expect(find.text('Tara Brach'), findsOneWidget);
+      // New playlist lives behind the header's "+" (#62).
       expect(find.text('New playlist'), findsNothing);
-      expect(find.byTooltip('New playlist'), findsOneWidget);
+      expect(find.byTooltip('Add to your library'), findsOneWidget);
     });
 
     testWidgets('empty, it invites the first addition', (tester) async {
@@ -128,7 +129,21 @@ void main() {
       await app.pump(tester, const LibraryView(), asRoute: true);
 
       expect(find.text('Your library is empty'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('library_empty_add')));
+      // "Import", so it is not a second "Add to your library" beside the
+      // header's "+" (#62).
+      final emptyAdd = find.byKey(const ValueKey('library_empty_add'));
+      expect(
+        find.descendant(of: emptyAdd, matching: find.text('Import')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: emptyAdd,
+          matching: find.text('Add to your library'),
+        ),
+        findsNothing,
+      );
+      await tester.tap(emptyAdd);
       await settle(tester);
       expect(find.byType(ImportView), findsOneWidget);
     });

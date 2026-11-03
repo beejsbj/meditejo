@@ -9,6 +9,7 @@ import 'package:medito/providers/library/library_view_provider.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/views/library/import_view.dart';
+import 'package:medito/views/library/library_add_sheet.dart';
 import 'package:medito/views/library/library_widgets.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/you/you_button.dart';
@@ -19,6 +20,9 @@ import 'package:medito/widgets/cards/filter_chip_bar.dart';
 import 'package:medito/widgets/cards/section_title.dart';
 
 /// Everything the user keeps and is working through. It is the Library tab.
+///
+/// Its header has a "+" ([showLibraryAddSheet]: Import, New playlist) and
+/// the You button; Home has no Add of its own (#62).
 ///
 /// From the top: what is in progress, as large cards; the kind filter (All,
 /// Courses, Playlists, Singles, Teachers, Downloads); Practice or Talks, the
@@ -38,17 +42,14 @@ class LibraryView extends ConsumerWidget {
         title: Text(l10n.libraryTitle),
         titleTextStyle: titleStyle,
         actions: [
-          IconButton(
-            key: const ValueKey('library_new_course'),
-            tooltip: l10n.myCourseNew,
-            onPressed: () => newMyCourse(context, ref),
-            icon: const Icon(Icons.playlist_add_rounded),
-          ),
+          // "+" then You: what the library can take in, then the user.
           Padding(
             padding: const EdgeInsets.only(right: 4),
-            child: _AddButton(
-              compact: !_fullAddFits(context, l10n, titleStyle),
-              onPressed: () => openImport(context, ref),
+            child: IconButton.filledTonal(
+              key: const ValueKey('library_add'),
+              tooltip: l10n.importTitle,
+              onPressed: () => showLibraryAddSheet(context, ref),
+              icon: const Icon(Icons.add_rounded),
             ),
           ),
           const Padding(
@@ -66,77 +67,6 @@ class LibraryView extends ConsumerWidget {
           error: (_, _) => const _EmptyLibrary(),
           loading: () => const Center(child: CircularProgressIndicator()),
         ),
-      ),
-    );
-  }
-}
-
-/// Whether "Your library" and the labelled "+ Add" pill both fit the header
-/// beside the new-playlist and You buttons. Measured with the user's text
-/// size, so a narrow phone or large text gets the icon-only button instead
-/// of a cut-off title.
-bool _fullAddFits(
-  BuildContext context,
-  AppLocalizations l10n,
-  TextStyle? titleStyle,
-) {
-  final scaler = MediaQuery.textScalerOf(context);
-  final direction = Directionality.of(context);
-  double measure(String text, TextStyle? style) {
-    final painter = TextPainter(
-      text: TextSpan(text: text, style: style),
-      textDirection: direction,
-      textScaler: scaler,
-      maxLines: 1,
-    )..layout();
-    final width = painter.width;
-    painter.dispose();
-    return width;
-  }
-
-  // The screen's width: beside a sidebar (700 dp and wider) there is room.
-  final page = MediaQuery.sizeOf(context).width;
-  final title = measure(l10n.libraryTitle, titleStyle);
-  // A tonal pill: 16 dp before the icon, an 18 dp icon, an 8 dp gap, the
-  // label, then 24 dp after it.
-  final pill =
-      16 +
-      18 +
-      8 +
-      measure(l10n.libraryAdd, Theme.of(context).textTheme.labelLarge) +
-      24;
-  // The title's 16 dp inset and the 16 dp before the actions, the
-  // new-playlist button, the pill's 4 dp, and the You button with its inset.
-  const rest = 16 + 16 + 48 + 4 + 48 + YouButton.inset;
-  return title + pill + rest <= page;
-}
-
-/// "+ Add", which opens Import. Where the header is tight it is a round
-/// tonal "+" with the same tooltip and a spoken label.
-class _AddButton extends StatelessWidget {
-  const _AddButton({required this.compact, required this.onPressed});
-
-  final bool compact;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    if (!compact) {
-      return FilledButton.tonalIcon(
-        key: const ValueKey('library_add'),
-        onPressed: onPressed,
-        icon: const Icon(Icons.add_rounded),
-        label: Text(l10n.libraryAdd),
-      );
-    }
-    return Tooltip(
-      message: l10n.importTitle,
-      excludeFromSemantics: true,
-      child: IconButton.filledTonal(
-        key: const ValueKey('library_add'),
-        onPressed: onPressed,
-        icon: Icon(Icons.add_rounded, semanticLabel: l10n.importTitle),
       ),
     );
   }
@@ -478,7 +408,9 @@ class _EmptyMessage extends ConsumerWidget {
                   key: addKey,
                   onPressed: () => openImport(context, ref),
                   icon: const Icon(Icons.add_rounded),
-                  label: Text(l10n.importTitle),
+                  // "Import", not the header "+"'s "Add to your library",
+                  // so a screen reader hears two different buttons (#62).
+                  label: Text(l10n.libraryAddImport),
                 ),
               ],
             ),
