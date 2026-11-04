@@ -17,7 +17,8 @@
    - the legacy mipmaps (48–192 px), the notification and widget glyphs;
    - the iOS AppIcon set and Icon Composer bundle, and the widget logo;
    - the app's own copies (assets/images/ic_logo.svg and
-     assets/images/app_icons/meditejo.png).
+     assets/images/app_icons/meditejo.png);
+   - assets/icon.svg, the square icon as a project favicon for tools such as T3 Code.
    Square icons (iOS, legacy mipmaps, the app's copy) use house_mark_square.svg,
    where the whole canvas is visible; the adaptive layers keep the mark inside
    Android's 66 dp safe circle.
@@ -84,6 +85,8 @@ def vector(monochrome=False):
 
 
 write('assets/images/ic_logo.svg', mono)
+# T3 Code (and other tools that look for a project icon) find assets/icon.svg.
+write('assets/icon.svg', square.read_text())
 # Icon Composer's canvas is 1024pt; give the layer an explicit intrinsic size.
 write('ios/Runner/AppIcon.icon/Assets/logo.svg', square_glyph.replace('<svg ', '<svg width="1024" height="1024" ', 1))
 write('ios/MeditoWidget/Assets.xcassets/MeditoLogo.imageset/MeditoLogo.svg', square_glyph)
