@@ -260,7 +260,7 @@ class ExploreViewState extends ConsumerState<ExploreView> {
             ),
           ),
           // Category entry points: each opens that category's page.
-          const SliverToBoxAdapter(child: ExploreCategoryChips()),
+          const SliverToBoxAdapter(child: ExplorePractices()),
           ..._buildContent(),
           SliverPadding(
             padding: EdgeInsets.only(
