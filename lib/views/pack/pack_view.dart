@@ -19,6 +19,7 @@ import 'package:medito/views/library/lib_course_settings.dart';
 import 'package:medito/views/library/library_actions.dart';
 import 'package:medito/services/home/next_session.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
+import 'package:medito/services/youtube/youtube_ids.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/pack/widgets/pack_item_widget.dart';
@@ -374,7 +375,16 @@ class _PackViewState extends ConsumerState<PackView>
           child: MeditoSegmentedTabs(
             labels: [for (final tab in tabs) tab.$1],
             selectedIndex: index,
-            onChanged: (i) => setState(() => _tab = i),
+            onChanged: (i) {
+              setState(() => _tab = i);
+              // A one-video YouTube course's Summary is its video's
+              // description: read it now if it never was (#85).
+              if (tabs[i].$1 == l10n.courseSummaryTab &&
+                  pack.id.startsWith('yt-') &&
+                  ref.read(youtubeAvailableProvider)) {
+                ref.read(youtubeSourceProvider).describe(pack.id);
+              }
+            },
           ),
         ),
       ...tabs[index].$2(),
@@ -424,7 +434,11 @@ class _PackViewState extends ConsumerState<PackView>
           ),
           const SizedBox(height: 16),
           SelectableText(
-            bio.isEmpty ? l10n.teacherNoBio : bio,
+            bio.isNotEmpty
+                ? bio
+                : isYtChannelId(teacher.id)
+                ? l10n.youtubeChannelNoAbout
+                : l10n.teacherNoBio,
             style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
           ),
           const SizedBox(height: 16),

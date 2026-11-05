@@ -1997,6 +1997,12 @@ class AppLocalizationsEs extends AppLocalizations {
       'YouTube está ocupado o solicita una comprobación de bots. Inténtalo más tarde';
 
   @override
+  String get youtubeChannelOpen => 'Abrir en YouTube';
+
+  @override
+  String get youtubeChannelNoAbout => 'Sin descripción del canal en YouTube.';
+
+  @override
   String get youtubePlaylistEmpty =>
       'Las sesiones aún no están guardadas en este dispositivo. Volveremos a intentarlo en breve';
 

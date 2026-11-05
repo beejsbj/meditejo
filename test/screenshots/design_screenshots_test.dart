@@ -46,6 +46,12 @@ import 'package:medito/constants/theme/palette_theme.dart';
 import 'package:medito/services/identity/daily_mark.dart';
 import 'package:medito/services/identity/mark_generator.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
+import 'package:medito/services/library/import_models.dart';
+import 'package:medito/services/youtube/youtube_source.dart';
+import 'package:medito/src/youtube_api.g.dart';
+import 'package:medito/views/pack/pack_view.dart';
+import 'package:medito/views/teacher/teacher_view.dart';
 
 import 'package:medito/providers/stats/practice_summary_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
@@ -62,6 +68,7 @@ import '../helpers/library_app.dart';
 import '../helpers/stats_fixtures.dart';
 import '../helpers/update_fakes.dart';
 import '../helpers/soundscape_fakes.dart';
+import '../helpers/youtube_fake.dart' show FakeYoutubeApi;
 
 /// Where captures go, and under which palette (the generated art's
 /// screenshots run this twice: MEDITEJO_SHOT_PALETTE=tide and another, into
@@ -426,6 +433,107 @@ Future<void> _openRow(WidgetTester tester, String title) async {
   await tester.ensureVisible(find.text(title).first);
   await tester.tap(find.text(title).first);
   await tester.pumpAndSettle();
+}
+
+const _vervaekeList = 'PLND1JCRq8Vuh3f0P5qjrSdb5eC1ZfZwWJ';
+const _vervaekeCourse = 'yt-playlist-$_vervaekeList';
+const _vervaekeChannel = 'UCpqDUjTsof-kTNpnyWper_Q';
+const _vervaekeTeacher = 'yt-channel-$_vervaekeChannel';
+
+/// A YouTube course imported through the (fake) extractor, its details
+/// filled in, pinned beside a Dharma Seed retreat, in the grid layout.
+/// Network pictures never load in a test (they shimmer forever), so the
+/// pictures here are stand-in names: each shows its generated art, which
+/// keeps the avatar's circle and place visible.
+Future<YoutubeSource> _seedYoutubeTeacher(
+  WidgetTester tester,
+  LibraryTestApp app,
+) async {
+  const titles = [
+    'Introduction',
+    'Flow, Metaphor, and the Axial Revolution',
+    'Continuous Cosmos and Modern World Grammar',
+    'Socrates and the Quest for Wisdom',
+    'Plato and the Cave',
+    'Aristotle, Kant, and Evolution',
+    'Aristotle\'s World View and Erich Fromm',
+    'The Buddha and "Mindfulness"',
+    'Insight',
+    'Consciousness',
+    'Higher States of Consciousness, Part 1',
+    'Higher States of Consciousness, Part 2',
+    'Buddhism and Parasitic Processing',
+    'Epistemology and Relevance Realization',
+    'Marcus Aurelius and Jesus',
+    'Christianity and Agape',
+    'Gnosis and Existential Inertia',
+    'Augustine and Aquinas',
+  ];
+  final api = FakeYoutubeApi()
+    ..playlists[_vervaekeList] = YoutubePlaylist(
+      title: 'Awakening from the Meaning Crisis',
+      uploader: 'John Vervaeke',
+      thumbnail: '',
+      description:
+          'A series on the meaning crisis: where it came from, the '
+          'cognitive science of meaning, wisdom and self-transcendence, '
+          'and the ecology of practices that may help us respond to it.',
+      channelUrl: 'https://www.youtube.com/channel/$_vervaekeChannel',
+      channelAvatar: 'avatar-vervaeke-small',
+      items: [
+        for (var i = 0; i < titles.length; i++)
+          YoutubePlaylistItem(
+            videoId: 'vervaeke${i.toString().padLeft(3, '0')}',
+            title:
+                'Ep. ${i + 1} - Awakening from the Meaning Crisis - '
+                '${titles[i]}',
+            uploader: 'John Vervaeke',
+            durationSeconds: 3300 + i * 60,
+            thumbnail: '',
+            channelUrl: 'https://www.youtube.com/channel/$_vervaekeChannel',
+          ),
+      ],
+    )
+    ..channels[_vervaekeChannel] = YoutubeChannel(
+      url: 'https://www.youtube.com/channel/$_vervaekeChannel',
+      name: 'John Vervaeke',
+      avatar: 'avatar-vervaeke',
+      description:
+          'Cognitive scientist at the University of Toronto. Talks on '
+          'wisdom, meaning, relevance realization and the meaning crisis.',
+    );
+  final source = YoutubeSource(
+    db: app.harness.db,
+    library: app.harness.store,
+    api: api,
+    detailsPause: () => Duration.zero,
+  );
+  await tester.runAsync(() async {
+    final preview = await source.preview(
+      Uri.parse('https://www.youtube.com/playlist?list=$_vervaekeList'),
+    );
+    await source.add(
+      preview,
+      const ImportChoice(kind: LibraryKind.course, group: LibraryGroup.talks),
+    );
+    await source.fillDetails(_vervaekeCourse);
+    await app.harness.store.add(
+      const LibraryDraft(
+        sourceId: 'ds-retreat-1',
+        kind: LibraryKind.course,
+        title: 'Practising the Jhānas',
+        subtitle: 'Rob Burbea',
+        coverUrl: 'photo-rob-burbea',
+        itemCount: 32,
+      ),
+    );
+    await app.prefs.setStringList('pinned_course_ids', [
+      _vervaekeCourse,
+      'ds-retreat-1',
+    ]);
+    await app.prefs.setString('library_layout', 'grid');
+  });
+  return source;
 }
 
 void main() {
@@ -1049,6 +1157,56 @@ void main() {
         );
       }, skip: !_enabled);
     }
+
+    // #85: a YouTube channel as the teacher. On a Library card its picture
+    // sits at the lower left of the art and the pin disc at the lower right
+    // (a Dharma Seed course beside it for comparison); then the course page,
+    // its Teacher tab, and the channel's own page.
+    testWidgets('YouTube channel as teacher, ${brightness.name}', (
+      tester,
+    ) async {
+      final app = await LibraryTestApp.create(tester);
+      final source = await _seedYoutubeTeacher(tester, app);
+      // The same overrides throughout: a scope keeps its count.
+      final page = [
+        youtubeSourceProvider.overrideWithValue(source),
+        contentSourcesProvider.overrideWith(
+          (ref) => [ref.watch(youtubeSourceProvider)],
+        ),
+      ];
+      await app.pump(
+        tester,
+        _frame(brightness, const LibraryView()),
+        overrides: page,
+      );
+      await _phone(tester);
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+      await _capture(tester, 'yt-teacher-library-${brightness.name}');
+
+      await app.pump(
+        tester,
+        _frame(brightness, const PackView(id: _vervaekeCourse)),
+        overrides: page,
+      );
+      await _phone(tester);
+      await DharmaSeedTestApp.settle(tester);
+      expect(tester.takeException(), isNull);
+      await _capture(tester, 'yt-teacher-course-${brightness.name}');
+      await tester.tap(find.text('Teacher'));
+      await DharmaSeedTestApp.settle(tester);
+      await _capture(tester, 'yt-teacher-tab-${brightness.name}');
+
+      await app.pump(
+        tester,
+        _frame(brightness, const TeacherView(teacherId: _vervaekeTeacher)),
+        overrides: page,
+      );
+      await _phone(tester);
+      await DharmaSeedTestApp.settle(tester);
+      expect(tester.takeException(), isNull);
+      await _capture(tester, 'yt-teacher-channel-${brightness.name}');
+    }, skip: !_enabled);
 
     // Explore: browse with nothing typed, and grouped search results.
     for (final query in [null, 'jhāna']) {

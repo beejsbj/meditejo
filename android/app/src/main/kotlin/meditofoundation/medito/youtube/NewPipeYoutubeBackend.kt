@@ -1,6 +1,7 @@
 package meditofoundation.medito.youtube
 
 import meditofoundation.medito.pigeon.YoutubeAudioStream
+import meditofoundation.medito.pigeon.YoutubeChannel
 import meditofoundation.medito.pigeon.YoutubePlaylist
 import meditofoundation.medito.pigeon.YoutubePlaylistItem
 import meditofoundation.medito.pigeon.YoutubeVideo
@@ -30,6 +31,9 @@ interface YoutubeBackend {
 
     /** [url] is a link [YoutubeSelection.videoUrl] accepted. */
     fun audioStream(url: String): YoutubeAudioStream
+
+    /** [url] is a link [YoutubeSelection.channelUrl] accepted. */
+    fun channel(url: String): YoutubeChannel
 }
 
 /**
@@ -62,7 +66,15 @@ class NewPipeYoutubeBackend(
                 PageResult(page.items.mapNotNull { toItem(it) }, page.nextPage.takeIf(Page::isValid))
             },
         )
-        return YoutubePlaylist(title = title, uploader = uploader, thumbnail = thumbnail, items = items)
+        return YoutubePlaylist(
+            title = title,
+            uploader = uploader,
+            thumbnail = thumbnail,
+            items = items,
+            description = optional { plainText(extractor.description) },
+            channelUrl = optional { extractor.uploaderUrl ?: "" },
+            channelAvatar = optional { YoutubeSelection.bestThumbnail(thumbnails(extractor.uploaderAvatars)) },
+        )
     }
 
     override fun video(url: String): YoutubeVideo {
@@ -76,6 +88,20 @@ class NewPipeYoutubeBackend(
             durationSeconds = optional(0L) { extractor.length }.coerceAtLeast(0L),
             thumbnail = optional { YoutubeSelection.bestThumbnail(thumbnails(extractor.thumbnails)) },
             description = optional { plainText(extractor.description) },
+            channelUrl = optional { extractor.uploaderUrl ?: "" },
+            channelAvatar = optional { YoutubeSelection.bestThumbnail(thumbnails(extractor.uploaderAvatars)) },
+        )
+    }
+
+    override fun channel(url: String): YoutubeChannel {
+        ensureInitialized(downloader)
+        val extractor = linked { ServiceList.YouTube.getChannelExtractor(url) }
+        extractor.fetchPage()
+        return YoutubeChannel(
+            url = url,
+            name = optional { extractor.name },
+            avatar = optional { YoutubeSelection.bestThumbnail(thumbnails(extractor.avatars)) },
+            description = optional { extractor.description ?: "" },
         )
     }
 
@@ -153,6 +179,7 @@ class NewPipeYoutubeBackend(
                 uploader = item.uploaderName ?: "",
                 durationSeconds = item.duration.coerceAtLeast(0L),
                 thumbnail = YoutubeSelection.bestThumbnail(thumbnails(item.thumbnails)),
+                channelUrl = item.uploaderUrl ?: "",
             )
         }
 
