@@ -33,6 +33,10 @@ import 'package:medito/services/library/library_models.dart';
 import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/player/widgets/artist_title_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/player_action_bar.dart';
+import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_speed_widget.dart';
+import 'package:medito/views/player/widgets/bottom_actions/widgets/speed_sheet.dart';
+import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/views/player/widgets/duration_indicator_widget.dart';
 import 'package:medito/views/player/widgets/player_buttons/player_buttons_widget.dart';
 import 'package:medito/views/previews/preview_support.dart';
@@ -268,7 +272,13 @@ void main() {
         await tester.pumpWidget(
           PreviewShell(
             prefs: prefsDark,
-            overrides: [audioStateProvider.overrideWith(_PreviewAudio.new)],
+            overrides: [
+              audioStateProvider.overrideWith(_PreviewAudio.new),
+              // The speed sheet opens on the session's kind.
+              cueScopeForRequestProvider.overrideWith(
+                (ref, request) async => const CueScope(CueKind.talks),
+              ),
+            ],
             child: PlayerScreenLayout(
               currentlyPlayingTrack: request,
               isPlaying: false,
@@ -291,13 +301,13 @@ void main() {
         }
         expect(tester.takeException(), isNull);
       }
-      // The speed chip opens a sheet; tapping a step label applies it.
-      await tester.tap(find.text('1.0×'));
+      // The speed chip opens a sheet; tapping a speed applies it.
+      await tester.tap(find.byType(AudioSpeedWidget));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('0.6×'));
+      await tester.tap(find.byKey(const ValueKey('speed_option_0.6×')));
       await tester.pump();
       expect(speed, 0.6);
-      Navigator.of(tester.element(find.text('0.6×').first)).pop();
+      Navigator.of(tester.element(find.byType(SpeedSheet))).pop();
       await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.close));
       expect(closed, isTrue);

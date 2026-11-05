@@ -1822,11 +1822,41 @@ abstract class AppLocalizations {
   /// **'Playback speed'**
   String get playbackSpeed;
 
-  /// Speed sheet: button that sets playback speed back to 1.0x
+  /// Speed sheet: tab for the speed practice sessions (guided sits) start at
   ///
   /// In en, this message translates to:
-  /// **'Reset'**
-  String get speedReset;
+  /// **'Practice'**
+  String get speedKindPractice;
+
+  /// Speed sheet: tab for the speed talks start at
+  ///
+  /// In en, this message translates to:
+  /// **'Talks'**
+  String get speedKindTalks;
+
+  /// Speed sheet: note under the speeds while the Practice tab is open; the choice is kept for later sessions
+  ///
+  /// In en, this message translates to:
+  /// **'Every practice session starts at this speed.'**
+  String get speedPracticeCaption;
+
+  /// Speed sheet: note under the speeds while the Talks tab is open; the choice is kept for later talks
+  ///
+  /// In en, this message translates to:
+  /// **'Every talk starts at this speed.'**
+  String get speedTalksCaption;
+
+  /// Settings: row opening the speed each kind of session starts at. Short: it shares the row with an icon and a chevron at large text
+  ///
+  /// In en, this message translates to:
+  /// **'Playback speed'**
+  String get settingsPlaybackSpeed;
+
+  /// Settings: caption of the Playback speed row, the speed each kind of session starts at, e.g. 'Practice 1× · Talks 1.5×'
+  ///
+  /// In en, this message translates to:
+  /// **'Practice {practice} · Talks {talks}'**
+  String settingsPlaybackSpeedCaption(String practice, String talks);
 
   /// Background sound sheet: label above the list of ambient sounds
   ///

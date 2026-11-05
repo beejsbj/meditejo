@@ -4,6 +4,7 @@ import 'package:medito/services/audio/native_cue_controller.dart';
 import 'package:medito/services/stats/session_label.dart';
 import 'package:medito/providers/library/library_providers.dart';
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +16,7 @@ import '../../src/audio_pigeon.g.dart' as pigeon;
 import '../../utils/utils.dart';
 import 'audio_state_provider.dart';
 import 'playback_source.dart';
+import 'playback_speed_provider.dart';
 import 'download/audio_downloader_provider.dart';
 import 'ios_audio_handler.dart';
 import 'repeat_state_provider.dart';
@@ -96,6 +98,15 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
       courseId: scope.courseId,
     );
     _cues = ref.read(cueSettingsProvider(scope));
+    // Each kind keeps its own speed: a talk starts at the talks speed, a sit
+    // at the practice speed, a timer at 1×. Read just before it is applied,
+    // after the last wait, so a speed chosen while the session loads wins.
+    final isTimer = request.isTimer;
+    double startSpeed() => sessionPlaybackSpeed(
+      (kind) => ref.read(playbackSpeedProvider(kind)),
+      kind: scope.kind,
+      isTimer: isTimer,
+    );
     AppLogger.d(
       'PLAYER',
       '_playTrack called for track: ${request.trackId}, file: ${request.fileId}',
@@ -118,10 +129,11 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     AppLogger.d('PLAYER', 'Will use path: $url');
 
     // Both engines outlive the player screen and keep their last repeat mode
-    // and speed across tracks, while each player screen starts at repeat off /
-    // 1.0x. Reset them so a leftover "repeat forever" can't loop a session
-    // (and block the end screen) and a slowed-down speed doesn't carry over.
-    // A timer has no repeat control; its length is the session.
+    // and speed across tracks, while each player screen starts at repeat off
+    // and at its kind's speed. Set both so a leftover "repeat forever" can't
+    // loop a session (and block the end screen) and a talk's 1.5× doesn't
+    // carry over into a sit. A timer has no repeat control; its length is the
+    // session.
     final repeatMode = request.isTimer
         ? app_repeat.RepeatMode.none
         : ref.read(repeatStateProvider);
@@ -165,7 +177,8 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
       }
       if (generation != _generation) return;
       setRepeatMode(repeatMode);
-      setSpeed(1.0);
+      await _applySpeed(startSpeed());
+      if (generation != _generation) return;
       await NativeCueController.configure(_cues!, request);
       if (generation != _generation) return;
       await _playAudioWithRetry(url, trackData, generation);
@@ -176,7 +189,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
       // its retry budget — iOS has no such retry layer, so a single failure
       // here propagates immediately. That's intentional: callers need to know.
       setRepeatMode(repeatMode);
-      setSpeed(1.0);
+      await _applySpeed(startSpeed());
       if (generation != _generation) return;
       await iosAudioHandler.setUrl(downloadPath, request, trackData);
       if (generation != _generation) return;
@@ -287,11 +300,24 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     }
   }
 
-  void setSpeed(double speed) {
-    if (Platform.isAndroid) {
-      _api.setSpeed(speed);
-    } else {
-      iosAudioHandler.setSpeed(speed);
+  void setSpeed(double speed) => unawaited(_applySpeed(speed));
+
+  /// Sets the engine's speed. A failure is logged, not thrown: the session
+  /// still plays, and the log says it kept another speed.
+  Future<void> _applySpeed(double speed) async {
+    try {
+      if (Platform.isAndroid) {
+        await _api.setSpeed(speed);
+      } else {
+        await iosAudioHandler.setSpeed(speed);
+      }
+    } catch (e, st) {
+      AppLogger.e(
+        'PLAYER',
+        'Could not set the speed to $speed; the engine keeps its last speed',
+        e,
+        st,
+      );
     }
   }
 
