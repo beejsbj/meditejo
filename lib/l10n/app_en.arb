@@ -3096,5 +3096,173 @@
   "updateAutoCheckDescription": "Asks GitHub once a day when Meditejo opens.",
   "@updateAutoCheckDescription": {
     "description": "Caption under the automatic update check switch"
+  },
+  "customizeSlotSound": "Sound",
+  "@customizeSlotSound": {
+    "description": "Customize: name of the tile for what plays under a session"
+  },
+  "customizeSlotBells": "Bells",
+  "@customizeSlotBells": {
+    "description": "Customize: name of the tile for the starting, interval and ending bells"
+  },
+  "customizeSlotRhythm": "Rhythm",
+  "@customizeSlotRhythm": {
+    "description": "Customize: name of the tile for the pulse"
+  },
+  "customizeSlotLength": "Length",
+  "@customizeSlotLength": {
+    "description": "Customize: name of the tile for how long the session runs"
+  },
+  "customizeOff": "Off",
+  "@customizeOff": {
+    "description": "Customize: a tile's value when it plays nothing"
+  },
+  "customizeBellsAtStart": "Start",
+  "@customizeBellsAtStart": {
+    "description": "Customize: Bells tile, a bell rings at the start"
+  },
+  "customizeBellsHalfway": "Halfway",
+  "@customizeBellsHalfway": {
+    "description": "Customize: Bells tile, one bell rings at the midpoint"
+  },
+  "customizeBellsEvery": "Every {minutes} min",
+  "@customizeBellsEvery": {
+    "description": "Customize: Bells tile, the interval bell's rhythm",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "customizeBellsAtEnd": "End",
+  "@customizeBellsAtEnd": {
+    "description": "Customize: Bells tile, a bell rings at the end"
+  },
+  "customizeCountdownThenBell": "{seconds} sec countdown · {bell}",
+  "@customizeCountdownThenBell": {
+    "description": "Customize: the starting bell's value when a countdown comes first",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      },
+      "bell": {
+        "type": "String"
+      }
+    }
+  },
+  "customizeSilenceThenBell": "{minutes} min silence · {bell}",
+  "@customizeSilenceThenBell": {
+    "description": "Customize: the ending bell's value when silence comes first",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "bell": {
+        "type": "String"
+      }
+    }
+  },
+  "customizeLengthCountsUp": "Counts up",
+  "@customizeLengthCountsUp": {
+    "description": "Customize: Length tile for a stopwatch, which has no end"
+  },
+  "customizeLengthSetBySession": "Set by the session",
+  "@customizeLengthSetBySession": {
+    "description": "Customize: Length tile, the recording decides the length"
+  },
+  "customizeLengthSetByEachSession": "Set by each session",
+  "@customizeLengthSetByEachSession": {
+    "description": "Customize: Length tile in Settings, where no session is chosen"
+  },
+  "customizeLengthPlusSilence": "+ {minutes} min silence",
+  "@customizeLengthPlusSilence": {
+    "description": "Customize: Length tile, silence added after the recording",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "customizeShowBeforeSession": "Show before each session",
+  "@customizeShowBeforeSession": {
+    "description": "Customize: footer switch; off starts sessions straight away"
+  },
+  "playerAutoplay": "Autoplay",
+  "@playerAutoplay": {
+    "description": "Player: title of the autoplay sheet for a course's sessions"
+  },
+  "playerAutoplayOn": "Autoplay on",
+  "@playerAutoplayOn": {
+    "description": "Player: autoplay button while the next session starts by itself"
+  },
+  "playerAutoplayOff": "Autoplay off",
+  "@playerAutoplayOff": {
+    "description": "Player: autoplay button while it is off"
+  },
+  "playerAutoplaySwitch": "Play the next session automatically",
+  "@playerAutoplaySwitch": {
+    "description": "Player: autoplay switch"
+  },
+  "playerAutoplayPause": "Pause between sessions",
+  "@playerAutoplayPause": {
+    "description": "Player: label above the pause choices"
+  },
+  "playerAutoplayNoPause": "None",
+  "@playerAutoplayNoPause": {
+    "description": "Player: no pause between sessions"
+  },
+  "playerAutoplaySeconds": "{seconds} sec",
+  "@playerAutoplaySeconds": {
+    "description": "Player: a pause between sessions, in seconds",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "playerAutoplayUpNext": "Up next: {title}",
+  "@playerAutoplayUpNext": {
+    "description": "Player: the course's next session",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "playerAutoplayLast": "This is the last session of the course",
+  "@playerAutoplayLast": {
+    "description": "Player: no next session to autoplay"
+  },
+  "customizeCurrentMix": "Current mix",
+  "@customizeCurrentMix": {
+    "description": "Customize: Sound tile's value when the current mix plays under sessions"
+  },
+  "customizeSlotChanged": "changed",
+  "@customizeSlotChanged": {
+    "description": "Customize: read by a screen reader after a tile that differs from the defaults"
+  },
+  "customizeSlotDefault": "default",
+  "@customizeSlotDefault": {
+    "description": "Customize: read by a screen reader after a tile at its defaults"
+  },
+  "playerAutoplayForPractice": "For all practice",
+  "@playerAutoplayForPractice": {
+    "description": "Player: the autoplay setting applies to every practice course"
+  },
+  "playerAutoplayForTalks": "For all talks",
+  "@playerAutoplayForTalks": {
+    "description": "Player: the autoplay setting applies to every talks course"
+  },
+  "playerAutoplayForCourse": "For this course",
+  "@playerAutoplayForCourse": {
+    "description": "Player: the autoplay setting applies to this course only"
+  },
+  "playerAutoplayForPlaylist": "For this playlist",
+  "@playerAutoplayForPlaylist": {
+    "description": "Player: the autoplay setting applies to this playlist only"
+  },
+  "playerAutoplayLastOfPlaylist": "This is the last session of the playlist",
+  "@playerAutoplayLastOfPlaylist": {
+    "description": "Player: no next session to autoplay in a playlist"
   }
 }

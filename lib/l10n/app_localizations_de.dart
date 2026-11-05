@@ -2825,4 +2825,116 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get updateAutoCheckDescription =>
       'Fragt beim Öffnen von Meditejo einmal täglich bei GitHub nach.';
+
+  @override
+  String get customizeSlotSound => 'Klang';
+
+  @override
+  String get customizeSlotBells => 'Glocken';
+
+  @override
+  String get customizeSlotRhythm => 'Rhythmus';
+
+  @override
+  String get customizeSlotLength => 'Dauer';
+
+  @override
+  String get customizeOff => 'Aus';
+
+  @override
+  String get customizeBellsAtStart => 'Anfang';
+
+  @override
+  String get customizeBellsHalfway => 'Halbzeit';
+
+  @override
+  String customizeBellsEvery(int minutes) {
+    return 'Alle $minutes Min.';
+  }
+
+  @override
+  String get customizeBellsAtEnd => 'Ende';
+
+  @override
+  String customizeCountdownThenBell(int seconds, String bell) {
+    return '$seconds s Countdown · $bell';
+  }
+
+  @override
+  String customizeSilenceThenBell(int minutes, String bell) {
+    return '$minutes Min. Stille · $bell';
+  }
+
+  @override
+  String get customizeLengthCountsUp => 'Zählt hoch';
+
+  @override
+  String get customizeLengthSetBySession => 'Von der Sitzung bestimmt';
+
+  @override
+  String get customizeLengthSetByEachSession => 'Von jeder Sitzung bestimmt';
+
+  @override
+  String customizeLengthPlusSilence(int minutes) {
+    return '+ $minutes Min. Stille';
+  }
+
+  @override
+  String get customizeShowBeforeSession => 'Vor jeder Sitzung anzeigen';
+
+  @override
+  String get playerAutoplay => 'Automatisch weiter';
+
+  @override
+  String get playerAutoplayOn => 'Automatisch weiter: an';
+
+  @override
+  String get playerAutoplayOff => 'Automatisch weiter: aus';
+
+  @override
+  String get playerAutoplaySwitch => 'Nächste Sitzung automatisch abspielen';
+
+  @override
+  String get playerAutoplayPause => 'Pause zwischen Sitzungen';
+
+  @override
+  String get playerAutoplayNoPause => 'Keine';
+
+  @override
+  String playerAutoplaySeconds(int seconds) {
+    return '$seconds s';
+  }
+
+  @override
+  String playerAutoplayUpNext(String title) {
+    return 'Als Nächstes: $title';
+  }
+
+  @override
+  String get playerAutoplayLast => 'Das ist die letzte Sitzung des Kurses';
+
+  @override
+  String get customizeCurrentMix => 'Aktueller Mix';
+
+  @override
+  String get customizeSlotChanged => 'geändert';
+
+  @override
+  String get customizeSlotDefault => 'Standard';
+
+  @override
+  String get playerAutoplayForPractice => 'Für alle Praxis-Sitzungen';
+
+  @override
+  String get playerAutoplayForTalks => 'Für alle Vorträge';
+
+  @override
+  String get playerAutoplayForCourse => 'Für diesen Kurs';
+
+  @override
+  String get playerAutoplayForPlaylist => 'Für diese Playlist';
+
+  @override
+  String get playerAutoplayLastOfPlaylist =>
+      'Das ist die letzte Sitzung der Playlist';
 }

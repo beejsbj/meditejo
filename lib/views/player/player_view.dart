@@ -32,6 +32,7 @@ import 'package:medito/views/end_screen/end_screen_view.dart';
 import 'package:medito/views/player/session_completion_gate.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/views/player/widgets/artist_title_widget.dart';
+import 'package:medito/views/player/widgets/autoplay_control.dart';
 import 'package:medito/widgets/attribution_notice.dart';
 import 'package:medito/widgets/art/art_cover.dart';
 import 'package:medito/widgets/art/art_subject.dart';
@@ -224,6 +225,8 @@ class _PlayerViewState extends ConsumerState<PlayerView>
       ref.invalidate(cueScopeForRequestProvider(request));
       _cueScope = await ref.read(cueScopeForRequestProvider(request).future);
       if (!mounted || _isClosing) return;
+      // The backdrop's course art and Autoplay follow the resolved course.
+      setState(() {});
       final settings = ref.read(cueSettingsProvider(_cueScope!));
       if (!_customized &&
           !widget.skipCustomize &&
@@ -469,6 +472,10 @@ class _PlayerViewState extends ConsumerState<PlayerView>
             onClosePressed: () => _handleClose(),
             onEndSession: _endTimerSession,
             courseId: _cueScope?.courseId,
+            autoplayScope:
+                !currentlyPlayingTrack.isTimer && _cueScope?.courseId != null
+                ? _cueScope
+                : null,
           ),
           if (_countdownMs > 0)
             Positioned.fill(
@@ -830,6 +837,7 @@ class PlayerScreenLayout extends StatelessWidget {
     required this.onClosePressed,
     this.onEndSession,
     this.courseId,
+    this.autoplayScope,
   });
 
   final PlaybackRequest currentlyPlayingTrack;
@@ -846,6 +854,10 @@ class PlayerScreenLayout extends StatelessWidget {
   /// The course the session is playing in, when it belongs to one; its art
   /// is the backdrop when the session has no cover.
   final String? courseId;
+
+  /// A course session's scope: the player then offers Autoplay, which
+  /// starts the course's next session when this one ends.
+  final CueScope? autoplayScope;
 
   @override
   Widget build(BuildContext context) {
@@ -866,6 +878,13 @@ class PlayerScreenLayout extends StatelessWidget {
         isTimer && currentlyPlayingTrack.timerMode == TimerMode.stopwatch;
     // A timer ends with the stop button; tracks keep their repeat control.
     final onStop = isTimer ? onEndSession : null;
+    // Autoplay moves through a course; a timer is not in one.
+    final autoplay = autoplayScope == null || isTimer
+        ? null
+        : AutoplayButton(
+            scope: autoplayScope!,
+            trackId: currentlyPlayingTrack.trackId,
+          );
     return Scaffold(
       extendBody: true,
       extendBodyBehindAppBar: true,
@@ -933,6 +952,7 @@ class PlayerScreenLayout extends StatelessWidget {
                                     onPlayPause: onPlayPausePressed,
                                     isStopwatch: isStopwatch,
                                     onStop: onStop,
+                                    autoplay: autoplay,
                                   )
                                 : ConstrainedBox(
                                     constraints: const BoxConstraints(
@@ -950,6 +970,7 @@ class PlayerScreenLayout extends StatelessWidget {
                                       onPlayPause: onPlayPausePressed,
                                       isStopwatch: isStopwatch,
                                       onStop: onStop,
+                                      autoplay: autoplay,
                                     ),
                                   ),
                           ),
@@ -987,6 +1008,7 @@ class _PortraitPlayerLayout extends ConsumerWidget {
     required this.onPlayPause,
     this.isStopwatch = false,
     this.onStop,
+    this.autoplay,
   });
 
   final bool expanded;
@@ -1000,6 +1022,9 @@ class _PortraitPlayerLayout extends ConsumerWidget {
   final VoidCallback onPlayPause;
   final bool isStopwatch;
   final VoidCallback? onStop;
+
+  /// Autoplay for a course's session, under the transport.
+  final Widget? autoplay;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1042,6 +1067,7 @@ class _PortraitPlayerLayout extends ConsumerWidget {
             showSkipButtons: !isStopwatch,
             onStop: onStop,
           ),
+          if (autoplay != null) ...[const SizedBox(height: 16), autoplay!],
         ],
       ),
     );
@@ -1060,6 +1086,7 @@ class _LandscapePlayerLayout extends ConsumerWidget {
     required this.onPlayPause,
     this.isStopwatch = false,
     this.onStop,
+    this.autoplay,
   });
 
   final String title;
@@ -1072,6 +1099,9 @@ class _LandscapePlayerLayout extends ConsumerWidget {
   final VoidCallback onPlayPause;
   final bool isStopwatch;
   final VoidCallback? onStop;
+
+  /// Autoplay for a course's session, under the transport.
+  final Widget? autoplay;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1107,6 +1137,7 @@ class _LandscapePlayerLayout extends ConsumerWidget {
           showSkipButtons: !isStopwatch,
           onStop: onStop,
         ),
+        if (autoplay != null) ...[const SizedBox(height: 8), autoplay!],
       ],
     );
   }
