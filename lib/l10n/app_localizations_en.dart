@@ -2014,6 +2014,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unpinCourse => 'Unpin from Home';
 
   @override
+  String get itemMarkPlayed => 'Mark as played';
+
+  @override
+  String get itemMarkUnplayed => 'Mark as unplayed';
+
+  @override
+  String get itemGoToTeacher => 'Go to teacher';
+
+  @override
+  String get itemMarkPlayedFailed =>
+      'Couldn\'t update the played state. Please try again.';
+
+  @override
   String get pinnedLimitReached =>
       'Home holds up to three pinned courses or playlists. Unpin one first.';
 

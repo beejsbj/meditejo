@@ -3556,6 +3556,30 @@ abstract class AppLocalizations {
   /// **'Unpin from Home'**
   String get unpinCourse;
 
+  /// No description provided for @itemMarkPlayed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as played'**
+  String get itemMarkPlayed;
+
+  /// No description provided for @itemMarkUnplayed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as unplayed'**
+  String get itemMarkUnplayed;
+
+  /// No description provided for @itemGoToTeacher.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to teacher'**
+  String get itemGoToTeacher;
+
+  /// No description provided for @itemMarkPlayedFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the played state. Please try again.'**
+  String get itemMarkPlayedFailed;
+
   /// No description provided for @pinnedLimitReached.
   ///
   /// In en, this message translates to:
