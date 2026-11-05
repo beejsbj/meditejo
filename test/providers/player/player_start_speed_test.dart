@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:just_audio/just_audio.dart';
@@ -8,6 +10,7 @@ import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/player/download/audio_downloader_provider.dart';
 import 'package:medito/providers/player/ios_audio_handler.dart';
+import 'package:medito/providers/player/playback_speed_provider.dart';
 import 'package:medito/providers/player/player_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/src/audio_pigeon.g.dart' as pigeon;
@@ -24,8 +27,12 @@ class _Engine extends IosAudioHandler {
   final speeds = <double>[];
   final order = <String>[];
 
+  /// Set to make the engine refuse a speed.
+  bool speedFails = false;
+
   @override
   Future<void> setSpeed(double speed) async {
+    if (speedFails) throw StateError('engine not ready');
     speeds.add(speed);
     order.add('speed');
   }
@@ -50,10 +57,17 @@ class _Engine extends IosAudioHandler {
   Future<void> play() async => order.add('play');
 }
 
+/// Nothing downloaded. The lookup waits for [_lookup] when one is set: the
+/// session is still loading while it waits.
 class _NoDownloads extends AudioDownloaderProvider {
   @override
-  Future<String?> getTrackPath(String fileName) async => null;
+  Future<String?> getTrackPath(String fileName) async {
+    await _lookup?.future;
+    return null;
+  }
 }
+
+Completer<void>? _lookup;
 
 const _talk = PlaybackRequest(
   trackId: 'ds-talk-2',
@@ -90,6 +104,7 @@ void main() {
   late _Engine engine;
 
   Future<ProviderContainer> container(Map<String, Object> prefs) async {
+    _lookup = null;
     SharedPreferences.setMockInitialValues(prefs);
     engine = _Engine();
     iosAudioHandler = engine;
@@ -153,4 +168,27 @@ void main() {
       expect(engine.speeds, [1.5, 0.9, 1.5]);
     },
   );
+
+  test(
+    'a speed chosen while the session loads is the one it starts at',
+    () async {
+      final c = await container(stored);
+      _lookup = Completer<void>();
+      final playing = c.read(playerProvider.notifier).play(_talk);
+      await Future<void>.delayed(Duration.zero);
+      // The speed sheet, during loading: talks to 2×.
+      await c.read(playbackSpeedProvider(CueKind.talks).notifier).set(2.0);
+      _lookup!.complete();
+      await playing;
+      expect(engine.speeds, [2.0]);
+    },
+  );
+
+  test('an engine that refuses the speed does not stop the session', () async {
+    final c = await container(stored);
+    engine.speedFails = true;
+    await c.read(playerProvider.notifier).play(_talk);
+    expect(engine.order, ['url', 'play']);
+    expect(c.read(playerProvider), _talk);
+  });
 }

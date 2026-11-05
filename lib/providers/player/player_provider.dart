@@ -4,6 +4,7 @@ import 'package:medito/services/audio/native_cue_controller.dart';
 import 'package:medito/services/stats/session_label.dart';
 import 'package:medito/providers/library/library_providers.dart';
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -98,11 +99,13 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     );
     _cues = ref.read(cueSettingsProvider(scope));
     // Each kind keeps its own speed: a talk starts at the talks speed, a sit
-    // at the practice speed, a timer at 1×.
-    final speed = sessionPlaybackSpeed(
+    // at the practice speed, a timer at 1×. Read just before it is applied,
+    // after the last wait, so a speed chosen while the session loads wins.
+    final isTimer = request.isTimer;
+    double startSpeed() => sessionPlaybackSpeed(
       (kind) => ref.read(playbackSpeedProvider(kind)),
       kind: scope.kind,
-      isTimer: request.isTimer,
+      isTimer: isTimer,
     );
     AppLogger.d(
       'PLAYER',
@@ -174,7 +177,8 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
       }
       if (generation != _generation) return;
       setRepeatMode(repeatMode);
-      setSpeed(speed);
+      await _applySpeed(startSpeed());
+      if (generation != _generation) return;
       await NativeCueController.configure(_cues!, request);
       if (generation != _generation) return;
       await _playAudioWithRetry(url, trackData, generation);
@@ -185,7 +189,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
       // its retry budget — iOS has no such retry layer, so a single failure
       // here propagates immediately. That's intentional: callers need to know.
       setRepeatMode(repeatMode);
-      setSpeed(speed);
+      await _applySpeed(startSpeed());
       if (generation != _generation) return;
       await iosAudioHandler.setUrl(downloadPath, request, trackData);
       if (generation != _generation) return;
@@ -296,11 +300,24 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     }
   }
 
-  void setSpeed(double speed) {
-    if (Platform.isAndroid) {
-      _api.setSpeed(speed);
-    } else {
-      iosAudioHandler.setSpeed(speed);
+  void setSpeed(double speed) => unawaited(_applySpeed(speed));
+
+  /// Sets the engine's speed. A failure is logged, not thrown: the session
+  /// still plays, and the log says it kept another speed.
+  Future<void> _applySpeed(double speed) async {
+    try {
+      if (Platform.isAndroid) {
+        await _api.setSpeed(speed);
+      } else {
+        await iosAudioHandler.setSpeed(speed);
+      }
+    } catch (e, st) {
+      AppLogger.e(
+        'PLAYER',
+        'Could not set the speed to $speed; the engine keeps its last speed',
+        e,
+        st,
+      );
     }
   }
 

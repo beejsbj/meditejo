@@ -474,6 +474,25 @@ class CueMathTest {
         assertEquals(45_000L, t.heardMs())
     }
 
+    @Test fun aLateSampleAtDoubleSpeedStillCounts() {
+        // Two ticks missed at 2x: 6 s of media between samples. At 1x that
+        // much would be a jump; at 2x it is three seconds of listening.
+        val t = ListeningTracker()
+        t.rebase(0)
+        t.sample(2_000, true, 2.0)
+        t.sample(8_000, true, 2.0)
+        assertEquals(8_000L, t.heardMs())
+        val slow = ListeningTracker()
+        slow.rebase(0)
+        slow.sample(2_000, true, 0.6)
+        slow.sample(8_000, true, 0.6) // still a jump below 1x
+        assertEquals(2_000L, slow.heardMs())
+        val far = ListeningTracker()
+        far.rebase(0)
+        far.sample(11_000, true, 2.0) // beyond 10 s at 2x: a jump
+        assertEquals(0L, far.heardMs())
+    }
+
     @Test fun fastPlaybackCountsMediaTime() {
         val t = ListeningTracker()
         play(t, 0, 540_000, step = 2000) // 2x, sampled each second

@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/player/playback_speed_provider.dart';
+import 'package:medito/providers/player/player_provider.dart';
 
 /// "1×", "0.75×", "1.5×": no trailing zeros.
 String formatSpeed(double speed) {
@@ -13,10 +15,12 @@ String formatSpeed(double speed) {
 }
 
 /// Opens the speed sheet. In a session, [sessionKind] is the session's kind:
-/// it is listed first and open, and a change to it also goes to the player
-/// through [onSpeedChanged]. The other kind's speed can be set from here too;
-/// it applies from the next session of that kind. Without a session (from
-/// Settings) both kinds are listed, Practice first, and nothing plays.
+/// it is listed first and open, shows the speed the session is playing at,
+/// and a change to it also goes to the player through [onSpeedChanged]. The
+/// other kind's speed can be set from here too; it applies from the next
+/// session of that kind. The sheet closes when the session changes (autoplay
+/// moving on), since the next one may be of the other kind. Without a session
+/// (from Settings) both kinds are listed, Practice first, and nothing plays.
 Future<void> showSpeedSheet(
   BuildContext context, {
   CueKind? sessionKind,
@@ -49,6 +53,30 @@ class SpeedSheet extends ConsumerStatefulWidget {
 class _SpeedSheetState extends ConsumerState<SpeedSheet> {
   late CueKind _editing = widget.sessionKind ?? CueKind.practice;
 
+  /// The speed the session plays at. It can differ from the stored one (a
+  /// lock screen or car changed it), and is set at once on a choice so the
+  /// highlight does not wait for the engine's next report.
+  double? _live;
+
+  /// The session the sheet was opened in.
+  String? _sessionTrack;
+
+  bool get _inSession => widget.sessionKind != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_inSession) {
+      _sessionTrack = ref.read(playerProvider)?.trackId;
+      _live = normalisePlaybackSpeed(ref.read(audioStateProvider).speed.speed);
+    }
+  }
+
+  /// The speed shown for [kind]: the live one for the session's kind.
+  double _speedOf(CueKind kind) => kind == widget.sessionKind && _live != null
+      ? _live!
+      : ref.watch(playbackSpeedProvider(kind));
+
   List<CueKind> get _kinds {
     final current = widget.sessionKind;
     if (current == null) return CueKind.values;
@@ -57,9 +85,21 @@ class _SpeedSheetState extends ConsumerState<SpeedSheet> {
 
   void _choose(double speed) {
     final kind = _editing;
-    if (ref.read(playbackSpeedProvider(kind)) == speed) return;
+    if (kind == widget.sessionKind) {
+      // Always applied: the engine may be at another speed than the stored
+      // one, and choosing the stored speed must bring it back.
+      setState(() => _live = speed);
+      widget.onSpeedChanged?.call(speed);
+    } else if (ref.read(playbackSpeedProvider(kind)) == speed) {
+      return;
+    }
     ref.read(playbackSpeedProvider(kind).notifier).set(speed);
-    if (kind == widget.sessionKind) widget.onSpeedChanged?.call(speed);
+  }
+
+  void _close() {
+    final route = ModalRoute.of(context);
+    if (route == null || !route.isActive) return;
+    Navigator.of(context).removeRoute(route);
   }
 
   String _kindName(AppLocalizations l10n, CueKind kind) =>
@@ -70,7 +110,15 @@ class _SpeedSheetState extends ConsumerState<SpeedSheet> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final onSurface = theme.colorScheme.onSurface;
-    final speed = ref.watch(playbackSpeedProvider(_editing));
+    if (_inSession) {
+      ref.listen(audioStateProvider.select((s) => s.speed.speed), (_, next) {
+        setState(() => _live = normalisePlaybackSpeed(next));
+      });
+      ref.listen(playerProvider.select((r) => r?.trackId), (_, next) {
+        if (next != _sessionTrack) _close();
+      });
+    }
+    final speed = _speedOf(_editing);
 
     return SafeArea(
       child: Padding(
@@ -100,9 +148,7 @@ class _SpeedSheetState extends ConsumerState<SpeedSheet> {
                     child: _KindTab(
                       key: ValueKey('speed_kind_${kind.name}'),
                       name: _kindName(l10n, kind),
-                      speed: formatSpeed(
-                        ref.watch(playbackSpeedProvider(kind)),
-                      ),
+                      speed: formatSpeed(_speedOf(kind)),
                       selected: kind == _editing,
                       onTap: () => setState(() => _editing = kind),
                     ),

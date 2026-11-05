@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
+import 'package:medito/utils/logger.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_download_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_speed_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/bg_sound_widget.dart';
@@ -101,18 +103,39 @@ class PlayerActionBar extends StatelessWidget {
     color: ColorConstants.white,
   );
 
+  /// Navigators with a speed sheet being opened or open, so a double tap
+  /// opens one sheet. Keyed by the navigator, so a navigator that goes away
+  /// with a sheet open leaves nothing behind.
+  static final _speedSheetOpen = Expando<bool>('speed sheet open');
+
   /// The speed sheet, open on this session's kind (the kind its cues and
-  /// speed were chosen by at the start).
+  /// speed were chosen by at the start). If the kind cannot be told, the
+  /// sheet still opens, for both kinds, without a session.
   Future<void> _speed(BuildContext context) async {
-    final scope = await ProviderScope.containerOf(
-      context,
-    ).read(cueScopeForRequestProvider(request).future);
-    if (!context.mounted) return;
-    await showSpeedSheet(
-      context,
-      sessionKind: scope.kind,
-      onSpeedChanged: onSpeedChanged,
-    );
+    final navigator = Navigator.of(context);
+    if (_speedSheetOpen[navigator] == true) return;
+    _speedSheetOpen[navigator] = true;
+    try {
+      CueKind? kind;
+      try {
+        final scope = await ProviderScope.containerOf(
+          context,
+        ).read(cueScopeForRequestProvider(request).future);
+        kind = scope.kind;
+      } catch (e, st) {
+        AppLogger.e('PLAYER', 'Could not tell the session\'s kind', e, st);
+      }
+      if (!context.mounted) return;
+      await (kind == null
+          ? showSpeedSheet(context)
+          : showSpeedSheet(
+              context,
+              sessionKind: kind,
+              onSpeedChanged: onSpeedChanged,
+            ));
+    } finally {
+      _speedSheetOpen[navigator] = null;
+    }
   }
 
   void _customize(BuildContext context) {

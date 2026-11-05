@@ -44,7 +44,12 @@ final _timer = timerPlaybackRequest(
   title: 'Timer',
 );
 
+/// Nothing playing yet, at [speed] as the engine reports it.
 class _IdleAudio extends AudioStateNotifier {
+  _IdleAudio([this.speed = 1]);
+
+  final double speed;
+
   @override
   pigeon.PlaybackState build() => pigeon.PlaybackState(
     isPlaying: false,
@@ -53,7 +58,7 @@ class _IdleAudio extends AudioStateNotifier {
     isCompleted: false,
     position: 0,
     duration: 3600000,
-    speed: pigeon.Speed(speed: 1),
+    speed: pigeon.Speed(speed: speed),
     volume: 100,
     track: pigeon.Track(
       id: '',
@@ -122,13 +127,18 @@ void main() {
 
   late List<double> speeds;
 
+  /// Set to make the session's kind lookup fail from then on.
+  var scopeFails = false;
+
   Future<void> pumpPlayer(
     WidgetTester tester,
     PlaybackRequest request,
     CueKind kind, {
     Map<String, Object> prefs = const {},
+    double liveSpeed = 1,
   }) async {
     speeds = [];
+    scopeFails = false;
     tester.view.physicalSize = const Size(430, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -138,14 +148,15 @@ void main() {
         prefs: {...prefsDark, ...prefs},
         overrides: [
           playerProvider.overrideWith(() => _FakePlayer(request, speeds)),
-          audioStateProvider.overrideWith(_IdleAudio.new),
+          audioStateProvider.overrideWith(() => _IdleAudio(liveSpeed)),
           backgroundSoundsNotifierProvider.overrideWith(
             _SilentBackgroundSounds.new,
           ),
           statsProvider.overrideWith(_Stats.new),
           reviewServiceProvider.overrideWithValue(_Review()),
           cueScopeForRequestProvider.overrideWith(
-            (ref, request) async => CueScope(kind),
+            (ref, request) async =>
+                scopeFails ? throw StateError('no library') : CueScope(kind),
           ),
         ],
         child: const PlayerView(skipCustomize: true),
@@ -248,14 +259,13 @@ void main() {
     await close(tester);
   });
 
-  testWidgets('the menu shows each kind\'s stored speed; 1× is per kind', (
-    tester,
-  ) async {
+  testWidgets('the menu shows the other kind\'s stored speed', (tester) async {
     await pumpPlayer(
       tester,
       _talk,
       CueKind.talks,
       prefs: {'speed.v1.talks': 1.75, 'speed.v1.practice': 0.9},
+      liveSpeed: 1.75,
     );
     await openMenu(tester);
     expect(
@@ -273,6 +283,69 @@ void main() {
     final container = containerOf(tester);
     expect(container.read(playbackSpeedProvider(CueKind.talks)), 1.0);
     expect(container.read(playbackSpeedProvider(CueKind.practice)), 0.9);
+    await close(tester);
+  });
+
+  testWidgets('the session tab shows the live speed, and its stored speed '
+      'still applies', (tester) async {
+    // A lock screen set 1.5×; talks are stored at 1×.
+    await pumpPlayer(tester, _talk, CueKind.talks, liveSpeed: 1.5);
+    await openMenu(tester);
+    expect(
+      find.descendant(of: tab(CueKind.talks), matching: find.text('1.5×')),
+      findsOneWidget,
+    );
+    expect(isSelected(tester, option('1.5×')), isTrue);
+    expect(isSelected(tester, option('1×')), isFalse);
+    await tester.tap(option('1×'));
+    await settle(tester);
+    expect(speeds, [1.0], reason: 'back to the stored speed');
+    expect(isSelected(tester, option('1×')), isTrue);
+    expect(containerOf(tester).read(playbackSpeedProvider(CueKind.talks)), 1.0);
+    await close(tester);
+  });
+
+  testWidgets('the menu closes when autoplay moves to the next session', (
+    tester,
+  ) async {
+    await pumpPlayer(tester, _talk, CueKind.talks);
+    await openMenu(tester);
+    containerOf(tester)
+        .read(playerProvider.notifier)
+        .prepare(_talk.copyWith(trackId: 'ds-sit-3', fileId: 'ds-sit-3'));
+    await settle(tester);
+    expect(find.byType(SpeedSheet), findsNothing);
+    await close(tester);
+  });
+
+  testWidgets('a double tap opens one menu', (tester) async {
+    await pumpPlayer(tester, _talk, CueKind.talks);
+    await tester.tap(find.byType(AudioSpeedWidget));
+    await tester.tap(find.byType(AudioSpeedWidget));
+    await settle(tester);
+    expect(find.byType(SpeedSheet), findsOneWidget);
+    await close(tester);
+  });
+
+  testWidgets('if the kind cannot be told the menu still opens', (
+    tester,
+  ) async {
+    await pumpPlayer(tester, _talk, CueKind.talks);
+    scopeFails = true;
+    containerOf(tester).invalidate(cueScopeForRequestProvider);
+    await openMenu(tester);
+    // Both kinds, Practice first, and the playing session is left alone.
+    expect(
+      tester.getTopLeft(tab(CueKind.practice)).dx,
+      lessThan(tester.getTopLeft(tab(CueKind.talks)).dx),
+    );
+    await tester.tap(option('1.25×'));
+    await settle(tester);
+    expect(speeds, isEmpty);
+    expect(
+      containerOf(tester).read(playbackSpeedProvider(CueKind.practice)),
+      1.25,
+    );
     await close(tester);
   });
 
