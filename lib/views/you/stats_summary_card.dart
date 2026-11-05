@@ -10,7 +10,7 @@ import 'package:medito/views/stats/stats_format.dart';
 import 'package:medito/views/stats/stats_screen.dart';
 
 /// Three numbers from the stats page (this week, all time, the streak) on the
-/// You tab. Tapping opens the full page.
+/// You page. Tapping opens the full page.
 class StatsSummaryCard extends ConsumerWidget {
   const StatsSummaryCard({super.key});
 

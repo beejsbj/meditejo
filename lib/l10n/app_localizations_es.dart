@@ -2455,6 +2455,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get navYou => 'Tú';
 
   @override
+  String get youButton => 'Tú: estadísticas e historial';
+
+  @override
+  String get youSectionPractice => 'Tu práctica';
+
+  @override
+  String get navSettings => 'Ajustes';
+
+  @override
   String get soundsMixEmptyTitle => 'Tu mezcla aún está vacía';
 
   @override

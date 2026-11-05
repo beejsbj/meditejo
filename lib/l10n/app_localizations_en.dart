@@ -2413,6 +2413,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navYou => 'You';
 
   @override
+  String get youButton => 'You: stats and history';
+
+  @override
+  String get youSectionPractice => 'Your practice';
+
+  @override
+  String get navSettings => 'Settings';
+
+  @override
   String get soundsMixEmptyTitle => 'Nothing in your mix yet';
 
   @override

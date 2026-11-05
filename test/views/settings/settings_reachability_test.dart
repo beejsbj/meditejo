@@ -7,7 +7,6 @@ import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/views/settings/settings_screen.dart';
 import 'package:medito/views/settings/settings_sections.dart';
-import 'package:medito/views/you/you_view.dart';
 
 import '../../helpers/update_fakes.dart';
 
@@ -25,13 +24,11 @@ const _everywhere = {
   // Practice: from Manage defaults, Advanced and Customisation
   'When my day starts',
   'Zen mode',
-  'Session history',
   // Sounds & cues: the Customize defaults
   'Practice sounds & cues',
   'Talks sounds & cues',
   // Library & downloads: from Help and Customisation
   'Add to your library',
-  'Favorites',
   'Downloads',
   'Dharma Seed library',
   // Appearance
@@ -69,7 +66,7 @@ Finder _titled(String title) => find.byWidgetPredicate(
 Future<ProviderContainer> _pump(
   WidgetTester tester, {
   bool phone = false,
-  Widget page = const YouView(),
+  Widget page = const SettingsScreen(),
 }) async {
   final h = await UpdateHarness.create();
   final container = ProviderContainer(
@@ -104,7 +101,9 @@ Future<ProviderContainer> _pump(
 }
 
 void main() {
-  testWidgets('every pre-existing setting is on the You page', (tester) async {
+  testWidgets('every pre-existing setting is on the Settings tab', (
+    tester,
+  ) async {
     await _pump(tester);
     for (final title in _everywhere) {
       expect(_titled(title), findsOneWidget, reason: title);
@@ -158,13 +157,16 @@ void main() {
     },
   );
 
-  testWidgets('the Settings screen the tab hosts shows the same page', (
+  testWidgets('the Settings tab has no stats, history or favourites', (
     tester,
   ) async {
-    await _pump(tester, page: const SettingsScreen());
+    await _pump(tester);
     expect(_titled('Settings'), findsOneWidget);
     expect(_titled('Check for updates'), findsOneWidget);
-    expect(_titled('Stats'), findsWidgets);
+    // Those are on the You page.
+    expect(_titled('Stats'), findsNothing);
+    expect(_titled('Session history'), findsNothing);
+    expect(_titled('Favorites'), findsNothing);
   });
 
   testWidgets('the Medito leftovers are gone from Settings', (tester) async {

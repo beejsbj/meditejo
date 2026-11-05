@@ -14,7 +14,6 @@ import 'package:medito/src/audio_pigeon.g.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/debug/debug_info_screen.dart';
 import 'package:medito/views/downloads/downloads_view.dart';
-import 'package:medito/views/favorites/favorites_view.dart';
 import 'package:medito/views/home/customise_home_layout_screen.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
 import 'package:medito/views/library/import_view.dart';
@@ -31,7 +30,6 @@ import 'package:medito/views/settings/widgets/update_section.dart';
 import 'package:medito/views/settings/widgets/widget_option_tile.dart';
 import 'package:medito/views/settings/widgets/zen_mode_tile.dart';
 import 'package:medito/views/soundscape/sound_credits_view.dart';
-import 'package:medito/views/stats/stats_screen.dart';
 import 'package:medito/widgets/medito_icon.dart';
 
 /// Where a row in a settings group is built: told whether it is the last, so
@@ -40,10 +38,11 @@ typedef SettingsRow = Widget Function(bool last);
 
 /// Every setting, grouped by what a person is trying to do: Practice, Sounds
 /// & cues, Library & downloads, Appearance, Notifications & reminders, and
-/// About, which holds the version and Check for updates.
+/// About, which holds the version and Check for updates. Stats, session
+/// history and favourites are on the You page, not here.
 ///
-/// Not a screen: [SettingsScreen] and the You tab put it in their own scroll
-/// views. When an update is waiting, About moves to the top.
+/// Not a screen: the Settings tab ([SettingsScreen]) puts it in its own
+/// scroll view. When an update is waiting, About moves to the top.
 class SettingsSections extends ConsumerWidget {
   const SettingsSections({super.key, this.isMobile, this.isAndroid});
 
@@ -111,13 +110,6 @@ class SettingsSections extends ConsumerWidget {
             hasUnderline: !last,
           ),
           if (_isMobile) (last) => HealthSyncTile(hasUnderline: !last),
-          (last) => RowItemWidget(
-            key: const ValueKey('settings_session_history'),
-            icon: MeditoIcon(assetName: MeditoIcons.calendar, color: onSurface),
-            title: l10n.settingsSessionHistory,
-            hasUnderline: !last,
-            onTap: () => _push(context, const StatsScreen(initialTabIndex: 1)),
-          ),
         ],
       ),
       SettingsGroup.rows(
@@ -139,12 +131,6 @@ class SettingsSections extends ConsumerWidget {
             title: l10n.importTitle,
             hasUnderline: !last,
             onTap: () => _push(context, const ImportView()),
-          ),
-          (last) => RowItemWidget(
-            icon: MeditoIcon(assetName: MeditoIcons.heart, color: onSurface),
-            title: l10n.favorites,
-            hasUnderline: !last,
-            onTap: () => _push(context, const FavoritesView()),
           ),
           (last) => RowItemWidget(
             icon: MeditoIcon(

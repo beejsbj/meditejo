@@ -20,7 +20,7 @@ import 'package:medito/views/library/share_intake_host.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/views/library/library_view.dart';
-import 'package:medito/views/you/you_view.dart';
+import 'package:medito/views/settings/settings_screen.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 
 class BottomNavigationBarView extends ConsumerStatefulWidget {
@@ -34,7 +34,8 @@ class BottomNavigationBarView extends ConsumerStatefulWidget {
 class _BottomNavigationBarViewState
     extends ConsumerState<BottomNavigationBarView> {
   // Nav destination index == MainTab index == page index in _pages: Home,
-  // Explore, Sounds, Library, You. Search lives inside Explore.
+  // Explore, Sounds, Library, Settings. Search lives inside Explore; You
+  // (stats and history) is a page opened from Home, Library and Settings.
   final _exploreViewKey = GlobalKey<ExploreViewState>();
   final _soundsViewKey = GlobalKey<SoundsViewState>();
   late final List<Widget> _pages;
@@ -213,8 +214,7 @@ class _BottomNavigationBarViewState
     MainTab.explore => ExploreView(key: _exploreViewKey),
     MainTab.sounds => SoundsView(key: _soundsViewKey),
     MainTab.library => const LibraryView(),
-    // You's own screen (stats and Settings) replaces this line.
-    MainTab.you => const YouView(),
+    MainTab.settings => const SettingsScreen(),
   };
 
   static MeditoNavItem _navItem(MainTab tab, AppLocalizations l10n) =>
@@ -235,9 +235,9 @@ class _BottomNavigationBarViewState
           icon: Symbols.library_books_rounded,
           label: l10n.navLibrary,
         ),
-        MainTab.you => MeditoNavItem(
-          icon: Symbols.person_rounded,
-          label: l10n.navYou,
+        MainTab.settings => MeditoNavItem(
+          icon: Symbols.settings_rounded,
+          label: l10n.navSettings,
         ),
       };
 
