@@ -50,11 +50,10 @@ void main() {
   ) => app.pump(
     tester,
     Scaffold(
-      body: PackPathButton(
+      body: PackPlayButton(
         pack: pack,
         onStartSession:
             (c, r, {required trackId, required path, courseId}) async {},
-        child: const SizedBox(height: 40),
       ),
     ),
     overrides: [
@@ -145,17 +144,19 @@ void main() {
       return app;
     }
 
-    testWidgets('plays from the start with just a play icon', (tester) async {
+    testWidgets('plays from the start: a plain labelled Play', (tester) async {
       final app = await trackApp(tester);
       final id = (await tester.runAsync(
         app.harness.store.entries,
       ))!.single.sourceId;
       await app.pump(tester, TrackView(trackId: id));
       expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+      // A length the file does not know yet: Play alone (#84).
+      expect(find.text('Play'), findsOneWidget);
       expect(find.textContaining('Resume at'), findsNothing);
       expect(find.text('From the beginning'), findsNothing);
-      // The page offers the library action too, already ticked.
-      expect(find.text('In library'), findsOneWidget);
+      // The page offers the library toggle too, already on.
+      expect(find.byTooltip('In library'), findsOneWidget);
     });
 
     testWidgets('reads Resume at the saved place, and can start over', (

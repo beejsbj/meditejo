@@ -11,10 +11,8 @@ import 'package:medito/services/library/lib_ids.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/views/home/widgets/continue/continue_section.dart';
-import 'package:medito/views/categories/labels_sheet.dart';
 import 'package:medito/views/library/library_actions.dart';
 import 'package:medito/views/library/library_format.dart';
-import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/widgets/cards/card_art.dart';
 import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/cards/card_tokens.dart';
@@ -46,7 +44,7 @@ CardProgress? libraryProgress(
   return CardProgress.of(p.done, p.total, l10n.upNextProgress(p.done, p.total));
 }
 
-/// A mark on a course pinned to Home.
+/// A mark on a course or session pinned to Home.
 class _PinMark extends StatelessWidget {
   const _PinMark({this.disc = false});
 
@@ -83,7 +81,15 @@ class LibraryEntryTile extends ConsumerWidget {
   final LibraryEntry entry;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) => GestureDetector(
+    onLongPress: () {
+      Feedback.forLongPress(context);
+      showLibraryEntryActions(context, ref, entry);
+    },
+    child: _row(context, ref),
+  );
+
+  Widget _row(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     void open() => openLibraryEntry(context, ref, entry);
     final menu = LibraryEntryMenu(entry: entry);
@@ -131,7 +137,11 @@ class LibraryEntryTile extends ConsumerWidget {
               .watch(downloadedTrackIdsProvider)
               .contains(entry.sourceId),
           onTap: open,
-          trailing: [menu],
+          trailing: [
+            if (ref.watch(pinnedCoursesProvider).contains(entry.sourceId))
+              const _PinMark(),
+            menu,
+          ],
         );
       case LibraryKind.teacher:
         return TeacherRow(
@@ -155,7 +165,15 @@ class LibraryEntryCard extends ConsumerWidget {
   final LibraryEntry entry;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) => GestureDetector(
+    onLongPress: () {
+      Feedback.forLongPress(context);
+      showLibraryEntryActions(context, ref, entry);
+    },
+    child: _card(context, ref),
+  );
+
+  Widget _card(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final pinned = ref.watch(pinnedCoursesProvider).contains(entry.sourceId);
     return CourseCard(
@@ -274,121 +292,18 @@ class InProgressStrip extends ConsumerWidget {
   }
 }
 
-/// Edit or copy a course, add to a personal course, reclassify, rename, pin,
-/// or remove an entry. A personal course is deleted rather than removed: it
-/// exists nowhere else.
+/// A library entry's "⋮": the one actions sheet, with the Library's own
+/// actions (move, rename, labels, remove) added.
 class LibraryEntryMenu extends ConsumerWidget {
   const LibraryEntryMenu({super.key, required this.entry});
 
   final LibraryEntry entry;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final isTeacher = entry.kind == LibraryKind.teacher;
-    final mine = isMyCourseId(entry.sourceId);
-    return PopupMenuButton<_Action>(
-      key: ValueKey('library_menu_${entry.sourceId}'),
-      tooltip: MaterialLocalizations.of(context).showMenuTooltip,
-      icon: const Icon(Icons.more_vert_rounded),
-      onSelected: (action) => switch (action) {
-        _Action.edit => openMyCourseEditor(context, entry.sourceId),
-        _Action.addToCourse => showAddToCourse(
-          context,
-          ref,
-          id: entry.sourceId,
-        ),
-        _Action.duplicate => duplicateAsMyCourse(
-          context,
-          ref,
-          packId: entry.sourceId,
-          title: entry.displayTitle,
-        ),
-        _Action.delete => deleteMyCourse(context, ref, entry.sourceId),
-        _Action.toPractice => setLibraryGroup(
-          ref,
-          entry,
-          LibraryGroup.practice,
-        ),
-        _Action.toTalks => setLibraryGroup(ref, entry, LibraryGroup.talks),
-        _Action.rename => renameLibraryEntry(context, ref, entry),
-        _Action.labels => showLabelsSheet(
-          context,
-          id: entry.sourceId,
-          title: entry.title,
-        ),
-        _Action.pin => togglePinnedCourse(context, ref, entry.sourceId),
-        _Action.remove => removeFromLibrary(context, ref, entry),
-      },
-      itemBuilder: (context) => [
-        if (mine)
-          PopupMenuItem(
-            key: const ValueKey('library_menu_edit'),
-            value: _Action.edit,
-            child: Text(l10n.myCourseEdit),
-          ),
-        if (!isTeacher)
-          PopupMenuItem(
-            key: const ValueKey('library_menu_add_to_course'),
-            value: _Action.addToCourse,
-            child: Text(l10n.myCourseAddTo),
-          ),
-        if (entry.isCourse)
-          PopupMenuItem(
-            key: const ValueKey('library_menu_duplicate'),
-            value: _Action.duplicate,
-            child: Text(l10n.myCourseDuplicate),
-          ),
-        if (!isTeacher && entry.group == LibraryGroup.talks)
-          PopupMenuItem(
-            value: _Action.toPractice,
-            child: Text(l10n.libraryMoveToPractice),
-          ),
-        if (!isTeacher && entry.group == LibraryGroup.practice)
-          PopupMenuItem(
-            value: _Action.toTalks,
-            child: Text(l10n.libraryMoveToTalks),
-          ),
-        if (!isTeacher)
-          PopupMenuItem(value: _Action.rename, child: Text(l10n.libraryRename)),
-        if (!isTeacher)
-          PopupMenuItem(
-            key: const ValueKey('library_menu_labels'),
-            value: _Action.labels,
-            child: Text(l10n.libraryMenuLabels),
-          ),
-        if (entry.isCourse)
-          PopupMenuItem(
-            key: const ValueKey('library_menu_pin'),
-            value: _Action.pin,
-            child: Text(
-              ref.read(pinnedCoursesProvider).contains(entry.sourceId)
-                  ? l10n.unpinCourse
-                  : l10n.pinCourse,
-            ),
-          ),
-        if (mine)
-          PopupMenuItem(
-            key: const ValueKey('library_menu_delete'),
-            value: _Action.delete,
-            child: Text(l10n.myCourseDelete),
-          )
-        else
-          PopupMenuItem(value: _Action.remove, child: Text(l10n.libraryRemove)),
-      ],
-    );
-  }
-}
-
-enum _Action {
-  edit,
-  addToCourse,
-  duplicate,
-  toPractice,
-  toTalks,
-  rename,
-  labels,
-  pin,
-  remove,
-  delete,
+  Widget build(BuildContext context, WidgetRef ref) => IconButton(
+    key: ValueKey('library_menu_${entry.sourceId}'),
+    tooltip: MaterialLocalizations.of(context).showMenuTooltip,
+    icon: const Icon(Icons.more_vert_rounded),
+    onPressed: () => showLibraryEntryActions(context, ref, entry),
+  );
 }

@@ -243,7 +243,8 @@ Future<void> _openTimer(WidgetTester tester) async {
   expect(find.byType(TimerView), findsOneWidget);
   expect(find.widgetWithText(FilledButton, 'Start'), findsOneWidget);
   expect(tester.getBottomLeft(find.text('Start')).dy, lessThan(844));
-  expect(find.text('Duration'), findsOneWidget);
+  // The timer's length is the Customize sheet's Length tile.
+  expect(find.byKey(const ValueKey('customize_slot_length')), findsOneWidget);
 }
 
 /// Runs [body] with the native audio boundary faked and a temporary
@@ -336,8 +337,8 @@ void main() {
       final container = await _home(tester, prefs);
       await _openTimer(tester);
 
-      // The Duration row opens its wheel in place; turn it to 3 minutes.
-      await tester.tap(find.text('Duration'));
+      // The Length tile opens its wheel in place; turn it to 3 minutes.
+      await tester.tap(find.byKey(const ValueKey('customize_slot_length')));
       await tester.pumpAndSettle();
       const wheel = ValueKey('wheel_Duration');
       tester.state<WheelPickerState<int>>(find.byKey(wheel)).moveTo(2);

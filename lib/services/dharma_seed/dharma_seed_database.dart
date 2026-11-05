@@ -106,8 +106,8 @@ class DsSyncQueue extends Table {
   Set<Column> get primaryKey => {kind, itemId};
 }
 
-/// Retreats and teachers the user saved. Talk favourites use the app's
-/// existing favourites.
+/// Retreats and teachers the user saved. A talk is kept by pinning it, like
+/// any other session.
 @DataClassName('DsSavedItem')
 class DsSaved extends Table {
   TextColumn get kind => text()(); // 'retreat' | 'teacher'

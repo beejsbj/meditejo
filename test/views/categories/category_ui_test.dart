@@ -127,7 +127,7 @@ void main() {
         find.byKey(const ValueKey('library_menu_yt-playlist-q')),
       );
       await settle(tester);
-      await tester.tap(find.byKey(const ValueKey('library_menu_labels')));
+      await tester.tap(find.byKey(const ValueKey('item_action_labels')));
       await settle(tester);
 
       // Metta is not ticked; ticking it pins it.
@@ -173,7 +173,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('library_menu_lib-track-a')));
       await settle(tester);
-      await tester.tap(find.byKey(const ValueKey('library_menu_labels')));
+      await tester.tap(find.byKey(const ValueKey('item_action_labels')));
       await settle(tester);
       final body = find.byKey(const ValueKey('labels_category_body'));
       expect(tester.widget<FilterChip>(body).selected, isTrue);

@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
@@ -14,11 +14,11 @@ import 'package:medito/src/audio_pigeon.g.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/debug/debug_info_screen.dart';
 import 'package:medito/views/downloads/downloads_view.dart';
-import 'package:medito/views/favorites/favorites_view.dart';
 import 'package:medito/views/home/customise_home_layout_screen.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
+import 'package:medito/views/intro/intro_view.dart';
 import 'package:medito/views/library/import_view.dart';
-import 'package:medito/views/onboarding/onboarding_pager_screen.dart';
+import 'package:medito/views/settings/battery_optimization_screen.dart';
 import 'package:medito/views/settings/health_sync_tile.dart';
 import 'package:medito/views/settings/widgets/add_widget_sheet.dart';
 import 'package:medito/views/settings/widgets/dharma_seed_sync_tile.dart';
@@ -31,7 +31,6 @@ import 'package:medito/views/settings/widgets/update_section.dart';
 import 'package:medito/views/settings/widgets/widget_option_tile.dart';
 import 'package:medito/views/settings/widgets/zen_mode_tile.dart';
 import 'package:medito/views/soundscape/sound_credits_view.dart';
-import 'package:medito/views/stats/stats_screen.dart';
 import 'package:medito/widgets/medito_icon.dart';
 
 /// Where a row in a settings group is built: told whether it is the last, so
@@ -40,10 +39,11 @@ typedef SettingsRow = Widget Function(bool last);
 
 /// Every setting, grouped by what a person is trying to do: Practice, Sounds
 /// & cues, Library & downloads, Appearance, Notifications & reminders, and
-/// About, which holds the version and Check for updates.
+/// About, which holds the version and Check for updates. Stats, session
+/// history and pins are on the You page, not here.
 ///
-/// Not a screen: [SettingsScreen] and the You tab put it in their own scroll
-/// views. When an update is waiting, About moves to the top.
+/// Not a screen: the Settings tab ([SettingsScreen]) puts it in its own
+/// scroll view. When an update is waiting, About moves to the top.
 class SettingsSections extends ConsumerWidget {
   const SettingsSections({super.key, this.isMobile, this.isAndroid});
 
@@ -85,6 +85,8 @@ class SettingsSections extends ConsumerWidget {
         update.phase != UpdatePhase.idle &&
         update.phase != UpdatePhase.upToDate &&
         update.phase != UpdatePhase.checking;
+    final batteryGuidanceNeeded =
+        ref.watch(batteryGuidanceNeededProvider).value ?? false;
 
     final about = SettingsGroup(
       key: const ValueKey('settings_about'),
@@ -111,13 +113,6 @@ class SettingsSections extends ConsumerWidget {
             hasUnderline: !last,
           ),
           if (_isMobile) (last) => HealthSyncTile(hasUnderline: !last),
-          (last) => RowItemWidget(
-            key: const ValueKey('settings_session_history'),
-            icon: MeditoIcon(assetName: MeditoIcons.calendar, color: onSurface),
-            title: l10n.settingsSessionHistory,
-            hasUnderline: !last,
-            onTap: () => _push(context, const StatsScreen(initialTabIndex: 1)),
-          ),
         ],
       ),
       SettingsGroup.rows(
@@ -127,6 +122,7 @@ class SettingsSections extends ConsumerWidget {
           (last) =>
               CueDefaultsTile(kind: CueKind.practice, hasUnderline: !last),
           (last) => CueDefaultsTile(kind: CueKind.talks, hasUnderline: !last),
+          (last) => PlaybackSpeedTile(hasUnderline: !last),
         ],
       ),
       SettingsGroup.rows(
@@ -139,12 +135,6 @@ class SettingsSections extends ConsumerWidget {
             title: l10n.importTitle,
             hasUnderline: !last,
             onTap: () => _push(context, const ImportView()),
-          ),
-          (last) => RowItemWidget(
-            icon: MeditoIcon(assetName: MeditoIcons.heart, color: onSurface),
-            title: l10n.favorites,
-            hasUnderline: !last,
-            onTap: () => _push(context, const FavoritesView()),
           ),
           (last) => RowItemWidget(
             icon: MeditoIcon(
@@ -187,7 +177,12 @@ class SettingsSections extends ConsumerWidget {
       SettingsGroup.rows(
         key: const ValueKey('settings_reminders'),
         title: l10n.settingsSectionReminders,
-        rows: [(last) => ReminderTile(hasUnderline: !last)],
+        rows: [
+          (last) => ReminderTile(hasUnderline: !last),
+          // Only on phones known to stop apps in the background (#87).
+          if (batteryGuidanceNeeded)
+            (last) => BatteryGuidanceTile(hasUnderline: !last),
+        ],
       ),
       if (!updateWaiting) about,
     ];
@@ -327,6 +322,12 @@ class _AboutLinks extends StatelessWidget {
           ),
         ),
         RowItemWidget(
+          key: const ValueKey('about_intro'),
+          icon: Icon(Icons.spa_outlined, color: onSurface),
+          title: l10n.aboutWhatIsMeditejo,
+          onTap: () => SettingsSections._push(context, const IntroView()),
+        ),
+        RowItemWidget(
           key: const ValueKey('about_source'),
           icon: Icon(Icons.code_rounded, color: onSurface),
           title: l10n.sourceCode,
@@ -338,7 +339,7 @@ class _AboutLinks extends StatelessWidget {
         ),
         RowItemWidget(
           key: const ValueKey('about_upstream'),
-          icon: Icon(Icons.favorite_border_rounded, color: onSurface),
+          icon: Icon(Icons.public_rounded, color: onSurface),
           title: l10n.upstreamProject,
           subTitle: 'Medito Foundation',
           isTrailingIcon: false,
@@ -363,21 +364,9 @@ class _AboutLinks extends StatelessWidget {
           key: const ValueKey('about_debug'),
           icon: Icon(Icons.bug_report_outlined, color: onSurface),
           title: l10n.debugInfo,
-          // Setup replay is a development aid.
-          hasUnderline: kDebugMode,
+          hasUnderline: false,
           onTap: () => SettingsSections._push(context, const DebugInfoScreen()),
         ),
-        if (kDebugMode)
-          RowItemWidget(
-            icon: MeditoIcon(
-              assetName: MeditoIcons.arrowRight,
-              color: onSurface,
-            ),
-            title: l10n.onboarding,
-            hasUnderline: false,
-            onTap: () =>
-                SettingsSections._push(context, const OnboardingPagerScreen()),
-          ),
       ],
     );
   }

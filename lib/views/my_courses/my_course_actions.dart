@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/providers/favorites/favorites_provider.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/utils/logger.dart';
+import 'package:medito/views/library/item_actions.dart';
 import 'package:medito/views/my_courses/my_course_edit_view.dart';
 import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/network_image_widget.dart';
@@ -190,76 +190,12 @@ Future<bool> deleteMyCourse(
   if (confirmed != true) return false;
   await ref.read(myCourseSourceProvider).delete(id);
   await ref.read(pinnedCoursesProvider.notifier).unpin(id);
-  try {
-    await ref.read(favoritesNotifierProvider.notifier).removeFromFavorites(id);
-  } catch (e, st) {
-    AppLogger.e('MY_COURSES', 'Could not unfavourite $id', e, st);
-  }
   if (context.mounted) showSnackBar(context, l10n.myCourseDeletedSnack);
   return true;
 }
 
-/// What a row's "⋮" or a page's actions sheet offers for [id].
-enum ContentAction { edit, addToCourse, duplicate, removeFromCourse, delete }
-
-/// The actions for [id], in menu order. A personal course can be edited and
-/// deleted; any course can be copied into a personal one; a session listed
-/// in the personal course [inCourse] can be taken out of it.
-List<ContentAction> contentActionsFor(String id, {String? inCourse}) => [
-  if (isMyCourseId(id)) ContentAction.edit,
-  ContentAction.addToCourse,
-  if (isCourseId(id)) ContentAction.duplicate,
-  if (inCourse != null && isMyCourseId(inCourse))
-    ContentAction.removeFromCourse,
-  if (isMyCourseId(id)) ContentAction.delete,
-];
-
-String _actionLabel(AppLocalizations l10n, ContentAction action) =>
-    switch (action) {
-      ContentAction.edit => l10n.myCourseEdit,
-      ContentAction.addToCourse => l10n.myCourseAddTo,
-      ContentAction.duplicate => l10n.myCourseDuplicate,
-      ContentAction.removeFromCourse => l10n.myCourseRemoveRow,
-      ContentAction.delete => l10n.myCourseDelete,
-    };
-
-IconData _actionIcon(ContentAction action) => switch (action) {
-  ContentAction.edit => Icons.edit_rounded,
-  ContentAction.addToCourse => Icons.playlist_add_rounded,
-  ContentAction.duplicate => Icons.copy_all_rounded,
-  ContentAction.removeFromCourse => Icons.playlist_remove_rounded,
-  ContentAction.delete => Icons.delete_outline_rounded,
-};
-
-Future<void> _run(
-  BuildContext context,
-  WidgetRef ref,
-  ContentAction action, {
-  required String id,
-  required String title,
-  MyItemDraft? fallback,
-  String? inCourse,
-}) async {
-  switch (action) {
-    case ContentAction.edit:
-      return openMyCourseEditor(context, id);
-    case ContentAction.addToCourse:
-      return showAddToCourse(context, ref, id: id, fallback: fallback);
-    case ContentAction.duplicate:
-      return duplicateAsMyCourse(context, ref, packId: id, title: title);
-    case ContentAction.removeFromCourse:
-      final l10n = AppLocalizations.of(context)!;
-      await ref.read(myCourseSourceProvider).removeItem(inCourse!, id);
-      if (context.mounted) showSnackBar(context, l10n.myCourseRemovedSnack);
-    case ContentAction.delete:
-      if (await deleteMyCourse(context, ref, id) && context.mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      }
-  }
-}
-
-/// A row's "⋮": Add to course…, and more for a course (see
-/// [contentActionsFor]).
+/// A row's "⋮": opens the one actions sheet (see [showItemActions]), which
+/// shows what applies to this course, session or playlist.
 class ContentActionsButton extends ConsumerWidget {
   const ContentActionsButton({
     super.key,
@@ -267,6 +203,10 @@ class ContentActionsButton extends ConsumerWidget {
     this.title = '',
     this.fallback,
     this.inCourse,
+    this.teacherId,
+    this.isComplete,
+    this.onSetComplete,
+    this.playable = true,
   });
 
   final String id;
@@ -280,76 +220,61 @@ class ContentActionsButton extends ConsumerWidget {
   /// The personal course this row is listed in, if any.
   final String? inCourse;
 
+  /// The teacher's page, when the source has one; hides "Go to teacher"
+  /// otherwise.
+  final String? teacherId;
+
+  /// A session row's played state, and the way to change it.
+  final bool? isComplete;
+  final Future<bool> Function(bool complete)? onSetComplete;
+
+  final bool playable;
+
+  /// What the sheet is opened for; shared with the row's long-press.
+  ItemActionsSpec get spec => ItemActionsSpec(
+    id: id,
+    title: title,
+    fallback: fallback,
+    inCourse: inCourse,
+    teacherId: teacherId,
+    isComplete: isComplete,
+    onSetComplete: onSetComplete,
+    playable: playable,
+  );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    return PopupMenuButton<ContentAction>(
+    return IconButton(
       key: ValueKey('content_actions_$id'),
       tooltip: l10n.myCourseMore,
       icon: const Icon(Icons.more_vert_rounded),
-      onSelected: (action) => _run(
-        context,
-        ref,
-        action,
-        id: id,
-        title: title,
-        fallback: fallback,
-        inCourse: inCourse,
-      ),
-      itemBuilder: (context) => [
-        for (final action in contentActionsFor(id, inCourse: inCourse))
-          PopupMenuItem(
-            key: ValueKey('content_action_${action.name}'),
-            value: action,
-            child: Text(_actionLabel(l10n, action)),
-          ),
-      ],
+      onPressed: () => showItemActions(context, ref, spec),
     );
   }
 }
 
-/// The same actions as a bottom sheet, for a course or session page.
+/// The same sheet, for a course or session page.
 Future<void> showContentActionsSheet(
   BuildContext context,
   WidgetRef ref, {
   required String id,
   String title = '',
   MyItemDraft? fallback,
-}) async {
-  final actions = contentActionsFor(id);
-  if (actions.length == 1) {
-    return _run(
-      context,
-      ref,
-      actions.single,
-      id: id,
-      title: title,
-      fallback: fallback,
-    );
-  }
-  final l10n = AppLocalizations.of(context)!;
-  final action = await showModalBottomSheet<ContentAction>(
-    context: context,
-    showDragHandle: true,
-    builder: (context) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final action in actions)
-            ListTile(
-              key: ValueKey('sheet_${action.name}'),
-              leading: Icon(_actionIcon(action)),
-              title: Text(_actionLabel(l10n, action)),
-              onTap: () => Navigator.pop(context, action),
-            ),
-          const SizedBox(height: 16),
-        ],
-      ),
-    ),
-  );
-  if (action == null || !context.mounted) return;
-  return _run(context, ref, action, id: id, title: title, fallback: fallback);
-}
+  String? teacherId,
+  Set<ItemAction> hide = const {},
+}) => showItemActions(
+  context,
+  ref,
+  ItemActionsSpec(
+    id: id,
+    title: title,
+    fallback: fallback,
+    teacherId: teacherId,
+    popOnDelete: true,
+    hide: hide,
+  ),
+);
 
 class _Choice {
   const _Choice.course(MyCourseSummary this.course) : newCourse = false;

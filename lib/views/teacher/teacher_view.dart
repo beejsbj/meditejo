@@ -9,11 +9,13 @@ import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 import 'package:medito/services/local_catalogue.dart';
+import 'package:medito/services/youtube/youtube_ids.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_models.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/dharma_seed/widgets/course_rows_sliver.dart';
 import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
 import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
+import 'package:medito/views/teacher/youtube_channel_view.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 import 'package:medito/widgets/attribution_notice.dart';
 import 'package:medito/widgets/cover_art.dart';
@@ -22,18 +24,30 @@ import 'package:medito/widgets/section_header.dart';
 import 'package:medito/widgets/widgets.dart';
 
 /// A teacher: photo, biography, their courses and their talks, with Save.
-/// Talks load a page at a time, newest first.
-class TeacherView extends ConsumerStatefulWidget {
+/// Talks load a page at a time, newest first. A YouTube channel
+/// (`yt-channel-<key>`) is a teacher too, with its own page.
+class TeacherView extends StatelessWidget {
   const TeacherView({super.key, required this.teacherId});
 
-  /// The app ID, `ds-teacher-<id>`.
+  /// The app ID, `ds-teacher-<id>` or `yt-channel-<key>`.
   final String teacherId;
 
   @override
-  ConsumerState<TeacherView> createState() => _TeacherViewState();
+  Widget build(BuildContext context) => isYtChannelId(teacherId)
+      ? YoutubeChannelView(teacherId: teacherId)
+      : _DharmaSeedTeacherView(teacherId: teacherId);
 }
 
-class _TeacherViewState extends ConsumerState<TeacherView> {
+class _DharmaSeedTeacherView extends ConsumerStatefulWidget {
+  const _DharmaSeedTeacherView({required this.teacherId});
+
+  final String teacherId;
+
+  @override
+  ConsumerState<_DharmaSeedTeacherView> createState() => _TeacherViewState();
+}
+
+class _TeacherViewState extends ConsumerState<_DharmaSeedTeacherView> {
   final _scrollController = ScrollController();
 
   static const _pageSize = 30;
@@ -188,7 +202,7 @@ class _TeacherViewState extends ConsumerState<TeacherView> {
         if (talks.isNotEmpty) ...[
           SliverToBoxAdapter(child: SectionHeader(title: l10n.teacherTalks)),
           const SliverPadding(padding: EdgeInsets.only(top: padding8)),
-          SessionRowsSliver(items: talks),
+          SessionRowsSliver(items: talks, hideTeacherId: widget.teacherId),
         ],
         if (hasMore)
           SliverToBoxAdapter(

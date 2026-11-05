@@ -2,16 +2,15 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/models/background_sounds/background_sounds_model.dart';
-import 'package:medito/models/favorites/favorite_item.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/models/track/track.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/repositories/background_sounds/background_sounds_repository.dart';
 import 'package:medito/repositories/explore/search_repository.dart';
 import 'package:medito/repositories/explore/track_search_repository.dart';
-import 'package:medito/repositories/favorites/favorites_repository.dart';
 import 'package:medito/repositories/home/home_repository.dart';
 import 'package:medito/repositories/pack/packs_repository.dart';
 import 'package:medito/repositories/track/track_repository.dart';
@@ -120,7 +119,7 @@ void main() {
   });
 
   test(
-    'saved favourite IDs resolve downloaded metadata with an empty catalogue',
+    'pinned session IDs resolve downloaded metadata with an empty catalogue',
     () async {
       final savedTracks = [
         for (final id in [
@@ -145,26 +144,16 @@ void main() {
           ),
       ];
       final encodedDownloads = jsonEncode(savedTracks);
-      final encodedFavorites = jsonEncode([
-        for (final track in savedTracks)
-          FavoriteItem(
-            id: track.id,
-            title: track.title,
-            type: FavoriteItemType.track,
-            timestamp: 1,
-          ).toJson(),
-      ]);
+      final pinned = [for (final track in savedTracks) track.id];
       final container = await containerWith({
         SharedPreferenceConstants.downloads: encodedDownloads,
-        SharedPreferenceConstants.favorites: encodedFavorites,
+        SharedPreferenceConstants.pinnedCourseIds: pinned,
+        SharedPreferenceConstants.pinnedSessionIds: pinned,
       });
       final prefs = container.read(sharedPreferencesProvider);
-      final favorites = await FavoritesRepositoryImpl(
-        prefs: prefs,
-      ).loadFavorites();
       final repo = container.read(trackRepositoryProvider);
-      for (var i = 0; i < favorites.length; i++) {
-        expect(await repo.fetchTrack(favorites[i].id), savedTracks[i]);
+      for (final (i, id) in container.read(pinnedCoursesProvider).indexed) {
+        expect(await repo.fetchTrack(id), savedTracks[i]);
       }
       await expectLater(
         repo.fetchTrack('unknown-id'),
@@ -181,8 +170,8 @@ void main() {
         encodedDownloads,
       );
       expect(
-        prefs.getString(SharedPreferenceConstants.favorites),
-        encodedFavorites,
+        prefs.getStringList(SharedPreferenceConstants.pinnedCourseIds),
+        pinned,
       );
     },
   );

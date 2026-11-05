@@ -14,6 +14,8 @@ import 'package:medito/providers/player/player_provider.dart';
 import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
+import 'package:medito/views/pack/widgets/pack_item_widget.dart';
+import 'package:medito/views/pack/widgets/pack_path_button.dart';
 import 'package:medito/views/teacher/teacher_view.dart';
 import 'package:medito/views/track/track_view.dart';
 import 'package:medito/widgets/attribution_notice.dart';
@@ -49,6 +51,12 @@ Future<void> seedLongRetreat(DharmaSeedDatabase db) async {
   });
 }
 
+/// A session's title in its row (the Play button names one too).
+Finder _row(String title) => find.descendant(
+  of: find.byType(PackItemWidget),
+  matching: find.text(title),
+);
+
 Future<DharmaSeedTestApp> createApp(
   WidgetTester tester, {
   Map<String, Object> prefs = const {},
@@ -76,10 +84,22 @@ void main() {
         played: ['ds-talk-501', 'ds-talk-502', 'ds-talk-503'],
       );
 
-      expect(find.text('9 of 12 left'), findsOneWidget);
-      expect(find.text('Resume: Long talk 4'), findsOneWidget);
-      // The one primary button plays that next talk. (The page also keeps an
-      // invisible placeholder copy in the tree; it has no semantics.)
+      expect(find.text('3 of 12 played'), findsOneWidget);
+      // The one primary button names that next talk, and plays it.
+      expect(
+        find.descendant(
+          of: find.byType(PackPlayButton),
+          matching: find.text(l10n.packContinue),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(PackPlayButton),
+          matching: find.text('Long talk 4'),
+        ),
+        findsOneWidget,
+      );
       expect(
         find
             .bySemanticsLabel(
@@ -96,8 +116,15 @@ void main() {
     testWidgets('a fresh course offers Start', (tester) async {
       final app = await createApp(tester);
       await app.pump(tester, const PackView(id: 'ds-retreat-500'));
-      expect(find.text('12 of 12 left'), findsOneWidget);
-      expect(find.text('Start: Long talk 1'), findsOneWidget);
+      // Nothing played: no progress bar yet.
+      expect(find.byKey(const ValueKey('course_progress')), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(PackPlayButton),
+          matching: find.text(l10n.packStart),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a finished course says so', (tester) async {
@@ -110,14 +137,30 @@ void main() {
       expect(find.text('All 12 played'), findsOneWidget);
     });
 
-    testWidgets('rows show kind, title, teacher and length', (tester) async {
+    testWidgets('rows show kind, title and length', (tester) async {
       final app = await createApp(tester);
       await app.pump(tester, const PackView(id: 'ds-retreat-500'));
 
-      expect(find.text('GUIDED MEDITATION'), findsWidgets);
-      expect(find.text('TALK'), findsWidgets);
-      expect(find.text('Long talk 1'), findsOneWidget);
-      expect(find.text('Rob Burbea · 21 min'), findsOneWidget);
+      // The course mixes kinds, so each row has its kind as a chip (#82).
+      expect(
+        find.descendant(
+          of: find.byType(PackItemWidget),
+          matching: find.text('Meditation'),
+        ),
+        findsWidgets,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(PackItemWidget),
+          matching: find.text('Talk'),
+        ),
+        findsWidgets,
+      );
+      expect(_row('Long talk 1'), findsOneWidget);
+      // Rob Burbea leads the course, so his rows do not repeat him, and the
+      // day group says the date.
+      expect(find.text('21\u00A0min'), findsOneWidget);
+      expect(find.textContaining('Rob\u00A0Burbea'), findsNothing);
     });
 
     testWidgets('a long retreat is grouped by day, numbered from the first', (
@@ -130,7 +173,7 @@ void main() {
       expect(find.textContaining('Day 2 · '), findsOneWidget);
       // The heading sits above its own talks.
       final day1 = tester.getTopLeft(find.textContaining('Day 1 · ')).dy;
-      final talk1 = tester.getTopLeft(find.text('Long talk 1')).dy;
+      final talk1 = tester.getTopLeft(_row('Long talk 1')).dy;
       final day2 = tester.getTopLeft(find.textContaining('Day 2 · ')).dy;
       expect(day1, lessThan(talk1));
       expect(talk1, lessThan(day2));
@@ -140,7 +183,7 @@ void main() {
       final app = await DharmaSeedTestApp.create(tester);
       await app.pump(tester, const PackView(id: 'ds-retreat-100'));
       expect(find.textContaining('Day 1'), findsNothing);
-      expect(find.text('Settling'), findsOneWidget);
+      expect(_row('Settling'), findsOneWidget);
     });
 
     testWidgets('shows which sessions are played and which are downloaded', (
@@ -162,19 +205,35 @@ void main() {
       final app = await createApp(tester);
       await app.pump(tester, const PackView(id: 'ds-retreat-500'));
 
-      expect(find.text('Add to library'), findsOneWidget);
-      await tester.tap(find.text('Add to library'));
+      // An icon toggle beside Pin, named by its tooltip (#81).
+      final toggle = find.byKey(const ValueKey('course_library'));
+      expect(find.byTooltip('Add to library'), findsOneWidget);
+      await tester.tap(toggle);
       await DharmaSeedTestApp.settle(tester);
-      expect(find.text('In library'), findsOneWidget);
+      expect(find.byTooltip('In library'), findsOneWidget);
+      expect(find.text(l10n.libraryAddedSnack), findsOneWidget);
       expect(
         (await tester.runAsync(app.library.entries))!.map((e) => e.sourceId),
         ['ds-retreat-500'],
       );
 
-      await tester.tap(find.text('In library'));
+      // Moved to Talks in the Library, then taken out from the header.
+      await tester.runAsync(
+        () => app.library.setGroup('ds-retreat-500', LibraryGroup.talks),
+      );
+      await tester.tap(toggle);
       await DharmaSeedTestApp.settle(tester);
-      expect(find.text('Add to library'), findsOneWidget);
+      expect(find.byTooltip('Add to library'), findsOneWidget);
+      expect(find.text(l10n.libraryRemovedSnack), findsOneWidget);
       expect(await tester.runAsync(app.library.entries), isEmpty);
+
+      // Undo puts it back as it was, as the Library's own Undo does.
+      await tester.tap(find.text(l10n.undo));
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.byTooltip('In library'), findsOneWidget);
+      final entries = (await tester.runAsync(app.library.entries))!;
+      expect(entries.map((e) => e.sourceId), ['ds-retreat-500']);
+      expect(entries.single.group, LibraryGroup.talks);
     });
 
     testWidgets('a course already in the library opens as In library', (
@@ -185,7 +244,7 @@ void main() {
         () => app.source.setSaved('ds-retreat-500', saved: true),
       );
       await app.pump(tester, const PackView(id: 'ds-retreat-500'));
-      expect(find.text('In library'), findsOneWidget);
+      expect(find.byTooltip('In library'), findsOneWidget);
     });
 
     testWidgets('Summary and Teacher tabs, with the credit throughout', (
@@ -215,7 +274,7 @@ void main() {
         find.textContaining('Seven days of silence, then four days of talks.'),
         findsOneWidget,
       );
-      expect(find.text('Long talk 1'), findsNothing);
+      expect(_row('Long talk 1'), findsNothing);
 
       await tester.tap(find.text('Teacher'));
       await DharmaSeedTestApp.settle(tester);
@@ -224,7 +283,7 @@ void main() {
 
       await tester.tap(find.text('Sessions'));
       await DharmaSeedTestApp.settle(tester);
-      expect(find.text('Long talk 1'), findsOneWidget);
+      expect(_row('Long talk 1'), findsOneWidget);
     });
 
     testWidgets('a course with no description says so in Summary', (
@@ -263,7 +322,7 @@ void main() {
       }
 
       // Open a talk from the list, then come back.
-      await tester.tap(find.text('Long talk 2'));
+      await tester.tap(_row('Long talk 2'));
       await DharmaSeedTestApp.settle(tester);
       expect(find.byType(TrackView), findsOneWidget);
       await back();
@@ -291,19 +350,28 @@ void main() {
       expect(stats, isNotNull);
       final checked = (jsonDecode(stats!) as Map)['tracks_checked'];
       expect(checked == null || (checked as List).isEmpty, isTrue);
-      expect(find.text('12 of 12 left'), findsOneWidget);
+      expect(find.byKey(const ValueKey('course_progress')), findsNothing);
     });
   });
 
   group('track details', () {
-    testWidgets('show kind, teacher and length, then credit and licence', (
-      tester,
-    ) async {
+    testWidgets('show course, teacher, kind and date, length on Play, then '
+        'credit and licence', (tester) async {
       final app = await DharmaSeedTestApp.create(tester);
       await app.pump(tester, const TrackView(trackId: 'ds-talk-2'));
 
       expect(find.text('Jhana basics'), findsOneWidget);
-      expect(find.text('Talk · Rob Burbea · 60 min'), findsOneWidget);
+      // The retreat it is part of, and who gave it, each a link (#84).
+      expect(find.textContaining('Part of Jhana Retreat'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('track_teacher')),
+          matching: find.text('Rob Burbea'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Talk · Mar 1, 2014'), findsOneWidget);
+      expect(find.text('Play · 60 min'), findsOneWidget);
       expect(find.text('Rob Burbea · Dharma Seed'), findsOneWidget);
       expect(find.text('Licence: CC BY-NC-ND 4.0'), findsOneWidget);
       expect(find.text('Streamed as recorded, unmodified.'), findsOneWidget);

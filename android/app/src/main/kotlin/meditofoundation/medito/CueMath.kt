@@ -343,13 +343,18 @@ internal class ListeningTracker(private val maxStepMs: Long = CueMath.LISTENING_
     /** A new pass of a looped recording: nothing heard yet, playback at the start. */
     fun startPass() { ranges.clear(); last = 0L }
 
-    fun sample(positionMs: Long, playing: Boolean) {
+    /**
+     * [speed] widens the largest step in proportion, so a sped-up talk keeps
+     * the same margin for a late or skipped sample as one at 1x. Slower
+     * playback keeps the 1x limit.
+     */
+    fun sample(positionMs: Long, playing: Boolean, speed: Double = 1.0) {
         if (!playing || positionMs < 0) { last = -1L; return }
         val from = last
         last = positionMs
         if (from < 0) return
         val step = positionMs - from
-        if (step <= 0 || step > maxStepMs) return
+        if (step <= 0 || step > (maxStepMs * max(speed, 1.0)).toLong()) return
         add(from, positionMs)
     }
 

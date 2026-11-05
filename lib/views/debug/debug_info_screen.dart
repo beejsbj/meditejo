@@ -13,7 +13,7 @@ import 'package:medito/providers/notification/reminder_provider.dart'
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/views/home/widgets/header/home_header_widget.dart';
-import 'package:medito/views/onboarding/onboarding_pager_screen.dart';
+import 'package:medito/views/intro/intro_view.dart';
 import 'package:medito/widgets/snackbar_widget.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/services/history/app_history_service.dart';
@@ -75,7 +75,9 @@ class DebugInfoScreen extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.arrow_back),
               onPressed: () => Navigator.of(context).pop(),
-              onLongPress: () => _openOnboardingFlow(context),
+              // Development aid: the first-launch intro, as a new install
+              // sees it.
+              onLongPress: () => _openIntro(context),
               tooltip: AppLocalizations.of(context)!.goBack,
             ),
             const Spacer(),
@@ -426,10 +428,8 @@ class DebugInfoScreen extends ConsumerWidget {
     return scheduledDate;
   }
 
-  void _openOnboardingFlow(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const OnboardingPagerScreen()),
-    );
+  void _openIntro(BuildContext context) {
+    Navigator.of(context).push(IntroView.firstRunRoute());
   }
 
   Widget _buildHistorySection(

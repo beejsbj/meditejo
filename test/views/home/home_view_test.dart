@@ -144,9 +144,7 @@ void main() {
     );
   });
 
-  testWidgets('an unavailable pin can be removed to free its slot', (
-    tester,
-  ) async {
+  testWidgets('an unavailable pin says so and can be removed', (tester) async {
     final app = await LibraryTestApp.create(tester);
     await app.prefs.setStringList('pinned_course_ids', ['lib-course-gone']);
     await app.pump(
@@ -162,7 +160,10 @@ void main() {
     final container = ProviderScope.containerOf(
       tester.element(find.byType(HomeView)),
     );
-    await tester.tap(find.byTooltip('More options for lib-course-gone'));
+    // It says it is gone rather than show its ID (#79).
+    expect(find.text('lib-course-gone'), findsNothing);
+    expect(find.text('Unavailable'), findsOneWidget);
+    await tester.tap(find.byTooltip('More options for Unavailable'));
     await settle(tester);
     await tester.tap(find.byKey(const ValueKey('pinned_menu_unpin')));
     await settle(tester);
@@ -198,7 +199,39 @@ void main() {
     expect(find.byKey(const ValueKey('continue_empty')), findsOneWidget);
     expect(find.byKey(const ValueKey('shortcut_timer')), findsOneWidget);
     expect(find.byKey(const ValueKey('shortcut_sounds')), findsOneWidget);
-    expect(find.byKey(const ValueKey('shortcut_add')), findsOneWidget);
+    // It points at Explore, the library, and pinning, not at an Add on Home.
+    expect(
+      find.text(
+        'Nothing in progress. Start something in Explore or your library, '
+        'or pin it there to keep it on Home.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  // #62: Home gains things by pinning them elsewhere; importing lives behind
+  // Library's "+". Home has no Add, in the shortcuts or in its header.
+  testWidgets('Home has no Add, and nothing on it opens import', (
+    tester,
+  ) async {
+    final app = await LibraryTestApp.create(tester);
+    await app.prefs.setStringList('pinned_course_ids', ['lib-course-a']);
+    await app.pump(
+      tester,
+      const HomeView(),
+      overrides: [
+        continueItemsProvider.overrideWith((ref) async => [_item('t1')]),
+      ],
+    );
+    expect(find.byKey(const ValueKey('shortcut_add')), findsNothing);
+    expect(find.text('Add'), findsNothing);
+    expect(find.byIcon(Icons.add_rounded), findsNothing);
+    expect(find.byIcon(Icons.add), findsNothing);
+    expect(find.byTooltip('Add to your library'), findsNothing);
+    expect(find.byType(ImportView), findsNothing);
+    // The header keeps Customize and You, and nothing else.
+    expect(find.byKey(const ValueKey('home_customize')), findsOneWidget);
+    expect(find.byKey(const ValueKey('you_button')), findsOneWidget);
   });
 
   group('shortcuts', () {
@@ -228,13 +261,6 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('shortcut_sounds')));
       await settle(tester);
       expect(container.read(mainTabProvider), MainTab.sounds);
-    });
-
-    testWidgets('Add opens import', (tester) async {
-      await home(tester);
-      await tester.tap(find.byKey(const ValueKey('shortcut_add')));
-      await settle(tester);
-      expect(find.byType(ImportView), findsOneWidget);
     });
   });
 

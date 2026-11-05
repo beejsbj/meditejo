@@ -297,9 +297,13 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         saveAndSendCompletionData(createCompletionDataFromPlayer(), finish = false)
     }
 
+    /** The voice's speed, for the listening step limit; 1x before the player exists. */
+    private fun playbackSpeed(): Double =
+        if (::primaryPlayer.isInitialized) primaryPlayer.playbackParameters.speed.toDouble() else 1.0
+
     private fun sampleListeningFromPlayer() {
         if (!::primaryPlayer.isInitialized) return
-        listening.sample(primaryPlayer.currentPosition, primaryPlayer.isPlaying)
+        listening.sample(primaryPlayer.currentPosition, primaryPlayer.isPlaying, playbackSpeed())
         persistListening()
     }
 
@@ -367,7 +371,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     // was one. The end bell is already ringing; the service lives until it is done.
     private fun finalizeSession(extensionFinished: Boolean, tailMs: Long) {
         stopPositionUpdates()
-        listening.sample(currentDurationMs(), true)
+        listening.sample(currentDurationMs(), true, playbackSpeed())
         recordPlaythroughFromPlayer(extensionFinished)
         persistListening(force = true)
         // The true end is always terminal for the player, whether or not the
@@ -785,11 +789,11 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         when (reason) {
             Player.DISCONTINUITY_REASON_SEEK, Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT -> {
                 if (isCompletionHandled) isCompletionHandled = false
-                listening.sample(oldPosition.positionMs, true)
+                listening.sample(oldPosition.positionMs, true, playbackSpeed())
                 listening.rebase(newPosition.positionMs)
             }
             Player.DISCONTINUITY_REASON_AUTO_TRANSITION -> {
-                listening.sample(oldPosition.positionMs, true)
+                listening.sample(oldPosition.positionMs, true, playbackSpeed())
                 listening.rebase(newPosition.positionMs)
             }
         }
@@ -799,7 +803,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         if (!::primaryPlayer.isInitialized) return
         if (isPlaying) listening.rebase(primaryPlayer.currentPosition)
         else {
-            listening.sample(primaryPlayer.currentPosition, true)
+            listening.sample(primaryPlayer.currentPosition, true, playbackSpeed())
             listening.markNotPlaying()
             persistListening(force = true)
         }

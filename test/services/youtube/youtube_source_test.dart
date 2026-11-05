@@ -43,8 +43,13 @@ void main() {
   late TestClock clock;
   late YoutubeSource source;
 
-  YoutubeSource newSource() =>
-      YoutubeSource(db: db, library: store, api: api, clock: clock.call);
+  YoutubeSource newSource() => YoutubeSource(
+    db: db,
+    library: store,
+    api: api,
+    clock: clock.call,
+    detailsPause: () => Duration.zero,
+  );
 
   setUp(() {
     db = memoryLibraryDb();
@@ -1225,7 +1230,12 @@ void main() {
       await source.refreshAll();
 
       expect(calls(), before + 2, reason: 'both playlists, nothing else');
-      expect(api.videoCalls, hasLength(videosBefore));
+      // Then each video never resolved, once, for its description (#85):
+      // not the single, which was resolved when it was added.
+      expect(
+        api.videoCalls.skip(videosBefore),
+        unorderedEquals([videoB, videoC]),
+      );
       expect((await store.entry(ytPlaylistId(playlistTwo)))!.itemCount, 1);
     });
 
