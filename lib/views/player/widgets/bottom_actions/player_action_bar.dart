@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/models/timer/timer_session.dart';
+import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_download_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_speed_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/bg_sound_widget.dart';
@@ -84,12 +86,7 @@ class PlayerActionBar extends StatelessWidget {
       ),
       rightItem: BottomActionBarItem(
         child: const AudioSpeedWidget(),
-        onTap: () => showSpeedSheet(
-          context,
-          onSpeedChanged: (speed) {
-            onSpeedChanged(speed);
-          },
-        ),
+        onTap: () => unawaited(_speed(context)),
         semanticLabel: l10n.playbackSpeed,
       ),
     );
@@ -103,6 +100,20 @@ class PlayerActionBar extends StatelessWidget {
     Icons.tune_rounded,
     color: ColorConstants.white,
   );
+
+  /// The speed sheet, open on this session's kind (the kind its cues and
+  /// speed were chosen by at the start).
+  Future<void> _speed(BuildContext context) async {
+    final scope = await ProviderScope.containerOf(
+      context,
+    ).read(cueScopeForRequestProvider(request).future);
+    if (!context.mounted) return;
+    await showSpeedSheet(
+      context,
+      sessionKind: scope.kind,
+      onSpeedChanged: onSpeedChanged,
+    );
+  }
 
   void _customize(BuildContext context) {
     unawaited(showCustomizeSheet(context, request: request));

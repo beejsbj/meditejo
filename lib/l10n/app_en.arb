@@ -855,9 +855,33 @@
   "@playbackSpeed": {
     "description": "Accessibility label for the playback speed control in the player"
   },
-  "speedReset": "Reset",
-  "@speedReset": {
-    "description": "Speed sheet: button that sets playback speed back to 1.0x"
+  "speedKindPractice": "Practice",
+  "@speedKindPractice": {
+    "description": "Speed sheet: tab for the speed practice sessions (guided sits) start at"
+  },
+  "speedKindTalks": "Talks",
+  "@speedKindTalks": {
+    "description": "Speed sheet: tab for the speed talks start at"
+  },
+  "speedPracticeCaption": "Every practice session starts at this speed.",
+  "@speedPracticeCaption": {
+    "description": "Speed sheet: note under the speeds while the Practice tab is open; the choice is kept for later sessions"
+  },
+  "speedTalksCaption": "Every talk starts at this speed.",
+  "@speedTalksCaption": {
+    "description": "Speed sheet: note under the speeds while the Talks tab is open; the choice is kept for later talks"
+  },
+  "settingsPlaybackSpeed": "Playback speed",
+  "@settingsPlaybackSpeed": {
+    "description": "Settings: row opening the speed each kind of session starts at. Short: it shares the row with an icon and a chevron at large text"
+  },
+  "settingsPlaybackSpeedCaption": "Practice {practice} · Talks {talks}",
+  "@settingsPlaybackSpeedCaption": {
+    "description": "Settings: caption of the Playback speed row, the speed each kind of session starts at, e.g. 'Practice 1× · Talks 1.5×'",
+    "placeholders": {
+      "practice": {"type": "String", "example": "1×"},
+      "talks": {"type": "String", "example": "1.5×"}
+    }
   },
   "backgroundSoundsSection": "Sounds",
   "@backgroundSoundsSection": {

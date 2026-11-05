@@ -122,6 +122,7 @@ class SettingsSections extends ConsumerWidget {
           (last) =>
               CueDefaultsTile(kind: CueKind.practice, hasUnderline: !last),
           (last) => CueDefaultsTile(kind: CueKind.talks, hasUnderline: !last),
+          (last) => PlaybackSpeedTile(hasUnderline: !last),
         ],
       ),
       SettingsGroup.rows(

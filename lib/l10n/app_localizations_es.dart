@@ -989,7 +989,24 @@ class AppLocalizationsEs extends AppLocalizations {
   String get playbackSpeed => 'Velocidad de reproducción';
 
   @override
-  String get speedReset => 'Restablecer';
+  String get speedKindPractice => 'Práctica';
+
+  @override
+  String get speedKindTalks => 'Charlas';
+
+  @override
+  String get speedPracticeCaption => 'Cada práctica empieza a esta velocidad.';
+
+  @override
+  String get speedTalksCaption => 'Cada charla empieza a esta velocidad.';
+
+  @override
+  String get settingsPlaybackSpeed => 'Velocidad';
+
+  @override
+  String settingsPlaybackSpeedCaption(String practice, String talks) {
+    return 'Práctica $practice · Charlas $talks';
+  }
 
   @override
   String get backgroundSoundsSection => 'Sonidos';

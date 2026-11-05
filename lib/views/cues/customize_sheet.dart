@@ -14,6 +14,7 @@ import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/providers/cues/cue_runtime_provider.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/player/audio_state_provider.dart';
+import 'package:medito/providers/player/playback_speed_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
 import 'package:medito/widgets/art/art_cover.dart';
@@ -85,7 +86,12 @@ Future<bool> showCustomizeSheet(
     builder: (sheetContext) => Consumer(
       builder: (context, ref, _) {
         var positionMs = 0;
-        var speed = 1.0;
+        // Before the start, the speed the session will start at.
+        var speed = sessionPlaybackSpeed(
+          (kind) => ref.watch(playbackSpeedProvider(kind)),
+          kind: scope.kind,
+          isTimer: request.isTimer,
+        );
         if (!beforeStart) {
           // Coarse so the line is not rebuilt on every position tick.
           positionMs =
