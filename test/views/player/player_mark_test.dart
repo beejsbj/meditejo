@@ -16,27 +16,15 @@ import 'package:medito/providers/background_sounds/background_sounds_notifier.da
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/review_service_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
 import 'package:medito/services/review_service.dart';
 import 'package:medito/src/audio_pigeon.g.dart' as pigeon;
 import 'package:medito/views/home/previews/stats_fixtures.dart';
 import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/previews/preview_support.dart';
-import 'package:medito/widgets/attribution_notice.dart';
-import 'package:medito/widgets/art/art_cover.dart';
 import 'package:medito/widgets/cover_art.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/art_finders.dart';
-
-const _credit = SourceAttribution(
-  source: 'Dharma Seed',
-  creator: 'Rob Burbea',
-  url: 'https://dharmaseed.org/talks/2/',
-  licenseName: 'CC BY-NC-ND 4.0',
-  licenseUrl: 'https://creativecommons.org/licenses/by-nc-nd/4.0/',
-);
 
 PlaybackRequest _request({
   SourceAttribution? attribution,
@@ -242,7 +230,8 @@ void main() {
       },
     );
     final widget = tester.widget<MeditejoMark>(find.byType(MeditejoMark));
-    expect(widget.breathSeconds, 1.5);
+    // 40 BPM: seven 1.5 s beats to a breath.
+    expect(widget.breathSeconds, closeTo(10.5, 1e-9));
     await close(tester);
   });
 

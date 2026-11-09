@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/services/identity/mark_spec.dart';
 import 'package:medito/services/identity/seeded_random.dart';
@@ -73,20 +75,30 @@ abstract final class MarkMoments {
   }
 }
 
-/// How fast the player's mark breathes (#86): once every beat of the
-/// session's pulse when it has one, else the resting six breaths a minute.
+/// How fast the player's mark breathes (#86): in step with the session's
+/// pulse when it has one, else the resting six breaths a minute.
 abstract final class PlayerBreath {
   /// The breaths a minute when no pulse is set.
   static const restingPerMinute = 6.0;
 
+  /// The breath a pulse's is stretched to be near, and the bounds it stays
+  /// within. A beat a second is a flicker, not a breath, so a breath spans a
+  /// whole number of beats. Settings keep a pulse at 20 to 120 BPM (beats of
+  /// 3 to 0.5 s), which this brings to 9 to 10.5 s.
+  static const targetSeconds = 60 / restingPerMinute;
+  static const minSeconds = 4.0;
+  static const maxSeconds = 15.0;
+
   /// Seconds per breath for a session with [cues], or null for a still mark
-  /// (reduced motion). The pulse is read from the settings the session
-  /// started with; a pulse that ramps keeps its starting rate.
+  /// (reduced motion). With a pulse it is the whole number of beats (at
+  /// least one) nearest [targetSeconds]; a pulse that ramps keeps its
+  /// starting rate. The breath is not anchored to a beat: it starts when the
+  /// mark does.
   static double? periodSeconds(CueSettings cues, {bool reducedMotion = false}) {
     if (reducedMotion) return null;
-    final bpm = cues.pulseSound.isNotEmpty && cues.pulseBpm > 0
-        ? cues.pulseBpm
-        : restingPerMinute;
-    return 60 / bpm;
+    if (cues.pulseSound.isEmpty || cues.pulseBpm <= 0) return targetSeconds;
+    final beat = 60 / cues.pulseBpm;
+    final beats = math.max(1, (targetSeconds / beat).round());
+    return (beats * beat).clamp(minSeconds, maxSeconds);
   }
 }
