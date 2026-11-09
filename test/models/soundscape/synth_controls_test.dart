@@ -136,6 +136,10 @@ void main() {
       expect(noise.bands, [0, 0.25, 1, 0.8, 0.31, 0.6, 1, 0.4, 0.1, 0]);
       final drone = DroneParams.fromJson(layers[1].params);
       expect(drone.rootHz, 98);
+      expect(drone.rootsHz, [98]);
+      // Saved again, it still names the old key and gains the chord's.
+      expect(drone.toJson()['rootHz'], 98);
+      expect(DroneParams.fromJson(drone.toJson()).rootsHz, [98]);
       expect(drone.timbre, DroneTimbre.bright);
       expect(drone.movement, 0.73);
       final binaural = BinauralParams.fromJson(layers[2].params);

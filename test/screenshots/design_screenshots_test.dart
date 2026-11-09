@@ -1029,6 +1029,7 @@ Future<void> _pumpSoundEditor(
   Brightness brightness,
   String id, {
   List<double>? customBands,
+  List<double>? droneRoots,
   Locale? locale,
   double textScale = 1,
   bool narrow = false,
@@ -1083,6 +1084,12 @@ Future<void> _pumpSoundEditor(
     mixer.setLayerParams(
       kSynthNoiseId,
       NoiseParams(colour: NoiseColour.pink, bands: customBands).toJson(),
+    );
+  }
+  if (droneRoots != null) {
+    mixer.setLayerParams(
+      kSynthDroneId,
+      DroneParams(rootsHz: droneRoots).toJson(),
     );
   }
   await tester.pump(const Duration(seconds: 1));
@@ -1778,6 +1785,17 @@ void main() {
         }, skip: !_enabled);
       }
     }
+
+    // The drone as a chord (#69): three roots chosen, the rest dimmed.
+    testWidgets('sound-editor-drone-chord, ${brightness.name}', (tester) async {
+      await _pumpSoundEditor(
+        tester,
+        brightness,
+        kSynthDroneId,
+        droneRoots: const [55, 82.41, 110],
+      );
+      await _captureView(tester, 'sound-editor-drone-chord-${brightness.name}');
+    }, skip: !_enabled);
 
     // Sound credits: long titles ("Summer Rain on Terrace") wrap to a second
     // line, where the licence and source chips used to overlap it.

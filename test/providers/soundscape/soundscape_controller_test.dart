@@ -1649,7 +1649,7 @@ void main() {
       ctl().toggleSound(kSynthDroneId);
       ctl().setLayerParams(
         kSynthDroneId,
-        const DroneParams(rootHz: 73.42, timbre: DroneTimbre.pure).toJson(),
+        const DroneParams(rootsHz: [73.42], timbre: DroneTimbre.pure).toJson(),
       );
       final saved = ctl().savePreset('Low drone')!;
       final again = await make({

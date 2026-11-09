@@ -94,23 +94,25 @@ final noiseControls = SoundControlSpec(
 // ---------------------------------------------------------------------------
 // Drone: the root, the timbre, how much it moves.
 
-/// The root chips. One root today; #69 makes them a chord (several roots,
-/// `maxSelected`), reading and writing the roots here.
+/// The root chips: up to [DroneParams.maxRoots] together, a chord (#69).
+/// At least one stays chosen (the chips ignore a tap that would clear it).
 final droneRoots = SoundChips<double>(
   id: 'drone_root',
   title: (l) => l.droneRoot,
+  maxSelected: DroneParams.maxRoots,
   choices: [
     for (final MapEntry(key: name, value: hz) in DroneParams.roots.entries)
       SoundChoice(hz, name, (_) => name),
   ],
   read: (p) {
-    final root = DroneParams.fromJson(p).rootHz;
+    final chosen = DroneParams.fromJson(p).rootsHz;
     return {
       for (final hz in DroneParams.roots.values)
-        if ((root - hz).abs() < 0.01) hz,
+        if (chosen.any((r) => (r - hz).abs() < 0.01)) hz,
     };
   },
-  write: (p, s) => DroneParams.fromJson(p).copyWith(rootHz: s.single).toJson(),
+  write: (p, s) =>
+      DroneParams.fromJson(p).copyWith(rootsHz: s.toList()).toJson(),
 );
 
 final droneControls = SoundControlSpec(

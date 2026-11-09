@@ -342,19 +342,51 @@ void main() {
       expect(chipSelected(tester, 'drone_root_A2'), isTrue);
       await tester.tap(find.byKey(const ValueKey('drone_root_D3')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('drone_root_A2')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('drone_timbre_pure')));
       await tester.pumpAndSettle();
       final movement = find.byKey(const ValueKey('drone_movement'));
       await tester.drag(movement, const Offset(-400, 0));
       await tester.pumpAndSettle();
       final drone = DroneParams.fromJson(params(kSynthDroneId));
-      expect(drone.rootHz, DroneParams.roots['D3']);
+      expect(drone.rootsHz, [DroneParams.roots['D3']]);
       expect(drone.timbre, DroneTimbre.pure);
       expect(drone.movement, 0);
       // Tapping the chosen root again keeps it: there is always a root.
       await tester.tap(find.byKey(const ValueKey('drone_root_D3')));
       await tester.pumpAndSettle();
       expect(chipSelected(tester, 'drone_root_D3'), isTrue);
+    });
+
+    testWidgets('roots make a chord of up to three', (tester) async {
+      await pump(tester, layers: {kSynthDroneId: const {}});
+      await open(tester, kSynthDroneId);
+      for (final r in ['E2', 'A3']) {
+        await tester.tap(find.byKey(ValueKey('drone_root_$r')));
+        await tester.pumpAndSettle();
+      }
+      expect(DroneParams.fromJson(params(kSynthDroneId)).rootsHz, [
+        82.41,
+        110,
+        220,
+      ]);
+      // Full: a fourth root does nothing until one comes off.
+      await tester.tap(
+        find.byKey(const ValueKey('drone_root_G2')),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+      expect(DroneParams.fromJson(params(kSynthDroneId)).rootsHz.length, 3);
+      await tester.tap(find.byKey(const ValueKey('drone_root_A3')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('drone_root_G2')));
+      await tester.pumpAndSettle();
+      expect(DroneParams.fromJson(params(kSynthDroneId)).rootsHz, [
+        82.41,
+        98,
+        110,
+      ]);
     });
   });
 

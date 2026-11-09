@@ -245,13 +245,17 @@ double _lufsPower(double lufs) => math.pow(10, (lufs + 0.691) / 10).toDouble();
 
 enum DroneTimbre { pure, warm, bright }
 
-/// A held chord on a root: the root, its octave and fifth, slowly swelling.
+/// A held chord: up to [maxRoots] roots, each with its octave and fifth,
+/// slowly swelling.
 class DroneParams {
   const DroneParams({
-    this.rootHz = 110,
+    this.rootsHz = const [110],
     this.timbre = DroneTimbre.warm,
     this.movement = 0.5,
   });
+
+  /// Most roots a chord holds (#69).
+  static const maxRoots = 3;
 
   /// Roots offered by the editor: A1 to A3 by fifths and fourths.
   static const roots = <String, double>{
@@ -266,42 +270,66 @@ class DroneParams {
     'A3': 220,
   };
 
-  final double rootHz;
+  /// The roots, lowest first; one to [maxRoots] of them.
+  final List<double> rootsHz;
+
+  /// The lowest root (the only one, before chords).
+  double get rootHz => rootsHz.first;
+
   final DroneTimbre timbre;
 
   /// 0 holds still; 1 swells most and fastest.
   final double movement;
 
-  factory DroneParams.fromJson(Map<String, Object?> json) => DroneParams(
-    rootHz: _num(json['rootHz'], 110, 40, 440),
-    timbre: DroneTimbre.values.firstWhere(
-      (t) => t.name == json['timbre'],
-      orElse: () => DroneTimbre.warm,
-    ),
-    movement: _num(json['movement'], 0.5, 0, 1),
-  );
+  /// Reads `rootsHz`, or the single `rootHz` that saved mixes and presets
+  /// from before chords hold. Anything unreadable falls back to 110 Hz.
+  factory DroneParams.fromJson(Map<String, Object?> json) {
+    final list = json['rootsHz'];
+    final parsed = <double>{
+      if (list is List)
+        for (final v in list)
+          if (v is num && v.isFinite) v.toDouble().clamp(40, 440).toDouble(),
+    }.toList()..sort();
+    final chord = parsed.take(maxRoots).toList();
+    return DroneParams(
+      rootsHz: chord.isNotEmpty ? chord : [_num(json['rootHz'], 110, 40, 440)],
+      timbre: DroneTimbre.values.firstWhere(
+        (t) => t.name == json['timbre'],
+        orElse: () => DroneTimbre.warm,
+      ),
+      movement: _num(json['movement'], 0.5, 0, 1),
+    );
+  }
 
+  /// Also writes the lowest root as `rootHz`, so a reader from before
+  /// chords still hears the bottom note.
   Map<String, Object?> toJson() => {
     'rootHz': rootHz,
+    'rootsHz': rootsHz,
     'timbre': timbre.name,
     'movement': movement,
   };
 
   DroneParams copyWith({
-    double? rootHz,
+    List<double>? rootsHz,
     DroneTimbre? timbre,
     double? movement,
-  }) => DroneParams(
-    rootHz: rootHz ?? this.rootHz,
-    timbre: timbre ?? this.timbre,
-    movement: movement ?? this.movement,
-  );
+  }) {
+    final chord = rootsHz == null
+        ? null
+        : (<double>{...rootsHz}.toList()..sort()).take(maxRoots).toList();
+    return DroneParams(
+      rootsHz: chord == null || chord.isEmpty ? this.rootsHz : chord,
+      timbre: timbre ?? this.timbre,
+      movement: movement ?? this.movement,
+    );
+  }
 
   /// The voices: (ratio to the root, relative weight, pan). A detuned twin
   /// of the root beats slowly against it; "warm" and "bright" add upper
   /// partials. Swell periods are incommensurate so the chord never repeats.
   List<OscillatorPartial> partials() {
-    final spec = <(double, double, double)>[
+    final one = <(double, double, double)>[
       (1, 1, 0),
       (1.0015, 0.7, -0.4), // beats with the root about every 6 s at A2
       (2, 0.55, 0.35),
@@ -309,26 +337,36 @@ class DroneParams {
       if (timbre != DroneTimbre.pure) ...[(3, 0.22, 0.3), (4, 0.14, -0.3)],
       if (timbre == DroneTimbre.bright) ...[(5, 0.1, 0.45), (6, 0.08, -0.45)],
     ];
+    // Every root brings the same voices; (hz, weight, pan, wave) in all.
+    final voices = <(double, double, double, OscillatorWave)>[
+      for (final root in rootsHz)
+        for (var i = 0; i < one.length; i++)
+          (
+            root * one[i].$1,
+            one[i].$2,
+            one[i].$3,
+            timbre == DroneTimbre.bright && i == 2
+                ? OscillatorWave.triangle
+                : OscillatorWave.sine,
+          ),
+    ];
     const periods = [29, 41, 53, 67, 37, 47, 59, 71];
-    OscillatorWave wave(int i) => timbre == DroneTimbre.bright && i == 2
-        ? OscillatorWave.triangle
-        : OscillatorWave.sine;
     // The voices are at different frequencies, so their powers add: scale
-    // the weights so the K-weighted sum lands on the target.
+    // the weights so the K-weighted sum of the whole chord lands on the
+    // target. A chord is no louder than a single root.
     var power = 0.0;
-    for (var i = 0; i < spec.length; i++) {
-      power +=
-          spec[i].$2 * spec[i].$2 * _unitPower(rootHz * spec[i].$1, wave(i));
+    for (final v in voices) {
+      power += v.$2 * v.$2 * _unitPower(v.$1, v.$4);
     }
     final unit = math.sqrt(_lufsPower(kSynthTargetLufs) / power);
     final floor = 1 - 0.6 * movement;
     return [
-      for (var i = 0; i < spec.length; i++)
+      for (var i = 0; i < voices.length; i++)
         OscillatorPartial(
-          hz: rootHz * spec[i].$1,
-          gain: unit * spec[i].$2,
-          wave: wave(i),
-          pan: spec[i].$3,
+          hz: voices[i].$1,
+          gain: unit * voices[i].$2,
+          wave: voices[i].$4,
+          pan: voices[i].$3,
           swellPeriod: movement == 0
               ? null
               : Duration(

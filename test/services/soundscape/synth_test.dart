@@ -254,7 +254,7 @@ void main() {
   group('drone', () {
     test('is a chord on the root', () {
       for (final timbre in DroneTimbre.values) {
-        final partials = DroneParams(rootHz: 110, timbre: timbre).partials();
+        final partials = DroneParams(rootsHz: [110], timbre: timbre).partials();
         expect(partials.first.hz, 110);
         expect(partials.map((p) => p.hz), contains(220));
         expect(partials.map((p) => p.hz), contains(165));
@@ -265,11 +265,57 @@ void main() {
       );
     });
 
+    test('a chord holds every root, and is no louder than one root', () {
+      for (final timbre in DroneTimbre.values) {
+        final chord = DroneParams(
+          rootsHz: [55, 110, 164.81],
+          timbre: timbre,
+        ).partials();
+        final hz = chord.map((p) => p.hz).toList();
+        for (final root in [55.0, 110.0, 164.81]) {
+          expect(hz, contains(closeTo(root, 0.001)));
+          expect(hz, contains(closeTo(root * 2, 0.001)));
+        }
+        final single = DroneParams(rootsHz: [110], timbre: timbre).partials();
+        expect(chord.length, single.length * 3);
+        expect(renderedLufs(chord), closeTo(kSynthTargetLufs, 0.2));
+        expect(worstChannelPeak(chord), lessThan(kLayerPeakBound));
+      }
+    });
+
+    test('the loudest chord stays under the peak bound', () {
+      for (final timbre in DroneTimbre.values) {
+        final p = DroneParams(
+          rootsHz: [40, 220, 440],
+          timbre: timbre,
+        ).partials();
+        expect(worstChannelPeak(p), lessThan(kLayerPeakBound));
+      }
+    });
+
+    test('params round-trip, and read the old single rootHz', () {
+      const chord = DroneParams(rootsHz: [73.42, 110, 164.81]);
+      expect(DroneParams.fromJson(chord.toJson()).rootsHz, chord.rootsHz);
+      expect(chord.toJson()['rootHz'], 73.42);
+      final old = DroneParams.fromJson({'rootHz': 98.0, 'timbre': 'bright'});
+      expect(old.rootsHz, [98.0]);
+      expect(old.timbre, DroneTimbre.bright);
+      // Unsorted, duplicated, too many, junk: tidied.
+      expect(
+        DroneParams.fromJson({
+          'rootsHz': [220, 55, 55, 110, 82.41, 'x'],
+        }).rootsHz,
+        [55, 82.41, 110],
+      );
+      expect(DroneParams.fromJson({'rootsHz': []}).rootsHz, [110]);
+      expect(DroneParams.fromJson(const {}).rootsHz, [110]);
+    });
+
     for (final root in ['A1', 'D2', 'A2', 'A3']) {
       test('$root plays at the target loudness, as rendered', () {
         for (final timbre in DroneTimbre.values) {
           final partials = DroneParams(
-            rootHz: DroneParams.roots[root]!,
+            rootsHz: [DroneParams.roots[root]!],
             timbre: timbre,
           ).partials();
           expect(
@@ -291,7 +337,10 @@ void main() {
       // (40–440 Hz; a bright 40 Hz drone peaks at about 0.185).
       for (final hz in [40.0, ...DroneParams.roots.values, 440.0]) {
         for (final timbre in DroneTimbre.values) {
-          final partials = DroneParams(rootHz: hz, timbre: timbre).partials();
+          final partials = DroneParams(
+            rootsHz: [hz],
+            timbre: timbre,
+          ).partials();
           expect(worstChannelPeak(partials), lessThan(kLayerPeakBound));
         }
       }
