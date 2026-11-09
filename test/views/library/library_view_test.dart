@@ -1,8 +1,11 @@
 import 'dart:io';
 
+import 'package:medito/views/pack/widgets/pack_item_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:medito/constants/colors/color_constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/services/library/import_models.dart';
 import 'package:medito/services/library/library_models.dart';
@@ -21,7 +24,7 @@ import '../../helpers/library_fixtures.dart';
 
 Future<void> settle(WidgetTester tester) => DharmaSeedTestApp.settle(tester);
 
-/// A section heading, not the Practice/Talks switch's label.
+/// A section heading, not a chip's label.
 Finder heading(String text) =>
     find.descendant(of: find.byType(SectionTitle), matching: find.text(text));
 
@@ -49,10 +52,11 @@ Future<void> add(
 
 void main() {
   group('the library screen', () {
-    testWidgets('lists Practice before Talks, then teachers', (tester) async {
+    testWidgets('lists courses, then sessions, then teachers (#80)', (
+      tester,
+    ) async {
       final app = await LibraryTestApp.create(tester);
       final store = app.harness.store;
-      // Added first, so it would lead by time alone.
       await add(
         tester,
         store,
@@ -78,15 +82,20 @@ void main() {
       );
       await app.pump(tester, const LibraryView());
 
-      final practice = tester.getTopLeft(heading('Practice')).dy;
-      final talks = tester.getTopLeft(heading('Talks')).dy;
+      final courses = tester.getTopLeft(heading('Courses')).dy;
+      final sessions = tester.getTopLeft(heading('Sessions')).dy;
       final teachers = tester.getTopLeft(heading('Teachers')).dy;
-      expect(practice, lessThan(talks));
-      expect(talks, lessThan(teachers));
-      expect(
-        tester.getTopLeft(find.text('Body scan course')).dy,
-        lessThan(tester.getTopLeft(find.text('A winter talk series')).dy),
-      );
+      expect(courses, lessThan(sessions));
+      expect(sessions, lessThan(teachers));
+      // No Practice or Talks sections: a talk course and a practice course
+      // sit together, under Courses.
+      expect(heading('Practice'), findsNothing);
+      expect(heading('Talks'), findsNothing);
+      for (final title in ['Body scan course', 'A winter talk series']) {
+        final y = tester.getTopLeft(find.text(title)).dy;
+        expect(y, greaterThan(courses), reason: title);
+        expect(y, lessThan(sessions), reason: title);
+      }
       expect(find.text('One long talk'), findsOneWidget);
     });
 
@@ -116,8 +125,9 @@ void main() {
       expect(find.text('3 sessions'), findsOneWidget);
       expect(find.text('Dharma Seed'), findsOneWidget);
       expect(find.text('Tara Brach'), findsOneWidget);
+      // New playlist lives behind the header's "+" (#62).
       expect(find.text('New playlist'), findsNothing);
-      expect(find.byTooltip('New playlist'), findsOneWidget);
+      expect(find.byTooltip('Add to your library'), findsOneWidget);
     });
 
     testWidgets('empty, it invites the first addition', (tester) async {
@@ -125,7 +135,21 @@ void main() {
       await app.pump(tester, const LibraryView(), asRoute: true);
 
       expect(find.text('Your library is empty'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('library_empty_add')));
+      // "Import", so it is not a second "Add to your library" beside the
+      // header's "+" (#62).
+      final emptyAdd = find.byKey(const ValueKey('library_empty_add'));
+      expect(
+        find.descendant(of: emptyAdd, matching: find.text('Import')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: emptyAdd,
+          matching: find.text('Add to your library'),
+        ),
+        findsNothing,
+      );
+      await tester.tap(emptyAdd);
       await settle(tester);
       expect(find.byType(ImportView), findsOneWidget);
     });
@@ -136,26 +160,40 @@ void main() {
       final app = await LibraryTestApp.create(tester);
       await add(tester, app.harness.store, 'ds-retreat-1', 'Evening sits');
       await app.pump(tester, const LibraryView());
-      expect(heading('Talks'), findsNothing);
+      expect(find.text('Practice 1'), findsOneWidget);
+      expect(find.text('Talks 0'), findsOneWidget);
 
       await tester.tap(find.byIcon(Icons.more_vert_rounded));
       await settle(tester);
       await tester.tap(find.text('Move to Talks'));
       await settle(tester);
 
-      expect(heading('Talks'), findsOneWidget);
-      expect(heading('Practice'), findsNothing);
+      // The chips follow the move.
+      expect(find.text('Practice 0'), findsOneWidget);
+      expect(find.text('Talks 1'), findsOneWidget);
       final entry = (await tester.runAsync(app.harness.store.entries))!.single;
       expect(entry.group, LibraryGroup.talks);
       expect(entry.detectedGroup, LibraryGroup.practice);
 
-      // And back: the override is cleared, not stacked.
+      // And back: the choice is kept, even as what was detected (#80).
       await tester.tap(find.byIcon(Icons.more_vert_rounded));
       await settle(tester);
       await tester.tap(find.text('Move to Practice'));
       await settle(tester);
       final back = (await tester.runAsync(app.harness.store.entries))!.single;
-      expect(back.groupOverride, isNull);
+      expect(back.groupOverride, LibraryGroup.practice);
+      expect(find.text('Practice 1'), findsOneWidget);
+
+      // Show by sessions forgets it.
+      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await settle(tester);
+      await tester.tap(find.text('Show by sessions'));
+      await settle(tester);
+      final cleared = (await tester.runAsync(
+        app.harness.store.entries,
+      ))!.single;
+      expect(cleared.groupOverride, isNull);
+      expect(cleared.group, LibraryGroup.practice);
     });
 
     testWidgets('rename shows the new name and keeps the source title', (
@@ -284,8 +322,138 @@ void main() {
       await tester.tap(find.text('Evening Sits'));
       await settle(tester);
       expect(find.byType(PackView), findsOneWidget);
-      expect(find.text('First sit: arriving'), findsOneWidget);
-      expect(find.text('3 of 3 left'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(PackItemWidget),
+          matching: find.text('First sit: arriving'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('3 sessions'), findsOneWidget);
+    });
+
+    testWidgets('removing an imported course unpins it and its sessions', (
+      tester,
+    ) async {
+      final app = await LibraryTestApp.create(
+        tester,
+        routes: {
+          'https://example.org/evening.rss': xmlResponse(
+            libraryFixture('rss_podcast.xml'),
+          ),
+        },
+      );
+      late String courseId;
+      late List<String> sessionIds;
+      await tester.runAsync(() async {
+        final preview = await app.harness.service.resolve(
+          'https://example.org/evening.rss',
+        );
+        final result = await app.harness.service.add(
+          preview,
+          const ImportChoice(
+            kind: LibraryKind.course,
+            group: LibraryGroup.practice,
+          ),
+        );
+        courseId = result.entryId;
+        sessionIds = [...await app.harness.db.trackIdsOfCourse(courseId)];
+      });
+      await app.prefs.setStringList(SharedPreferenceConstants.pinnedCourseIds, [
+        'ds-retreat-1',
+        courseId,
+        sessionIds.first,
+      ]);
+      await app.prefs.setStringList(
+        SharedPreferenceConstants.pinnedSessionIds,
+        [sessionIds.first],
+      );
+      await app.pump(tester, const LibraryView());
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(LibraryView)),
+      );
+
+      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await settle(tester);
+      await tester.tap(find.text('Remove from library'));
+      await settle(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Remove from library'),
+        ),
+      );
+      await settle(tester);
+
+      // What is left is not an ID on Home.
+      expect(container.read(pinnedCoursesProvider), ['ds-retreat-1']);
+    });
+
+    testWidgets('removing a course episode kept on its own keeps its pin', (
+      tester,
+    ) async {
+      final app = await LibraryTestApp.create(
+        tester,
+        routes: {
+          'https://example.org/evening.rss': xmlResponse(
+            libraryFixture('rss_podcast.xml'),
+          ),
+        },
+      );
+      late String episode;
+      await tester.runAsync(() async {
+        final preview = await app.harness.service.resolve(
+          'https://example.org/evening.rss',
+        );
+        final result = await app.harness.service.add(
+          preview,
+          const ImportChoice(
+            kind: LibraryKind.course,
+            group: LibraryGroup.practice,
+          ),
+        );
+        episode = (await app.harness.db.trackIdsOfCourse(result.entryId)).first;
+        // The episode also saved as a single of its own.
+        await app.harness.store.add(
+          LibraryDraft(
+            sourceId: episode,
+            kind: LibraryKind.single,
+            title: 'An episode on its own',
+            group: LibraryGroup.practice,
+          ),
+        );
+      });
+      await app.prefs.setStringList(SharedPreferenceConstants.pinnedCourseIds, [
+        episode,
+      ]);
+      await app.prefs.setStringList(
+        SharedPreferenceConstants.pinnedSessionIds,
+        [episode],
+      );
+      await app.pump(tester, const LibraryView());
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(LibraryView)),
+      );
+
+      await tester.tap(find.byKey(ValueKey('library_menu_$episode')));
+      await settle(tester);
+      await tester.tap(find.text('Remove from library'));
+      await settle(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Remove from library'),
+        ),
+      );
+      await settle(tester);
+
+      // Only its own library entry went; the episode is still in its course.
+      expect(find.text('An episode on its own'), findsNothing);
+      expect(container.read(pinnedCoursesProvider), [episode]);
+      expect(
+        container.read(pinnedCoursesProvider.notifier).isSession(episode),
+        isTrue,
+      );
     });
 
     testWidgets('removing an import from its own page closes the page', (
@@ -316,8 +484,8 @@ void main() {
       await settle(tester);
       expect(find.byType(PackView), findsOneWidget);
 
-      await tester.ensureVisible(find.byType(SaveButton));
-      await tester.tap(find.byType(SaveButton));
+      await tester.ensureVisible(find.byType(SaveIconButton));
+      await tester.tap(find.byType(SaveIconButton));
       await settle(tester);
       await tester.tap(
         find.descendant(
@@ -328,6 +496,17 @@ void main() {
       await settle(tester);
       expect(find.byType(PackView), findsNothing);
       expect(find.text('Your library is empty'), findsOneWidget);
+      // Said, though the page that asked is gone, in readable text: styled
+      // from the app's messenger, not left white on the white snackbar.
+      final said = find.descendant(
+        of: find.byType(SnackBar),
+        matching: find.text('Removed from your library'),
+      );
+      expect(said, findsOneWidget);
+      expect(
+        tester.widget<Text>(said).style?.color,
+        ColorConstants.greyIsTheNewBlack,
+      );
     });
 
     testWidgets(
@@ -356,7 +535,15 @@ void main() {
         });
         await app.pump(tester, PackView(id: id));
 
-        double top(String title) => tester.getTopLeft(find.text(title)).dy;
+        // A row's title (the Play button names the next one too).
+        double top(String title) => tester
+            .getTopLeft(
+              find.descendant(
+                of: find.byType(PackItemWidget),
+                matching: find.text(title),
+              ),
+            )
+            .dy;
         expect(
           top('First sit: arriving'),
           lessThan(top('Third sit: open awareness')),
@@ -412,7 +599,9 @@ void main() {
       expect(find.byType(TrackView), findsOneWidget);
     });
 
-    testWidgets('a course can be pinned to Home, up to three', (tester) async {
+    testWidgets('courses can be pinned; past three, See all has them', (
+      tester,
+    ) async {
       final app = await LibraryTestApp.create(tester);
       for (final n in ['a', 'b', 'c', 'd']) {
         await add(tester, app.harness.store, 'ds-retreat-$n', 'Course $n');
@@ -432,7 +621,7 @@ void main() {
         );
         await tester.tap(menu);
         await settle(tester);
-        await tester.tap(find.byKey(const ValueKey('library_menu_pin')));
+        await tester.tap(find.byKey(const ValueKey('item_action_pin')));
         await settle(tester);
       }
 
@@ -440,14 +629,41 @@ void main() {
       await pin('Course b');
       await pin('Course c');
       expect(container.read(pinnedCoursesProvider), hasLength(3));
+      expect(find.text('Pinned to Home'), findsOneWidget);
       await pin('Course d');
-      expect(container.read(pinnedCoursesProvider), hasLength(3));
-      expect(
-        find.text(
-          'Home holds up to three pinned courses or playlists. Unpin one first.',
-        ),
-        findsOneWidget,
+      expect(container.read(pinnedCoursesProvider), [
+        'ds-retreat-a',
+        'ds-retreat-b',
+        'ds-retreat-c',
+        'ds-retreat-d',
+      ]);
+      expect(find.text('Pinned to Home, under See all'), findsOneWidget);
+    });
+
+    testWidgets('a single session is pinned as a session', (tester) async {
+      final app = await LibraryTestApp.create(tester);
+      await add(
+        tester,
+        app.harness.store,
+        'ds-talk-9',
+        'Metta',
+        kind: LibraryKind.single,
       );
+      await app.pump(tester, const LibraryView());
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(LibraryView)),
+      );
+      await tester.tap(find.byTooltip('Show menu').first);
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('item_action_pin')));
+      await settle(tester);
+      expect(container.read(pinnedCoursesProvider), ['ds-talk-9']);
+      expect(
+        container.read(pinnedCoursesProvider.notifier).isSession('ds-talk-9'),
+        isTrue,
+      );
+      // The row shows it is pinned.
+      expect(find.bySemanticsLabel('Pinned to Home'), findsOneWidget);
     });
   });
 }

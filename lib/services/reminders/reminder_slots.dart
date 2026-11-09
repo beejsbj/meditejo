@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:medito/l10n/app_localizations.dart';
 
-/// The daily reminder presets shared by onboarding and settings.
+/// The daily reminder presets shared by the end-screen card and settings.
 enum ReminderSlot {
   morning(TimeOfDay(hour: 7, minute: 0)),
   evening(TimeOfDay(hour: 21, minute: 0)),

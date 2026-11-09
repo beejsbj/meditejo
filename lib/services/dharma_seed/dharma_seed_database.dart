@@ -106,8 +106,8 @@ class DsSyncQueue extends Table {
   Set<Column> get primaryKey => {kind, itemId};
 }
 
-/// Retreats and teachers the user saved. Talk favourites use the app's
-/// existing favourites.
+/// Retreats and teachers the user saved. A talk is kept by pinning it, like
+/// any other session.
 @DataClassName('DsSavedItem')
 class DsSaved extends Table {
   TextColumn get kind => text()(); // 'retreat' | 'teacher'
@@ -617,6 +617,21 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
       found.addAll([
         for (final row in await query.get()) row.read(dsTalks.id)!,
       ]);
+    }
+    return found;
+  }
+
+  /// Each stored talk's raw `recording_type` (possibly empty), by talk ID.
+  /// Talks not stored are left out.
+  Future<Map<int, String>> recordingTypesOf(Iterable<int> ids) async {
+    final found = <int, String>{};
+    for (final chunk in _chunks(ids.toSet())) {
+      final query = selectOnly(dsTalks)
+        ..addColumns([dsTalks.id, dsTalks.recordingType])
+        ..where(dsTalks.id.isIn(chunk));
+      for (final row in await query.get()) {
+        found[row.read(dsTalks.id)!] = row.read(dsTalks.recordingType) ?? '';
+      }
     }
     return found;
   }

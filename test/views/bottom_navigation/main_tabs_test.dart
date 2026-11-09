@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/views/bottom_navigation/bottom_navigation_bar_view.dart';
-import 'package:medito/views/you/you_view.dart';
+import 'package:medito/views/settings/settings_screen.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 
 import '../../helpers/dharma_seed_app.dart';
@@ -17,8 +17,8 @@ void main() {
     WidgetTester tester, {
     Map<String, int> savedPrefs = const {},
   }) async {
-    // You shows Settings, whose reminder row asks for the notification
-    // permission's status.
+    // Settings' reminder row asks for the notification permission's
+    // status.
     const permissions = MethodChannel(
       'flutter.baseflow.com/permissions/methods',
     );
@@ -57,13 +57,13 @@ void main() {
   bool onScreen(WidgetTester tester, Type type) =>
       find.byType(type).hitTestable().evaluate().isNotEmpty;
 
-  testWidgets('five tabs; Sounds is the Sounds screen, You is the You page', (
+  testWidgets('five tabs; Sounds is the Sounds screen, Settings is Settings', (
     tester,
   ) async {
     final container = await pump(tester);
     final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
     expect(bar.destinations, hasLength(5));
-    for (final label in ['Home', 'Explore', 'Sounds', 'Library', 'You']) {
+    for (final label in ['Home', 'Explore', 'Sounds', 'Library', 'Settings']) {
       expect(
         find.descendant(
           of: find.byType(NavigationBar),
@@ -86,12 +86,18 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byType(NavigationBar),
-        matching: find.text('You'),
+        matching: find.text('Settings'),
       ),
     );
     await settle(tester);
-    expect(container.read(mainTabProvider), MainTab.you);
-    expect(onScreen(tester, YouView), isTrue);
+    expect(container.read(mainTabProvider), MainTab.settings);
+    expect(onScreen(tester, SettingsScreen), isTrue);
+    // The settings themselves, and no stats: those are on the You page.
+    expect(
+      find.byKey(const ValueKey('settings_practice')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('you_stats_card')), findsNothing);
   });
 
   testWidgets('a cold start opens Home, even with another tab saved', (

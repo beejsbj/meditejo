@@ -19,6 +19,10 @@ import 'package:pigeon/pigeon.dart';
 )
 // A video and what a player or library needs to show it. Unknown strings are
 // empty and an unknown duration is 0.
+//
+// New fields go last and are nullable, so older callers still line up:
+// [channelUrl] is the uploader's channel page and [channelAvatar] its
+// picture, null or empty when unknown.
 class YoutubeVideo {
   YoutubeVideo({
     required this.videoId,
@@ -27,6 +31,8 @@ class YoutubeVideo {
     required this.durationSeconds,
     required this.thumbnail,
     required this.description,
+    this.channelUrl,
+    this.channelAvatar,
   });
 
   String videoId;
@@ -35,10 +41,13 @@ class YoutubeVideo {
   int durationSeconds;
   String thumbnail;
   String description;
+  String? channelUrl;
+  String? channelAvatar;
 }
 
 /// A playlist row. [uploader] is the channel that made this video, which is
 /// not the playlist's own owner; empty when the extractor does not say.
+/// [channelUrl] is that channel's page, null or empty when unknown.
 class YoutubePlaylistItem {
   YoutubePlaylistItem({
     required this.videoId,
@@ -46,6 +55,7 @@ class YoutubePlaylistItem {
     required this.uploader,
     required this.durationSeconds,
     required this.thumbnail,
+    this.channelUrl,
   });
 
   String videoId;
@@ -53,21 +63,46 @@ class YoutubePlaylistItem {
   String uploader;
   int durationSeconds;
   String thumbnail;
+  String? channelUrl;
 }
 
-/// A whole playlist, every page of it, in playlist order.
+/// A whole playlist, every page of it, in playlist order. [description] is
+/// the playlist's own text; [channelUrl] and [channelAvatar] are its owner's
+/// channel page and picture. Each is null or empty when unknown.
 class YoutubePlaylist {
   YoutubePlaylist({
     required this.title,
     required this.uploader,
     required this.thumbnail,
     required this.items,
+    this.description,
+    this.channelUrl,
+    this.channelAvatar,
   });
 
   String title;
   String uploader;
   String thumbnail;
   List<YoutubePlaylistItem> items;
+  String? description;
+  String? channelUrl;
+  String? channelAvatar;
+}
+
+/// A channel's own page: its name, picture and "About" text. Unknown strings
+/// are empty.
+class YoutubeChannel {
+  YoutubeChannel({
+    required this.url,
+    required this.name,
+    required this.avatar,
+    required this.description,
+  });
+
+  String url;
+  String name;
+  String avatar;
+  String description;
 }
 
 /// The best audio-only stream for a video: an https URL that is only valid for
@@ -102,4 +137,8 @@ abstract class YoutubeExtractorApi {
 
   @async
   YoutubeAudioStream resolveAudioStream(String videoId);
+
+  /// [url] is a channel page, as a video or a playlist reported it.
+  @async
+  YoutubeChannel resolveChannel(String url);
 }

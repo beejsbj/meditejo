@@ -3,14 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/categories/category_providers.dart';
-import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/library/library_view_provider.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/views/library/import_view.dart';
+import 'package:medito/views/library/library_add_sheet.dart';
 import 'package:medito/views/library/library_widgets.dart';
-import 'package:medito/views/my_courses/my_course_actions.dart';
+import 'package:medito/views/you/you_button.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 import 'package:medito/widgets/cards/card_tokens.dart';
 import 'package:medito/widgets/cards/course_card.dart';
@@ -19,10 +19,16 @@ import 'package:medito/widgets/cards/section_title.dart';
 
 /// Everything the user keeps and is working through. It is the Library tab.
 ///
-/// From the top: what is in progress, as large cards; the kind filter (All,
-/// Courses, Playlists, Singles, Teachers, Downloads); Practice or Talks, the
-/// sort and the grid or list switch; then Practice before Talks (decision
-/// 11), courses and playlists as cards, singles as rows, and saved teachers.
+/// Its header has a "+" ([showLibraryAddSheet]: Import, New playlist) and
+/// the You button; Home has no Add of its own (#62).
+///
+/// From the top: the filter chips (All, Practice, Talks, and Downloads once
+/// something is downloaded), the user's labels, the sort and the grid or
+/// list switch; then the library by form (#80): Playlists, Courses and
+/// Sessions, playlists and courses as cards, sessions as rows, and saved
+/// teachers last. Practice and Talks go by what a course's sessions are, so a
+/// course with both shows under either ([libraryEntryKinds]). There is no In
+/// progress here: Home's Continue has it.
 class LibraryView extends ConsumerWidget {
   const LibraryView({super.key});
 
@@ -30,26 +36,26 @@ class LibraryView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final entries = ref.watch(libraryEntriesProvider);
+    final titleStyle = context.typography.emphasized.titleLarge;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.libraryTitle),
-        titleTextStyle: context.typography.emphasized.titleLarge,
+        titleTextStyle: titleStyle,
         actions: [
-          IconButton(
-            key: const ValueKey('library_new_course'),
-            tooltip: l10n.myCourseNew,
-            onPressed: () => newMyCourse(context, ref),
-            icon: const Icon(Icons.playlist_add_rounded),
-          ),
+          // "+" then You: what the library can take in, then the user.
           Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: FilledButton.tonalIcon(
+            padding: const EdgeInsets.only(right: 4),
+            child: IconButton.filledTonal(
               key: const ValueKey('library_add'),
-              onPressed: () => openImport(context, ref),
+              tooltip: l10n.importTitle,
+              onPressed: () => showLibraryAddSheet(context, ref),
               icon: const Icon(Icons.add_rounded),
-              label: Text(l10n.libraryAdd),
             ),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(right: YouButton.inset),
+            child: YouButton(),
           ),
         ],
       ),
@@ -82,15 +88,24 @@ class _LibraryBody extends ConsumerWidget {
     final options = labelOptions.any((o) => o.key == stored.label)
         ? stored
         : stored.copyWith(label: () => null);
-    final inProgress = ref.watch(inProgressItemsProvider).value ?? const [];
+    final labels = ref.watch(libraryLabelsProvider).value ?? const {};
+    final downloaded = ref.watch(libraryDownloadedIdsProvider);
+    // Until the sessions are read, each entry shows under its own kind.
+    final kinds = ref.watch(libraryEntryKindsProvider).value ?? const {};
     final arranged = arrangeLibrary(
       entries,
       options,
-      labels: ref.watch(libraryLabelsProvider).value ?? const {},
+      labels: labels,
       progress: ref.watch(libraryProgressProvider),
-      downloaded: options.filter == LibraryFilter.downloads
-          ? ref.watch(libraryDownloadedIdsProvider)
-          : const {},
+      downloaded: downloaded,
+      kinds: kinds,
+    );
+    final counts = libraryFilterCounts(
+      entries,
+      label: options.label,
+      labels: labels,
+      downloaded: downloaded,
+      kinds: kinds,
     );
     final grid = options.layout == LibraryLayout.grid;
 
@@ -98,42 +113,38 @@ class _LibraryBody extends ConsumerWidget {
       key: const ValueKey('library_scroll'),
       slivers: [
         const SliverPadding(padding: EdgeInsets.only(top: 8)),
-        if (inProgress.isNotEmpty)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 20),
-              child: InProgressStrip(items: inProgress),
-            ),
+        SliverToBoxAdapter(
+          child: _Controls(
+            labelOptions: labelOptions,
+            filter: options.filter,
+            counts: counts,
           ),
-        SliverToBoxAdapter(child: _Controls(labelOptions: labelOptions)),
+        ),
         if (arranged.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
-            child: _EmptyFilter(filter: options.filter),
+            child: _EmptyFilter(
+              filter: options.filter,
+              labelled: options.label != null,
+            ),
           ),
         for (final shelf in arranged.shelves)
           if (!shelf.isEmpty) ...[
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.only(top: 20),
-                child: SectionTitle(_groupName(l10n, shelf.group)),
+                child: SectionTitle(
+                  _formName(l10n, shelf.form),
+                  key: ValueKey('library_section_${shelf.form.name}'),
+                ),
               ),
             ),
-            if (grid && shelf.courses.isNotEmpty)
-              _CardGrid(entries: shelf.courses)
+            if (grid && shelf.isCards)
+              _CardGrid(entries: shelf.entries)
             else
               SliverList.list(
                 children: [
-                  for (final entry in shelf.courses)
-                    LibraryEntryTile(entry: entry),
-                ],
-              ),
-            if (shelf.singles.isNotEmpty)
-              SliverList.list(
-                children: [
-                  if (grid && shelf.courses.isNotEmpty)
-                    const SizedBox(height: kCardGap),
-                  for (final entry in shelf.singles)
+                  for (final entry in shelf.entries)
                     LibraryEntryTile(entry: entry),
                 ],
               ),
@@ -142,7 +153,10 @@ class _LibraryBody extends ConsumerWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.only(top: 20),
-              child: SectionTitle(l10n.libraryTeachers),
+              child: SectionTitle(
+                l10n.libraryTeachers,
+                key: const ValueKey('library_section_teachers'),
+              ),
             ),
           ),
           SliverList.list(
@@ -162,9 +176,10 @@ class _LibraryBody extends ConsumerWidget {
   }
 }
 
-String _groupName(AppLocalizations l10n, LibraryGroup group) => switch (group) {
-  LibraryGroup.practice => l10n.libraryPractice,
-  LibraryGroup.talks => l10n.libraryTalks,
+String _formName(AppLocalizations l10n, LibraryForm form) => switch (form) {
+  LibraryForm.playlists => l10n.librarySectionPlaylists,
+  LibraryForm.courses => l10n.librarySectionCourses,
+  LibraryForm.sessions => l10n.librarySectionSessions,
 };
 
 /// Courses and playlists as a grid of cards, two or more across.
@@ -207,11 +222,18 @@ class _CardGrid extends StatelessWidget {
   }
 }
 
-/// The kind chips, then Practice or Talks, the sort and the layout switch.
+/// The filter chips with how much each shows, the label chips, then the
+/// sort and the layout switch.
 class _Controls extends ConsumerWidget {
-  const _Controls({required this.labelOptions});
+  const _Controls({
+    required this.labelOptions,
+    required this.filter,
+    required this.counts,
+  });
 
   final List<LibraryLabelOption> labelOptions;
+  final LibraryFilter filter;
+  final Map<LibraryFilter, int> counts;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -225,19 +247,36 @@ class _Controls extends ConsumerWidget {
       children: [
         FilterChipBar<LibraryFilter>(
           semanticsLabel: l10n.libraryFilterLabel,
-          selected: options.filter,
-          onSelected: (filter) =>
-              notifier.setFilter(filter ?? LibraryFilter.all),
+          selected: filter,
+          onSelected: (chosen) =>
+              notifier.setFilter(chosen ?? LibraryFilter.all),
           options: [
-            for (final filter in LibraryFilter.values)
-              FilterOption(filter, switch (filter) {
-                LibraryFilter.all => l10n.libraryFilterAll,
-                LibraryFilter.courses => l10n.libraryFilterCourses,
-                LibraryFilter.playlists => l10n.libraryFilterPlaylists,
-                LibraryFilter.singles => l10n.libraryFilterSingles,
-                LibraryFilter.teachers => l10n.libraryTeachers,
-                LibraryFilter.downloads => l10n.libraryFilterDownloads,
-              }, key: ValueKey('library_filter_${filter.name}')),
+            for (final option in LibraryFilter.values)
+              // Teachers and Downloads only once there is something to show
+              // (or while chosen), so the row stays short.
+              if (option.group != null ||
+                  option == LibraryFilter.all ||
+                  (counts[option] ?? 0) > 0 ||
+                  filter == option)
+                FilterOption(option, switch (option) {
+                  LibraryFilter.all => l10n.libraryFilterAll,
+                  LibraryFilter.practice => l10n.libraryFilterCount(
+                    l10n.libraryPractice,
+                    counts[option] ?? 0,
+                  ),
+                  LibraryFilter.talks => l10n.libraryFilterCount(
+                    l10n.libraryTalks,
+                    counts[option] ?? 0,
+                  ),
+                  LibraryFilter.teachers => l10n.libraryFilterCount(
+                    l10n.libraryTeachers,
+                    counts[option] ?? 0,
+                  ),
+                  LibraryFilter.downloads => l10n.libraryFilterCount(
+                    l10n.libraryFilterDownloads,
+                    counts[option] ?? 0,
+                  ),
+                }, key: ValueKey('library_filter_${option.name}')),
           ],
         ),
         if (labelOptions.isNotEmpty)
@@ -260,50 +299,17 @@ class _Controls extends ConsumerWidget {
               ],
             ),
           ),
+        // The sort, named, at the start; the layout switch at the end.
         Padding(
-          padding: const EdgeInsets.fromLTRB(kCardGutter, 8, 4, 0),
-          // Wraps under large text: the switch keeps its line, the sort and
-          // layout buttons drop below it.
-          child: Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            runSpacing: 4,
+          padding: const EdgeInsets.fromLTRB(kCardGutter - 8, 4, 4, 0),
+          child: Row(
             children: [
-              if (options.filter == LibraryFilter.teachers)
-                const SizedBox.shrink()
-              else
-                Semantics(
-                  label: l10n.libraryGroupLabel,
-                  container: true,
-                  child: SegmentedButton<LibraryGroup>(
-                    key: const ValueKey('library_group'),
-                    showSelectedIcon: false,
-                    emptySelectionAllowed: true,
-                    style: const ButtonStyle(
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    segments: [
-                      for (final group in LibraryGroup.values)
-                        ButtonSegment(
-                          value: group,
-                          label: Text(
-                            _groupName(l10n, group),
-                            key: ValueKey('library_group_${group.name}'),
-                          ),
-                        ),
-                    ],
-                    selected: {?options.group},
-                    onSelectionChanged: (selection) =>
-                        notifier.setGroup(selection.firstOrNull),
-                  ),
-                ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  PopupMenuButton<LibrarySort>(
+              Expanded(
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: PopupMenuButton<LibrarySort>(
                     key: const ValueKey('library_sort'),
                     tooltip: l10n.librarySort,
-                    icon: const Icon(Icons.sort_rounded),
                     initialValue: options.sort,
                     onSelected: notifier.setSort,
                     itemBuilder: (context) => [
@@ -312,27 +318,41 @@ class _Controls extends ConsumerWidget {
                           key: ValueKey('library_sort_${sort.name}'),
                           value: sort,
                           checked: sort == options.sort,
-                          child: Text(switch (sort) {
-                            LibrarySort.recent => l10n.librarySortRecent,
-                            LibrarySort.title => l10n.librarySortTitle,
-                            LibrarySort.progress => l10n.librarySortProgress,
-                          }),
+                          child: Text(_sortName(l10n, sort)),
                         ),
                     ],
-                  ),
-                  IconButton(
-                    key: const ValueKey('library_layout'),
-                    tooltip: grid ? l10n.libraryShowList : l10n.libraryShowGrid,
-                    onPressed: () => notifier.setLayout(
-                      grid ? LibraryLayout.list : LibraryLayout.grid,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 48),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.sort_rounded, size: 20),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                _sortName(l10n, options.sort),
+                                style: context.typography.baseline.labelLarge,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    icon: Icon(
-                      grid
-                          ? Icons.view_agenda_rounded
-                          : Icons.grid_view_rounded,
-                    ),
                   ),
-                ],
+                ),
+              ),
+              IconButton(
+                key: const ValueKey('library_layout'),
+                tooltip: grid ? l10n.libraryShowList : l10n.libraryShowGrid,
+                onPressed: () => notifier.setLayout(
+                  grid ? LibraryLayout.list : LibraryLayout.grid,
+                ),
+                icon: Icon(
+                  grid ? Icons.view_agenda_rounded : Icons.grid_view_rounded,
+                ),
               ),
             ],
           ),
@@ -342,6 +362,12 @@ class _Controls extends ConsumerWidget {
   }
 }
 
+String _sortName(AppLocalizations l10n, LibrarySort sort) => switch (sort) {
+  LibrarySort.recent => l10n.librarySortRecent,
+  LibrarySort.title => l10n.librarySortTitle,
+  LibrarySort.progress => l10n.librarySortProgress,
+};
+
 /// Opens the Explore tab, where there is something to add.
 void _openExplore(WidgetRef ref) =>
     ref.read(mainTabProvider.notifier).select(MainTab.explore);
@@ -349,16 +375,15 @@ void _openExplore(WidgetRef ref) =>
 /// A message and the ways to fill the library: Explore and Add.
 class _EmptyMessage extends ConsumerWidget {
   const _EmptyMessage({
+    super.key,
     required this.title,
     required this.body,
     required this.addKey,
-    this.extra,
   });
 
   final String title;
   final String body;
   final Key addKey;
-  final Widget? extra;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -392,7 +417,6 @@ class _EmptyMessage extends ConsumerWidget {
               spacing: 12,
               runSpacing: 12,
               children: [
-                ?extra,
                 FilledButton.tonalIcon(
                   key: const ValueKey('library_empty_explore'),
                   onPressed: () => _openExplore(ref),
@@ -403,7 +427,9 @@ class _EmptyMessage extends ConsumerWidget {
                   key: addKey,
                   onPressed: () => openImport(context, ref),
                   icon: const Icon(Icons.add_rounded),
-                  label: Text(l10n.importTitle),
+                  // "Import", not the header "+"'s "Add to your library",
+                  // so a screen reader hears two different buttons (#62).
+                  label: Text(l10n.libraryAddImport),
                 ),
               ],
             ),
@@ -430,27 +456,44 @@ class _EmptyLibrary extends StatelessWidget {
   }
 }
 
-/// A filter that matches nothing. Playlists can be started here.
+/// A filter that matches nothing: what it would show, and the ways to fill
+/// the library.
 class _EmptyFilter extends ConsumerWidget {
-  const _EmptyFilter({required this.filter});
+  const _EmptyFilter({required this.filter, this.labelled = false});
 
   final LibraryFilter filter;
+
+  /// Whether a label is chosen: then it may be what leaves nothing, and the
+  /// chip's own words would mislead.
+  final bool labelled;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final (title, body) = switch (labelled ? LibraryFilter.all : filter) {
+      LibraryFilter.practice => (
+        l10n.libraryPracticeEmpty,
+        l10n.libraryPracticeEmptyBody,
+      ),
+      LibraryFilter.talks => (
+        l10n.libraryTalksEmpty,
+        l10n.libraryTalksEmptyBody,
+      ),
+      LibraryFilter.downloads => (
+        l10n.libraryDownloadsEmpty,
+        l10n.libraryDownloadsEmptyBody,
+      ),
+      // Everything (or the teachers), or anything narrowed by a label.
+      LibraryFilter.all || LibraryFilter.teachers => (
+        l10n.libraryFilterEmpty,
+        l10n.libraryFilterEmptyBody,
+      ),
+    };
     return _EmptyMessage(
-      title: l10n.libraryFilterEmpty,
-      body: l10n.libraryFilterEmptyBody,
+      key: ValueKey('library_empty_${labelled ? 'label' : filter.name}'),
+      title: title,
+      body: body,
       addKey: const ValueKey('library_filter_empty_add'),
-      extra: filter == LibraryFilter.playlists
-          ? OutlinedButton.icon(
-              key: const ValueKey('library_filter_new_playlist'),
-              onPressed: () => newMyCourse(context, ref),
-              icon: const Icon(Icons.playlist_add_rounded),
-              label: Text(l10n.myCourseNew),
-            )
-          : null,
     );
   }
 }

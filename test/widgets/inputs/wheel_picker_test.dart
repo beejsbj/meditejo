@@ -31,6 +31,7 @@ Future<_Harness> _pump(
   int value = 5,
   bool typing = true,
   double textScale = 1,
+  bool enabled = true,
 }) async {
   final h = _Harness()..value = value;
   await tester.pumpWidget(
@@ -48,6 +49,7 @@ Future<_Harness> _pump(
                   value: h.value,
                   parseEntry: typing ? _parse : null,
                   entryHint: '0 to 60 minutes',
+                  enabled: enabled,
                   onChanged: (v) => setState(() {
                     h.reported.add(v);
                     h.value = v;
@@ -245,6 +247,64 @@ void main() {
     await tester.tap(find.text('${_state(tester).selectedIndex + 1} min'));
     await tester.pumpAndSettle();
     expect(calls, isEmpty);
+  });
+
+  testWidgets('an off wheel shows its value, dimmed, and cannot turn', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    final h = await _pump(tester, enabled: false);
+    expect(
+      find.descendant(
+        of: find.byType(WheelPicker<int>),
+        matching: find.byWidgetPredicate(
+          (w) => w is Opacity && w.opacity == 0.38,
+        ),
+      ),
+      findsOneWidget,
+    );
+    await tester.drag(find.byType(WheelPicker<int>), const Offset(0, -120));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('6 min'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(h.reported, isEmpty);
+    expect(_state(tester).selectedIndex, 5);
+    // A screen reader hears it as off, with no step to take.
+    expect(
+      tester.getSemantics(find.byType(WheelPicker<int>)),
+      matchesSemantics(
+        label: 'Interval',
+        value: '5 minutes',
+        hasEnabledState: true,
+        isEnabled: false,
+      ),
+    );
+    handle.dispose();
+  });
+
+  testWidgets('a long value shrinks to fit a narrow wheel', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 70,
+              child: WheelPicker<int>(
+                label: 'Rate',
+                options: const [WheelOption(120, '120 BPM')],
+                value: 120,
+                onChanged: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    final shown = tester.getRect(find.text('120 BPM'));
+    final wheel = tester.getRect(find.byType(WheelPicker<int>));
+    expect(shown.left, greaterThanOrEqualTo(wheel.left));
+    expect(shown.right, lessThanOrEqualTo(wheel.right));
   });
 
   testWidgets('tapping a neighbour moves to it', (tester) async {

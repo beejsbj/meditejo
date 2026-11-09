@@ -154,7 +154,14 @@ void main() {
     // Home's Continue offers the same session, at its resume point.
     expect(find.byKey(const ValueKey('continue_x-a-5')), findsOneWidget);
     expect(find.byKey(const ValueKey('continue_x-a-2')), findsNothing);
-    expect(find.text('Lesson 5'), findsOneWidget);
+    // The course's Play names it too; this is Home's card.
+    expect(
+      find.descendant(
+        of: find.byType(ContinueSection),
+        matching: find.text('Lesson 5'),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.widgetWithText(FilledButton, l10n.packContinue),
       findsOneWidget,
@@ -178,7 +185,14 @@ void main() {
 
     expect(label, contains('${l10n.packContinue}: Lesson 3'));
     expect(find.byKey(const ValueKey('continue_x-a-3')), findsOneWidget);
-    expect(find.text('Lesson 3'), findsOneWidget);
+    // The course's Play names it too; this is Home's card.
+    expect(
+      find.descendant(
+        of: find.byType(ContinueSection),
+        matching: find.text('Lesson 3'),
+      ),
+      findsOneWidget,
+    );
     handle.dispose();
   });
 

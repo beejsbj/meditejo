@@ -249,6 +249,28 @@ internal object CueMath {
      */
     fun earnsRepeat(isTimer: Boolean, heardPassEnough: Boolean): Boolean =
         isTimer || heardPassEnough
+
+    /**
+     * Real time for the stats: the recording length at the speeds it was
+     * heard at. Not a clock reading: the [durationMs] length is scaled by the
+     * mix of speeds playback used ([playedRealMs] over [playedMediaMs]), so a
+     * 60-minute talk heard at 2x is 30 minutes. Pauses and seeks are not
+     * playback and do not change the mix. Nothing played yet (a completion
+     * straight after a resume) takes the [speed] in force. A timer is never
+     * sped up: its real time is its length.
+     */
+    fun realDurationMs(
+        durationMs: Long,
+        playedMediaMs: Double,
+        playedRealMs: Double,
+        speed: Double,
+        isTimer: Boolean = false,
+    ): Long {
+        if (durationMs <= 0 || isTimer) return max(0L, durationMs)
+        val ratio = if (playedMediaMs > 0.0 && playedRealMs > 0.0) playedRealMs / playedMediaMs
+        else 1.0 / max(speed, 0.05)
+        return Math.round(durationMs * ratio)
+    }
 }
 
 /**
@@ -326,13 +348,27 @@ internal class ListeningTracker(private val maxStepMs: Long = CueMath.LISTENING_
     private val ranges = ArrayList<LongArray>() // merged, sorted [start, end)
     private var last = -1L
 
-    fun reset() { ranges.clear(); last = -1L }
+    // The mix of speeds this pass was heard at: media walked through by
+    // playback, and that media over the speed each step played at. Only their
+    // ratio is used, to give the recording length at the speeds it was heard
+    // at; a stretch heard again just weighs its speed in again.
+    var playedMediaMs = 0.0
+        private set
+    var playedRealMs = 0.0
+        private set
+
+    fun reset() { ranges.clear(); last = -1L; playedMediaMs = 0.0; playedRealMs = 0.0 }
 
     fun snapshot(): List<List<Long>> = ranges.map { listOf(it[0], it[1]) }
 
-    fun restore(saved: List<List<Long>>) {
+    fun restore(saved: List<List<Long>>, playedMediaMs: Double = 0.0, playedRealMs: Double = 0.0) {
         reset()
         saved.forEach { if (it.size == 2 && it[0] >= 0 && it[1] > it[0]) add(it[0], it[1]) }
+        // Both or neither: a ratio from one alone would be nonsense.
+        if (playedMediaMs > 0.0 && playedRealMs > 0.0 && playedMediaMs.isFinite() && playedRealMs.isFinite()) {
+            this.playedMediaMs = playedMediaMs
+            this.playedRealMs = playedRealMs
+        }
     }
 
     /** Rebase after a seek or a pause: the next step starts here. */
@@ -341,17 +377,28 @@ internal class ListeningTracker(private val maxStepMs: Long = CueMath.LISTENING_
     fun markNotPlaying() { last = -1L }
 
     /** A new pass of a looped recording: nothing heard yet, playback at the start. */
-    fun startPass() { ranges.clear(); last = 0L }
+    fun startPass() { ranges.clear(); last = 0L; playedMediaMs = 0.0; playedRealMs = 0.0 }
 
-    fun sample(positionMs: Long, playing: Boolean) {
+    /**
+     * [speed] widens the largest step in proportion, so a sped-up talk keeps
+     * the same margin for a late or skipped sample as one at 1x. Slower
+     * playback keeps the 1x limit.
+     */
+    fun sample(positionMs: Long, playing: Boolean, speed: Double = 1.0) {
         if (!playing || positionMs < 0) { last = -1L; return }
         val from = last
         last = positionMs
         if (from < 0) return
         val step = positionMs - from
-        if (step <= 0 || step > maxStepMs) return
+        if (step <= 0 || step > (maxStepMs * max(speed, 1.0)).toLong()) return
         add(from, positionMs)
+        playedMediaMs += step
+        playedRealMs += step / max(speed, 0.05)
     }
+
+    /** Real time a [durationMs] play-through takes at the speeds heard so far. See [CueMath.realDurationMs]. */
+    fun realMs(durationMs: Long, speed: Double, isTimer: Boolean = false): Long =
+        CueMath.realDurationMs(durationMs, playedMediaMs, playedRealMs, speed, isTimer)
 
     private fun add(start: Long, end: Long) {
         var s = start

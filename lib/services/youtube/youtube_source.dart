@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
@@ -19,6 +20,7 @@ import 'package:medito/services/library/library_store.dart';
 import 'package:medito/services/local_catalogue.dart';
 import 'package:medito/services/youtube/youtube_ids.dart';
 import 'package:medito/src/youtube_api.g.dart';
+import 'package:medito/utils/logger.dart';
 
 /// Conservative title-only detection. Whole words avoid "talking meditation";
 /// no description guessing. Every other title starts in Practice.
@@ -39,6 +41,23 @@ SourceAttribution youtubeAttribution(String url, String uploader) =>
       licenseUrl: '',
     );
 
+/// A channel as a teacher: who it is, and what of theirs the library holds.
+class YoutubeChannelPage {
+  const YoutubeChannelPage({
+    required this.channel,
+    required this.courses,
+    required this.sessions,
+  });
+
+  final PackTeacher channel;
+
+  /// Saved playlists the channel made.
+  final List<PackItemsModel> courses;
+
+  /// Saved single videos the channel uploaded.
+  final List<PackItemsModel> sessions;
+}
+
 /// Metadata stays in the user's database. Only this source's memory holds
 /// expiring audio URLs; one extraction serves overlapping play requests.
 class YoutubeSource
@@ -53,7 +72,11 @@ class YoutubeSource
     required this.api,
     DateTime Function()? clock,
     this.sessionCourse,
-  }) : _clock = clock ?? DateTime.now;
+    Duration Function()? detailsPause,
+    this.backgroundLookups = 25,
+  }) : _clock = clock ?? DateTime.now,
+       detailsPause = detailsPause ?? _jitteredPause,
+       _budget = backgroundLookups;
 
   final LibraryDatabase db;
   final LibraryStore library;
@@ -69,6 +92,27 @@ class YoutubeSource
   final _resolving = <String, Future<YoutubeAudioStream>>{};
   final _refreshing = <String, Future<bool>>{};
   final _refreshErrors = <String, YoutubeUnavailableError>{};
+  final _filling = <String, Future<bool>>{};
+  final _videoReads = <String, Future<bool>>{};
+  final _channelReads = <String, Future<bool>>{};
+
+  /// The wait between two background lookups, so a long playlist does not
+  /// reach YouTube as a burst: two to five seconds, never the same twice.
+  final Duration Function() detailsPause;
+
+  /// How many background lookups (videos and channels) one run of the app
+  /// may make; the rest wait for the next launch, or for the user to open
+  /// the item. Lookups the user asks for by opening a page are not counted.
+  final int backgroundLookups;
+  int _budget;
+
+  /// A lookup that failed in a way that may pass is not tried again before
+  /// this long.
+  static const retryAfter = Duration(days: 7);
+
+  static final _random = Random();
+  static Duration _jitteredPause() =>
+      Duration(milliseconds: 2000 + _random.nextInt(3001));
 
   /// Refresh outcomes, including failures that leave the library unchanged.
   /// Listen for UI state; do not reopen an empty pack on a failure notification.
@@ -176,7 +220,9 @@ class YoutubeSource
         title: title,
         subtitle: uploader,
         sourceLabel: 'YouTube',
-        description: playlist == null ? video!.description : '',
+        description: playlist == null
+            ? video!.description
+            : playlist.description ?? '',
         artworkUrl: playlist?.thumbnail ?? video!.thumbnail,
         itemCount: durations.length,
         durationMs: durations.fold<int>(
@@ -295,8 +341,12 @@ class YoutubeSource
         : single.durationSeconds * 1000;
     final detected = youtubeGroup(title);
     await db.transaction(() async {
-      if (single != null) await storeVideo(single);
-      if (asCourse && video != null) await storeVideo(video);
+      // Only the video the link named was resolved in full; one picked from
+      // the list carries the list's summary.
+      if (single != null) {
+        await storeVideo(single, resolved: identical(single, video));
+      }
+      if (asCourse && video != null) await storeVideo(video, resolved: true);
       if (asCourse) {
         await storePlaylist(
           id.substring('yt-playlist-'.length),
@@ -305,6 +355,9 @@ class YoutubeSource
                 title: video!.title,
                 uploader: video.uploader,
                 thumbnail: video.thumbnail,
+                description: video.description,
+                channelUrl: video.channelUrl,
+                channelAvatar: video.channelAvatar,
                 items: [
                   YoutubePlaylistItem(
                     videoId: video.videoId,
@@ -312,6 +365,7 @@ class YoutubeSource
                     uploader: video.uploader,
                     durationSeconds: video.durationSeconds,
                     thumbnail: video.thumbnail,
+                    channelUrl: video.channelUrl,
                   ),
                 ],
               ),
@@ -373,6 +427,7 @@ class YoutubeSource
         durationSeconds: previous?.durationSeconds ?? item.durationSeconds,
         thumbnail: previous?.thumbnail ?? item.thumbnail,
         description: previous?.description ?? '',
+        channelUrl: item.channelUrl,
       );
     }
     return video;
@@ -391,21 +446,72 @@ class YoutubeSource
       ? previous!.uploader
       : playlist.uploader;
 
-  Future<void> storeVideo(YoutubeVideo video) => db
-      .into(db.youtubeVideos)
-      .insertOnConflictUpdate(
-        YoutubeVideosCompanion.insert(
-          videoId: video.videoId,
-          title: video.title,
-          uploader: video.uploader,
-          thumbnail: video.thumbnail,
-          description: Value(video.description),
-          durationSeconds: video.durationSeconds,
-        ),
-      );
+  /// Stores [video]. [resolved] says it came from the video's own page, so
+  /// its description is the real one and need not be looked up again.
+  /// [channelKey] stands in when the video names no channel of its own.
+  Future<void> storeVideo(
+    YoutubeVideo video, {
+    bool resolved = false,
+    String? channelKey,
+  }) async {
+    final channel =
+        await _noteChannel(
+          video.channelUrl,
+          video.uploader,
+          video.channelAvatar,
+        ) ??
+        channelKey;
+    await db
+        .into(db.youtubeVideos)
+        .insertOnConflictUpdate(
+          YoutubeVideosCompanion.insert(
+            videoId: video.videoId,
+            title: video.title,
+            uploader: video.uploader,
+            thumbnail: video.thumbnail,
+            description: Value(video.description),
+            durationSeconds: video.durationSeconds,
+            // Absent keeps what an earlier, fuller answer stored.
+            channelId: channel == null ? const Value.absent() : Value(channel),
+            resolvedAt: resolved ? Value(_clock()) : const Value.absent(),
+          ),
+        );
+  }
+
+  /// Records the channel at [url] under its key and returns the key; null
+  /// when [url] is not a channel page. What is known is never replaced by
+  /// nothing: an empty [name] or [avatar] keeps the stored one.
+  Future<String?> _noteChannel(String? url, String name, String? avatar) async {
+    final key = youtubeChannelKey(url);
+    if (key == null) return null;
+    final picture = avatar ?? '';
+    await db
+        .into(db.youtubeChannels)
+        .insert(
+          YoutubeChannelsCompanion.insert(
+            channelId: key,
+            url: url!,
+            name: Value(name),
+            avatar: Value(picture),
+          ),
+          onConflict: DoUpdate(
+            (_) => YoutubeChannelsCompanion(
+              url: Value(url),
+              name: name.isEmpty ? const Value.absent() : Value(name),
+              avatar: picture.isEmpty ? const Value.absent() : Value(picture),
+            ),
+          ),
+        );
+    return key;
+  }
 
   Future<void> storePlaylist(String id, YoutubePlaylist playlist) =>
       db.transaction(() async {
+        final owner = await _noteChannel(
+          playlist.channelUrl,
+          playlist.uploader,
+          playlist.channelAvatar,
+        );
         for (final item in playlist.items) {
           // Playlist summaries must not erase a description already resolved.
           final previous = await db.youtubeVideo(item.videoId);
@@ -417,9 +523,18 @@ class YoutubeSource
               durationSeconds: item.durationSeconds,
               thumbnail: item.thumbnail,
               description: previous?.description ?? '',
+              channelUrl: item.channelUrl,
             ),
+            // A row with no channel link of its own is the owner's when it
+            // names no one else, unless an earlier answer said otherwise.
+            channelKey:
+                (item.uploader.isEmpty || item.uploader == playlist.uploader) &&
+                    (previous == null || previous.channelId.isEmpty)
+                ? owner
+                : null,
           );
         }
+        final description = playlist.description ?? '';
         await db
             .into(db.youtubePlaylists)
             .insertOnConflictUpdate(
@@ -432,9 +547,232 @@ class YoutubeSource
                   playlist.items.map((i) => i.videoId).toList(),
                 ),
                 lastCheckedAt: _clock(),
+                // A failed read of the description is not a deleted one.
+                description: description.isEmpty
+                    ? const Value.absent()
+                    : Value(description),
+                channelId: owner == null ? const Value.absent() : Value(owner),
               ),
             );
       });
+
+  /// Fills in what a playlist's rows leave out: each video's own description
+  /// and each channel's picture and About text. One lookup at a time, with
+  /// [detailsPause] between them, and no more than [backgroundLookups] in a
+  /// run of the app. Being offline or rate-limited stops it until the next
+  /// try; a video or channel YouTube will not show (private, age-restricted)
+  /// is marked done; any other failure waits [retryAfter]. Never throws.
+  ///
+  /// [id] is a saved course or single. True when anything changed.
+  Future<bool> fillDetails(String id) {
+    final active = _filling[id];
+    if (active != null) return active;
+    return _filling[id] = _fillDetails(id).whenComplete(() {
+      _filling.remove(id);
+    });
+  }
+
+  Future<bool> _fillDetails(String id) async {
+    var changed = false;
+    var asked = false;
+    // False once this run's budget is spent.
+    Future<bool> next() async {
+      if (_budget <= 0) return false;
+      _budget--;
+      if (asked) {
+        final pause = detailsPause();
+        if (pause > Duration.zero) await Future<void>.delayed(pause);
+      }
+      asked = true;
+      return true;
+    }
+
+    try {
+      final List<String> videoIds;
+      final channels = <String>{};
+      if (id.startsWith('yt-playlist-')) {
+        final row = await db.youtubePlaylist(
+          id.substring('yt-playlist-'.length),
+        );
+        if (row == null) return false;
+        videoIds = _ids(row);
+        if (row.channelId.isNotEmpty) channels.add(row.channelId);
+      } else if (id.startsWith('yt-video-')) {
+        videoIds = [id.substring('yt-video-'.length)];
+      } else {
+        return false;
+      }
+      for (final videoId in videoIds.toSet()) {
+        final row = await db.youtubeVideo(videoId);
+        if (row == null) continue;
+        if (_due(row.resolvedAt, row.retryAt)) {
+          if (!await next()) break;
+          changed = await _describeVideo(row) || changed;
+        }
+        final known = (await db.youtubeVideo(videoId))?.channelId ?? '';
+        if (known.isNotEmpty) channels.add(known);
+      }
+      for (final key in channels) {
+        final row = await db.youtubeChannel(key);
+        if (row == null || !_due(row.checkedAt, row.retryAt)) continue;
+        if (!await next()) break;
+        changed = await _readChannel(row) || changed;
+      }
+    } catch (e) {
+      AppLogger.d('YOUTUBE', 'Details stopped for now: $e');
+    }
+    if (changed) contentRevision.value++;
+    return changed;
+  }
+
+  /// Never looked up, and not waiting out an earlier failure.
+  bool _due(DateTime? doneAt, DateTime? retryAt) =>
+      doneAt == null && (retryAt == null || !retryAt.isAfter(_clock()));
+
+  /// Looks up one video's description now, because its page (an episode, or
+  /// a one-video course's Summary) was opened. Outside the background
+  /// budget and without a pause; does nothing for a video already looked up
+  /// or waiting out a failure. Never throws. True when anything changed.
+  ///
+  /// [id] is `yt-video-…` or a one-video course `yt-playlist-single-…`. A
+  /// playlist's own description comes with the playlist, so a playlist has
+  /// nothing to look up here.
+  Future<bool> describe(String id) {
+    final String videoId;
+    if (id.startsWith('yt-video-')) {
+      videoId = id.substring('yt-video-'.length);
+    } else if (id.startsWith('yt-playlist-single-')) {
+      videoId = id.substring('yt-playlist-single-'.length);
+    } else {
+      return Future.value(false);
+    }
+    return () async {
+      try {
+        // A background fill already reading it: wait for that one.
+        final active = _videoReads[videoId];
+        if (active != null) return await active;
+        final row = await db.youtubeVideo(videoId);
+        if (row == null || !_due(row.resolvedAt, row.retryAt)) return false;
+        final changed = await _describeVideo(row);
+        if (changed) contentRevision.value++;
+        return changed;
+      } catch (e) {
+        AppLogger.d('YOUTUBE', 'Description not read for now: $e');
+        return false;
+      }
+    }();
+  }
+
+  /// Offline and rate-limited apply to every lookup after this one too.
+  static bool _stopsLookups(YoutubeUnavailableError failure) =>
+      failure.reason == YoutubeFailureReason.offline ||
+      failure.reason == YoutubeFailureReason.rateLimited;
+
+  /// YouTube will not show it to us, now or later.
+  static bool _isFinal(YoutubeUnavailableError failure) =>
+      failure.reason == YoutubeFailureReason.private ||
+      failure.reason == YoutubeFailureReason.ageRestricted;
+
+  /// Resolves [row]'s video into its row, sharing a lookup already under
+  /// way. Throws when lookups should stop for now. True when the row changed.
+  Future<bool> _describeVideo(YoutubeVideoRow row) {
+    final videoId = row.videoId;
+    return _videoReads[videoId] ??= _describeVideoNow(videoId).whenComplete(() {
+      _videoReads.remove(videoId);
+    });
+  }
+
+  Future<bool> _describeVideoNow(String videoId) async {
+    final YoutubeVideo fresh;
+    try {
+      fresh = await api.resolveVideo(videoId);
+    } catch (e) {
+      final failure = _failure(e);
+      if (_stopsLookups(failure)) throw failure;
+      await (db.update(
+        db.youtubeVideos,
+      )..where((v) => v.videoId.equals(videoId))).write(
+        _isFinal(failure)
+            ? YoutubeVideosCompanion(resolvedAt: Value(_clock()))
+            : YoutubeVideosCompanion(retryAt: Value(_clock().add(retryAfter))),
+      );
+      return true;
+    }
+    final channel = await _noteChannel(
+      fresh.channelUrl,
+      fresh.uploader,
+      fresh.channelAvatar,
+    );
+    await (db.update(
+      db.youtubeVideos,
+    )..where((v) => v.videoId.equals(videoId))).write(
+      YoutubeVideosCompanion(
+        // An empty answer never replaces a real description.
+        description: fresh.description.isEmpty
+            ? const Value.absent()
+            : Value(fresh.description),
+        channelId: channel == null ? const Value.absent() : Value(channel),
+        resolvedAt: Value(_clock()),
+        retryAt: const Value(null),
+      ),
+    );
+    return true;
+  }
+
+  /// Reads a channel's own page into its row, sharing a read already under
+  /// way. Throws when lookups should stop for now.
+  Future<bool> _readChannel(YoutubeChannelRow row) {
+    final key = row.channelId;
+    return _channelReads[key] ??= _readChannelNow(row).whenComplete(() {
+      _channelReads.remove(key);
+    });
+  }
+
+  Future<bool> _readChannelNow(YoutubeChannelRow row) async {
+    final YoutubeChannel fresh;
+    try {
+      fresh = await api.resolveChannel(row.url);
+    } catch (e) {
+      final failure = _failure(e);
+      if (_stopsLookups(failure)) throw failure;
+      await (db.update(
+        db.youtubeChannels,
+      )..where((c) => c.channelId.equals(row.channelId))).write(
+        _isFinal(failure)
+            ? YoutubeChannelsCompanion(checkedAt: Value(_clock()))
+            : YoutubeChannelsCompanion(
+                retryAt: Value(_clock().add(retryAfter)),
+              ),
+      );
+      return true;
+    }
+    await (db.update(
+      db.youtubeChannels,
+    )..where((c) => c.channelId.equals(row.channelId))).write(
+      YoutubeChannelsCompanion(
+        name: fresh.name.isEmpty ? const Value.absent() : Value(fresh.name),
+        avatar: fresh.avatar.isEmpty
+            ? const Value.absent()
+            : Value(fresh.avatar),
+        description: fresh.description.isEmpty
+            ? const Value.absent()
+            : Value(fresh.description),
+        checkedAt: Value(_clock()),
+        retryAt: const Value(null),
+      ),
+    );
+    // A saved channel shows what its page now says (a picture where it had
+    // none). This is the read that was happening anyway, not a refresh.
+    final saved = ytChannelId(row.channelId);
+    if (await library.contains(saved)) {
+      await library.updateSnapshot(
+        saved,
+        title: fresh.name.isEmpty ? null : fresh.name,
+        coverUrl: fresh.avatar.isEmpty ? null : fresh.avatar,
+      );
+    }
+    return true;
+  }
 
   List<String> _ids(YoutubePlaylistRow row) =>
       (jsonDecode(row.videoIds) as List).cast<String>();
@@ -518,9 +856,16 @@ class YoutubeSource
 
   Future<bool> refreshAll() async {
     var changed = false;
-    for (final entry in await library.entries()) {
+    final entries = await library.entries();
+    for (final entry in entries) {
       if (entry.sourceId.startsWith('yt-playlist-')) {
         changed = await refresh(entry.sourceId) || changed;
+      }
+    }
+    // Then the details the lists leave out, for everything saved.
+    for (final entry in entries) {
+      if (canSave(entry.sourceId)) {
+        changed = await fillDetails(entry.sourceId) || changed;
       }
     }
     return changed;
@@ -529,23 +874,132 @@ class YoutubeSource
   @override
   Future<List<PackModel>> browsePacks() async => [
     for (final row in await db.youtubeCourses())
-      if (await library.contains(ytPlaylistId(row.playlistId))) _summary(row),
+      if (await library.contains(ytPlaylistId(row.playlistId)))
+        await _summary(row),
   ];
 
-  PackModel _summary(YoutubePlaylistRow row) => PackModel(
-    id: ytPlaylistId(row.playlistId),
-    title: row.title,
-    subtitle: row.uploader,
-    coverUrl: row.thumbnail,
-    path: '/packs/${ytPlaylistId(row.playlistId)}',
-    isPublished: true,
-    attribution: youtubeAttribution(
-      row.playlistId.startsWith('single-')
-          ? 'https://www.youtube.com/watch?v=${row.playlistId.substring(7)}'
-          : 'https://www.youtube.com/playlist?list=${row.playlistId}',
-      row.uploader,
-    ),
-  );
+  Future<PackModel> _summary(YoutubePlaylistRow row) async {
+    final channel = row.channelId.isEmpty
+        ? null
+        : await db.youtubeChannel(row.channelId);
+    var description = row.description;
+    // A one-video course saved before playlists kept a description reads
+    // as its video.
+    if (description.isEmpty && row.playlistId.startsWith('single-')) {
+      description =
+          (await db.youtubeVideo(row.playlistId.substring(7)))?.description ??
+          '';
+    }
+    return PackModel(
+      id: ytPlaylistId(row.playlistId),
+      title: row.title,
+      subtitle: row.uploader,
+      coverUrl: row.thumbnail,
+      path: '/packs/${ytPlaylistId(row.playlistId)}',
+      description: description.isEmpty ? null : description,
+      isPublished: true,
+      teacher: channel == null ? null : _teacherOf(channel, row.uploader),
+      attribution: youtubeAttribution(
+        row.playlistId.startsWith('single-')
+            ? 'https://www.youtube.com/watch?v=${row.playlistId.substring(7)}'
+            : 'https://www.youtube.com/playlist?list=${row.playlistId}',
+        row.uploader,
+      ),
+    );
+  }
+
+  /// The channel as a teacher. [fallbackName] is what a playlist or video
+  /// called it, for a channel whose page has not been read.
+  static PackTeacher _teacherOf(YoutubeChannelRow row, String fallbackName) =>
+      PackTeacher(
+        id: ytChannelId(row.channelId),
+        name: row.name.isNotEmpty ? row.name : fallbackName,
+        bio: row.description,
+        photoUrl: row.avatar,
+        pageUrl: row.url,
+      );
+
+  /// The channel's picture for a saved course or video, for its card; empty
+  /// when there is none yet.
+  Future<String> avatarFor(String id) async {
+    String? key;
+    if (id.startsWith('yt-playlist-')) {
+      final row = await db.youtubePlaylist(id.substring('yt-playlist-'.length));
+      key = row?.channelId;
+    } else if (id.startsWith('yt-video-')) {
+      key = (await db.youtubeVideo(
+        id.substring('yt-video-'.length),
+      ))?.channelId;
+    }
+    if (key == null || key.isEmpty) return '';
+    return (await db.youtubeChannel(key))?.avatar ?? '';
+  }
+
+  /// A channel's page: the channel, and the saved courses and videos that
+  /// are its own. Null when the channel is not stored. The first time, the
+  /// channel's own page is read in the background.
+  Future<YoutubeChannelPage?> channelPage(String teacherId) async {
+    if (!isYtChannelId(teacherId)) return null;
+    final key = ytChannelKeyOf(teacherId);
+    final row = await db.youtubeChannel(key);
+    if (row == null) return null;
+    // A read already under way (from a fill, or an earlier open) is the one
+    // that will tell the page.
+    if (_due(row.checkedAt, row.retryAt) && !_channelReads.containsKey(key)) {
+      unawaited(
+        _readChannel(row)
+            .then((changed) {
+              if (changed) contentRevision.value++;
+            })
+            .catchError((Object e) {
+              AppLogger.d('YOUTUBE', 'Channel not read for now: $e');
+            }),
+      );
+    }
+    final courses = <PackItemsModel>[];
+    final sessions = <PackItemsModel>[];
+    for (final entry in await library.entries()) {
+      final id = entry.sourceId;
+      if (id.startsWith('yt-playlist-')) {
+        final playlist = await db.youtubePlaylist(
+          id.substring('yt-playlist-'.length),
+        );
+        if (playlist == null || playlist.channelId != key) continue;
+        courses.add(
+          PackItemsModel(
+            type: TypeConstants.pack,
+            id: id,
+            title: entry.displayTitle,
+            coverUrl: playlist.thumbnail,
+            path: '/packs/$id',
+          ),
+        );
+      } else if (id.startsWith('yt-video-')) {
+        final video = await db.youtubeVideo(id.substring('yt-video-'.length));
+        if (video == null || video.channelId != key) continue;
+        sessions.add(
+          PackItemsModel(
+            type: TypeConstants.track,
+            id: id,
+            title: entry.displayTitle,
+            subtitle: video.uploader,
+            teacher: video.uploader,
+            teacherId: ytChannelId(key),
+            coverUrl: video.thumbnail,
+            path: '/tracks/$id',
+            durationMs: video.durationSeconds > 0
+                ? video.durationSeconds * 1000
+                : null,
+          ),
+        );
+      }
+    }
+    return YoutubeChannelPage(
+      channel: _teacherOf(row, row.name),
+      courses: courses,
+      sessions: sessions,
+    );
+  }
 
   @override
   Future<PackModel> pack(String id) async {
@@ -554,7 +1008,7 @@ class YoutubeSource
     }
     final row = await db.youtubePlaylist(id.substring('yt-playlist-'.length));
     if (row == null) throw CatalogueEntryUnavailable('pack', id);
-    final stored = _summary(row).copyWith(
+    final stored = (await _summary(row)).copyWith(
       items: [
         for (final item in await _items(row))
           PackItemsModel(
@@ -563,6 +1017,9 @@ class YoutubeSource
             title: item.title,
             subtitle: item.uploader,
             teacher: item.uploader,
+            teacherId: item.channelId.isEmpty
+                ? null
+                : ytChannelId(item.channelId),
             coverUrl: item.thumbnail,
             path: '/tracks/${ytVideoId(item.videoId)}',
             durationMs: item.durationSeconds > 0
@@ -572,8 +1029,9 @@ class YoutubeSource
       ],
     );
     // A slow extractor must not delay opening stored courses or Home.
-    // Automatic refresh records failures and returns false quietly.
-    unawaited(refresh(id));
+    // Automatic refresh records failures and returns false quietly; the
+    // details the list leaves out follow it.
+    unawaited(refresh(id).then((_) => fillDetails(id)));
     return stored;
   }
 
@@ -766,13 +1224,32 @@ class YoutubeSource
 
   @override
   bool canSave(String id) =>
-      id.startsWith('yt-video-') || id.startsWith('yt-playlist-');
+      id.startsWith('yt-video-') ||
+      id.startsWith('yt-playlist-') ||
+      isYtChannelId(id);
   @override
   Future<bool> isSaved(String id) => library.contains(id);
   @override
   Future<void> setSaved(String id, {required bool saved}) async {
     if (!saved) {
       await library.remove(id);
+      return;
+    }
+    if (isYtChannelId(id)) {
+      // A channel is saved as a teacher, as a Dharma Seed teacher is: its
+      // name and picture, opening its page. Nothing is subscribed to.
+      final row = await db.youtubeChannel(ytChannelKeyOf(id));
+      if (row == null) return;
+      await library.add(
+        LibraryDraft(
+          sourceId: id,
+          kind: LibraryKind.teacher,
+          title: row.name.isNotEmpty ? row.name : ytChannelKeyOf(id),
+          subtitle: 'YouTube',
+          // Empty: the teacher's generated art stands in.
+          coverUrl: row.avatar,
+        ),
+      );
       return;
     }
     if (id.startsWith('yt-playlist-')) {

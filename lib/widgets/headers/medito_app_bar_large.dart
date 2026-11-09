@@ -84,19 +84,27 @@ class _MeditoAppBarLargeState extends State<MeditoAppBarLarge> {
     if (coverUrl != null || widget.art != null) {
       return Opacity(
         opacity: 1 - scrollFactor,
-        child: NetworkImageWidget(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomLeft,
-            colors: [
-              ColorConstants.black.withOpacityValue(0),
-              ColorConstants.black.withOpacityValue(0.3),
-            ],
+        // The scrim sits over the picture or, when there is none, over the
+        // generated art, which can be pale: the white title stays legible.
+        child: DecoratedBox(
+          position: DecorationPosition.foreground,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              stops: const [0.4, 1],
+              colors: [
+                ColorConstants.black.withOpacityValue(0),
+                ColorConstants.black.withOpacityValue(0.45),
+              ],
+            ),
           ),
-          url: coverUrl ?? '',
-          shouldCache: true,
-          art: widget.art,
-          alignment: Alignment.topCenter,
+          child: NetworkImageWidget(
+            url: coverUrl ?? '',
+            shouldCache: true,
+            art: widget.art,
+            alignment: Alignment.topCenter,
+          ),
         ),
       );
     }

@@ -1,7 +1,7 @@
 appId: ${APP_ID}
 name: Smoke Test – Local Navigation, Stats, Timer
 ---
-# Fresh local state; the app opens Home directly.
+# Fresh local state; the first-launch intro (#87) opens over Home.
 - launchApp:
     clearState: true
 
@@ -18,6 +18,16 @@ name: Smoke Test – Local Navigation, Stats, Timer
                 text: "Wait"
                 optional: true
 
+# A fresh install sees "What Meditejo is" once; Start lands on Home.
+- extendedWaitUntil:
+    visible: "Home|One calm place for your practice."
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "One calm place for your practice."
+    commands:
+      - takeScreenshot: first-launch-intro
+      - tapOn: "Start"
 - extendedWaitUntil:
     visible: "Home"
     timeout: 30000

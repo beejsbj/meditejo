@@ -474,6 +474,25 @@ class CueMathTest {
         assertEquals(45_000L, t.heardMs())
     }
 
+    @Test fun aLateSampleAtDoubleSpeedStillCounts() {
+        // Two ticks missed at 2x: 6 s of media between samples. At 1x that
+        // much would be a jump; at 2x it is three seconds of listening.
+        val t = ListeningTracker()
+        t.rebase(0)
+        t.sample(2_000, true, 2.0)
+        t.sample(8_000, true, 2.0)
+        assertEquals(8_000L, t.heardMs())
+        val slow = ListeningTracker()
+        slow.rebase(0)
+        slow.sample(2_000, true, 0.6)
+        slow.sample(8_000, true, 0.6) // still a jump below 1x
+        assertEquals(2_000L, slow.heardMs())
+        val far = ListeningTracker()
+        far.rebase(0)
+        far.sample(11_000, true, 2.0) // beyond 10 s at 2x: a jump
+        assertEquals(0L, far.heardMs())
+    }
+
     @Test fun fastPlaybackCountsMediaTime() {
         val t = ListeningTracker()
         play(t, 0, 540_000, step = 2000) // 2x, sampled each second
@@ -547,6 +566,97 @@ class CueMathTest {
         val many = (1..5).associate { "t$it" to now - it * day }
         assertEquals(setOf("t4", "t5"), ListeningReceipts.stale(many, now, maxCount = 3))
         assertTrue(ListeningReceipts.stale(emptyMap(), now).isEmpty())
+    }
+
+    private fun playAt(tracker: ListeningTracker, from: Long, to: Long, speed: Double) {
+        // Sampled once a real second: each step covers `speed` seconds of media.
+        val step = (1000 * speed).toLong()
+        var p = from
+        tracker.rebase(p)
+        while (p < to) { p = minOf(p + step, to); tracker.sample(p, true, speed) }
+    }
+
+    @Test fun realTimeAtDoubleSpeedIsHalfTheRecording() {
+        val t = ListeningTracker()
+        playAt(t, 0, 3_600_000, 2.0)
+        assertEquals(1_800_000L, t.realMs(3_600_000, 2.0))
+        // At 1x real time is the recording's length, to the millisecond.
+        val plain = ListeningTracker()
+        playAt(plain, 0, 600_000, 1.0)
+        assertEquals(600_000L, plain.realMs(600_000, 1.0))
+    }
+
+    @Test fun realTimeFollowsTheSpeedsEachStretchWasHeardAt() {
+        // Half the talk at 1x, half at 2x: 30 + 15 = 45 real minutes.
+        val t = ListeningTracker()
+        playAt(t, 0, 1_800_000, 1.0)
+        playAt(t, 1_800_000, 3_600_000, 2.0)
+        assertEquals(2_700_000L, t.realMs(3_600_000, 2.0))
+        // Slowed down, a sit takes longer than its recording.
+        val slow = ListeningTracker()
+        playAt(slow, 0, 600_000, 0.6)
+        assertEquals(1_000_000.0, slow.realMs(600_000, 0.6).toDouble(), 1.0)
+    }
+
+    @Test fun realTimeIsProjectedWhenTheCompletionGoesOutAtNinetyPercent() {
+        // Recorded at 90%: the last tenth is taken at the same speed.
+        val t = ListeningTracker()
+        playAt(t, 0, 540_000, 1.5)
+        assertTrue(t.completed(600_000))
+        assertEquals(400_000L, t.realMs(600_000, 1.5))
+    }
+
+    @Test fun pausesAndSeeksAddNoRealTime() {
+        val t = ListeningTracker()
+        playAt(t, 0, 60_000, 2.0)
+        t.markNotPlaying()
+        t.sample(60_000, false, 2.0) // paused for any length of time
+        t.rebase(300_000) // a seek forward
+        playAt(t, 300_000, 360_000, 2.0)
+        assertEquals(120_000.0, t.playedMediaMs, 0.0)
+        assertEquals(60_000.0, t.playedRealMs, 0.0)
+        assertEquals(300_000L, t.realMs(600_000, 2.0))
+    }
+
+    @Test fun realTimeWithNothingPlayedTakesTheSpeedInForce() {
+        assertEquals(300_000L, ListeningTracker().realMs(600_000, 2.0))
+        assertEquals(600_000L, ListeningTracker().realMs(600_000, 1.0))
+        assertEquals(0L, ListeningTracker().realMs(0, 2.0))
+    }
+
+    @Test fun aTimersRealTimeIsItsLength() {
+        val t = ListeningTracker()
+        playAt(t, 0, 60_000, 2.0)
+        assertEquals(1_200_000L, t.realMs(1_200_000, 2.0, isTimer = true))
+        assertEquals(1_200_000L, CueMath.realDurationMs(1_200_000, 0.0, 0.0, 2.0, isTimer = true))
+    }
+
+    @Test fun eachPassAndEachTrackStartsItsRealTimeFresh() {
+        val t = ListeningTracker()
+        playAt(t, 0, 60_000, 2.0)
+        t.startPass()
+        assertEquals(0.0, t.playedMediaMs, 0.0)
+        playAt(t, 0, 60_000, 1.0)
+        assertEquals(60_000L, t.realMs(60_000, 1.0))
+        t.reset()
+        assertEquals(0.0, t.playedRealMs, 0.0)
+    }
+
+    @Test fun aResumedSessionKeepsTheSpeedsItWasHeardAt() {
+        val before = ListeningTracker()
+        playAt(before, 0, 120_000, 2.0)
+        val after = ListeningTracker()
+        after.restore(before.snapshot(), before.playedMediaMs, before.playedRealMs)
+        playAt(after, 120_000, 240_000, 2.0)
+        assertEquals(120_000L, after.realMs(240_000, 2.0))
+        // A receipt from before real time was saved has neither: nothing is invented.
+        val old = ListeningTracker()
+        old.restore(before.snapshot())
+        assertEquals(0.0, old.playedMediaMs, 0.0)
+        old.restore(before.snapshot(), playedMediaMs = 120_000.0, playedRealMs = 0.0)
+        assertEquals(0.0, old.playedMediaMs, 0.0)
+        old.restore(before.snapshot(), playedMediaMs = Double.NaN, playedRealMs = 1.0)
+        assertEquals(0.0, old.playedRealMs, 0.0)
     }
 
     @Test fun malformedPersistedRangesCannotInventListening() {

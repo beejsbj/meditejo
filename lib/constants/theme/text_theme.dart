@@ -109,7 +109,7 @@ TextTheme legacyTextTheme(ColorScheme scheme) {
           fontFamily: googleSans,
         ),
         titleLarge: TextStyle(
-          // onboarding option button label
+          // Sheet and dialog titles, empty states, a teacher's name.
           fontSize: 16,
           letterSpacing: 0.2,
           fontWeight: FontWeight.w500,

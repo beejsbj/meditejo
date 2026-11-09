@@ -8,7 +8,7 @@ import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/downloads/downloads_view.dart';
-import 'package:medito/views/favorites/favorites_view.dart';
+import 'package:medito/views/home/widgets/pinned/pinned_list_view.dart';
 import 'package:medito/views/home/customise_home_layout_screen.dart';
 import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/settings/settings_screen.dart';
@@ -16,6 +16,7 @@ import 'package:medito/views/stats/stats_screen.dart';
 import 'package:medito/views/teacher/teacher_view.dart';
 import 'package:medito/views/timer/timer_view.dart';
 import 'package:medito/views/track/track_view.dart';
+import 'package:medito/views/you/you_view.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 extension SanitisePath on String {
@@ -25,16 +26,19 @@ extension SanitisePath on String {
 final navigatorKey = GlobalKey<NavigatorState>();
 
 /// The tab a link such as `meditejo://library` opens; `search` is Explore with
-/// the cursor in its field, and `settings` is You, where Settings lives. Null
-/// for anything else.
+/// the cursor in its field. Null for anything else, `you` included: You is a
+/// page, not a tab.
 MainTab? tabForLink(String type) => switch (type) {
   TypeConstants.tabHome => MainTab.home,
   TypeConstants.tabExplore || TypeConstants.tabSearch => MainTab.explore,
   TypeConstants.tabSounds => MainTab.sounds,
   TypeConstants.tabLibrary => MainTab.library,
-  TypeConstants.tabYou || TypeConstants.tabSettings => MainTab.you,
+  TypeConstants.tabSettings => MainTab.settings,
   _ => null,
 };
+
+/// The route name of course [id]'s page.
+String coursePageRouteName(String id) => '/packs/$id';
 
 /// Source repositories supply track/pack IDs; navigation does not resolve media.
 ///
@@ -77,7 +81,11 @@ Future<void> handleNavigation(
     return;
   }
   Widget? page;
-  if (type.contains('track') && values.isNotEmpty) {
+  if (type == TypeConstants.tabYou) {
+    // The old You tab's link: the You page, alone over the tabs.
+    navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    page = const YouView();
+  } else if (type.contains('track') && values.isNotEmpty) {
     if (values.first != kLegacyTimerTrackId && context.mounted) {
       final store = ref != null
           ? ref.read(libraryStoreProvider)
@@ -90,7 +98,15 @@ Future<void> handleNavigation(
     }
     page = values.first == kLegacyTimerTrackId
         ? const TimerView()
-        : TrackView(trackId: values.first, fromStart: fromStart);
+        : TrackView(
+            trackId: values.first,
+            fromStart: fromStart,
+            // The page it opens over (a course's), so its course line can
+            // go back to it rather than open it again.
+            openedOver: context.mounted
+                ? ModalRoute.of(context)?.settings.name
+                : null,
+          );
   } else if (type == TypeConstants.teacher && values.isNotEmpty) {
     page = TeacherView(teacherId: values.first);
   } else if (type.contains('pack') && values.isNotEmpty) {
@@ -100,8 +116,9 @@ Future<void> handleNavigation(
         ? 1
         : 0;
     if (index >= values.length) return;
+    // Medito's favourites "pack" is now the list of pins (#79).
     page = values[index] == 'favorites'
-        ? const FavoritesView()
+        ? const PinnedListView()
         : PackView(id: values[index]);
   } else if (type == TypeConstants.url || type == TypeConstants.link) {
     if (values.isEmpty) return;
@@ -130,7 +147,13 @@ Future<void> handleNavigation(
   }
   if (page == null) return;
   await navigatorKey.currentState?.push<void>(
-    MaterialPageRoute(builder: (_) => page!),
+    MaterialPageRoute(
+      builder: (_) => page!,
+      // A course's page is named for it: an episode opened over it knows.
+      settings: page is PackView
+          ? RouteSettings(name: coursePageRouteName(page.id))
+          : null,
+    ),
   );
   if (ref != null && context.mounted) {
     ref.read(statsProvider.notifier).refresh();

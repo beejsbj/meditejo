@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 
@@ -20,6 +22,8 @@ import 'package:medito/utils/notification_permission_flow.dart';
 import 'package:medito/utils/permission_handler.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:medito/views/bottom_navigation/bottom_navigation_bar_view.dart';
+import 'package:medito/views/settings/battery_optimization_screen.dart'
+    show offerBatteryGuidanceOnce;
 import 'package:medito/views/settings/widgets/reminder_tile.dart'
     show
         ReminderChoice,
@@ -739,9 +743,9 @@ class _EndScreenViewState extends ConsumerState<EndScreenView>
         if (!recovered || !mounted) return;
       }
 
-      // Time first, permission second — same order as onboarding's chips and
-      // the Settings tile. Replaces the old silent "same time tomorrow"
-      // default that the other two surfaces had already dropped.
+      // Time first, permission second — same order as the Settings tile.
+      // Replaces the old silent "same time tomorrow" default that the tile
+      // had already dropped.
       final pick = await _pickReminderTime();
       if (pick == null || !mounted) return;
       final time = pick;
@@ -766,12 +770,20 @@ class _EndScreenViewState extends ConsumerState<EndScreenView>
         prefs: prefs,
         reminders: ref.read(reminderProvider),
       );
+      // Captured now: the card is gone once reminders are on.
+      final navigator = Navigator.of(context);
+      final container = ProviderScope.containerOf(context, listen: false);
 
       await service.enableAt(time, l10n: AppLocalizations.of(context));
       await ref.read(reminderEnabledProvider.notifier).setEnabled(true);
       await ref.read(reminderTimeProvider.notifier).setTime(time);
 
       // No setState: reminderEnabledProvider flipping to true hides the card.
+      // The first reminder on a phone that would hold it back asks to let
+      // Meditejo run in the background (#87; was in Medito's onboarding).
+      unawaited(
+        offerBatteryGuidanceOnce(navigator: navigator, container: container),
+      );
     } catch (e, s) {
       // Keep scheduling failures visible to diagnostics.
       AppLogger.e('END_SCREEN', 'Failed to enable daily reminders: $e', s);

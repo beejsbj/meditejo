@@ -852,6 +852,27 @@ void main() {
   );
 
   group('presets', () {
+    test(
+      'a preset still matches after its drone is edited and put back',
+      () async {
+        ctl().applyPreset('starter-stillness');
+        await settle();
+        expect(st().matchingPreset?.id, 'starter-stillness');
+        DroneParams drone() =>
+            DroneParams.fromJson(st().mix.layer(kSynthDroneId)!.params);
+        ctl().setLayerParams(
+          kSynthDroneId,
+          drone().copyWith(timbre: DroneTimbre.warm).toJson(),
+        );
+        expect(st().matchingPreset, isNull);
+        ctl().setLayerParams(
+          kSynthDroneId,
+          drone().copyWith(timbre: DroneTimbre.pure).toJson(),
+        );
+        expect(st().matchingPreset?.id, 'starter-stillness');
+      },
+    );
+
     test('apply, save and delete; saved presets persist', () async {
       ctl().applyPreset('starter-night');
       await settle();
@@ -1190,6 +1211,348 @@ void main() {
     });
   });
 
+  group('the mixer drawer (#66)', () {
+    /// Several passes of the mixer's serialised sync: opening, editing and
+    /// closing a drawer each queue one.
+    Future<void> drain() async {
+      for (var i = 0; i < 6; i++) {
+        await settle();
+      }
+    }
+
+    test('a draft is heard but never saved as the Sounds mix', () async {
+      // The Sounds tab's own mix, playing.
+      ctl().clearMix();
+      ctl().toggleSound('river');
+      await drain();
+      final tabMix = st().mix;
+      expect(st().playing, isTrue);
+
+      ctl().beginAudition(
+        SoundscapeSessionKind.practice,
+        kStarterPresets.first.mix,
+      );
+      await drain();
+      // Loaded, silent, waiting for the first tap.
+      expect(st().mix, kStarterPresets.first.mix);
+      expect(st().playing, isFalse);
+      expect(engine.playing, isEmpty);
+
+      ctl().toggleSound('cafe');
+      await drain();
+      expect(engine.playing.keys, contains('cafe'), reason: 'auditioned');
+      expect(
+        SoundscapeStore(prefs).readMix(),
+        tabMix,
+        reason: 'the stored mix is the Sounds tab\'s',
+      );
+
+      ctl().endAudition();
+      await drain();
+      expect(st().mix, tabMix);
+      expect(st().playing, isTrue, reason: 'as the tab left it');
+      expect(engine.playing.keys, ['river']);
+    });
+
+    test('a paused Sounds mix comes back paused, and silence silent', () async {
+      ctl().clearMix();
+      ctl().toggleSound('river');
+      await drain();
+      ctl().pause();
+      await drain();
+      ctl().beginAudition(SoundscapeSessionKind.practice, SoundMix.empty);
+      ctl().toggleSound('cafe');
+      await drain();
+      expect(st().playing, isTrue);
+      ctl().endAudition();
+      await drain();
+      expect(st().playing, isFalse);
+      expect(st().owner, SoundscapeOwner.standalone);
+      expect(engine.paused, isTrue);
+      expect(engine.playing.keys, ['river']);
+
+      // Nothing was playing at all before the drawer: nothing after it.
+      ctl().stop();
+      await drain();
+      ctl().beginAudition(SoundscapeSessionKind.practice, SoundMix.empty);
+      ctl().toggleSound('cafe');
+      await drain();
+      ctl().endAudition();
+      await drain();
+      expect(st().active, isFalse);
+      expect(engine.playing, isEmpty);
+    });
+
+    test(
+      'a draft plays at the level of the sessions it is chosen for',
+      () async {
+        ctl().setVolume(0.9);
+        ctl().setSessionVolume(SoundscapeSessionKind.talks, 0.2);
+        ctl().beginAudition(SoundscapeSessionKind.talks, SoundMix.empty);
+        ctl().toggleSound('river');
+        await drain();
+        expect(st().volume, 0.2);
+        // The volume slider in the drawer sets that kind's level.
+        ctl().setVolume(0.4);
+        await drain();
+        expect(st().sessionDefault(SoundscapeSessionKind.talks).volume, 0.4);
+        ctl().endAudition();
+        await drain();
+        expect(st().volume, 0.9, reason: 'the Sounds volume is untouched');
+        expect(prefs.getDouble(SoundscapeStore.volumeKey), 0.9);
+      },
+    );
+
+    test('inside a session the draft is what the session plays', () async {
+      practiceOn();
+      await ctl().startSession(SoundscapeSessionKind.practice);
+      await drain();
+      expect(st().owner, SoundscapeOwner.session);
+
+      ctl().beginAudition(SoundscapeSessionKind.practice, st().mix);
+      await drain();
+      expect(st().playing, isTrue, reason: 'it keeps playing under the sit');
+      ctl().toggleSound('river');
+      await drain();
+      expect(engine.playing.keys, contains('river'));
+
+      final kept = st().mix;
+      ctl().endAudition(keep: true);
+      await drain();
+      expect(st().mix, kept);
+      expect(st().owner, SoundscapeOwner.session);
+      expect(engine.playing.keys, contains('river'));
+    });
+
+    test('a session that starts or ends while the drawer is open owns the '
+        'mixer', () async {
+      ctl().clearMix();
+      ctl().toggleSound('river');
+      await drain();
+      ctl().beginAudition(SoundscapeSessionKind.practice, SoundMix.empty);
+      ctl().toggleSound('cafe');
+      await drain();
+
+      practiceOn();
+      await ctl().startSession(SoundscapeSessionKind.practice);
+      await drain();
+      ctl().endAudition();
+      await drain();
+      expect(st().owner, SoundscapeOwner.session);
+      expect(engine.playing.keys, [
+        'river',
+      ], reason: 'the session plays the tab\'s mix, not the draft');
+    });
+
+    test('a chooser overtaken by a session keeps nothing', () async {
+      ctl().clearMix();
+      ctl().toggleSound('river');
+      await drain();
+      ctl().beginAudition(SoundscapeSessionKind.practice, SoundMix.empty);
+      ctl().toggleSound('cafe');
+      await drain();
+      expect(ctl().auditionIntact, isTrue);
+
+      practiceOn();
+      await ctl().startSession(SoundscapeSessionKind.practice);
+      await drain();
+      expect(
+        ctl().auditionIntact,
+        isFalse,
+        reason: 'what plays is the session, not the draft',
+      );
+      ctl().endAudition();
+      await drain();
+    });
+
+    test(
+      'in a running sit, a level changed in the drawer stays on Done',
+      () async {
+        practiceOn();
+        await ctl().startSession(SoundscapeSessionKind.practice);
+        await drain();
+        expect(st().volume, 0.5);
+
+        // Opened from the sit, on what it plays; only the level moves.
+        ctl().beginAudition(SoundscapeSessionKind.practice, st().mix);
+        ctl().setVolume(0.2);
+        await drain();
+        ctl().endAudition();
+        await drain();
+        expect(st().volume, 0.2, reason: 'heard');
+        expect(
+          st().sessionDefault(SoundscapeSessionKind.practice).volume,
+          0.2,
+          reason: 'stored',
+        );
+        expect(engine.master, closeTo(layerGain(0.2), 1e-9));
+      },
+    );
+
+    test('a talks drawer opened during a sit is heard and set at the talks '
+        'level', () async {
+      practiceOn();
+      ctl().setSessionVolume(SoundscapeSessionKind.talks, 0.2);
+      await ctl().startSession(SoundscapeSessionKind.practice);
+      await drain();
+      expect(st().volume, 0.5);
+
+      ctl().beginAudition(SoundscapeSessionKind.talks, SoundMix.empty);
+      ctl().toggleSound('river');
+      await drain();
+      expect(st().volume, 0.2, reason: 'the talks level, not practice');
+      expect(engine.master, closeTo(layerGain(0.2), 1e-9));
+
+      ctl().setVolume(0.4);
+      await drain();
+      expect(st().sessionDefault(SoundscapeSessionKind.talks).volume, 0.4);
+      expect(
+        st().sessionDefault(SoundscapeSessionKind.practice).volume,
+        0.5,
+        reason: 'the sit\'s own level is untouched',
+      );
+      expect(st().volume, 0.4);
+
+      ctl().endAudition();
+      await drain();
+      expect(st().volume, 0.5, reason: 'the sit, at its level again');
+    });
+
+    test(
+      'a Stop while the drawer is open is not undone as it closes',
+      () async {
+        ctl().clearMix();
+        ctl().toggleSound('river');
+        await drain();
+        expect(st().playing, isTrue);
+
+        ctl().beginAudition(SoundscapeSessionKind.practice, SoundMix.empty);
+        ctl().toggleSound('cafe');
+        await drain();
+        ctl().stop();
+        await drain();
+        ctl().endAudition();
+        await drain();
+        expect(st().active, isFalse);
+        expect(engine.playing, isEmpty);
+        expect(st().mix.layers.map((l) => l.soundId), ['river']);
+
+        // Clearing the draft is not a Stop: the tab's mix comes back.
+        ctl().resume();
+        await drain();
+        expect(st().playing, isTrue);
+        ctl().beginAudition(SoundscapeSessionKind.practice, SoundMix.empty);
+        ctl().toggleSound('cafe');
+        await drain();
+        ctl().clearMix();
+        await drain();
+        ctl().endAudition();
+        await drain();
+        expect(st().playing, isTrue);
+        expect(engine.playing.keys, ['river']);
+      },
+    );
+
+    test(
+      'a damaged or emptied mix of its own is Off, never the Sounds mix',
+      () async {
+        expect(
+          SoundscapeSelection.parse('layers:{not json'),
+          SoundscapeSelection.none,
+        );
+        expect(
+          SoundscapeSelection.parse('layers:[]'),
+          SoundscapeSelection.none,
+        );
+        final gone = SoundscapeSelection.layers(
+          SoundMix([const SoundLayer(soundId: 'a-sound-since-dropped')]),
+        );
+        expect(st().playable(gone, _library), SoundscapeSelection.none);
+        expect(
+          ctl().sessionChoice(
+            SoundscapeSessionKind.practice,
+            gone,
+            library: _library,
+          ),
+          SoundscapeSelection.none,
+        );
+
+        // Stored for a kind, damaged: it plays nothing.
+        container = await make({
+          SoundscapeStore.sessionDefaultsKey:
+              '{"practice":{"enabled":true,"selection":"layers:{oops",'
+              '"volume":0.5}}',
+          SoundscapeStore.sessionDefaultsVersionKey: 2,
+        });
+        await ctl().startSession(SoundscapeSessionKind.practice);
+        await drain();
+        expect(st().active, isFalse);
+        expect(engine.playing, isEmpty);
+      },
+    );
+
+    test('what is chosen: nothing, a preset, or the layers themselves', () {
+      expect(st().selectionFor(SoundMix.empty), SoundscapeSelection.none);
+      expect(
+        st().selectionFor(kStarterPresets.first.mix),
+        SoundscapeSelection.preset(kStarterPresets.first.id),
+      );
+      final own = SoundMix([
+        const SoundLayer(soundId: 'river'),
+        const SoundLayer(soundId: 'cafe'),
+      ]);
+      final chosen = st().selectionFor(own);
+      expect(chosen.kind, SoundscapeSelectionKind.layers);
+      expect(chosen.mix, own);
+      // It survives storage, and plays exactly those layers.
+      expect(SoundscapeSelection.parse(chosen.encode()), chosen);
+    });
+
+    test('a kind plays the layers chosen for it', () async {
+      final own = SoundMix([
+        const SoundLayer(soundId: 'river'),
+        const SoundLayer(soundId: 'cafe'),
+      ]);
+      ctl().setSessionChoice(
+        SoundscapeSessionKind.talks,
+        SoundscapeSelection.layers(own),
+      );
+      expect(st().sessionDefault(SoundscapeSessionKind.talks).enabled, isTrue);
+      await ctl().startSession(SoundscapeSessionKind.talks);
+      await drain();
+      expect(engine.playing.keys.toSet(), {'river', 'cafe'});
+
+      // Off keeps the choice for when it is switched on again.
+      ctl().setSessionChoice(
+        SoundscapeSessionKind.talks,
+        SoundscapeSelection.none,
+      );
+      final setting = st().sessionDefault(SoundscapeSessionKind.talks);
+      expect(setting.enabled, isFalse);
+      expect(setting.selection, SoundscapeSelection.layers(own));
+    });
+
+    test('a choice made inside a running session plays at once', () async {
+      practiceOn();
+      await ctl().startSession(
+        SoundscapeSessionKind.practice,
+        selection: const SoundscapeSelection.sound('river'),
+      );
+      await drain();
+      expect(engine.playing.keys, ['river']);
+
+      // The session's own choice (a course's) was 'river'; choosing from
+      // its player replaces what plays now, not only the next sit.
+      ctl().setSessionChoice(
+        SoundscapeSessionKind.practice,
+        const SoundscapeSelection.sound('cafe'),
+        followNow: true,
+      );
+      await drain();
+      expect(engine.playing.keys, ['cafe']);
+    });
+  });
+
   group('generated layers', () {
     test('noise starts as a generated loop with default settings', () async {
       ctl().clearMix();
@@ -1307,7 +1670,7 @@ void main() {
       ctl().toggleSound(kSynthDroneId);
       ctl().setLayerParams(
         kSynthDroneId,
-        const DroneParams(rootHz: 73.42, timbre: DroneTimbre.pure).toJson(),
+        const DroneParams(rootsHz: [73.42], timbre: DroneTimbre.pure).toJson(),
       );
       final saved = ctl().savePreset('Low drone')!;
       final again = await make({

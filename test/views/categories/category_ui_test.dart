@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/categories/category_providers.dart';
-import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/services/categories/category_catalogue.dart';
 import 'package:medito/services/categories/category_service.dart';
@@ -39,7 +38,6 @@ final _catalogue = CategoryCatalogue.parse(
 );
 
 List<Override> _overrides(LibraryTestApp app) => [
-  inProgressItemsProvider.overrideWith((ref) async => const []),
   packTrackIdsProvider.overrideWith((ref) async => const {}),
   categoryCatalogueProvider.overrideWith((ref) async => _catalogue),
 ];
@@ -127,7 +125,7 @@ void main() {
         find.byKey(const ValueKey('library_menu_yt-playlist-q')),
       );
       await settle(tester);
-      await tester.tap(find.byKey(const ValueKey('library_menu_labels')));
+      await tester.tap(find.byKey(const ValueKey('item_action_labels')));
       await settle(tester);
 
       // Metta is not ticked; ticking it pins it.
@@ -173,7 +171,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('library_menu_lib-track-a')));
       await settle(tester);
-      await tester.tap(find.byKey(const ValueKey('library_menu_labels')));
+      await tester.tap(find.byKey(const ValueKey('item_action_labels')));
       await settle(tester);
       final body = find.byKey(const ValueKey('labels_category_body'));
       expect(tester.widget<FilterChip>(body).selected, isTrue);

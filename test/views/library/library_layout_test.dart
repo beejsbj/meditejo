@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/main_tab_provider.dart';
+import 'package:medito/providers/library/library_view_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
-import 'package:medito/services/home/continue_rules.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
 import 'package:medito/views/library/library_view.dart';
@@ -123,10 +122,7 @@ final _progress = [
   ),
 ];
 
-final _overrides = [
-  ..._progress,
-  inProgressItemsProvider.overrideWith((ref) async => const []),
-];
+final _overrides = [..._progress];
 
 const _played = ['j-1', 'j-2', 'j-3', 'm-1'];
 
@@ -134,7 +130,7 @@ Finder _visibleText(String text) => find.text(text, skipOffstage: false);
 
 void main() {
   group('the library tab', () {
-    testWidgets('filters by kind: courses, playlists, singles, teachers', (
+    testWidgets('sections by form: Playlists, Courses, Sessions, Teachers', (
       tester,
     ) async {
       final app = await _mixed(tester);
@@ -145,45 +141,47 @@ void main() {
         overrides: _overrides,
       );
 
-      Future<void> filter(String name) => tapFilter(tester, name);
+      double top(Finder f) => tester.getTopLeft(f).dy;
+      final sections = [
+        for (final name in ['playlists', 'courses', 'sessions', 'teachers'])
+          find.byKey(ValueKey('library_section_$name'), skipOffstage: false),
+      ];
+      for (final section in sections) {
+        expect(section, findsOneWidget);
+      }
+      for (var i = 1; i < sections.length; i++) {
+        expect(top(sections[i]), greaterThan(top(sections[i - 1])));
+      }
+      expect(find.text('Playlists', skipOffstage: false), findsOneWidget);
+      expect(find.text('Courses', skipOffstage: false), findsOneWidget);
+      expect(find.text('Sessions', skipOffstage: false), findsOneWidget);
 
-      // All: everything, teacher included.
-      for (final title in [
-        'Practising the Jhānas',
-        'Morning sits',
-        'Developing Piti',
-        'On emptiness',
-        'Rob Burbea',
-      ]) {
-        expect(_visibleText(title), findsOneWidget, reason: title);
+      // Each entry under its form, practice and talks together.
+      void under(String title, int section) {
+        final y = top(_visibleText(title));
+        expect(y, greaterThan(top(sections[section])), reason: title);
+        if (section + 1 < sections.length) {
+          expect(y, lessThan(top(sections[section + 1])), reason: title);
+        }
       }
 
-      await filter('courses');
-      expect(_visibleText('Practising the Jhānas'), findsOneWidget);
-      expect(_visibleText('Qualia Mastery'), findsOneWidget);
-      expect(_visibleText('Morning sits'), findsNothing);
-      expect(_visibleText('Developing Piti'), findsNothing);
+      under('Morning sits', 0);
+      under('Evening wind-down', 0);
+      under('Practising the Jhānas', 1);
+      under('Qualia Mastery', 1);
+      under('Developing Piti', 2);
+      under('On emptiness', 2);
+      under('Body scan', 2);
+      under('Rob Burbea', 3);
+      // No kind sections and no In progress.
+      expect(find.text('Practice', skipOffstage: false), findsNothing);
+      expect(find.text('In progress', skipOffstage: false), findsNothing);
 
-      await filter('playlists');
-      expect(_visibleText('Morning sits'), findsOneWidget);
-      expect(_visibleText('Evening wind-down'), findsOneWidget);
-      expect(_visibleText('Practising the Jhānas'), findsNothing);
-
-      await filter('singles');
-      expect(_visibleText('Developing Piti'), findsOneWidget);
-      expect(_visibleText('Body scan'), findsOneWidget);
-      expect(_visibleText('On emptiness'), findsOneWidget);
-      expect(_visibleText('Morning sits'), findsNothing);
-
-      // Decision 18: saved teachers live in the Library as a filter.
-      await filter('teachers');
+      // Decision 18: saved teachers keep a filter of their own.
+      await tapFilter(tester, 'teachers');
       expect(find.byType(LibraryEntryTile), findsOneWidget);
       expect(_visibleText('Rob Burbea'), findsOneWidget);
-      // Teachers have no Practice or Talks.
-      expect(find.byKey(const ValueKey('library_group')), findsNothing);
-
-      await filter('all');
-      expect(_visibleText('Morning sits'), findsOneWidget);
+      expect(_visibleText('Morning sits'), findsNothing);
     });
 
     testWidgets('Downloads shows what has a downloaded session', (
@@ -204,19 +202,41 @@ void main() {
       expect(_visibleText('Developing Piti'), findsNothing);
     });
 
-    testWidgets('Practice or Talks narrows the list', (tester) async {
+    testWidgets('Practice or Talks chips narrow the list, with counts', (
+      tester,
+    ) async {
       final app = await _mixed(tester);
       await app.pump(tester, const LibraryView(), overrides: _overrides);
 
-      await tester.tap(find.byKey(const ValueKey('library_group_talks')));
-      await settle(tester);
+      // Nothing downloaded: no Downloads chip.
+      expect(
+        find.byKey(const ValueKey('library_filter_downloads')),
+        findsNothing,
+      );
+      expect(find.text('Practice 6'), findsOneWidget);
+      expect(find.text('Talks 1'), findsOneWidget);
+      expect(find.text('Teachers 1'), findsOneWidget);
+
+      await tapFilter(tester, 'talks');
       expect(_visibleText('On emptiness'), findsOneWidget);
       expect(_visibleText('Developing Piti'), findsNothing);
       expect(_visibleText('Rob Burbea'), findsNothing);
+      // Only the sections with something in them.
+      expect(
+        find.byKey(const ValueKey('library_section_sessions')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('library_section_courses')),
+        findsNothing,
+      );
 
-      // Tapping it again shows both.
-      await tester.tap(find.byKey(const ValueKey('library_group_talks')));
-      await settle(tester);
+      await tapFilter(tester, 'practice');
+      expect(_visibleText('Developing Piti'), findsOneWidget);
+      expect(_visibleText('On emptiness'), findsNothing);
+
+      await tapFilter(tester, 'all');
+      expect(_visibleText('On emptiness'), findsOneWidget);
       expect(_visibleText('Developing Piti'), findsOneWidget);
     });
 
@@ -232,7 +252,6 @@ void main() {
         played: _played,
         overrides: _overrides,
       );
-      await tapFilter(tester, 'courses');
 
       List<String> order() {
         final titles = ['Practising the Jhānas', 'Awakening, Qualia'];
@@ -273,7 +292,7 @@ void main() {
       await tester.tap(find.byTooltip('Show as grid'));
       await settle(tester);
       expect(find.byType(LibraryEntryCard, skipOffstage: false), findsWidgets);
-      // Singles stay rows in the grid.
+      // Sessions stay rows in the grid.
       expect(
         find.ancestor(
           of: _visibleText('Developing Piti'),
@@ -307,64 +326,43 @@ void main() {
       expect(find.text('1 of 5'), findsOneWidget);
     });
 
-    testWidgets('In progress shows the whole set, not three', (tester) async {
+    testWidgets('has no In progress: Home\'s Continue has it', (tester) async {
       final app = await _mixed(tester);
-      final items = [
-        for (var i = 0; i < 5; i++)
-          ContinueItem(
-            trackId: 't$i',
-            path: '/tracks/t$i',
-            title: 'Session $i',
-            group: LibraryGroup.practice,
-            lastPlayed: DateTime(2026, 10, 20 + i),
-            courseId: 'c$i',
-            courseTitle: 'Course $i',
-            sessionNumber: 2,
-            sessionTotal: 8,
-            completedSessions: 1,
-          ),
-      ];
+      // Practising the Jhānas is 3 of 4 done: in progress.
       await app.pump(
         tester,
         const LibraryView(),
-        overrides: [
-          ..._progress,
-          inProgressItemsProvider.overrideWith((ref) async => items),
-        ],
+        played: _played,
+        overrides: _overrides,
       );
 
-      expect(find.text('In progress'), findsOneWidget);
-      final strip = find.byKey(const ValueKey('library_in_progress'));
-      expect(find.text('Session 0'), findsOneWidget);
-      // All five, the last at the far end of the strip.
-      await tester.dragUntilVisible(
-        find.byKey(const ValueKey('in_progress_t4')),
-        strip,
-        const Offset(-300, 0),
-      );
-      expect(find.byKey(const ValueKey('in_progress_t4')), findsOneWidget);
-      // Above the filters.
+      expect(find.text('In progress', skipOffstage: false), findsNothing);
       expect(
-        tester.getTopLeft(find.text('In progress')).dy,
-        lessThan(
-          tester
-              .getTopLeft(find.byKey(const ValueKey('library_filter_all')))
-              .dy,
+        find.byWidgetPredicate(
+          (w) => w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith('in_progress'),
+          skipOffstage: false,
         ),
+        findsNothing,
+      );
+      // The chips come first.
+      expect(
+        tester.getTopLeft(find.byKey(const ValueKey('library_filter_all'))).dy,
+        lessThan(200),
       );
     });
 
-    testWidgets('a filter with nothing points to Explore and Add', (
-      tester,
-    ) async {
+    testWidgets('a chip with nothing says what it would show', (tester) async {
       final app = await LibraryTestApp.create(tester);
       await _add(tester, app.harness.store, 'ds-retreat-1', 'A course');
       await app.pump(tester, const LibraryView(), overrides: _overrides);
-      await tapFilter(tester, 'playlists');
+      expect(find.text('Talks 0'), findsOneWidget);
+      await tapFilter(tester, 'talks');
 
-      expect(find.text('Nothing here yet'), findsOneWidget);
+      expect(find.byKey(const ValueKey('library_empty_talks')), findsOneWidget);
+      expect(find.text('No talks here yet'), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('library_filter_new_playlist')),
+        find.text('Talks, and courses with talks, show up here.'),
         findsOneWidget,
       );
       expect(
@@ -377,6 +375,35 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('library_empty_explore')));
       await settle(tester);
       expect(container.read(mainTabProvider), MainTab.explore);
+    });
+
+    testWidgets('Practice and Downloads have their own empty words', (
+      tester,
+    ) async {
+      final app = await LibraryTestApp.create(tester);
+      await _add(
+        tester,
+        app.harness.store,
+        'ds-talk-2',
+        'On emptiness',
+        kind: LibraryKind.single,
+        group: LibraryGroup.talks,
+      );
+      await app.pump(tester, const LibraryView(), overrides: _overrides);
+      await tapFilter(tester, 'practice');
+      expect(find.text('No practice here yet'), findsOneWidget);
+
+      // Downloads, chosen, stays while it has nothing (it is shown only once
+      // something is downloaded, or while chosen).
+      ProviderScope.containerOf(tester.element(find.byType(LibraryView)))
+          .read(libraryViewOptionsProvider.notifier)
+          .setFilter(LibraryFilter.downloads);
+      await settle(tester);
+      expect(find.text('Nothing downloaded'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('library_filter_downloads')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('an empty library offers Explore as well as Add', (
@@ -400,10 +427,13 @@ void main() {
       await tester.tap(menu);
       await settle(tester);
       final items = {
-        for (final item in tester.widgetList<PopupMenuItem<Object?>>(
-          find.byWidgetPredicate((w) => w is PopupMenuItem),
+        for (final tile in tester.widgetList<ListTile>(
+          find.descendant(
+            of: find.byKey(const ValueKey('item_actions_sheet')),
+            matching: find.byType(ListTile),
+          ),
         ))
-          ((item.child as Text?)?.data ?? ''),
+          (tile.title! as Text).data!,
       };
       await tester.tapAt(Offset.zero);
       await settle(tester);
@@ -418,33 +448,41 @@ void main() {
           await tester.tap(find.byTooltip('Show as grid'));
           await settle(tester);
         }
-        // The new-playlist button stays in the app bar.
-        expect(find.byTooltip('New playlist'), findsOneWidget);
+        // New playlist stays one tap behind the app bar's "+" (#62).
+        expect(find.byTooltip('Add to your library'), findsOneWidget);
 
         expect(await menuOf(tester, 'ds-retreat-1'), {
+          'Play',
           'Add to playlist…',
           'Copy as playlist',
+          'Pin to Home',
+          'Share',
           'Move to Talks',
           'Rename',
           'Categories and labels',
-          'Pin to Home',
           'Remove from library',
         });
         expect(await menuOf(tester, 'my-course-0123456789abcdef'), {
+          'Play',
           'Edit playlist',
           'Add to playlist…',
           'Copy as playlist',
+          'Pin to Home',
           'Move to Talks',
           'Rename',
           'Categories and labels',
-          'Pin to Home',
           'Delete playlist',
         });
         expect(await menuOf(tester, 'ds-talk-2'), {
+          'Play',
           'Add to playlist…',
+          'Download audio',
+          'Mark as played',
+          'Share',
           'Move to Practice',
           'Rename',
           'Categories and labels',
+          'Pin to Home',
           'Remove from library',
         });
         expect(await menuOf(tester, 'ds-teacher-210'), {'Remove from library'});
@@ -457,24 +495,6 @@ void main() {
       {
         testWidgets(grid ? 'grid' : 'list', (tester) async {
           final app = await _mixed(tester);
-          final items = [
-            ContinueItem(
-              trackId: 't1',
-              path: '/tracks/t1',
-              title: 'Developing Piti, Developing Focus, Developing Wellbeing',
-              group: LibraryGroup.practice,
-              lastPlayed: DateTime(2026, 10, 25),
-              courseId: 'ds-retreat-1',
-              courseTitle: 'Practising the Jhānas',
-              resume: const ResumePoint(
-                positionMs: 1800000,
-                durationMs: 5340000,
-              ),
-              sessionNumber: 4,
-              sessionTotal: 32,
-              completedSessions: 3,
-            ),
-          ];
           await app.pump(
             tester,
             MediaQuery(
@@ -485,10 +505,7 @@ void main() {
               child: const LibraryView(),
             ),
             played: _played,
-            overrides: [
-              ..._progress,
-              inProgressItemsProvider.overrideWith((ref) async => items),
-            ],
+            overrides: _overrides,
           );
           tester.view.physicalSize = const Size(360, 780);
           await settle(tester);

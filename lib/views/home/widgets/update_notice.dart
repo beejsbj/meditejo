@@ -32,9 +32,9 @@ class UpdateNotice extends ConsumerWidget {
             ),
           ),
           TextButton(
-            // You moves About to the top while an update is waiting.
+            // Settings moves About to the top while an update is waiting.
             onPressed: () =>
-                ref.read(mainTabProvider.notifier).select(MainTab.you),
+                ref.read(mainTabProvider.notifier).select(MainTab.settings),
             child: Text(l10n.homeUpdateView),
           ),
           IconButton(

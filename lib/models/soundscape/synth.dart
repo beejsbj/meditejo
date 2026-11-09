@@ -44,6 +44,39 @@ enum NoiseColour {
       values.firstWhere((c) => c.name == v, orElse: () => NoiseColour.pink);
 }
 
+/// Named curves for the ten bands (#71): what most people want from the
+/// equaliser, one tap each. The bands stay the stored truth, so a curve
+/// shaped by hand, or saved before these existed, plays as it was.
+enum NoiseShape {
+  /// The colour as it is.
+  even([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
+
+  /// The highs fall gently away (the Stillness preset's curve).
+  soft([1, 1, 1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3]),
+
+  /// A low rumble: mids and highs well down.
+  deep([1, 1, 1, 0.8, 0.55, 0.35, 0.22, 0.14, 0.09, 0.06]),
+
+  /// Light and open: the lows thinned, the highs kept.
+  airy([0.25, 0.35, 0.5, 0.7, 0.85, 1, 1, 1, 1, 1]);
+
+  const NoiseShape(this.bands);
+
+  final List<double> bands;
+
+  /// The shape [bands] make, or null for a curve of their own.
+  static NoiseShape? of(List<double> bands) {
+    for (final shape in values) {
+      var same = shape.bands.length == bands.length;
+      for (var i = 0; same && i < bands.length; i++) {
+        same = (shape.bands[i] - bands[i]).abs() < 1e-6;
+      }
+      if (same) return shape;
+    }
+    return null;
+  }
+}
+
 /// A myNoise-style generator: a colour, then ten octave bands to shape it.
 class NoiseParams {
   const NoiseParams({this.colour = NoiseColour.pink, this.bands = flat});
@@ -81,6 +114,9 @@ class NoiseParams {
 
   NoiseParams copyWith({NoiseColour? colour, List<double>? bands}) =>
       NoiseParams(colour: colour ?? this.colour, bands: bands ?? this.bands);
+
+  /// The named curve the bands make, or null for a curve of their own.
+  NoiseShape? get shape => NoiseShape.of(bands);
 
   /// A slider at 0 is this far down (−60 dB), not a hole in the spectrum.
   static const floor = 0.001;
@@ -209,13 +245,17 @@ double _lufsPower(double lufs) => math.pow(10, (lufs + 0.691) / 10).toDouble();
 
 enum DroneTimbre { pure, warm, bright }
 
-/// A held chord on a root: the root, its octave and fifth, slowly swelling.
+/// A held chord: up to [maxRoots] roots, each with its octave and fifth,
+/// slowly swelling.
 class DroneParams {
   const DroneParams({
-    this.rootHz = 110,
+    List<double> rootsHz = const [110],
     this.timbre = DroneTimbre.warm,
     this.movement = 0.5,
-  });
+  }) : _given = rootsHz;
+
+  /// Most roots a chord holds (#69).
+  static const maxRoots = 3;
 
   /// Roots offered by the editor: A1 to A3 by fifths and fourths.
   static const roots = <String, double>{
@@ -230,33 +270,63 @@ class DroneParams {
     'A3': 220,
   };
 
-  final double rootHz;
+  final List<double> _given;
+
+  /// The roots as given, tidied whatever they were: within the range,
+  /// lowest first, no repeats, at most [maxRoots], and never empty (an
+  /// empty list is the default 110 Hz).
+  List<double> get rootsHz {
+    final tidy = <double>{
+      for (final hz in _given)
+        if (hz.isFinite) hz.clamp(40, 440).toDouble(),
+    }.toList()..sort();
+    return tidy.isEmpty ? const [110] : tidy.take(maxRoots).toList();
+  }
+
+  /// The lowest root (the only one, before chords).
+  double get rootHz => rootsHz.first;
+
   final DroneTimbre timbre;
 
   /// 0 holds still; 1 swells most and fastest.
   final double movement;
 
-  factory DroneParams.fromJson(Map<String, Object?> json) => DroneParams(
-    rootHz: _num(json['rootHz'], 110, 40, 440),
-    timbre: DroneTimbre.values.firstWhere(
-      (t) => t.name == json['timbre'],
-      orElse: () => DroneTimbre.warm,
-    ),
-    movement: _num(json['movement'], 0.5, 0, 1),
-  );
+  /// Reads `rootsHz`, or the single `rootHz` that saved mixes and presets
+  /// from before chords hold. Anything unreadable falls back to 110 Hz.
+  factory DroneParams.fromJson(Map<String, Object?> json) {
+    final list = json['rootsHz'];
+    final chord = [
+      if (list is List)
+        for (final v in list)
+          if (v is num) v.toDouble(),
+    ];
+    return DroneParams(
+      rootsHz: chord.isNotEmpty ? chord : [_num(json['rootHz'], 110, 40, 440)],
+      timbre: DroneTimbre.values.firstWhere(
+        (t) => t.name == json['timbre'],
+        orElse: () => DroneTimbre.warm,
+      ),
+      movement: _num(json['movement'], 0.5, 0, 1),
+    );
+  }
 
+  /// One root saves as it always did (`rootHz`), so presets and mixes saved
+  /// before chords still match what the editor writes back. A chord adds
+  /// `rootsHz`, and keeps its lowest root as `rootHz` for a reader from
+  /// before chords.
   Map<String, Object?> toJson() => {
     'rootHz': rootHz,
+    if (rootsHz.length > 1) 'rootsHz': rootsHz,
     'timbre': timbre.name,
     'movement': movement,
   };
 
   DroneParams copyWith({
-    double? rootHz,
+    List<double>? rootsHz,
     DroneTimbre? timbre,
     double? movement,
   }) => DroneParams(
-    rootHz: rootHz ?? this.rootHz,
+    rootsHz: rootsHz == null || rootsHz.isEmpty ? this.rootsHz : rootsHz,
     timbre: timbre ?? this.timbre,
     movement: movement ?? this.movement,
   );
@@ -265,7 +335,7 @@ class DroneParams {
   /// of the root beats slowly against it; "warm" and "bright" add upper
   /// partials. Swell periods are incommensurate so the chord never repeats.
   List<OscillatorPartial> partials() {
-    final spec = <(double, double, double)>[
+    final one = <(double, double, double)>[
       (1, 1, 0),
       (1.0015, 0.7, -0.4), // beats with the root about every 6 s at A2
       (2, 0.55, 0.35),
@@ -273,31 +343,76 @@ class DroneParams {
       if (timbre != DroneTimbre.pure) ...[(3, 0.22, 0.3), (4, 0.14, -0.3)],
       if (timbre == DroneTimbre.bright) ...[(5, 0.1, 0.45), (6, 0.08, -0.45)],
     ];
-    const periods = [29, 41, 53, 67, 37, 47, 59, 71];
-    OscillatorWave wave(int i) => timbre == DroneTimbre.bright && i == 2
-        ? OscillatorWave.triangle
-        : OscillatorWave.sine;
-    // The voices are at different frequencies, so their powers add: scale
-    // the weights so the K-weighted sum lands on the target.
-    var power = 0.0;
-    for (var i = 0; i < spec.length; i++) {
-      power +=
-          spec[i].$2 * spec[i].$2 * _unitPower(rootHz * spec[i].$1, wave(i));
+    // Every root brings the same voices. Voices on one frequency (A1's
+    // octave is A2's root) are one voice, their weights added: two
+    // oscillators started apart would sit at an arbitrary phase and add or
+    // cancel from one play to the next. "Same" is within 1 part in 10 000,
+    // so D2's octave and D3 merge too.
+    bool near(double a, double b) => (a - b).abs() <= 1e-4 * math.max(a, b);
+    // Only the bright octave is a triangle, and a triangle cannot merge
+    // into a sine: where it would land on another root's sine voice, it is
+    // a sine too.
+    bool octaveIsTriangle(double root) =>
+        timbre == DroneTimbre.bright &&
+        !rootsHz.any(
+          (other) =>
+              other != root &&
+              [
+                for (var j = 0; j < one.length; j++)
+                  if (j != 2) one[j].$1,
+              ].any((ratio) => near(other * ratio, root * one[2].$1)),
+        );
+    final voices = <(double, double, double, OscillatorWave)>[];
+    for (final root in rootsHz) {
+      final triangle = octaveIsTriangle(root);
+      for (var i = 0; i < one.length; i++) {
+        final hz = root * one[i].$1;
+        final w = one[i].$2, pan = one[i].$3;
+        final wave = triangle && i == 2
+            ? OscillatorWave.triangle
+            : OscillatorWave.sine;
+        final at = voices.indexWhere((v) => v.$4 == wave && near(v.$1, hz));
+        if (at < 0) {
+          voices.add((hz, w, pan, wave));
+        } else {
+          final v = voices[at];
+          final sum = v.$2 + w;
+          voices[at] = (v.$1, sum, (v.$3 * v.$2 + pan * w) / sum, wave);
+        }
+      }
     }
-    final unit = math.sqrt(_lufsPower(kSynthTargetLufs) / power);
+    // No two voices share a frequency now, so their powers add: scale
+    // the weights so the K-weighted sum of the whole chord lands on the
+    // target. A chord is no louder than a single root.
+    var power = 0.0;
+    var left = 0.0, right = 0.0;
+    for (final v in voices) {
+      power += v.$2 * v.$2 * _unitPower(v.$1, v.$4);
+      left += v.$2 * kSoLoudWaveAmplitude * math.cos((v.$3 + 1) * math.pi / 4);
+      right += v.$2 * kSoLoudWaveAmplitude * math.sin((v.$3 + 1) * math.pi / 4);
+    }
+    var unit = math.sqrt(_lufsPower(kSynthTargetLufs) / power);
+    // Low roots weigh little in K-weighting, so a tight low chord needs
+    // more gain to reach the target and could peak (every voice in phase)
+    // above the bound. Whatever the stored roots, hold it under: that chord
+    // plays a little quieter than the target instead.
+    final peak = unit * math.max(left, right);
+    if (peak > kSynthPeakBound) unit *= 0.98 * kSynthPeakBound / peak;
     final floor = 1 - 0.6 * movement;
     return [
-      for (var i = 0; i < spec.length; i++)
+      for (var i = 0; i < voices.length; i++)
         OscillatorPartial(
-          hz: rootHz * spec[i].$1,
-          gain: unit * spec[i].$2,
-          wave: wave(i),
-          pan: spec[i].$3,
+          hz: voices[i].$1,
+          gain: unit * voices[i].$2,
+          wave: voices[i].$4,
+          pan: voices[i].$3,
           swellPeriod: movement == 0
               ? null
               : Duration(
                   milliseconds:
-                      (periods[i % periods.length] * 1000 * (1.6 - movement))
+                      (_swellSeconds[i % _swellSeconds.length] *
+                              1000 *
+                              (1.6 - movement))
                           .round(),
                 ),
           swellFloor: floor,
@@ -306,8 +421,45 @@ class DroneParams {
   }
 }
 
+/// Swell periods (s), one per voice, all different: the first eight as the
+/// single root always had them; the rest for a chord's extra voices.
+const _swellSeconds = [
+  29, 41, 53, 67, 37, 47, 59, 71, //
+  31, 43, 61, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137,
+];
+
+/// The most one generated layer may reach in a channel at full volume, every
+/// voice in phase: -12 dBFS. Normal roots stay well under it.
+const kSynthPeakBound = 0.25;
+
 // ---------------------------------------------------------------------------
 // Binaural beats
+
+/// The usual names for a beat frequency's band, from [low] up to (not
+/// including) [high]; beta runs to the top of the range.
+enum BeatBand {
+  delta(BinauralParams.minBeat, 4, 2),
+  theta(4, 8, 6),
+  alpha(8, 13, 10),
+  beta(13, BinauralParams.maxBeat, 16);
+
+  const BeatBand(this.low, this.high, this.centre);
+
+  final double low;
+  final double high;
+
+  /// Where choosing the band puts the beat.
+  final double centre;
+
+  static BeatBand of(double hz) =>
+      values.firstWhere((b) => hz < b.high, orElse: () => beta);
+
+  /// Half-hertz steps from [low] to just under [high] (to [high] itself in
+  /// the top band): what the fine control under the band offers.
+  List<double> get steps => [
+    for (var hz = low; this == beta ? hz <= high : hz < high; hz += 0.5) hz,
+  ];
+}
 
 /// Two tones, one per ear, [beatHz] apart around [carrierHz]. The beat is
 /// made by the brain from the difference, so it needs headphones.
@@ -335,13 +487,8 @@ class BinauralParams {
         beatHz: beatHz ?? this.beatHz,
       );
 
-  /// The usual names for a beat frequency's band.
-  String get band => switch (beatHz) {
-    < 4 => 'delta',
-    < 8 => 'theta',
-    < 13 => 'alpha',
-    _ => 'beta',
-  };
+  /// The band the beat is in.
+  BeatBand get band => BeatBand.of(beatHz);
 
   List<OscillatorPartial> partials() {
     // Each ear hears one tone, carrying half the target power.

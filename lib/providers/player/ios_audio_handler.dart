@@ -13,6 +13,8 @@ import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../constants/types/type_constants.dart';
+import '../../models/timer/timer_session.dart';
+import '../../services/audio/played_time.dart';
 import '../../src/audio_pigeon.g.dart';
 import '../../utils/stats_updater.dart';
 import '../../utils/logger.dart';
@@ -163,9 +165,15 @@ class IosAudioHandler extends BaseAudioHandler {
     // Swift's cue clock runs on its own: it needs the voice's state changes,
     // seeks and speed, not every position tick. Listening is sampled about
     // once a second as well, within its step bounds.
-    _player.positionStream.listen(
-      (_) => unawaited(_reportNativeTransport(transport: false)),
-    );
+    _player.positionStream.listen((position) {
+      _playedTime.sample(
+        position.inMilliseconds,
+        playing:
+            _player.playing && _player.processingState == ProcessingState.ready,
+        speed: _player.speed,
+      );
+      unawaited(_reportNativeTransport(transport: false));
+    });
     _player.playerStateStream.listen(
       (_) => unawaited(_reportNativeTransport()),
     );
@@ -335,6 +343,23 @@ class IosAudioHandler extends BaseAudioHandler {
 
   Duration? get duration => _player.duration;
 
+  // Real time the current track has taken at the speeds it played at, for
+  // the stats beside its length. Over the whole session: a repeat is judged
+  // at the speeds of every pass so far, which are the same unless changed.
+  final _playedTime = PlayedTime();
+
+  /// Real time a play-through of the current track takes, as its completion
+  /// records it; null with no known length. A timer is never sped up, so its
+  /// real time is its length, whether or not playback was ever sampled.
+  @visibleForTesting
+  int? get completionRealDurationMs {
+    final length = duration?.inMilliseconds;
+    if (length == null || length <= 0) return null;
+    final id = _trackStateSubject.valueOrNull?.id;
+    if (_isTimer || (id != null && isTimerSessionId(id))) return length;
+    return _playedTime.realMs(length, speed: _player.speed);
+  }
+
   Stream<IosStateData> get iosStateStream =>
       Rx.combineLatest7<
         double,
@@ -426,6 +451,7 @@ class IosAudioHandler extends BaseAudioHandler {
       await handleRepeatPlaythrough({
         TypeConstants.trackIdKey: trackState.id,
         TypeConstants.durationIdKey: duration!.inMilliseconds,
+        TypeConstants.realDurationIdKey: completionRealDurationMs,
         TypeConstants.fileIdKey: trackState.fileId,
         TypeConstants.guideIdKey: trackState.artist ?? '',
         TypeConstants.timestampIdKey: DateTime.now().millisecondsSinceEpoch,
@@ -463,6 +489,7 @@ class IosAudioHandler extends BaseAudioHandler {
     return {
       TypeConstants.trackIdKey: trackState.id,
       TypeConstants.durationIdKey: duration?.inMilliseconds ?? 0,
+      TypeConstants.realDurationIdKey: completionRealDurationMs,
       TypeConstants.fileIdKey: trackState.fileId,
       TypeConstants.guideIdKey: trackState.artist ?? '',
       TypeConstants.timestampIdKey: DateTime.now().millisecondsSinceEpoch,
@@ -819,6 +846,7 @@ class IosAudioHandler extends BaseAudioHandler {
     _nativeTailRelease?.cancel();
     _hasReplayedOnce = false;
     _completedPlaythroughs = 0;
+    _playedTime.reset();
     _sessionCompleted.add(false);
     sessionBells.reset();
 

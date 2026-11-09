@@ -216,7 +216,11 @@ void main() {
     );
     expect(end, findsOneWidget);
     expect(find.text('Session bells'), findsNothing);
-    expect(find.byType(Switch), findsNWidgets(2), reason: 'practice, talks');
+    // What plays under sessions is two lines into the mixer drawer (#66),
+    // not switches.
+    expect(find.byType(Switch), findsNothing);
+    expect(find.text('Plays under practice'), findsOneWidget);
+    expect(find.text('Plays under talks'), findsOneWidget);
     expect(notifier.bells, isEmpty);
     expect(tester.takeException(), isNull);
   });

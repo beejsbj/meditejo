@@ -1,18 +1,51 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
+import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/meditation/downloaded_track_ids_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
+import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 import 'package:medito/services/categories/entry_labels.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 
-/// What the Library tab shows: one kind, or everything.
-enum LibraryFilter { all, courses, playlists, singles, teachers, downloads }
+/// What the Library tab shows: everything, Practice, Talks, saved teachers
+/// (decision 18), or what is downloaded. Practice and Talks go by what a
+/// course's sessions are (#80).
+enum LibraryFilter {
+  all,
+  practice,
+  talks,
+  teachers,
+  downloads;
 
-/// How the Library orders what it shows, within Practice and Talks.
+  /// Practice or Talks; null for the others.
+  LibraryGroup? get group => switch (this) {
+    LibraryFilter.practice => LibraryGroup.practice,
+    LibraryFilter.talks => LibraryGroup.talks,
+    _ => null,
+  };
+}
+
+/// How the Library is divided: by form, in this order (#80). Saved teachers
+/// follow, apart.
+enum LibraryForm {
+  /// What the user made.
+  playlists,
+
+  /// Courses from a source: retreats, feeds, YouTube series.
+  courses,
+
+  /// Single sessions.
+  sessions,
+}
+
+/// How the Library orders what it shows, within each section.
 enum LibrarySort {
   /// Most recently played or added first: the store's own order.
   recent,
@@ -27,13 +60,12 @@ enum LibrarySort {
 /// Courses and playlists as wide row cards, or as a grid of cards.
 enum LibraryLayout { list, grid }
 
-/// The Library's controls. The filter and Practice/Talks are for this visit;
-/// the sort and layout are kept.
+/// The Library's controls. The filter is for this visit; the sort and
+/// layout are kept.
 @immutable
 class LibraryViewOptions {
   const LibraryViewOptions({
     this.filter = LibraryFilter.all,
-    this.group,
     this.sort = LibrarySort.recent,
     this.layout = LibraryLayout.list,
     this.label,
@@ -42,23 +74,19 @@ class LibraryViewOptions {
   final LibraryFilter filter;
 
   /// A category's ID or a label of the user's own (its key), or null for
-  /// everything. It narrows what the kind filter shows; teachers have none.
+  /// everything. It narrows what the filter shows; teachers have none.
   final String? label;
 
-  /// Practice or Talks; null for both.
-  final LibraryGroup? group;
   final LibrarySort sort;
   final LibraryLayout layout;
 
   LibraryViewOptions copyWith({
     LibraryFilter? filter,
-    ValueGetter<LibraryGroup?>? group,
     LibrarySort? sort,
     LibraryLayout? layout,
     ValueGetter<String?>? label,
   }) => LibraryViewOptions(
     filter: filter ?? this.filter,
-    group: group == null ? this.group : group(),
     sort: sort ?? this.sort,
     layout: layout ?? this.layout,
     label: label == null ? this.label : label(),
@@ -95,9 +123,6 @@ class LibraryViewOptionsNotifier extends Notifier<LibraryViewOptions> {
 
   void setFilter(LibraryFilter filter) =>
       state = state.copyWith(filter: filter);
-
-  void setGroup(LibraryGroup? group) =>
-      state = state.copyWith(group: () => group);
 
   void setLabel(String? label) => state = state.copyWith(label: () => label);
 
@@ -147,25 +172,182 @@ final libraryDownloadedIdsProvider = Provider.autoDispose<Set<String>>((ref) {
   };
 });
 
-/// Practice's or Talks' share of the library: courses and playlists, then
-/// singles.
-@immutable
-class LibraryShelf {
-  const LibraryShelf(
-    this.group, {
-    this.courses = const [],
-    this.singles = const [],
-  });
+/// Whether each library entry shows under Practice, Talks or both (#80), by
+/// source ID. Teachers have neither.
+///
+/// - A Practice or Talks the user chose for the entry ("Move to Talks", or
+///   at import) is the one it shows under, alone: the user's word wins.
+/// - Otherwise it shows under the kind the app filed it as, and also under
+///   any kind its sessions are. So a Dharma Seed retreat (filed as Practice:
+///   its sittings are often labelled "Talk") with talks in it shows under
+///   both.
+///
+/// A session's kind is its Dharma Seed `recording_type` ([sessionGroups]).
+/// Inside a playlist, which gathers sessions from elsewhere, a session also
+/// takes the kind of where it lives: a saved single's own kind (the user's
+/// choice for it first, before its recording type), else that of a library
+/// course listing it. A source's own course goes by recording types alone,
+/// so courses that share sessions do not colour each other. A session none
+/// of these covers adds nothing; with no session known, the entry's own kind
+/// stands alone. [trackIds] is the sessions of each course, as the device has
+/// them.
+Map<String, Set<LibraryGroup>> libraryEntryKinds(
+  List<LibraryEntry> entries, {
+  Map<String, List<String>> trackIds = const {},
+  Map<String, LibraryGroup> sessionGroups = const {},
+}) {
+  final byId = {for (final e in entries) e.sourceId: e};
+  // Courses (not playlists) holding each session, for sessions of a source
+  // with no kind of their own (a YouTube or feed episode in a playlist).
+  final holders = <String, List<LibraryEntry>>{};
+  for (final e in entries) {
+    if (!e.isCourse || isMyCourseId(e.sourceId)) continue;
+    for (final id in trackIds[e.sourceId] ?? const <String>[]) {
+      (holders[id] ??= []).add(e);
+    }
+  }
+  LibraryGroup? sessionGroup(String id, LibraryEntry within) {
+    final playlist = isMyCourseId(within.sourceId);
+    final own = byId[id];
+    final single = own != null && own.kind == LibraryKind.single ? own : null;
+    if (playlist && single?.groupOverride != null) return single!.groupOverride;
+    if (sessionGroups[id] case final group?) return group;
+    if (!playlist) return null;
+    if (single != null) return single.group;
+    return holders[id]?.firstOrNull?.group;
+  }
 
-  final LibraryGroup group;
-  final List<LibraryEntry> courses;
-  final List<LibraryEntry> singles;
-
-  bool get isEmpty => courses.isEmpty && singles.isEmpty;
+  return {
+    for (final e in entries)
+      if (e.kind != LibraryKind.teacher)
+        e.sourceId: switch (e.groupOverride) {
+          final chosen? => {chosen},
+          null => {
+            e.detectedGroup,
+            for (final id
+                in e.isCourse
+                    ? trackIds[e.sourceId] ?? const <String>[]
+                    : [e.sourceId])
+              ?sessionGroup(id, e),
+          },
+        },
+  };
 }
 
-/// The library as the tab shows it under its current options: Practice
-/// before Talks (decision 11), each sorted, then saved teachers.
+/// How long the Library waits after Dharma Seed stores more before it reads
+/// the kinds again, while a saved retreat's talks are still missing.
+const libraryKindsSyncDebounce = Duration(seconds: 5);
+
+/// [libraryEntryKinds] for the library as it stands. It reads only what is
+/// on the device (the sessions each course lists, and Dharma Seed's stored
+/// talks), never the network. Until it has an answer, and for anything it
+/// cannot place, an entry shows under its own kind.
+///
+/// A course just added is not in the cached [packTrackIdsProvider] yet: its
+/// sessions are read for it alone (a Dharma Seed retreat's from its stored
+/// record, also when its cached list is empty; another source's from its
+/// own few courses). A saved retreat with
+/// none of its talks stored yet is read again once the background sync has
+/// stored more, at most once per [libraryKindsSyncDebounce]; once its talks
+/// are stored, typed or not, it is not waited for.
+final libraryEntryKindsProvider =
+    FutureProvider.autoDispose<Map<String, Set<LibraryGroup>>>((ref) async {
+      var waiting = false;
+      Timer? again;
+      ref.listen(dharmaSeedRevisionProvider, (_, _) {
+        if (waiting) {
+          again ??= Timer(libraryKindsSyncDebounce, ref.invalidateSelf);
+        }
+      });
+      ref.onDispose(() => again?.cancel());
+
+      final entries = await ref.watch(libraryEntriesProvider.future);
+      final cached = await ref.watch(packTrackIdsProvider.future);
+      final dharmaSeed = ref.watch(dharmaSeedSourceProvider);
+      final missing = {
+        for (final e in entries)
+          if (e.isCourse &&
+              (!cached.containsKey(e.sourceId) ||
+                  // A retreat cached before its record was stored.
+                  (cached[e.sourceId]!.isEmpty &&
+                      parseDsRetreatId(e.sourceId) != null)))
+            e.sourceId,
+      };
+      var trackIds = cached;
+      if (missing.isNotEmpty) {
+        final retreats = {
+          for (final id in missing)
+            if (parseDsRetreatId(id) != null) id,
+        };
+        final router = ref.read(libraryContentRouterProvider);
+        final others = {
+          for (final id in missing.difference(retreats)) ?router.sourceFor(id),
+        }..remove(dharmaSeed);
+        final fresh = await Future.wait([
+          if (retreats.isNotEmpty) dharmaSeed.retreatTrackIds(retreats),
+          for (final source in others)
+            source.packTrackIds().catchError(
+              (Object _) => const <String, List<String>>{},
+            ),
+        ]);
+        trackIds = {
+          ...cached,
+          for (final map in fresh)
+            for (final MapEntry(:key, :value) in map.entries)
+              if (missing.contains(key)) key: value,
+        };
+      }
+      final ids = {
+        for (final e in entries)
+          if (e.isCourse) ...?trackIds[e.sourceId] else e.sourceId,
+      };
+      // Stored talks: with their kind, or null with no recording type.
+      final stored = await dharmaSeed.sessionGroups(ids);
+      // A saved retreat with none of its talks stored yet.
+      waiting = entries.any(
+        (e) =>
+            e.isCourse &&
+            parseDsRetreatId(e.sourceId) != null &&
+            !(trackIds[e.sourceId] ?? const []).any(stored.containsKey),
+      );
+      return libraryEntryKinds(
+        entries,
+        trackIds: trackIds,
+        sessionGroups: {
+          for (final MapEntry(:key, :value) in stored.entries) key: ?value,
+        },
+      );
+    });
+
+/// The kinds [entry] shows under, from [kinds] or else its own.
+Set<LibraryGroup> _kindsOf(
+  LibraryEntry entry,
+  Map<String, Set<LibraryGroup>> kinds,
+) => kinds[entry.sourceId] ?? {entry.group};
+
+LibraryForm _formOf(LibraryEntry e) => !e.isCourse
+    ? LibraryForm.sessions
+    : isMyCourseId(e.sourceId)
+    ? LibraryForm.playlists
+    : LibraryForm.courses;
+
+/// One section of the library: its playlists, its courses or its sessions.
+@immutable
+class LibraryShelf {
+  const LibraryShelf(this.form, {this.entries = const []});
+
+  final LibraryForm form;
+  final List<LibraryEntry> entries;
+
+  /// Playlists and courses are cards (rows or a grid); sessions are rows.
+  bool get isCards => form != LibraryForm.sessions;
+
+  bool get isEmpty => entries.isEmpty;
+}
+
+/// The library as the tab shows it under its current options: Playlists,
+/// Courses, Sessions (#80), each sorted, then saved teachers. A section
+/// with nothing in it is left out.
 @immutable
 class LibraryArrangement {
   const LibraryArrangement({this.shelves = const [], this.teachers = const []});
@@ -177,59 +359,89 @@ class LibraryArrangement {
 }
 
 /// Filters and sorts [entries] (in the store's most-recent-first order) by
-/// [options]. Teachers have no Practice or Talks, so they show under All
-/// with neither chosen, or under their own filter.
+/// [options], into sections by form. Practice and Talks go by [kinds] (see
+/// [libraryEntryKinds]; an entry missing there shows under its own kind).
+/// Teachers have no Practice or Talks: they show under All and under their
+/// own filter, with no label chosen.
 LibraryArrangement arrangeLibrary(
   List<LibraryEntry> entries,
   LibraryViewOptions options, {
   Map<String, CourseProgress> progress = const {},
   Set<String> downloaded = const {},
   Map<String, EntryLabels> labels = const {},
+  Map<String, Set<LibraryGroup>> kinds = const {},
 }) {
   final label = options.label;
   bool labelled(LibraryEntry e) =>
       label == null || (labels[e.sourceId]?.hasLabel(label) ?? false);
-  bool shows(LibraryEntry e) =>
-      labelled(e) &&
-      switch (options.filter) {
-        LibraryFilter.all => e.kind != LibraryKind.teacher,
-        LibraryFilter.courses => e.isCourse && !isMyCourseId(e.sourceId),
-        LibraryFilter.playlists => e.isCourse && isMyCourseId(e.sourceId),
-        LibraryFilter.singles => e.kind == LibraryKind.single,
-        LibraryFilter.teachers => false,
-        LibraryFilter.downloads =>
-          e.kind != LibraryKind.teacher && downloaded.contains(e.sourceId),
-      };
-
   final sorted = _sorted(entries, options.sort, progress);
-  final groups = options.group == null ? LibraryGroup.values : [options.group!];
-  final teachersShown =
-      label == null &&
-      (options.filter == LibraryFilter.teachers ||
-          (options.filter == LibraryFilter.all && options.group == null));
+  final shown = [
+    for (final e in sorted)
+      if (e.kind != LibraryKind.teacher &&
+          labelled(e) &&
+          _matches(e, options.filter, kinds, downloaded))
+        e,
+  ];
   return LibraryArrangement(
     shelves: [
-      for (final group in groups)
+      for (final form in LibraryForm.values)
         LibraryShelf(
-          group,
-          courses: [
-            for (final e in sorted)
-              if (e.group == group && e.isCourse && shows(e)) e,
-          ],
-          singles: [
-            for (final e in sorted)
-              if (e.group == group && e.kind == LibraryKind.single && shows(e))
-                e,
+          form,
+          entries: [
+            for (final e in shown)
+              if (_formOf(e) == form) e,
           ],
         ),
     ],
-    teachers: teachersShown
+    teachers:
+        label == null &&
+            (options.filter == LibraryFilter.all ||
+                options.filter == LibraryFilter.teachers)
         ? [
             for (final e in sorted)
               if (e.kind == LibraryKind.teacher) e,
           ]
         : const [],
   );
+}
+
+bool _matches(
+  LibraryEntry e,
+  LibraryFilter filter,
+  Map<String, Set<LibraryGroup>> kinds,
+  Set<String> downloaded,
+) => switch (filter) {
+  LibraryFilter.all => true,
+  LibraryFilter.practice ||
+  LibraryFilter.talks => _kindsOf(e, kinds).contains(filter.group),
+  LibraryFilter.teachers => false,
+  LibraryFilter.downloads => downloaded.contains(e.sourceId),
+};
+
+/// How many entries each filter would show, under the chosen [label]: the
+/// numbers on the Library's chips. All counts what it shows besides
+/// teachers.
+Map<LibraryFilter, int> libraryFilterCounts(
+  List<LibraryEntry> entries, {
+  String? label,
+  Set<String> downloaded = const {},
+  Map<String, EntryLabels> labels = const {},
+  Map<String, Set<LibraryGroup>> kinds = const {},
+}) {
+  final content = [
+    for (final e in entries)
+      if (e.kind != LibraryKind.teacher &&
+          (label == null || (labels[e.sourceId]?.hasLabel(label) ?? false)))
+        e,
+  ];
+  return {
+    for (final filter in LibraryFilter.values)
+      filter: filter == LibraryFilter.teachers
+          ? label == null
+                ? entries.where((e) => e.kind == LibraryKind.teacher).length
+                : 0
+          : content.where((e) => _matches(e, filter, kinds, downloaded)).length,
+  };
 }
 
 List<LibraryEntry> _sorted(

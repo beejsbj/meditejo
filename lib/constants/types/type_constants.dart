@@ -11,6 +11,10 @@ class TypeConstants {
   static const String timestampIdKey = 'timestamp';
   static const String guideIdKey = 'guide';
   static const String durationIdKey = 'duration';
+
+  /// Real time a completion took at the speed it was played at; absent from
+  /// payloads saved before it was recorded (read as [durationIdKey]).
+  static const String realDurationIdKey = 'realDuration';
   static const String downloads = 'downloads';
   static const String customiseHomeLayout = 'customiseHomeLayout';
   static const String route = 'route';
@@ -27,10 +31,11 @@ class TypeConstants {
   static const String tabSearch = 'search';
   static const String tabLibrary = 'library';
   static const String tabSounds = 'sounds';
-  static const String tabYou = 'you';
-
-  /// Settings lives under You: `meditejo://settings` opens that tab.
   static const String tabSettings = 'settings';
+
+  /// `meditejo://you` opens the You page (stats and history) over the tabs.
+  /// You was the fifth tab before Settings took its place.
+  static const String tabYou = 'you';
 
   // New constants for path view
   static const String article = 'article';

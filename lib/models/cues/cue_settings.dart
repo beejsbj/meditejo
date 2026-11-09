@@ -30,6 +30,10 @@ const cuePulseSounds = <String, String>{
   'Footstep': 'assets/audio/pulse_footstep.wav',
 };
 
+/// The pauses autoplay can hold between a course's sessions, in seconds, as
+/// the player offers them; anything else stored reads as none.
+const cueInterludeSeconds = [0, 5, 10, 30];
+
 /// A small versioned JSON value; no generated model or database migration.
 class CueSettings {
   const CueSettings({
@@ -79,14 +83,28 @@ class CueSettings {
   final String pulseSound;
   final double pulseBpm, pulseEndBpm, pulseVolume, bellVolume;
   final int pulseRampMinutes;
-  final bool backgroundEnabled, autoplay, hideBeforePractice;
+  final bool backgroundEnabled;
+
+  /// Whether a course's next session starts by itself when one ends, after
+  /// [interludeSeconds]. Set from the player's Autoplay control (it was
+  /// Customize's Flow section); kept here, with the scope's cues, so a
+  /// course override carries it and the native side holds the interlude.
+  final bool autoplay;
+
+  /// Stored under its first name; the switch shows the positive,
+  /// [showBeforeSession]. It applies before every recorded session, practice
+  /// or talk, not only practice.
+  final bool hideBeforePractice;
+
+  /// The Customize footer's "Show before each session".
+  bool get showBeforeSession => !hideBeforePractice;
   final String backgroundSoundId;
   final double backgroundVolume;
 
   /// What the soundscape mixer plays under this scope's sessions, in
   /// [SoundscapeSelection]'s grammar (`mix`, `preset:<id>`, `sound:<id>`,
   /// `none`). Empty: whatever the mixer's own default for the kind says
-  /// ("Play under practice/talks" and its selection). A selection only: the
+  /// ("Plays under practice/talks" and its selection). A selection only: the
   /// mixer owns the on/off default and the volume.
   final String soundscape;
 
@@ -232,7 +250,7 @@ class CueSettings {
       backgroundVolume: number('backgroundVolume', 50, 0, 100),
       soundscape: soundscape(),
       autoplay: flag('autoplay', false),
-      interludeSeconds: [0, 5, 10, 30].contains(interlude) ? interlude : 0,
+      interludeSeconds: cueInterludeSeconds.contains(interlude) ? interlude : 0,
       hideBeforePractice: flag('hideBeforePractice', false),
     );
   }

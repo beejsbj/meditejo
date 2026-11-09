@@ -244,9 +244,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get completed => 'Completado';
 
   @override
-  String get submit => 'Enviar';
-
-  @override
   String get duration => 'Duración';
 
   @override
@@ -373,45 +370,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minutesPerDayOptional => 'Minutos por día (opcional)';
 
   @override
-  String get onboarding => 'Incorporación';
-
-  @override
-  String get enableNotificationsTitle =>
-      'Mantente en el Camino con Recordatorios de Meditación';
-
-  @override
   String get enableNotificationsBody =>
       'Habilita las notificaciones para que nunca te pierdas una sesión.';
-
-  @override
-  String get enableNotificationsTitleLearn => 'Sigue aprendiendo';
-
-  @override
-  String get enableNotificationsTitleHabit => 'Crea el hábito que buscas';
-
-  @override
-  String get enableNotificationsTitleStress => 'Hazlo parte de tu día';
-
-  @override
-  String get notificationPreviewTimestamp => 'ahora';
-
-  @override
-  String get notificationPreviewTitleB =>
-      'Una mente más tranquila empieza aquí';
-
-  @override
-  String get notificationPreviewBodyB =>
-      'Tu respiración diaria te espera. Solo toca para empezar.';
-
-  @override
-  String onboardingStepIndicator(int current, int total) {
-    return 'Paso $current de $total';
-  }
-
-  @override
-  String onboardingReminderCurrentlySet(String time) {
-    return 'Recordatorio diario configurado para las $time';
-  }
 
   @override
   String get reminderChipsQuestion => '¿Cuándo vas a meditar?';
@@ -457,10 +417,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get reminderPrimerContinue => 'Continuar';
 
   @override
-  String get reminderCustomCancelled =>
-      'Aún no has elegido una hora: elige una arriba u omite por ahora.';
-
-  @override
   String get reminderTitle => 'Recordatorio diario';
 
   @override
@@ -470,18 +426,28 @@ class AppLocalizationsEs extends AppLocalizations {
   String get reminderTurnOff => 'Desactivar recordatorios';
 
   @override
-  String get onboardingBatteryTitle =>
-      'Mantén las Meditaciones Sin Interrupciones';
+  String get batteryGuidanceTitle => 'Deja que Meditejo siga funcionando';
 
   @override
-  String get onboardingBatteryBody =>
-      'Algunos dispositivos Android detienen apps en segundo plano, lo que puede interrumpir tus sesiones. Desactiva la optimización de batería para meditar sin interrupciones.';
+  String get batteryGuidanceBody =>
+      'Tu teléfono puede pausar Meditejo durante una sesión o retrasar un recordatorio. Dejar que funcione en segundo plano lo evita.';
 
   @override
-  String get onboardingBatteryOptimize => 'Desactivar Optimización de Batería';
+  String get batteryGuidanceOpen => 'Abrir ajustes de batería';
 
   @override
-  String get skipForNow => 'Omitir por Ahora';
+  String get batteryAutoStartTitle => 'Deja que Meditejo se inicie solo';
+
+  @override
+  String get batteryAutoStartBody =>
+      'Tu teléfono impide que las apps se inicien en segundo plano. Sigue los pasos para permitir que Meditejo se inicie y te lleguen los recordatorios.';
+
+  @override
+  String get batteryManufacturerTitle => 'Un ajuste de batería más';
+
+  @override
+  String get batteryManufacturerBody =>
+      'Tu teléfono también tiene su propio ahorro de batería. Sigue los pasos para dejar que Meditejo funcione y las sesiones no se pausen.';
 
   @override
   String get skip => 'Omitir';
@@ -574,29 +540,7 @@ class AppLocalizationsEs extends AppLocalizations {
       '\"Medito me ayudó a superar un período realmente oscuro en mi vida\" - Meditador de Medito';
 
   @override
-  String get favorites => 'Favoritos';
-
-  @override
-  String get noFavoriteTracksYet => 'Aún no hay pistas favoritas';
-
-  @override
-  String get noFavoritePacksYet => 'Aún no hay paquetes favoritos';
-
-  @override
-  String get noFavoritesYet => 'Aún no hay favoritos';
-
-  @override
-  String get addItemsToFavoritesMessage =>
-      'Agrega elementos a tus favoritos para verlos aquí';
-
-  @override
-  String get all => 'Todos';
-
-  @override
   String get tracks => 'Pistas';
-
-  @override
-  String get packs => 'Paquetes';
 
   @override
   String get noResultsFound => 'No se encontraron resultados para tu búsqueda';
@@ -1045,7 +989,24 @@ class AppLocalizationsEs extends AppLocalizations {
   String get playbackSpeed => 'Velocidad de reproducción';
 
   @override
-  String get speedReset => 'Restablecer';
+  String get speedKindPractice => 'Práctica';
+
+  @override
+  String get speedKindTalks => 'Charlas';
+
+  @override
+  String get speedPracticeCaption => 'Cada práctica empieza a esta velocidad.';
+
+  @override
+  String get speedTalksCaption => 'Cada charla empieza a esta velocidad.';
+
+  @override
+  String get settingsPlaybackSpeed => 'Velocidad';
+
+  @override
+  String settingsPlaybackSpeedCaption(String practice, String talks) {
+    return 'Práctica $practice · Charlas $talks';
+  }
 
   @override
   String get backgroundSoundsSection => 'Sonidos';
@@ -1064,37 +1025,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get clearSearch => 'Borrar búsqueda';
-
-  @override
-  String get onboardingExperienceQuestion => '¿Has meditado antes?';
-
-  @override
-  String get onboardingExperienceSubtext =>
-      'Esto nos ayuda a mostrarte el punto de partida correcto.';
-
-  @override
-  String get onboardingExperienceNever => 'Nunca lo he intentado';
-
-  @override
-  String get onboardingExperienceALittle => 'Un poco, de vez en cuando';
-
-  @override
-  String get onboardingExperienceRegular => 'Tengo una práctica regular';
-
-  @override
-  String get onboardingResultCta => 'Empezar';
-
-  @override
-  String get addToFavorites => 'Agregar a favoritos';
-
-  @override
-  String get addedToFavorites => 'Añadido a Favoritos';
-
-  @override
-  String get removedFromFavorites => 'Quitado de Favoritos';
-
-  @override
-  String get removeFromFavorites => 'Quitar de favoritos';
 
   @override
   String get openPack => 'Abrir paquete';
@@ -1296,31 +1226,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get localHomeHeading => 'Un momento para meditar.';
 
   @override
-  String get localIntroBeginHeading => 'Un momento para empezar.';
-
-  @override
-  String get localIntroReturnHeading => 'Retoma tu práctica con calma.';
-
-  @override
-  String get localIntroPracticeHeading => 'Un espacio para tu práctica.';
-
-  @override
-  String get localIntroBeginBody =>
-      'Busca una postura cómoda, programa unos minutos en el temporizador y presta atención a tu respiración. Cuando tu atención se disperse, vuelve a empezar con suavidad.';
-
-  @override
-  String get localIntroReturnBody =>
-      'Empieza con unos minutos de calma. El temporizador está listo cuando tú lo estés.';
-
-  @override
-  String get localIntroPracticeBody =>
-      'Usa el temporizador para meditar sin guía, con las campanas y la duración que prefieras.';
-
-  @override
-  String get localIntroDeviceOnlyNote =>
-      'Tu historial de práctica, tus favoritos y tus ajustes se guardan en este dispositivo.';
-
-  @override
   String get aboutMeditejo => 'Acerca de Meditejo';
 
   @override
@@ -1443,13 +1348,27 @@ class AppLocalizationsEs extends AppLocalizations {
   String get searchLengthOver45 => 'Más de 45 min';
 
   @override
-  String courseLeft(int count, int total) {
-    return 'Quedan $count de $total';
+  String coursePlayed(int count, int total) {
+    return '$count de $total escuchadas';
   }
 
   @override
   String courseAllPlayed(int total) {
     return 'Las $total escuchadas';
+  }
+
+  @override
+  String get coursePlayAgain => 'Volver a empezar';
+
+  @override
+  String courseSessionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sesiones',
+      one: '1 sesión',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -1482,6 +1401,21 @@ class AppLocalizationsEs extends AppLocalizations {
   String courseSessionLength(int minutes) {
     return '$minutes min';
   }
+
+  @override
+  String get sessionKindMeditation => 'Meditación';
+
+  @override
+  String get sessionKindChanting => 'Cantos';
+
+  @override
+  String get sessionKindTalk => 'Charla';
+
+  @override
+  String get sessionKindQuestions => 'Preguntas';
+
+  @override
+  String get sessionKindRecording => 'Grabación';
 
   @override
   String get teacherSave => 'Añadir a la biblioteca';
@@ -1641,9 +1575,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get libraryTitle => 'Tu biblioteca';
 
   @override
-  String get libraryAdd => 'Añadir';
-
-  @override
   String get libraryPractice => 'Práctica';
 
   @override
@@ -1671,6 +1602,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get libraryMoveToTalks => 'Mover a Charlas';
+
+  @override
+  String get libraryShowBySessions => 'Mostrar según sus sesiones';
 
   @override
   String get libraryRename => 'Renombrar';
@@ -1739,6 +1673,17 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get importTitle => 'Añadir a tu biblioteca';
+
+  @override
+  String get libraryAddImport => 'Importar';
+
+  @override
+  String get libraryAddImportHint =>
+      'Un enlace, un feed de podcast, una lista de YouTube o archivos de tu teléfono';
+
+  @override
+  String get libraryAddNewPlaylistHint =>
+      'Tu propia lista de sesiones, en tu orden';
 
   @override
   String get importFieldHint => 'Pega un enlace';
@@ -1997,6 +1942,12 @@ class AppLocalizationsEs extends AppLocalizations {
       'YouTube está ocupado o solicita una comprobación de bots. Inténtalo más tarde';
 
   @override
+  String get youtubeChannelOpen => 'Abrir en YouTube';
+
+  @override
+  String get youtubeChannelNoAbout => 'Sin descripción del canal en YouTube.';
+
+  @override
   String get youtubePlaylistEmpty =>
       'Las sesiones aún no están guardadas en este dispositivo. Volveremos a intentarlo en breve';
 
@@ -2021,7 +1972,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get homeContinueEmpty =>
-      'Nada en curso. Añade algo a tu biblioteca o abre Explorar.';
+      'Nada en curso. Empieza algo en Explorar o en tu biblioteca, o fíjalo allí para tenerlo en Inicio.';
 
   @override
   String get homeContinueResume => 'Reanudar';
@@ -2040,9 +1991,6 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get homeShortcutAdd => 'Añadir';
-
-  @override
   String homeShortcutPresetTimer(String preset) {
     return 'Iniciar el temporizador con $preset';
   }
@@ -2054,11 +2002,38 @@ class AppLocalizationsEs extends AppLocalizations {
   String get unpinCourse => 'Quitar de Inicio';
 
   @override
-  String get pinnedLimitReached =>
-      'Inicio admite hasta tres cursos o listas fijados. Quita uno primero.';
+  String get itemMarkPlayed => 'Marcar como escuchada';
+
+  @override
+  String get itemMarkUnplayed => 'Marcar como no escuchada';
+
+  @override
+  String get itemGoToTeacher => 'Ir al docente';
+
+  @override
+  String get itemMarkPlayedFailed =>
+      'No se pudo actualizar el estado de escuchada. Inténtalo de nuevo.';
 
   @override
   String get pinnedCourseAdded => 'Fijado en Inicio';
+
+  @override
+  String pinnedSeeAll(int count) {
+    return 'Ver todos ($count)';
+  }
+
+  @override
+  String get pinnedUnderSeeAll => 'Fijado en Inicio, en «Ver todos»';
+
+  @override
+  String get pinnedEmpty => 'Aún no hay nada fijado';
+
+  @override
+  String get pinnedEmptyHint =>
+      'Fija un curso o una sesión en Explorar o en tu biblioteca para tenerlo en Inicio.';
+
+  @override
+  String get pinnedUnavailable => 'No disponible';
 
   @override
   String get statsFeedbackNote =>
@@ -2150,17 +2125,21 @@ class AppLocalizationsEs extends AppLocalizations {
   String get soundsCouldNotPlay => 'No se pudo reproducir este sonido';
 
   @override
-  String get soundsUnderSessions => 'Durante las sesiones';
+  String get soundsPlaysUnderPractice => 'Suena en la práctica';
 
   @override
-  String get soundsUnderPractice => 'Reproducir durante la práctica';
+  String get soundsPlaysUnderTalks => 'Suena en las charlas';
 
   @override
-  String get soundsUnderTalks => 'Reproducir durante las charlas';
+  String get soundsDone => 'Listo';
 
   @override
-  String get soundsUnderSessionsHint =>
-      'Tu mezcla suena bajo la sesión, con su propio volumen';
+  String get soundsChooserEmpty =>
+      'Apagado. Toca un sonido o un preajuste para elegirlo.';
+
+  @override
+  String get soundsChooserOvertaken =>
+      'La sesión cambió, así que el sonido se quedó como estaba.';
 
   @override
   String get soundsCredits => 'Créditos de sonido';
@@ -2251,7 +2230,40 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noiseBands => 'Bandas';
 
   @override
-  String get noiseReset => 'Restablecer bandas';
+  String get noiseShape => 'Forma';
+
+  @override
+  String get noiseShapeEven => 'Uniforme';
+
+  @override
+  String get noiseShapeSoft => 'Suave';
+
+  @override
+  String get noiseShapeDeep => 'Profunda';
+
+  @override
+  String get noiseShapeAiry => 'Aireada';
+
+  @override
+  String get noiseShapeCustom => 'Propia';
+
+  @override
+  String get binauralDelta => 'Delta';
+
+  @override
+  String get binauralTheta => 'Theta';
+
+  @override
+  String get binauralAlpha => 'Alfa';
+
+  @override
+  String get binauralBeta => 'Beta';
+
+  @override
+  String get droneRootHint => 'Hasta tres notas';
+
+  @override
+  String get soundChipsKeepOne => 'Al menos una queda elegida';
 
   @override
   String get droneRoot => 'Tónica';
@@ -2455,6 +2467,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get navYou => 'Tú';
 
   @override
+  String get youButton => 'Tú: estadísticas e historial';
+
+  @override
+  String get youSectionPractice => 'Tu práctica';
+
+  @override
+  String get navSettings => 'Ajustes';
+
+  @override
   String get soundsMixEmptyTitle => 'Tu mezcla aún está vacía';
 
   @override
@@ -2490,9 +2511,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get soundsAdjust => 'Ajustar';
-
-  @override
-  String get soundsEditMix => 'Editar tu mezcla en Sonidos';
 
   @override
   String get playlistKind => 'Lista';
@@ -2550,6 +2568,38 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsLicenses => 'Licencias de código abierto';
 
   @override
+  String get introLead => 'Un lugar tranquilo para tu práctica.';
+
+  @override
+  String get introPractice =>
+      'Sigue un curso sesión a sesión, escucha charlas o medita con el temporizador.';
+
+  @override
+  String get introSources =>
+      'Dharma Seed viene incluido. Añade podcasts, YouTube o tus propios archivos.';
+
+  @override
+  String get introPrivate =>
+      'Sin cuenta. Tu historial y tus ajustes se quedan en este teléfono.';
+
+  @override
+  String get introMeaning =>
+      'Meditejo significa «lugar de meditación» en esperanto.';
+
+  @override
+  String get introStart => 'Empezar';
+
+  @override
+  String get introTour => 'Hacer el recorrido';
+
+  @override
+  String get aboutWhatIsMeditejo => 'Qué es Meditejo';
+
+  @override
+  String get batteryGuidanceRow =>
+      'Tu teléfono puede pausar sesiones y recordatorios';
+
+  @override
   String get statsTimePractised => 'Tiempo practicado';
 
   @override
@@ -2570,6 +2620,11 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String statsUntimedNote(int count) {
     return 'Las sesiones de antes de que la app registrara su duración ($count) cuentan como días practicados, no como minutos.';
+  }
+
+  @override
+  String statsAudioVersusRealTime(String audio, String real) {
+    return '$audio de audio · $real de tu tiempo';
   }
 
   @override
@@ -2695,28 +2750,13 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get libraryInProgress => 'En curso';
-
-  @override
   String get libraryFilterAll => 'Todo';
-
-  @override
-  String get libraryFilterCourses => 'Cursos';
-
-  @override
-  String get libraryFilterPlaylists => 'Listas';
-
-  @override
-  String get libraryFilterSingles => 'Sueltas';
 
   @override
   String get libraryFilterDownloads => 'Descargas';
 
   @override
   String get libraryFilterLabel => 'Mostrar';
-
-  @override
-  String get libraryGroupLabel => 'Práctica o charlas';
 
   @override
   String get librarySort => 'Ordenar';
@@ -2745,6 +2785,41 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get libraryFilterEmptyBody =>
       'Busca algo en Explorar, o añade un enlace o un archivo.';
+
+  @override
+  String libraryFilterCount(String label, int count) {
+    return '$label $count';
+  }
+
+  @override
+  String get librarySectionPlaylists => 'Listas';
+
+  @override
+  String get librarySectionCourses => 'Cursos';
+
+  @override
+  String get librarySectionSessions => 'Sesiones';
+
+  @override
+  String get libraryPracticeEmpty => 'Aún no hay práctica aquí';
+
+  @override
+  String get libraryPracticeEmptyBody =>
+      'Las meditaciones guiadas, y los cursos que las incluyen, aparecen aquí.';
+
+  @override
+  String get libraryTalksEmpty => 'Aún no hay charlas aquí';
+
+  @override
+  String get libraryTalksEmptyBody =>
+      'Las charlas, y los cursos con charlas, aparecen aquí.';
+
+  @override
+  String get libraryDownloadsEmpty => 'Nada descargado';
+
+  @override
+  String get libraryDownloadsEmptyBody =>
+      'Descarga una sesión desde su menú para tenerla sin conexión. Aparecerá aquí.';
 
   @override
   String get libraryEmptyExplore => 'Explorar';
@@ -2824,4 +2899,197 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get updateAutoCheckDescription =>
       'Consulta GitHub una vez al día al abrir Meditejo.';
+
+  @override
+  String get customizeSlotSound => 'Sonido';
+
+  @override
+  String get customizeSlotBells => 'Campanas';
+
+  @override
+  String get customizeSlotRhythm => 'Ritmo';
+
+  @override
+  String get customizeSlotLength => 'Duración';
+
+  @override
+  String get customizeOff => 'Apagado';
+
+  @override
+  String get customizeBellsAtStart => 'Inicio';
+
+  @override
+  String get customizeBellsHalfway => 'A la mitad';
+
+  @override
+  String customizeBellsEvery(int minutes) {
+    return 'Cada $minutes min';
+  }
+
+  @override
+  String get customizeBellsAtEnd => 'Final';
+
+  @override
+  String customizeCountdownThenBell(int seconds, String bell) {
+    return 'Cuenta atrás de $seconds s · $bell';
+  }
+
+  @override
+  String customizeSilenceThenBell(int minutes, String bell) {
+    return '$minutes min de silencio · $bell';
+  }
+
+  @override
+  String get customizeLengthCountsUp => 'Cuenta hacia arriba';
+
+  @override
+  String get customizeLengthSetBySession => 'La fija la sesión';
+
+  @override
+  String get customizeLengthSetByEachSession => 'La fija cada sesión';
+
+  @override
+  String customizeLengthPlusSilence(int minutes) {
+    return '+ $minutes min de silencio';
+  }
+
+  @override
+  String get customizeShowBeforeSession => 'Mostrar antes de cada sesión';
+
+  @override
+  String get playerAutoplay => 'Reproducción automática';
+
+  @override
+  String get playerAutoplayOn => 'Reproducción automática activada';
+
+  @override
+  String get playerAutoplayOff => 'Reproducción automática desactivada';
+
+  @override
+  String get playerAutoplaySwitch =>
+      'Reproducir la siguiente sesión automáticamente';
+
+  @override
+  String get playerAutoplayPause => 'Pausa entre sesiones';
+
+  @override
+  String get playerAutoplayNoPause => 'Ninguna';
+
+  @override
+  String playerAutoplaySeconds(int seconds) {
+    return '$seconds s';
+  }
+
+  @override
+  String playerAutoplayUpNext(String title) {
+    return 'A continuación: $title';
+  }
+
+  @override
+  String get playerAutoplayLast => 'Es la última sesión del curso';
+
+  @override
+  String get customizeCurrentMix => 'Mezcla actual';
+
+  @override
+  String get customizeSlotChanged => 'cambiado';
+
+  @override
+  String get customizeSlotDefault => 'predeterminado';
+
+  @override
+  String get customizeRhythmRate => 'Ritmo';
+
+  @override
+  String get customizeRhythmSlowDownOver => 'Ralentizar durante';
+
+  @override
+  String get customizeRhythmOver => 'Durante';
+
+  @override
+  String get customizeRhythmEndsAt => 'Termina en';
+
+  @override
+  String customizeRhythmOverMinutes(int minutes) {
+    return 'durante $minutes min';
+  }
+
+  @override
+  String customizeRhythmRampSpoken(int from, int to, int minutes) {
+    return 'De $from a $to BPM durante $minutes min';
+  }
+
+  @override
+  String customizeUndoChange(String setting, String value) {
+    return '$setting: $value';
+  }
+
+  @override
+  String get playerAutoplayForPractice => 'Para toda la práctica';
+
+  @override
+  String get playerAutoplayForTalks => 'Para todas las charlas';
+
+  @override
+  String get playerAutoplayForCourse => 'Para este curso';
+
+  @override
+  String get playerAutoplayForPlaylist => 'Para esta lista de reproducción';
+
+  @override
+  String get playerAutoplayLastOfPlaylist =>
+      'Es la última sesión de la lista de reproducción';
+
+  @override
+  String trackPartOf(String course) {
+    return 'Parte de $course';
+  }
+
+  @override
+  String trackInCourse(String course) {
+    return 'En $course';
+  }
+
+  @override
+  String get trackShowMore => 'Mostrar más';
+
+  @override
+  String get trackShowLess => 'Mostrar menos';
+
+  @override
+  String homeMarkName(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'doorway': 'Puerta',
+      'cushion': 'Cojín',
+      'horizon': 'Horizonte',
+      'hearth': 'Hogar',
+      'path': 'Camino a casa',
+      'shelter': 'Refugio',
+      'window': 'Ventana',
+      'step': 'Umbral',
+      'loops': 'Bucles',
+      'enso': 'Ensō',
+      'wave': 'Ola de respiración',
+      'split': 'Sol partido',
+      'arch': 'Arco',
+      'pebble': 'Guijarro y bindu',
+      'crescent': 'Creciente',
+      'vesica': 'Vesica',
+      'cairn': 'Mojón',
+      'clearing': 'Claro',
+      'dawn': 'Amanecer sobre el agua',
+      'ridges': 'Crestas en la niebla',
+      'moonpool': 'Estanque de luna',
+      'doorlight': 'Puerta iluminada',
+      'halo': 'Halo',
+      'shoreline': 'Orilla',
+      'other': 'Símbolo del día',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String homeMarkTodayIs(String name) {
+    return 'Símbolo del día: $name';
+  }
 }

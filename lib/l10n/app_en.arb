@@ -91,7 +91,6 @@
   "goBack": "Go Back",
   "path": "Path",
   "completed": "Completed",
-  "submit": "Submit",
   "duration": "Duration",
   "monday": "M",
   "tuesday": "T",
@@ -148,60 +147,10 @@
     }
   },
   "minutesPerDayOptional": "Minutes per day (optional)",
-  "onboarding": "Onboarding",
-  "@onboarding": {
-    "description": "Title for the onboarding section in settings"
-  },
-  "enableNotificationsTitle": "Stay on Track with Meditation Reminders",
   "enableNotificationsBody": "Enable notifications so you never miss a session.",
-  "enableNotificationsTitleLearn": "Keep the learning going",
-  "@enableNotificationsTitleLearn": {
-    "description": "Notifications screen title for users who want to learn to meditate (intent: learn_properly)"
-  },
-  "enableNotificationsTitleHabit": "Build the habit you're after",
-  "@enableNotificationsTitleHabit": {
-    "description": "Notifications screen title for users who want to build a habit (intent: build_habit)"
-  },
-  "enableNotificationsTitleStress": "Make it part of your day",
-  "@enableNotificationsTitleStress": {
-    "description": "Notifications screen title for users managing stress, sleep, or emotions (intent: stress_sleep_emotions)"
-  },
-  "notificationPreviewTimestamp": "now",
-  "@notificationPreviewTimestamp": {
-    "description": "Timestamp shown on a fake iOS notification preview, mirroring iOS's 'now' label for a notification that just arrived"
-  },
-  "notificationPreviewTitleB": "A quieter mind starts here",
-  "@notificationPreviewTitleB": {
-    "description": "Title of the fake notification shown in the onboarding notifications screen preview"
-  },
-  "notificationPreviewBodyB": "Your daily breath is waiting. Just tap to begin.",
-  "@notificationPreviewBodyB": {
-    "description": "Body of the fake notification shown in the onboarding notifications screen preview"
-  },
-  "onboardingStepIndicator": "Step {current} of {total}",
-  "@onboardingStepIndicator": {
-    "description": "Progress label under the onboarding pages, next to the circular progress ring",
-    "placeholders": {
-      "current": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "onboardingReminderCurrentlySet": "Daily reminder set for {time}",
-  "@onboardingReminderCurrentlySet": {
-    "description": "Shown on the onboarding reminder screen when a reminder is already set, above the chips that let the user change it",
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  },
   "reminderChipsQuestion": "When will you meditate?",
   "@reminderChipsQuestion": {
-    "description": "Question above the time-of-day chips in the onboarding notifications screen (chips arm of the reminder experiment)"
+    "description": "Question above the reminder time choices (Morning, Evening, Night, custom), in the sheet opened from Settings and from the end-of-session reminder card"
   },
   "reminderSlotMorning": "Morning",
   "@reminderSlotMorning": {
@@ -251,10 +200,6 @@
   "@reminderPrimerContinue": {
     "description": "Button on the pre-permission dialog that proceeds to the OS notification permission prompt"
   },
-  "reminderCustomCancelled": "No time picked yet — choose one above, or skip for now.",
-  "@reminderCustomCancelled": {
-    "description": "Feedback shown when the user opens the custom time picker and dismisses it without choosing, so the tap is not a silent dead end"
-  },
   "reminderTitle": "Daily reminder",
   "@reminderTitle": {
     "description": "Title of the settings tile that opens the reminder time bottom sheet (replaced the Daily reminders switch)"
@@ -267,10 +212,34 @@
   "@reminderTurnOff": {
     "description": "Last row of the reminder time bottom sheet; cancels the scheduled reminders"
   },
-  "onboardingBatteryTitle": "One Setting, Smoother Meditations",
-  "onboardingBatteryBody": "Your phone can pause Meditejo mid-session. One quick change prevents this.",
-  "onboardingBatteryOptimize": "Update Setting",
-  "skipForNow": "Skip for Now",
+  "batteryGuidanceTitle": "Keep Meditejo running",
+  "@batteryGuidanceTitle": {
+    "description": "Title of the page that asks to let the app run in the background (battery optimisation), on phones known to stop apps"
+  },
+  "batteryGuidanceBody": "Your phone may pause Meditejo during a session or hold back a reminder. Letting it run in the background stops this.",
+  "@batteryGuidanceBody": {
+    "description": "Why battery optimisation matters: sessions and reminders can be stopped"
+  },
+  "batteryGuidanceOpen": "Open battery settings",
+  "@batteryGuidanceOpen": {
+    "description": "Button opening the phone's battery optimisation settings"
+  },
+  "batteryAutoStartTitle": "Let Meditejo start on its own",
+  "@batteryAutoStartTitle": {
+    "description": "Title of the phone's own dialog that leads to its auto-start setting (shown by the battery page's button)"
+  },
+  "batteryAutoStartBody": "Your phone stops apps from starting in the background. Follow the steps to let Meditejo start, so reminders arrive.",
+  "@batteryAutoStartBody": {
+    "description": "Body of the phone's own auto-start dialog"
+  },
+  "batteryManufacturerTitle": "One more battery setting",
+  "@batteryManufacturerTitle": {
+    "description": "Title of the dialog that leads to the manufacturer's extra battery optimisation setting"
+  },
+  "batteryManufacturerBody": "Your phone has its own battery saving as well. Follow the steps to let Meditejo run, so sessions are not paused.",
+  "@batteryManufacturerBody": {
+    "description": "Body of the manufacturer's extra battery optimisation dialog"
+  },
   "skip": "Skip",
   "notNow": "Not now",
   "errorNoInternetMessage": "No internet connection",
@@ -339,14 +308,7 @@
   "custom": "Custom Amount",
   "impactCardHelpMessage": "Help millions worldwide access free meditation",
   "impactCardTestimonial": "\"Medito pulled me through a seriously dark period in my life\" - Medito meditator",
-  "favorites": "Favorites",
-  "noFavoriteTracksYet": "No favorite tracks yet",
-  "noFavoritePacksYet": "No favorite packs yet",
-  "noFavoritesYet": "No favorites yet",
-  "addItemsToFavoritesMessage": "Add items to your favorites to see them here",
-  "all": "All",
   "tracks": "Tracks",
-  "packs": "Packs",
   "noResultsFound": "No results found for your search",
   "consistencyScoreInfoTitle": "Consistency score",
   "consistencyScoreInfoMessage": "Your consistency score reflects how regularly you've meditated since you started. Recent days carry more weight, but earlier missed days still gently affect the score. Unlike streaks, it doesn't reset on a missed day.",
@@ -893,9 +855,33 @@
   "@playbackSpeed": {
     "description": "Accessibility label for the playback speed control in the player"
   },
-  "speedReset": "Reset",
-  "@speedReset": {
-    "description": "Speed sheet: button that sets playback speed back to 1.0x"
+  "speedKindPractice": "Practice",
+  "@speedKindPractice": {
+    "description": "Speed sheet: tab for the speed practice sessions (guided sits) start at"
+  },
+  "speedKindTalks": "Talks",
+  "@speedKindTalks": {
+    "description": "Speed sheet: tab for the speed talks start at"
+  },
+  "speedPracticeCaption": "Every practice session starts at this speed.",
+  "@speedPracticeCaption": {
+    "description": "Speed sheet: note under the speeds while the Practice tab is open; the choice is kept for later sessions"
+  },
+  "speedTalksCaption": "Every talk starts at this speed.",
+  "@speedTalksCaption": {
+    "description": "Speed sheet: note under the speeds while the Talks tab is open; the choice is kept for later talks"
+  },
+  "settingsPlaybackSpeed": "Playback speed",
+  "@settingsPlaybackSpeed": {
+    "description": "Settings: row opening the speed each kind of session starts at. Short: it shares the row with an icon and a chevron at large text"
+  },
+  "settingsPlaybackSpeedCaption": "Practice {practice} · Talks {talks}",
+  "@settingsPlaybackSpeedCaption": {
+    "description": "Settings: caption of the Playback speed row, the speed each kind of session starts at, e.g. 'Practice 1× · Talks 1.5×'",
+    "placeholders": {
+      "practice": {"type": "String", "example": "1×"},
+      "talks": {"type": "String", "example": "1.5×"}
+    }
   },
   "backgroundSoundsSection": "Sounds",
   "@backgroundSoundsSection": {
@@ -920,46 +906,6 @@
   "clearSearch": "Clear search",
   "@clearSearch": {
     "description": "Accessibility label for the clear search button"
-  },
-  "onboardingExperienceQuestion": "Have you meditated before?",
-  "@onboardingExperienceQuestion": {
-    "description": "Question on onboarding screen 1 — asking about the user's meditation experience"
-  },
-  "onboardingExperienceSubtext": "This helps us show you the right starting point.",
-  "@onboardingExperienceSubtext": {
-    "description": "Subtext below the question on onboarding screen 1"
-  },
-  "onboardingExperienceNever": "Never tried it",
-  "@onboardingExperienceNever": {
-    "description": "Option 1 on onboarding screen 1 — user has never meditated"
-  },
-  "onboardingExperienceALittle": "A little, here and there",
-  "@onboardingExperienceALittle": {
-    "description": "Option 2 on onboarding screen 1 — user has meditated a little"
-  },
-  "onboardingExperienceRegular": "I have a regular practice",
-  "@onboardingExperienceRegular": {
-    "description": "Option 3 on onboarding screen 1 — user has a regular meditation practice"
-  },
-  "onboardingResultCta": "Get started",
-  "@onboardingResultCta": {
-    "description": "CTA button label on the onboarding result screen"
-  },
-  "addToFavorites": "Add to favorites",
-  "@addToFavorites": {
-    "description": "Accessibility label for the favorite button when the item is not yet favorited"
-  },
-  "addedToFavorites": "Added to Favorites",
-  "@addedToFavorites": {
-    "description": "Snackbar after the star button adds a pack or track to Favorites"
-  },
-  "removedFromFavorites": "Removed from Favorites",
-  "@removedFromFavorites": {
-    "description": "Snackbar after the star button removes a pack or track from Favorites"
-  },
-  "removeFromFavorites": "Remove from favorites",
-  "@removeFromFavorites": {
-    "description": "Accessibility label for the favorite button when the item is already favorited"
   },
   "openPack": "Open pack",
   "@openPack": {
@@ -1140,7 +1086,7 @@
   },
   "endScreenDone": "Done",
   "@endScreenDone": {
-    "description": "Button that closes an end screen shown on the next launch and returns to Home"
+    "description": "Button that closes an end screen shown on the next launch and returns to Home. Also closes the battery page (Settings › Keep Meditejo running) once its settings were opened"
   },
   "endScreenRestoredLastNight": "Welcome back. You finished “{title}” last night.",
   "@endScreenRestoredLastNight": {
@@ -1199,34 +1145,6 @@
   "localHomeHeading": "Time to sit.",
   "@localHomeHeading": {
     "description": "Calm home heading above the locally available meditation timer."
-  },
-  "localIntroBeginHeading": "A little time to begin.",
-  "@localIntroBeginHeading": {
-    "description": "Local introduction heading for someone new to meditation."
-  },
-  "localIntroReturnHeading": "Ease back into your practice.",
-  "@localIntroReturnHeading": {
-    "description": "Local introduction heading for someone with some meditation experience."
-  },
-  "localIntroPracticeHeading": "Space for your practice.",
-  "@localIntroPracticeHeading": {
-    "description": "Local introduction heading for someone with a regular meditation practice."
-  },
-  "localIntroBeginBody": "Find a comfortable seat, set a short timer, and notice your breath. When your attention wanders, gently begin again.",
-  "@localIntroBeginBody": {
-    "description": "Instructions for a first unguided meditation using the local timer."
-  },
-  "localIntroReturnBody": "Start with a few quiet minutes. The timer is ready whenever you are.",
-  "@localIntroReturnBody": {
-    "description": "Encouragement to resume practice using the local timer."
-  },
-  "localIntroPracticeBody": "Use the timer for an unguided sit, with the bells and duration you prefer.",
-  "@localIntroPracticeBody": {
-    "description": "Introduction to the local timer and its configurable bells and duration."
-  },
-  "localIntroDeviceOnlyNote": "Your practice history, favourites and settings stay on this device.",
-  "@localIntroDeviceOnlyNote": {
-    "description": "Explains that practice history, favourites and preferences are stored on the device."
   },
   "aboutMeditejo": "About Meditejo",
   "forkCredit": "Meditejo is based on Medito by the Medito Foundation (meditofoundation.org), licensed under AGPL-3.0.",
@@ -1385,9 +1303,9 @@
   "@searchLengthOver45": {
     "description": "Session-length filter"
   },
-  "courseLeft": "{count} of {total} left",
-  "@courseLeft": {
-    "description": "Course progress line",
+  "coursePlayed": "{count} of {total} played",
+  "@coursePlayed": {
+    "description": "Course progress, beside its bar: sessions played of all",
     "placeholders": {
       "count": {
         "type": "int"
@@ -1402,6 +1320,19 @@
     "description": "Course progress line when every session is done",
     "placeholders": {
       "total": {
+        "type": "int"
+      }
+    }
+  },
+  "coursePlayAgain": "Play again",
+  "@coursePlayAgain": {
+    "description": "A finished course's play button: starts it again from its first session"
+  },
+  "courseSessionCount": "{count, plural, =1{1 session} other{{count} sessions}}",
+  "@courseSessionCount": {
+    "description": "How many sessions a course holds, in its header's meta line (the word its Sessions tab uses)",
+    "placeholders": {
+      "count": {
         "type": "int"
       }
     }
@@ -1451,6 +1382,26 @@
         "type": "int"
       }
     }
+  },
+  "sessionKindMeditation": "Meditation",
+  "@sessionKindMeditation": {
+    "description": "Kind chip on a course row: a guided meditation"
+  },
+  "sessionKindChanting": "Chanting",
+  "@sessionKindChanting": {
+    "description": "Kind chip on a course row: chanting"
+  },
+  "sessionKindTalk": "Talk",
+  "@sessionKindTalk": {
+    "description": "Kind chip on a course row: a talk"
+  },
+  "sessionKindQuestions": "Q & A",
+  "@sessionKindQuestions": {
+    "description": "Kind chip on a course row: questions and answers"
+  },
+  "sessionKindRecording": "Recording",
+  "@sessionKindRecording": {
+    "description": "Kind chip on a course row: any other recording"
   },
   "teacherSave": "Add to library",
   "@teacherSave": {
@@ -1612,10 +1563,6 @@
   "@libraryTitle": {
     "description": "Heading of the screen and Home section listing what the user added"
   },
-  "libraryAdd": "Add",
-  "@libraryAdd": {
-    "description": "Button that opens the import screen"
-  },
   "libraryPractice": "Practice",
   "@libraryPractice": {
     "description": "Library section for guided practice"
@@ -1651,6 +1598,10 @@
   "libraryMoveToTalks": "Move to Talks",
   "@libraryMoveToTalks": {
     "description": "Menu item that reclassifies a library entry as a talk"
+  },
+  "libraryShowBySessions": "Show by sessions",
+  "@libraryShowBySessions": {
+    "description": "Library menu item that forgets the user's Practice/Talks choice for an entry, so its Practice and Talks chips follow its sessions again"
   },
   "libraryRename": "Rename",
   "@libraryRename": {
@@ -1737,7 +1688,19 @@
   },
   "importTitle": "Add to your library",
   "@importTitle": {
-    "description": "Title of the import screen"
+    "description": "Title of the import screen, and the tooltip and heading of Library's + and its sheet"
+  },
+  "libraryAddImport": "Import",
+  "@libraryAddImport": {
+    "description": "Library's + sheet: opens the import screen"
+  },
+  "libraryAddImportHint": "A link, a podcast feed, a YouTube playlist, or files on your phone",
+  "@libraryAddImportHint": {
+    "description": "Library's + sheet: what Import takes, under its label"
+  },
+  "libraryAddNewPlaylistHint": "Your own list of sessions, in your order",
+  "@libraryAddNewPlaylistHint": {
+    "description": "Library's + sheet: what a new playlist is, under New playlist"
   },
   "importFieldHint": "Paste a link",
   "@importFieldHint": {
@@ -2022,6 +1985,14 @@
   "youtubePrivate": "This video is private",
   "youtubePlaylistPrivate": "This playlist is private",
   "youtubeRateLimited": "YouTube is busy or asking for a bot check. Try again later",
+  "youtubeChannelOpen": "Open on YouTube",
+  "@youtubeChannelOpen": {
+    "description": "Button on a YouTube channel's teacher page that opens the channel on YouTube"
+  },
+  "youtubeChannelNoAbout": "No channel description on YouTube.",
+  "@youtubeChannelNoAbout": {
+    "description": "Shown on a YouTube channel's teacher page, and a YouTube course's Teacher tab, when the channel has no description"
+  },
   "youtubePlaylistEmpty": "Sessions aren't stored on this device yet. We'll try again shortly",
   "navLibrary": "Library",
   "exploreSearchHint": "Search your library and Dharma Seed",
@@ -2035,7 +2006,7 @@
   },
   "homeCustomize": "Customize",
   "homeCustomizeHint": "Switch sections on or off, and drag to put them in your order.",
-  "homeContinueEmpty": "Nothing in progress. Add something to your library, or open Explore.",
+  "homeContinueEmpty": "Nothing in progress. Start something in Explore or your library, or pin it there to keep it on Home.",
   "homeContinueResume": "Resume",
   "homeContinueStart": "Start",
   "homeContinueSessionOf": "Session {number} of {total}",
@@ -2057,7 +2028,6 @@
       }
     }
   },
-  "homeShortcutAdd": "Add",
   "homeShortcutPresetTimer": "Start the timer with {preset}",
   "@homeShortcutPresetTimer": {
     "description": "Screen-reader label of a Home tile that starts the timer with a saved background-sound preset.",
@@ -2069,8 +2039,36 @@
   },
   "pinCourse": "Pin to Home",
   "unpinCourse": "Unpin from Home",
-  "pinnedLimitReached": "Home holds up to three pinned courses or playlists. Unpin one first.",
+  "itemMarkPlayed": "Mark as played",
+  "itemMarkUnplayed": "Mark as unplayed",
+  "itemGoToTeacher": "Go to teacher",
+  "itemMarkPlayedFailed": "Couldn't update the played state. Please try again.",
   "pinnedCourseAdded": "Pinned to Home",
+  "pinnedSeeAll": "See all {count}",
+  "@pinnedSeeAll": {
+    "description": "Home's Pinned section: opens the full list of pins when there are more than Home shows",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pinnedUnderSeeAll": "Pinned to Home, under See all",
+  "@pinnedUnderSeeAll": {
+    "description": "Snackbar after pinning a fourth or later item: Home shows the first three pins, the rest are under See all"
+  },
+  "pinnedEmpty": "Nothing pinned yet",
+  "@pinnedEmpty": {
+    "description": "Pinned list: title when nothing is pinned"
+  },
+  "pinnedEmptyHint": "Pin a course or a session in Explore or your library to keep it on Home.",
+  "@pinnedEmptyHint": {
+    "description": "Pinned list: how to pin something, under pinnedEmpty"
+  },
+  "pinnedUnavailable": "Unavailable",
+  "@pinnedUnavailable": {
+    "description": "A pinned course or session whose source no longer has it: its title (or the line under its saved title)"
+  },
   "statsFeedbackNote": "These numbers are feedback, not a score.",
   "soundsYourMix": "Your mix",
   "@soundsYourMix": {
@@ -2189,21 +2187,25 @@
   "@soundsCouldNotPlay": {
     "description": "Sounds screen: soundsCouldNotPlay"
   },
-  "soundsUnderSessions": "Under sessions",
-  "@soundsUnderSessions": {
-    "description": "Sounds screen: soundsUnderSessions"
+  "soundsPlaysUnderPractice": "Plays under practice",
+  "@soundsPlaysUnderPractice": {
+    "description": "Sounds tab line and mixer drawer: what plays under practice sessions; its value (Off, a preset, sounds) follows"
   },
-  "soundsUnderPractice": "Play under practice",
-  "@soundsUnderPractice": {
-    "description": "Sounds screen: soundsUnderPractice"
+  "soundsPlaysUnderTalks": "Plays under talks",
+  "@soundsPlaysUnderTalks": {
+    "description": "Sounds tab line and mixer drawer: what plays under talks; its value follows"
   },
-  "soundsUnderTalks": "Play under talks",
-  "@soundsUnderTalks": {
-    "description": "Sounds screen: soundsUnderTalks"
+  "soundsDone": "Done",
+  "@soundsDone": {
+    "description": "Closes the mixer drawer, keeping what is in it as the choice"
   },
-  "soundsUnderSessionsHint": "Your mix plays beneath the session, at its own volume",
-  "@soundsUnderSessionsHint": {
-    "description": "Sounds screen: soundsUnderSessionsHint"
+  "soundsChooserEmpty": "Off. Tap a sound or a preset to choose it.",
+  "@soundsChooserEmpty": {
+    "description": "Mixer drawer, when nothing is chosen for these sessions"
+  },
+  "soundsChooserOvertaken": "The session changed, so the sound was left as it was.",
+  "@soundsChooserOvertaken": {
+    "description": "Snackbar when a session starts or ends while the mixer drawer is open: the drawer closes and keeps nothing"
   },
   "soundsCredits": "Sound credits",
   "@soundsCredits": {
@@ -2331,9 +2333,53 @@
   "@noiseBands": {
     "description": "Sounds screen, generated layers: noiseBands"
   },
-  "noiseReset": "Reset bands",
-  "@noiseReset": {
-    "description": "Sounds screen, generated layers: noiseReset"
+  "noiseShape": "Shape",
+  "@noiseShape": {
+    "description": "Noise editor: heading over the named band curves (Even, Soft, Deep, Airy)"
+  },
+  "noiseShapeEven": "Even",
+  "@noiseShapeEven": {
+    "description": "Noise shape: the colour as it is, every band level"
+  },
+  "noiseShapeSoft": "Soft",
+  "@noiseShapeSoft": {
+    "description": "Noise shape: the high frequencies fall gently away"
+  },
+  "noiseShapeDeep": "Deep",
+  "@noiseShapeDeep": {
+    "description": "Noise shape: a low rumble, mids and highs well down"
+  },
+  "noiseShapeAiry": "Airy",
+  "@noiseShapeAiry": {
+    "description": "Noise shape: the lows thinned, the highs kept"
+  },
+  "noiseShapeCustom": "Custom",
+  "@noiseShapeCustom": {
+    "description": "Noise shape chip shown when the bands were set by hand and match no named shape"
+  },
+  "binauralDelta": "Delta",
+  "@binauralDelta": {
+    "description": "Binaural beat band chip: below 4 Hz"
+  },
+  "binauralTheta": "Theta",
+  "@binauralTheta": {
+    "description": "Binaural beat band chip: 4 to 8 Hz"
+  },
+  "binauralAlpha": "Alpha",
+  "@binauralAlpha": {
+    "description": "Binaural beat band chip: 8 to 13 Hz"
+  },
+  "binauralBeta": "Beta",
+  "@binauralBeta": {
+    "description": "Binaural beat band chip: 13 Hz and above"
+  },
+  "droneRootHint": "Up to three notes",
+  "@droneRootHint": {
+    "description": "Sounds screen, drone editor: caption under the Root chips, a chord can hold this many"
+  },
+  "soundChipsKeepOne": "At least one stays chosen",
+  "@soundChipsKeepOne": {
+    "description": "Screen-reader hint on the last chosen chip of a multiple-choice chip row: it cannot be turned off"
   },
   "droneRoot": "Root",
   "@droneRoot": {
@@ -2590,7 +2636,19 @@
   },
   "navYou": "You",
   "@navYou": {
-    "description": "The tab bar's last tab: the user's own place (stats and settings)"
+    "description": "Title of the You page: the user's own place (stats, session history, pins). Opened from the person button at the top right of Home, Library and Settings"
+  },
+  "youButton": "You: stats and history",
+  "@youButton": {
+    "description": "Tooltip and screen-reader label of the person button at the top right of Home, Library and Settings, which opens the You page"
+  },
+  "youSectionPractice": "Your practice",
+  "@youSectionPractice": {
+    "description": "Heading on the You page above the rows for session history and pins"
+  },
+  "navSettings": "Settings",
+  "@navSettings": {
+    "description": "Label of the fifth tab in the bottom bar, under a gear. Keep it short: a fifth of a 360 dp phone's width"
   },
   "soundsMixEmptyTitle": "Nothing in your mix yet",
   "@soundsMixEmptyTitle": {
@@ -2647,10 +2705,6 @@
   "@soundsAdjust": {
     "description": "Button on a generated layer (noise, drone, binaural beats) that opens its settings"
   },
-  "soundsEditMix": "Edit your mix in Sounds",
-  "@soundsEditMix": {
-    "description": "In the player's Customize sheet, under Background sound: opens the Sounds screen"
-  },
   "playlistKind": "Playlist",
   "@playlistKind": {
     "description": "Names what the user makes (a Playlist), shown beside a course on Library rows and as the kind on a playlist page. A course comes from a source."
@@ -2665,7 +2719,7 @@
   },
   "settingsSectionLibrary": "Library & downloads",
   "@settingsSectionLibrary": {
-    "description": "Settings group: imports, favorites, downloads, catalogue sync"
+    "description": "Settings group: imports, downloads, catalogue sync"
   },
   "settingsSectionAppearance": "Appearance",
   "@settingsSectionAppearance": {
@@ -2724,6 +2778,42 @@
   "@settingsLicenses": {
     "description": "Settings row opening the licences page"
   },
+  "introLead": "One calm place for your practice.",
+  "@introLead": {
+    "description": "First-launch intro: the one-line summary of what the app is, under its name"
+  },
+  "introPractice": "Follow a course session by session, listen to talks, or sit with the timer.",
+  "@introPractice": {
+    "description": "First-launch intro: what you can do (courses, talks, timer)"
+  },
+  "introSources": "Dharma Seed is built in. Add podcasts, YouTube or your own files.",
+  "@introSources": {
+    "description": "First-launch intro: where the content comes from"
+  },
+  "introPrivate": "No account. Your history and settings stay on this phone.",
+  "@introPrivate": {
+    "description": "First-launch intro: no account, data stays on the device"
+  },
+  "introMeaning": "Meditejo is Esperanto for “a place of meditation”.",
+  "@introMeaning": {
+    "description": "First-launch intro: what the name means, small print"
+  },
+  "introStart": "Start",
+  "@introStart": {
+    "description": "First-launch intro: button that closes the intro and opens Home"
+  },
+  "introTour": "Take the tour",
+  "@introTour": {
+    "description": "First-launch intro: button that starts the guided tour (shown once the tour exists)"
+  },
+  "aboutWhatIsMeditejo": "What Meditejo is",
+  "@aboutWhatIsMeditejo": {
+    "description": "Settings > About row that opens the first-launch intro again"
+  },
+  "batteryGuidanceRow": "Your phone may pause sessions and reminders",
+  "@batteryGuidanceRow": {
+    "description": "Settings row subtitle, under the battery title, on phones known to stop apps in the background"
+  },
   "statsTimePractised": "Time practised",
   "@statsTimePractised": {
     "description": "Stats card: today, week, month and all-time totals"
@@ -2754,6 +2844,18 @@
     "placeholders": {
       "count": {
         "type": "int"
+      }
+    }
+  },
+  "statsAudioVersusRealTime": "{audio} of audio · {real} of your time",
+  "@statsAudioVersusRealTime": {
+    "description": "Quiet line under the all-time totals when sessions were played faster or slower than recorded, e.g. '4 h of audio · 3 h 10 min of your time'. audio = total length of the recordings; real = the time it actually took",
+    "placeholders": {
+      "audio": {
+        "type": "String"
+      },
+      "real": {
+        "type": "String"
       }
     }
   },
@@ -2923,25 +3025,9 @@
       }
     }
   },
-  "libraryInProgress": "In progress",
-  "@libraryInProgress": {
-    "description": "Library heading over what the user has started and not finished"
-  },
   "libraryFilterAll": "All",
   "@libraryFilterAll": {
     "description": "Library filter chip: everything"
-  },
-  "libraryFilterCourses": "Courses",
-  "@libraryFilterCourses": {
-    "description": "Library filter chip: courses from a source"
-  },
-  "libraryFilterPlaylists": "Playlists",
-  "@libraryFilterPlaylists": {
-    "description": "Library filter chip: what the user made"
-  },
-  "libraryFilterSingles": "Singles",
-  "@libraryFilterSingles": {
-    "description": "Library filter chip: single sessions"
   },
   "libraryFilterDownloads": "Downloads",
   "@libraryFilterDownloads": {
@@ -2950,10 +3036,6 @@
   "libraryFilterLabel": "Show",
   "@libraryFilterLabel": {
     "description": "Screen-reader label of the Library's filter chips"
-  },
-  "libraryGroupLabel": "Practice or talks",
-  "@libraryGroupLabel": {
-    "description": "Screen-reader label of the Library's Practice/Talks switch"
   },
   "librarySort": "Sort",
   "@librarySort": {
@@ -2990,6 +3072,54 @@
   "libraryFilterEmptyBody": "Find something in Explore, or add a link or a file.",
   "@libraryFilterEmptyBody": {
     "description": "Library text when a filter matches nothing"
+  },
+  "libraryFilterCount": "{label} {count}",
+  "@libraryFilterCount": {
+    "description": "A Library filter chip with how many items it shows, e.g. \"Talks 9\"",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "librarySectionPlaylists": "Playlists",
+  "@librarySectionPlaylists": {
+    "description": "Library section heading: the playlists the user made"
+  },
+  "librarySectionCourses": "Courses",
+  "@librarySectionCourses": {
+    "description": "Library section heading: courses from a source (retreats, feeds, YouTube series)"
+  },
+  "librarySectionSessions": "Sessions",
+  "@librarySectionSessions": {
+    "description": "Library section heading: single sessions"
+  },
+  "libraryPracticeEmpty": "No practice here yet",
+  "@libraryPracticeEmpty": {
+    "description": "Library heading when the Practice chip matches nothing"
+  },
+  "libraryPracticeEmptyBody": "Guided meditations, and courses with them, show up here.",
+  "@libraryPracticeEmptyBody": {
+    "description": "Library text when the Practice chip matches nothing"
+  },
+  "libraryTalksEmpty": "No talks here yet",
+  "@libraryTalksEmpty": {
+    "description": "Library heading when the Talks chip matches nothing"
+  },
+  "libraryTalksEmptyBody": "Talks, and courses with talks, show up here.",
+  "@libraryTalksEmptyBody": {
+    "description": "Library text when the Talks chip matches nothing"
+  },
+  "libraryDownloadsEmpty": "Nothing downloaded",
+  "@libraryDownloadsEmpty": {
+    "description": "Library heading when the Downloads chip matches nothing"
+  },
+  "libraryDownloadsEmptyBody": "Download a session from its menu to have it offline. It shows up here.",
+  "@libraryDownloadsEmptyBody": {
+    "description": "Library text when the Downloads chip matches nothing"
   },
   "libraryEmptyExplore": "Explore",
   "@libraryEmptyExplore": {
@@ -3096,5 +3226,269 @@
   "updateAutoCheckDescription": "Asks GitHub once a day when Meditejo opens.",
   "@updateAutoCheckDescription": {
     "description": "Caption under the automatic update check switch"
+  },
+  "customizeSlotSound": "Sound",
+  "@customizeSlotSound": {
+    "description": "Customize: name of the tile for what plays under a session"
+  },
+  "customizeSlotBells": "Bells",
+  "@customizeSlotBells": {
+    "description": "Customize: name of the tile for the starting, interval and ending bells"
+  },
+  "customizeSlotRhythm": "Rhythm",
+  "@customizeSlotRhythm": {
+    "description": "Customize: name of the tile for the pulse"
+  },
+  "customizeSlotLength": "Length",
+  "@customizeSlotLength": {
+    "description": "Customize: name of the tile for how long the session runs"
+  },
+  "customizeOff": "Off",
+  "@customizeOff": {
+    "description": "Customize: a tile's value when it plays nothing"
+  },
+  "customizeBellsAtStart": "Start",
+  "@customizeBellsAtStart": {
+    "description": "Customize: Bells tile, a bell rings at the start"
+  },
+  "customizeBellsHalfway": "Halfway",
+  "@customizeBellsHalfway": {
+    "description": "Customize: Bells tile, one bell rings at the midpoint"
+  },
+  "customizeBellsEvery": "Every {minutes} min",
+  "@customizeBellsEvery": {
+    "description": "Customize: Bells tile, the interval bell's rhythm",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "customizeBellsAtEnd": "End",
+  "@customizeBellsAtEnd": {
+    "description": "Customize: Bells tile, a bell rings at the end"
+  },
+  "customizeCountdownThenBell": "{seconds} sec countdown · {bell}",
+  "@customizeCountdownThenBell": {
+    "description": "Customize: the starting bell's value when a countdown comes first",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      },
+      "bell": {
+        "type": "String"
+      }
+    }
+  },
+  "customizeSilenceThenBell": "{minutes} min silence · {bell}",
+  "@customizeSilenceThenBell": {
+    "description": "Customize: the ending bell's value when silence comes first",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "bell": {
+        "type": "String"
+      }
+    }
+  },
+  "customizeLengthCountsUp": "Counts up",
+  "@customizeLengthCountsUp": {
+    "description": "Customize: Length tile for a stopwatch, which has no end"
+  },
+  "customizeLengthSetBySession": "Set by the session",
+  "@customizeLengthSetBySession": {
+    "description": "Customize: Length tile, the recording decides the length"
+  },
+  "customizeLengthSetByEachSession": "Set by each session",
+  "@customizeLengthSetByEachSession": {
+    "description": "Customize: Length tile in Settings, where no session is chosen"
+  },
+  "customizeLengthPlusSilence": "+ {minutes} min silence",
+  "@customizeLengthPlusSilence": {
+    "description": "Customize: Length tile, silence added after the recording",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "customizeShowBeforeSession": "Show before each session",
+  "@customizeShowBeforeSession": {
+    "description": "Customize: footer switch; off starts sessions straight away"
+  },
+  "playerAutoplay": "Autoplay",
+  "@playerAutoplay": {
+    "description": "Player: title of the autoplay sheet for a course's sessions"
+  },
+  "playerAutoplayOn": "Autoplay on",
+  "@playerAutoplayOn": {
+    "description": "Player: autoplay button while the next session starts by itself"
+  },
+  "playerAutoplayOff": "Autoplay off",
+  "@playerAutoplayOff": {
+    "description": "Player: autoplay button while it is off"
+  },
+  "playerAutoplaySwitch": "Play the next session automatically",
+  "@playerAutoplaySwitch": {
+    "description": "Player: autoplay switch"
+  },
+  "playerAutoplayPause": "Pause between sessions",
+  "@playerAutoplayPause": {
+    "description": "Player: label above the pause choices"
+  },
+  "playerAutoplayNoPause": "None",
+  "@playerAutoplayNoPause": {
+    "description": "Player: no pause between sessions"
+  },
+  "playerAutoplaySeconds": "{seconds} sec",
+  "@playerAutoplaySeconds": {
+    "description": "Player: a pause between sessions, in seconds",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "playerAutoplayUpNext": "Up next: {title}",
+  "@playerAutoplayUpNext": {
+    "description": "Player: the course's next session",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "playerAutoplayLast": "This is the last session of the course",
+  "@playerAutoplayLast": {
+    "description": "Player: no next session to autoplay"
+  },
+  "customizeCurrentMix": "Current mix",
+  "@customizeCurrentMix": {
+    "description": "Customize: Sound tile's value when the current mix plays under sessions"
+  },
+  "customizeSlotChanged": "changed",
+  "@customizeSlotChanged": {
+    "description": "Customize: read by a screen reader after a tile that differs from the defaults"
+  },
+  "customizeSlotDefault": "default",
+  "@customizeSlotDefault": {
+    "description": "Customize: read by a screen reader after a tile at its defaults"
+  },
+  "customizeRhythmRate": "Rate",
+  "@customizeRhythmRate": {
+    "description": "Customize › Rhythm: label over the wheel that sets the pulse's beats a minute"
+  },
+  "customizeRhythmSlowDownOver": "Slow down over",
+  "@customizeRhythmSlowDownOver": {
+    "description": "Customize › Rhythm: what the ramp wheel sets (minutes the pulse takes to slow to its end rate); read by a screen reader and in the Undo bar"
+  },
+  "customizeRhythmOver": "Over",
+  "@customizeRhythmOver": {
+    "description": "Customize › Rhythm: short label over the ramp wheel, in the row 'Rate · Over · Ends at'"
+  },
+  "customizeRhythmEndsAt": "Ends at",
+  "@customizeRhythmEndsAt": {
+    "description": "Customize › Rhythm: label over the wheel that sets the rate the pulse slows to; dimmed while the ramp is Off"
+  },
+  "customizeRhythmOverMinutes": "over {minutes} min",
+  "@customizeRhythmOverMinutes": {
+    "description": "Customize › Rhythm tile: small text set above the arrow in '60 ⟶ 40 BPM'",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "customizeRhythmRampSpoken": "{from} to {to} BPM over {minutes} min",
+  "@customizeRhythmRampSpoken": {
+    "description": "Customize › Rhythm tile, for a screen reader: the pulse slowing from one rate to another",
+    "placeholders": {
+      "from": {
+        "type": "int"
+      },
+      "to": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "customizeUndoChange": "{setting}: {value}",
+  "@customizeUndoChange": {
+    "description": "Customize: the bar shown after a wheel changes a setting, with an Undo button, e.g. 'Slow down over: 9 min'",
+    "placeholders": {
+      "setting": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "playerAutoplayForPractice": "For all practice",
+  "@playerAutoplayForPractice": {
+    "description": "Player: the autoplay setting applies to every practice course"
+  },
+  "playerAutoplayForTalks": "For all talks",
+  "@playerAutoplayForTalks": {
+    "description": "Player: the autoplay setting applies to every talks course"
+  },
+  "playerAutoplayForCourse": "For this course",
+  "@playerAutoplayForCourse": {
+    "description": "Player: the autoplay setting applies to this course only"
+  },
+  "playerAutoplayForPlaylist": "For this playlist",
+  "@playerAutoplayForPlaylist": {
+    "description": "Player: the autoplay setting applies to this playlist only"
+  },
+  "playerAutoplayLastOfPlaylist": "This is the last session of the playlist",
+  "@playerAutoplayLastOfPlaylist": {
+    "description": "Player: no next session to autoplay in a playlist"
+  },
+  "trackPartOf": "Part of {course}",
+  "@trackPartOf": {
+    "description": "Episode page: the course the session belongs to, tappable, when the course is not in the library",
+    "placeholders": {
+      "course": {
+        "type": "String"
+      }
+    }
+  },
+  "trackInCourse": "In {course}",
+  "@trackInCourse": {
+    "description": "Episode page: the saved course the session belongs to, shown instead of Add to library",
+    "placeholders": {
+      "course": {
+        "type": "String"
+      }
+    }
+  },
+  "trackShowMore": "Show more",
+  "@trackShowMore": {
+    "description": "Episode page: expands a long description"
+  },
+  "trackShowLess": "Show less",
+  "@trackShowLess": {
+    "description": "Episode page: collapses the expanded description"
+  },
+  "homeMarkName": "{type, select, doorway{Doorway} cushion{Cushion} horizon{Horizon} hearth{Hearth} path{Path home} shelter{Shelter} window{Window} step{Threshold} loops{Loops} enso{Ensō} wave{Breath wave} split{Split sun} arch{Arch} pebble{Pebble and bindu} crescent{Crescent} vesica{Vesica} cairn{Cairn} clearing{Clearing} dawn{Dawn over water} ridges{Ridges in mist} moonpool{Moon pool} doorlight{Lit doorway} halo{Halo} shoreline{Shoreline} other{Today's mark}}",
+  "@homeMarkName": {
+    "description": "Home: the name of the day's mark, by its kind (shown briefly on the first open of a day)",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "homeMarkTodayIs": "Today's mark: {name}",
+  "@homeMarkTodayIs": {
+    "description": "Screen reader announcement of the day's mark on Home",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   }
 }

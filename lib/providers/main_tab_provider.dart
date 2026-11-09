@@ -7,7 +7,7 @@ const _legacyTabIndexKey = 'last_main_tab_index';
 const _legacyTabLayoutKey = 'main_tab_layout';
 
 /// The five tabs, in bar order.
-enum MainTab { home, explore, sounds, library, you }
+enum MainTab { home, explore, sounds, library, settings }
 
 /// The tab on screen. Any screen can move it (Home's "See all", a deep link);
 /// the main screen listens and does the rest. The app always opens on Home.

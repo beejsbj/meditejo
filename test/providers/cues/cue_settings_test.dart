@@ -207,4 +207,68 @@ void main() {
       expect(container.read(cueSettingsProvider(course)).extendMinutes, 10);
     },
   );
+
+  // #72 moved Autoplay to the player and dropped Customize's Flow section.
+  // What the old sheet stored still loads, keeps its meaning, and survives
+  // the next save; keys the app does not know are ignored.
+  test('settings stored by the Flow-era sheet load unchanged', () async {
+    const flowEra = {
+      'version': 1,
+      'durationMinutes': 25,
+      'extendMinutes': 5,
+      'countdownSeconds': 10,
+      'startSound': 'assets/audio/bell_gong.wav',
+      'endSound': 'assets/audio/bell_chime.wav',
+      'pulseSound': 'assets/audio/pulse_heartbeat.wav',
+      'autoplay': true,
+      'interludeSeconds': 30,
+      'hideBeforePractice': true,
+      // Not keys this app writes: a section that no longer exists, and
+      // whatever another build might have added.
+      'flow': {'autoplay': true},
+      'somethingNewer': 'x',
+    };
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('cues.v1.practice', jsonEncode(flowEra));
+    await prefs.setString(
+      'cues.v1.talks.course.c1',
+      jsonEncode({...flowEra, 'hideBeforePractice': false}),
+    );
+    final store = CueSettingsStore(prefs);
+    final practice = store.read(const CueScope(CueKind.practice));
+    expect(practice.autoplay, isTrue, reason: 'the player reads it now');
+    expect(practice.interludeSeconds, 30);
+    expect(practice.showBeforeSession, isFalse);
+    expect(practice.countdownSeconds, 10, reason: 'now the starting bell');
+    expect(practice.extendMinutes, 5, reason: 'now the ending bell');
+    expect(practice.durationMinutes, 25);
+    final course = store.read(const CueScope(CueKind.talks, courseId: 'c1'));
+    expect(course.showBeforeSession, isTrue);
+    expect(course.autoplay, isTrue);
+
+    // Saved again, it keeps the same keys, so an older build reads it too.
+    await store.save(const CueScope(CueKind.practice), practice);
+    final saved =
+        jsonDecode(prefs.getString('cues.v1.practice')!)
+            as Map<String, dynamic>;
+    expect(saved['hideBeforePractice'], isTrue);
+    expect(saved['autoplay'], isTrue);
+    expect(saved['interludeSeconds'], 30);
+    expect(saved.containsKey('flow'), isFalse);
+  });
+
+  test('"Show before each session" is on until switched off', () {
+    expect(CueSettings.defaults(CueKind.practice).showBeforeSession, isTrue);
+    expect(CueSettings.defaults(CueKind.talks).showBeforeSession, isTrue);
+    expect(
+      const CueSettings(hideBeforePractice: true).showBeforeSession,
+      isFalse,
+    );
+    expect(
+      CueSettings.decode('{"hideBeforePractice":"yes"}', CueKind.practice)
+          .showBeforeSession,
+      isTrue,
+      reason: 'a damaged value shows the sheet',
+    );
+  });
 }

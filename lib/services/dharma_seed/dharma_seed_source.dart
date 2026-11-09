@@ -28,7 +28,11 @@ import 'package:medito/utils/logger.dart';
 /// has not synced yet asks [sync] to fetch it first, bounded by
 /// [fetchTimeout]; offline, it shows what is stored.
 class DharmaSeedSource
-    implements ContentSource, SavableContentSource, ParentedContentSource {
+    implements
+        ContentSource,
+        SavableContentSource,
+        ParentedContentSource,
+        CourseMembershipSource {
   DharmaSeedSource({
     required this.db,
     this.sync,
@@ -118,6 +122,40 @@ class DharmaSeedSource
         ],
     };
   }, orElse: const {});
+
+  /// Whether each of [trackIds] that is a stored Dharma Seed talk is practice
+  /// or a talk, by its own `recording_type` (#80): null for a stored talk
+  /// with no type. A talk not stored yet is left out. From the device only.
+  Future<Map<String, LibraryGroup?>> sessionGroups(Iterable<String> trackIds) =>
+      _quietly('sessionGroups', () async {
+        final types = await db.recordingTypesOf(
+          trackIds.map(parseDsTalkId).nonNulls,
+        );
+        return {
+          for (final MapEntry(:key, :value) in types.entries)
+            dsTalkId(key): value.trim().isEmpty
+                ? null
+                : DharmaSeedKind.fromRecordingType(value).isPractice
+                ? LibraryGroup.practice
+                : LibraryGroup.talks,
+        };
+      }, orElse: const {});
+
+  /// The talk IDs of just these retreats, as [packTrackIds] gives them, from
+  /// the device; a retreat not stored is left out.
+  Future<Map<String, List<String>>> retreatTrackIds(Iterable<String> ids) =>
+      _quietly('retreatTrackIds', () async {
+        final retreats = await db.retreatsById(
+          ids.map(parseDsRetreatId).nonNulls,
+        );
+        return {
+          for (final retreat in retreats)
+            dsRetreatId(retreat.id): [
+              for (final talkId in await db.liveTalkIdsOf(retreat))
+                dsTalkId(talkId),
+            ],
+        };
+      }, orElse: const {});
 
   @override
   Future<List<PackItemsModel>> searchPacks(String query) =>
@@ -255,7 +293,21 @@ class DharmaSeedSource
     final talkId = parseDsTalkId(trackId);
     if (talkId == null) return null;
     final retreat = (await db.talkById(talkId))?.retreatId;
-    return retreat == null || retreat == 0 ? null : dsRetreatId(retreat);
+    // The catch-all "Unknown" retreat is not a course a talk is part of.
+    return retreat == null || retreat == 0 || retreat == dsUnknownRetreat
+        ? null
+        : dsRetreatId(retreat);
+  }
+
+  /// Whether talk [trackId] was given at retreat [courseId]. Unlike
+  /// [parentOf] this holds for the catch-all "Unknown" retreat too: a talk
+  /// opened from that course's page keeps its cues, autoplay and place.
+  @override
+  Future<bool> courseLists(String courseId, String trackId) async {
+    final retreat = parseDsRetreatId(courseId);
+    final talkId = parseDsTalkId(trackId);
+    if (retreat == null || talkId == null) return false;
+    return (await db.talkById(talkId))?.retreatId == retreat;
   }
 
   // ------------------------------------------------- Dharma Seed screens
@@ -472,6 +524,7 @@ class DharmaSeedSource
       path: '/tracks/${dsTalkId(talk.id)}',
       kind: DharmaSeedKind.fromRecordingType(talk.recordingType).label,
       teacher: hit.teacher?.name,
+      teacherId: hit.teacher == null ? null : dsTeacherId(hit.teacher!.id),
       durationMs: talk.durationMs,
       date: talk.recDate.length >= 10 ? talk.recDate.substring(0, 10) : null,
     );

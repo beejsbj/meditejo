@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
-import 'package:medito/constants/theme/tokens.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/timer/timer_session.dart';
@@ -12,14 +11,15 @@ import 'package:medito/providers/home/home_presets_provider.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/providers/timer/timer_settings_provider.dart';
 import 'package:medito/views/home/home_styles.dart';
-import 'package:medito/views/library/import_view.dart';
 import 'package:medito/views/timer/start_timer.dart';
 import 'package:medito/views/timer/timer_format.dart';
 import 'package:medito/views/timer/timer_view.dart';
 import 'package:medito/widgets/medito_icon.dart';
 
-/// One-tap starts, as a grid of tiles: the Timer, Sounds, a few sound
-/// presets that start the Timer with that background, and Add.
+/// One-tap starts, as a grid of tiles: the Timer, Sounds, and a few sound
+/// presets that start the Timer with that background. There is no Add here
+/// (#62): Home gains things by pinning them elsewhere, and importing lives
+/// behind Library's "+".
 class ShortcutsSection extends ConsumerWidget {
   const ShortcutsSection({super.key});
 
@@ -104,10 +104,6 @@ class ShortcutsSection extends ConsumerWidget {
                       height: height < 116 ? 116 : height,
                       child: tile,
                     ),
-                  SizedBox(
-                    width: constraints.maxWidth,
-                    child: _AddTile(onTap: () => openImport(context, ref)),
-                  ),
                 ],
               );
             },
@@ -194,44 +190,6 @@ class ShortcutTile extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: type.baseline.bodyMedium?.copyWith(color: muted),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Add, as a quiet full-width row under the tiles.
-class _AddTile extends StatelessWidget {
-  const _AddTile({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
-    return Semantics(
-      button: true,
-      label: l10n.homeShortcutAdd,
-      excludeSemantics: true,
-      onTap: onTap,
-      child: HomePressable(
-        key: const ValueKey('shortcut_add'),
-        color: scheme.surfaceContainer,
-        radius: MeditejoShapes.full,
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Icon(Icons.add_rounded, color: scheme.onSurface),
-              const SizedBox(width: 12),
-              Text(
-                l10n.homeShortcutAdd,
-                style: context.typography.emphasized.titleMedium,
               ),
             ],
           ),

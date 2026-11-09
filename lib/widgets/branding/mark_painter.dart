@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/painting.dart';
+import 'package:medito/services/identity/mark_moments.dart';
 import 'package:medito/services/identity/mark_outline.dart';
 import 'package:medito/services/identity/mark_spec.dart';
 import 'package:medito/services/identity/palettes.dart';
@@ -121,7 +122,10 @@ class MarkRenderer {
   /// tile behind gesture and minimal marks; without it they sit on whatever
   /// is below (the app's background). [finish] lays the paper finish over a
   /// tiled mark; atmospheric scenes always carry theirs. [scale] shrinks the composition about
-  /// the centre (the launcher icon's safe zone).
+  /// the centre (the launcher icon's safe zone). [swell] (0–1) is how far
+  /// into a deep breath the mark is: it grows a little and its shapes round
+  /// out, as at the top of its resting breath (see `MarkMoments`).
+  /// [breathe] false holds the resting breath out (a mark un-drawing).
   void draw(
     MarkSpec m,
     double t, {
@@ -129,22 +133,40 @@ class MarkRenderer {
     bool tile = true,
     bool finish = true,
     double scale = 1,
+    double swell = 0,
+    bool breathe = true,
   }) {
     if (still) t = 60;
+    _swell = still ? 0 : swell;
+    _breathe = breathe;
     final c = colors;
+    final grow = 1 + MarkMoments.swellScale * _swell;
     if (m is AtmosMark) {
       canvas
         ..save()
         ..translate(0.5, 0.5)
-        ..scale(scale)
+        ..scale(scale * grow)
         ..translate(-0.5, -0.5);
       _atmos(m, t, still);
       canvas.restore();
-      _finish(speckle: 0.3);
+      if (grow == 1) {
+        _finish(speckle: 0.3);
+      } else {
+        // A deep breath grows the scene past the tile: the print finish
+        // grows with it (about the centre, apart from [scale], so the
+        // launcher icon's safe zone is untouched), or its corners go bare.
+        canvas
+          ..save()
+          ..translate(0.5, 0.5)
+          ..scale(grow)
+          ..translate(-0.5, -0.5);
+        _finish(speckle: 0.3);
+        canvas.restore();
+      }
       return;
     }
     if (tile) _rect(const Rect.fromLTWH(0, 0, 1, 1), c.tile);
-    final sc = scale * m.fit;
+    final sc = scale * m.fit * grow;
     canvas
       ..save()
       ..translate(0.5, 0.5)
@@ -160,6 +182,15 @@ class MarkRenderer {
     }
     canvas.restore();
     if (tile && finish) _finish(paper: 0.1, speckle: 0.18, vignette: 0);
+  }
+
+  double _swell = 0;
+  bool _breathe = true;
+
+  /// The breath at [t] (0 out, 1 in), deepened by a deep breath's swell.
+  double _breath(double t, double start, bool still) {
+    final b = still || !_breathe ? 0.0 : breathAt(t, start);
+    return b + (1 - b) * _swell;
   }
 
   // ---------- primitives ----------
@@ -264,7 +295,7 @@ class MarkRenderer {
   void _gesture(GestureMark m, double t, bool still) {
     const s0 = 0.5;
     final bStart = s0 + m.duration + 0.4;
-    final b = still ? 0.0 : breathAt(t, bStart);
+    final b = _breath(t, bStart, still);
     final appear = easeOut(progress(t, 0, 1));
     _fill(
       blobPath(
@@ -286,7 +317,7 @@ class MarkRenderer {
 
   void _minimal(MinimalMark m, double t, bool still) {
     final c = colors;
-    final b = still ? 0.0 : breathAt(t, 2.4), imp = 1 - b;
+    final b = _breath(t, 2.4, still), imp = 1 - b;
     double e(double s, double d) => still ? 1 : easeOut(progress(t, s, d));
     final e1 = e(0, 1.1), e2 = e(0.6, 1.3), e3 = e(1.1, 1.2);
     final [r1, r2, r3] = m.roles;
@@ -573,7 +604,7 @@ class MarkRenderer {
 
   void _atmos(AtmosMark m, double t, bool still) {
     final c = colors;
-    final b = still ? 0.0 : breathAt(t, 3.2), imp = 1 - b;
+    final b = _breath(t, 3.2, still), imp = 1 - b;
     double e(double s, double d) => still ? 1 : easeOut(progress(t, s, d));
     const all = Rect.fromLTWH(0, 0, 1, 1);
     final sky = _mix(c.tile, c.accent, c.lightPaper ? 0.18 : 0.12);

@@ -1,6 +1,6 @@
 /// Identity of imported content: `lib-course-<hash>` and `lib-track-<hash>`.
 ///
-/// IDs are stored permanently in stats, favourites, downloads and the native
+/// IDs are stored permanently in stats, pins, downloads and the native
 /// completion queue, so they never change for the same thing. A feed or a URL
 /// hashes its address, so adding it twice finds the first; a local file has
 /// no address worth hashing, so it gets a random one.
