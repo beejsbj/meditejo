@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/providers/categories/category_providers.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/services/categories/category_catalogue.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
@@ -151,6 +152,57 @@ void main() {
     await _settle(tester);
     await _tap(tester, 'talks');
     expect(_shown('Jhana Retreat'), findsOneWidget);
+    expect(find.text('Talks 1'), findsOneWidget);
+  });
+
+  testWidgets('a retreat saved before its talks are stored moves under '
+      'Talks once the sync stores them', (tester) async {
+    final app = await LibraryTestApp.create(tester);
+    final db = app.harness.dsDb;
+    // The retreat's own record, with its talk IDs, but none of its talks.
+    await tester.runAsync(
+      () => db.upsertRetreatRecords({
+        100: {
+          'name': 'Jhana Retreat',
+          'description': '',
+          'start_date': '2014-03-01',
+          'talks': [1, 2],
+        },
+      }),
+    );
+    await _add(tester, app.harness.store, 'ds-retreat-100', 'Jhana Retreat');
+    // Stands in for the background sync's "stored more" signal.
+    final revision = ValueNotifier(0);
+    addTearDown(revision.dispose);
+    await app.pump(
+      tester,
+      const LibraryView(),
+      overrides: [
+        dharmaSeedRevisionProvider.overrideWith(
+          () => ValueListenableNotifier((ref) => revision),
+        ),
+      ],
+    );
+    expect(find.text('Practice 1'), findsOneWidget);
+    expect(find.text('Talks 0'), findsOneWidget);
+
+    await tester.runAsync(
+      () => db.upsertTalkRecords({
+        1: dsTalkRecord(
+          'Settling',
+          teacher: 1,
+          retreat: 100,
+          type: 'Meditation',
+        ),
+        2: dsTalkRecord('Jhana basics', teacher: 1, retreat: 100),
+      }),
+    );
+    revision.value++;
+    await tester.pump();
+    // Not at once: the re-read waits out the debounce.
+    expect(find.text('Talks 0'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 6));
+    await _settle(tester);
     expect(find.text('Talks 1'), findsOneWidget);
   });
 

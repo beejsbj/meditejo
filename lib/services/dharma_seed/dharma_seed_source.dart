@@ -124,19 +124,36 @@ class DharmaSeedSource
   }, orElse: const {});
 
   /// Whether each of [trackIds] that is a stored Dharma Seed talk is practice
-  /// or a talk, by its own `recording_type` (#80). From the device only:
-  /// a talk not stored yet, or with no type, is left out.
-  Future<Map<String, LibraryGroup>> sessionGroups(Iterable<String> trackIds) =>
+  /// or a talk, by its own `recording_type` (#80): null for a stored talk
+  /// with no type. A talk not stored yet is left out. From the device only.
+  Future<Map<String, LibraryGroup?>> sessionGroups(Iterable<String> trackIds) =>
       _quietly('sessionGroups', () async {
         final types = await db.recordingTypesOf(
           trackIds.map(parseDsTalkId).nonNulls,
         );
         return {
           for (final MapEntry(:key, :value) in types.entries)
-            if (value.trim().isNotEmpty)
-              dsTalkId(key): DharmaSeedKind.fromRecordingType(value).isPractice
-                  ? LibraryGroup.practice
-                  : LibraryGroup.talks,
+            dsTalkId(key): value.trim().isEmpty
+                ? null
+                : DharmaSeedKind.fromRecordingType(value).isPractice
+                ? LibraryGroup.practice
+                : LibraryGroup.talks,
+        };
+      }, orElse: const {});
+
+  /// The talk IDs of just these retreats, as [packTrackIds] gives them, from
+  /// the device; a retreat not stored is left out.
+  Future<Map<String, List<String>>> retreatTrackIds(Iterable<String> ids) =>
+      _quietly('retreatTrackIds', () async {
+        final retreats = await db.retreatsById(
+          ids.map(parseDsRetreatId).nonNulls,
+        );
+        return {
+          for (final retreat in retreats)
+            dsRetreatId(retreat.id): [
+              for (final talkId in await db.liveTalkIdsOf(retreat))
+                dsTalkId(talkId),
+            ],
         };
       }, orElse: const {});
 

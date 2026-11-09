@@ -244,9 +244,11 @@ const libraryKindsSyncDebounce = Duration(seconds: 5);
 /// cannot place, an entry shows under its own kind.
 ///
 /// A course just added is not in the cached [packTrackIdsProvider] yet: its
-/// sessions are read from its own source. A saved retreat whose talks are
-/// not stored yet is read again once the background sync has stored more,
-/// at most once per [libraryKindsSyncDebounce].
+/// sessions are read for it alone (a Dharma Seed retreat's from its stored
+/// record; another source's from its own few courses). A saved retreat with
+/// none of its talks stored yet is read again once the background sync has
+/// stored more, at most once per [libraryKindsSyncDebounce]; once its talks
+/// are stored, typed or not, it is not waited for.
 final libraryEntryKindsProvider =
     FutureProvider.autoDispose<Map<String, Set<LibraryGroup>>>((ref) async {
       var waiting = false;
@@ -260,16 +262,24 @@ final libraryEntryKindsProvider =
 
       final entries = await ref.watch(libraryEntriesProvider.future);
       final cached = await ref.watch(packTrackIdsProvider.future);
+      final dharmaSeed = ref.watch(dharmaSeedSourceProvider);
       final missing = {
         for (final e in entries)
-          if (e.isCourse && (cached[e.sourceId]?.isEmpty ?? true)) e.sourceId,
+          if (e.isCourse && !cached.containsKey(e.sourceId)) e.sourceId,
       };
       var trackIds = cached;
       if (missing.isNotEmpty) {
+        final retreats = {
+          for (final id in missing)
+            if (parseDsRetreatId(id) != null) id,
+        };
         final router = ref.read(libraryContentRouterProvider);
-        final sources = {for (final id in missing) ?router.sourceFor(id)};
+        final others = {
+          for (final id in missing.difference(retreats)) ?router.sourceFor(id),
+        }..remove(dharmaSeed);
         final fresh = await Future.wait([
-          for (final source in sources)
+          if (retreats.isNotEmpty) dharmaSeed.retreatTrackIds(retreats),
+          for (final source in others)
             source.packTrackIds().catchError(
               (Object _) => const <String, List<String>>{},
             ),
@@ -285,20 +295,21 @@ final libraryEntryKindsProvider =
         for (final e in entries)
           if (e.isCourse) ...?trackIds[e.sourceId] else e.sourceId,
       };
-      final sessionGroups = await ref
-          .watch(dharmaSeedSourceProvider)
-          .sessionGroups(ids);
-      // A saved retreat with no talk of it stored yet.
+      // Stored talks: with their kind, or null with no recording type.
+      final stored = await dharmaSeed.sessionGroups(ids);
+      // A saved retreat with none of its talks stored yet.
       waiting = entries.any(
         (e) =>
             e.isCourse &&
             parseDsRetreatId(e.sourceId) != null &&
-            !(trackIds[e.sourceId] ?? const []).any(sessionGroups.containsKey),
+            !(trackIds[e.sourceId] ?? const []).any(stored.containsKey),
       );
       return libraryEntryKinds(
         entries,
         trackIds: trackIds,
-        sessionGroups: sessionGroups,
+        sessionGroups: {
+          for (final MapEntry(:key, :value) in stored.entries) key: ?value,
+        },
       );
     });
 

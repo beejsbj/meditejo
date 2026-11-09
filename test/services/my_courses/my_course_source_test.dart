@@ -331,6 +331,29 @@ void main() {
       expect(entry.coverUrl, 'https://img.test/x-3.jpg');
     });
 
+    test('a save that leaves the kind alone keeps a kind chosen in the '
+        'Library (#80)', () async {
+      final id = await source.create(
+        title: 'Mixed',
+        lines: [MyCourseLine.session(draft('x-1'))],
+      );
+      // "Move to Practice" from the Library: kept though it is the
+      // detected kind.
+      await store.setGroup(id, LibraryGroup.practice);
+      var edit = (await source.edit(id))!;
+      await source.save(id, edit.copyWith(title: 'Renamed'));
+      expect((await store.entry(id))!.groupOverride, LibraryGroup.practice);
+
+      // A kind changed in the editor is stored as before: away from the
+      // detected kind it is kept, back to it it is cleared.
+      edit = (await source.edit(id))!;
+      await source.save(id, edit.copyWith(group: LibraryGroup.talks));
+      expect((await store.entry(id))!.groupOverride, LibraryGroup.talks);
+      edit = (await source.edit(id))!;
+      await source.save(id, edit.copyWith(group: LibraryGroup.practice));
+      expect((await store.entry(id))!.groupOverride, isNull);
+    });
+
     test('removing a session takes it out of that course only', () async {
       final a = await source.create(
         title: 'A',
