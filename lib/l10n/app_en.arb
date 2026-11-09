@@ -2965,25 +2965,9 @@
       }
     }
   },
-  "libraryInProgress": "In progress",
-  "@libraryInProgress": {
-    "description": "Library heading over what the user has started and not finished"
-  },
   "libraryFilterAll": "All",
   "@libraryFilterAll": {
     "description": "Library filter chip: everything"
-  },
-  "libraryFilterCourses": "Courses",
-  "@libraryFilterCourses": {
-    "description": "Library filter chip: courses from a source"
-  },
-  "libraryFilterPlaylists": "Playlists",
-  "@libraryFilterPlaylists": {
-    "description": "Library filter chip: what the user made"
-  },
-  "libraryFilterSingles": "Singles",
-  "@libraryFilterSingles": {
-    "description": "Library filter chip: single sessions"
   },
   "libraryFilterDownloads": "Downloads",
   "@libraryFilterDownloads": {
@@ -2992,10 +2976,6 @@
   "libraryFilterLabel": "Show",
   "@libraryFilterLabel": {
     "description": "Screen-reader label of the Library's filter chips"
-  },
-  "libraryGroupLabel": "Practice or talks",
-  "@libraryGroupLabel": {
-    "description": "Screen-reader label of the Library's Practice/Talks switch"
   },
   "librarySort": "Sort",
   "@librarySort": {
@@ -3032,6 +3012,54 @@
   "libraryFilterEmptyBody": "Find something in Explore, or add a link or a file.",
   "@libraryFilterEmptyBody": {
     "description": "Library text when a filter matches nothing"
+  },
+  "libraryFilterCount": "{label} {count}",
+  "@libraryFilterCount": {
+    "description": "A Library filter chip with how many items it shows, e.g. \"Talks 9\"",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "librarySectionPlaylists": "Playlists",
+  "@librarySectionPlaylists": {
+    "description": "Library section heading: the playlists the user made"
+  },
+  "librarySectionCourses": "Courses",
+  "@librarySectionCourses": {
+    "description": "Library section heading: courses from a source (retreats, feeds, YouTube series)"
+  },
+  "librarySectionSessions": "Sessions",
+  "@librarySectionSessions": {
+    "description": "Library section heading: single sessions"
+  },
+  "libraryPracticeEmpty": "No practice here yet",
+  "@libraryPracticeEmpty": {
+    "description": "Library heading when the Practice chip matches nothing"
+  },
+  "libraryPracticeEmptyBody": "Guided meditations, and courses with them, show up here.",
+  "@libraryPracticeEmptyBody": {
+    "description": "Library text when the Practice chip matches nothing"
+  },
+  "libraryTalksEmpty": "No talks here yet",
+  "@libraryTalksEmpty": {
+    "description": "Library heading when the Talks chip matches nothing"
+  },
+  "libraryTalksEmptyBody": "Talks, and courses with talks, show up here.",
+  "@libraryTalksEmptyBody": {
+    "description": "Library text when the Talks chip matches nothing"
+  },
+  "libraryDownloadsEmpty": "Nothing downloaded",
+  "@libraryDownloadsEmpty": {
+    "description": "Library heading when the Downloads chip matches nothing"
+  },
+  "libraryDownloadsEmptyBody": "Download a session from its menu to have it offline. It shows up here.",
+  "@libraryDownloadsEmptyBody": {
+    "description": "Library text when the Downloads chip matches nothing"
   },
   "libraryEmptyExplore": "Explore",
   "@libraryEmptyExplore": {

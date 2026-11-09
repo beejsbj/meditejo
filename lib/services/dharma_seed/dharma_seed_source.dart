@@ -123,6 +123,23 @@ class DharmaSeedSource
     };
   }, orElse: const {});
 
+  /// Whether each of [trackIds] that is a stored Dharma Seed talk is practice
+  /// or a talk, by its own `recording_type` (#80). From the device only:
+  /// a talk not stored yet, or with no type, is left out.
+  Future<Map<String, LibraryGroup>> sessionGroups(Iterable<String> trackIds) =>
+      _quietly('sessionGroups', () async {
+        final types = await db.recordingTypesOf(
+          trackIds.map(parseDsTalkId).nonNulls,
+        );
+        return {
+          for (final MapEntry(:key, :value) in types.entries)
+            if (value.trim().isNotEmpty)
+              dsTalkId(key): DharmaSeedKind.fromRecordingType(value).isPractice
+                  ? LibraryGroup.practice
+                  : LibraryGroup.talks,
+        };
+      }, orElse: const {});
+
   @override
   Future<List<PackItemsModel>> searchPacks(String query) =>
       _quietly('searchPacks', () async {

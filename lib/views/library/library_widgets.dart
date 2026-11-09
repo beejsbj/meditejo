@@ -6,19 +6,15 @@ import 'package:medito/providers/library/library_view_provider.dart';
 import 'package:medito/providers/meditation/downloaded_track_ids_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
-import 'package:medito/services/home/continue_rules.dart';
 import 'package:medito/services/library/lib_ids.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
-import 'package:medito/views/home/widgets/continue/continue_section.dart';
 import 'package:medito/views/library/library_actions.dart';
-import 'package:medito/views/library/library_format.dart';
 import 'package:medito/widgets/cards/card_art.dart';
 import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/cards/card_tokens.dart';
 import 'package:medito/widgets/cards/course_card.dart';
 import 'package:medito/widgets/cards/session_row.dart';
-import 'package:medito/widgets/cards/section_title.dart';
 import 'package:medito/widgets/cards/teacher_tiles.dart';
 
 /// Where a library entry came from, as its card's overline: "Dharma Seed",
@@ -190,104 +186,6 @@ class LibraryEntryCard extends ConsumerWidget {
       onTap: () => openLibraryEntry(context, ref, entry),
       action: LibraryEntryMenu(entry: entry),
       badge: pinned ? const _PinMark(disc: true) : null,
-    );
-  }
-}
-
-/// Something in progress, as a large card: the session, its course, how far
-/// along, and Play. Tapping anywhere starts it, as on Home.
-class InProgressCard extends ConsumerWidget {
-  const InProgressCard({super.key, required this.item});
-
-  final ContinueItem item;
-
-  static const width = 280.0;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final resume = item.resume;
-    final left = resume != null && resume.durationMs > resume.positionMs
-        ? l10n.homeContinueTimeLeft(
-            formatClock(resume.durationMs - resume.positionMs),
-          )
-        : null;
-    final total = item.sessionTotal ?? 0;
-    final progress =
-        CardProgress.of(
-          item.completedSessions,
-          total,
-          l10n.upNextProgress(item.completedSessions, total),
-        ) ??
-        (resume == null || resume.durationMs <= 0 || left == null
-            ? null
-            : CardProgress(resume.positionMs / resume.durationMs, left));
-    final label = resume != null
-        ? l10n.homeContinueResume
-        : l10n.homeContinueStart;
-    void start() => startContinueItem(context, ref, item);
-    final courseId = item.courseId;
-
-    return SizedBox(
-      width: width,
-      child: CourseCard(
-        key: ValueKey('in_progress_${item.trackId}'),
-        size: CourseCardSize.large,
-        title: item.title,
-        overline: item.courseTitle,
-        detail: [
-          if (item.sessionNumber != null && item.sessionTotal != null)
-            l10n.homeContinueSessionOf(item.sessionNumber!, item.sessionTotal!),
-          if (left != null && progress?.label != left) left,
-        ].join(' · '),
-        progress: progress,
-        art: CardArt(
-          url: item.coverUrl,
-          art: courseId != null ? courseArt(courseId) : singleArt(item.trackId),
-        ),
-        onTap: start,
-        action: IconButton(
-          key: ValueKey('in_progress_play_${item.trackId}'),
-          tooltip: '$label · ${item.title}',
-          onPressed: start,
-          icon: const Icon(Icons.play_arrow_rounded),
-        ),
-      ),
-    );
-  }
-}
-
-/// The Library's In progress: everything started and not finished, as a
-/// strip of large cards. Hidden when nothing is in progress.
-class InProgressStrip extends ConsumerWidget {
-  const InProgressStrip({super.key, required this.items});
-
-  final List<ContinueItem> items;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SectionTitle(l10n.libraryInProgress),
-        SizedBox(
-          height: CourseCard.heightFor(
-            context,
-            width: InProgressCard.width,
-            size: CourseCardSize.large,
-            progress: true,
-          ),
-          child: ListView.separated(
-            key: const ValueKey('library_in_progress'),
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: kCardGutter),
-            itemCount: items.length,
-            separatorBuilder: (_, _) => const SizedBox(width: kCardGap),
-            itemBuilder: (context, i) => InProgressCard(item: items[i]),
-          ),
-        ),
-      ],
     );
   }
 }

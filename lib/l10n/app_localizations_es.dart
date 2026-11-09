@@ -2709,28 +2709,13 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get libraryInProgress => 'En curso';
-
-  @override
   String get libraryFilterAll => 'Todo';
-
-  @override
-  String get libraryFilterCourses => 'Cursos';
-
-  @override
-  String get libraryFilterPlaylists => 'Listas';
-
-  @override
-  String get libraryFilterSingles => 'Sueltas';
 
   @override
   String get libraryFilterDownloads => 'Descargas';
 
   @override
   String get libraryFilterLabel => 'Mostrar';
-
-  @override
-  String get libraryGroupLabel => 'Práctica o charlas';
 
   @override
   String get librarySort => 'Ordenar';
@@ -2759,6 +2744,41 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get libraryFilterEmptyBody =>
       'Busca algo en Explorar, o añade un enlace o un archivo.';
+
+  @override
+  String libraryFilterCount(String label, int count) {
+    return '$label $count';
+  }
+
+  @override
+  String get librarySectionPlaylists => 'Listas';
+
+  @override
+  String get librarySectionCourses => 'Cursos';
+
+  @override
+  String get librarySectionSessions => 'Sesiones';
+
+  @override
+  String get libraryPracticeEmpty => 'Aún no hay práctica aquí';
+
+  @override
+  String get libraryPracticeEmptyBody =>
+      'Las meditaciones guiadas, y los cursos que las incluyen, aparecen aquí.';
+
+  @override
+  String get libraryTalksEmpty => 'Aún no hay charlas aquí';
+
+  @override
+  String get libraryTalksEmptyBody =>
+      'Las charlas, y los cursos con charlas, aparecen aquí.';
+
+  @override
+  String get libraryDownloadsEmpty => 'Nada descargado';
+
+  @override
+  String get libraryDownloadsEmptyBody =>
+      'Descarga una sesión desde su menú para tenerla sin conexión. Aparecerá aquí.';
 
   @override
   String get libraryEmptyExplore => 'Explorar';

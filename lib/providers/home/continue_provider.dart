@@ -15,7 +15,8 @@ import 'package:medito/utils/logger.dart';
 /// practice first and then the most recently played. Two kinds count: a
 /// session left partway (it resumes where it stopped), and a course with some
 /// sessions done and some not (it offers its next one). A course shows once.
-/// The Library's In progress shows the whole set; Home shows the first few.
+/// Home shows the first few. (The Library has no In progress of its own:
+/// Home's Continue covers it, #80.)
 final inProgressItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>(
   (ref) => _readContinue(ref, limit: null, fallback: false),
 );
