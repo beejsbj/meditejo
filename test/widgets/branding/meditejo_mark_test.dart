@@ -1,9 +1,15 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/services/identity/mark_generator.dart';
 import 'package:medito/services/identity/mark_moments.dart';
 import 'package:medito/services/identity/mark_spec.dart';
+import 'package:medito/services/identity/palettes.dart';
+import 'package:medito/widgets/branding/mark_painter.dart';
+import 'package:medito/widgets/branding/mark_textures.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
 
 final _mark = MarkGenerator.build('g-1kq');
@@ -310,6 +316,62 @@ void main() {
         }
       }
     });
+  });
+
+  testWidgets("a scene's print finish grows with its deep breath", (
+    tester,
+  ) async {
+    // At the top of a breath a scene is larger than its tile. The finish
+    // (paper and speckle) must reach the grown edge, not stop at the tile's
+    // square and leave bare caps. Rendered with and without the textures:
+    // outside the tile's square they differ only where the finish reaches.
+    const px = 200, m = 24;
+    // Speckle is made on demand, so the finish shows without waiting for
+    // paper (whose loading an earlier test may have started).
+    final scene = MarkGenerator.build('a-1q');
+    final colors = MarkColors.of(IdentityPalettes.byId('tide'));
+    Future<Uint8List> render({required bool finish}) async {
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder)
+        ..translate(m.toDouble(), m.toDouble())
+        ..scale(px.toDouble());
+      MarkRenderer(
+        canvas,
+        colors,
+        textures: finish ? MarkTextures.instance : null,
+        texel: 1 / px,
+      ).draw(scene, 60, swell: 1);
+      final image = recorder.endRecording().toImageSync(px + 2 * m, px + 2 * m);
+      final bytes = await tester.runAsync(
+        () => image.toByteData(format: ui.ImageByteFormat.rawStraightRgba),
+      );
+      return bytes!.buffer.asUint8List();
+    }
+
+    final a = await render(finish: true);
+    final b = await render(finish: false);
+    const w = px + 2 * m;
+    double band(int y0, int y1) {
+      var sum = 0, n = 0;
+      for (var y = y0; y < y1; y++) {
+        for (var x = w ~/ 2 - 20; x < w ~/ 2 + 20; x++) {
+          final i = (y * w + x) * 4;
+          for (var k = 0; k < 3; k++) {
+            sum += (a[i + k] - b[i + k]).abs();
+          }
+          n += 3;
+        }
+      }
+      return sum / n;
+    }
+
+    // Just above the tile's top edge (inside the grown circle), and just
+    // inside it.
+    final outside = band(m - 6, m - 2);
+    final inside = band(m + 2, m + 6);
+    expect(inside, greaterThan(0));
+    // Bare caps would differ not at all.
+    expect(outside, greaterThan(inside * 0.25));
   });
 
   group('MarkMoments', () {

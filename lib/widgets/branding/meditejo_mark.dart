@@ -36,6 +36,7 @@ class MeditejoMark extends StatefulWidget {
     this.colors,
     this.from,
     this.onSeen,
+    this.turnClock,
   });
 
   final MarkSpec mark;
@@ -60,6 +61,13 @@ class MeditejoMark extends StatefulWidget {
   /// away ([animate]). Reduced motion doesn't change when it is seen.
   final VoidCallback? onSeen;
 
+  /// Where the turn from [from] is, in seconds, written on the mark's own
+  /// clock: it holds whenever the mark does (covered, on a hidden tab,
+  /// scrolled away, in the background) and carries on from there. It runs
+  /// to [MarkMoments.nameSeconds], with reduced motion too, so a caption
+  /// (Home's day name) can ride on it. Written only from frame callbacks.
+  final ValueNotifier<double>? turnClock;
+
   @override
   State<MeditejoMark> createState() => MeditejoMarkState();
 }
@@ -76,14 +84,26 @@ class MeditejoMarkState extends State<MeditejoMark>
   /// The mark being left, while the turn from it plays.
   MarkSpec? _from;
 
-  /// With reduced motion, the crossfade from [_from].
-  late final AnimationController _fade = AnimationController(
+  /// Whether a turn's moment (the turn, then its caption) is still running.
+  bool _turning = false;
+
+  /// With reduced motion the turn's clock: the crossfade from [_from], then
+  /// the rest of the moment.
+  late final AnimationController _turn = AnimationController(
     vsync: this,
-    duration: MarkMoments.crossfade,
+    duration: Duration(milliseconds: (MarkMoments.nameSeconds * 1000).round()),
     // A quiet fade even when the system asks for less motion: this is the
     // reduced-motion path already.
     animationBehavior: AnimationBehavior.preserve,
-  )..addStatusListener(_onFade);
+  )..addListener(_onStillTurn);
+
+  late final CurvedAnimation _crossfade = CurvedAnimation(
+    parent: _turn,
+    curve: Interval(
+      0,
+      MarkMoments.crossfade.inMilliseconds / 1000 / MarkMoments.nameSeconds,
+    ),
+  );
 
   /// The mark's clock when a deep breath began.
   double? _breathStart;
@@ -119,7 +139,7 @@ class MeditejoMarkState extends State<MeditejoMark>
   @visibleForTesting
   double get arrival {
     if (_from == null) return 1;
-    if (_still) return _fade.value;
+    if (_still) return _crossfade.value;
     return clamp01(
       (_time.value + MarkMoments.morphLead) / MarkMoments.undrawSeconds,
     );
@@ -163,7 +183,10 @@ class MeditejoMarkState extends State<MeditejoMark>
       _time.value = 0;
       _breathStart = null;
       _from = null;
-      _fade.value = 0;
+      _turning = false;
+      _turn
+        ..stop()
+        ..value = 0;
       _arriveFrom(widget.from);
     }
     _sync();
@@ -173,14 +196,22 @@ class MeditejoMarkState extends State<MeditejoMark>
   void _arriveFrom(MarkSpec? from) {
     if (from == null || from.seed == widget.mark.seed) return;
     _from = from;
+    _turning = true;
     _base = -MarkMoments.morphLead;
     _time.value = _base;
   }
 
-  void _onFade(AnimationStatus status) {
-    if (status == AnimationStatus.completed && mounted) {
-      setState(() => _from = null);
-    }
+  /// The turn's clock moved to [s] seconds.
+  void _turnAt(double s) {
+    final clock = widget.turnClock;
+    if (clock != null) clock.value = math.min(s, MarkMoments.nameSeconds);
+    if (s >= MarkMoments.nameSeconds) _turning = false;
+  }
+
+  void _onStillTurn() {
+    if (!_still || !_turning) return;
+    _turnAt(_turn.value * MarkMoments.nameSeconds);
+    if (_from != null && _crossfade.value >= 1) setState(() => _from = null);
   }
 
   @override
@@ -204,8 +235,12 @@ class MeditejoMarkState extends State<MeditejoMark>
     } else {
       _stop();
     }
-    if (_from != null && _still && seen && !_fade.isAnimating) {
-      _fade.forward();
+    // With reduced motion the turn runs on its own controller, held and
+    // carried on just as the ticker is.
+    if (_turning && _still && seen) {
+      if (!_turn.isAnimating) _turn.forward();
+    } else {
+      _turn.stop();
     }
     if (seen && _seenSeed != widget.mark.seed) {
       _seenSeed = widget.mark.seed;
@@ -226,6 +261,7 @@ class MeditejoMarkState extends State<MeditejoMark>
 
   void _onTick(Duration elapsed) {
     final t = _base + elapsed.inMicroseconds / 1e6;
+    if (_turning) _turnAt(t + MarkMoments.morphLead);
     // A turn or a deep breath ends: back to resting.
     if (_from != null &&
         t + MarkMoments.morphLead >= MarkMoments.undrawSeconds) {
@@ -247,7 +283,8 @@ class MeditejoMarkState extends State<MeditejoMark>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _ticker.dispose();
-    _fade.dispose();
+    _crossfade.dispose();
+    _turn.dispose();
     _time.dispose();
     super.dispose();
   }
@@ -269,7 +306,7 @@ class MeditejoMarkState extends State<MeditejoMark>
             still: _still,
             breathStart: _breathStart,
             from: _from,
-            fade: _still && _from != null ? _fade : null,
+            fade: _still && _from != null ? _crossfade : null,
           ),
         ),
       ),

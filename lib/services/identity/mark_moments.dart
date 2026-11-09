@@ -52,13 +52,18 @@ abstract final class MarkMoments {
     AtmosMark() => 3.4,
   };
 
-  /// Today's name on Home: it fades in as today's mark starts drawing, rests,
-  /// then fades away.
+  /// The whole turn, today's name included: it fades in as today's mark
+  /// starts drawing, rests, then fades away. The turn's clock (the mark's
+  /// own, see `MeditejoMark.turnClock`) runs this long, with reduced motion
+  /// too.
   static const nameSeconds = 6.0;
-  static const _nameIn = (1.0, 1.8);
-  static const _nameOut = (4.6, 6.0);
 
-  /// The name's opacity [s] seconds after the mark was first seen today.
+  /// When today's name starts to show.
+  static const nameFrom = 1.0;
+  static const _nameIn = (nameFrom, 1.8);
+  static const _nameOut = (4.6, nameSeconds);
+
+  /// The name's opacity [s] seconds into the turn.
   static double nameOpacityAt(double s) {
     if (s < _nameOut.$1) {
       return easeInOut(progress(s, _nameIn.$1, _nameIn.$2 - _nameIn.$1));

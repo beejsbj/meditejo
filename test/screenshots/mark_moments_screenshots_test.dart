@@ -208,18 +208,24 @@ void main() {
           );
         }
       }
-      // A deep breath, long after drawing in: every half second.
+      // A deep breath, long after drawing in: every half second. Today's
+      // mark, and a scene (its circle and print finish swell together).
       const rest = 20.0;
-      for (var i = 0; i <= 11; i++) {
-        await frame(
-          'breath-frames/${brightness.name}-${i.toString().padLeft(2, '0')}',
-          MarkPainter(
-            mark: to,
-            colors: colors,
-            breathStart: rest,
-            time: ValueNotifier(rest + i * 0.5),
-          ),
-        );
+      for (final (dir, mark) in [
+        ('breath-frames', to),
+        ('breath-frames-scene', MarkGenerator.build('a-1q')),
+      ]) {
+        for (var i = 0; i <= 11; i++) {
+          await frame(
+            '$dir/${brightness.name}-${i.toString().padLeft(2, '0')}',
+            MarkPainter(
+              mark: mark,
+              colors: colors,
+              breathStart: rest,
+              time: ValueNotifier(rest + i * 0.5),
+            ),
+          );
+        }
       }
     }
   }, skip: !_enabled);

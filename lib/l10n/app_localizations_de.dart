@@ -3000,7 +3000,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'doorway': 'Tür',
       'cushion': 'Kissen',
       'horizon': 'Horizont',
-      'hearth': 'Herd',
+      'hearth': 'Feuerstelle',
       'path': 'Heimweg',
       'shelter': 'Zuflucht',
       'window': 'Fenster',

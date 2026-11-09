@@ -149,7 +149,20 @@ class MarkRenderer {
         ..translate(-0.5, -0.5);
       _atmos(m, t, still);
       canvas.restore();
-      _finish(speckle: 0.3);
+      if (grow == 1) {
+        _finish(speckle: 0.3);
+      } else {
+        // A deep breath grows the scene past the tile: the print finish
+        // grows with it (about the centre, apart from [scale], so the
+        // launcher icon's safe zone is untouched), or its corners go bare.
+        canvas
+          ..save()
+          ..translate(0.5, 0.5)
+          ..scale(grow)
+          ..translate(-0.5, -0.5);
+        _finish(speckle: 0.3);
+        canvas.restore();
+      }
       return;
     }
     if (tile) _rect(const Rect.fromLTWH(0, 0, 1, 1), c.tile);

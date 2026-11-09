@@ -10,6 +10,7 @@ import 'package:medito/services/identity/mark_generator.dart';
 import 'package:medito/services/identity/mark_moments.dart';
 import 'package:medito/services/identity/mark_spec.dart';
 import 'package:medito/views/home/home_view.dart';
+import 'package:medito/views/home/widgets/update_notice.dart';
 import 'package:medito/views/splash_view.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
 
@@ -266,6 +267,127 @@ void main() {
     expect(_state(tester).isBreathing, isFalse);
     await tester.pump(const Duration(seconds: 6));
     expect(_name, findsNothing);
+  });
+
+  /// Home open on day 1, then the day turns: the turn has just begun.
+  Future<LibraryTestApp> turnTheDay(
+    WidgetTester tester, {
+    double textScale = 1,
+  }) async {
+    now = _day1;
+    final app = await LibraryTestApp.create(tester);
+    await app.prefs.setString(_seenKey, '2026-10-25');
+    await app.pump(
+      tester,
+      Builder(
+        builder: (context) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(textScale)),
+          child: const HomeView(),
+        ),
+      ),
+      overrides: _overrides,
+    );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(HomeView)),
+    );
+    now = _day2;
+    container.read(identityDayProvider.notifier).refresh();
+    await tester.pump();
+    await tester.pump();
+    return app;
+  }
+
+  testWidgets('the turn and its name hold while Home is covered', (
+    tester,
+  ) async {
+    await turnTheDay(tester);
+    await tester.pump(const Duration(milliseconds: 200));
+    // Not yet showing, so not yet announced.
+    expect(_nameOpacity(tester), 0);
+    expect(tester.takeAnnouncements(), isEmpty);
+
+    final navigator = Navigator.of(tester.element(find.byType(HomeView)));
+    navigator.push(
+      MaterialPageRoute<void>(builder: (_) => const Scaffold(body: Text('X'))),
+    );
+    // Home shows (and its mark moves) until the page has slid over it.
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(_state(tester).seconds + MarkMoments.morphLead, lessThan(1));
+    final held = _state(tester).seconds;
+    await tester.pump(const Duration(seconds: 10));
+    // Covered: the turn, the name and the announcement wait.
+    expect(_state(tester).seconds, held);
+    expect(_state(tester).isArriving, isTrue);
+    expect(_name, findsOneWidget);
+    expect(tester.takeAnnouncements(), isEmpty);
+
+    navigator.pop();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+    expect(_name, findsOneWidget);
+    expect(_nameOpacity(tester), 1);
+    expect(tester.takeAnnouncements().map((a) => a.message), [
+      "Today's mark: ${_nameOf(_day2)}",
+    ]);
+    await tester.pump(const Duration(seconds: 5));
+    expect(_name, findsNothing);
+  });
+
+  for (final scale in [1.0, 1.3, 2.0]) {
+    testWidgets('the name never covers what follows, text ×$scale', (
+      tester,
+    ) async {
+      await turnTheDay(tester, textScale: scale);
+      await tester.pump(const Duration(milliseconds: 2500));
+      expect(_nameOpacity(tester), 1);
+      final name = tester.getRect(_name);
+      final mark = tester.getRect(find.byKey(const ValueKey('home_mark')));
+      // Under the mark, inside Home's top block: above the update notice
+      // that follows it, and so above the first section.
+      expect(name.top, greaterThanOrEqualTo(mark.bottom));
+      expect(
+        name.bottom,
+        lessThanOrEqualTo(
+          tester.getTopLeft(find.byType(UpdateNotice, skipOffstage: false)).dy,
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pump(const Duration(seconds: 5));
+    });
+  }
+
+  testWidgets(
+    'the name keeps its line, so nothing moves as it comes and goes',
+    (tester) async {
+      await turnTheDay(tester);
+      final with_ = tester
+          .getTopLeft(find.byType(UpdateNotice, skipOffstage: false))
+          .dy;
+      await tester.pump(const Duration(seconds: 7));
+      expect(_name, findsNothing);
+      expect(
+        tester.getTopLeft(find.byType(UpdateNotice, skipOffstage: false)).dy,
+        with_,
+      );
+    },
+  );
+
+  testWidgets('a long-press opens the mark sheet, without a breath', (
+    tester,
+  ) async {
+    final app = await LibraryTestApp.create(tester);
+    await app.prefs.setString(_seenKey, '2026-10-26');
+    await app.pump(tester, const HomeView(), overrides: _overrides);
+    await tester.longPress(find.byKey(const ValueKey('home_mark')));
+    await tester.pump();
+    expect(_state(tester).isBreathing, isFalse);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byKey(const ValueKey('home_mark_pin')), findsOneWidget);
+    expect(_state(tester).isBreathing, isFalse);
   });
 
   testWidgets('a tap sends one breath through the mark; taps do not stack', (

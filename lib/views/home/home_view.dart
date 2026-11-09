@@ -66,12 +66,12 @@ class _HomeViewState extends ConsumerState<HomeView>
               slivers: [
                 SliverToBoxAdapter(
                   child: Stack(
-                    // Today's name may sit just below the mark's box.
-                    clipBehavior: Clip.none,
                     children: [
+                      // The mark's day name, under it, takes the place of a
+                      // bottom margin.
                       Padding(
-                        padding: const EdgeInsets.only(top: 28, bottom: 12),
-                        child: Center(child: _HomeMark(animate: _markInView)),
+                        padding: const EdgeInsets.only(top: 28),
+                        child: _HomeMark(animate: _markInView),
                       ),
                       // Where an app bar's actions sit on Library and
                       // Settings, so the You button is in the same place.
@@ -190,26 +190,43 @@ class _HomeMark extends ConsumerStatefulWidget {
   ConsumerState<_HomeMark> createState() => _HomeMarkState();
 }
 
-class _HomeMarkState extends ConsumerState<_HomeMark>
-    with SingleTickerProviderStateMixin {
+class _HomeMarkState extends ConsumerState<_HomeMark> {
   final _mark = GlobalKey<MeditejoMarkState>();
 
-  /// Today's name: in, resting, out (see [MarkMoments.nameOpacityAt]).
-  late final AnimationController _name = AnimationController(
-    vsync: this,
-    duration: Duration(milliseconds: (MarkMoments.nameSeconds * 1000).round()),
-    // A fade, not motion: reduced motion keeps it.
-    animationBehavior: AnimationBehavior.preserve,
-  )..addStatusListener(_onNameDone);
-
-  void _onNameDone(AnimationStatus status) {
-    if (status == AnimationStatus.completed && mounted) {
-      setState(() => _named = null);
-    }
-  }
+  /// The turn's clock, kept by the mark itself: today's name rides on it,
+  /// so it holds and carries on with the turn when Home is covered, on a
+  /// hidden tab, scrolled away or in the background.
+  final _turn = ValueNotifier<double>(0);
 
   /// The kind of mark whose name shows.
   String? _named;
+
+  /// Whether today's name has been announced.
+  bool _announced = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _turn.addListener(_onTurn);
+  }
+
+  /// Announces today's name as it starts to show (so only when it is
+  /// seen), and lets it go once the turn is over.
+  void _onTurn() {
+    final named = _named;
+    if (named == null || !mounted) return;
+    final s = _turn.value;
+    if (!_announced && s >= MarkMoments.nameFrom) {
+      _announced = true;
+      final l10n = AppLocalizations.of(context)!;
+      SemanticsService.sendAnnouncement(
+        View.of(context),
+        l10n.homeMarkTodayIs(l10n.homeMarkName(named)),
+        Directionality.of(context),
+      ).ignore();
+    }
+    if (s >= MarkMoments.nameSeconds) setState(() => _named = null);
+  }
 
   /// The last day's mark, built once per stored day.
   (String, MarkSpec)? _lastDay;
@@ -246,20 +263,15 @@ class _HomeMarkState extends ConsumerState<_HomeMark>
   /// mark), and not for a pinned mark.
   void _onSeen() {
     if (!_noteSeen() || ref.read(pinnedMarkProvider) != null) return;
-    final type = ref.read(homeMarkProvider).type;
-    setState(() => _named = type);
-    _name.forward(from: 0);
-    final l10n = AppLocalizations.of(context)!;
-    SemanticsService.sendAnnouncement(
-      View.of(context),
-      l10n.homeMarkTodayIs(l10n.homeMarkName(type)),
-      Directionality.of(context),
-    ).ignore();
+    setState(() {
+      _named = ref.read(homeMarkProvider).type;
+      _announced = false;
+    });
   }
 
   @override
   void dispose() {
-    _name.dispose();
+    _turn.dispose();
     super.dispose();
   }
 
@@ -275,7 +287,7 @@ class _HomeMarkState extends ConsumerState<_HomeMark>
     });
     final scheme = Theme.of(context).colorScheme;
     final named = _named;
-    return Semantics(
+    final mark = Semantics(
       key: const ValueKey('home_mark'),
       label: l10n.homeMarkTitle,
       value: pinned ? l10n.homeMarkPinned : l10n.homeMarkToday,
@@ -283,7 +295,6 @@ class _HomeMarkState extends ConsumerState<_HomeMark>
       child: GestureDetector(
         onLongPress: () => showHomeMarkSheet(context),
         child: Stack(
-          clipBehavior: Clip.none,
           children: [
             GestureDetector(
               // The breath is felt, not announced: no action for TalkBack.
@@ -296,6 +307,7 @@ class _HomeMarkState extends ConsumerState<_HomeMark>
                 animate: widget.animate,
                 from: pinned ? null : _arrivingFrom(),
                 onSeen: _onSeen,
+                turnClock: _turn,
               ),
             ),
             if (pinned)
@@ -309,41 +321,42 @@ class _HomeMarkState extends ConsumerState<_HomeMark>
                   color: scheme.onSurfaceVariant,
                 ),
               ),
-            if (named != null)
-              // Below the mark, in the gap above the first section, so it
-              // shifts nothing as it comes and goes.
-              Positioned(
-                top: kHomeMarkSize + 2,
-                left: -96,
-                right: -96,
-                child: IgnorePointer(
-                  child: ExcludeSemantics(
-                    child: AnimatedBuilder(
-                      animation: _name,
-                      builder: (context, child) => Opacity(
-                        opacity: MarkMoments.nameOpacityAt(
-                          _name.value * MarkMoments.nameSeconds,
-                        ),
-                        child: child,
-                      ),
-                      child: Text(
-                        l10n.homeMarkName(named),
-                        key: const ValueKey('home_mark_name'),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.fade,
-                        softWrap: false,
-                        style: context.typography.baseline.labelLarge?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
           ],
         ),
       ),
     );
+    // Today's name has a line of its own under the mark, kept whether or
+    // not it shows: it never covers what follows (an update notice, the
+    // first section) and nothing moves as it comes and goes, at any text
+    // size.
+    final style = context.typography.baseline.labelLarge?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+    final name = IgnorePointer(
+      child: ExcludeSemantics(
+        child: SizedBox(
+          width: double.infinity,
+          child: named == null
+              ? Text(' ', style: style, maxLines: 1)
+              : ValueListenableBuilder<double>(
+                  valueListenable: _turn,
+                  builder: (context, s, child) => Opacity(
+                    opacity: MarkMoments.nameOpacityAt(s),
+                    child: child,
+                  ),
+                  child: Text(
+                    l10n.homeMarkName(named),
+                    key: const ValueKey('home_mark_name'),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.fade,
+                    softWrap: false,
+                    style: style,
+                  ),
+                ),
+        ),
+      ),
+    );
+    return Column(mainAxisSize: MainAxisSize.min, children: [mark, name]);
   }
 }

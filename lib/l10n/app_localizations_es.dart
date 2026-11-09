@@ -3022,13 +3022,13 @@ class AppLocalizationsEs extends AppLocalizations {
       'doorlight': 'Puerta iluminada',
       'halo': 'Halo',
       'shoreline': 'Orilla',
-      'other': 'La marca de hoy',
+      'other': 'Símbolo del día',
     });
     return '$_temp0';
   }
 
   @override
   String homeMarkTodayIs(String name) {
-    return 'La marca de hoy: $name';
+    return 'Símbolo del día: $name';
   }
 }
