@@ -109,12 +109,13 @@ class _Review implements ReviewService {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-PlaybackRequest _timer() => timerPlaybackRequest(
-  mode: TimerMode.countdown,
-  duration: const Duration(minutes: 20),
-  filePath: '/tmp/silence.mp3',
-  title: 'Timer',
-);
+PlaybackRequest _timer({TimerMode mode = TimerMode.countdown}) =>
+    timerPlaybackRequest(
+      mode: mode,
+      duration: const Duration(minutes: 20),
+      filePath: '/tmp/silence.mp3',
+      title: 'Timer',
+    );
 
 /// A session that is playing.
 class _PlayingAudio extends _IdleAudio {
@@ -149,9 +150,17 @@ void main() {
     bool reducedMotion = false,
     double textScale = 1.0,
     Size size = const Size(411, 891),
+    bool insets = false,
   }) async {
     SharedPreferences.setMockInitialValues(prefs);
     tester.view.physicalSize = size;
+    if (insets) {
+      // A status bar and a gesture/nav bar.
+      tester.view.padding = const FakeViewPadding(top: 28, bottom: 32);
+      tester.view.viewPadding = const FakeViewPadding(top: 28, bottom: 32);
+      addTearDown(tester.view.resetPadding);
+      addTearDown(tester.view.resetViewPadding);
+    }
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -202,40 +211,74 @@ void main() {
     await close(tester);
   });
 
-  for (final (size, scale) in [
-    (const Size(360, 640), 1.0),
-    (const Size(360, 640), 1.3),
-    (const Size(360, 640), 2.0),
-    (const Size(360, 740), 2.0),
-    (const Size(360, 560), 2.0),
-    (const Size(411, 891), 1.0),
-  ]) {
-    testWidgets('the transport stays on screen at $size, ${scale}x text', (
-      tester,
-    ) async {
-      await pumpPlayer(tester, _timer(), textScale: scale, size: size);
-      final stop = tester.getRect(find.byIcon(Icons.stop_rounded));
-      final screen = Offset.zero & size;
-      expect(screen.contains(stop.topLeft), isTrue);
-      expect(screen.contains(stop.bottomRight), isTrue);
-      // Clear of the bottom bar, and the mark (if shown) above the rest.
-      expect(
-        stop.bottom,
-        lessThanOrEqualTo(tester.getRect(find.byType(PlayerActionBar)).top),
-      );
-      if (find.byType(PlayerMark).evaluate().isNotEmpty) {
-        expect(
-          tester.getRect(find.byType(PlayerMark)).bottom,
-          lessThan(stop.top),
-        );
+  // The transport must always be on screen with the mark, for the countdown
+  // and the stopwatch (whose readout grows fastest with text), with insets.
+  // Where there is too little room the mark is left out and the layout is the
+  // one it was without a mark.
+  for (final mode in TimerMode.values) {
+    for (final size in const [
+      Size(360, 640),
+      Size(360, 740),
+      Size(411, 891),
+      Size(1024, 600),
+    ]) {
+      for (final scale in const [1.0, 1.3, 1.5, 2.0]) {
+        testWidgets('the transport stays on screen: ${mode.name}, $size, '
+            '${scale}x text', (tester) async {
+          await pumpPlayer(
+            tester,
+            _timer(mode: mode),
+            textScale: scale,
+            size: size,
+            insets: true,
+          );
+          final bar = tester.getRect(find.byType(PlayerActionBar));
+          final stop = tester.getRect(find.byIcon(Icons.stop_rounded));
+          final marks = find.byType(PlayerMark);
+          if (marks.evaluate().isNotEmpty) {
+            final mark = tester.getRect(marks);
+            expect(mark.shortestSide, greaterThanOrEqualTo(96));
+            expect(stop.top, greaterThanOrEqualTo(0));
+            expect(stop.bottom, lessThanOrEqualTo(bar.top));
+            expect(stop.bottom, lessThanOrEqualTo(size.height));
+            if (size.width < 700) expect(mark.bottom, lessThan(stop.top));
+          }
+          // Roomy screens do show the mark.
+          if (size.height >= 891 && scale <= 1.3) {
+            expect(marks, findsOneWidget);
+          }
+          if (size.width >= 700) expect(marks, findsOneWidget);
+          // Only the elapsed/total row overflowing a narrow width at 2x text
+          // (as it does without a mark) may be reported.
+          for (
+            Object? error = tester.takeException();
+            error != null;
+            error = tester.takeException()
+          ) {
+            final text = '$error';
+            expect(
+              scale == 2.0 &&
+                  text.contains('overflowed') &&
+                  text.contains('right'),
+              isTrue,
+              reason: text,
+            );
+          }
+          await close(tester);
+        });
       }
-      // At 2x text the elapsed/total row overflows a 360 dp width, as it
-      // does without the mark; only that may be reported.
-      final error = tester.takeException();
-      expect(error == null || '$error'.contains('overflowed'), isTrue);
-      await close(tester);
-    });
+    }
   }
+
+  testWidgets('side by side, the mark is sized from its own column', (
+    tester,
+  ) async {
+    await pumpPlayer(tester, _timer(), size: const Size(1024, 600));
+    final mark = tester.getRect(find.byType(PlayerMark));
+    // Room above the title, not that less the controls: well over its floor.
+    expect(mark.shortestSide, greaterThan(150));
+    await close(tester);
+  });
 
   testWidgets('the mark gives way when there is no room for it', (
     tester,

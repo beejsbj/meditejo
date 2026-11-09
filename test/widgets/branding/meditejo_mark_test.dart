@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -488,6 +489,50 @@ void main() {
       expect(_state(tester).cycle, lessThan(0.1));
       await tester.pump(const Duration(seconds: 1));
       expect(_state(tester).cycle, greaterThan(0.3));
+    });
+
+    testWidgets('pausing, resuming mid-settle and pausing again never jumps', (
+      tester,
+    ) async {
+      await tester.pumpWidget(breathing());
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pump(const Duration(seconds: 4));
+      expect(_state(tester).cycle, closeTo(1, 0.1));
+
+      // The breath is written about every other frame, so a step is judged
+      // against the time since the last one: no faster than the settle's
+      // steepest (about 1 a second) or a breath's (about 0.8 a second).
+      var last = _state(tester).cycle;
+      var since = 0.0;
+      var worst = 0.0;
+      Future<void> frames(int n) async {
+        for (var i = 0; i < n; i++) {
+          await tester.pump(const Duration(milliseconds: 16));
+          since += 0.016;
+          final now = _state(tester).cycle;
+          if (now == last) continue;
+          worst = math.max(worst, (now - last).abs() / since);
+          last = now;
+          since = 0;
+        }
+      }
+
+      // Pause at the top, resume part-way down the settle, pause again later.
+      await tester.pumpWidget(breathing(paused: true));
+      await frames(30);
+      expect(_state(tester).cycle, lessThan(1));
+      await tester.pumpWidget(breathing());
+      await frames(20);
+      await tester.pumpWidget(breathing(paused: true));
+      await frames(150);
+      expect(
+        worst,
+        lessThan(1.3),
+        reason: 'no jump: at most the steepest slope',
+      );
+      expect(_state(tester).cycle, 0);
+      expect(_state(tester).isRunning, isFalse);
     });
 
     testWidgets('paused while drawing in, it finishes drawing in first', (

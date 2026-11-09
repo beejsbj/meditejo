@@ -122,6 +122,9 @@ class MeditejoMarkState extends State<MeditejoMark>
   double _phase = 0;
   double _phaseAt = 0;
 
+  /// The continuous breath now, written to [_cycle] with each drawn frame.
+  double _cycleNow = 0;
+
   /// 0 out, 1 in: the continuous breath, drawn as a deep breath's swell.
   final ValueNotifier<double> _cycle = ValueNotifier(0);
 
@@ -221,6 +224,7 @@ class MeditejoMarkState extends State<MeditejoMark>
       _phase = 0;
       _phaseAt = 0;
       _settleStart = _settleFrom = null;
+      _cycleNow = 0;
       _cycle.value = 0;
       _from = null;
       _turning = false;
@@ -302,7 +306,7 @@ class MeditejoMarkState extends State<MeditejoMark>
   void _onTick(Duration elapsed) {
     final t = _base + elapsed.inMicroseconds / 1e6;
     final period = widget.breathSeconds;
-    var cycle = _cycle.value;
+    var cycle = _cycleNow;
     if (period != null) {
       // The clock carries on from where it stopped, so a restart cannot
       // jump the breath; it only ever moves forward.
@@ -312,7 +316,7 @@ class MeditejoMarkState extends State<MeditejoMark>
         if (_settleStart != null) {
           // Resumed part-way through settling: breathe in from where it is.
           _phase = math.acos((1 - 2 * cycle).clamp(-1.0, 1.0)) / (2 * math.pi);
-          _settleStart = null;
+          _settleStart = _settleFrom = null;
         }
         _phase = (_phase + dt / period) % 1;
         cycle = 0.5 - 0.5 * math.cos(2 * math.pi * _phase);
@@ -325,6 +329,9 @@ class MeditejoMarkState extends State<MeditejoMark>
         if (cycle == 0) _phase = 0;
       }
       if (cycle == 0) _settleStart = _settleFrom = null;
+      _cycleNow = cycle;
+      // Coming to rest is written at once, not left to the throttle.
+      if (cycle == 0 && _cycle.value != 0) _cycle.value = 0;
     }
     if (_turning) _turnAt(t + MarkMoments.morphLead);
     // A turn or a deep breath ends: back to resting.

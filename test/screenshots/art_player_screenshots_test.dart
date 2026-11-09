@@ -183,22 +183,23 @@ void main() {
   });
 
   // In a course the player offers Autoplay under the transport (#72).
-  for (final (brightness, inCourse, isTimer, short) in [
+  for (final (brightness, inCourse, isTimer, short, stopwatch) in [
     for (final b in Brightness.values)
       for (final (c, t) in [(false, false), (true, false), (false, true)])
-        (b, c, t, false),
+        (b, c, t, false, false),
     // A short phone (360 x 640 dp): the mark shrinks so the transport fits.
-    (Brightness.light, false, true, true),
+    (Brightness.light, false, true, true, false),
+    (Brightness.light, false, true, true, true),
   ]) {
     final name = short
-        ? 'the timer player on a short phone'
+        ? 'the ${stopwatch ? 'stopwatch' : 'timer'} player on a short phone'
         : isTimer
         ? 'the timer player'
         : inCourse
         ? 'the player in a course'
         : 'the player over its art';
     final file =
-        'player-${inCourse ? 'course-' : ''}${isTimer ? 'timer-' : ''}${short ? 'short-' : ''}${brightness.name}';
+        'player-${inCourse ? 'course-' : ''}${isTimer ? 'timer-' : ''}${stopwatch ? 'stopwatch-' : ''}${short ? 'short-' : ''}${brightness.name}';
     testWidgets('$name, ${brightness.name}', (tester) async {
       tester.view.physicalSize = short
           ? const Size(945, 1680)
@@ -228,7 +229,9 @@ void main() {
                 () => _FakePlayer(
                   isTimer
                       ? timerPlaybackRequest(
-                          mode: TimerMode.countdown,
+                          mode: stopwatch
+                              ? TimerMode.stopwatch
+                              : TimerMode.countdown,
                           duration: const Duration(minutes: 20),
                           filePath: '/tmp/silence.mp3',
                           title: 'Timer',
