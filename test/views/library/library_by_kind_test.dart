@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medito/providers/home/continue_provider.dart';
+import 'package:medito/providers/categories/category_providers.dart';
+import 'package:medito/services/categories/category_catalogue.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
 import 'package:medito/views/library/library_view.dart';
@@ -60,11 +63,8 @@ Future<LibraryTestApp> _library(WidgetTester tester) async {
   return app;
 }
 
-Future<void> _pump(WidgetTester tester, LibraryTestApp app) => app.pump(
-  tester,
-  const LibraryView(),
-  overrides: [inProgressItemsProvider.overrideWith((ref) async => const [])],
-);
+Future<void> _pump(WidgetTester tester, LibraryTestApp app) =>
+    app.pump(tester, const LibraryView());
 
 void main() {
   testWidgets('a mixed Dharma Seed retreat shows under both chips', (
@@ -129,5 +129,121 @@ void main() {
     );
     await _settle(tester);
     expect(_shown('Jhana Retreat'), findsOneWidget);
+  });
+
+  testWidgets('a retreat saved while the Library is open shows under Talks', (
+    tester,
+  ) async {
+    final app = await LibraryTestApp.create(tester);
+    await tester.runAsync(() => seedDharmaSeedCatalogue(app.harness.dsDb));
+    await _add(
+      tester,
+      app.harness.store,
+      'lib-track-a',
+      'Body scan',
+      kind: LibraryKind.single,
+    );
+    await _pump(tester, app);
+    // Read once already, before the retreat is in the library.
+    expect(find.text('Talks 0'), findsOneWidget);
+
+    await _add(tester, app.harness.store, 'ds-retreat-100', 'Jhana Retreat');
+    await _settle(tester);
+    await _tap(tester, 'talks');
+    expect(_shown('Jhana Retreat'), findsOneWidget);
+    expect(find.text('Talks 1'), findsOneWidget);
+  });
+
+  Future<Set<String>> menuOf(WidgetTester tester, String id) async {
+    final menu = find.byKey(ValueKey('library_menu_$id'));
+    await tester.ensureVisible(menu);
+    await tester.tap(menu);
+    await _settle(tester);
+    final items = {
+      for (final tile in tester.widgetList<ListTile>(
+        find.descendant(
+          of: find.byKey(const ValueKey('item_actions_sheet')),
+          matching: find.byType(ListTile),
+        ),
+      ))
+        (tile.title! as Text).data!,
+    };
+    return items;
+  }
+
+  Future<void> choose(WidgetTester tester, String item) async {
+    await tester.tap(find.text(item));
+    await _settle(tester);
+  }
+
+  testWidgets('a mixed retreat can be put under Practice alone, and back', (
+    tester,
+  ) async {
+    final app = await _library(tester);
+    await _pump(tester, app);
+    const id = 'ds-retreat-100';
+
+    // Under both: either move is offered; there is no choice to forget.
+    var menu = await menuOf(tester, id);
+    expect(menu, containsAll(['Move to Practice', 'Move to Talks']));
+    expect(menu, isNot(contains('Show by sessions')));
+    await choose(tester, 'Move to Practice');
+
+    // Kept, though it is what the app detected.
+    final entry = await tester.runAsync(() => app.harness.store.entry(id));
+    expect(entry!.groupOverride, LibraryGroup.practice);
+    await _tap(tester, 'talks');
+    expect(_shown('Jhana Retreat'), findsNothing);
+    await _tap(tester, 'practice');
+    expect(_shown('Jhana Retreat'), findsOneWidget);
+
+    menu = await menuOf(tester, id);
+    expect(menu, contains('Move to Talks'));
+    expect(menu, isNot(contains('Move to Practice')));
+    expect(menu, contains('Show by sessions'));
+    await choose(tester, 'Show by sessions');
+
+    final cleared = await tester.runAsync(() => app.harness.store.entry(id));
+    expect(cleared!.groupOverride, isNull);
+    await _tap(tester, 'talks');
+    expect(_shown('Jhana Retreat'), findsOneWidget);
+  });
+
+  testWidgets('a label that leaves nothing says so, not the chip\'s words', (
+    tester,
+  ) async {
+    final app = await LibraryTestApp.create(tester);
+    await _add(
+      tester,
+      app.harness.store,
+      'lib-track-a',
+      'Body scan',
+      kind: LibraryKind.single,
+    );
+    await _add(
+      tester,
+      app.harness.store,
+      'ds-talk-2',
+      'On emptiness',
+      kind: LibraryKind.single,
+      group: LibraryGroup.talks,
+    );
+    final catalogue = CategoryCatalogue.parse(
+      File(categoriesAsset).readAsStringSync(),
+    );
+    await app.pump(
+      tester,
+      const LibraryView(),
+      overrides: [
+        categoryCatalogueProvider.overrideWith((ref) async => catalogue),
+      ],
+    );
+    await tester.tap(find.byKey(const ValueKey('library_label_body')));
+    await _settle(tester);
+    await _tap(tester, 'talks');
+
+    expect(find.byKey(const ValueKey('library_empty_label')), findsOneWidget);
+    expect(find.text('Nothing here yet'), findsOneWidget);
+    expect(find.text('No talks here yet'), findsNothing);
   });
 }

@@ -123,7 +123,10 @@ class _LibraryBody extends ConsumerWidget {
         if (arranged.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
-            child: _EmptyFilter(filter: options.filter),
+            child: _EmptyFilter(
+              filter: options.filter,
+              labelled: options.label != null,
+            ),
           ),
         for (final shelf in arranged.shelves)
           if (!shelf.isEmpty) ...[
@@ -456,14 +459,18 @@ class _EmptyLibrary extends StatelessWidget {
 /// A filter that matches nothing: what it would show, and the ways to fill
 /// the library.
 class _EmptyFilter extends ConsumerWidget {
-  const _EmptyFilter({required this.filter});
+  const _EmptyFilter({required this.filter, this.labelled = false});
 
   final LibraryFilter filter;
+
+  /// Whether a label is chosen: then it may be what leaves nothing, and the
+  /// chip's own words would mislead.
+  final bool labelled;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final (title, body) = switch (filter) {
+    final (title, body) = switch (labelled ? LibraryFilter.all : filter) {
       LibraryFilter.practice => (
         l10n.libraryPracticeEmpty,
         l10n.libraryPracticeEmptyBody,
@@ -476,14 +483,14 @@ class _EmptyFilter extends ConsumerWidget {
         l10n.libraryDownloadsEmpty,
         l10n.libraryDownloadsEmptyBody,
       ),
-      // Everything (or the teachers), narrowed by a label to nothing.
+      // Everything (or the teachers), or anything narrowed by a label.
       LibraryFilter.all || LibraryFilter.teachers => (
         l10n.libraryFilterEmpty,
         l10n.libraryFilterEmptyBody,
       ),
     };
     return _EmptyMessage(
-      key: ValueKey('library_empty_${filter.name}'),
+      key: ValueKey('library_empty_${labelled ? 'label' : filter.name}'),
       title: title,
       body: body,
       addKey: const ValueKey('library_filter_empty_add'),

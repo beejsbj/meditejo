@@ -1599,6 +1599,10 @@
   "@libraryMoveToTalks": {
     "description": "Menu item that reclassifies a library entry as a talk"
   },
+  "libraryShowBySessions": "Show by sessions",
+  "@libraryShowBySessions": {
+    "description": "Library menu item that forgets the user's Practice/Talks choice for an entry, so its Practice and Talks chips follow its sessions again"
+  },
   "libraryRename": "Rename",
   "@libraryRename": {
     "description": "Menu item that renames a library entry"

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
@@ -7,6 +9,7 @@ import 'package:medito/providers/meditation/downloaded_track_ids_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
+import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
 import 'package:medito/services/categories/entry_labels.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
@@ -179,11 +182,15 @@ final libraryDownloadedIdsProvider = Provider.autoDispose<Set<String>>((ref) {
 ///   its sittings are often labelled "Talk") with talks in it shows under
 ///   both.
 ///
-/// A session's kind is its Dharma Seed `recording_type` ([sessionGroups]),
-/// else that of the library entry it is (a saved single), else that of a
-/// library course listing it (not a playlist). A session none of these
-/// covers adds nothing; with no session known, the entry's own kind stands
-/// alone. [trackIds] is the sessions of each course, as the device has them.
+/// A session's kind is its Dharma Seed `recording_type` ([sessionGroups]).
+/// Inside a playlist, which gathers sessions from elsewhere, a session also
+/// takes the kind of where it lives: a saved single's own kind (the user's
+/// choice for it first, before its recording type), else that of a library
+/// course listing it. A source's own course goes by recording types alone,
+/// so courses that share sessions do not colour each other. A session none
+/// of these covers adds nothing; with no session known, the entry's own kind
+/// stands alone. [trackIds] is the sessions of each course, as the device has
+/// them.
 Map<String, Set<LibraryGroup>> libraryEntryKinds(
   List<LibraryEntry> entries, {
   Map<String, List<String>> trackIds = const {},
@@ -200,13 +207,14 @@ Map<String, Set<LibraryGroup>> libraryEntryKinds(
     }
   }
   LibraryGroup? sessionGroup(String id, LibraryEntry within) {
-    if (sessionGroups[id] case final group?) return group;
+    final playlist = isMyCourseId(within.sourceId);
     final own = byId[id];
-    if (own != null && own.kind == LibraryKind.single) return own.group;
-    for (final holder in holders[id] ?? const <LibraryEntry>[]) {
-      if (holder.sourceId != within.sourceId) return holder.group;
-    }
-    return null;
+    final single = own != null && own.kind == LibraryKind.single ? own : null;
+    if (playlist && single?.groupOverride != null) return single!.groupOverride;
+    if (sessionGroups[id] case final group?) return group;
+    if (!playlist) return null;
+    if (single != null) return single.group;
+    return holders[id]?.firstOrNull?.group;
   }
 
   return {
@@ -226,14 +234,53 @@ Map<String, Set<LibraryGroup>> libraryEntryKinds(
   };
 }
 
+/// How long the Library waits after Dharma Seed stores more before it reads
+/// the kinds again, while a saved retreat's talks are still missing.
+const libraryKindsSyncDebounce = Duration(seconds: 5);
+
 /// [libraryEntryKinds] for the library as it stands. It reads only what is
 /// on the device (the sessions each course lists, and Dharma Seed's stored
 /// talks), never the network. Until it has an answer, and for anything it
 /// cannot place, an entry shows under its own kind.
+///
+/// A course just added is not in the cached [packTrackIdsProvider] yet: its
+/// sessions are read from its own source. A saved retreat whose talks are
+/// not stored yet is read again once the background sync has stored more,
+/// at most once per [libraryKindsSyncDebounce].
 final libraryEntryKindsProvider =
     FutureProvider.autoDispose<Map<String, Set<LibraryGroup>>>((ref) async {
+      var waiting = false;
+      Timer? again;
+      ref.listen(dharmaSeedRevisionProvider, (_, _) {
+        if (waiting) {
+          again ??= Timer(libraryKindsSyncDebounce, ref.invalidateSelf);
+        }
+      });
+      ref.onDispose(() => again?.cancel());
+
       final entries = await ref.watch(libraryEntriesProvider.future);
-      final trackIds = await ref.watch(packTrackIdsProvider.future);
+      final cached = await ref.watch(packTrackIdsProvider.future);
+      final missing = {
+        for (final e in entries)
+          if (e.isCourse && (cached[e.sourceId]?.isEmpty ?? true)) e.sourceId,
+      };
+      var trackIds = cached;
+      if (missing.isNotEmpty) {
+        final router = ref.read(libraryContentRouterProvider);
+        final sources = {for (final id in missing) ?router.sourceFor(id)};
+        final fresh = await Future.wait([
+          for (final source in sources)
+            source.packTrackIds().catchError(
+              (Object _) => const <String, List<String>>{},
+            ),
+        ]);
+        trackIds = {
+          ...cached,
+          for (final map in fresh)
+            for (final MapEntry(:key, :value) in map.entries)
+              if (missing.contains(key)) key: value,
+        };
+      }
       final ids = {
         for (final e in entries)
           if (e.isCourse) ...?trackIds[e.sourceId] else e.sourceId,
@@ -241,6 +288,13 @@ final libraryEntryKindsProvider =
       final sessionGroups = await ref
           .watch(dharmaSeedSourceProvider)
           .sessionGroups(ids);
+      // A saved retreat with no talk of it stored yet.
+      waiting = entries.any(
+        (e) =>
+            e.isCourse &&
+            parseDsRetreatId(e.sourceId) != null &&
+            !(trackIds[e.sourceId] ?? const []).any(sessionGroups.containsKey),
+      );
       return libraryEntryKinds(
         entries,
         trackIds: trackIds,

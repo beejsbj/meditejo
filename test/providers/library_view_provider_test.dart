@@ -291,6 +291,59 @@ void main() {
       expect(kinds['yt-playlist-v'], {LibraryGroup.talks});
     });
 
+    test('source courses sharing sessions do not colour each other', () {
+      final kinds = libraryEntryKinds(
+        [
+          _entry('yt-playlist-a', 'Lectures', group: LibraryGroup.talks),
+          _entry('yt-playlist-b', 'Guided series'),
+        ],
+        trackIds: const {
+          'yt-playlist-a': ['yt-1', 'yt-2'],
+          'yt-playlist-b': ['yt-2', 'yt-3'],
+        },
+      );
+      expect(kinds['yt-playlist-a'], {LibraryGroup.talks});
+      expect(kinds['yt-playlist-b'], {LibraryGroup.practice});
+    });
+
+    test('in a playlist, a single moved by the user beats its recording', () {
+      final kinds = libraryEntryKinds(
+        [
+          _entry(_morning, 'Sits', group: LibraryGroup.talks),
+          // A guided sitting Dharma Seed files as "Talk", moved to Practice.
+          _entry(
+            'ds-talk-7',
+            'Breathing with the body',
+            kind: LibraryKind.single,
+            group: LibraryGroup.talks,
+            override: LibraryGroup.practice,
+          ),
+        ],
+        trackIds: const {
+          _morning: ['ds-talk-7'],
+        },
+        sessionGroups: const {'ds-talk-7': LibraryGroup.talks},
+      );
+      expect(kinds[_morning], {LibraryGroup.talks, LibraryGroup.practice});
+      expect(kinds['ds-talk-7'], {LibraryGroup.practice});
+      // Without the user's word, the recording decides.
+      final plain = libraryEntryKinds(
+        [
+          _entry(_morning, 'Sits'),
+          _entry(
+            'ds-talk-7',
+            'Breathing with the body',
+            kind: LibraryKind.single,
+          ),
+        ],
+        trackIds: const {
+          _morning: ['ds-talk-7'],
+        },
+        sessionGroups: const {'ds-talk-7': LibraryGroup.talks},
+      );
+      expect(plain[_morning], {LibraryGroup.practice, LibraryGroup.talks});
+    });
+
     test('a single goes by its own recording; teachers have no kind', () {
       final kinds = libraryEntryKinds(
         [

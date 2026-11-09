@@ -1604,6 +1604,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get libraryMoveToTalks => 'Mover a Charlas';
 
   @override
+  String get libraryShowBySessions => 'Mostrar según sus sesiones';
+
+  @override
   String get libraryRename => 'Renombrar';
 
   @override

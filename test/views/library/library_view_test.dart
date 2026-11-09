@@ -175,14 +175,25 @@ void main() {
       expect(entry.group, LibraryGroup.talks);
       expect(entry.detectedGroup, LibraryGroup.practice);
 
-      // And back: the override is cleared, not stacked.
+      // And back: the choice is kept, even as what was detected (#80).
       await tester.tap(find.byIcon(Icons.more_vert_rounded));
       await settle(tester);
       await tester.tap(find.text('Move to Practice'));
       await settle(tester);
       final back = (await tester.runAsync(app.harness.store.entries))!.single;
-      expect(back.groupOverride, isNull);
+      expect(back.groupOverride, LibraryGroup.practice);
       expect(find.text('Practice 1'), findsOneWidget);
+
+      // Show by sessions forgets it.
+      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await settle(tester);
+      await tester.tap(find.text('Show by sessions'));
+      await settle(tester);
+      final cleared = (await tester.runAsync(
+        app.harness.store.entries,
+      ))!.single;
+      expect(cleared.groupOverride, isNull);
+      expect(cleared.group, LibraryGroup.practice);
     });
 
     testWidgets('rename shows the new name and keeps the source title', (

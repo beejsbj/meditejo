@@ -2,7 +2,7 @@
 // with Practice and Talks as chips that filter by what a course's sessions
 // are. A realistic library: three Dharma Seed retreats (one mixed, one of
 // talks, one of sittings), two playlists, single sessions, an imported feed,
-// a YouTube series and a saved teacher. At the S23+'s 411 dp, light and dark,
+// a YouTube series, a saved teacher and two downloads. At the S23+'s 411 dp, light and dark,
 // and a 360 dp phone with 1.3x German text. Not part of the normal run:
 //
 //   MEDITEJO_SCREENSHOTS=1 MEDITEJO_SHOT_DIR=<dir> flutter test \
@@ -15,9 +15,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/theme/app_theme.dart';
-import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
-import 'package:medito/services/home/continue_rules.dart';
 import 'package:medito/services/identity/palettes.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/views/library/library_view.dart';
@@ -241,34 +239,6 @@ final _trackIds = {
   _vervaeke: [for (var i = 1; i <= 18; i++) 'yt-v-$i'],
 };
 
-final _inProgress = [
-  ContinueItem(
-    trackId: _talk(7),
-    path: '/tracks/${_talk(7)}',
-    title: 'Guided meditation 7',
-    group: LibraryGroup.practice,
-    lastPlayed: DateTime(2026, 11, 8),
-    courseId: _jhanas,
-    courseTitle: 'Practising the Jhānas',
-    resume: const ResumePoint(positionMs: 1800000, durationMs: 5340000),
-    sessionNumber: 7,
-    sessionTotal: 32,
-    completedSessions: 6,
-  ),
-  ContinueItem(
-    trackId: 'yt-v-3',
-    path: '/tracks/yt-v-3',
-    title: 'Episode 3: Continuous Cosmos and Modern World Grammar',
-    group: LibraryGroup.talks,
-    lastPlayed: DateTime(2026, 11, 7),
-    courseId: _vervaeke,
-    courseTitle: 'Awakening from the Meaning Crisis',
-    sessionNumber: 3,
-    sessionTotal: 18,
-    completedSessions: 2,
-  ),
-];
-
 /// Taps Practice or Talks, as a chip (#80) or, before it, a segment.
 Future<void> _choose(WidgetTester tester, String group) async {
   final chip = find.byKey(ValueKey('library_filter_$group'));
@@ -314,7 +284,6 @@ void main() {
           downloaded: const {'ds-talk-901', 'yt-v-1'},
           overrides: [
             packTrackIdsProvider.overrideWith((ref) async => _trackIds),
-            inProgressItemsProvider.overrideWith((ref) async => _inProgress),
           ],
         );
         await _size(tester, dp, 2340 / 2.625);

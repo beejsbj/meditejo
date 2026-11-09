@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/providers/library/library_view_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
-import 'package:medito/services/home/continue_rules.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
 import 'package:medito/views/library/library_view.dart';
@@ -124,10 +122,7 @@ final _progress = [
   ),
 ];
 
-final _overrides = [
-  ..._progress,
-  inProgressItemsProvider.overrideWith((ref) async => const []),
-];
+final _overrides = [..._progress];
 
 const _played = ['j-1', 'j-2', 'j-3', 'm-1'];
 
@@ -333,32 +328,23 @@ void main() {
 
     testWidgets('has no In progress: Home\'s Continue has it', (tester) async {
       final app = await _mixed(tester);
-      final items = [
-        for (var i = 0; i < 5; i++)
-          ContinueItem(
-            trackId: 't$i',
-            path: '/tracks/t$i',
-            title: 'Session $i',
-            group: LibraryGroup.practice,
-            lastPlayed: DateTime(2026, 10, 20 + i),
-            courseId: 'c$i',
-            courseTitle: 'Course $i',
-            sessionNumber: 2,
-            sessionTotal: 8,
-            completedSessions: 1,
-          ),
-      ];
+      // Practising the Jhānas is 3 of 4 done: in progress.
       await app.pump(
         tester,
         const LibraryView(),
-        overrides: [
-          ..._progress,
-          inProgressItemsProvider.overrideWith((ref) async => items),
-        ],
+        played: _played,
+        overrides: _overrides,
       );
 
       expect(find.text('In progress', skipOffstage: false), findsNothing);
-      expect(find.text('Session 0', skipOffstage: false), findsNothing);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith('in_progress'),
+          skipOffstage: false,
+        ),
+        findsNothing,
+      );
       // The chips come first.
       expect(
         tester.getTopLeft(find.byKey(const ValueKey('library_filter_all'))).dy,
@@ -509,24 +495,6 @@ void main() {
       {
         testWidgets(grid ? 'grid' : 'list', (tester) async {
           final app = await _mixed(tester);
-          final items = [
-            ContinueItem(
-              trackId: 't1',
-              path: '/tracks/t1',
-              title: 'Developing Piti, Developing Focus, Developing Wellbeing',
-              group: LibraryGroup.practice,
-              lastPlayed: DateTime(2026, 10, 25),
-              courseId: 'ds-retreat-1',
-              courseTitle: 'Practising the Jhānas',
-              resume: const ResumePoint(
-                positionMs: 1800000,
-                durationMs: 5340000,
-              ),
-              sessionNumber: 4,
-              sessionTotal: 32,
-              completedSessions: 3,
-            ),
-          ];
           await app.pump(
             tester,
             MediaQuery(
@@ -537,10 +505,7 @@ void main() {
               child: const LibraryView(),
             ),
             played: _played,
-            overrides: [
-              ..._progress,
-              inProgressItemsProvider.overrideWith((ref) async => items),
-            ],
+            overrides: _overrides,
           );
           tester.view.physicalSize = const Size(360, 780);
           await settle(tester);

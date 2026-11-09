@@ -2800,6 +2800,12 @@ abstract class AppLocalizations {
   /// **'Move to Talks'**
   String get libraryMoveToTalks;
 
+  /// Library menu item that forgets the user's Practice/Talks choice for an entry, so its Practice and Talks chips follow its sessions again
+  ///
+  /// In en, this message translates to:
+  /// **'Show by sessions'**
+  String get libraryShowBySessions;
+
   /// Menu item that renames a library entry
   ///
   /// In en, this message translates to:

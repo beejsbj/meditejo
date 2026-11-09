@@ -4,6 +4,7 @@ import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/library/library_providers.dart';
+import 'package:medito/providers/library/library_view_provider.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/scaffold_messenger_key.dart';
 import 'package:medito/services/library/lib_ids.dart';
@@ -39,15 +40,20 @@ Future<void> openLibraryId(
   return handleNavigation(type, [id, path], context, ref: ref);
 }
 
-/// Moves an entry between Practice and Talks. The app's own detection stays
-/// recorded, so the change can be undone.
+/// Moves an entry to Practice or to Talks. The choice is kept even when it
+/// is what the app detected, so a course of sittings and talks can be put
+/// under one chip only (#80); the detection stays recorded, and
+/// [clearLibraryGroup] goes back to it.
 Future<void> setLibraryGroup(
   WidgetRef ref,
   LibraryEntry entry,
   LibraryGroup group,
-) => ref
-    .read(libraryStoreProvider)
-    .setGroup(entry.sourceId, group == entry.detectedGroup ? null : group);
+) => ref.read(libraryStoreProvider).setGroup(entry.sourceId, group);
+
+/// Forgets the user's Practice or Talks for an entry: the Library shows it by
+/// its sessions again, and playback goes by what the app detected.
+Future<void> clearLibraryGroup(WidgetRef ref, LibraryEntry entry) =>
+    ref.read(libraryStoreProvider).setGroup(entry.sourceId, null);
 
 /// Deletes the import [id] and takes what is gone off Home: a pin of
 /// something deleted would only show an ID. A course takes its sessions' pins
@@ -277,5 +283,11 @@ Future<void> showLibraryEntryActions(
 ) => showItemActions(
   context,
   ref,
-  ItemActionsSpec(id: entry.sourceId, title: entry.title, entry: entry),
+  ItemActionsSpec(
+    id: entry.sourceId,
+    title: entry.title,
+    entry: entry,
+    // Where the Library's chips put it, so the menu offers the other.
+    entryKinds: ref.read(libraryEntryKindsProvider).value?[entry.sourceId],
+  ),
 );

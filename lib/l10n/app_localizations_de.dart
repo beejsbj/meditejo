@@ -1599,6 +1599,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get libraryMoveToTalks => 'In Vorträge verschieben';
 
   @override
+  String get libraryShowBySessions => 'Nach Einheiten zeigen';
+
+  @override
   String get libraryRename => 'Umbenennen';
 
   @override

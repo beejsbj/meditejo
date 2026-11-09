@@ -1571,6 +1571,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryMoveToTalks => 'Move to Talks';
 
   @override
+  String get libraryShowBySessions => 'Show by sessions';
+
+  @override
   String get libraryRename => 'Rename';
 
   @override
