@@ -11,6 +11,10 @@ class TypeConstants {
   static const String timestampIdKey = 'timestamp';
   static const String guideIdKey = 'guide';
   static const String durationIdKey = 'duration';
+
+  /// Real time a completion took at the speed it was played at; absent from
+  /// payloads saved before it was recorded (read as [durationIdKey]).
+  static const String realDurationIdKey = 'realDuration';
   static const String downloads = 'downloads';
   static const String customiseHomeLayout = 'customiseHomeLayout';
   static const String route = 'route';

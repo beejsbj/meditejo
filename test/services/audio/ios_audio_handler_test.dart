@@ -314,6 +314,33 @@ void main() {
     expect(count('transport'), 3);
   });
 
+  test(
+    'a completion records the real time playback took at its speed',
+    () async {
+      _mockSwift({'sampleListening': false});
+      final streams = _Streams();
+      final player = streams.player();
+      when(() => player.playing).thenReturn(true);
+      when(() => player.processingState).thenReturn(ProcessingState.ready);
+      when(() => player.speed).thenReturn(2);
+      final handler = _WiredHandler(player);
+      await handler.ensureInitialized();
+
+      // Ten minutes of the hour-long talk at 2x, a position tick each second.
+      for (var ms = 0; ms <= 600000; ms += 2000) {
+        streams.position.add(Duration(milliseconds: ms));
+        await _settle();
+      }
+      expect(handler.completionRealDurationMs, 1800000);
+
+      // Paused: ticks add nothing.
+      when(() => player.playing).thenReturn(false);
+      streams.position.add(const Duration(milliseconds: 602000));
+      await _settle();
+      expect(handler.completionRealDurationMs, 1800000);
+    },
+  );
+
   group('repeat play-throughs follow the 90% rule', () {
     late Map<String, Object?> swift;
     late _Streams streams;

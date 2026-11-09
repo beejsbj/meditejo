@@ -244,9 +244,19 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             duration = state.duration,
             fileId = state.track.fileId,
             guideId = state.track.artist,
-            timestamp = System.currentTimeMillis()
+            timestamp = System.currentTimeMillis(),
+            realDuration = realDurationOf(state.duration),
         )
     }
+
+    // The real time this pass took at the speeds it was heard at, beside the
+    // recording's length: a 60-minute talk heard at 2x took 30. A timer is
+    // never sped up, so its real time is its length.
+    private fun realDurationOf(durationMs: Long): Long = listening.realMs(
+        durationMs,
+        playbackSpeed(),
+        isTimer = ::cues.isInitialized && cues.isTimer,
+    )
 
     // 90% of the track really heard, or a timer at its end, earns the
     // completion. Seeking to the end does not, even past a finished extension.
@@ -318,6 +328,10 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             JSONObject()
                 .put("at", System.currentTimeMillis())
                 .put("ranges", JSONArray(listening.snapshot()))
+                // Played media and the real time it took, so a resumed
+                // session keeps the speeds it was heard at.
+                .put("media", listening.playedMediaMs)
+                .put("real", listening.playedRealMs)
                 .toString(),
         ).apply()
     }
@@ -352,16 +366,22 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         listeningKey = JSONArray(listOf(trackId, fileId)).toString()
         listening.reset()
         try {
-            // {"at": savedAtMs, "ranges": [[start, end], ...]}; a bare array is read too.
+            // {"at": savedAtMs, "ranges": [[start, end], ...], "media": ms, "real": ms};
+            // a bare array, or an object without media and real, is read too.
             val raw = listeningPrefs.getString(listeningKey, null) ?: "[]"
-            val array = if (raw.trimStart().startsWith("{")) {
-                JSONObject(raw).optJSONArray("ranges") ?: JSONArray()
+            val receipt = if (raw.trimStart().startsWith("{")) JSONObject(raw) else null
+            val array = if (receipt != null) {
+                receipt.optJSONArray("ranges") ?: JSONArray()
             } else JSONArray(raw)
             val saved = (0 until array.length()).mapNotNull { i ->
                 val range = array.optJSONArray(i)
                 if (range != null && range.length() == 2) listOf(range.getLong(0), range.getLong(1)) else null
             }
-            listening.restore(saved)
+            listening.restore(
+                saved,
+                playedMediaMs = receipt?.optDouble("media", 0.0) ?: 0.0,
+                playedRealMs = receipt?.optDouble("real", 0.0) ?: 0.0,
+            )
         } catch (_: Exception) { /* A corrupt resume receipt is ignored. */ }
         lastListeningSaveMs = SystemClock.elapsedRealtime()
         try { pruneListening() } catch (e: Exception) { Log.w(TAG, "Could not prune listening receipts: ${e.message}") }
@@ -402,12 +422,14 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     private fun createCompletionDataFromPlayer(): CompletionData {
         val mediaItem = primaryPlayer.currentMediaItem
         val metadata = mediaItem?.mediaMetadata
+        val duration = primaryPlayer.duration.takeIf { it != C.TIME_UNSET } ?: 0L
         return CompletionData(
             trackId = mediaItem?.mediaId ?: "",
-            duration = primaryPlayer.duration.takeIf { it != C.TIME_UNSET } ?: 0L,
+            duration = duration,
             fileId = metadata?.extras?.getString(KEY_FILE_ID) ?: "",
             guideId = metadata?.artist?.toString(),
-            timestamp = System.currentTimeMillis()
+            timestamp = System.currentTimeMillis(),
+            realDuration = realDurationOf(duration),
         )
     }
 
