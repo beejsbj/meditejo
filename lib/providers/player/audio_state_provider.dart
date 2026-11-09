@@ -44,6 +44,7 @@ class AudioStateProvider implements MeditoAudioServiceCallbackApi {
         TypeConstants.fileIdKey: completionData.fileId,
         TypeConstants.guideIdKey: completionData.guideId,
         TypeConstants.timestampIdKey: completionData.timestamp,
+        TypeConstants.realDurationIdKey: completionData.realDuration,
       });
     } on Exception catch (_) {
       return false;
@@ -59,6 +60,7 @@ class AudioStateProvider implements MeditoAudioServiceCallbackApi {
       TypeConstants.fileIdKey: completionData.fileId,
       TypeConstants.guideIdKey: completionData.guideId,
       TypeConstants.timestampIdKey: completionData.timestamp,
+      TypeConstants.realDurationIdKey: completionData.realDuration,
     });
   }
 }

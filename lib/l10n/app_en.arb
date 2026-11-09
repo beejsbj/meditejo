@@ -2839,6 +2839,18 @@
       }
     }
   },
+  "statsAudioVersusRealTime": "{audio} of audio · {real} of your time",
+  "@statsAudioVersusRealTime": {
+    "description": "Quiet line under the all-time totals when sessions were played faster or slower than recorded, e.g. '4 h of audio · 3 h 10 min of your time'. audio = total length of the recordings; real = the time it actually took",
+    "placeholders": {
+      "audio": {
+        "type": "String"
+      },
+      "real": {
+        "type": "String"
+      }
+    }
+  },
   "statsEmpty": "Your first recorded session will show up here.",
   "@statsEmpty": {
     "description": "Stats empty state"

@@ -124,6 +124,21 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     return summary == null ? const [] : _statsTab(context, stats, summary);
   }
 
+  /// The quiet lines under the totals: audio covered beside the time spent
+  /// when they differ enough, and how many older sessions have no length.
+  String? _timeCaption(PracticeSummary summary, AppLocalizations l10n) {
+    final lines = [
+      if (summary.audioDiffers)
+        l10n.statsAudioVersusRealTime(
+          formatPractice(summary.allTimeAudio, l10n),
+          formatPractice(summary.allTime, l10n),
+        ),
+      if (summary.untimedSessions != 0)
+        l10n.statsUntimedNote(summary.untimedSessions),
+    ];
+    return lines.isEmpty ? null : lines.join('\n');
+  }
+
   List<Widget> _statsTab(
     BuildContext context,
     LocalAllStats stats,
@@ -167,9 +182,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
       const SizedBox(height: kStatsGap + 4),
       StatsCard(
         title: l10n.statsTimePractised,
-        caption: summary.untimedSessions == 0
-            ? null
-            : l10n.statsUntimedNote(summary.untimedSessions),
+        caption: _timeCaption(summary, l10n),
         child: Column(
           children: [
             Row(
@@ -181,6 +194,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     label: l10n.statsToday,
                   ),
                 ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: StatFigure(
                     value: time(summary.thisWeek),
@@ -199,6 +213,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     label: l10n.statsThisMonth,
                   ),
                 ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: StatFigure(
                     value: time(summary.allTime),
@@ -237,6 +252,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     label: l10n.currentStreak,
                   ),
                 ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: StatFigure(
                     value: days(stats.streakLongest),
@@ -255,6 +271,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     label: l10n.totalTracksCompleted,
                   ),
                 ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,

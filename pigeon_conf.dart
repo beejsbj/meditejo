@@ -153,11 +153,16 @@ class Track {
 
 class CompletionData {
   String trackId;
+  // The recording's length (audio covered), as it always was.
   int duration;
   String fileId;
   String? guideId;
   int timestamp;
   String? userToken;
+  // Real time: the recording length at the speeds it was heard at (pauses
+  // do not count). Null from a payload saved before it was recorded: the stats
+  // then take the recording's length.
+  int? realDuration;
 
   CompletionData({
     required this.trackId,
@@ -166,6 +171,7 @@ class CompletionData {
     required this.guideId,
     required this.timestamp,
     required this.userToken,
+    this.realDuration,
   });
 }
 

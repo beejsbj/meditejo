@@ -1064,6 +1064,7 @@
   "statsAllTime": "En total",
   "statsTotalTime": "Tiempo total",
   "statsUntimedNote": "Las sesiones de antes de que la app registrara su duración ({count}) cuentan como días practicados, no como minutos.",
+  "statsAudioVersusRealTime": "{audio} de audio · {real} de tu tiempo",
   "statsEmpty": "Tu primera sesión registrada aparecerá aquí.",
   "statsDailyMinutes": "Minutos al día",
   "statsRange7": "7 días",

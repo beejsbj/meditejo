@@ -4522,6 +4522,12 @@ abstract class AppLocalizations {
   /// **'Sessions from before the app recorded their length ({count}) count as days practised, not as minutes.'**
   String statsUntimedNote(int count);
 
+  /// Quiet line under the all-time totals when sessions were played faster or slower than recorded, e.g. '4 h of audio · 3 h 10 min of your time'. audio = total length of the recordings; real = the time it actually took
+  ///
+  /// In en, this message translates to:
+  /// **'{audio} of audio · {real} of your time'**
+  String statsAudioVersusRealTime(String audio, String real);
+
   /// Stats empty state
   ///
   /// In en, this message translates to:

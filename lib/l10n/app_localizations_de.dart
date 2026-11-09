@@ -2616,6 +2616,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String statsAudioVersusRealTime(String audio, String real) {
+    return '$audio Audio · $real deiner Zeit';
+  }
+
+  @override
   String get statsEmpty => 'Deine erste aufgezeichnete Sitzung erscheint hier.';
 
   @override
