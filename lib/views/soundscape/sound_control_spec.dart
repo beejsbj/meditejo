@@ -70,6 +70,10 @@ final noiseControls = SoundControlSpec(
       write: (p, s) =>
           NoiseParams.fromJson(p).copyWith(bands: s.single.bands).toJson(),
       otherLabel: (l) => l.noiseShapeCustom,
+      // The curve drawn by hand comes back; the colour stays as now.
+      restoreOther: (p, custom) => NoiseParams.fromJson(
+        p,
+      ).copyWith(bands: NoiseParams.fromJson(custom).bands).toJson(),
       fineFolds: true,
       fine: SoundRanges(
         id: 'noise_bands',

@@ -53,10 +53,12 @@ class SoundChips<T> extends SoundControl {
     required this.write,
     this.maxSelected = 1,
     this.otherLabel,
+    this.restoreOther,
     this.caption,
     this.fine,
     this.fineFolds = false,
-  }) : assert(maxSelected >= 1);
+  }) : assert(maxSelected >= 1),
+       assert(otherLabel == null || restoreOther != null);
 
   final List<SoundChoice<T>> choices;
 
@@ -70,7 +72,15 @@ class SoundChips<T> extends SoundControl {
 
   /// Shown as a selected chip of its own when the params match no choice
   /// (bands shaped by hand), so the editor never shows nothing chosen.
+  /// Once such params have been seen, the chip stays while the editor is
+  /// open, and choosing it brings them back ([restoreOther]): a tap on a
+  /// name never loses a curve drawn by hand.
   final SoundText? otherLabel;
+
+  /// [current] with what these chips set taken from [remembered] (params
+  /// that matched no choice): the noise's bands, its colour left alone.
+  final SoundParams Function(SoundParams current, SoundParams remembered)?
+  restoreOther;
 
   /// A line under the chips about what is chosen ("4–8 Hz").
   final String? Function(AppLocalizations l10n, SoundParams params)? caption;
@@ -251,6 +261,34 @@ class _ChipsViewState extends State<_ChipsView> {
   /// Folded only where the chips' own choice explains the params.
   late bool _folded = _c.fineFolds && _c.read(widget.params).isNotEmpty;
 
+  /// The last params this editor saw that matched no choice (a curve drawn
+  /// by hand), kept so the "other" chip can bring them back.
+  SoundParams? _other;
+
+  void _remember(SoundParams params) {
+    if (_c.otherLabel != null && _c.read(params).isEmpty) _other = params;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _remember(widget.params);
+  }
+
+  @override
+  void didUpdateWidget(_ChipsView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _remember(widget.params);
+  }
+
+  void _restoreOther(Set<Object?> selected) {
+    final other = _other;
+    final restore = _c.restoreOther;
+    // Already showing it: nothing to bring back.
+    if (other == null || restore == null || selected.isEmpty) return;
+    widget.onChanged(restore(widget.params, other));
+  }
+
   void _toggle(Object? value, bool on, Set<Object?> selected) {
     final Set<Object?> next;
     if (_c.maxSelected == 1) {
@@ -302,13 +340,13 @@ class _ChipsViewState extends State<_ChipsView> {
                     selected: selected.contains(choice.value),
                     onSelected: (on) => _toggle(choice.value, on, selected),
                   ),
-              if (other != null && selected.isEmpty)
+              if (other != null && (selected.isEmpty || _other != null))
                 ChoiceChip(
                   key: ValueKey('${_c.id}_other'),
                   label: Text(other(l10n)),
-                  selected: true,
-                  // Says what the params are; choosing a name replaces it.
-                  onSelected: (_) {},
+                  selected: selected.isEmpty,
+                  // After a name replaced the curve, this brings it back.
+                  onSelected: (_) => _restoreOther(selected),
                 ),
             ],
           ),

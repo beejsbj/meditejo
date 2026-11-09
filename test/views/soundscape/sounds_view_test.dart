@@ -949,7 +949,13 @@ void main() {
     // "Even" is what Reset bands was.
     await tester.tap(find.byKey(const ValueKey('noise_shape_even')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('noise_shape_other')), findsNothing);
+    // Custom stays on offer, no longer chosen, to bring the curve back.
+    expect(
+      tester
+          .widget<ChoiceChip>(find.byKey(const ValueKey('noise_shape_other')))
+          .selected,
+      isFalse,
+    );
     final params = NoiseParams.fromJson(mix().layer(kSynthNoiseId)!.params);
     expect(params.colour, NoiseColour.brown);
     expect(params.bands, NoiseParams.flat);

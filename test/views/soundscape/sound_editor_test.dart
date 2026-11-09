@@ -289,6 +289,50 @@ void main() {
     });
   });
 
+  testWidgets('noise: a shape over a hand-drawn curve can be undone with '
+      'Custom', (tester) async {
+    const curve = [0.0, 0.25, 1.0, 0.8, 0.31, 0.6, 1.0, 0.4, 0.1, 0.0];
+    await pump(
+      tester,
+      layers: {
+        kSynthNoiseId: const {'colour': 'white', 'bands': curve},
+      },
+    );
+    await open(tester, kSynthNoiseId);
+    await tester.tap(find.byKey(const ValueKey('noise_shape_soft')));
+    await tester.pumpAndSettle();
+    expect(
+      NoiseParams.fromJson(params(kSynthNoiseId)).bands,
+      NoiseShape.soft.bands,
+    );
+    expect(chipSelected(tester, 'noise_shape_other'), isFalse);
+    // A colour changed meanwhile stays when the curve comes back.
+    await tester.tap(find.byKey(const ValueKey('noise_colour_brown')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('noise_shape_other')));
+    await tester.pumpAndSettle();
+    final noise = NoiseParams.fromJson(params(kSynthNoiseId));
+    expect(noise.bands, curve);
+    expect(noise.colour, NoiseColour.brown);
+    expect(chipSelected(tester, 'noise_shape_other'), isTrue);
+    expect(chipSelected(tester, 'noise_shape_soft'), isFalse);
+    // Tapping it again while chosen changes nothing.
+    await tester.tap(find.byKey(const ValueKey('noise_shape_other')));
+    await tester.pumpAndSettle();
+    expect(NoiseParams.fromJson(params(kSynthNoiseId)).bands, curve);
+  });
+
+  testWidgets('noise: no Custom chip until a curve of its own exists', (
+    tester,
+  ) async {
+    await pump(tester, layers: {kSynthNoiseId: const {}});
+    await open(tester, kSynthNoiseId);
+    await tester.tap(find.byKey(const ValueKey('noise_shape_airy')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('noise_shape_other')), findsNothing);
+  });
+
   group('drone', () {
     testWidgets('root and timbre chips, and the movement range', (
       tester,

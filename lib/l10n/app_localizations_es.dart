@@ -2236,10 +2236,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noiseShapeSoft => 'Suave';
 
   @override
-  String get noiseShapeDeep => 'Profundo';
+  String get noiseShapeDeep => 'Profunda';
 
   @override
-  String get noiseShapeAiry => 'Aireado';
+  String get noiseShapeAiry => 'Aireada';
 
   @override
   String get noiseShapeCustom => 'Propia';
