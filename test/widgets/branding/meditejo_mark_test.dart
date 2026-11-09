@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/services/identity/mark_generator.dart';
+import 'package:medito/services/identity/mark_moments.dart';
 import 'package:medito/services/identity/mark_spec.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
 
@@ -165,5 +166,186 @@ void main() {
       );
       expect(tester.takeException(), isNull);
     }
+  });
+
+  group('a deep breath', () {
+    testWidgets('a tap sends one breath through it; taps do not stack', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_app(_markOf(_mark)));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 6));
+      expect(_state(tester).breathe(), isTrue);
+      expect(_state(tester).isBreathing, isTrue);
+      await tester.pump(const Duration(seconds: 2));
+      // Mid-breath: another tap is ignored, not stacked or restarted.
+      expect(_state(tester).breathe(), isFalse);
+      await tester.pump(const Duration(milliseconds: 3600));
+      expect(_state(tester).isBreathing, isFalse);
+      // It rests again, and can breathe again.
+      expect(_state(tester).breathe(), isTrue);
+      await tester.pump(const Duration(seconds: 6));
+      expect(_state(tester).isBreathing, isFalse);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('reduced motion has no breath', (tester) async {
+      await tester.pumpWidget(_app(_markOf(_mark), disableAnimations: true));
+      expect(_state(tester).breathe(), isFalse);
+      expect(_state(tester).isBreathing, isFalse);
+    });
+
+    testWidgets('no breath while it cannot be seen', (tester) async {
+      await tester.pumpWidget(_app(_markOf(_mark, animate: false)));
+      expect(_state(tester).breathe(), isFalse);
+    });
+  });
+
+  group('arriving from another mark', () {
+    final yesterday = MarkGenerator.build('a-1q');
+
+    Widget tabs(int index, {VoidCallback? onSeen, MarkSpec? from}) => _app(
+      IndexedStack(
+        index: index,
+        children: [
+          Center(
+            child: MeditejoMark(
+              mark: _mark,
+              from: from ?? yesterday,
+              onSeen: onSeen,
+            ),
+          ),
+          const Center(child: Text('Explore')),
+        ],
+      ),
+    );
+
+    testWidgets('waits until it is seen, then turns once', (tester) async {
+      var seen = 0;
+      await tester.pumpWidget(tabs(1, onSeen: () => seen++));
+      await tester.pump(const Duration(seconds: 3));
+      // Unseen: the old mark holds, the turn hasn't begun.
+      expect(seen, 0);
+      expect(_state(tester).isArriving, isTrue);
+      expect(_state(tester).arrival, 0);
+      expect(_state(tester).seconds, -MarkMoments.morphLead);
+
+      await tester.pumpWidget(tabs(0, onSeen: () => seen++));
+      await tester.pump();
+      expect(seen, 1);
+      await tester.pump(const Duration(seconds: 1));
+      expect(_state(tester).isArriving, isTrue);
+      expect(
+        _state(tester).arrival,
+        closeTo(1 / MarkMoments.undrawSeconds, 0.02),
+      );
+      // No breath mid-turn.
+      expect(_state(tester).breathe(), isFalse);
+      await tester.pump(const Duration(milliseconds: 1300));
+      expect(_state(tester).isArriving, isFalse);
+      // Today's mark has been drawing itself in since the lead.
+      expect(
+        _state(tester).seconds,
+        closeTo(2.3 - MarkMoments.morphLead, 0.05),
+      );
+
+      // Hidden and shown again: no second turn, no second call.
+      await tester.pumpWidget(tabs(1, onSeen: () => seen++));
+      await tester.pumpWidget(tabs(0, onSeen: () => seen++));
+      await tester.pump(const Duration(seconds: 1));
+      expect(seen, 1);
+      expect(_state(tester).isArriving, isFalse);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('with reduced motion the two settled frames crossfade', (
+      tester,
+    ) async {
+      var seen = 0;
+      await tester.pumpWidget(
+        _app(
+          Center(
+            child: MeditejoMark(
+              mark: _mark,
+              from: yesterday,
+              onSeen: () => seen++,
+            ),
+          ),
+          disableAnimations: true,
+        ),
+      );
+      await tester.pump();
+      expect(seen, 1);
+      expect(_state(tester).isStill, isTrue);
+      expect(_state(tester).isRunning, isFalse);
+      expect(_state(tester).isArriving, isTrue);
+      final held = _state(tester).seconds;
+      await tester.pump(MarkMoments.crossfade ~/ 2);
+      expect(_state(tester).arrival, closeTo(0.5, 0.05));
+      // A fade only: nothing moves.
+      expect(_state(tester).seconds, held);
+      await tester.pump(MarkMoments.crossfade);
+      expect(_state(tester).isArriving, isFalse);
+    });
+
+    testWidgets('every pair of families turns without error', (tester) async {
+      for (final from in ['g-1cq', 'm-1nq', 'a-1q']) {
+        for (final to in ['g-1kq', 'm-1lq', 'a-3q']) {
+          await tester.pumpWidget(const SizedBox());
+          await tester.pumpWidget(
+            _app(
+              Center(
+                child: MeditejoMark(
+                  mark: MarkGenerator.build(to),
+                  from: MarkGenerator.build(from),
+                ),
+              ),
+            ),
+          );
+          for (var i = 0; i < 6; i++) {
+            await tester.pump(const Duration(milliseconds: 500));
+          }
+          expect(tester.takeException(), isNull);
+          expect(_state(tester).isArriving, isFalse);
+        }
+      }
+    });
+  });
+
+  group('MarkMoments', () {
+    test('a deep breath swells once and settles back to rest', () {
+      expect(MarkMoments.swellAt(0), 0);
+      expect(MarkMoments.swellAt(MarkMoments.breathSeconds), 0);
+      expect(MarkMoments.swellAt(-1), 0);
+      final top = MarkMoments.breathSeconds * 0.4;
+      expect(MarkMoments.swellAt(top), closeTo(1, 1e-9));
+      // Rises, then falls: one breath, no bounce.
+      var last = 0.0;
+      for (var s = 0.1; s < top; s += 0.1) {
+        final v = MarkMoments.swellAt(s);
+        expect(v, greaterThanOrEqualTo(last));
+        last = v;
+      }
+      last = 1;
+      for (var s = top + 0.1; s < MarkMoments.breathSeconds; s += 0.1) {
+        final v = MarkMoments.swellAt(s);
+        expect(v, lessThanOrEqualTo(last));
+        last = v;
+      }
+    });
+
+    test("yesterday's mark un-draws back to its first moment", () {
+      final m = MarkGenerator.build('g-1kq');
+      expect(MarkMoments.undrawTimeAt(m, 0), MarkMoments.drawnBy(m));
+      expect(MarkMoments.undrawTimeAt(m, MarkMoments.undrawSeconds), 0);
+      expect(MarkMoments.undrawOpacityAt(0), 1);
+      expect(MarkMoments.undrawOpacityAt(MarkMoments.undrawSeconds), 0);
+    });
+
+    test("today's name fades in, rests, and fades away", () {
+      expect(MarkMoments.nameOpacityAt(0), 0);
+      expect(MarkMoments.nameOpacityAt(3), 1);
+      expect(MarkMoments.nameOpacityAt(MarkMoments.nameSeconds), 0);
+    });
   });
 }
