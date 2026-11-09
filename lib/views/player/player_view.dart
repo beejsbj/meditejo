@@ -41,6 +41,7 @@ import 'package:medito/views/player/widgets/bottom_actions/player_action_bar.dar
 import 'package:medito/views/player/widgets/duration_indicator_widget.dart';
 import 'package:medito/views/player/widgets/stopwatch_elapsed_widget.dart';
 import 'package:medito/views/player/widgets/player_buttons/player_buttons_widget.dart';
+import 'package:medito/views/player/widgets/player_mark.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -953,6 +954,9 @@ class PlayerScreenLayout extends StatelessWidget {
                                     isStopwatch: isStopwatch,
                                     onStop: onStop,
                                     autoplay: autoplay,
+                                    markSize: isTimer
+                                        ? _playerMarkSize(constraints)
+                                        : null,
                                   )
                                 : ConstrainedBox(
                                     constraints: const BoxConstraints(
@@ -995,6 +999,14 @@ class PlayerScreenLayout extends StatelessWidget {
   }
 }
 
+/// The timer mark's side: large, but leaving room below it for the title and
+/// the controls on a short screen.
+double _playerMarkSize(BoxConstraints constraints) {
+  final byWidth = constraints.maxWidth - 64;
+  final byHeight = constraints.maxHeight * 0.32;
+  return (byWidth < byHeight ? byWidth : byHeight).clamp(120.0, 320.0);
+}
+
 class _PortraitPlayerLayout extends ConsumerWidget {
   const _PortraitPlayerLayout({
     this.expanded = false,
@@ -1009,7 +1021,12 @@ class _PortraitPlayerLayout extends ConsumerWidget {
     this.isStopwatch = false,
     this.onStop,
     this.autoplay,
+    this.markSize,
   });
+
+  /// A timer session's mark, above the title, at this size; none for a
+  /// recording, which keeps its cover.
+  final double? markSize;
 
   final bool expanded;
   final String title;
@@ -1033,6 +1050,10 @@ class _PortraitPlayerLayout extends ConsumerWidget {
       heading: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (markSize != null) ...[
+            PlayerMark(isPlaying: isPlaying, size: markSize!),
+            const SizedBox(height: 24),
+          ],
           ArtistTitleWidget(
             trackTitle: title,
             artistName: artistName ?? '',

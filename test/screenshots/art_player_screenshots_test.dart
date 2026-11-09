@@ -17,6 +17,7 @@ import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/player/playback_request.dart';
+import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/models/track/track.dart' as model;
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
@@ -182,14 +183,18 @@ void main() {
   });
 
   // In a course the player offers Autoplay under the transport (#72).
-  for (final (brightness, inCourse) in [
+  for (final (brightness, inCourse, isTimer) in [
     for (final b in Brightness.values)
-      for (final c in [false, true]) (b, c),
+      for (final (c, t) in [(false, false), (true, false), (false, true)])
+        (b, c, t),
   ]) {
-    final name = inCourse
+    final name = isTimer
+        ? 'the timer player'
+        : inCourse
         ? 'the player in a course'
         : 'the player over its art';
-    final file = 'player-${inCourse ? 'course-' : ''}${brightness.name}';
+    final file =
+        'player-${inCourse ? 'course-' : ''}${isTimer ? 'timer-' : ''}${brightness.name}';
     testWidgets('$name, ${brightness.name}', (tester) async {
       tester.view.physicalSize = const Size(1080, 2340);
       tester.view.devicePixelRatio = 2.625;
@@ -214,7 +219,16 @@ void main() {
                 return db;
               }),
               playerProvider.overrideWith(
-                () => _FakePlayer(_request(attribution: _credit)),
+                () => _FakePlayer(
+                  isTimer
+                      ? timerPlaybackRequest(
+                          mode: TimerMode.countdown,
+                          duration: const Duration(minutes: 20),
+                          filePath: '/tmp/silence.mp3',
+                          title: 'Timer',
+                        )
+                      : _request(attribution: _credit),
+                ),
               ),
               audioStateProvider.overrideWith(_IdleAudio.new),
               backgroundSoundsNotifierProvider.overrideWith(

@@ -410,4 +410,103 @@ void main() {
       expect(MarkMoments.nameOpacityAt(MarkMoments.nameSeconds), 0);
     });
   });
+
+  group('a continuous breath (the player)', () {
+    Widget breathing({
+      double? seconds = 4,
+      bool paused = false,
+      bool disableAnimations = false,
+    }) => _app(
+      Center(
+        child: MeditejoMark(
+          mark: _mark,
+          breathSeconds: seconds,
+          paused: paused,
+        ),
+      ),
+      disableAnimations: disableAnimations,
+    );
+
+    testWidgets('swells and settles once per breath, over and over', (
+      tester,
+    ) async {
+      await tester.pumpWidget(breathing());
+      await tester.pump();
+      expect(_state(tester).cycle, closeTo(0, 0.01));
+      await tester.pump(const Duration(seconds: 2));
+      // Half a 4 s breath: the top of the in-breath.
+      expect(_state(tester).cycle, closeTo(1, 0.05));
+      await tester.pump(const Duration(seconds: 2));
+      expect(_state(tester).cycle, closeTo(0, 0.05));
+      for (var i = 0; i < 3; i++) {
+        await tester.pump(const Duration(seconds: 4));
+      }
+      expect(_state(tester).cycle, closeTo(0, 0.05));
+    });
+
+    testWidgets('the resting mark (Home) has no continuous breath', (
+      tester,
+    ) async {
+      await tester.pumpWidget(breathing(seconds: null));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+      expect(_state(tester).cycle, 0);
+    });
+
+    testWidgets('paused, it finishes drawing in, then holds; resumes there', (
+      tester,
+    ) async {
+      await tester.pumpWidget(breathing());
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpWidget(breathing(paused: true));
+      // Still drawing itself in: the clock runs on until it has.
+      expect(_state(tester).isRunning, isTrue);
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(_state(tester).isRunning, isFalse);
+      final held = _state(tester).cycle;
+      expect(await _moves(tester, const Duration(seconds: 3)), isFalse);
+      expect(_state(tester).cycle, held);
+
+      await tester.pumpWidget(breathing());
+      expect(_state(tester).isRunning, isTrue);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      // It carries on from where it stopped, not from the start.
+      expect((_state(tester).cycle - held).abs(), lessThan(0.5));
+      await tester.pump(const Duration(seconds: 2));
+      expect(_state(tester).cycle, isNot(closeTo(held, 0.01)));
+    });
+
+    testWidgets('a new rate carries on from the same point', (tester) async {
+      await tester.pumpWidget(breathing());
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      final before = _state(tester).cycle;
+      await tester.pumpWidget(breathing(seconds: 2));
+      await tester.pump(const Duration(milliseconds: 16));
+      expect((_state(tester).cycle - before).abs(), lessThan(0.2));
+    });
+
+    testWidgets('reduced motion is a still mark', (tester) async {
+      await tester.pumpWidget(breathing(disableAnimations: true));
+      expect(_state(tester).isRunning, isFalse);
+      await tester.pump(const Duration(seconds: 2));
+      expect(_state(tester).cycle, 0);
+    });
+
+    testWidgets('holds under a route pushed over it', (tester) async {
+      await tester.pumpWidget(breathing());
+      await tester.pump();
+      final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+      navigator.push(
+        MaterialPageRoute<void>(
+          builder: (_) => const Scaffold(body: Text('X')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(_state(tester).isRunning, isFalse);
+    });
+  });
 }

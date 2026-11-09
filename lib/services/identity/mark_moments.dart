@@ -1,3 +1,4 @@
+import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/services/identity/mark_spec.dart';
 import 'package:medito/services/identity/seeded_random.dart';
 
@@ -69,5 +70,23 @@ abstract final class MarkMoments {
       return easeInOut(progress(s, _nameIn.$1, _nameIn.$2 - _nameIn.$1));
     }
     return 1 - easeInOut(progress(s, _nameOut.$1, _nameOut.$2 - _nameOut.$1));
+  }
+}
+
+/// How fast the player's mark breathes (#86): once every beat of the
+/// session's pulse when it has one, else the resting six breaths a minute.
+abstract final class PlayerBreath {
+  /// The breaths a minute when no pulse is set.
+  static const restingPerMinute = 6.0;
+
+  /// Seconds per breath for a session with [cues], or null for a still mark
+  /// (reduced motion). The pulse is read from the settings the session
+  /// started with; a pulse that ramps keeps its starting rate.
+  static double? periodSeconds(CueSettings cues, {bool reducedMotion = false}) {
+    if (reducedMotion) return null;
+    final bpm = cues.pulseSound.isNotEmpty && cues.pulseBpm > 0
+        ? cues.pulseBpm
+        : restingPerMinute;
+    return 60 / bpm;
   }
 }
