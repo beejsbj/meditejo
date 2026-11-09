@@ -37,6 +37,9 @@ import 'package:medito/views/library/item_actions.dart';
 import 'package:medito/views/library/library_view.dart';
 import 'package:medito/views/soundscape/sound_credits_view.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
+import 'package:medito/views/soundscape/synth_editors.dart';
+import 'package:medito/models/soundscape/starter_presets.dart';
+import 'package:medito/models/soundscape/synth.dart';
 import 'package:medito/views/timer/timer_view.dart';
 import 'package:medito/views/track/track_view.dart';
 import 'package:medito/models/track/track.dart';
@@ -1018,6 +1021,77 @@ Future<ProviderContainer> _pumpCustomize(
   return container;
 }
 
+/// A generated sound's editor (#71), opened from the Sounds tab over a mix
+/// of all three generated sounds: noise and drone as the Stillness preset
+/// has them (or noise with [customBands]), binaural beats as they start.
+Future<void> _pumpSoundEditor(
+  WidgetTester tester,
+  Brightness brightness,
+  String id, {
+  List<double>? customBands,
+  Locale? locale,
+  double textScale = 1,
+  bool narrow = false,
+}) async {
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
+  final container = ProviderContainer(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      ...soundscapeTestOverrides(FakeSoundscapeEngine()),
+    ],
+  );
+  addTearDown(container.dispose);
+  final navigator = GlobalKey<NavigatorState>();
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        navigatorKey: navigator,
+        locale: locale,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: meditejoTheme(brightness, _palette),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            disableAnimations: true,
+            textScaler: TextScaler.linear(textScale),
+          ),
+          child: child!,
+        ),
+        home: _frame(brightness, const Scaffold(body: SoundsView())),
+      ),
+    ),
+  );
+  await _phone(tester);
+  if (narrow) {
+    // 1080 px wide at 3 = 360 dp, the narrowest phones.
+    tester.view.devicePixelRatio = 3;
+    await tester.pump();
+  }
+  final stillness = kStarterPresets.firstWhere(
+    (p) => p.id == 'starter-stillness',
+  );
+  final mixer = container.read(soundscapeProvider.notifier)..clearMix();
+  for (final synth in kSynthIds) {
+    mixer.toggleSound(synth);
+    final preset = stillness.mix.layer(synth);
+    if (preset != null) mixer.setLayerParams(synth, preset.params);
+  }
+  if (customBands != null) {
+    mixer.setLayerParams(
+      kSynthNoiseId,
+      NoiseParams(colour: NoiseColour.pink, bands: customBands).toJson(),
+    );
+  }
+  await tester.pump(const Duration(seconds: 1));
+  unawaited(showSynthEditor(navigator.currentContext!, id));
+  await tester.pump(const Duration(seconds: 1));
+  await tester.pump(const Duration(seconds: 1));
+  expect(tester.takeException(), isNull);
+}
+
 /// Opens a Customize slot's section by its tile ('sound', 'bells', 'rhythm',
 /// 'length').
 Future<void> _openSlot(WidgetTester tester, String slot) async {
@@ -1671,6 +1745,38 @@ void main() {
         expect(tester.takeException(), isNull);
         await _capture(tester, '$name-${brightness.name}');
       }, skip: !_enabled);
+    }
+
+    // Every generated sound's editor (#71): the same parts throughout.
+    for (final (name, id, bands) in [
+      ('sound-editor-noise', kSynthNoiseId, null),
+      (
+        'sound-editor-noise-custom',
+        kSynthNoiseId,
+        const [0.2, 0.5, 1.0, 0.8, 0.3, 0.6, 1.0, 0.4, 0.1, 0.0],
+      ),
+      ('sound-editor-drone', kSynthDroneId, null),
+      ('sound-editor-binaural', kSynthBinauralId, null),
+    ]) {
+      testWidgets('$name, ${brightness.name}', (tester) async {
+        await _pumpSoundEditor(tester, brightness, id, customBands: bands);
+        await _captureView(tester, '$name-${brightness.name}');
+      }, skip: !_enabled);
+      // The narrowest phone, larger text, the longer German words.
+      if (brightness == Brightness.light) {
+        testWidgets('$name-360-de-x1.3', (tester) async {
+          await _pumpSoundEditor(
+            tester,
+            brightness,
+            id,
+            customBands: bands,
+            locale: const Locale('de'),
+            textScale: 1.3,
+            narrow: true,
+          );
+          await _captureView(tester, '$name-360-de-x1.3');
+        }, skip: !_enabled);
+      }
     }
 
     // Sound credits: long titles ("Summer Rain on Terrace") wrap to a second

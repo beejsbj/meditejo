@@ -899,18 +899,32 @@ void main() {
       find.text('Binaural beats need headphones: each ear hears its own tone.'),
       findsWidgets,
     );
-    await tester.drag(
-      find.byKey(const ValueKey('binaural_beat')),
-      const Offset(200, 0),
+    BinauralParams params() =>
+        BinauralParams.fromJson(mix().layer(kSynthBinauralId)!.params);
+    // The band chips set the beat (#71) ...
+    expect(
+      tester
+          .widget<ChoiceChip>(find.byKey(const ValueKey('binaural_band_theta')))
+          .selected,
+      isTrue,
+    );
+    await tester.tap(find.byKey(const ValueKey('binaural_band_alpha')));
+    await tester.pumpAndSettle();
+    expect(params().beatHz, 10);
+    expect(find.text('8–13 Hz'), findsOneWidget);
+    // ... and the wheel under them refines it within the band.
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('binaural_beat')),
+        matching: find.text('10.5 Hz'),
+      ),
     );
     await tester.pumpAndSettle();
-    final params = BinauralParams.fromJson(
-      mix().layer(kSynthBinauralId)!.params,
-    );
-    expect(params.beatHz, greaterThan(6));
+    expect(params().beatHz, 10.5);
+    expect(engine.retuned.containsKey(kSynthBinauralId), isTrue);
   });
 
-  testWidgets('noise editor: colour and reset commit to the layer', (
+  testWidgets('noise editor: colour and a named shape commit to the layer', (
     tester,
   ) async {
     phone(tester);
@@ -927,10 +941,21 @@ void main() {
     await openMix(tester);
     await tester.tap(find.byKey(const ValueKey('adjust_synth-noise')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Brown'));
+    // Bands drawn by hand: "Custom", with the bands open under it.
+    expect(find.byKey(const ValueKey('noise_shape_other')), findsOneWidget);
+    expect(find.byKey(const ValueKey('noise_band_0')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('noise_colour_brown')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('noise_reset')));
+    // "Even" is what Reset bands was.
+    await tester.tap(find.byKey(const ValueKey('noise_shape_even')));
     await tester.pumpAndSettle();
+    // Custom stays on offer, no longer chosen, to bring the curve back.
+    expect(
+      tester
+          .widget<ChoiceChip>(find.byKey(const ValueKey('noise_shape_other')))
+          .selected,
+      isFalse,
+    );
     final params = NoiseParams.fromJson(mix().layer(kSynthNoiseId)!.params);
     expect(params.colour, NoiseColour.brown);
     expect(params.bands, NoiseParams.flat);
@@ -957,9 +982,9 @@ void main() {
     expect(tester.takeException(), isNull);
     final context = tester.element(find.byType(SoundsView));
     for (final (id, last) in [
-      (kSynthNoiseId, 'noise_band_9'),
+      (kSynthNoiseId, 'noise_bands_fold'),
       (kSynthDroneId, 'drone_movement'),
-      (kSynthBinauralId, 'binaural_beat'),
+      (kSynthBinauralId, 'binaural_carrier'),
     ]) {
       unawaited(showSynthEditor(context, id));
       await tester.pumpAndSettle();
