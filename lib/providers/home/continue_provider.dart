@@ -10,18 +10,12 @@ import 'package:medito/services/home/next_session.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/utils/logger.dart';
 
-/// Everything in progress, ranked as Home's Continue ranks it but with no
-/// limit: sessions from any source that were started and not finished,
-/// practice first and then the most recently played. Two kinds count: a
-/// session left partway (it resumes where it stopped), and a course with some
-/// sessions done and some not (it offers its next one). A course shows once.
-/// The Library's In progress shows the whole set; Home shows the first few.
-final inProgressItemsProvider = FutureProvider.autoDispose<List<ContinueItem>>(
-  (ref) => _readContinue(ref, limit: null, fallback: false),
-);
-
-/// What Home offers to carry on with: the first three of
-/// [inProgressItemsProvider].
+/// What Home offers to carry on with: the first three things in progress,
+/// sessions from any source that were started and not finished, practice
+/// first and then the most recently played. Two kinds count: a session left
+/// partway (it resumes where it stopped), and a course with some sessions
+/// done and some not (it offers its next one). A course shows once. (The
+/// Library has no In progress of its own: this covers it, #80.)
 ///
 /// With nothing in progress this is the next session of a pinned course, or
 /// else of the first course in the library (the starter set leads it on a

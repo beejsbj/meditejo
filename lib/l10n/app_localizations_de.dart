@@ -1599,6 +1599,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get libraryMoveToTalks => 'In Vorträge verschieben';
 
   @override
+  String get libraryShowBySessions => 'Nach Einheiten zeigen';
+
+  @override
   String get libraryRename => 'Umbenennen';
 
   @override
@@ -2735,28 +2738,13 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get libraryInProgress => 'Begonnen';
-
-  @override
   String get libraryFilterAll => 'Alle';
-
-  @override
-  String get libraryFilterCourses => 'Kurse';
-
-  @override
-  String get libraryFilterPlaylists => 'Playlists';
-
-  @override
-  String get libraryFilterSingles => 'Einzelne';
 
   @override
   String get libraryFilterDownloads => 'Downloads';
 
   @override
   String get libraryFilterLabel => 'Anzeigen';
-
-  @override
-  String get libraryGroupLabel => 'Praxis oder Vorträge';
 
   @override
   String get librarySort => 'Sortieren';
@@ -2785,6 +2773,41 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get libraryFilterEmptyBody =>
       'Finde etwas unter Entdecken, oder füge einen Link oder eine Datei hinzu.';
+
+  @override
+  String libraryFilterCount(String label, int count) {
+    return '$label $count';
+  }
+
+  @override
+  String get librarySectionPlaylists => 'Playlists';
+
+  @override
+  String get librarySectionCourses => 'Kurse';
+
+  @override
+  String get librarySectionSessions => 'Einheiten';
+
+  @override
+  String get libraryPracticeEmpty => 'Noch keine Praxis hier';
+
+  @override
+  String get libraryPracticeEmptyBody =>
+      'Geführte Meditationen und Kurse mit ihnen erscheinen hier.';
+
+  @override
+  String get libraryTalksEmpty => 'Noch keine Vorträge hier';
+
+  @override
+  String get libraryTalksEmptyBody =>
+      'Vorträge und Kurse mit Vorträgen erscheinen hier.';
+
+  @override
+  String get libraryDownloadsEmpty => 'Nichts heruntergeladen';
+
+  @override
+  String get libraryDownloadsEmptyBody =>
+      'Lade eine Einheit über ihr Menü herunter, um sie offline zu haben. Sie erscheint dann hier.';
 
   @override
   String get libraryEmptyExplore => 'Entdecken';

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/widgets/network_image_widget.dart';
 import 'package:medito/models/pack/pack_model.dart';
-import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
@@ -40,7 +39,6 @@ Future<void> _add(
 
 final _overrides = [
   packTrackIdsProvider.overrideWith((ref) async => const {}),
-  inProgressItemsProvider.overrideWith((ref) async => const []),
 ];
 
 void main() {

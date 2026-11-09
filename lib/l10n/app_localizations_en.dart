@@ -1571,6 +1571,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryMoveToTalks => 'Move to Talks';
 
   @override
+  String get libraryShowBySessions => 'Show by sessions';
+
+  @override
   String get libraryRename => 'Rename';
 
   @override
@@ -2694,28 +2697,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get libraryInProgress => 'In progress';
-
-  @override
   String get libraryFilterAll => 'All';
-
-  @override
-  String get libraryFilterCourses => 'Courses';
-
-  @override
-  String get libraryFilterPlaylists => 'Playlists';
-
-  @override
-  String get libraryFilterSingles => 'Singles';
 
   @override
   String get libraryFilterDownloads => 'Downloads';
 
   @override
   String get libraryFilterLabel => 'Show';
-
-  @override
-  String get libraryGroupLabel => 'Practice or talks';
 
   @override
   String get librarySort => 'Sort';
@@ -2744,6 +2732,41 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get libraryFilterEmptyBody =>
       'Find something in Explore, or add a link or a file.';
+
+  @override
+  String libraryFilterCount(String label, int count) {
+    return '$label $count';
+  }
+
+  @override
+  String get librarySectionPlaylists => 'Playlists';
+
+  @override
+  String get librarySectionCourses => 'Courses';
+
+  @override
+  String get librarySectionSessions => 'Sessions';
+
+  @override
+  String get libraryPracticeEmpty => 'No practice here yet';
+
+  @override
+  String get libraryPracticeEmptyBody =>
+      'Guided meditations, and courses with them, show up here.';
+
+  @override
+  String get libraryTalksEmpty => 'No talks here yet';
+
+  @override
+  String get libraryTalksEmptyBody =>
+      'Talks, and courses with talks, show up here.';
+
+  @override
+  String get libraryDownloadsEmpty => 'Nothing downloaded';
+
+  @override
+  String get libraryDownloadsEmptyBody =>
+      'Download a session from its menu to have it offline. It shows up here.';
 
   @override
   String get libraryEmptyExplore => 'Explore';

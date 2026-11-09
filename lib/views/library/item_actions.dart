@@ -47,6 +47,7 @@ enum ItemAction {
   share,
   moveToPractice,
   moveToTalks,
+  showBySessions,
   rename,
   labels,
   removeFromCourse,
@@ -62,6 +63,7 @@ class ItemActionsSpec {
     this.fallback,
     this.inCourse,
     this.entry,
+    this.entryKinds,
     this.teacherId,
     this.isComplete,
     this.onSetComplete,
@@ -84,6 +86,10 @@ class ItemActionsSpec {
   /// The library entry, when opened from the Library. Adds the actions that
   /// only apply to what is already there (move, rename, labels, remove).
   final LibraryEntry? entry;
+
+  /// Where the Library's Practice and Talks chips show [entry]; null for its
+  /// own kind alone.
+  final Set<LibraryGroup>? entryKinds;
 
   /// The app ID of the teacher's page; null where the source has none, which
   /// hides "Go to teacher".
@@ -127,6 +133,9 @@ List<ItemAction> itemActionsFor(
   final isTeacher = spec.isTeacher;
   final isCourse = spec.isCourse;
   final inLibrary = entry != null || saved;
+  final shownUnder = entry?.groupOverride != null
+      ? {entry!.group}
+      : spec.entryKinds ?? {?entry?.group};
   if (isTeacher) return [ItemAction.remove];
   final actions = [
     if (spec.playable) ItemAction.play,
@@ -148,10 +157,13 @@ List<ItemAction> itemActionsFor(
         !isLibCourseId(spec.id) &&
         !isLibTrackId(spec.id))
       ItemAction.share,
-    if (entry != null && entry.group == LibraryGroup.talks)
+    // Offered from where the chips show it: a course of sittings and talks
+    // can move to either; Show by sessions forgets a choice made.
+    if (entry != null && shownUnder.contains(LibraryGroup.talks))
       ItemAction.moveToPractice,
-    if (entry != null && entry.group == LibraryGroup.practice)
+    if (entry != null && shownUnder.contains(LibraryGroup.practice))
       ItemAction.moveToTalks,
+    if (entry?.groupOverride != null) ItemAction.showBySessions,
     if (entry != null) ItemAction.rename,
     if (entry != null) ItemAction.labels,
     if (spec.inCourse != null && isMyCourseId(spec.inCourse!))
@@ -185,6 +197,7 @@ String _label(
   ItemAction.share => l10n.share,
   ItemAction.moveToPractice => l10n.libraryMoveToPractice,
   ItemAction.moveToTalks => l10n.libraryMoveToTalks,
+  ItemAction.showBySessions => l10n.libraryShowBySessions,
   ItemAction.rename => l10n.libraryRename,
   ItemAction.labels => l10n.libraryMenuLabels,
   ItemAction.removeFromCourse => l10n.myCourseRemoveRow,
@@ -212,6 +225,7 @@ IconData _icon(
   ItemAction.share => Icons.share_outlined,
   ItemAction.moveToPractice ||
   ItemAction.moveToTalks => Icons.swap_horiz_rounded,
+  ItemAction.showBySessions => Icons.auto_awesome_motion_outlined,
   ItemAction.rename => Icons.drive_file_rename_outline_rounded,
   ItemAction.labels => Icons.label_outline_rounded,
   ItemAction.removeFromCourse => Icons.playlist_remove_rounded,
@@ -402,6 +416,8 @@ Future<void> _run(
       return setLibraryGroup(ref, entry!, LibraryGroup.practice);
     case ItemAction.moveToTalks:
       return setLibraryGroup(ref, entry!, LibraryGroup.talks);
+    case ItemAction.showBySessions:
+      return clearLibraryGroup(ref, entry!);
     case ItemAction.rename:
       return renameLibraryEntry(context, ref, entry!);
     case ItemAction.labels:

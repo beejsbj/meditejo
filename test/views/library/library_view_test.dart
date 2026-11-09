@@ -24,7 +24,7 @@ import '../../helpers/library_fixtures.dart';
 
 Future<void> settle(WidgetTester tester) => DharmaSeedTestApp.settle(tester);
 
-/// A section heading, not the Practice/Talks switch's label.
+/// A section heading, not a chip's label.
 Finder heading(String text) =>
     find.descendant(of: find.byType(SectionTitle), matching: find.text(text));
 
@@ -52,10 +52,11 @@ Future<void> add(
 
 void main() {
   group('the library screen', () {
-    testWidgets('lists Practice before Talks, then teachers', (tester) async {
+    testWidgets('lists courses, then sessions, then teachers (#80)', (
+      tester,
+    ) async {
       final app = await LibraryTestApp.create(tester);
       final store = app.harness.store;
-      // Added first, so it would lead by time alone.
       await add(
         tester,
         store,
@@ -81,15 +82,20 @@ void main() {
       );
       await app.pump(tester, const LibraryView());
 
-      final practice = tester.getTopLeft(heading('Practice')).dy;
-      final talks = tester.getTopLeft(heading('Talks')).dy;
+      final courses = tester.getTopLeft(heading('Courses')).dy;
+      final sessions = tester.getTopLeft(heading('Sessions')).dy;
       final teachers = tester.getTopLeft(heading('Teachers')).dy;
-      expect(practice, lessThan(talks));
-      expect(talks, lessThan(teachers));
-      expect(
-        tester.getTopLeft(find.text('Body scan course')).dy,
-        lessThan(tester.getTopLeft(find.text('A winter talk series')).dy),
-      );
+      expect(courses, lessThan(sessions));
+      expect(sessions, lessThan(teachers));
+      // No Practice or Talks sections: a talk course and a practice course
+      // sit together, under Courses.
+      expect(heading('Practice'), findsNothing);
+      expect(heading('Talks'), findsNothing);
+      for (final title in ['Body scan course', 'A winter talk series']) {
+        final y = tester.getTopLeft(find.text(title)).dy;
+        expect(y, greaterThan(courses), reason: title);
+        expect(y, lessThan(sessions), reason: title);
+      }
       expect(find.text('One long talk'), findsOneWidget);
     });
 
@@ -154,26 +160,40 @@ void main() {
       final app = await LibraryTestApp.create(tester);
       await add(tester, app.harness.store, 'ds-retreat-1', 'Evening sits');
       await app.pump(tester, const LibraryView());
-      expect(heading('Talks'), findsNothing);
+      expect(find.text('Practice 1'), findsOneWidget);
+      expect(find.text('Talks 0'), findsOneWidget);
 
       await tester.tap(find.byIcon(Icons.more_vert_rounded));
       await settle(tester);
       await tester.tap(find.text('Move to Talks'));
       await settle(tester);
 
-      expect(heading('Talks'), findsOneWidget);
-      expect(heading('Practice'), findsNothing);
+      // The chips follow the move.
+      expect(find.text('Practice 0'), findsOneWidget);
+      expect(find.text('Talks 1'), findsOneWidget);
       final entry = (await tester.runAsync(app.harness.store.entries))!.single;
       expect(entry.group, LibraryGroup.talks);
       expect(entry.detectedGroup, LibraryGroup.practice);
 
-      // And back: the override is cleared, not stacked.
+      // And back: the choice is kept, even as what was detected (#80).
       await tester.tap(find.byIcon(Icons.more_vert_rounded));
       await settle(tester);
       await tester.tap(find.text('Move to Practice'));
       await settle(tester);
       final back = (await tester.runAsync(app.harness.store.entries))!.single;
-      expect(back.groupOverride, isNull);
+      expect(back.groupOverride, LibraryGroup.practice);
+      expect(find.text('Practice 1'), findsOneWidget);
+
+      // Show by sessions forgets it.
+      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await settle(tester);
+      await tester.tap(find.text('Show by sessions'));
+      await settle(tester);
+      final cleared = (await tester.runAsync(
+        app.harness.store.entries,
+      ))!.single;
+      expect(cleared.groupOverride, isNull);
+      expect(cleared.group, LibraryGroup.practice);
     });
 
     testWidgets('rename shows the new name and keeps the source title', (

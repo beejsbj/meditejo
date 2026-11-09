@@ -2800,6 +2800,12 @@ abstract class AppLocalizations {
   /// **'Move to Talks'**
   String get libraryMoveToTalks;
 
+  /// Library menu item that forgets the user's Practice/Talks choice for an entry, so its Practice and Talks chips follow its sessions again
+  ///
+  /// In en, this message translates to:
+  /// **'Show by sessions'**
+  String get libraryShowBySessions;
+
   /// Menu item that renames a library entry
   ///
   /// In en, this message translates to:
@@ -4726,35 +4732,11 @@ abstract class AppLocalizations {
   /// **'Daily · {name} today'**
   String paletteDailyToday(String name);
 
-  /// Library heading over what the user has started and not finished
-  ///
-  /// In en, this message translates to:
-  /// **'In progress'**
-  String get libraryInProgress;
-
   /// Library filter chip: everything
   ///
   /// In en, this message translates to:
   /// **'All'**
   String get libraryFilterAll;
-
-  /// Library filter chip: courses from a source
-  ///
-  /// In en, this message translates to:
-  /// **'Courses'**
-  String get libraryFilterCourses;
-
-  /// Library filter chip: what the user made
-  ///
-  /// In en, this message translates to:
-  /// **'Playlists'**
-  String get libraryFilterPlaylists;
-
-  /// Library filter chip: single sessions
-  ///
-  /// In en, this message translates to:
-  /// **'Singles'**
-  String get libraryFilterSingles;
 
   /// Library filter chip: what is downloaded
   ///
@@ -4767,12 +4749,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show'**
   String get libraryFilterLabel;
-
-  /// Screen-reader label of the Library's Practice/Talks switch
-  ///
-  /// In en, this message translates to:
-  /// **'Practice or talks'**
-  String get libraryGroupLabel;
 
   /// Tooltip of the Library's sort menu
   ///
@@ -4827,6 +4803,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Find something in Explore, or add a link or a file.'**
   String get libraryFilterEmptyBody;
+
+  /// A Library filter chip with how many items it shows, e.g. "Talks 9"
+  ///
+  /// In en, this message translates to:
+  /// **'{label} {count}'**
+  String libraryFilterCount(String label, int count);
+
+  /// Library section heading: the playlists the user made
+  ///
+  /// In en, this message translates to:
+  /// **'Playlists'**
+  String get librarySectionPlaylists;
+
+  /// Library section heading: courses from a source (retreats, feeds, YouTube series)
+  ///
+  /// In en, this message translates to:
+  /// **'Courses'**
+  String get librarySectionCourses;
+
+  /// Library section heading: single sessions
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions'**
+  String get librarySectionSessions;
+
+  /// Library heading when the Practice chip matches nothing
+  ///
+  /// In en, this message translates to:
+  /// **'No practice here yet'**
+  String get libraryPracticeEmpty;
+
+  /// Library text when the Practice chip matches nothing
+  ///
+  /// In en, this message translates to:
+  /// **'Guided meditations, and courses with them, show up here.'**
+  String get libraryPracticeEmptyBody;
+
+  /// Library heading when the Talks chip matches nothing
+  ///
+  /// In en, this message translates to:
+  /// **'No talks here yet'**
+  String get libraryTalksEmpty;
+
+  /// Library text when the Talks chip matches nothing
+  ///
+  /// In en, this message translates to:
+  /// **'Talks, and courses with talks, show up here.'**
+  String get libraryTalksEmptyBody;
+
+  /// Library heading when the Downloads chip matches nothing
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing downloaded'**
+  String get libraryDownloadsEmpty;
+
+  /// Library text when the Downloads chip matches nothing
+  ///
+  /// In en, this message translates to:
+  /// **'Download a session from its menu to have it offline. It shows up here.'**
+  String get libraryDownloadsEmptyBody;
 
   /// Button in an empty Library that opens the Explore tab
   ///

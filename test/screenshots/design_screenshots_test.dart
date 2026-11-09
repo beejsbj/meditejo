@@ -2427,8 +2427,8 @@ void main() {
       await _capture(tester, 'timer-duration-${brightness.name}');
     }, skip: !_enabled);
 
-    // Design pass PR 4: the Library with a realistic mix (two courses in
-    // progress, two playlists, three singles, a saved teacher), in the list
+    // Design pass PR 4: the Library with a realistic mix (two courses
+    // started, two playlists, three singles, a saved teacher), in the list
     // and the grid.
     for (final grid in [false, true]) {
       testWidgets('Library mix${grid ? ' grid' : ''}, ${brightness.name}', (
@@ -2490,38 +2490,6 @@ void main() {
                 'ds-retreat-1': ['d-1', 'd-2', 'd-3', 'd-4', 'd-5', 'd-6'],
                 'yt-playlist-a': ['y-1', 'y-2', 'y-3', 'y-4'],
               },
-            ),
-            inProgressItemsProvider.overrideWith(
-              (ref) async => [
-                ContinueItem(
-                  trackId: 'd-4',
-                  path: '/tracks/d-4',
-                  title: 'Developing Piti, Developing Focus',
-                  group: LibraryGroup.practice,
-                  lastPlayed: DateTime(2026, 10, 25),
-                  courseId: 'ds-retreat-1',
-                  courseTitle: 'Jhāna Retreat',
-                  resume: const ResumePoint(
-                    positionMs: 1800000,
-                    durationMs: 5340000,
-                  ),
-                  sessionNumber: 4,
-                  sessionTotal: 6,
-                  completedSessions: 3,
-                ),
-                ContinueItem(
-                  trackId: 'y-2',
-                  path: '/tracks/y-2',
-                  title: 'Episode 2: Relevance realization',
-                  group: LibraryGroup.talks,
-                  lastPlayed: DateTime(2026, 10, 24),
-                  courseId: 'yt-playlist-a',
-                  courseTitle: 'Vervaeke: Awakening from the Meaning Crisis',
-                  sessionNumber: 2,
-                  sessionTotal: 4,
-                  completedSessions: 1,
-                ),
-              ],
             ),
           ],
         );

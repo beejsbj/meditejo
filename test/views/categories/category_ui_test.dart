@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/categories/category_providers.dart';
-import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/services/categories/category_catalogue.dart';
 import 'package:medito/services/categories/category_service.dart';
@@ -39,7 +38,6 @@ final _catalogue = CategoryCatalogue.parse(
 );
 
 List<Override> _overrides(LibraryTestApp app) => [
-  inProgressItemsProvider.overrideWith((ref) async => const []),
   packTrackIdsProvider.overrideWith((ref) async => const {}),
   categoryCatalogueProvider.overrideWith((ref) async => _catalogue),
 ];
