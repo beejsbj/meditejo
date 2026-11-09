@@ -2329,9 +2329,45 @@
   "@noiseBands": {
     "description": "Sounds screen, generated layers: noiseBands"
   },
-  "noiseReset": "Reset bands",
-  "@noiseReset": {
-    "description": "Sounds screen, generated layers: noiseReset"
+  "noiseShape": "Shape",
+  "@noiseShape": {
+    "description": "Noise editor: heading over the named band curves (Even, Soft, Deep, Airy)"
+  },
+  "noiseShapeEven": "Even",
+  "@noiseShapeEven": {
+    "description": "Noise shape: the colour as it is, every band level"
+  },
+  "noiseShapeSoft": "Soft",
+  "@noiseShapeSoft": {
+    "description": "Noise shape: the high frequencies fall gently away"
+  },
+  "noiseShapeDeep": "Deep",
+  "@noiseShapeDeep": {
+    "description": "Noise shape: a low rumble, mids and highs well down"
+  },
+  "noiseShapeAiry": "Airy",
+  "@noiseShapeAiry": {
+    "description": "Noise shape: the lows thinned, the highs kept"
+  },
+  "noiseShapeCustom": "Custom",
+  "@noiseShapeCustom": {
+    "description": "Noise shape chip shown when the bands were set by hand and match no named shape"
+  },
+  "binauralDelta": "Delta",
+  "@binauralDelta": {
+    "description": "Binaural beat band chip: below 4 Hz"
+  },
+  "binauralTheta": "Theta",
+  "@binauralTheta": {
+    "description": "Binaural beat band chip: 4 to 8 Hz"
+  },
+  "binauralAlpha": "Alpha",
+  "@binauralAlpha": {
+    "description": "Binaural beat band chip: 8 to 13 Hz"
+  },
+  "binauralBeta": "Beta",
+  "@binauralBeta": {
+    "description": "Binaural beat band chip: 13 Hz and above"
   },
   "droneRoot": "Root",
   "@droneRoot": {

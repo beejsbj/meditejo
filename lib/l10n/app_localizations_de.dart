@@ -2224,7 +2224,34 @@ class AppLocalizationsDe extends AppLocalizations {
   String get noiseBands => 'Bänder';
 
   @override
-  String get noiseReset => 'Bänder zurücksetzen';
+  String get noiseShape => 'Form';
+
+  @override
+  String get noiseShapeEven => 'Gleichmäßig';
+
+  @override
+  String get noiseShapeSoft => 'Weich';
+
+  @override
+  String get noiseShapeDeep => 'Tief';
+
+  @override
+  String get noiseShapeAiry => 'Luftig';
+
+  @override
+  String get noiseShapeCustom => 'Eigene';
+
+  @override
+  String get binauralDelta => 'Delta';
+
+  @override
+  String get binauralTheta => 'Theta';
+
+  @override
+  String get binauralAlpha => 'Alpha';
+
+  @override
+  String get binauralBeta => 'Beta';
 
   @override
   String get droneRoot => 'Grundton';

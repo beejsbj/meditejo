@@ -372,10 +372,10 @@ void main() {
     });
 
     test('names the band and clamps to sane ranges', () {
-      expect(const BinauralParams(beatHz: 2).band, 'delta');
-      expect(const BinauralParams(beatHz: 6).band, 'theta');
-      expect(const BinauralParams(beatHz: 10).band, 'alpha');
-      expect(const BinauralParams(beatHz: 20).band, 'beta');
+      expect(const BinauralParams(beatHz: 2).band, BeatBand.delta);
+      expect(const BinauralParams(beatHz: 6).band, BeatBand.theta);
+      expect(const BinauralParams(beatHz: 10).band, BeatBand.alpha);
+      expect(const BinauralParams(beatHz: 20).band, BeatBand.beta);
       final p = BinauralParams.fromJson({'carrierHz': 5000, 'beatHz': -3});
       expect(p.carrierHz, BinauralParams.maxCarrier);
       expect(p.beatHz, BinauralParams.minBeat);

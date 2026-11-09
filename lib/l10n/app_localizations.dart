@@ -3844,11 +3844,65 @@ abstract class AppLocalizations {
   /// **'Bands'**
   String get noiseBands;
 
-  /// Sounds screen, generated layers: noiseReset
+  /// Noise editor: heading over the named band curves (Even, Soft, Deep, Airy)
   ///
   /// In en, this message translates to:
-  /// **'Reset bands'**
-  String get noiseReset;
+  /// **'Shape'**
+  String get noiseShape;
+
+  /// Noise shape: the colour as it is, every band level
+  ///
+  /// In en, this message translates to:
+  /// **'Even'**
+  String get noiseShapeEven;
+
+  /// Noise shape: the high frequencies fall gently away
+  ///
+  /// In en, this message translates to:
+  /// **'Soft'**
+  String get noiseShapeSoft;
+
+  /// Noise shape: a low rumble, mids and highs well down
+  ///
+  /// In en, this message translates to:
+  /// **'Deep'**
+  String get noiseShapeDeep;
+
+  /// Noise shape: the lows thinned, the highs kept
+  ///
+  /// In en, this message translates to:
+  /// **'Airy'**
+  String get noiseShapeAiry;
+
+  /// Noise shape chip shown when the bands were set by hand and match no named shape
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get noiseShapeCustom;
+
+  /// Binaural beat band chip: below 4 Hz
+  ///
+  /// In en, this message translates to:
+  /// **'Delta'**
+  String get binauralDelta;
+
+  /// Binaural beat band chip: 4 to 8 Hz
+  ///
+  /// In en, this message translates to:
+  /// **'Theta'**
+  String get binauralTheta;
+
+  /// Binaural beat band chip: 8 to 13 Hz
+  ///
+  /// In en, this message translates to:
+  /// **'Alpha'**
+  String get binauralAlpha;
+
+  /// Binaural beat band chip: 13 Hz and above
+  ///
+  /// In en, this message translates to:
+  /// **'Beta'**
+  String get binauralBeta;
 
   /// Sounds screen, generated layers: droneRoot
   ///

@@ -11,6 +11,8 @@ import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/widgets/art/art_cover.dart';
 import 'package:medito/widgets/art/art_subject.dart';
 
+import 'sound_control_spec.dart';
+import 'sound_controls.dart';
 import 'sound_drawer.dart';
 import 'sound_labels.dart';
 import 'synth_editors.dart';
@@ -503,6 +505,8 @@ class _LayerTile extends ConsumerWidget {
     final type = context.typography;
     final mixer = ref.read(soundscapeProvider.notifier);
     final id = layer.soundId;
+    // Every layer: volume and Swell; a generated one adds Adjust (#71).
+    final spec = soundControlSpec(id);
     final muted = layer.volume == 0;
     final playing = ref.watch(soundscapeProvider.select((s) => s.playing));
     return Padding(
@@ -582,29 +586,12 @@ class _LayerTile extends ConsumerWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FilterChip(
-                          key: ValueKey('swell_$id'),
-                          avatar: const Icon(Symbols.waves_rounded),
-                          label: Text(l10n.soundsSwell),
-                          selected: layer.animate,
-                          // The waves stay; the tonal fill says it is on.
-                          showCheckmark: false,
-                          onSelected: (on) => mixer.setLayerAnimate(id, on),
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            l10n.soundsSwellHint,
-                            style: context.typography.baseline.bodySmall
-                                ?.copyWith(color: scheme.onSurfaceVariant),
-                          ),
-                        ),
-                      ],
+                    SwellToggle(
+                      chipKey: ValueKey('swell_$id'),
+                      selected: layer.animate,
+                      onChanged: (on) => mixer.setLayerAnimate(id, on),
                     ),
-                    if (isSynthId(id))
+                    if (spec.adjustable)
                       ActionChip(
                         key: ValueKey('adjust_$id'),
                         tooltip: l10n.synthAdjust(title),
@@ -615,7 +602,7 @@ class _LayerTile extends ConsumerWidget {
                   ],
                 ),
               ),
-              if (id == kSynthBinauralId) const BinauralHeadphonesNote(),
+              if (spec.headphones) const BinauralHeadphonesNote(),
             ],
           ),
         ),
