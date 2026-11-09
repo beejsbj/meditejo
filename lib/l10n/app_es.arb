@@ -962,6 +962,8 @@
   "binauralTheta": "Theta",
   "binauralAlpha": "Alfa",
   "binauralBeta": "Beta",
+  "droneRootHint": "Hasta tres notas",
+  "soundChipsKeepOne": "Al menos una queda elegida",
   "droneRoot": "Tónica",
   "droneTimbre": "Timbre",
   "dronePure": "Puro",

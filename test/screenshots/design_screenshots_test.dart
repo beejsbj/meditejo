@@ -1089,7 +1089,9 @@ Future<void> _pumpSoundEditor(
   if (droneRoots != null) {
     mixer.setLayerParams(
       kSynthDroneId,
-      DroneParams(rootsHz: droneRoots).toJson(),
+      DroneParams.fromJson(
+        stillness.mix.layer(kSynthDroneId)!.params,
+      ).copyWith(rootsHz: droneRoots).toJson(),
     );
   }
   await tester.pump(const Duration(seconds: 1));

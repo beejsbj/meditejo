@@ -2257,6 +2257,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get binauralBeta => 'Beta';
 
   @override
+  String get droneRootHint => 'Bis zu drei Töne';
+
+  @override
+  String get soundChipsKeepOne => 'Mindestens einer bleibt ausgewählt';
+
+  @override
   String get droneRoot => 'Grundton';
 
   @override

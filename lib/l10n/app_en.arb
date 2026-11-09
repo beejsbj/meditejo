@@ -2373,6 +2373,14 @@
   "@binauralBeta": {
     "description": "Binaural beat band chip: 13 Hz and above"
   },
+  "droneRootHint": "Up to three notes",
+  "@droneRootHint": {
+    "description": "Sounds screen, drone editor: caption under the Root chips, a chord can hold this many"
+  },
+  "soundChipsKeepOne": "At least one stays chosen",
+  "@soundChipsKeepOne": {
+    "description": "Screen-reader hint on the last chosen chip of a multiple-choice chip row: it cannot be turned off"
+  },
   "droneRoot": "Root",
   "@droneRoot": {
     "description": "Sounds screen, generated layers: droneRoot"

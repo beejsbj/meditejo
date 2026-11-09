@@ -324,14 +324,21 @@ class _ChipsViewState extends State<_ChipsView> {
             children: [
               for (final choice in _c.choices)
                 if (multi)
-                  FilterChip(
-                    key: ValueKey('${_c.id}_${choice.id}'),
-                    label: Text(choice.label(l10n)),
-                    selected: selected.contains(choice.value),
-                    // A full chord takes no more notes until one comes off.
-                    onSelected: full && !selected.contains(choice.value)
-                        ? null
-                        : (on) => _toggle(choice.value, on, selected),
+                  Semantics(
+                    // Why a tap on the last chosen chip does nothing.
+                    hint:
+                        selected.length == 1 && selected.contains(choice.value)
+                        ? l10n.soundChipsKeepOne
+                        : null,
+                    child: FilterChip(
+                      key: ValueKey('${_c.id}_${choice.id}'),
+                      label: Text(choice.label(l10n)),
+                      selected: selected.contains(choice.value),
+                      // A full chord takes no more notes until one comes off.
+                      onSelected: full && !selected.contains(choice.value)
+                          ? null
+                          : (on) => _toggle(choice.value, on, selected),
+                    ),
                   )
                 else
                   ChoiceChip(

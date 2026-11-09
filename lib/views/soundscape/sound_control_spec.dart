@@ -100,20 +100,32 @@ final droneRoots = SoundChips<double>(
   id: 'drone_root',
   title: (l) => l.droneRoot,
   maxSelected: DroneParams.maxRoots,
+  caption: (l, _) => l.droneRootHint,
   choices: [
     for (final MapEntry(key: name, value: hz) in DroneParams.roots.entries)
       SoundChoice(hz, name, (_) => name),
   ],
-  read: (p) {
-    final chosen = DroneParams.fromJson(p).rootsHz;
-    return {
-      for (final hz in DroneParams.roots.values)
-        if (chosen.any((r) => (r - hz).abs() < 0.01)) hz,
-    };
+  read: (p) => {
+    for (final hz in DroneParams.roots.values)
+      if (_onChip(hz, DroneParams.fromJson(p).rootsHz)) hz,
   },
-  write: (p, s) =>
-      DroneParams.fromJson(p).copyWith(rootsHz: s.toList()).toJson(),
+  write: (p, s) {
+    // A root saved off the chips (a stored mix) stays unless the chord is
+    // full of chosen ones: choosing is what replaces it.
+    final kept = [
+      for (final hz in DroneParams.fromJson(p).rootsHz)
+        if (!DroneParams.roots.values.any((r) => (r - hz).abs() < 0.01)) hz,
+    ];
+    final chosen = s.toList()..sort();
+    final chord = kept.length + chosen.length <= DroneParams.maxRoots
+        ? [...kept, ...chosen]
+        : chosen;
+    return DroneParams.fromJson(p).copyWith(rootsHz: chord).toJson();
+  },
 );
+
+bool _onChip(double hz, List<double> roots) =>
+    roots.any((r) => (r - hz).abs() < 0.01);
 
 final droneControls = SoundControlSpec(
   adjust: [

@@ -359,6 +359,22 @@ void main() {
       expect(chipSelected(tester, 'drone_root_D3'), isTrue);
     });
 
+    testWidgets('a root saved off the chips stays when another is chosen', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        layers: {
+          kSynthDroneId: const {'rootHz': 100.0},
+        },
+      );
+      await open(tester, kSynthDroneId);
+      expect(find.text('Up to three notes'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('drone_root_A3')));
+      await tester.pumpAndSettle();
+      expect(DroneParams.fromJson(params(kSynthDroneId)).rootsHz, [100, 220]);
+    });
+
     testWidgets('roots make a chord of up to three', (tester) async {
       await pump(tester, layers: {kSynthDroneId: const {}});
       await open(tester, kSynthDroneId);
