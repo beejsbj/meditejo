@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/providers/categories/category_providers.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
+import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/services/categories/category_catalogue.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
@@ -204,6 +205,25 @@ void main() {
     await tester.pump(const Duration(seconds: 6));
     await _settle(tester);
     expect(find.text('Talks 1'), findsOneWidget);
+  });
+
+  testWidgets('a retreat cached with an empty list is read again', (
+    tester,
+  ) async {
+    final app = await _library(tester);
+    // As if the track lists were read before the retreat's record was
+    // stored: known, but empty.
+    await app.pump(
+      tester,
+      const LibraryView(),
+      overrides: [
+        packTrackIdsProvider.overrideWith(
+          (ref) async => {'ds-retreat-100': <String>[]},
+        ),
+      ],
+    );
+    await _tap(tester, 'talks');
+    expect(_shown('Jhana Retreat'), findsOneWidget);
   });
 
   Future<Set<String>> menuOf(WidgetTester tester, String id) async {

@@ -245,7 +245,8 @@ const libraryKindsSyncDebounce = Duration(seconds: 5);
 ///
 /// A course just added is not in the cached [packTrackIdsProvider] yet: its
 /// sessions are read for it alone (a Dharma Seed retreat's from its stored
-/// record; another source's from its own few courses). A saved retreat with
+/// record, also when its cached list is empty; another source's from its
+/// own few courses). A saved retreat with
 /// none of its talks stored yet is read again once the background sync has
 /// stored more, at most once per [libraryKindsSyncDebounce]; once its talks
 /// are stored, typed or not, it is not waited for.
@@ -265,7 +266,12 @@ final libraryEntryKindsProvider =
       final dharmaSeed = ref.watch(dharmaSeedSourceProvider);
       final missing = {
         for (final e in entries)
-          if (e.isCourse && !cached.containsKey(e.sourceId)) e.sourceId,
+          if (e.isCourse &&
+              (!cached.containsKey(e.sourceId) ||
+                  // A retreat cached before its record was stored.
+                  (cached[e.sourceId]!.isEmpty &&
+                      parseDsRetreatId(e.sourceId) != null)))
+            e.sourceId,
       };
       var trackIds = cached;
       if (missing.isNotEmpty) {

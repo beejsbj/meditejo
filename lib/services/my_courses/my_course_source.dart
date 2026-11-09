@@ -546,16 +546,12 @@ class MyCourseSource implements ContentSource, CourseMembershipSource {
     });
     final entry = await library.entry(id);
     if (entry != null) {
-      // A kind left as it was keeps a choice made from the Library's menu
-      // ("Move to Practice" is kept even when it matches, #80); a changed
-      // one is stored only where it differs from what was detected.
+      // A kind left as it was keeps whatever is stored; a changed one is
+      // the user's choice, kept even where it matches what was detected, as
+      // the Library's "Move to …" keeps it (#80).
       await library.setGroup(
         id,
-        edit.group == entry.group
-            ? entry.groupOverride
-            : edit.group == entry.detectedGroup
-            ? null
-            : edit.group,
+        edit.group == entry.group ? entry.groupOverride : edit.group,
       );
       // The course's own title is the name; a library rename made before the
       // edit screen existed would hide it.
