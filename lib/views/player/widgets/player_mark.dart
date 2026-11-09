@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/theme/palette_theme.dart';
-import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/identity/identity_providers.dart';
 import 'package:medito/services/identity/mark_moments.dart';
+import 'package:medito/views/timer/start_timer.dart';
 import 'package:medito/widgets/branding/mark_painter.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
 
@@ -22,10 +22,7 @@ class PlayerMark extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // A timer is always a practice session with no course.
-    final cues = ref.watch(
-      cueSettingsProvider(const CueScope(CueKind.practice)),
-    );
+    final cues = ref.watch(cueSettingsProvider(timerCueScope));
     final period = PlayerBreath.periodSeconds(
       cues,
       reducedMotion: MediaQuery.disableAnimationsOf(context),

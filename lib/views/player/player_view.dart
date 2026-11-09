@@ -11,6 +11,7 @@ import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:medito/widgets/adaptive/adaptive_player_layout.dart';
 import 'package:medito/models/player/playback_request.dart';
@@ -931,38 +932,18 @@ class PlayerScreenLayout extends StatelessWidget {
               ),
               RepaintBoundary(
                 child: SafeArea(
-                  child: Stack(
-                    children: [
-                      Center(
-                        child: SingleChildScrollView(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 32.0,
-                            ),
-                            child: constraints.maxHeight >= 440
-                                ? _PortraitPlayerLayout(
-                                    expanded: expanded,
-                                    title: title,
-                                    artistName: artistName,
-                                    artistUrl: artistUrl,
-                                    attribution: attribution,
-                                    totalDurationMs:
-                                        currentlyPlayingTrack.duration,
-                                    isPlaying: isPlaying,
-                                    isLoading: isAudioLoading,
-                                    onPlayPause: onPlayPausePressed,
-                                    isStopwatch: isStopwatch,
-                                    onStop: onStop,
-                                    autoplay: autoplay,
-                                    markSize: isTimer
-                                        ? _playerMarkSize(constraints)
-                                        : null,
-                                  )
-                                : ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 1040,
-                                    ),
-                                    child: _LandscapePlayerLayout(
+                  child: LayoutBuilder(
+                    builder: (context, safe) => Stack(
+                      children: [
+                        Center(
+                          child: SingleChildScrollView(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32.0,
+                              ),
+                              child: constraints.maxHeight >= 440
+                                  ? _PortraitPlayerLayout(
+                                      expanded: expanded,
                                       title: title,
                                       artistName: artistName,
                                       artistUrl: artistUrl,
@@ -975,12 +956,34 @@ class PlayerScreenLayout extends StatelessWidget {
                                       isStopwatch: isStopwatch,
                                       onStop: onStop,
                                       autoplay: autoplay,
+                                      markSize: isTimer
+                                          ? _playerMarkSize(context, safe)
+                                          : null,
+                                    )
+                                  : ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 1040,
+                                      ),
+                                      child: _LandscapePlayerLayout(
+                                        title: title,
+                                        artistName: artistName,
+                                        artistUrl: artistUrl,
+                                        attribution: attribution,
+                                        totalDurationMs:
+                                            currentlyPlayingTrack.duration,
+                                        isPlaying: isPlaying,
+                                        isLoading: isAudioLoading,
+                                        onPlayPause: onPlayPausePressed,
+                                        isStopwatch: isStopwatch,
+                                        onStop: onStop,
+                                        autoplay: autoplay,
+                                      ),
                                     ),
-                                  ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -999,13 +1002,21 @@ class PlayerScreenLayout extends StatelessWidget {
   }
 }
 
-/// The timer mark's side: large, but leaving room below it for the title and
-/// the controls on a short screen.
-double _playerMarkSize(BoxConstraints constraints) {
-  final byWidth = constraints.maxWidth - 64;
-  final byHeight = constraints.maxHeight * 0.32;
-  return (byWidth < byHeight ? byWidth : byHeight).clamp(120.0, 320.0);
+/// The timer mark's side, from the height left inside the safe area and
+/// the bottom bar, or null when there is not room for it. What sits below
+/// it (title, progress, transport) grows with the text size and must always
+/// fit, so the mark gives way: it shrinks, and drops out below
+/// [_minMarkSize]. The numbers are that content's height at 1x text and
+/// what each step of text size adds, measured.
+double? _playerMarkSize(BuildContext context, BoxConstraints safe) {
+  const rest = 322.0, perScale = 47.0, gap = 24.0, slack = 16.0;
+  final scale = MediaQuery.textScalerOf(context).scale(10) / 10;
+  final byHeight = safe.maxHeight - (rest + perScale * scale) - gap - slack;
+  final size = math.min(safe.maxWidth - 64, math.min(byHeight, 320.0));
+  return size < _minMarkSize ? null : size;
 }
+
+const _minMarkSize = 96.0;
 
 class _PortraitPlayerLayout extends ConsumerWidget {
   const _PortraitPlayerLayout({

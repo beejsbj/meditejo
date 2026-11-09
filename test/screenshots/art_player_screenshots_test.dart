@@ -183,20 +183,26 @@ void main() {
   });
 
   // In a course the player offers Autoplay under the transport (#72).
-  for (final (brightness, inCourse, isTimer) in [
+  for (final (brightness, inCourse, isTimer, short) in [
     for (final b in Brightness.values)
       for (final (c, t) in [(false, false), (true, false), (false, true)])
-        (b, c, t),
+        (b, c, t, false),
+    // A short phone (360 x 640 dp): the mark shrinks so the transport fits.
+    (Brightness.light, false, true, true),
   ]) {
-    final name = isTimer
+    final name = short
+        ? 'the timer player on a short phone'
+        : isTimer
         ? 'the timer player'
         : inCourse
         ? 'the player in a course'
         : 'the player over its art';
     final file =
-        'player-${inCourse ? 'course-' : ''}${isTimer ? 'timer-' : ''}${brightness.name}';
+        'player-${inCourse ? 'course-' : ''}${isTimer ? 'timer-' : ''}${short ? 'short-' : ''}${brightness.name}';
     testWidgets('$name, ${brightness.name}', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2340);
+      tester.view.physicalSize = short
+          ? const Size(945, 1680)
+          : const Size(1080, 2340);
       tester.view.devicePixelRatio = 2.625;
       addTearDown(tester.view.reset);
       await tester.pumpWidget(

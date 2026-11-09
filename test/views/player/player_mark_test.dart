@@ -8,6 +8,7 @@ import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
+import 'package:medito/views/player/widgets/bottom_actions/player_action_bar.dart';
 import 'package:medito/views/player/widgets/player_mark.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/player/playback_request.dart';
@@ -146,9 +147,11 @@ void main() {
     bool playing = false,
     Map<String, Object> prefs = const {},
     bool reducedMotion = false,
+    double textScale = 1.0,
+    Size size = const Size(411, 891),
   }) async {
     SharedPreferences.setMockInitialValues(prefs);
-    tester.view.physicalSize = const Size(411, 891);
+    tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -168,9 +171,10 @@ void main() {
         ],
         child: Builder(
           builder: (context) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(disableAnimations: reducedMotion),
+            data: MediaQuery.of(context).copyWith(
+              disableAnimations: reducedMotion,
+              textScaler: TextScaler.linear(textScale),
+            ),
             child: const PlayerView(skipCustomize: true),
           ),
         ),
@@ -195,6 +199,55 @@ void main() {
     expect(mark.shortestSide, greaterThan(150));
     expect(mark.bottom, lessThan(tester.getRect(find.byType(Slider)).top));
     expect(tester.takeException(), isNull);
+    await close(tester);
+  });
+
+  for (final (size, scale) in [
+    (const Size(360, 640), 1.0),
+    (const Size(360, 640), 1.3),
+    (const Size(360, 640), 2.0),
+    (const Size(360, 740), 2.0),
+    (const Size(360, 560), 2.0),
+    (const Size(411, 891), 1.0),
+  ]) {
+    testWidgets('the transport stays on screen at $size, ${scale}x text', (
+      tester,
+    ) async {
+      await pumpPlayer(tester, _timer(), textScale: scale, size: size);
+      final stop = tester.getRect(find.byIcon(Icons.stop_rounded));
+      final screen = Offset.zero & size;
+      expect(screen.contains(stop.topLeft), isTrue);
+      expect(screen.contains(stop.bottomRight), isTrue);
+      // Clear of the bottom bar, and the mark (if shown) above the rest.
+      expect(
+        stop.bottom,
+        lessThanOrEqualTo(tester.getRect(find.byType(PlayerActionBar)).top),
+      );
+      if (find.byType(PlayerMark).evaluate().isNotEmpty) {
+        expect(
+          tester.getRect(find.byType(PlayerMark)).bottom,
+          lessThan(stop.top),
+        );
+      }
+      // At 2x text the elapsed/total row overflows a 360 dp width, as it
+      // does without the mark; only that may be reported.
+      final error = tester.takeException();
+      expect(error == null || '$error'.contains('overflowed'), isTrue);
+      await close(tester);
+    });
+  }
+
+  testWidgets('the mark gives way when there is no room for it', (
+    tester,
+  ) async {
+    await pumpPlayer(
+      tester,
+      _timer(),
+      textScale: 2.0,
+      size: const Size(360, 560),
+    );
+    tester.takeException();
+    expect(find.byType(PlayerMark), findsNothing);
     await close(tester);
   });
 

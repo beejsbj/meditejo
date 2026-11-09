@@ -453,30 +453,70 @@ void main() {
       expect(_state(tester).cycle, 0);
     });
 
-    testWidgets('paused, it finishes drawing in, then holds; resumes there', (
+    testWidgets('paused, it settles to rest, then holds; resumes from rest', (
       tester,
     ) async {
       await tester.pumpWidget(breathing());
       await tester.pump();
-      await tester.pump(const Duration(seconds: 1));
-      await tester.pumpWidget(breathing(paused: true));
-      // Still drawing itself in: the clock runs on until it has.
-      expect(_state(tester).isRunning, isTrue);
+      // Past drawing in, and at the top of a breath: 4 s breaths, 10 s on.
       await tester.pump(const Duration(seconds: 6));
-      await tester.pump(const Duration(milliseconds: 50));
+      await tester.pump(const Duration(seconds: 4));
+      final top = _state(tester).cycle;
+      expect(top, closeTo(1, 0.1));
+
+      await tester.pumpWidget(breathing(paused: true));
+      await tester.pump(const Duration(milliseconds: 16));
+      // Right after pausing it has not jumped, and has not stopped.
+      expect(_state(tester).cycle, closeTo(top, 0.1));
+      expect(_state(tester).isRunning, isTrue);
+      await tester.pump(const Duration(milliseconds: 600));
+      final settling = _state(tester).cycle;
+      expect(settling, lessThan(top - 0.2));
+      expect(settling, greaterThan(0));
+      await tester.pump(const Duration(seconds: 2));
+      // At rest, the clock stopped, nothing moves.
+      expect(_state(tester).cycle, 0);
       expect(_state(tester).isRunning, isFalse);
-      final held = _state(tester).cycle;
       expect(await _moves(tester, const Duration(seconds: 3)), isFalse);
-      expect(_state(tester).cycle, held);
+      expect(_state(tester).cycle, 0);
 
       await tester.pumpWidget(breathing());
       expect(_state(tester).isRunning, isTrue);
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
-      // It carries on from where it stopped, not from the start.
-      expect((_state(tester).cycle - held).abs(), lessThan(0.5));
-      await tester.pump(const Duration(seconds: 2));
-      expect(_state(tester).cycle, isNot(closeTo(held, 0.01)));
+      await tester.pump(const Duration(milliseconds: 100));
+      // A fresh breath from rest: it starts near 0, not where it left off.
+      expect(_state(tester).cycle, lessThan(0.1));
+      await tester.pump(const Duration(seconds: 1));
+      expect(_state(tester).cycle, greaterThan(0.3));
+    });
+
+    testWidgets('paused while drawing in, it finishes drawing in first', (
+      tester,
+    ) async {
+      await tester.pumpWidget(breathing(paused: true));
+      await tester.pump();
+      expect(_state(tester).isRunning, isTrue);
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(_state(tester).isRunning, isFalse);
+      expect(_state(tester).cycle, 0);
+    });
+
+    testWidgets('the breath is written at about 30 a second, not per frame', (
+      tester,
+    ) async {
+      await tester.pumpWidget(breathing(seconds: 10));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 6));
+      var updates = 0;
+      void count() => updates++;
+      _state(tester).cycleListenable.addListener(count);
+      // Two seconds of a 120 Hz display.
+      for (var i = 0; i < 240; i++) {
+        await tester.pump(const Duration(microseconds: 8333));
+      }
+      _state(tester).cycleListenable.removeListener(count);
+      expect(updates, inInclusiveRange(40, 70));
     });
 
     testWidgets('a new rate carries on from the same point', (tester) async {

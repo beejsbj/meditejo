@@ -76,9 +76,9 @@ class MeditejoMark extends StatefulWidget {
   /// on from the same point in the breath. Reduced motion ignores it.
   final double? breathSeconds;
 
-  /// Holds a [breathSeconds] mark where it is (playback is paused). The mark
-  /// first finishes drawing itself in; after that nothing moves, and it
-  /// carries on from there.
+  /// Rests a [breathSeconds] mark (playback is paused): the breath settles
+  /// to its out-breath, the mark first finishes drawing itself in, then
+  /// nothing moves. Unpausing starts a fresh breath from rest.
   final bool paused;
 
   @override
@@ -124,6 +124,16 @@ class MeditejoMarkState extends State<MeditejoMark>
 
   /// 0 out, 1 in: the continuous breath, drawn as a deep breath's swell.
   final ValueNotifier<double> _cycle = ValueNotifier(0);
+
+  /// While paused, when the settle to rest began and from where.
+  double? _settleStart, _settleFrom;
+
+  /// Seconds a paused mark takes to settle back to rest.
+  static const _settleSeconds = 1.5;
+
+  /// Counts the continuous breath's updates, for the 30 fps check.
+  @visibleForTesting
+  ValueListenable<double> get cycleListenable => _cycle;
 
   bool get _continuous => widget.breathSeconds != null;
 
@@ -210,6 +220,7 @@ class MeditejoMarkState extends State<MeditejoMark>
       _breathStart = null;
       _phase = 0;
       _phaseAt = 0;
+      _settleStart = _settleFrom = null;
       _cycle.value = 0;
       _from = null;
       _turning = false;
@@ -291,15 +302,29 @@ class MeditejoMarkState extends State<MeditejoMark>
   void _onTick(Duration elapsed) {
     final t = _base + elapsed.inMicroseconds / 1e6;
     final period = widget.breathSeconds;
+    var cycle = _cycle.value;
     if (period != null) {
       // The clock carries on from where it stopped, so a restart cannot
       // jump the breath; it only ever moves forward.
       final dt = math.max(0.0, t - _phaseAt);
       _phaseAt = t;
       if (!widget.paused) {
+        if (_settleStart != null) {
+          // Resumed part-way through settling: breathe in from where it is.
+          _phase = math.acos((1 - 2 * cycle).clamp(-1.0, 1.0)) / (2 * math.pi);
+          _settleStart = null;
+        }
         _phase = (_phase + dt / period) % 1;
-        _cycle.value = 0.5 - 0.5 * math.cos(2 * math.pi * _phase);
+        cycle = 0.5 - 0.5 * math.cos(2 * math.pi * _phase);
+      } else if (cycle > 0) {
+        // Paused: the breath settles to rest rather than freezing half-way.
+        _settleStart ??= t;
+        _settleFrom ??= cycle;
+        final u = (t - _settleStart!) / _settleSeconds;
+        cycle = u >= 1 ? 0 : _settleFrom! * (1 - easeInOut(u));
+        if (cycle == 0) _phase = 0;
       }
+      if (cycle == 0) _settleStart = _settleFrom = null;
     }
     if (_turning) _turnAt(t + MarkMoments.morphLead);
     // A turn or a deep breath ends: back to resting.
@@ -317,8 +342,13 @@ class MeditejoMarkState extends State<MeditejoMark>
     if (t > 5 && _breathStart == null && t - _lastFrame < 0.03) return;
     _lastFrame = t;
     _time.value = t;
-    // Paused and drawn in: nothing is left to move, so stop the clock.
-    if (_continuous && widget.paused && t > MarkMoments.drawnBy(widget.mark)) {
+    // Written with the frame, not every tick, so the throttle holds.
+    if (_cycle.value != cycle) _cycle.value = cycle;
+    // Paused, settled and drawn in: nothing is left to move, so stop.
+    if (_continuous &&
+        widget.paused &&
+        cycle == 0 &&
+        t > MarkMoments.drawnBy(widget.mark)) {
       _stop();
     }
   }
