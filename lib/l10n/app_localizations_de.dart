@@ -3020,4 +3020,41 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get trackShowLess => 'Weniger anzeigen';
+
+  @override
+  String homeMarkName(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'doorway': 'Tür',
+      'cushion': 'Kissen',
+      'horizon': 'Horizont',
+      'hearth': 'Feuerstelle',
+      'path': 'Heimweg',
+      'shelter': 'Zuflucht',
+      'window': 'Fenster',
+      'step': 'Schwelle',
+      'loops': 'Schleifen',
+      'enso': 'Ensō',
+      'wave': 'Atemwelle',
+      'split': 'Geteilte Sonne',
+      'arch': 'Bogen',
+      'pebble': 'Kiesel und Bindu',
+      'crescent': 'Sichel',
+      'vesica': 'Vesica',
+      'cairn': 'Steinmann',
+      'clearing': 'Lichtung',
+      'dawn': 'Morgen über dem Wasser',
+      'ridges': 'Hügel im Nebel',
+      'moonpool': 'Mondteich',
+      'doorlight': 'Erleuchtete Tür',
+      'halo': 'Halo',
+      'shoreline': 'Uferlinie',
+      'other': 'Zeichen des Tages',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String homeMarkTodayIs(String name) {
+    return 'Zeichen des Tages: $name';
+  }
 }

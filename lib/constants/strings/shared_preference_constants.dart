@@ -34,6 +34,10 @@ class SharedPreferenceConstants {
   /// A pinned Home mark, as frozen geometry (`MarkSpec` JSON). Unset is the
   /// daily mark.
   static const String identityPinnedMark = 'identity_pinned_mark';
+
+  /// The local day (`YYYY-MM-DD`) Home's mark was last seen on. A day after
+  /// it, Home turns that day's mark into today's, once.
+  static const String homeMarkSeenDay = 'home_mark_seen_day';
   static const String dailyReminderEnabled = 'daily_reminder_enabled';
   static const String reminderPromptDismissedForever =
       'reminder_prompt_dismissed_forever';

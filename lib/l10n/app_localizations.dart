@@ -5235,6 +5235,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show less'**
   String get trackShowLess;
+
+  /// Home: the name of the day's mark, by its kind (shown briefly on the first open of a day)
+  ///
+  /// In en, this message translates to:
+  /// **'{type, select, doorway{Doorway} cushion{Cushion} horizon{Horizon} hearth{Hearth} path{Path home} shelter{Shelter} window{Window} step{Threshold} loops{Loops} enso{Ensō} wave{Breath wave} split{Split sun} arch{Arch} pebble{Pebble and bindu} crescent{Crescent} vesica{Vesica} cairn{Cairn} clearing{Clearing} dawn{Dawn over water} ridges{Ridges in mist} moonpool{Moon pool} doorlight{Lit doorway} halo{Halo} shoreline{Shoreline} other{Today\'s mark}}'**
+  String homeMarkName(String type);
+
+  /// Screen reader announcement of the day's mark on Home
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s mark: {name}'**
+  String homeMarkTodayIs(String name);
 }
 
 class _AppLocalizationsDelegate

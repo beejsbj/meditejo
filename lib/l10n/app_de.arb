@@ -1329,5 +1329,7 @@
   "trackPartOf": "Teil von {course}",
   "trackInCourse": "In {course}",
   "trackShowMore": "Mehr anzeigen",
-  "trackShowLess": "Weniger anzeigen"
+  "trackShowLess": "Weniger anzeigen",
+  "homeMarkName": "{type, select, doorway{Tür} cushion{Kissen} horizon{Horizont} hearth{Feuerstelle} path{Heimweg} shelter{Zuflucht} window{Fenster} step{Schwelle} loops{Schleifen} enso{Ensō} wave{Atemwelle} split{Geteilte Sonne} arch{Bogen} pebble{Kiesel und Bindu} crescent{Sichel} vesica{Vesica} cairn{Steinmann} clearing{Lichtung} dawn{Morgen über dem Wasser} ridges{Hügel im Nebel} moonpool{Mondteich} doorlight{Erleuchtete Tür} halo{Halo} shoreline{Uferlinie} other{Zeichen des Tages}}",
+  "homeMarkTodayIs": "Zeichen des Tages: {name}"
 }
