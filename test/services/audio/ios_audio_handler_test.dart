@@ -341,6 +341,60 @@ void main() {
     },
   );
 
+  group('real time cannot be made up', () {
+    const timer = PlaybackRequest(
+      trackId: 'timer-1200',
+      fileId: 'timer-1200',
+      title: 'Timer',
+      description: '',
+      coverUrl: '',
+      remoteUrl: 'asset:///timer.mp3',
+      duration: 1200000,
+      hasBackgroundSound: false,
+    );
+
+    late _Streams streams;
+    late _Player player;
+
+    setUp(() {
+      _mockSwift({'sampleListening': false});
+      streams = _Streams();
+      player = streams.player();
+      when(() => player.playing).thenReturn(true);
+      when(() => player.processingState).thenReturn(ProcessingState.ready);
+      // A speed a timer never plays at: it must not leak into its time.
+      when(() => player.speed).thenReturn(2);
+      when(() => player.duration).thenReturn(const Duration(minutes: 20));
+    });
+
+    test('a timer that never started is its length', () async {
+      final handler = _WiredHandler(player);
+      await handler.ensureInitialized();
+      await handler.configureCues(const CueSettings(), timer);
+      expect(handler.completionRealDurationMs, 1200000);
+    });
+
+    test('a timer that played is its length too', () async {
+      final handler = _WiredHandler(player);
+      await handler.ensureInitialized();
+      await handler.configureCues(const CueSettings(), timer);
+      for (var ms = 0; ms <= 60000; ms += 2000) {
+        streams.position.add(Duration(milliseconds: ms));
+        await _settle();
+      }
+      expect(handler.completionRealDurationMs, 1200000);
+    });
+
+    test('no length, or an empty one, records none', () async {
+      final handler = _WiredHandler(player);
+      await handler.ensureInitialized();
+      when(() => player.duration).thenReturn(null);
+      expect(handler.completionRealDurationMs, isNull);
+      when(() => player.duration).thenReturn(Duration.zero);
+      expect(handler.completionRealDurationMs, isNull);
+    });
+  });
+
   group('repeat play-throughs follow the 90% rule', () {
     late Map<String, Object?> swift;
     late _Streams streams;

@@ -251,13 +251,13 @@ internal object CueMath {
         isTimer || heardPassEnough
 
     /**
-     * Real time a play-through of a [durationMs] recording takes at the speeds
-     * it was heard at, for the stats beside the recording's length: the length
-     * scaled by the real time playback took over the media it walked through
-     * ([playedRealMs] over [playedMediaMs]). Pauses and seeks are not playback,
-     * so they add nothing. Nothing played yet (a completion straight after a
-     * resume) takes the [speed] in force. A timer is never sped up: its real
-     * time is its length.
+     * Real time for the stats: the recording length at the speeds it was
+     * heard at. Not a clock reading: the [durationMs] length is scaled by the
+     * mix of speeds playback used ([playedRealMs] over [playedMediaMs]), so a
+     * 60-minute talk heard at 2x is 30 minutes. Pauses and seeks are not
+     * playback and do not change the mix. Nothing played yet (a completion
+     * straight after a resume) takes the [speed] in force. A timer is never
+     * sped up: its real time is its length.
      */
     fun realDurationMs(
         durationMs: Long,
@@ -348,9 +348,10 @@ internal class ListeningTracker(private val maxStepMs: Long = CueMath.LISTENING_
     private val ranges = ArrayList<LongArray>() // merged, sorted [start, end)
     private var last = -1L
 
-    // Media walked through by playback in this pass, and the real time it
-    // took (each step over the speed it played at). A stretch heard again
-    // counts again here: this is time spent, not coverage.
+    // The mix of speeds this pass was heard at: media walked through by
+    // playback, and that media over the speed each step played at. Only their
+    // ratio is used, to give the recording length at the speeds it was heard
+    // at; a stretch heard again just weighs its speed in again.
     var playedMediaMs = 0.0
         private set
     var playedRealMs = 0.0

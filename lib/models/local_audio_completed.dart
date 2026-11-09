@@ -19,9 +19,9 @@ class LocalAudioCompleted {
   /// recorded.
   final int? durationMs;
 
-  /// Real time the session took, in milliseconds, at the speeds it was played
-  /// at (pauses excluded): a 60-minute talk heard at 2x is 30 minutes here and
-  /// 60 in [durationMs]. Recorded from the release that added per-kind speed
+  /// Real time, in milliseconds: the recording length at the speeds it was
+  /// heard at (pauses do not count): a 60-minute talk heard at 2x is 30
+  /// minutes here and 60 in [durationMs]. Recorded from the release that added per-kind speed
   /// onwards; null on older entries and on timers and manual entries, which
   /// read as [durationMs] (see [realOrDurationMs]). Never back-filled.
   final int? realMs;

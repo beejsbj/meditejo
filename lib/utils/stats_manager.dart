@@ -207,7 +207,8 @@ class StatsManager {
       courseId: courseId,
       courseTitle: courseTitle,
     );
-    // The session started this much wall-clock time before it ended.
+    // The session started about this long before it ended: its recording
+    // length at the speeds it was heard at.
     final elapsed = realMs ?? duration;
     if (AudioCompletionTracker.checkTrackCrossedMidnight(
       endTimestamp: audioCompleted.timestamp,

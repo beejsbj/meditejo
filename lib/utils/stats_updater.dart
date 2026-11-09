@@ -384,7 +384,8 @@ Future<void> _syncHealthKit(Map<String, dynamic> payload) async {
 int? _realDurationOf(Map<String, dynamic> payload) =>
     (payload[TypeConstants.realDurationIdKey] as num?)?.toInt();
 
-/// Wall-clock time the session ran for: its real time, else its length.
+/// How long the session ran: its recording length at the speeds it was heard
+/// at, else (no real time recorded) its length.
 int _elapsedOf(Map<String, dynamic> payload) =>
     _realDurationOf(payload) ?? payload[TypeConstants.durationIdKey] as int;
 

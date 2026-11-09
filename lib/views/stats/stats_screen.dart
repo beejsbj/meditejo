@@ -194,6 +194,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     label: l10n.statsToday,
                   ),
                 ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: StatFigure(
                     value: time(summary.thisWeek),
@@ -212,6 +213,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     label: l10n.statsThisMonth,
                   ),
                 ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: StatFigure(
                     value: time(summary.allTime),
@@ -250,6 +252,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     label: l10n.currentStreak,
                   ),
                 ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: StatFigure(
                     value: days(stats.streakLongest),
@@ -268,6 +271,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     label: l10n.totalTracksCompleted,
                   ),
                 ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,

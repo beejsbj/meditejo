@@ -13,6 +13,7 @@ import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../constants/types/type_constants.dart';
+import '../../models/timer/timer_session.dart';
 import '../../services/audio/played_time.dart';
 import '../../src/audio_pigeon.g.dart';
 import '../../utils/stats_updater.dart';
@@ -348,11 +349,14 @@ class IosAudioHandler extends BaseAudioHandler {
   final _playedTime = PlayedTime();
 
   /// Real time a play-through of the current track takes, as its completion
-  /// records it; null with no known length.
+  /// records it; null with no known length. A timer is never sped up, so its
+  /// real time is its length, whether or not playback was ever sampled.
   @visibleForTesting
   int? get completionRealDurationMs {
     final length = duration?.inMilliseconds;
-    if (length == null) return null;
+    if (length == null || length <= 0) return null;
+    final id = _trackStateSubject.valueOrNull?.id;
+    if (_isTimer || (id != null && isTimerSessionId(id))) return length;
     return _playedTime.realMs(length, speed: _player.speed);
   }
 

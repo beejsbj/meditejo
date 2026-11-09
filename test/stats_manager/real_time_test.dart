@@ -5,6 +5,7 @@ import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/local_audio_completed.dart';
+import 'package:medito/services/stats/practice_summary.dart';
 import 'package:medito/utils/stats_manager.dart';
 import 'package:medito/utils/stats_updater.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -192,6 +193,39 @@ void main() {
       expect(entry.realMs, 1500000);
     },
   );
+
+  test('deleting a sped-up session takes back both its audio and its real '
+      'time', () async {
+    await boot();
+    final talk = LocalAudioCompleted(
+      id: 'ds-talk-1',
+      timestamp: now.subtract(const Duration(hours: 2)).millisecondsSinceEpoch,
+    );
+    final sit = LocalAudioCompleted(
+      id: 'lib-sit',
+      timestamp: now.millisecondsSinceEpoch,
+    );
+    // An hour-long talk heard at 2x, then a 20-minute sit at 1x.
+    await manager.addAudioCompleted(talk, hour, realDuration: hour ~/ 2);
+    await manager.addAudioCompleted(sit, 20 * 60000, realDuration: 20 * 60000);
+
+    PracticeSummary summary(LocalAllStats stats) =>
+        PracticeSummary.from(stats, now: now);
+    final before = summary(await restart());
+    expect(before.allTimeAudio, const Duration(minutes: 80));
+    expect(before.allTime, const Duration(minutes: 50));
+    expect(before.audioDiffers, isTrue);
+
+    await manager.removeAudioCompleted(talk);
+    final stored = await restart();
+    expect(stored.totalTimeListened, 20 * 60000);
+    final after = summary(stored);
+    // Its 60 minutes of audio and its 30 of real time are both gone.
+    expect(after.allTimeAudio, const Duration(minutes: 20));
+    expect(after.allTime, const Duration(minutes: 20));
+    expect(after.today, const Duration(minutes: 20));
+    expect(after.audioDiffers, isFalse);
+  });
 
   group('a completion payload', () {
     Map<String, dynamic> payload({int? real}) => {

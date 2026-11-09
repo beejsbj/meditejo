@@ -1,13 +1,14 @@
 import 'dart:math' as math;
 
-/// The real time a recording takes at the speeds it is played at, for the
-/// stats beside its length (a 60-minute talk heard at 2x took 30 minutes).
+/// Real time for the stats: the recording length at the speeds it was heard
+/// at (a 60-minute talk heard at 2x is 30 minutes). Not a clock reading: it
+/// keeps the mix of speeds playback used and scales the length by it.
 ///
-/// iOS plays in Dart, so it is measured here; Android measures the same in
-/// its player service (`ListeningTracker` in CueMath.kt), with the same rules:
+/// iOS plays in Dart, so the mix is kept here; Android keeps the same in its
+/// player service (`ListeningTracker` in CueMath.kt), with the same rules:
 /// only playback that walks through the media in small steps counts, each
-/// step taking its media over the speed it played at. A pause or a seek adds
-/// nothing. A stretch heard twice counts twice: this is time spent.
+/// step weighing its speed by the media it covered. A pause or a seek changes
+/// nothing. A stretch heard twice just weighs its speed in again.
 class PlayedTime {
   PlayedTime({this.maxStepMs = 5000});
 
@@ -22,7 +23,7 @@ class PlayedTime {
   /// Media walked through by playback so far.
   double get playedMediaMs => _mediaMs;
 
-  /// Real time that playback took.
+  /// That media over the speed each step played at.
   double get playedRealMs => _realMs;
 
   /// A new track: nothing played yet.
