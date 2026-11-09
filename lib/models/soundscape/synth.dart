@@ -343,21 +343,35 @@ class DroneParams {
       if (timbre != DroneTimbre.pure) ...[(3, 0.22, 0.3), (4, 0.14, -0.3)],
       if (timbre == DroneTimbre.bright) ...[(5, 0.1, 0.45), (6, 0.08, -0.45)],
     ];
-    // Every root brings the same voices. Voices of one wave on one
-    // frequency (A1's octave is A2's root) are one voice, their weights
-    // added: two oscillators started apart would sit at an arbitrary phase
-    // and add or cancel from one play to the next.
+    // Every root brings the same voices. Voices on one frequency (A1's
+    // octave is A2's root) are one voice, their weights added: two
+    // oscillators started apart would sit at an arbitrary phase and add or
+    // cancel from one play to the next. "Same" is within 1 part in 10 000,
+    // so D2's octave and D3 merge too.
+    bool near(double a, double b) => (a - b).abs() <= 1e-4 * math.max(a, b);
+    // Only the bright octave is a triangle, and a triangle cannot merge
+    // into a sine: where it would land on another root's sine voice, it is
+    // a sine too.
+    bool octaveIsTriangle(double root) =>
+        timbre == DroneTimbre.bright &&
+        !rootsHz.any(
+          (other) =>
+              other != root &&
+              [
+                for (var j = 0; j < one.length; j++)
+                  if (j != 2) one[j].$1,
+              ].any((ratio) => near(other * ratio, root * one[2].$1)),
+        );
     final voices = <(double, double, double, OscillatorWave)>[];
     for (final root in rootsHz) {
+      final triangle = octaveIsTriangle(root);
       for (var i = 0; i < one.length; i++) {
         final hz = root * one[i].$1;
         final w = one[i].$2, pan = one[i].$3;
-        final wave = timbre == DroneTimbre.bright && i == 2
+        final wave = triangle && i == 2
             ? OscillatorWave.triangle
             : OscillatorWave.sine;
-        final at = voices.indexWhere(
-          (v) => v.$4 == wave && (v.$1 - hz).abs() < 0.01,
-        );
+        final at = voices.indexWhere((v) => v.$4 == wave && near(v.$1, hz));
         if (at < 0) {
           voices.add((hz, w, pan, wave));
         } else {
@@ -367,7 +381,7 @@ class DroneParams {
         }
       }
     }
-    // The voices are at different frequencies, so their powers add: scale
+    // No two voices share a frequency now, so their powers add: scale
     // the weights so the K-weighted sum of the whole chord lands on the
     // target. A chord is no louder than a single root.
     var power = 0.0;

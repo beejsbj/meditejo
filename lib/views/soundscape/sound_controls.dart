@@ -52,6 +52,7 @@ class SoundChips<T> extends SoundControl {
     required this.read,
     required this.write,
     this.maxSelected = 1,
+    this.extraChoices,
     this.otherLabel,
     this.restoreOther,
     this.caption,
@@ -69,6 +70,11 @@ class SoundChips<T> extends SoundControl {
   final SoundParams Function(SoundParams params, Set<T> selected) write;
 
   final int maxSelected;
+
+  /// Chips for values the params hold that no [choices] chip names (a drone
+  /// root saved off the chips), shown selected after the others so they can
+  /// be seen and turned off. [read] includes them.
+  final List<SoundChoice<T>> Function(SoundParams params)? extraChoices;
 
   /// Shown as a selected chip of its own when the params match no choice
   /// (bands shaped by hand), so the editor never shows nothing chosen.
@@ -322,22 +328,29 @@ class _ChipsViewState extends State<_ChipsView> {
             spacing: padding8,
             runSpacing: padding8,
             children: [
-              for (final choice in _c.choices)
+              for (final choice in [
+                ..._c.choices,
+                ...?_c.extraChoices?.call(widget.params),
+              ])
                 if (multi)
-                  Semantics(
-                    // Why a tap on the last chosen chip does nothing.
-                    hint:
-                        selected.length == 1 && selected.contains(choice.value)
-                        ? l10n.soundChipsKeepOne
-                        : null,
-                    child: FilterChip(
-                      key: ValueKey('${_c.id}_${choice.id}'),
-                      label: Text(choice.label(l10n)),
-                      selected: selected.contains(choice.value),
-                      // A full chord takes no more notes until one comes off.
-                      onSelected: full && !selected.contains(choice.value)
-                          ? null
-                          : (on) => _toggle(choice.value, on, selected),
+                  MergeSemantics(
+                    // The hint joins the chip's own node: why a tap on the
+                    // last chosen chip does nothing.
+                    child: Semantics(
+                      hint:
+                          selected.length == 1 &&
+                              selected.contains(choice.value)
+                          ? l10n.soundChipsKeepOne
+                          : null,
+                      child: FilterChip(
+                        key: ValueKey('${_c.id}_${choice.id}'),
+                        label: Text(choice.label(l10n)),
+                        selected: selected.contains(choice.value),
+                        // A full chord takes no more notes until one comes off.
+                        onSelected: full && !selected.contains(choice.value)
+                            ? null
+                            : (on) => _toggle(choice.value, on, selected),
+                      ),
                     ),
                   )
                 else

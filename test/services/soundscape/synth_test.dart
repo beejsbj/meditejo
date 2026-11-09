@@ -106,13 +106,6 @@ double worstChannelPeak(List<OscillatorPartial> partials) {
   return math.max(left, right);
 }
 
-/// Peak bound for one generated layer at full volume, every voice in
-/// phase: −12 dBFS. Among the editor's roots the loudest, a bright A1
-/// drone, peaks at about 0.15 (−16 dBFS); a bright 40 Hz drone, the lowest
-/// root saved params can hold, at about 0.185; binaural beats at about
-/// 0.065 an ear.
-const kLayerPeakBound = 0.25;
-
 /// Power between [lo] and [hi] Hz, from a forward DFT (via the inverse:
 /// DFT(x) = conj(IDFT(conj(x))) · n).
 double bandPower(Float64List x, double lo, double hi) {
@@ -291,7 +284,36 @@ void main() {
           }
         }
         expect(renderedLufs(chord), closeTo(kSynthTargetLufs, 0.2));
-        expect(worstChannelPeak(chord), lessThan(kLayerPeakBound));
+        expect(worstChannelPeak(chord), lessThan(kSynthPeakBound));
+      }
+    });
+
+    test('no two voices of a chord share a frequency, in any timbre', () {
+      for (final timbre in DroneTimbre.values) {
+        for (final roots in [
+          [55.0, 110.0],
+          [55.0, 110.0, 220.0],
+          [110.0, 220.0],
+          [73.42, 146.83],
+          [82.41, 164.81, 55.0],
+          [55.0, 82.41, 98.0],
+        ]) {
+          final ps = DroneParams(rootsHz: roots, timbre: timbre).partials();
+          for (var i = 0; i < ps.length; i++) {
+            for (var j = i + 1; j < ps.length; j++) {
+              expect(
+                (ps[i].hz - ps[j].hz).abs() > 1e-4 * ps[i].hz,
+                isTrue,
+                reason: '$roots ${timbre.name}: ${ps[i].hz} and ${ps[j].hz}',
+              );
+            }
+          }
+          expect(
+            renderedLufs(ps),
+            closeTo(kSynthTargetLufs, 0.2),
+            reason: '$roots ${timbre.name}',
+          );
+        }
       }
     });
 
@@ -301,9 +323,8 @@ void main() {
         timbre: DroneTimbre.bright,
       );
       final a = chord.partials(), b = chord.partials();
-      // A1+A2+A3 bright: 24 voices, 5 shared (a triangle octave does not
-      // merge with a sine root: different waveforms).
-      expect(a.length, 19);
+      // A1+A2+A3 bright: 24 voices, 8 shared.
+      expect(a.length, 16);
       expect(
         [for (final p in a) (p.hz, p.gain, p.pan)],
         [for (final p in b) (p.hz, p.gain, p.pan)],
@@ -320,7 +341,7 @@ void main() {
           rootsHz: [55, 73.42, 82.41],
           timbre: timbre,
         ).partials();
-        expect(worstChannelPeak(worst), lessThan(kLayerPeakBound));
+        expect(worstChannelPeak(worst), lessThan(kSynthPeakBound));
         // Clustered lowest roots the clamp allows, and every triple.
         for (final roots in [
           [40.0, 41.0, 42.0],
@@ -333,7 +354,7 @@ void main() {
           final p = DroneParams(rootsHz: roots, timbre: timbre).partials();
           expect(
             worstChannelPeak(p),
-            lessThan(kLayerPeakBound),
+            lessThan(kSynthPeakBound),
             reason: '$roots ${timbre.name}',
           );
         }
@@ -404,7 +425,7 @@ void main() {
           );
           expect(
             worstChannelPeak(partials),
-            lessThan(kLayerPeakBound),
+            lessThan(kSynthPeakBound),
             reason: '$root ${timbre.name}',
           );
         }
@@ -420,7 +441,7 @@ void main() {
             rootsHz: [hz],
             timbre: timbre,
           ).partials();
-          expect(worstChannelPeak(partials), lessThan(kLayerPeakBound));
+          expect(worstChannelPeak(partials), lessThan(kSynthPeakBound));
         }
       }
     });
@@ -489,7 +510,7 @@ void main() {
           closeTo(kSynthTargetLufs, 0.2),
           reason: '$carrier Hz',
         );
-        expect(worstChannelPeak(ps), lessThan(kLayerPeakBound));
+        expect(worstChannelPeak(ps), lessThan(kSynthPeakBound));
         // Each ear carries the same loudness.
         expect(
           renderedLufs([ps[0]]),

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
@@ -373,6 +374,28 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('drone_root_A3')));
       await tester.pumpAndSettle();
       expect(DroneParams.fromJson(params(kSynthDroneId)).rootsHz, [100, 220]);
+      // It shows as a chip of its own, and can be turned off.
+      expect(find.text('100 Hz'), findsOneWidget);
+      expect(chipSelected(tester, 'drone_root_100.0'), isTrue);
+      await tester.tap(find.byKey(const ValueKey('drone_root_100.0')));
+      await tester.pumpAndSettle();
+      expect(DroneParams.fromJson(params(kSynthDroneId)).rootsHz, [220]);
+    });
+
+    testWidgets('the last root says why it stays, on its own node', (
+      tester,
+    ) async {
+      await pump(tester, layers: {kSynthDroneId: const {}});
+      await open(tester, kSynthDroneId);
+      final handle = tester.ensureSemantics();
+      final node = tester.getSemantics(
+        find.byKey(const ValueKey('drone_root_A2')),
+      );
+      final data = node.getSemanticsData();
+      expect(data.hint, 'At least one stays chosen');
+      expect(data.hasAction(SemanticsAction.tap), isTrue);
+      expect(data.label, contains('A2'));
+      handle.dispose();
     });
 
     testWidgets('roots make a chord of up to three', (tester) async {
