@@ -41,6 +41,8 @@ import 'package:medito/views/player/widgets/bottom_actions/player_action_bar.dar
 import 'package:medito/views/player/widgets/duration_indicator_widget.dart';
 import 'package:medito/views/player/widgets/stopwatch_elapsed_widget.dart';
 import 'package:medito/views/player/widgets/player_buttons/player_buttons_widget.dart';
+import 'package:medito/views/player/widgets/mark_above.dart';
+import 'package:medito/views/player/widgets/player_mark.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -930,35 +932,18 @@ class PlayerScreenLayout extends StatelessWidget {
               ),
               RepaintBoundary(
                 child: SafeArea(
-                  child: Stack(
-                    children: [
-                      Center(
-                        child: SingleChildScrollView(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 32.0,
-                            ),
-                            child: constraints.maxHeight >= 440
-                                ? _PortraitPlayerLayout(
-                                    expanded: expanded,
-                                    title: title,
-                                    artistName: artistName,
-                                    artistUrl: artistUrl,
-                                    attribution: attribution,
-                                    totalDurationMs:
-                                        currentlyPlayingTrack.duration,
-                                    isPlaying: isPlaying,
-                                    isLoading: isAudioLoading,
-                                    onPlayPause: onPlayPausePressed,
-                                    isStopwatch: isStopwatch,
-                                    onStop: onStop,
-                                    autoplay: autoplay,
-                                  )
-                                : ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 1040,
-                                    ),
-                                    child: _LandscapePlayerLayout(
+                  child: LayoutBuilder(
+                    builder: (context, safe) => Stack(
+                      children: [
+                        Center(
+                          child: SingleChildScrollView(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32.0,
+                              ),
+                              child: constraints.maxHeight >= 440
+                                  ? _PortraitPlayerLayout(
+                                      expanded: expanded,
                                       title: title,
                                       artistName: artistName,
                                       artistUrl: artistUrl,
@@ -971,12 +956,34 @@ class PlayerScreenLayout extends StatelessWidget {
                                       isStopwatch: isStopwatch,
                                       onStop: onStop,
                                       autoplay: autoplay,
+                                      markMinHeight: isTimer
+                                          ? safe.maxHeight
+                                          : null,
+                                    )
+                                  : ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 1040,
+                                      ),
+                                      child: _LandscapePlayerLayout(
+                                        title: title,
+                                        artistName: artistName,
+                                        artistUrl: artistUrl,
+                                        attribution: attribution,
+                                        totalDurationMs:
+                                            currentlyPlayingTrack.duration,
+                                        isPlaying: isPlaying,
+                                        isLoading: isAudioLoading,
+                                        onPlayPause: onPlayPausePressed,
+                                        isStopwatch: isStopwatch,
+                                        onStop: onStop,
+                                        autoplay: autoplay,
+                                      ),
                                     ),
-                                  ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1009,7 +1016,13 @@ class _PortraitPlayerLayout extends ConsumerWidget {
     this.isStopwatch = false,
     this.onStop,
     this.autoplay,
+    this.markMinHeight,
   });
+
+  /// A timer session shows its mark above the title, in whatever height of
+  /// this (the room inside the safe area) the rest leaves; a recording, with
+  /// none, keeps its cover.
+  final double? markMinHeight;
 
   final bool expanded;
   final String title;
@@ -1028,49 +1041,81 @@ class _PortraitPlayerLayout extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return AdaptivePlayerLayout(
-      expanded: expanded,
-      heading: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ArtistTitleWidget(
-            trackTitle: title,
-            artistName: artistName ?? '',
-            artistUrlPath: artistUrl,
-            isPlayerScreen: true,
-          ),
-          if (attribution != null) _PlayerAttribution(attribution!),
-        ],
-      ),
-      controls: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (isStopwatch)
-            const StopwatchElapsedWidget()
-          else
-            DurationIndicatorWidget(
-              fallbackDurationMs: totalDurationMs,
-              onSeekEnd: (value) {
-                ref.read(playerProvider.notifier).seekToPosition(value);
-              },
-            ),
-          const SizedBox(height: 24),
-          PlayerButtonsWidget(
-            isPlaying: isPlaying,
-            isLoading: isLoading,
-            onPlayPause: onPlayPause,
-            onSkip10SecondsBackward: () =>
-                ref.read(playerProvider.notifier).skip10SecondsBackward(),
-            onSkip10SecondsForward: () =>
-                ref.read(playerProvider.notifier).skip10SecondsForward(),
-            isPortrait: true,
-            showSkipButtons: !isStopwatch,
-            onStop: onStop,
-          ),
-          if (autoplay != null) ...[const SizedBox(height: 16), autoplay!],
-        ],
-      ),
+    final heading = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ArtistTitleWidget(
+          trackTitle: title,
+          artistName: artistName ?? '',
+          artistUrlPath: artistUrl,
+          isPlayerScreen: true,
+        ),
+        if (attribution != null) _PlayerAttribution(attribution!),
+      ],
     );
+    final controls = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (isStopwatch)
+          const StopwatchElapsedWidget()
+        else
+          DurationIndicatorWidget(
+            fallbackDurationMs: totalDurationMs,
+            onSeekEnd: (value) {
+              ref.read(playerProvider.notifier).seekToPosition(value);
+            },
+          ),
+        const SizedBox(height: 24),
+        PlayerButtonsWidget(
+          isPlaying: isPlaying,
+          isLoading: isLoading,
+          onPlayPause: onPlayPause,
+          onSkip10SecondsBackward: () =>
+              ref.read(playerProvider.notifier).skip10SecondsBackward(),
+          onSkip10SecondsForward: () =>
+              ref.read(playerProvider.notifier).skip10SecondsForward(),
+          isPortrait: true,
+          showSkipButtons: !isStopwatch,
+          onStop: onStop,
+        ),
+        if (autoplay != null) ...[const SizedBox(height: 16), autoplay!],
+      ],
+    );
+    final minHeight = markMinHeight;
+    if (minHeight == null) {
+      return AdaptivePlayerLayout(
+        expanded: expanded,
+        heading: heading,
+        controls: controls,
+      );
+    }
+    // The mark takes the height the rest leaves. Side by side, that is the
+    // heading's own column; stacked, it is the whole of the title and
+    // controls.
+    Widget mark() => LayoutBuilder(
+      builder: (context, box) => box.maxWidth <= 0
+          ? const SizedBox.shrink()
+          : PlayerMark(isPlaying: isPlaying, size: box.maxWidth),
+    );
+    return expanded
+        ? AdaptivePlayerLayout(
+            expanded: true,
+            heading: MarkAbove(
+              minHeight: minHeight,
+              mark: mark(),
+              child: heading,
+            ),
+            controls: controls,
+          )
+        : MarkAbove(
+            minHeight: minHeight,
+            mark: mark(),
+            child: AdaptivePlayerLayout(
+              expanded: false,
+              heading: heading,
+              controls: controls,
+            ),
+          );
   }
 }
 

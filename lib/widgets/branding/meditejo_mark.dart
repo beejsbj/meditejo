@@ -37,6 +37,8 @@ class MeditejoMark extends StatefulWidget {
     this.from,
     this.onSeen,
     this.turnClock,
+    this.breathSeconds,
+    this.paused = false,
   });
 
   final MarkSpec mark;
@@ -67,6 +69,17 @@ class MeditejoMark extends StatefulWidget {
   /// to [MarkMoments.nameSeconds], with reduced motion too, so a caption
   /// (Home's day name) can ride on it. Written only from frame callbacks.
   final ValueNotifier<double>? turnClock;
+
+  /// Seconds per breath for a mark that breathes on and on (the player's):
+  /// it swells and settles as a deep breath does, over and over, instead of
+  /// only when touched. Null (Home) is the resting mark. Changing it carries
+  /// on from the same point in the breath. Reduced motion ignores it.
+  final double? breathSeconds;
+
+  /// Rests a [breathSeconds] mark (playback is paused): the breath settles
+  /// to its out-breath, the mark first finishes drawing itself in, then
+  /// nothing moves. Unpausing starts a fresh breath from rest.
+  final bool paused;
 
   @override
   State<MeditejoMark> createState() => MeditejoMarkState();
@@ -105,6 +118,28 @@ class MeditejoMarkState extends State<MeditejoMark>
     ),
   );
 
+  /// How far through a continuous breath the mark is, in breaths.
+  double _phase = 0;
+  double _phaseAt = 0;
+
+  /// The continuous breath now, written to [_cycle] with each drawn frame.
+  double _cycleNow = 0;
+
+  /// 0 out, 1 in: the continuous breath, drawn as a deep breath's swell.
+  final ValueNotifier<double> _cycle = ValueNotifier(0);
+
+  /// While paused, when the settle to rest began and from where.
+  double? _settleStart, _settleFrom;
+
+  /// Seconds a paused mark takes to settle back to rest.
+  static const _settleSeconds = 1.5;
+
+  /// Counts the continuous breath's updates, for the 30 fps check.
+  @visibleForTesting
+  ValueListenable<double> get cycleListenable => _cycle;
+
+  bool get _continuous => widget.breathSeconds != null;
+
   /// The mark's clock when a deep breath began.
   double? _breathStart;
 
@@ -123,6 +158,10 @@ class MeditejoMarkState extends State<MeditejoMark>
   /// Whether the settled frame is shown (reduced motion).
   @visibleForTesting
   bool get isStill => _still;
+
+  /// How far in the continuous breath is (0 out, 1 in).
+  @visibleForTesting
+  double get cycle => _cycle.value;
 
   /// Whether a deep breath is under way.
   bool get isBreathing => _breathStart != null;
@@ -182,6 +221,11 @@ class MeditejoMarkState extends State<MeditejoMark>
       _base = 0;
       _time.value = 0;
       _breathStart = null;
+      _phase = 0;
+      _phaseAt = 0;
+      _settleStart = _settleFrom = null;
+      _cycleNow = 0;
+      _cycle.value = 0;
       _from = null;
       _turning = false;
       _turn
@@ -261,6 +305,34 @@ class MeditejoMarkState extends State<MeditejoMark>
 
   void _onTick(Duration elapsed) {
     final t = _base + elapsed.inMicroseconds / 1e6;
+    final period = widget.breathSeconds;
+    var cycle = _cycleNow;
+    if (period != null) {
+      // The clock carries on from where it stopped, so a restart cannot
+      // jump the breath; it only ever moves forward.
+      final dt = math.max(0.0, t - _phaseAt);
+      _phaseAt = t;
+      if (!widget.paused) {
+        if (_settleStart != null) {
+          // Resumed part-way through settling: breathe in from where it is.
+          _phase = math.acos((1 - 2 * cycle).clamp(-1.0, 1.0)) / (2 * math.pi);
+          _settleStart = _settleFrom = null;
+        }
+        _phase = (_phase + dt / period) % 1;
+        cycle = 0.5 - 0.5 * math.cos(2 * math.pi * _phase);
+      } else if (cycle > 0) {
+        // Paused: the breath settles to rest rather than freezing half-way.
+        _settleStart ??= t;
+        _settleFrom ??= cycle;
+        final u = (t - _settleStart!) / _settleSeconds;
+        cycle = u >= 1 ? 0 : _settleFrom! * (1 - easeInOut(u));
+        if (cycle == 0) _phase = 0;
+      }
+      if (cycle == 0) _settleStart = _settleFrom = null;
+      _cycleNow = cycle;
+      // Coming to rest is written at once, not left to the throttle.
+      if (cycle == 0 && _cycle.value != 0) _cycle.value = 0;
+    }
     if (_turning) _turnAt(t + MarkMoments.morphLead);
     // A turn or a deep breath ends: back to resting.
     if (_from != null &&
@@ -277,6 +349,15 @@ class MeditejoMarkState extends State<MeditejoMark>
     if (t > 5 && _breathStart == null && t - _lastFrame < 0.03) return;
     _lastFrame = t;
     _time.value = t;
+    // Written with the frame, not every tick, so the throttle holds.
+    if (_cycle.value != cycle) _cycle.value = cycle;
+    // Paused, settled and drawn in: nothing is left to move, so stop.
+    if (_continuous &&
+        widget.paused &&
+        cycle == 0 &&
+        t > MarkMoments.drawnBy(widget.mark)) {
+      _stop();
+    }
   }
 
   @override
@@ -286,6 +367,7 @@ class MeditejoMarkState extends State<MeditejoMark>
     _crossfade.dispose();
     _turn.dispose();
     _time.dispose();
+    _cycle.dispose();
     super.dispose();
   }
 
@@ -305,6 +387,7 @@ class MeditejoMarkState extends State<MeditejoMark>
             time: _time,
             still: _still,
             breathStart: _breathStart,
+            cycle: _continuous ? _cycle : null,
             from: _from,
             fade: _still && _from != null ? _crossfade : null,
           ),
@@ -330,9 +413,17 @@ class MarkPainter extends CustomPainter {
     this.still = false,
     this.tile = false,
     this.breathStart,
+    this.cycle,
     this.from,
     this.fade,
-  }) : super(repaint: Listenable.merge([time, MarkTextures.instance, ?fade]));
+  }) : super(
+         repaint: Listenable.merge([
+           time,
+           MarkTextures.instance,
+           ?fade,
+           ?cycle,
+         ]),
+       );
 
   final MarkSpec mark;
   final MarkColors colors;
@@ -340,6 +431,10 @@ class MarkPainter extends CustomPainter {
   final bool still;
   final bool tile;
   final double? breathStart;
+
+  /// A continuous breath, 0 out to 1 in, swelling the mark as a deep breath
+  /// does; null when the mark only rests.
+  final ValueListenable<double>? cycle;
   final MarkSpec? from;
   final Animation<double>? fade;
 
@@ -379,9 +474,11 @@ class MarkPainter extends CustomPainter {
         });
       }
       final start = breathStart;
-      final swell = start == null || still
+      final swell = still
           ? 0.0
-          : MarkMoments.swellAt(t - start);
+          : start != null
+          ? MarkMoments.swellAt(t - start)
+          : cycle?.value ?? 0.0;
       _layer(canvas, mark, 1, swell: swell, () {
         renderer.draw(mark, t, still: still, tile: tile, swell: swell);
       });
@@ -426,6 +523,7 @@ class MarkPainter extends CustomPainter {
       old.still != still ||
       old.tile != tile ||
       old.breathStart != breathStart ||
+      old.cycle != cycle ||
       !identical(old.from, from) ||
       old.fade != fade;
 }

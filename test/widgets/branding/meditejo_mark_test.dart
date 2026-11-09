@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -408,6 +409,189 @@ void main() {
       expect(MarkMoments.nameOpacityAt(0), 0);
       expect(MarkMoments.nameOpacityAt(3), 1);
       expect(MarkMoments.nameOpacityAt(MarkMoments.nameSeconds), 0);
+    });
+  });
+
+  group('a continuous breath (the player)', () {
+    Widget breathing({
+      double? seconds = 4,
+      bool paused = false,
+      bool disableAnimations = false,
+    }) => _app(
+      Center(
+        child: MeditejoMark(
+          mark: _mark,
+          breathSeconds: seconds,
+          paused: paused,
+        ),
+      ),
+      disableAnimations: disableAnimations,
+    );
+
+    testWidgets('swells and settles once per breath, over and over', (
+      tester,
+    ) async {
+      await tester.pumpWidget(breathing());
+      await tester.pump();
+      expect(_state(tester).cycle, closeTo(0, 0.01));
+      await tester.pump(const Duration(seconds: 2));
+      // Half a 4 s breath: the top of the in-breath.
+      expect(_state(tester).cycle, closeTo(1, 0.05));
+      await tester.pump(const Duration(seconds: 2));
+      expect(_state(tester).cycle, closeTo(0, 0.05));
+      for (var i = 0; i < 3; i++) {
+        await tester.pump(const Duration(seconds: 4));
+      }
+      expect(_state(tester).cycle, closeTo(0, 0.05));
+    });
+
+    testWidgets('the resting mark (Home) has no continuous breath', (
+      tester,
+    ) async {
+      await tester.pumpWidget(breathing(seconds: null));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+      expect(_state(tester).cycle, 0);
+    });
+
+    testWidgets('paused, it settles to rest, then holds; resumes from rest', (
+      tester,
+    ) async {
+      await tester.pumpWidget(breathing());
+      await tester.pump();
+      // Past drawing in, and at the top of a breath: 4 s breaths, 10 s on.
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pump(const Duration(seconds: 4));
+      final top = _state(tester).cycle;
+      expect(top, closeTo(1, 0.1));
+
+      await tester.pumpWidget(breathing(paused: true));
+      await tester.pump(const Duration(milliseconds: 16));
+      // Right after pausing it has not jumped, and has not stopped.
+      expect(_state(tester).cycle, closeTo(top, 0.1));
+      expect(_state(tester).isRunning, isTrue);
+      await tester.pump(const Duration(milliseconds: 600));
+      final settling = _state(tester).cycle;
+      expect(settling, lessThan(top - 0.2));
+      expect(settling, greaterThan(0));
+      await tester.pump(const Duration(seconds: 2));
+      // At rest, the clock stopped, nothing moves.
+      expect(_state(tester).cycle, 0);
+      expect(_state(tester).isRunning, isFalse);
+      expect(await _moves(tester, const Duration(seconds: 3)), isFalse);
+      expect(_state(tester).cycle, 0);
+
+      await tester.pumpWidget(breathing());
+      expect(_state(tester).isRunning, isTrue);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      // A fresh breath from rest: it starts near 0, not where it left off.
+      expect(_state(tester).cycle, lessThan(0.1));
+      await tester.pump(const Duration(seconds: 1));
+      expect(_state(tester).cycle, greaterThan(0.3));
+    });
+
+    testWidgets('pausing, resuming mid-settle and pausing again never jumps', (
+      tester,
+    ) async {
+      await tester.pumpWidget(breathing());
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pump(const Duration(seconds: 4));
+      expect(_state(tester).cycle, closeTo(1, 0.1));
+
+      // The breath is written about every other frame, so a step is judged
+      // against the time since the last one: no faster than the settle's
+      // steepest (about 1 a second) or a breath's (about 0.8 a second).
+      var last = _state(tester).cycle;
+      var since = 0.0;
+      var worst = 0.0;
+      Future<void> frames(int n) async {
+        for (var i = 0; i < n; i++) {
+          await tester.pump(const Duration(milliseconds: 16));
+          since += 0.016;
+          final now = _state(tester).cycle;
+          if (now == last) continue;
+          worst = math.max(worst, (now - last).abs() / since);
+          last = now;
+          since = 0;
+        }
+      }
+
+      // Pause at the top, resume part-way down the settle, pause again later.
+      await tester.pumpWidget(breathing(paused: true));
+      await frames(30);
+      expect(_state(tester).cycle, lessThan(1));
+      await tester.pumpWidget(breathing());
+      await frames(20);
+      await tester.pumpWidget(breathing(paused: true));
+      await frames(150);
+      expect(
+        worst,
+        lessThan(1.3),
+        reason: 'no jump: at most the steepest slope',
+      );
+      expect(_state(tester).cycle, 0);
+      expect(_state(tester).isRunning, isFalse);
+    });
+
+    testWidgets('paused while drawing in, it finishes drawing in first', (
+      tester,
+    ) async {
+      await tester.pumpWidget(breathing(paused: true));
+      await tester.pump();
+      expect(_state(tester).isRunning, isTrue);
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(_state(tester).isRunning, isFalse);
+      expect(_state(tester).cycle, 0);
+    });
+
+    testWidgets('the breath is written at about 30 a second, not per frame', (
+      tester,
+    ) async {
+      await tester.pumpWidget(breathing(seconds: 10));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 6));
+      var updates = 0;
+      void count() => updates++;
+      _state(tester).cycleListenable.addListener(count);
+      // Two seconds of a 120 Hz display.
+      for (var i = 0; i < 240; i++) {
+        await tester.pump(const Duration(microseconds: 8333));
+      }
+      _state(tester).cycleListenable.removeListener(count);
+      expect(updates, inInclusiveRange(40, 70));
+    });
+
+    testWidgets('a new rate carries on from the same point', (tester) async {
+      await tester.pumpWidget(breathing());
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      final before = _state(tester).cycle;
+      await tester.pumpWidget(breathing(seconds: 2));
+      await tester.pump(const Duration(milliseconds: 16));
+      expect((_state(tester).cycle - before).abs(), lessThan(0.2));
+    });
+
+    testWidgets('reduced motion is a still mark', (tester) async {
+      await tester.pumpWidget(breathing(disableAnimations: true));
+      expect(_state(tester).isRunning, isFalse);
+      await tester.pump(const Duration(seconds: 2));
+      expect(_state(tester).cycle, 0);
+    });
+
+    testWidgets('holds under a route pushed over it', (tester) async {
+      await tester.pumpWidget(breathing());
+      await tester.pump();
+      final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+      navigator.push(
+        MaterialPageRoute<void>(
+          builder: (_) => const Scaffold(body: Text('X')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(_state(tester).isRunning, isFalse);
     });
   });
 }

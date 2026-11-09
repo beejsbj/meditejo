@@ -17,6 +17,7 @@ import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/player/playback_request.dart';
+import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/models/track/track.dart' as model;
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
@@ -182,16 +183,27 @@ void main() {
   });
 
   // In a course the player offers Autoplay under the transport (#72).
-  for (final (brightness, inCourse) in [
+  for (final (brightness, inCourse, isTimer, short, stopwatch) in [
     for (final b in Brightness.values)
-      for (final c in [false, true]) (b, c),
+      for (final (c, t) in [(false, false), (true, false), (false, true)])
+        (b, c, t, false, false),
+    // A short phone (360 x 640 dp): the mark shrinks so the transport fits.
+    (Brightness.light, false, true, true, false),
+    (Brightness.light, false, true, true, true),
   ]) {
-    final name = inCourse
+    final name = short
+        ? 'the ${stopwatch ? 'stopwatch' : 'timer'} player on a short phone'
+        : isTimer
+        ? 'the timer player'
+        : inCourse
         ? 'the player in a course'
         : 'the player over its art';
-    final file = 'player-${inCourse ? 'course-' : ''}${brightness.name}';
+    final file =
+        'player-${inCourse ? 'course-' : ''}${isTimer ? 'timer-' : ''}${stopwatch ? 'stopwatch-' : ''}${short ? 'short-' : ''}${brightness.name}';
     testWidgets('$name, ${brightness.name}', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2340);
+      tester.view.physicalSize = short
+          ? const Size(945, 1680)
+          : const Size(1080, 2340);
       tester.view.devicePixelRatio = 2.625;
       addTearDown(tester.view.reset);
       await tester.pumpWidget(
@@ -214,7 +226,18 @@ void main() {
                 return db;
               }),
               playerProvider.overrideWith(
-                () => _FakePlayer(_request(attribution: _credit)),
+                () => _FakePlayer(
+                  isTimer
+                      ? timerPlaybackRequest(
+                          mode: stopwatch
+                              ? TimerMode.stopwatch
+                              : TimerMode.countdown,
+                          duration: const Duration(minutes: 20),
+                          filePath: '/tmp/silence.mp3',
+                          title: 'Timer',
+                        )
+                      : _request(attribution: _credit),
+                ),
               ),
               audioStateProvider.overrideWith(_IdleAudio.new),
               backgroundSoundsNotifierProvider.overrideWith(
