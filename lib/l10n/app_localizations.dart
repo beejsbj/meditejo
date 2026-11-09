@@ -3910,6 +3910,18 @@ abstract class AppLocalizations {
   /// **'Beta'**
   String get binauralBeta;
 
+  /// Sounds screen, drone editor: caption under the Root chips, a chord can hold this many
+  ///
+  /// In en, this message translates to:
+  /// **'Up to three notes'**
+  String get droneRootHint;
+
+  /// Screen-reader hint on the last chosen chip of a multiple-choice chip row: it cannot be turned off
+  ///
+  /// In en, this message translates to:
+  /// **'At least one stays chosen'**
+  String get soundChipsKeepOne;
+
   /// Sounds screen, generated layers: droneRoot
   ///
   /// In en, this message translates to:

@@ -852,6 +852,27 @@ void main() {
   );
 
   group('presets', () {
+    test(
+      'a preset still matches after its drone is edited and put back',
+      () async {
+        ctl().applyPreset('starter-stillness');
+        await settle();
+        expect(st().matchingPreset?.id, 'starter-stillness');
+        DroneParams drone() =>
+            DroneParams.fromJson(st().mix.layer(kSynthDroneId)!.params);
+        ctl().setLayerParams(
+          kSynthDroneId,
+          drone().copyWith(timbre: DroneTimbre.warm).toJson(),
+        );
+        expect(st().matchingPreset, isNull);
+        ctl().setLayerParams(
+          kSynthDroneId,
+          drone().copyWith(timbre: DroneTimbre.pure).toJson(),
+        );
+        expect(st().matchingPreset?.id, 'starter-stillness');
+      },
+    );
+
     test('apply, save and delete; saved presets persist', () async {
       ctl().applyPreset('starter-night');
       await settle();
@@ -1649,7 +1670,7 @@ void main() {
       ctl().toggleSound(kSynthDroneId);
       ctl().setLayerParams(
         kSynthDroneId,
-        const DroneParams(rootHz: 73.42, timbre: DroneTimbre.pure).toJson(),
+        const DroneParams(rootsHz: [73.42], timbre: DroneTimbre.pure).toJson(),
       );
       final saved = ctl().savePreset('Low drone')!;
       final again = await make({

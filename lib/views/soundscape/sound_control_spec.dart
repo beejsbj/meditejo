@@ -94,23 +94,33 @@ final noiseControls = SoundControlSpec(
 // ---------------------------------------------------------------------------
 // Drone: the root, the timbre, how much it moves.
 
-/// The root chips. One root today; #69 makes them a chord (several roots,
-/// `maxSelected`), reading and writing the roots here.
+/// The root chips: up to [DroneParams.maxRoots] together, a chord (#69).
+/// At least one stays chosen (the chips ignore a tap that would clear it).
 final droneRoots = SoundChips<double>(
   id: 'drone_root',
   title: (l) => l.droneRoot,
+  maxSelected: DroneParams.maxRoots,
+  caption: (l, _) => l.droneRootHint,
   choices: [
     for (final MapEntry(key: name, value: hz) in DroneParams.roots.entries)
       SoundChoice(hz, name, (_) => name),
   ],
-  read: (p) {
-    final root = DroneParams.fromJson(p).rootHz;
-    return {
-      for (final hz in DroneParams.roots.values)
-        if ((root - hz).abs() < 0.01) hz,
-    };
-  },
-  write: (p, s) => DroneParams.fromJson(p).copyWith(rootHz: s.single).toJson(),
+  read: (p) => DroneParams.fromJson(p).rootsHz.map(_snapToChip).toSet(),
+  // A root saved off the chips (a stored mix) gets a chip of its own, so it
+  // can be seen and turned off; it counts toward the three.
+  extraChoices: (p) => [
+    for (final hz in DroneParams.fromJson(p).rootsHz)
+      if (_snapToChip(hz) == hz && !DroneParams.roots.containsValue(hz))
+        SoundChoice(hz, '$hz', (l) => _hz(l, hz, pattern: '0.##')),
+  ],
+  write: (p, s) =>
+      DroneParams.fromJson(p).copyWith(rootsHz: s.toList()).toJson(),
+);
+
+/// The chip's own value for a root within 0.01 Hz of it, else [hz].
+double _snapToChip(double hz) => DroneParams.roots.values.firstWhere(
+  (r) => (r - hz).abs() < 0.01,
+  orElse: () => hz,
 );
 
 final droneControls = SoundControlSpec(

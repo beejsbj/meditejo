@@ -2221,6 +2221,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get binauralBeta => 'Beta';
 
   @override
+  String get droneRootHint => 'Up to three notes';
+
+  @override
+  String get soundChipsKeepOne => 'At least one stays chosen';
+
+  @override
   String get droneRoot => 'Root';
 
   @override
