@@ -5301,6 +5301,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Today\'s mark: {name}'**
   String homeMarkTodayIs(String name);
+
+  /// Ending bell: wheel for minutes of silence after the recording, before the bell
+  ///
+  /// In en, this message translates to:
+  /// **'Silence after the audio'**
+  String get extendEndLabel;
+
+  /// Caption above the Silence after the audio wheel
+  ///
+  /// In en, this message translates to:
+  /// **'Keep going in silence (with any background sound) after the audio ends, then ring the ending bell.'**
+  String get extendEndCaption;
+
+  /// Customize row: minutes added to a guided session, as if the recording were longer
+  ///
+  /// In en, this message translates to:
+  /// **'Extend'**
+  String get extendTitle;
+
+  /// Caption under Extend
+  ///
+  /// In en, this message translates to:
+  /// **'Make the session longer by this much, with silence, as if the recording were longer.'**
+  String get extendCaption;
 }
 
 class _AppLocalizationsDelegate

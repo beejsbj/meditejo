@@ -3049,4 +3049,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String homeMarkTodayIs(String name) {
     return 'Today\'s mark: $name';
   }
+
+  @override
+  String get extendEndLabel => 'Silence after the audio';
+
+  @override
+  String get extendEndCaption =>
+      'Keep going in silence (with any background sound) after the audio ends, then ring the ending bell.';
+
+  @override
+  String get extendTitle => 'Extend';
+
+  @override
+  String get extendCaption =>
+      'Make the session longer by this much, with silence, as if the recording were longer.';
 }

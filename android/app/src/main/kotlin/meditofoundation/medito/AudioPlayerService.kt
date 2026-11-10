@@ -92,11 +92,14 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
             if (!::cues.isInitialized || !cues.isHoldRunning()) return
             cues.toggleHold()
             if (::backgroundMusicPlayer.isInitialized) backgroundMusicPlayer.pause()
+            noteSessionRunningChanged()
             updateNotification()
+            sessionPlayer?.invalidate()
         }
     }
     private var completionPlaythroughIndex = 0
     private var primaryMediaSession: MediaSession? = null
+    private var sessionPlayer: SessionPlayer? = null
     private var meditoAudioApi: MeditoAudioServiceCallbackApi? = null
     private var isCompletionHandled = false
     private var hasAudioFocus = false
@@ -151,15 +154,16 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
                 if (!::primaryPlayer.isInitialized) return@withContext null
                 
                 sampleListeningFromPlayer()
-                // The countdown and the extension are part of the session: report it as running.
+                // The countdown and the silence are part of the session: report it as running.
                 val sessionRunning = primaryPlayer.isPlaying || (::cues.isInitialized && cues.isHoldRunning())
+                // A guided session reads as if the recording were longer by Extend.
                 PlaybackState(
                     isPlaying = sessionRunning,
-                    position = primaryPlayer.currentPosition,
+                    position = sessionPositionMs(),
                     volume = primaryPlayer.volume.toLong(),
                     speed = Speed(primaryPlayer.playbackParameters.speed.toDouble()),
                     isBuffering = primaryPlayer.playbackState == Player.STATE_BUFFERING,
-                    duration = primaryPlayer.duration,
+                    duration = sessionDurationMs(),
                     isSeeking = primaryPlayer.playbackState == Player.STATE_BUFFERING,
                     isCompleted = false, // Completion is emitted by the native listener.
                     track = trackFromCurrentMediaItem()
@@ -216,8 +220,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
 
         // Fall back to the playhead if ExoPlayer never resolved a duration —
         // position must stay > 5s or PlayerView's end-screen guard rejects it.
-        val duration = primaryPlayer.duration.takeIf { it != C.TIME_UNSET }
-            ?: primaryPlayer.currentPosition
+        val duration = sessionDurationMs().takeIf { it != C.TIME_UNSET && it > 0 }
+            ?: sessionPositionMs()
         val state = PlaybackState(
             isPlaying = false,
             position = duration,
@@ -267,9 +271,35 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     )
 
     private fun currentDurationMs(): Long {
+        if (extendsTimeline()) return cues.durationMs()
         val fromPlayer = if (::primaryPlayer.isInitialized) primaryPlayer.duration else C.TIME_UNSET
         val fallback = if (::cues.isInitialized) cues.config?.durationMs ?: 0L else 0L
         return fromPlayer.takeIf { it != C.TIME_UNSET && it > 0 } ?: fallback
+    }
+
+    /**
+     * A guided session reads as if the recording were longer by Extend (see
+     * [ExtendedTimeline]): its position and length, for Dart, the lock screen
+     * and completion. Anything else reads as the player.
+     */
+    private fun extendsTimeline(): Boolean = ::cues.isInitialized && cues.extendsTimeline
+
+    private fun sessionPositionMs(): Long =
+        if (extendsTimeline()) cues.positionMs() else primaryPlayer.currentPosition
+
+    private fun sessionDurationMs(): Long =
+        if (extendsTimeline()) cues.durationMs() else primaryPlayer.duration
+
+    private fun sessionRunning(): Boolean =
+        primaryPlayer.isPlaying || (::cues.isInitialized && cues.isHoldRunning())
+
+    /** Listening follows the session: a hold or the tail walked through counts like the voice. */
+    private fun noteSessionRunningChanged(speed: Double = sessionStepSpeed()) {
+        listening.sample(sessionPositionMs(), true, speed)
+        if (!sessionRunning()) {
+            listening.markNotPlaying()
+            persistListening(force = true)
+        }
     }
 
     // Records one finished play-through. The first one that earns it is the
@@ -311,9 +341,16 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     private fun playbackSpeed(): Double =
         if (::primaryPlayer.isInitialized) primaryPlayer.playbackParameters.speed.toDouble() else 1.0
 
+    /**
+     * The speed the session position is moving at: the voice's, or 1x through
+     * silence (a hold or the tail), which no playback speed shortens.
+     */
+    private fun sessionStepSpeed(): Double =
+        if (extendsTimeline() && cues.isSilent) 1.0 else playbackSpeed()
+
     private fun sampleListeningFromPlayer() {
         if (!::primaryPlayer.isInitialized) return
-        listening.sample(primaryPlayer.currentPosition, primaryPlayer.isPlaying, playbackSpeed())
+        listening.sample(sessionPositionMs(), sessionRunning(), sessionStepSpeed())
         persistListening()
     }
 
@@ -391,7 +428,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     // was one. The end bell is already ringing; the service lives until it is done.
     private fun finalizeSession(extensionFinished: Boolean, tailMs: Long) {
         stopPositionUpdates()
-        listening.sample(currentDurationMs(), true, playbackSpeed())
+        // The last step was the tail's silence when there was one, at 1x.
+        listening.sample(currentDurationMs(), true, if (extensionFinished && extendsTimeline()) 1.0 else playbackSpeed())
         recordPlaythroughFromPlayer(extensionFinished)
         persistListening(force = true)
         // The true end is always terminal for the player, whether or not the
@@ -425,6 +463,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         val duration = primaryPlayer.duration.takeIf { it != C.TIME_UNSET } ?: 0L
         return CompletionData(
             trackId = mediaItem?.mediaId ?: "",
+            // The recording's own length; Extend is in the real time beside it.
             duration = duration,
             fileId = metadata?.extras?.getString(KEY_FILE_ID) ?: "",
             guideId = metadata?.artist?.toString(),
@@ -540,7 +579,21 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     }
 
     private fun createMediaSession(): MediaSession {
-        return MediaSession.Builder(this, primaryPlayer)
+        // The lock screen, notification and headset see the session as Dart
+        // does: as if the recording were longer by Extend, playing through its silence.
+        val player = SessionPlayer(primaryPlayer, object : SessionPlayer.Session {
+            override fun extends(): Boolean = extendsTimeline()
+            override fun positionMs(): Long = cues.positionMs()
+            override fun durationMs(): Long = cues.durationMs()
+            override fun running(): Boolean = sessionRunning()
+            // The countdown, like silence, runs while the voice waits.
+            override fun silent(): Boolean = cues.isSilent || cues.phase == CueEngine.Phase.COUNTDOWN
+            override fun setRunning(run: Boolean) { if (run != sessionRunning()) playPauseAudio() }
+            override fun seekTo(positionMs: Long) = seekSession(positionMs)
+            override fun seekBy(deltaMs: Long) = this@AudioPlayerService.seekBy(deltaMs)
+        })
+        sessionPlayer = player
+        return MediaSession.Builder(this, player)
             .setId("MeditoAudioSession_${System.currentTimeMillis()}")
             .build()
     }
@@ -585,6 +638,10 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
                                     )
                                     playBackgroundSound()
                                 }
+                            } else if (::cues.isInitialized && cues.isSilent) {
+                                // A hold or the tail stops the voice, not the session: the
+                                // focus and the background sound stay.
+                                Log.d(TAG, "🔊 Voice held for a pause: keeping focus and background")
                             } else {
                                 Log.d(
                                     TAG,
@@ -627,6 +684,19 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
                 override fun onSessionEnded(extensionFinished: Boolean, tailMs: Long) {
                     isCompletionHandled = true
                     finalizeSession(extensionFinished, tailMs)
+                    // The tail ran out with the voice already ended: no player event says so.
+                    sessionPlayer?.invalidate()
+                }
+
+                override fun holdNarration() {
+                    persistListening(force = true)
+                    primaryPlayer.pause()
+                    updateNotification()
+                }
+
+                override fun resumeNarration() {
+                    primaryPlayer.play()
+                    updateNotification()
                 }
             })
             instance = this
@@ -808,27 +878,26 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         newPosition: Player.PositionInfo,
         reason: Int,
     ) {
-        when (reason) {
-            Player.DISCONTINUITY_REASON_SEEK, Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT -> {
-                if (isCompletionHandled) isCompletionHandled = false
-                listening.sample(oldPosition.positionMs, true, playbackSpeed())
-                listening.rebase(newPosition.positionMs)
-            }
-            Player.DISCONTINUITY_REASON_AUTO_TRANSITION -> {
-                listening.sample(oldPosition.positionMs, true, playbackSpeed())
-                listening.rebase(newPosition.positionMs)
-            }
+        val seek = reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT
+        if (!seek && reason != Player.DISCONTINUITY_REASON_AUTO_TRANSITION) return
+        if (seek && isCompletionHandled) isCompletionHandled = false
+        // The engine heard the seek first (it listens before the service), so
+        // the session position already says where it landed. Before the seek,
+        // [seekSession] sampled what was walked through.
+        if (extendsTimeline()) {
+            listening.rebase(sessionPositionMs())
+            return
         }
+        listening.sample(oldPosition.positionMs, true, playbackSpeed())
+        listening.rebase(newPosition.positionMs)
     }
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
         if (!::primaryPlayer.isInitialized) return
-        if (isPlaying) listening.rebase(primaryPlayer.currentPosition)
-        else {
-            listening.sample(primaryPlayer.currentPosition, true, playbackSpeed())
-            listening.markNotPlaying()
-            persistListening(force = true)
-        }
+        // The voice stopping for a hold does not stop the session. What was
+        // walked through up to here was the voice, at its speed.
+        if (isPlaying) listening.rebase(sessionPositionMs())
+        else noteSessionRunningChanged(playbackSpeed())
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -1373,8 +1442,31 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         }
     }
 
-    override fun seekToPosition(position: Long) {
+    override fun seekToPosition(position: Long) = seekSession(position)
+
+    /**
+     * Seeks the session: on the extended timeline for a guided session (into
+     * the voice, a hold or the tail), on the player otherwise.
+     */
+    private fun seekSession(position: Long) {
         isCompletionHandled = false
+        if (extendsTimeline()) {
+            // What was walked through up to here counts before the jump.
+            listening.sample(sessionPositionMs(), sessionRunning(), sessionStepSpeed())
+            if (cues.seekTo(position)) {
+                listening.rebase(sessionPositionMs())
+                // A seek into the tail before the voice was ever ready ends it
+                // without passing READY, which is what starts these.
+                startPositionUpdates()
+                updateNotification()
+                // A seek within a hold or the tail moves no player event.
+                sessionPlayer?.invalidate()
+                return
+            }
+            // A position on the extended timeline is not one the voice has:
+            // with no session to place it in (it has ended), nothing moves.
+            return
+        }
         primaryPlayer.seekTo(position)
     }
 
@@ -1393,16 +1485,16 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     private fun seekBy(deltaMs: Long) {
         if (!::primaryPlayer.isInitialized) return
 
-        val currentPosition = primaryPlayer.currentPosition
+        val currentPosition = sessionPositionMs()
         val targetPosition = if (deltaMs > 0) {
-            val duration = primaryPlayer.duration
+            val duration = sessionDurationMs()
             if (duration == C.TIME_UNSET) return
             minOf(currentPosition + deltaMs, duration)
         } else {
             maxOf(currentPosition + deltaMs, 0L)
         }
 
-        primaryPlayer.seekTo(targetPosition)
+        seekSession(targetPosition)
     }
 
     override fun setRepeatMode(mode: RepeatMode) {
@@ -1456,13 +1548,18 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
                 return
             }
 
-            // The countdown and the extension have no player to pause: hold their clock.
+            // The countdown and the silence have no player to pause: hold their clock.
             if (cues.toggleHold()) {
+                // Paused, then sent into silence, the voice gave up focus: take it back.
+                if (cues.isHoldRunning()) requestAudioFocus()
                 if (::backgroundMusicPlayer.isInitialized) {
                     if (cues.isHoldRunning()) {
                         if (backgroundSoundUri != null) backgroundMusicPlayer.play()
                     } else backgroundMusicPlayer.pause()
                 }
+                noteSessionRunningChanged()
+                updateNotification()
+                sessionPlayer?.invalidate()
                 return
             }
             isCompletionHandled = false
@@ -1633,6 +1730,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         if (!::primaryPlayer.isInitialized || !::backgroundMusicPlayer.isInitialized) {
             return
         }
+        // The voice is stopped for a hold or the tail; the background sound plays through it.
+        if (::cues.isInitialized && cues.isSilent) return
 
         try {
             // If primary is playing, ensure background is playing too

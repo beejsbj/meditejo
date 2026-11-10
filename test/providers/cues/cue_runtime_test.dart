@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/providers/cues/cue_runtime_provider.dart';
 
@@ -32,5 +33,31 @@ void main() {
     expect(poll(foreground: false, phase: 'countdown'), isFalse);
     expect(poll(foreground: false, phase: 'extension'), isFalse);
     expect(poll(foreground: false, voiceAtEnd: true), isFalse);
+  });
+
+  test(
+    'silence inside the recording needs no polling: the position runs through it',
+    () {
+      expect(poll(phase: 'hold'), isFalse);
+    },
+  );
+
+  test('the native map fills the phase and the tail left', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(cueRuntimeProvider.notifier).updateFromMap({
+      'phase': 'hold',
+      'holdRemainingMs': 30000,
+      'extensionRemainingMs': 120000,
+      'paused': true,
+    });
+    final state = container.read(cueRuntimeProvider);
+    expect(state.phase, 'hold');
+    expect(state.extensionMs, 120000);
+    expect(state.paused, isTrue);
+    container.read(cueRuntimeProvider.notifier).updateFromMap({
+      'phase': 'idle',
+    });
+    expect(container.read(cueRuntimeProvider).extensionMs, 0);
   });
 }

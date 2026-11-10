@@ -3092,4 +3092,18 @@ class AppLocalizationsEs extends AppLocalizations {
   String homeMarkTodayIs(String name) {
     return 'Símbolo del día: $name';
   }
+
+  @override
+  String get extendEndLabel => 'Silencio después del audio';
+
+  @override
+  String get extendEndCaption =>
+      'Sigue en silencio (con el sonido de fondo, si lo hay) cuando termina el audio, y luego suena la campana final.';
+
+  @override
+  String get extendTitle => 'Extender';
+
+  @override
+  String get extendCaption =>
+      'Alarga la sesión este tiempo, con silencio, como si la grabación fuera más larga.';
 }

@@ -32,6 +32,22 @@ class IosAudioHandler extends BaseAudioHandler {
   bool _nativeNeedsBegin = false;
   bool _nativeCountdown = false;
   bool _nativeExtending = false;
+
+  /// All of this session's added silence (Extend and the Ending bell's), for
+  /// the player's length; 0 for a timer or without native cues.
+  int get extensionMs => _extensionMs;
+  int _extensionMs = 0;
+
+  /// A Customize edit mid-session: the player's length follows it.
+  void updateExtension(CueSettings settings, PlaybackRequest request) {
+    if (!_nativeCues) return;
+    _extensionMs = _isTimer ? 0 : settings.extraMinutes * 60000;
+  }
+
+  /// What the silence after the recording has left while it runs; null otherwise.
+  int? get extensionRemainingMs =>
+      _nativeExtending ? _lastExtensionRemainingMs : null;
+  int? _lastExtensionRemainingMs;
   bool _nativeHoldPaused = false;
   // A hold paused by an interruption, to resume when it ends.
   bool _interruptedHold = false;
@@ -220,6 +236,7 @@ class IosAudioHandler extends BaseAudioHandler {
         if (_nativeCues) {
           await _reportNativeTransport();
           _nativeExtending = true;
+          _lastExtensionRemainingMs = _extensionMs;
           _nativeHoldPaused = false;
           _sessionCompleted.add(false);
           await NativeCueController.channel.invokeMethod<void>('voiceEnded');
@@ -673,6 +690,8 @@ class IosAudioHandler extends BaseAudioHandler {
     _thresholdRecorded = false;
     _completionPlaythroughIndex = 0;
     _isTimer = request.trackId.startsWith('timer-');
+    _extensionMs = _isTimer ? 0 : settings.extraMinutes * 60000;
+    _lastExtensionRemainingMs = null;
     NativeCueController.channel.setMethodCallHandler((call) async {
       if (!_nativeCues) return;
       if (call.method == 'countdownFinished') {
@@ -767,11 +786,13 @@ class IosAudioHandler extends BaseAudioHandler {
         return;
       }
       if (!_nativeExtending || generation != _cueGeneration) return;
+      _lastExtensionRemainingMs = remaining;
       _extensionRemaining.add(remaining);
+      // Once a second at least: the player's position runs on through it.
       final waitMs = _nativeHoldPaused
           ? 1000
           : remaining > 15000
-          ? 5000
+          ? 1000
           : remaining > 10200
           ? remaining - 10000
           : 200;

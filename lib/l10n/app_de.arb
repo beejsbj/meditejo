@@ -1340,5 +1340,9 @@
   "trackShowMore": "Mehr anzeigen",
   "trackShowLess": "Weniger anzeigen",
   "homeMarkName": "{type, select, doorway{Tür} cushion{Kissen} horizon{Horizont} hearth{Feuerstelle} path{Heimweg} shelter{Zuflucht} window{Fenster} step{Schwelle} loops{Schleifen} enso{Ensō} wave{Atemwelle} split{Geteilte Sonne} arch{Bogen} pebble{Kiesel und Bindu} crescent{Sichel} vesica{Vesica} cairn{Steinmann} clearing{Lichtung} dawn{Morgen über dem Wasser} ridges{Hügel im Nebel} moonpool{Mondteich} doorlight{Erleuchtete Tür} halo{Halo} shoreline{Uferlinie} other{Zeichen des Tages}}",
-  "homeMarkTodayIs": "Zeichen des Tages: {name}"
+  "homeMarkTodayIs": "Zeichen des Tages: {name}",
+  "extendEndLabel": "Stille nach der Aufnahme",
+  "extendEndCaption": "Nach dem Ende der Aufnahme in Stille weitermachen (mit Hintergrundklang, falls an), dann läutet die Abschlussglocke.",
+  "extendTitle": "Verlängern",
+  "extendCaption": "Verlängert die Sitzung um so viel, mit Stille, als wäre die Aufnahme länger."
 }

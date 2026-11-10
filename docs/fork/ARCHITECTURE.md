@@ -854,6 +854,27 @@ bell volume; a folded row's play button rings the chosen bell; folding the
 list or closing the sheet stops it. `CueBellCatalogueTest` (Kotlin)
 reads the Dart catalogue, so the native side and the list cannot drift.
 
+**Extend, as if the recording were longer.** `CueSettings.extendMinutes`
+(Extend) and `endSilenceMinutes` (the Ending bell's own silence) make a guided
+session longer; the engines get their sum as one extension. On Android,
+Extend's silence goes into the guide's own pauses where it can: `MediaSpanMap`
+(`lib/models/pauses/media_spans.dart`) is the per-recording store of time
+ranges with a kind (silence today; section markers can add kinds);
+`PauseMapService` reads a recording once through `meditejo/pauses`
+(`PauseMapAnalyzer.kt` decodes with MediaCodec, `SilenceDetector.kt` finds the
+quiet from the file's own floor), keeps the result as JSON, and
+`distributeExtension` (pure Dart) turns it into holds. `PlayerProvider` sends
+the holds in the cue configuration and again when a map arrives mid-session.
+Natively, `ExtendedTimeline` (pure, JVM-tested) lays the holds and the tail
+after the recording into one timeline whose length is recording + silence,
+and maps it to and from media positions; `CueEngine` plays it (its `HOLD`
+phase pauses the voice at a pause, `EXTENSION` is the tail) and answers
+`positionMs`, `durationMs` and `seekTo`. `AudioPlayerService` reports that
+timeline to Dart and samples listening on it, and the media session wraps the
+player in `SessionPlayer` (a `ForwardingPlayer`) so the lock screen, the
+notification and a headset see the same session. iOS has no holds; Dart maps
+its tail onto the same shape (`extendedIosPlayback`). See DECISIONS, "BJS-583".
+
 `NativeCueController` sends plain configuration over `meditejo/cues`.
 Android's `CueEngine` lives in `AudioPlayerService`, with predecoded SoundPool
 assets and pure scheduling/listening maths in `CueMath.kt`. It follows media

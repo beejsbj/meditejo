@@ -26,6 +26,12 @@ import 'package:medito/widgets/inputs/wheel_picker.dart';
 /// When a session started or running now will end. While playing
 /// ([positionMs] > 0) the countdown has already been spent, and a timer's
 /// length is simply what remains of its generated file.
+///
+/// A guided session reads as if the recording were longer by its silence:
+/// [positionMs] and [sessionDurationMs] are on that timeline (the player
+/// reports them so). Of what remains, the voice plays at [speed] and the
+/// silence takes as long as it takes: [silenceLeftMs] when the native clock
+/// says (the tail under way), otherwise all of it is taken to be ahead.
 DateTime customizeFinishesAt(
   DateTime now,
   CueSettings settings, {
@@ -35,33 +41,38 @@ DateTime customizeFinishesAt(
   double speed = 1,
   int? timerMinutes,
   bool isActive = false,
-  int? extensionRemainingMs,
+  int? sessionDurationMs,
   int? countdownRemainingMs,
+  int? silenceLeftMs,
 }) {
-  if (extensionRemainingMs != null) {
-    return now.add(Duration(milliseconds: extensionRemainingMs));
-  }
   final active = isActive || positionMs > 0;
-  final remaining = Duration(
-    milliseconds: (audioDurationMs - positionMs).clamp(0, 1 << 40),
-  );
   var end = now;
   if (!active) end = end.add(Duration(seconds: settings.countdownSeconds));
   if (active && countdownRemainingMs != null) {
     end = end.add(Duration(milliseconds: countdownRemainingMs));
   }
   if (isTimer) {
-    end = end.add(
+    final remaining = (audioDurationMs - positionMs).clamp(0, 1 << 40);
+    return end.add(
       active
-          ? remaining
+          ? Duration(milliseconds: remaining)
           : Duration(minutes: timerMinutes ?? settings.durationMinutes),
     );
-  } else {
-    end = end
-        .add(Duration(microseconds: (remaining.inMicroseconds / speed).round()))
-        .add(Duration(minutes: settings.extendMinutes));
   }
-  return end;
+  final silenceMs = settings.extraMinutes * 60000;
+  // A session that does not read as extended (a repeat) reports the bare
+  // recording: its silence still comes, after the last pass.
+  final total = math.max(sessionDurationMs ?? 0, audioDurationMs + silenceMs);
+  final remaining = active
+      ? (total - positionMs).clamp(0, 1 << 40)
+      : audioDurationMs + silenceMs;
+  final silence = active
+      ? (silenceLeftMs ?? silenceMs).clamp(0, remaining)
+      : silenceMs;
+  final voice = remaining - silence;
+  return end
+      .add(Duration(microseconds: (voice * 1000 / speed).round()))
+      .add(Duration(milliseconds: silence));
 }
 
 /// Opens the Customize sheet for [request]. With [beforeStart] the sheet has a
@@ -86,6 +97,7 @@ Future<bool> showCustomizeSheet(
     builder: (sheetContext) => Consumer(
       builder: (context, ref, _) {
         var positionMs = 0;
+        var sessionDurationMs = 0;
         // Before the start, the speed the session will start at.
         var speed = sessionPlaybackSpeed(
           (kind) => ref.watch(playbackSpeedProvider(kind)),
@@ -98,6 +110,10 @@ Future<bool> showCustomizeSheet(
               ref.watch(audioStateProvider.select((s) => s.position ~/ 1000)) *
               1000;
           speed = ref.watch(audioStateProvider.select((s) => s.speed.speed));
+          // The session's length: the recording and its Extend.
+          sessionDurationMs = ref.watch(
+            audioStateProvider.select((s) => s.duration),
+          );
         }
         final runtime = ref.watch(
           cueRuntimeProvider.select(
@@ -107,7 +123,8 @@ Future<bool> showCustomizeSheet(
         return CustomizeSheet(
           scope: scope,
           isActive: !beforeStart,
-          extensionRemainingMs: !beforeStart && runtime.$1 == 'extension'
+          sessionDurationMs: sessionDurationMs,
+          silenceLeftMs: !beforeStart && runtime.$1 == 'extension'
               ? runtime.$3 * 1000
               : null,
           countdownRemainingMs: !beforeStart && runtime.$1 == 'countdown'
@@ -242,7 +259,8 @@ class CustomizeSheet extends ConsumerStatefulWidget {
     this.timerMinutes,
     this.clock = DateTime.now,
     this.isActive = false,
-    this.extensionRemainingMs,
+    this.sessionDurationMs = 0,
+    this.silenceLeftMs,
     this.countdownRemainingMs,
   });
 
@@ -252,7 +270,15 @@ class CustomizeSheet extends ConsumerStatefulWidget {
   final int positionMs;
   final double speed;
   final bool isActive;
-  final int? extensionRemainingMs, countdownRemainingMs;
+  final int? countdownRemainingMs;
+
+  /// The session's length as the player reports it (the recording and its
+  /// Extend); 0 before it has said.
+  final int sessionDurationMs;
+
+  /// Silence still to come by the native clock (the tail under way); null
+  /// takes all of it to be ahead.
+  final int? silenceLeftMs;
 
   /// Shows a Start button; pressing it hands control back to the caller.
   final VoidCallback? onStart;
@@ -509,6 +535,9 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   bool get _canSetDuration =>
       widget.isTimer && widget.timerMinutes == null && widget.onStart != null;
 
+  /// Extend makes a recording's session longer; a timer just runs longer.
+  bool get _canExtend => !widget.isTimer;
+
   AppLocalizations get _l10n =>
       AppLocalizations.of(context) ??
       lookupAppLocalizations(const Locale('en'));
@@ -690,8 +719,8 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
       : CueSettings.defaults(_scope.kind);
 
   /// The tile for [slot]: its name, its value at a glance, filled when it
-  /// differs from the defaults. Length is shown, not set, where the
-  /// recording or the screen owns it.
+  /// differs from the defaults. A recording's Length is its own; its tile
+  /// opens Extend. Where the screen owns the length it is shown, not set.
   Widget _tile(_Slot slot, CueSettings s, CueSettings reference) {
     final l10n = _l10n;
     final scheme = Theme.of(context).colorScheme;
@@ -726,8 +755,10 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         icon(Icons.timer_outlined),
         _lengthValue(s),
         _lengthDetail(s),
-        _canSetDuration && s.durationMinutes != reference.durationMinutes,
-        _canSetDuration,
+        _canSetDuration
+            ? s.durationMinutes != reference.durationMinutes
+            : _canExtend && s.extendMinutes != reference.extendMinutes,
+        _canSetDuration || _canExtend,
       ),
     };
     return KeyedSubtree(
@@ -763,7 +794,11 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     _Slot.sound => const SizedBox.shrink(),
     _Slot.bells => _bellsSection(s),
     _Slot.rhythm => _Section(children: [_Inset(_pulseEditor(s))]),
-    _Slot.length => _Section(children: [_Inset(_durationWheel(s))]),
+    _Slot.length => _Section(
+      children: [
+        _Inset(_canSetDuration ? _durationWheel(s) : _extendEditor(s)),
+      ],
+    ),
   };
 
   /// Each bell with what belongs to it: the countdown before the starting
@@ -815,38 +850,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         apply: (v) => s.copyWith(endSound: v),
         // A timer's length is its own: silence after it is just a longer
         // timer.
-        above: widget.isTimer
-            ? null
-            : Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const _Caption(
-                      'Keep going in silence (with any background sound) '
-                      'after the audio ends, then ring the ending bell.',
-                    ),
-                    _WheelRow([
-                      _wheel<int>(
-                        label: 'Extra minutes',
-                        options: [
-                          const WheelOption(0, 'Off'),
-                          for (var m = 1; m <= 60; m++)
-                            WheelOption(
-                              m,
-                              '+$m min',
-                              semanticsLabel: _spokenMinutes(m),
-                            ),
-                        ],
-                        value: s.extendMinutes,
-                        parse: _range(0, 60),
-                        hint: '0 to 60 minutes',
-                        apply: (v) => s.copyWith(extendMinutes: v),
-                      ),
-                    ]),
-                  ],
-                ),
-              ),
+        above: widget.isTimer ? null : _endSilence(s),
       ),
       _SliderRow(
         icon: Icons.volume_up_outlined,
@@ -990,6 +994,56 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         ),
       ],
     ),
+  );
+
+  /// Off, then +1 to +60 minutes: Extend, and the Ending bell's silence.
+  List<WheelOption<int>> get _extraMinuteOptions => [
+    const WheelOption(0, 'Off'),
+    for (var m = 1; m <= 60; m++)
+      WheelOption(m, '+$m min', semanticsLabel: _spokenMinutes(m)),
+  ];
+
+  /// The silence after the recording, before the ending bell: part of the
+  /// Ending bell, as #72 groups it. Its own setting, apart from Extend.
+  Widget _endSilence(CueSettings s) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _Caption(_l10n.extendEndCaption),
+        _WheelRow([
+          _wheel<int>(
+            label: _l10n.extendEndLabel,
+            options: _extraMinuteOptions,
+            value: s.endSilenceMinutes,
+            parse: _range(0, 60),
+            hint: '0 to 60 minutes',
+            apply: (v) => s.copyWith(endSilenceMinutes: v),
+          ),
+        ]),
+      ],
+    ),
+  );
+
+  /// Extend: the session reads as if the recording were longer. How it is
+  /// spent (the guide's pauses first, then after the recording) is not the
+  /// listener's concern.
+  Widget _extendEditor(CueSettings s) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _Caption(_l10n.extendCaption),
+      _WheelRow([
+        _wheel<int>(
+          label: _l10n.extendTitle,
+          showLabel: false,
+          options: _extraMinuteOptions,
+          value: s.extendMinutes,
+          parse: _range(0, 60),
+          hint: '0 to 60 minutes',
+          apply: (v) => s.copyWith(extendMinutes: v),
+        ),
+      ]),
+    ],
   );
 
   /// How often the interval bell rings: off, halfway, or every N minutes
@@ -1138,8 +1192,9 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
       speed: widget.speed,
       timerMinutes: widget.timerMinutes,
       isActive: widget.isActive,
-      extensionRemainingMs: widget.extensionRemainingMs,
+      sessionDurationMs: widget.sessionDurationMs,
       countdownRemainingMs: widget.countdownRemainingMs,
+      silenceLeftMs: widget.silenceLeftMs,
     );
     final time = MaterialLocalizations.of(context).formatTimeOfDay(
       TimeOfDay.fromDateTime(end),
@@ -1254,9 +1309,9 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   /// The ending bell, after its silence when there is one.
   String _endValue(CueSettings s) {
     final bell = _bellName(s.endSound);
-    return widget.isTimer || s.extendMinutes == 0
+    return widget.isTimer || s.endSilenceMinutes == 0
         ? bell
-        : _l10n.customizeSilenceThenBell(s.extendMinutes, bell);
+        : _l10n.customizeSilenceThenBell(s.endSilenceMinutes, bell);
   }
 
   /// The Bells tile: the first bell heard, by name.
@@ -1292,7 +1347,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     s.startSound,
     s.endSound,
     s.countdownSeconds,
-    widget.isTimer ? 0 : s.extendMinutes,
+    widget.isTimer ? 0 : s.endSilenceMinutes,
     s.bellVolume,
     !s.hasIntervalBell
         ? null
@@ -1343,7 +1398,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
         );
 
   /// The Length tile: the timer's length, or the recording's, which the
-  /// sheet shows but does not set.
+  /// sheet shows but does not set (Extend adds to it, on the second line).
   String _lengthValue(CueSettings s) {
     final audioMinutes = math.max(1, (widget.audioDurationMs / 60000).round());
     if (_canSetDuration) return _minutes(s.durationMinutes);
@@ -1361,9 +1416,13 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   }
 
   String? _lengthDetail(CueSettings s) {
-    if (widget.isTimer || widget.audioDurationMs <= 0) return null;
-    return s.extendMinutes > 0
-        ? _l10n.customizeLengthPlusSilence(s.extendMinutes)
+    if (widget.isTimer) return null;
+    // Extend and the ending bell's silence: the session is this much longer.
+    if (s.extraMinutes > 0) {
+      return _l10n.customizeLengthPlusSilence(s.extraMinutes);
+    }
+    return widget.audioDurationMs <= 0
+        ? null
         : _l10n.customizeLengthSetBySession;
   }
 

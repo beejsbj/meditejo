@@ -3490,5 +3490,21 @@
         "type": "String"
       }
     }
+  },
+  "extendEndLabel": "Silence after the audio",
+  "@extendEndLabel": {
+    "description": "Ending bell: wheel for minutes of silence after the recording, before the bell"
+  },
+  "extendEndCaption": "Keep going in silence (with any background sound) after the audio ends, then ring the ending bell.",
+  "@extendEndCaption": {
+    "description": "Caption above the Silence after the audio wheel"
+  },
+  "extendTitle": "Extend",
+  "@extendTitle": {
+    "description": "Customize row: minutes added to a guided session, as if the recording were longer"
+  },
+  "extendCaption": "Make the session longer by this much, with silence, as if the recording were longer.",
+  "@extendCaption": {
+    "description": "Caption under Extend"
   }
 }
