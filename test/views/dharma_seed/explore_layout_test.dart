@@ -50,7 +50,13 @@ void main() {
     }
     // The library strip says what each is; the course cards offer Add.
     expect(find.text('Playlist'), findsOneWidget);
-    expect(find.text('Dharma Seed'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('explore_library_strip')),
+        matching: find.text('Dharma Seed'),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey('add_to_library_ds-retreat-100')),
       findsOneWidget,

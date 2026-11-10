@@ -1020,7 +1020,7 @@
   "youtubeChannelNoAbout": "Keine Kanalbeschreibung auf YouTube.",
   "youtubePlaylistEmpty": "Die Sitzungen sind noch nicht auf diesem Gerät gespeichert. Wir versuchen es gleich erneut",
   "navLibrary": "Bibliothek",
-  "exploreSearchHint": "Bibliothek und Dharma Seed durchsuchen",
+  "exploreSearchHint": "Bibliothek und Kataloge durchsuchen",
   "homeShortcutsTitle": "Kurzbefehle",
   "homePinnedTitle": "Angeheftet",
   "homeCustomize": "Anpassen",
@@ -1352,5 +1352,7 @@
   "trackShowMore": "Mehr anzeigen",
   "trackShowLess": "Weniger anzeigen",
   "homeMarkName": "{type, select, doorway{Tür} cushion{Kissen} horizon{Horizont} hearth{Feuerstelle} path{Heimweg} shelter{Zuflucht} window{Fenster} step{Schwelle} loops{Schleifen} enso{Ensō} wave{Atemwelle} split{Geteilte Sonne} arch{Bogen} pebble{Kiesel und Bindu} crescent{Sichel} vesica{Vesica} cairn{Steinmann} clearing{Lichtung} dawn{Morgen über dem Wasser} ridges{Hügel im Nebel} moonpool{Mondteich} doorlight{Erleuchtete Tür} halo{Halo} shoreline{Uferlinie} other{Zeichen des Tages}}",
-  "homeMarkTodayIs": "Zeichen des Tages: {name}"
+  "homeMarkTodayIs": "Zeichen des Tages: {name}",
+  "teacherArchive": "Archiv",
+  "teacherLatestTalks": "Neueste Vorträge"
 }

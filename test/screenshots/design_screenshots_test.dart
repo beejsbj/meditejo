@@ -21,6 +21,10 @@ import 'package:medito/services/identity/palettes.dart';
 import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/home/continue_provider.dart';
+import 'package:medito/services/dhammatalks/dhammatalks_catalogue.dart';
+import 'package:medito/services/dhammatalks/dhammatalks_ids.dart';
+import 'package:medito/views/teacher/teacher_view.dart';
+import 'package:medito/services/dhammatalks/dhammatalks_source.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
 import 'package:medito/views/explore/widgets/explore_view.dart';
 import 'package:medito/providers/library/library_providers.dart';
@@ -61,7 +65,6 @@ import 'package:medito/services/library/import_models.dart';
 import 'package:medito/services/youtube/youtube_source.dart';
 import 'package:medito/src/youtube_api.g.dart';
 import 'package:medito/views/pack/pack_view.dart';
-import 'package:medito/views/teacher/teacher_view.dart';
 
 import 'package:medito/providers/stats/practice_summary_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
@@ -2617,6 +2620,81 @@ void main() {
         );
       }, skip: !_enabled);
     }
+
+    // Explore with both catalogues merged (the real bundled snapshot).
+    testWidgets('Explore with both catalogues, ${brightness.name}', (
+      tester,
+    ) async {
+      final app = await DharmaSeedTestApp.create(tester, seed: false);
+      await tester.runAsync(() async {
+        await _seedRealisticCatalogue(app.db);
+        await app.source.setSaved('ds-retreat-1084', saved: true);
+      });
+      final snapshot = DtCatalogue.fromJson(
+        DtCatalogue.decode(
+          File('assets/dhammatalks/catalogue.json.gz').readAsBytesSync(),
+        ),
+      );
+      await app.pump(
+        tester,
+        _frame(brightness, const ExploreView()),
+        dhammatalks: DhammatalksSource(
+          loadSnapshot: () async => snapshot,
+          library: app.library,
+        ),
+      );
+      await _phone(tester);
+      await DharmaSeedTestApp.settle(tester);
+      expect(tester.takeException(), isNull);
+      final name = 'explore-catalogues-${brightness.name}';
+      await _capture(tester, name);
+      tester.view.physicalSize = const Size(1080, 4400);
+      await DharmaSeedTestApp.settle(tester);
+      await _capture(tester, '$name-full');
+    }, skip: !_enabled);
+
+    // Thanissaro Bhikkhu's page with the real bundled snapshot: the archive
+    // as closed years, then one year open.
+    testWidgets('Thanissaro page with the archive, ${brightness.name}', (
+      tester,
+    ) async {
+      final app = await DharmaSeedTestApp.create(tester, seed: false);
+      final snapshot = DtCatalogue.fromJson(
+        DtCatalogue.decode(
+          File('assets/dhammatalks/catalogue.json.gz').readAsBytesSync(),
+        ),
+      );
+      await app.pump(
+        tester,
+        _frame(brightness, const TeacherView(teacherId: dtTeacherId)),
+        dhammatalks: DhammatalksSource(
+          loadSnapshot: () async => snapshot,
+          library: app.library,
+        ),
+      );
+      await _phone(tester);
+      await DharmaSeedTestApp.settle(tester);
+      expect(tester.takeException(), isNull);
+      tester.view.physicalSize = const Size(1080, 4400);
+      await DharmaSeedTestApp.settle(tester);
+      await _capture(tester, 'teacher-thanissaro-closed-${brightness.name}');
+      final year = find.byKey(
+        ValueKey(
+          'archive_${dtYearId(DtChannel.evening, snapshot.years(DtChannel.evening).first)}',
+        ),
+      );
+      await tester.scrollUntilVisible(
+        year,
+        400,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(year);
+      await tester.pump();
+      await tester.tap(year);
+      await DharmaSeedTestApp.settle(tester);
+      expect(tester.takeException(), isNull);
+      await _capture(tester, 'teacher-thanissaro-open-${brightness.name}');
+    }, skip: !_enabled);
 
     for (final (name, page) in [
       ('timer', const TimerView()),

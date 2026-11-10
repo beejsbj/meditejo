@@ -1955,7 +1955,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get navLibrary => 'Biblioteca';
 
   @override
-  String get exploreSearchHint => 'Buscar en tu biblioteca y en Dharma Seed';
+  String get exploreSearchHint => 'Buscar en tu biblioteca y catálogos';
 
   @override
   String get homeShortcutsTitle => 'Atajos';
@@ -3128,4 +3128,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String homeMarkTodayIs(String name) {
     return 'Símbolo del día: $name';
   }
+
+  @override
+  String get teacherArchive => 'Archivo';
+
+  @override
+  String get teacherLatestTalks => 'Últimas charlas';
 }

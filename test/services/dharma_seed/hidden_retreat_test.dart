@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/services/categories/category_catalogue.dart';
 import 'package:medito/services/categories/category_service.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
+import 'package:medito/models/catalogue/catalogue_models.dart';
 import 'package:medito/services/library/library_store.dart';
 
 import '../../helpers/dharma_seed_fake_api.dart';
@@ -62,7 +62,7 @@ void main() {
       (await ds.recentRetreats(limit: 100000)).map((r) => r.id),
       isNot(contains(hidden)),
     );
-    for (final group in [null, ...DsContentGroup.values]) {
+    for (final group in [null, ...ContentGroup.values]) {
       expect(
         (await ds.recentRetreatsOf(group, limit: 100000)).map((r) => r.id),
         isNot(contains(hidden)),

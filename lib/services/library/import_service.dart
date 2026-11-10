@@ -5,6 +5,9 @@ import 'dart:io';
 import 'package:medito/services/youtube/youtube_source.dart';
 
 import 'package:medito/models/attribution/source_attribution.dart';
+import 'package:medito/services/content/catalogue_source.dart';
+import 'package:medito/services/dhammatalks/dhammatalks_ids.dart';
+import 'package:medito/services/dhammatalks/dhammatalks_source.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
 import 'package:medito/services/library/feed_parser.dart';
 import 'package:medito/services/library/import_defaults.dart';
@@ -39,6 +42,7 @@ class ImportService {
     required this.storageDirectory,
     this.temporaryDirectories,
     this.dharmaSeed,
+    this.dhammatalks,
     this.youtube,
     this.durationProbe,
     DateTime Function()? clock,
@@ -48,6 +52,7 @@ class ImportService {
   final LibSource lib;
   final LibraryStore library;
   final DharmaSeedSource? dharmaSeed;
+  final DhammatalksSource? dhammatalks;
   final YoutubeSource? youtube;
 
   /// Where imported files are kept, created on demand.
@@ -85,7 +90,7 @@ class ImportService {
           return libEpisodeId(preview.feedUrl!, picked);
         }
         return preview.entryId;
-      case ImportOrigin.dharmaSeed:
+      case ImportOrigin.catalogue:
       case ImportOrigin.audioUrl:
       case ImportOrigin.localFiles:
         return preview.entryId;
@@ -99,6 +104,15 @@ class ImportService {
     final text = input.trim();
     if (text.isEmpty) throw const ImportFailure(ImportFailureReason.empty);
     final link = classifyLink(firstLinkIn(text) ?? text);
+    // A dhammatalks.org link names an item the app already holds.
+    final builtIn = dhammatalks;
+    if (builtIn != null &&
+        link.uri != null &&
+        (link.kind == ImportLinkKind.webAddress ||
+            link.kind == ImportLinkKind.audioFile)) {
+      final id = await builtIn.idForLink(link.uri!);
+      if (id != null) return _resolveCatalogue(builtIn, id, link.raw);
+    }
     switch (link.kind) {
       case ImportLinkKind.dharmaSeedRetreat:
       case ImportLinkKind.dharmaSeedTalk:
@@ -136,27 +150,37 @@ class ImportService {
     if (source == null) {
       throw ImportFailure(ImportFailureReason.unrecognised, link.raw);
     }
-    final id = dharmaSeedIdFor(link)!;
+    return _resolveCatalogue(source, dharmaSeedIdFor(link)!, link.raw);
+  }
+
+  /// A course, session or teacher of a built-in catalogue, previewed from what
+  /// the catalogue already holds.
+  Future<ImportPreview> _resolveCatalogue(
+    CatalogueSource source,
+    String id,
+    String raw,
+  ) async {
+    final missing = source is DharmaSeedSource
+        ? const ImportFailure(ImportFailureReason.dharmaSeedMissing)
+        : ImportFailure(ImportFailureReason.notFound, raw);
     try {
       final draft = await source.libraryDraft(id);
-      if (draft == null) {
-        throw const ImportFailure(ImportFailureReason.dharmaSeedMissing);
-      }
+      if (draft == null) throw missing;
       final inLibrary = await library.contains(id);
-      switch (link.kind) {
-        case ImportLinkKind.dharmaSeedRetreat:
+      switch (draft.kind) {
+        case LibraryKind.course:
           final pack = await source.pack(id);
           return ImportPreview(
-            origin: ImportOrigin.dharmaSeed,
+            origin: ImportOrigin.catalogue,
             entryId: id,
-            kind: ImportShape.dharmaSeedRetreat.defaultKind,
-            allowedKinds: ImportShape.dharmaSeedRetreat.allowedKinds,
+            kind: ImportShape.catalogueCourse.defaultKind,
+            allowedKinds: ImportShape.catalogueCourse.allowedKinds,
             group: draft.group,
             title: draft.title,
             subtitle: draft.subtitle,
             description: pack.description ?? '',
             artworkUrl: draft.coverUrl,
-            sourceLabel: 'Dharma Seed',
+            sourceLabel: source.name,
             itemCount: draft.itemCount,
             durationMs: draft.durationMs,
             durationComplete: draft.durationMs > 0,
@@ -167,28 +191,28 @@ class ImportService {
             attribution: pack.attribution,
             alreadyInLibrary: inLibrary,
           );
-        case ImportLinkKind.dharmaSeedTalk:
+        case LibraryKind.single:
           final track = await source.track(id);
           return ImportPreview(
-            origin: ImportOrigin.dharmaSeed,
+            origin: ImportOrigin.catalogue,
             entryId: id,
-            kind: ImportShape.dharmaSeedTalk.defaultKind,
-            allowedKinds: ImportShape.dharmaSeedTalk.allowedKinds,
+            kind: ImportShape.catalogueSingle.defaultKind,
+            allowedKinds: ImportShape.catalogueSingle.allowedKinds,
             group: draft.group,
             title: draft.title,
             subtitle: draft.subtitle,
             description: track.description,
             artworkUrl: draft.coverUrl,
-            sourceLabel: 'Dharma Seed',
+            sourceLabel: source.name,
             durationMs: draft.durationMs,
             durationComplete: draft.durationMs > 0,
             attribution: track.attribution,
             alreadyInLibrary: inLibrary,
           );
-        default:
+        case LibraryKind.teacher:
           final page = await source.teacherPage(id);
           return ImportPreview(
-            origin: ImportOrigin.dharmaSeed,
+            origin: ImportOrigin.catalogue,
             entryId: id,
             kind: LibraryKind.teacher,
             allowedKinds: const {LibraryKind.teacher},
@@ -197,7 +221,7 @@ class ImportService {
             subtitle: draft.subtitle,
             description: page.teacher.bio,
             artworkUrl: draft.coverUrl,
-            sourceLabel: 'Dharma Seed',
+            sourceLabel: source.name,
             itemCount: page.teacher.talkCount,
             durationComplete: false,
             firstItems: [
@@ -208,7 +232,7 @@ class ImportService {
           );
       }
     } on CatalogueEntryUnavailable {
-      throw const ImportFailure(ImportFailureReason.dharmaSeedMissing);
+      throw missing;
     }
   }
 
@@ -562,8 +586,8 @@ class ImportService {
     switch (preview.origin) {
       case ImportOrigin.youtube:
         return youtube!.add(preview, choice);
-      case ImportOrigin.dharmaSeed:
-        return _addDharmaSeed(preview, choice);
+      case ImportOrigin.catalogue:
+        return _addCatalogue(preview, choice);
       case ImportOrigin.feed:
         return kind == LibraryKind.course
             ? _addFeedCourse(preview, choice)
@@ -618,22 +642,21 @@ class ImportService {
     }
   }
 
-  Future<ImportResult> _addDharmaSeed(
+  Future<ImportResult> _addCatalogue(
     ImportPreview preview,
     ImportChoice choice,
   ) async {
-    final source = dharmaSeed!;
-    final draft = await source.libraryDraft(preview.entryId);
+    final id = preview.entryId;
+    final CatalogueSource? source = id.startsWith(dhammatalksPrefix)
+        ? dhammatalks
+        : dharmaSeed;
+    final draft = await source?.libraryDraft(id);
     if (draft == null) {
-      throw const ImportFailure(ImportFailureReason.dharmaSeedMissing);
+      throw source is DharmaSeedSource || source == null
+          ? const ImportFailure(ImportFailureReason.dharmaSeedMissing)
+          : ImportFailure(ImportFailureReason.notFound, id);
     }
-    return _finish(
-      preview.entryId,
-      preview.kind,
-      choice,
-      preview,
-      draft: draft,
-    );
+    return _finish(id, preview.kind, choice, preview, draft: draft);
   }
 
   Future<ImportResult> _addFeedCourse(

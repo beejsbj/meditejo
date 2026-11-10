@@ -1918,7 +1918,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navLibrary => 'Library';
 
   @override
-  String get exploreSearchHint => 'Search your library and Dharma Seed';
+  String get exploreSearchHint => 'Search your library and catalogues';
 
   @override
   String get homeShortcutsTitle => 'Shortcuts';
@@ -3085,4 +3085,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String homeMarkTodayIs(String name) {
     return 'Today\'s mark: $name';
   }
+
+  @override
+  String get teacherArchive => 'Archive';
+
+  @override
+  String get teacherLatestTalks => 'Latest talks';
 }

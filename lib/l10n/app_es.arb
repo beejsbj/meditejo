@@ -873,7 +873,7 @@
   "youtubeChannelNoAbout": "Sin descripción del canal en YouTube.",
   "youtubePlaylistEmpty": "Las sesiones aún no están guardadas en este dispositivo. Volveremos a intentarlo en breve",
   "navLibrary": "Biblioteca",
-  "exploreSearchHint": "Buscar en tu biblioteca y en Dharma Seed",
+  "exploreSearchHint": "Buscar en tu biblioteca y catálogos",
   "homeShortcutsTitle": "Atajos",
   "homePinnedTitle": "Fijados",
   "homeCustomize": "Personalizar",
@@ -1223,5 +1223,7 @@
   "trackShowMore": "Mostrar más",
   "trackShowLess": "Mostrar menos",
   "homeMarkName": "{type, select, doorway{Puerta} cushion{Cojín} horizon{Horizonte} hearth{Hogar} path{Camino a casa} shelter{Refugio} window{Ventana} step{Umbral} loops{Bucles} enso{Ensō} wave{Ola de respiración} split{Sol partido} arch{Arco} pebble{Guijarro y bindu} crescent{Creciente} vesica{Vesica} cairn{Mojón} clearing{Claro} dawn{Amanecer sobre el agua} ridges{Crestas en la niebla} moonpool{Estanque de luna} doorlight{Puerta iluminada} halo{Halo} shoreline{Orilla} other{Símbolo del día}}",
-  "homeMarkTodayIs": "Símbolo del día: {name}"
+  "homeMarkTodayIs": "Símbolo del día: {name}",
+  "teacherArchive": "Archivo",
+  "teacherLatestTalks": "Últimas charlas"
 }
