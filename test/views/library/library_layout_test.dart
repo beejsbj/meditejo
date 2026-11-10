@@ -130,7 +130,7 @@ Finder _visibleText(String text) => find.text(text, skipOffstage: false);
 
 void main() {
   group('the library tab', () {
-    testWidgets('sections by form: Playlists, Courses, Sessions, Teachers', (
+    testWidgets('sections by form: Sessions, Playlists, Courses, Teachers', (
       tester,
     ) async {
       final app = await _mixed(tester);
@@ -143,7 +143,7 @@ void main() {
 
       double top(Finder f) => tester.getTopLeft(f).dy;
       final sections = [
-        for (final name in ['playlists', 'courses', 'sessions', 'teachers'])
+        for (final name in ['sessions', 'playlists', 'courses', 'teachers'])
           find.byKey(ValueKey('library_section_$name'), skipOffstage: false),
       ];
       for (final section in sections) {
@@ -165,13 +165,13 @@ void main() {
         }
       }
 
-      under('Morning sits', 0);
-      under('Evening wind-down', 0);
-      under('Practising the Jhānas', 1);
-      under('Qualia Mastery', 1);
-      under('Developing Piti', 2);
-      under('On emptiness', 2);
-      under('Body scan', 2);
+      under('Developing Piti', 0);
+      under('On emptiness', 0);
+      under('Body scan', 0);
+      under('Morning sits', 1);
+      under('Evening wind-down', 1);
+      under('Practising the Jhānas', 2);
+      under('Qualia Mastery', 2);
       under('Rob Burbea', 3);
       // No kind sections and no In progress.
       expect(find.text('Practice', skipOffstage: false), findsNothing);
@@ -339,7 +339,8 @@ void main() {
       expect(find.text('In progress', skipOffstage: false), findsNothing);
       expect(
         find.byWidgetPredicate(
-          (w) => w.key is ValueKey<String> &&
+          (w) =>
+              w.key is ValueKey<String> &&
               (w.key! as ValueKey<String>).value.startsWith('in_progress'),
           skipOffstage: false,
         ),

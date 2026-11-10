@@ -35,14 +35,14 @@ enum LibraryFilter {
 /// How the Library is divided: by form, in this order (#80). Saved teachers
 /// follow, apart.
 enum LibraryForm {
+  /// Single sessions.
+  sessions,
+
   /// What the user made.
   playlists,
 
   /// Courses from a source: retreats, feeds, YouTube series.
   courses,
-
-  /// Single sessions.
-  sessions,
 }
 
 /// How the Library orders what it shows, within each section.
@@ -345,8 +345,8 @@ class LibraryShelf {
   bool get isEmpty => entries.isEmpty;
 }
 
-/// The library as the tab shows it under its current options: Playlists,
-/// Courses, Sessions (#80), each sorted, then saved teachers. A section
+/// The library as the tab shows it under its current options: Sessions,
+/// Playlists, Courses (#80), each sorted, then saved teachers. A section
 /// with nothing in it is left out.
 @immutable
 class LibraryArrangement {

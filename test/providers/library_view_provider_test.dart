@@ -49,33 +49,33 @@ void main() {
   ];
 
   group('arrangeLibrary', () {
-    test('All: Playlists, Courses, Sessions by form, then teachers', () {
+    test('All: Sessions, Playlists, Courses by form, then teachers', () {
       final a = arrangeLibrary(entries, const LibraryViewOptions());
       expect(a.shelves.map((s) => s.form), [
+        LibraryForm.sessions,
         LibraryForm.playlists,
         LibraryForm.courses,
-        LibraryForm.sessions,
       ]);
-      expect(_titles(a.shelves[0].entries), ['Morning sits']);
+      expect(_titles(a.shelves[0].entries), [
+        'A talk on metta',
+        'Evening recording',
+      ]);
+      expect(_titles(a.shelves[1].entries), ['Morning sits']);
       // Practice and talks side by side: no kind sections any more.
-      expect(_titles(a.shelves[1].entries), [
+      expect(_titles(a.shelves[2].entries), [
         'Jhāna retreat',
         'Body and breath',
         'Winter talks',
       ]);
-      expect(_titles(a.shelves[2].entries), [
-        'A talk on metta',
-        'Evening recording',
-      ]);
-      expect(a.shelves.map((s) => s.isCards), [true, true, false]);
+      expect(a.shelves.map((s) => s.isCards), [false, true, true]);
       expect(_titles(a.teachers), ['Rob Burbea']);
     });
 
     test('no In progress section: only the three forms', () {
       expect(LibraryForm.values, [
+        LibraryForm.sessions,
         LibraryForm.playlists,
         LibraryForm.courses,
-        LibraryForm.sessions,
       ]);
     });
 
@@ -89,9 +89,9 @@ void main() {
         kinds: kinds,
       );
       expect(shown(talks), [
+        'A talk on metta',
         'Jhāna retreat',
         'Winter talks',
-        'A talk on metta',
       ]);
       expect(talks.teachers, isEmpty);
       final practice = arrangeLibrary(
@@ -101,10 +101,10 @@ void main() {
       );
       // The mixed retreat is under both.
       expect(shown(practice), [
+        'Evening recording',
         'Morning sits',
         'Jhāna retreat',
         'Body and breath',
-        'Evening recording',
       ]);
     });
 
@@ -113,7 +113,7 @@ void main() {
         entries,
         const LibraryViewOptions(filter: LibraryFilter.talks),
       );
-      expect(shown(a), ['Winter talks', 'A talk on metta']);
+      expect(shown(a), ['A talk on metta', 'Winter talks']);
     });
 
     test('Teachers shows the saved teachers alone', () {
@@ -130,7 +130,7 @@ void main() {
         const LibraryViewOptions(filter: LibraryFilter.downloads),
         downloaded: const {'ds-talk-1', 'yt-playlist-a'},
       );
-      expect(shown(a), ['Body and breath', 'A talk on metta']);
+      expect(shown(a), ['A talk on metta', 'Body and breath']);
     });
 
     test('A–Z sorts by the name shown, ignoring case', () {
@@ -149,7 +149,7 @@ void main() {
         renamed,
         const LibraryViewOptions(sort: LibrarySort.title),
       );
-      expect(_titles(a.shelves[1].entries), [
+      expect(_titles(a.shelves[2].entries), [
         'alpha course',
         'Body and breath',
         'Jhāna retreat',
@@ -167,7 +167,7 @@ void main() {
           'yt-playlist-a': (done: 3, total: 4),
         },
       );
-      expect(_titles(a.shelves[1].entries), [
+      expect(_titles(a.shelves[2].entries), [
         'Body and breath',
         'Winter talks',
         'Jhāna retreat',
