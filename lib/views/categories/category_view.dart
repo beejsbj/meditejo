@@ -65,7 +65,9 @@ class _Body extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final blurb = listing.category.blurb;
+    final blurb = listing.category.blurbFor(
+      Localizations.localeOf(context).languageCode,
+    );
     return CustomScrollView(
       key: ValueKey('category_page_${listing.category.id}'),
       slivers: [

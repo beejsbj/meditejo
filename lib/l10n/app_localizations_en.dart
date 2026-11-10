@@ -2786,10 +2786,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryPinned => 'Pinned to Home';
 
   @override
-  String get exploreCategories => 'Categories';
+  String get exploreCategories => 'Ways to practise';
 
   @override
-  String get exploreCategoriesLabel => 'Browse by category';
+  String get exploreCategoriesLabel => 'Browse ways to practise';
+
+  @override
+  String get practicesSeeAll => 'See all';
+
+  @override
+  String get practiceGroupHeart => 'Heart';
+
+  @override
+  String get practiceGroupConcentration => 'Concentration';
+
+  @override
+  String get practiceGroupInsight => 'Insight';
+
+  @override
+  String get practiceGroupAwareness => 'Awareness';
+
+  @override
+  String get practiceGroupBody => 'Body & energy';
+
+  @override
+  String get practiceGroupDevotion => 'Sound & devotion';
+
+  @override
+  String get practiceGroupImagination => 'Imagination';
+
+  @override
+  String get practiceLangPali => 'Pāli';
+
+  @override
+  String get practiceLangSanskrit => 'Sanskrit';
+
+  @override
+  String get practiceLangTibetan => 'Tibetan';
+
+  @override
+  String get practiceLangJapanese => 'Japanese';
 
   @override
   String get categoryEmptyTitle => 'Nothing here yet';
@@ -2799,23 +2835,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'Label something in your library, or add a course from Explore, and it will appear here.';
 
   @override
-  String get categoryLoadFailed => 'Could not load this category';
+  String get categoryLoadFailed => 'Could not load this list';
 
   @override
-  String get libraryLabelFilterLabel => 'Category or label';
+  String get libraryLabelFilterLabel => 'Filter by label';
 
   @override
-  String get libraryMenuLabels => 'Categories and labels';
+  String get libraryMenuLabels => 'Labels';
 
   @override
-  String get labelsTitle => 'Categories and labels';
+  String get labelsTitle => 'Labels';
 
   @override
   String get labelsExplain =>
-      'Ticked categories are Meditejo\'s best guess or your own choice. Your choice always wins.';
+      'Meditejo ticks what it thinks fits. Change anything: your choice always wins.';
 
   @override
-  String get labelsCustomHeading => 'Your labels';
+  String get labelsCustomHeading => 'Your own labels';
 
   @override
   String get labelsAddHint => 'Add a label';

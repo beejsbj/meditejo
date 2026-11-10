@@ -80,4 +80,8 @@ class SharedPreferenceConstants {
   static const String timerMinutes = 'timer_minutes';
   static const String sessionBellsEnabled = 'session_bells_enabled';
   static const String timerSessionBellsEnabled = 'timer_session_bells_enabled';
+
+  /// The library items' practices for their covers (`artPractices`), as
+  /// JSON, so covers draw the same art from the first frame of a launch.
+  static const String artPractices = 'art_practices';
 }

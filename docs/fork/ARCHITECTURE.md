@@ -422,9 +422,18 @@ category *is* that category; anything else is a label of their own.
   `CategoryCatalogue`, `lib/services/categories/`). `format` is the layout
   this build reads, `version` and `updated` the edition of the curation (bump
   `version` by hand whenever the mapping changes). It holds:
-  - `categories`: ID, name, a one-line blurb and aliases. Metta, Vipassanā,
-    Jhāna, Samatha, Open awareness, Breath, Body, TMI, Sankalpa, Emptiness.
-    Names are practice terms and live here, not in the `.arb` files.
+  - `categories`: 38 practices in seven groups (heart, concentration,
+    insight, awareness, body, devotion, imagination), listed group by group.
+    Each has an ID, `name` (its own name when one tradition owns it, plain
+    English when shared; never translated), optional `script`, `langs`
+    (language codes the app translates) or `label` (originals or founder, as
+    written), `blurb` by language (`en`, `de`, `es`), `aliases` (the English
+    names, so search still finds them; an alias must not name two
+    categories) and `art` (a ground and a figure, drawn by
+    `ArtSubject.practice`). The practice figures are in
+    `lib/widgets/art/engine/practice_figures_*.dart` (ported from
+    `docs/fork/design/practices/`), registered under their JavaScript
+    names.
   - `curated`: content IDs (`ds-retreat-4496`, `ds-talk-60864`, or another
     source's ID) with their categories and the item's name. A curated entry
     **replaces** the keyword rules for that ID; `"categories": []` says "none of
@@ -437,11 +446,22 @@ category *is* that category; anything else is a label of their own.
     makes the last word a prefix (`jhan*`). Descriptions mention everything in
     passing, so only distinctive words are allowed there (jhana, samatha,
     anapanasati, …).
+- **The model pass** (`assets/categories/dharma_seed_pass.json`, read with
+  the asset): every Dharma Seed retreat with talks in the bundled snapshot,
+  read by Claude Haiku and audited by Claude Sonnet
+  (`tools/meditejo/categories/model_pass.py`; working files and reasons in
+  `tools/meditejo/categories/pass/`). It is stored by category (retreat IDs)
+  plus `none`, the retreats it read as having no practice focus. Regenerate
+  it, do not hand-edit it; correct a reading in `pass/corrections.jsonl`
+  (with a reason), or hand-pick the retreat in `curated`.
 - **Precedence, one rule everywhere:** the user's labels, then the curated
-  mapping, then the keyword rules. A talk with no entry of its own also takes
-  its retreat's categories (`classify(inherited:)`). The guesses are computed
-  on read, never stored, so a new catalogue or a new asset edition changes only
-  the guesses.
+  (hand-picked) mapping, then the model pass, then the keyword rules
+  (`CategorySource.user > curated > model > rule`). A retreat the pass read,
+  even as none, never reaches the rules; the rules cover retreats newer than
+  the snapshot, talk titles, and other sources' titles. A talk with no entry
+  of its own takes its retreat's categories (`classify(inherited:)`) and adds
+  its own title matches. The guesses are computed on read, never stored, so a
+  new catalogue or a new asset edition changes only the guesses.
 - **The user's labels** are `LibraryLabels` in `meditejo_library.sqlite`
   (schema 5), keyed by content ID: a row either *adds* a label (a category ID,
   or the folded text of a label of their own with the text as typed) or
@@ -454,18 +474,25 @@ category *is* that category; anything else is a label of their own.
 - **`CategoryService`** reads and edits: `labelsOfEntries`, `labelsOf`,
   `setCategory`, `addLabel`, and `listing(categoryId)`. A category page is the
   library's entries with that category (exact, including the user's), plus
-  Dharma Seed: the curated retreats and talks, then what the rules find
-  through the on-device FTS index (title terms in `name` / `title`,
-  description terms in `description`; the rules re-check each hit, because the
-  index is looser and knows nothing of curated exclusions). Up to 30 rule
-  courses and 30 rule sessions per group, curated ones always. Retreats with
+  Dharma Seed: the curated retreats and talks, then the guessed retreats (the
+  model pass's, and what the rules find through the on-device FTS index:
+  title terms in `name` / `title`, description terms in `description`; the
+  rules re-check each hit, because the index is looser and knows nothing of
+  curated exclusions), newest first. Up to 50 guessed courses and 30 rule
+  sessions per group, curated ones always. `nonEmpty` says which categories
+  have anything at all (a library entry, a curated or passed retreat, or a
+  rule hit); browsing offers only those. Retreats with
   no stored talks are left out; a session whose retreat is already listed is
   not repeated. Retreats are Practice; sessions follow `recording_type`.
-- **Screens, kept thin** (`lib/views/categories/`): `ExploreCategoryChips` (a
-  chip per category on Explore), `CategoryView` (Practice, then Talks: the
+- **Screens, kept thin** (`lib/views/categories/`): `PracticeTile` (one
+  tile in three sizes: card, tall, compact), `ExplorePractices` (Explore's
+  "Ways to practise": See all, then a carousel of cards per group, only the
+  non-empty ones; the word "category" is not on screen, the sheet is
+  "Labels"), `PracticesView` (See all: the grid of tall tiles),
+  `CategoryView` (Practice, then Talks: the
   library's entries, then catalogue courses, then sessions), `LabelsSheet`
-  (opened from a library entry's menu: category chips, the user's own labels,
-  a field to add one) and `CategoryChips` (course and session pages). The
+  (opened from a library entry's menu: every practice as compact tiles by
+  group, the user's own labels, a field to add one) and `CategoryChips` (course and session pages). The
   Library gets a row of category and label chips under the kind chips
   (`libraryLabelOptionsProvider`; `LibraryViewOptions.label`, not kept between
   visits); `arrangeLibrary` filters on it.
