@@ -47,6 +47,7 @@ import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
+import 'package:medito/views/cues/bell_maker_view.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
 import 'package:medito/widgets/inputs/wheel_picker.dart';
 import 'package:medito/views/player/widgets/autoplay_control.dart';
@@ -2352,6 +2353,60 @@ void main() {
       await _openSlot(tester, 'sound');
       await _captureView(tester, 'customize-sound-${brightness.name}');
     }, skip: !_enabled);
+    // The bell maker: five vertical controls under the live figure; once at
+    // the S23+'s size, once on a 320 dp screen with text at 200%.
+    for (final narrow in [false, true]) {
+      testWidgets(
+        'Bell maker${narrow ? ' (narrow, large text)' : ''}, ${brightness.name}',
+        (tester) async {
+          SharedPreferences.setMockInitialValues({});
+          final prefs = await SharedPreferences.getInstance();
+          final container = ProviderContainer(
+            overrides: [
+              sharedPreferencesProvider.overrideWithValue(prefs),
+              ...soundscapeTestOverrides(FakeSoundscapeEngine()),
+            ],
+          );
+          addTearDown(container.dispose);
+          await tester.pumpWidget(
+            UncontrolledProviderScope(
+              container: container,
+              child: MaterialApp(
+                debugShowCheckedModeBanner: false,
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
+                theme: meditejoTheme(brightness, _palette),
+                builder: (context, child) => MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    disableAnimations: true,
+                    textScaler: TextScaler.linear(narrow ? 2 : 1),
+                  ),
+                  child: child!,
+                ),
+                home: _frame(
+                  brightness,
+                  const BellMakerView(from: 'assets/audio/bell_temple.wav'),
+                ),
+              ),
+            ),
+          );
+          if (narrow) {
+            tester.view.devicePixelRatio = 2;
+            tester.view.physicalSize = const Size(640, 3000);
+            await tester.pump();
+          } else {
+            await _phone(tester);
+          }
+          await tester.pump(const Duration(seconds: 1));
+          expect(tester.takeException(), isNull);
+          await _captureView(
+            tester,
+            'bell-maker${narrow ? '-narrow-large-text' : ''}-${brightness.name}',
+          );
+        },
+        skip: !_enabled,
+      );
+    }
 
     testWidgets('Customize during a session, ${brightness.name}', (
       tester,

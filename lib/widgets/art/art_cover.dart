@@ -168,6 +168,7 @@ class ArtCover extends StatefulWidget {
     this.strike,
     this.scrim = false,
     this.placeholder,
+    this.holdWhileChanging = false,
   });
 
   final ArtSubject subject;
@@ -179,6 +180,11 @@ class ArtCover extends StatefulWidget {
 
   /// Shown when nothing in the meaning map fits the subject.
   final Widget? placeholder;
+
+  /// Keeps showing the last picture while a changed subject is drawn, for art
+  /// that is dragged (a bell being made) and would otherwise flash blank at
+  /// every move.
+  final bool holdWhileChanging;
 
   @override
   State<ArtCover> createState() => _ArtCoverState();
@@ -385,7 +391,9 @@ class _ArtCoverState extends State<ArtCover>
         }),
       );
     }
-    final current = _stillKey == key ? _still : null;
+    final current = _stillKey == key || widget.holdWhileChanging
+        ? _still
+        : null;
     if (current == null) return ColoredBox(color: css(tone));
     return RawImage(
       image: current,

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/synth.dart';
+import 'package:medito/services/bells/bell_recipe.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/widgets/art/engine/compose.dart';
 
@@ -21,6 +22,12 @@ sealed class ArtSubject {
   const factory ArtSubject.layers(String id, List<SoundLayer> layers) = MixArt;
   const factory ArtSubject.cover(ArtCoverKind kind, String id) = CoverArt;
   const factory ArtSubject.bell(String asset, {bool icon}) = BellArt;
+  const factory ArtSubject.customBell(
+    String id,
+    String preset,
+    BellKnobs knobs, {
+    bool icon,
+  }) = CustomBellArt;
 
   /// Stable across runs: the raster cache's key.
   String get key;
@@ -114,6 +121,34 @@ final class BellArt extends ArtSubject {
   int get hashCode => key.hashCode;
 }
 
+/// A bell the user made, drawn from its five controls: its card, or its
+/// icon. Seeded by [id], so it keeps its picture when renamed (decision 22);
+/// the controls move its figure, so a bell being made redraws as they move.
+final class CustomBellArt extends ArtSubject {
+  const CustomBellArt(this.id, this.preset, this.knobs, {this.icon = false});
+
+  /// The saved bell's id, or any stable word for one not saved yet.
+  final String id;
+
+  /// The shipped bell it started from (a key of `BellFigure.family`).
+  final String preset;
+  final BellKnobs knobs;
+  final bool icon;
+
+  @override
+  String get key =>
+      'custom-bell:${icon ? 'icon' : 'card'}:$id:$preset:'
+      '${knobs.pitch.toStringAsFixed(1)}:${knobs.bright.toStringAsFixed(3)}:'
+      '${knobs.ring.toStringAsFixed(3)}:${knobs.strike.toStringAsFixed(3)}:'
+      '${knobs.shimmer.toStringAsFixed(2)}';
+
+  @override
+  bool operator ==(Object other) => other is CustomBellArt && other.key == key;
+
+  @override
+  int get hashCode => key.hashCode;
+}
+
 /// The id the meaning map knows a mix layer by. Generated layers are named
 /// for what they are: the noise by its colour (`noise-brown`), the drone
 /// and binaural beats by their kind.
@@ -178,6 +213,9 @@ class CuratedArt extends ChangeNotifier {
   /// may be curated.
   ArtComposition? resolve(ArtSubject subject) {
     if (_items == null) return null;
+    // A bell being made takes a new key with every move of a control: not
+    // worth remembering.
+    if (subject is CustomBellArt) return _resolve(subject);
     final key = subject.key;
     if (_resolved.containsKey(key)) return _resolved[key];
     return _resolved[key] = _resolve(subject);
@@ -211,6 +249,29 @@ class CuratedArt extends ChangeNotifier {
               ArtCoverKind.single => 'single',
               ArtCoverKind.teacher => 'teacher',
             });
+      case CustomBellArt(:final id, :final preset, :final knobs, :final icon):
+        final base = Compose.build(
+          icon ? 'bellicon' : 'bell',
+          id,
+          figureExtra: {'preset': preset},
+        );
+        final figure = base.figure;
+        if (figure == null) return base;
+        return ArtComposition(
+          cls: base.cls,
+          seed: base.seed,
+          ground: base.ground,
+          figure: ArtLayer(
+            figure.name,
+            {...figure.params, 'knobs': knobs.toJson()},
+            kind: figure.kind,
+            layout: figure.layout,
+          ),
+          accent: base.accent,
+          inkSeed: base.inkSeed,
+          misregister: base.misregister,
+          preset: base.preset,
+        );
       case BellArt(:final asset, :final icon):
         // Every shipped bell is curated, and its entry names its asset.
         final e = _items!.values

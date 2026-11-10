@@ -3106,4 +3106,348 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get extendCaption =>
       'Alarga la sesión este tiempo, con silencio, como si la grabación fuera más larga.';
+
+  @override
+  String get editStatsTitle => 'Edit stats';
+
+  @override
+  String get submit => 'Submit';
+
+  @override
+  String get onboarding => 'Onboarding';
+
+  @override
+  String get enableNotificationsTitle =>
+      'Stay on Track with Meditation Reminders';
+
+  @override
+  String get enableNotificationsTitleLearn => 'Keep the learning going';
+
+  @override
+  String get enableNotificationsTitleHabit => 'Build the habit you\'re after';
+
+  @override
+  String get enableNotificationsTitleStress => 'Make it part of your day';
+
+  @override
+  String get notificationPreviewTimestamp => 'now';
+
+  @override
+  String get notificationPreviewTitleB => 'A quieter mind starts here';
+
+  @override
+  String get notificationPreviewBodyB =>
+      'Your daily breath is waiting. Just tap to begin.';
+
+  @override
+  String onboardingStepIndicator(int current, int total) {
+    return 'Step $current of $total';
+  }
+
+  @override
+  String onboardingReminderCurrentlySet(String time) {
+    return 'Daily reminder set for $time';
+  }
+
+  @override
+  String get reminderCustomCancelled =>
+      'No time picked yet — choose one above, or skip for now.';
+
+  @override
+  String get onboardingBatteryTitle => 'One Setting, Smoother Meditations';
+
+  @override
+  String get onboardingBatteryBody =>
+      'Your phone can pause Meditejo mid-session. One quick change prevents this.';
+
+  @override
+  String get onboardingBatteryOptimize => 'Update Setting';
+
+  @override
+  String get skipForNow => 'Skip for Now';
+
+  @override
+  String get favorites => 'Favorites';
+
+  @override
+  String get noFavoriteTracksYet => 'No favorite tracks yet';
+
+  @override
+  String get noFavoritePacksYet => 'No favorite packs yet';
+
+  @override
+  String get noFavoritesYet => 'No favorites yet';
+
+  @override
+  String get addItemsToFavoritesMessage =>
+      'Add items to your favorites to see them here';
+
+  @override
+  String get all => 'All';
+
+  @override
+  String get packs => 'Packs';
+
+  @override
+  String get appIconTitle => 'App Icon';
+
+  @override
+  String get appIconNearBlack => 'Dark';
+
+  @override
+  String get appIconDusk => 'Dusk';
+
+  @override
+  String get appIconPurple => 'Purple';
+
+  @override
+  String get appIconClassic => 'Classic';
+
+  @override
+  String get appIconBlush => 'Blush';
+
+  @override
+  String get appIconOcean => 'Ocean';
+
+  @override
+  String get appIconForest => 'Forest';
+
+  @override
+  String get appIconPink => 'Golden';
+
+  @override
+  String get appIconChanged => 'Icon updated. Restarting…';
+
+  @override
+  String get defaultGuideName => 'Default Guide Name';
+
+  @override
+  String get defaultDuration => 'Default Duration';
+
+  @override
+  String get defaultGuideNameCleared => 'Default guide name cleared';
+
+  @override
+  String get notSet => 'Not set';
+
+  @override
+  String get defaultsNote =>
+      'These defaults are set from your last selection on any track. Home uses them to skip the selection screen when you continue a pack.';
+
+  @override
+  String get speedReset => 'Reset';
+
+  @override
+  String get clearDefault => 'Clear default guide';
+
+  @override
+  String get onboardingExperienceQuestion => 'Have you meditated before?';
+
+  @override
+  String get onboardingExperienceSubtext =>
+      'This helps us show you the right starting point.';
+
+  @override
+  String get onboardingExperienceNever => 'Never tried it';
+
+  @override
+  String get onboardingExperienceALittle => 'A little, here and there';
+
+  @override
+  String get onboardingExperienceRegular => 'I have a regular practice';
+
+  @override
+  String get onboardingResultCta => 'Get started';
+
+  @override
+  String get addToFavorites => 'Add to favorites';
+
+  @override
+  String get addedToFavorites => 'Added to Favorites';
+
+  @override
+  String get removedFromFavorites => 'Removed from Favorites';
+
+  @override
+  String get removeFromFavorites => 'Remove from favorites';
+
+  @override
+  String get localIntroBeginHeading => 'A little time to begin.';
+
+  @override
+  String get localIntroReturnHeading => 'Ease back into your practice.';
+
+  @override
+  String get localIntroPracticeHeading => 'Space for your practice.';
+
+  @override
+  String get localIntroBeginBody =>
+      'Find a comfortable seat, set a short timer, and notice your breath. When your attention wanders, gently begin again.';
+
+  @override
+  String get localIntroReturnBody =>
+      'Start with a few quiet minutes. The timer is ready whenever you are.';
+
+  @override
+  String get localIntroPracticeBody =>
+      'Use the timer for an unguided sit, with the bells and duration you prefer.';
+
+  @override
+  String get localIntroDeviceOnlyNote =>
+      'Your practice history, favourites and settings stay on this device.';
+
+  @override
+  String courseLeft(int count, int total) {
+    return '$count of $total left';
+  }
+
+  @override
+  String get libraryAdd => 'Add';
+
+  @override
+  String get homeShortcutAdd => 'Add';
+
+  @override
+  String get pinnedLimitReached =>
+      'Home holds up to three pinned courses or playlists. Unpin one first.';
+
+  @override
+  String get soundsDrift => 'Drift';
+
+  @override
+  String get soundsDriftHint => 'Let the level rise and fall slowly';
+
+  @override
+  String get soundsUnderSessions => 'Under sessions';
+
+  @override
+  String get soundsUnderPractice => 'Play under practice';
+
+  @override
+  String get soundsUnderTalks => 'Play under talks';
+
+  @override
+  String get soundsUnderSessionsHint =>
+      'Your mix plays beneath the session, at its own volume';
+
+  @override
+  String get noiseReset => 'Reset bands';
+
+  @override
+  String get soundsEditMix => 'Edit your mix in Sounds';
+
+  @override
+  String get libraryInProgress => 'In progress';
+
+  @override
+  String get libraryFilterCourses => 'Courses';
+
+  @override
+  String get libraryFilterPlaylists => 'Playlists';
+
+  @override
+  String get libraryFilterSingles => 'Singles';
+
+  @override
+  String get libraryGroupLabel => 'Practice or talks';
+
+  @override
+  String get bellMakerTitle => 'Crear una campana';
+
+  @override
+  String get bellMakerSave => 'Guardar';
+
+  @override
+  String get bellMakerName => 'Nombre';
+
+  @override
+  String get bellMakerStartFrom => 'Partir de';
+
+  @override
+  String get bellMakerHear => 'Escuchar';
+
+  @override
+  String get bellMakerMaking => 'Creando el sonido';
+
+  @override
+  String get bellMakerPlayFailed => 'No se pudo reproducir la campana.';
+
+  @override
+  String get bellMakerSaveFailed => 'No se pudo guardar la campana.';
+
+  @override
+  String bellMakerLimit(int count) {
+    return 'Puedes guardar hasta $count campanas. Borra una para crear otra.';
+  }
+
+  @override
+  String get bellPitch => 'Tono';
+
+  @override
+  String get bellPitchLow => 'Grave';
+
+  @override
+  String get bellPitchHigh => 'Agudo';
+
+  @override
+  String get bellBright => 'Brillo';
+
+  @override
+  String get bellBrightLow => 'Oscuro';
+
+  @override
+  String get bellBrightHigh => 'Brillante';
+
+  @override
+  String get bellRing => 'Resonancia';
+
+  @override
+  String get bellRingLow => 'Corta';
+
+  @override
+  String get bellRingHigh => 'Larga';
+
+  @override
+  String get bellStrike => 'Golpe';
+
+  @override
+  String get bellStrikeLow => 'Suave';
+
+  @override
+  String get bellStrikeHigh => 'Fuerte';
+
+  @override
+  String get bellShimmer => 'Vibración';
+
+  @override
+  String get bellShimmerLow => 'Quieta';
+
+  @override
+  String get bellShimmerHigh => 'Ondulante';
+
+  @override
+  String get bellYours => 'Tus campanas';
+
+  @override
+  String get bellRename => 'Renombrar';
+
+  @override
+  String get bellRenameTitle => 'Renombrar campana';
+
+  @override
+  String bellDeleteTitle(String name) {
+    return '¿Borrar «$name»?';
+  }
+
+  @override
+  String get bellDeleteBody =>
+      'Las señales que la usan volverán a «Swell bell».';
+
+  @override
+  String bellMenu(String name) {
+    return 'Más sobre $name';
+  }
+
+  @override
+  String get bellMakerDefaultName => 'Mi campana';
 }

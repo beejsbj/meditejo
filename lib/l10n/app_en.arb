@@ -3506,5 +3506,417 @@
   "extendCaption": "Make the session longer by this much, with silence, as if the recording were longer.",
   "@extendCaption": {
     "description": "Caption under Extend"
+  },
+  "editStatsTitle": "Edit stats",
+  "submit": "Submit",
+  "onboarding": "Onboarding",
+  "@onboarding": {
+    "description": "Title for the onboarding section in settings"
+  },
+  "enableNotificationsTitle": "Stay on Track with Meditation Reminders",
+  "enableNotificationsTitleLearn": "Keep the learning going",
+  "@enableNotificationsTitleLearn": {
+    "description": "Notifications screen title for users who want to learn to meditate (intent: learn_properly)"
+  },
+  "enableNotificationsTitleHabit": "Build the habit you're after",
+  "@enableNotificationsTitleHabit": {
+    "description": "Notifications screen title for users who want to build a habit (intent: build_habit)"
+  },
+  "enableNotificationsTitleStress": "Make it part of your day",
+  "@enableNotificationsTitleStress": {
+    "description": "Notifications screen title for users managing stress, sleep, or emotions (intent: stress_sleep_emotions)"
+  },
+  "notificationPreviewTimestamp": "now",
+  "@notificationPreviewTimestamp": {
+    "description": "Timestamp shown on a fake iOS notification preview, mirroring iOS's 'now' label for a notification that just arrived"
+  },
+  "notificationPreviewTitleB": "A quieter mind starts here",
+  "@notificationPreviewTitleB": {
+    "description": "Title of the fake notification shown in the onboarding notifications screen preview"
+  },
+  "notificationPreviewBodyB": "Your daily breath is waiting. Just tap to begin.",
+  "@notificationPreviewBodyB": {
+    "description": "Body of the fake notification shown in the onboarding notifications screen preview"
+  },
+  "onboardingStepIndicator": "Step {current} of {total}",
+  "@onboardingStepIndicator": {
+    "description": "Progress label under the onboarding pages, next to the circular progress ring",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "onboardingReminderCurrentlySet": "Daily reminder set for {time}",
+  "@onboardingReminderCurrentlySet": {
+    "description": "Shown on the onboarding reminder screen when a reminder is already set, above the chips that let the user change it",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderCustomCancelled": "No time picked yet — choose one above, or skip for now.",
+  "@reminderCustomCancelled": {
+    "description": "Feedback shown when the user opens the custom time picker and dismisses it without choosing, so the tap is not a silent dead end"
+  },
+  "onboardingBatteryTitle": "One Setting, Smoother Meditations",
+  "onboardingBatteryBody": "Your phone can pause Meditejo mid-session. One quick change prevents this.",
+  "onboardingBatteryOptimize": "Update Setting",
+  "skipForNow": "Skip for Now",
+  "favorites": "Favorites",
+  "noFavoriteTracksYet": "No favorite tracks yet",
+  "noFavoritePacksYet": "No favorite packs yet",
+  "noFavoritesYet": "No favorites yet",
+  "addItemsToFavoritesMessage": "Add items to your favorites to see them here",
+  "all": "All",
+  "packs": "Packs",
+  "appIconTitle": "App Icon",
+  "@appIconTitle": {
+    "description": "Title for app icon selection setting in customization section"
+  },
+  "appIconNearBlack": "Dark",
+  "@appIconNearBlack": {
+    "description": "Label for the near-black app icon option"
+  },
+  "appIconDusk": "Dusk",
+  "@appIconDusk": {
+    "description": "Label for the dusk gradient app icon option (now the default)"
+  },
+  "appIconPurple": "Purple",
+  "@appIconPurple": {
+    "description": "Label for the original purple app icon option"
+  },
+  "appIconClassic": "Classic",
+  "@appIconClassic": {
+    "description": "Label for the classic app icon option (purple M on white)"
+  },
+  "appIconBlush": "Blush",
+  "@appIconBlush": {
+    "description": "Label for the blush pink gradient app icon option"
+  },
+  "appIconOcean": "Ocean",
+  "@appIconOcean": {
+    "description": "Label for the ocean blue gradient app icon option"
+  },
+  "appIconForest": "Forest",
+  "@appIconForest": {
+    "description": "Label for the forest green gradient app icon option"
+  },
+  "appIconPink": "Golden",
+  "@appIconPink": {
+    "description": "Label for the pink-to-gold sunset gradient app icon option"
+  },
+  "appIconChanged": "Icon updated. Restarting…",
+  "@appIconChanged": {
+    "description": "Snackbar message shown on Android after changing the app icon"
+  },
+  "defaultGuideName": "Default Guide Name",
+  "@defaultGuideName": {
+    "description": "Label for default guide name setting"
+  },
+  "defaultDuration": "Default Duration",
+  "@defaultDuration": {
+    "description": "Label for default duration setting"
+  },
+  "defaultGuideNameCleared": "Default guide name cleared",
+  "@defaultGuideNameCleared": {
+    "description": "Message shown when default guide name is cleared"
+  },
+  "notSet": "Not set",
+  "@notSet": {
+    "description": "Text shown when a default value is not set"
+  },
+  "defaultsNote": "These defaults are set from your last selection on any track. Home uses them to skip the selection screen when you continue a pack.",
+  "@defaultsNote": {
+    "description": "Note explaining how defaults work in Up Next"
+  },
+  "speedReset": "Reset",
+  "@speedReset": {
+    "description": "Speed sheet: button that sets playback speed back to 1.0x"
+  },
+  "clearDefault": "Clear default guide",
+  "@clearDefault": {
+    "description": "Accessibility label for the button that clears the saved default guide preference"
+  },
+  "onboardingExperienceQuestion": "Have you meditated before?",
+  "@onboardingExperienceQuestion": {
+    "description": "Question on onboarding screen 1 — asking about the user's meditation experience"
+  },
+  "onboardingExperienceSubtext": "This helps us show you the right starting point.",
+  "@onboardingExperienceSubtext": {
+    "description": "Subtext below the question on onboarding screen 1"
+  },
+  "onboardingExperienceNever": "Never tried it",
+  "@onboardingExperienceNever": {
+    "description": "Option 1 on onboarding screen 1 — user has never meditated"
+  },
+  "onboardingExperienceALittle": "A little, here and there",
+  "@onboardingExperienceALittle": {
+    "description": "Option 2 on onboarding screen 1 — user has meditated a little"
+  },
+  "onboardingExperienceRegular": "I have a regular practice",
+  "@onboardingExperienceRegular": {
+    "description": "Option 3 on onboarding screen 1 — user has a regular meditation practice"
+  },
+  "onboardingResultCta": "Get started",
+  "@onboardingResultCta": {
+    "description": "CTA button label on the onboarding result screen"
+  },
+  "addToFavorites": "Add to favorites",
+  "@addToFavorites": {
+    "description": "Accessibility label for the favorite button when the item is not yet favorited"
+  },
+  "addedToFavorites": "Added to Favorites",
+  "@addedToFavorites": {
+    "description": "Snackbar after the star button adds a pack or track to Favorites"
+  },
+  "removedFromFavorites": "Removed from Favorites",
+  "@removedFromFavorites": {
+    "description": "Snackbar after the star button removes a pack or track from Favorites"
+  },
+  "removeFromFavorites": "Remove from favorites",
+  "@removeFromFavorites": {
+    "description": "Accessibility label for the favorite button when the item is already favorited"
+  },
+  "localIntroBeginHeading": "A little time to begin.",
+  "@localIntroBeginHeading": {
+    "description": "Local introduction heading for someone new to meditation."
+  },
+  "localIntroReturnHeading": "Ease back into your practice.",
+  "@localIntroReturnHeading": {
+    "description": "Local introduction heading for someone with some meditation experience."
+  },
+  "localIntroPracticeHeading": "Space for your practice.",
+  "@localIntroPracticeHeading": {
+    "description": "Local introduction heading for someone with a regular meditation practice."
+  },
+  "localIntroBeginBody": "Find a comfortable seat, set a short timer, and notice your breath. When your attention wanders, gently begin again.",
+  "@localIntroBeginBody": {
+    "description": "Instructions for a first unguided meditation using the local timer."
+  },
+  "localIntroReturnBody": "Start with a few quiet minutes. The timer is ready whenever you are.",
+  "@localIntroReturnBody": {
+    "description": "Encouragement to resume practice using the local timer."
+  },
+  "localIntroPracticeBody": "Use the timer for an unguided sit, with the bells and duration you prefer.",
+  "@localIntroPracticeBody": {
+    "description": "Introduction to the local timer and its configurable bells and duration."
+  },
+  "localIntroDeviceOnlyNote": "Your practice history, favourites and settings stay on this device.",
+  "@localIntroDeviceOnlyNote": {
+    "description": "Explains that practice history, favourites and preferences are stored on the device."
+  },
+  "courseLeft": "{count} of {total} left",
+  "@courseLeft": {
+    "description": "Course progress line",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryAdd": "Add",
+  "@libraryAdd": {
+    "description": "Button that opens the import screen"
+  },
+  "homeShortcutAdd": "Add",
+  "pinnedLimitReached": "Home holds up to three pinned courses or playlists. Unpin one first.",
+  "soundsDrift": "Drift",
+  "@soundsDrift": {
+    "description": "Sounds screen: soundsDrift"
+  },
+  "soundsDriftHint": "Let the level rise and fall slowly",
+  "@soundsDriftHint": {
+    "description": "Sounds screen: soundsDriftHint"
+  },
+  "soundsUnderSessions": "Under sessions",
+  "@soundsUnderSessions": {
+    "description": "Sounds screen: soundsUnderSessions"
+  },
+  "soundsUnderPractice": "Play under practice",
+  "@soundsUnderPractice": {
+    "description": "Sounds screen: soundsUnderPractice"
+  },
+  "soundsUnderTalks": "Play under talks",
+  "@soundsUnderTalks": {
+    "description": "Sounds screen: soundsUnderTalks"
+  },
+  "soundsUnderSessionsHint": "Your mix plays beneath the session, at its own volume",
+  "@soundsUnderSessionsHint": {
+    "description": "Sounds screen: soundsUnderSessionsHint"
+  },
+  "noiseReset": "Reset bands",
+  "@noiseReset": {
+    "description": "Sounds screen, generated layers: noiseReset"
+  },
+  "soundsEditMix": "Edit your mix in Sounds",
+  "@soundsEditMix": {
+    "description": "In the player's Customize sheet, under Background sound: opens the Sounds screen"
+  },
+  "libraryInProgress": "In progress",
+  "@libraryInProgress": {
+    "description": "Library heading over what the user has started and not finished"
+  },
+  "libraryFilterCourses": "Courses",
+  "@libraryFilterCourses": {
+    "description": "Library filter chip: courses from a source"
+  },
+  "libraryFilterPlaylists": "Playlists",
+  "@libraryFilterPlaylists": {
+    "description": "Library filter chip: what the user made"
+  },
+  "libraryFilterSingles": "Singles",
+  "@libraryFilterSingles": {
+    "description": "Library filter chip: single sessions"
+  },
+  "libraryGroupLabel": "Practice or talks",
+  "@libraryGroupLabel": {
+    "description": "Screen-reader label of the Library's Practice/Talks switch"
+  },
+  "bellMakerTitle": "Make a bell",
+  "@bellMakerTitle": {
+    "description": "Bell maker: the screen's title and the row that opens it"
+  },
+  "bellMakerSave": "Save",
+  "@bellMakerSave": {
+    "description": "Bell maker: saves the bell"
+  },
+  "bellMakerName": "Name",
+  "@bellMakerName": {
+    "description": "Bell maker: the bell's name field"
+  },
+  "bellMakerStartFrom": "Start from",
+  "@bellMakerStartFrom": {
+    "description": "Bell maker: the bells to start from"
+  },
+  "bellMakerHear": "Hear it",
+  "@bellMakerHear": {
+    "description": "Bell maker: plays the bell as it is now"
+  },
+  "bellMakerMaking": "Making the sound",
+  "@bellMakerMaking": {
+    "description": "Bell maker: shown while the sound is rendered"
+  },
+  "bellMakerPlayFailed": "The bell could not be played.",
+  "@bellMakerPlayFailed": {
+    "description": "Bell maker: the sound could not be made or played"
+  },
+  "bellMakerSaveFailed": "The bell could not be saved.",
+  "@bellMakerSaveFailed": {
+    "description": "Bell maker: saving failed"
+  },
+  "bellMakerLimit": "You can keep up to {count} bells. Delete one to make another.",
+  "@bellMakerLimit": {
+    "description": "Bell maker: the limit of saved bells",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bellPitch": "Pitch",
+  "@bellPitch": {
+    "description": "Bell maker: control"
+  },
+  "bellPitchLow": "Deep",
+  "@bellPitchLow": {
+    "description": "Bell maker: pitch, low end"
+  },
+  "bellPitchHigh": "High",
+  "@bellPitchHigh": {
+    "description": "Bell maker: pitch, high end"
+  },
+  "bellBright": "Brightness",
+  "@bellBright": {
+    "description": "Bell maker: control"
+  },
+  "bellBrightLow": "Dark",
+  "@bellBrightLow": {
+    "description": "Bell maker: brightness, low end"
+  },
+  "bellBrightHigh": "Bright",
+  "@bellBrightHigh": {
+    "description": "Bell maker: brightness, high end"
+  },
+  "bellRing": "Ring",
+  "@bellRing": {
+    "description": "Bell maker: control, how long it rings"
+  },
+  "bellRingLow": "Short",
+  "@bellRingLow": {
+    "description": "Bell maker: ring, short end"
+  },
+  "bellRingHigh": "Long",
+  "@bellRingHigh": {
+    "description": "Bell maker: ring, long end"
+  },
+  "bellStrike": "Strike",
+  "@bellStrike": {
+    "description": "Bell maker: control, soft mallet to hard"
+  },
+  "bellStrikeLow": "Soft",
+  "@bellStrikeLow": {
+    "description": "Bell maker: strike, soft end"
+  },
+  "bellStrikeHigh": "Hard",
+  "@bellStrikeHigh": {
+    "description": "Bell maker: strike, hard end"
+  },
+  "bellShimmer": "Shimmer",
+  "@bellShimmer": {
+    "description": "Bell maker: control, the slow wobble of a ring"
+  },
+  "bellShimmerLow": "Still",
+  "@bellShimmerLow": {
+    "description": "Bell maker: shimmer, still end"
+  },
+  "bellShimmerHigh": "Wobbling",
+  "@bellShimmerHigh": {
+    "description": "Bell maker: shimmer, wobbling end"
+  },
+  "bellYours": "Your bells",
+  "@bellYours": {
+    "description": "Bell picker: the bells the user made"
+  },
+  "bellRename": "Rename",
+  "@bellRename": {
+    "description": "Bell picker: renames a bell the user made"
+  },
+  "bellRenameTitle": "Rename bell",
+  "@bellRenameTitle": {
+    "description": "Bell picker: rename dialog title"
+  },
+  "bellDeleteTitle": "Delete “{name}”?",
+  "@bellDeleteTitle": {
+    "description": "Bell picker: delete confirmation title",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "bellDeleteBody": "Cues that ring it go back to the Swell bell.",
+  "@bellDeleteBody": {
+    "description": "Bell picker: delete confirmation body"
+  },
+  "bellMenu": "More about {name}",
+  "@bellMenu": {
+    "description": "Bell picker: screen-reader label of a made bell's menu",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "bellMakerDefaultName": "My bell",
+  "@bellMakerDefaultName": {
+    "description": "Bell maker: the name suggested for a new bell"
   }
 }
