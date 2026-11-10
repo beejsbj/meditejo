@@ -53,6 +53,59 @@ class CategoryListing {
   bool get hasTalks => libraryTalks.isNotEmpty || talkSessions.isNotEmpty;
 
   bool get isEmpty => !hasPractice && !hasTalks;
+
+  /// This listing, laid out so that nothing [shown] on the page moves when
+  /// the user adds it to the library there.
+  ///
+  /// Adding a course or session moves it from the Dharma Seed lists to the
+  /// library entries at the top. On a page already open that would pull the
+  /// row from under the finger and push everything else down, so a row that
+  /// [shown] listed and the library now holds stays where it was (its Add
+  /// shows the tick) and is left out of the entries at the top. Opening the
+  /// page again shows it at the top.
+  CategoryListing keepingPlace(CategoryListing shown) {
+    if (shown.category.id != category.id) return this;
+    final inLibrary = {
+      for (final e in libraryPractice) e.sourceId,
+      for (final e in libraryTalks) e.sourceId,
+    };
+    final kept = <String>{};
+    List<PackItemsModel> stable(
+      List<PackItemsModel> before,
+      List<PackItemsModel> now,
+    ) {
+      final nowById = {for (final item in now) item.id: item};
+      final beforeIds = {for (final item in before) item.id};
+      return [
+        for (final item in before)
+          if (nowById[item.id] case final current?)
+            current
+          else if (inLibrary.contains(item.id) && kept.add(item.id))
+            item,
+        for (final item in now)
+          if (!beforeIds.contains(item.id)) item,
+      ];
+    }
+
+    final stableCourses = stable(shown.courses, courses);
+    final stablePractice = stable(shown.practiceSessions, practiceSessions);
+    final stableTalks = stable(shown.talkSessions, talkSessions);
+    if (kept.isEmpty) return this;
+    return CategoryListing(
+      category: category,
+      libraryPractice: [
+        for (final e in libraryPractice)
+          if (!kept.contains(e.sourceId)) e,
+      ],
+      libraryTalks: [
+        for (final e in libraryTalks)
+          if (!kept.contains(e.sourceId)) e,
+      ],
+      courses: stableCourses,
+      practiceSessions: stablePractice,
+      talkSessions: stableTalks,
+    );
+  }
 }
 
 /// Reads and edits categories and labels. Everything is on the device: the
