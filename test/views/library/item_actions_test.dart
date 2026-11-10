@@ -111,6 +111,27 @@ void main() {
       );
       expect(header, isNot(contains(ItemAction.edit)));
       expect(header, contains(ItemAction.delete));
+      // In the library: the header's Library button takes it out again, so
+      // the ⋮ does not repeat Remove from library either.
+      final kept = ItemActionsSpec(
+        id: 'ds-retreat-1',
+        entry: entry('ds-retreat-1', kind: LibraryKind.course),
+      );
+      expect(itemActionsFor(kept), contains(ItemAction.remove));
+      expect(
+        itemActionsFor(
+          ItemActionsSpec(
+            id: kept.id,
+            entry: kept.entry,
+            hide: CourseMoreButton.shownAsButtons,
+          ),
+        ),
+        isNot(contains(ItemAction.remove)),
+      );
+      // Something is always left for a course (Add to playlist, Duplicate),
+      // so its header keeps the ⋮.
+      expect(CourseMoreButton.hasActions('ds-retreat-1'), isTrue);
+      expect(CourseMoreButton.hasActions(mine), isTrue);
 
       final episode = itemActionsFor(
         const ItemActionsSpec(

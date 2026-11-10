@@ -49,7 +49,8 @@ class CourseActionRow extends StatelessWidget {
         ),
       PinIconButton(id: pack.id),
       CourseShareButton(packId: pack.id, title: pack.title),
-      CourseMoreButton(packId: pack.id, title: pack.title),
+      if (CourseMoreButton.hasActions(pack.id))
+        CourseMoreButton(packId: pack.id, title: pack.title),
     ];
     // Play gets the full width, so the session's name has room; the
     // toggles sit in a row under it.
@@ -177,15 +178,28 @@ class CourseMoreButton extends ConsumerWidget {
   final String packId;
   final String title;
 
-  /// The header's own buttons, not repeated in its ⋮: Play, Add to
-  /// library (or, for a playlist the user made, Edit), Pin and Share.
+  /// The header's own buttons, not repeated in its ⋮: Play, the Library
+  /// toggle (Add to library and Remove from library; or, for a playlist the
+  /// user made, Edit), Pin and Share.
   static const shownAsButtons = {
     ItemAction.play,
     ItemAction.save,
+    ItemAction.remove,
     ItemAction.edit,
     ItemAction.pin,
     ItemAction.share,
   };
+
+  /// Whether the ⋮ of [packId]'s header has anything left to offer once the
+  /// header's buttons are taken out. With nothing left the header leaves the
+  /// ⋮ out rather than open an empty sheet.
+  ///
+  /// What is saved, pinned or downloaded only decides actions the header
+  /// already shows as buttons (or that a course never has), so the answer
+  /// needs none of it.
+  static bool hasActions(String packId) => itemActionsFor(
+    ItemActionsSpec(id: packId, hide: shownAsButtons),
+  ).isNotEmpty;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
