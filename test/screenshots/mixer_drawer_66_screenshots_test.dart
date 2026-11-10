@@ -17,8 +17,10 @@ import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/player/playback_request.dart';
+import 'package:medito/models/soundscape/synth.dart';
 import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
+import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/services/identity/palettes.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
 import 'package:medito/views/player/widgets/bottom_actions/player_action_bar.dart';
@@ -207,6 +209,67 @@ void main() {
       expect(tester.takeException(), isNull);
       await _shoot(tester, 'player-$name');
     }, skip: !_enabled);
+
+    // Clear's toast sits above the docked bar, on the tab and in the drawer.
+    for (final drawer in [false, true]) {
+      testWidgets('mixer 66 clear toast ${drawer ? 'drawer' : 'tab'}, $name', (
+        tester,
+      ) async {
+        if (drawer) {
+          await _pump(
+            tester,
+            v,
+            const Scaffold(
+              backgroundColor: Color(0xFF1B1D1F),
+              bottomNavigationBar: PlayerActionBar(
+                request: _timer,
+                isBackgroundSoundSelected: false,
+                onSpeedChanged: _noSpeed,
+                onClosePressed: _noClose,
+              ),
+            ),
+          );
+          await tester.tap(find.byType(BgSoundWidget));
+          await _settle(tester);
+        } else {
+          await _pump(tester, v, const SoundsView());
+        }
+        final mixer = ProviderScope.containerOf(
+          tester.element(find.byType(SoundsView)),
+        ).read(soundscapeProvider.notifier);
+        if (ProviderScope.containerOf(
+          tester.element(find.byType(SoundsView)),
+        ).read(soundscapeProvider).mix.isEmpty) {
+          mixer.toggleSound(kSynthNoiseId);
+        }
+        await _settle(tester);
+        await tester.tap(find.byKey(const ValueKey('sounds_mix_toggle')));
+        await _settle(tester);
+        await tester.tap(find.byKey(const ValueKey('sounds_clear')));
+        await _settle(tester);
+        // Folded again, as in the report: the bar is what it covered.
+        await tester.tap(find.byKey(const ValueKey('sounds_mix_toggle')));
+        await _settle(tester);
+        expect(tester.takeException(), isNull);
+        expect(
+          // The toast's own surface: the SnackBar's box includes its margin.
+          tester
+              .getRect(
+                find
+                    .descendant(
+                      of: find.byType(SnackBar),
+                      matching: find.byType(Material),
+                    )
+                    .first,
+              )
+              .bottom,
+          lessThanOrEqualTo(
+            tester.getRect(find.byKey(const ValueKey('sounds_dock'))).top,
+          ),
+        );
+        await _shoot(tester, 'clear-toast-${drawer ? 'drawer' : 'tab'}-$name');
+      }, skip: !_enabled);
+    }
 
     testWidgets('mixer 66 customize, $name', (tester) async {
       await _pump(
