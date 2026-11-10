@@ -2411,6 +2411,65 @@ void main() {
       );
     }
 
+    // The foot of the bell maker: the Name field under "Start from", at
+    // rest and then focused with the keyboard up (it stays in view).
+    testWidgets('Bell maker name field, ${brightness.name}', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          ...soundscapeTestOverrides(FakeSoundscapeEngine()),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: meditejoTheme(brightness, _palette),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(disableAnimations: true),
+              child: child!,
+            ),
+            home: _frame(brightness, const BellMakerView()),
+          ),
+        ),
+      );
+      await _phone(tester);
+      addTearDown(tester.view.reset);
+      final name = find.byKey(const ValueKey('bell_maker_name'));
+      // To the foot of the page (a drag would land on a control).
+      final position = tester
+          .state<ScrollableState>(
+            find
+                .descendant(
+                  of: find.byType(ListView),
+                  matching: find.byType(Scrollable),
+                )
+                .first,
+          )
+          .position;
+      position.jumpTo(position.maxScrollExtent);
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+      await _captureView(tester, 'bell-maker-name-${brightness.name}');
+
+      // The keyboard: 300 dp off the foot of the screen.
+      await tester.tap(name);
+      await tester.pump();
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300 * 2.625);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+      final field = tester.getRect(name);
+      expect(field.bottom, lessThanOrEqualTo(2340 / 2.625 - 300));
+      await _captureView(tester, 'bell-maker-name-keyboard-${brightness.name}');
+    }, skip: !_enabled);
+
     testWidgets('Customize during a session, ${brightness.name}', (
       tester,
     ) async {

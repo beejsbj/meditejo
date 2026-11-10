@@ -280,15 +280,43 @@ class _BellMakerViewState extends ConsumerState<BellMakerView> {
               ],
             ),
             const SizedBox(height: 24),
-            TextField(
-              key: const ValueKey('bell_maker_name'),
-              controller: _name,
-              maxLength: maxCustomBellNameLength,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                labelText: l10n?.bellMakerName ?? 'Name',
-                border: OutlineInputBorder(
-                  borderRadius: MeditejoShapes.radius(MeditejoShapes.large),
+            // The label sits over the field like "Start from", with the
+            // count beside it: a floating label and a counter under a filled
+            // field read as a broken slab here.
+            // The field itself carries the name and the limit for a reader.
+            ExcludeSemantics(
+              child: ListenableBuilder(
+                listenable: _name,
+                builder: (context, _) => Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _Label(l10n?.bellMakerName ?? 'Name')),
+                    Text(
+                      '${_name.text.characters.length}/$maxCustomBellNameLength',
+                      style: type.baseline.labelMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Semantics(
+              label: l10n?.bellMakerName ?? 'Name',
+              child: TextField(
+                key: const ValueKey('bell_maker_name'),
+                controller: _name,
+                maxLength: maxCustomBellNameLength,
+                textCapitalization: TextCapitalization.sentences,
+                textInputAction: TextInputAction.done,
+                // Clear of the keyboard with room to spare when focused.
+                scrollPadding: const EdgeInsets.fromLTRB(20, 20, 20, 48),
+                decoration: const InputDecoration(
+                  counterText: '',
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                 ),
               ),
             ),
