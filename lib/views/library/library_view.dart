@@ -12,6 +12,8 @@ import 'package:medito/views/library/library_add_sheet.dart';
 import 'package:medito/views/library/library_widgets.dart';
 import 'package:medito/views/you/you_button.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
+import 'package:medito/widgets/art/art_cover.dart';
+import 'package:medito/widgets/art/art_subject.dart';
 import 'package:medito/widgets/cards/card_tokens.dart';
 import 'package:medito/widgets/cards/course_card.dart';
 import 'package:medito/widgets/cards/filter_chip_bar.dart';
@@ -23,9 +25,10 @@ import 'package:medito/widgets/cards/section_title.dart';
 /// the You button; Home has no Add of its own (#62).
 ///
 /// From the top: the filter chips (All, Practice, Talks, and Downloads once
-/// something is downloaded), the user's labels, the sort and the grid or
-/// list switch; then the library by form (#80): Playlists, Courses and
-/// Sessions, playlists and courses as cards, sessions as rows, and saved
+/// something is downloaded), the user's labels (a practice's chip leads with
+/// its picture), the sort and the grid or
+/// list switch; then the library by form (#80): Sessions, Playlists and
+/// Courses, sessions as rows, playlists and courses as cards, and saved
 /// teachers last. Practice and Talks go by what a course's sessions are, so a
 /// course with both shows under either ([libraryEntryKinds]). There is no In
 /// progress here: Home's Continue has it.
@@ -241,6 +244,7 @@ class _Controls extends ConsumerWidget {
     final options = ref.watch(libraryViewOptionsProvider);
     final notifier = ref.read(libraryViewOptionsProvider.notifier);
     final grid = options.layout == LibraryLayout.grid;
+    final catalogue = ref.watch(categoryCatalogueProvider).value;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -295,6 +299,18 @@ class _Controls extends ConsumerWidget {
                     option.key,
                     option.name,
                     key: ValueKey('library_label_${option.key}'),
+                    // A practice carries its picture, the one its tile has
+                    // on Explore; a label of the user's own has none.
+                    leading: switch (catalogue?.category(option.key)) {
+                      final practice? => ArtCover(
+                        subject: ArtSubject.practice(
+                          practice.id,
+                          ground: practice.ground,
+                          figure: practice.figure,
+                        ),
+                      ),
+                      null => null,
+                    },
                   ),
               ],
             ),
