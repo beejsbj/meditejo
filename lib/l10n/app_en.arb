@@ -1150,10 +1150,6 @@
   "forkCredit": "Meditejo is based on Medito by the Medito Foundation (meditofoundation.org), licensed under AGPL-3.0.",
   "sourceCode": "Source code",
   "upstreamProject": "Upstream project",
-  "dharmaSeedLibrary": "Dharma Seed library",
-  "@dharmaSeedLibrary": {
-    "description": "Settings row for the built-in Dharma Seed catalogue sync"
-  },
   "dharmaSeedSyncProgress": "Updating {what}: {done} of {total}",
   "@dharmaSeedSyncProgress": {
     "description": "Sync progress, e.g. Updating talks: 500 of 48994",
@@ -1959,10 +1955,6 @@
   "@shareArrived": {
     "description": "Shown when a link or file was shared into the app"
   },
-  "exploreLibraryHeading": "In your library",
-  "@exploreLibraryHeading": {
-    "description": "Heading above the library courses on Explore"
-  },
   "libraryFromStart": "From the beginning",
   "@libraryFromStart": {
     "description": "Button that plays a session from the start instead of resuming"
@@ -2719,7 +2711,11 @@
   },
   "settingsSectionLibrary": "Library & downloads",
   "@settingsSectionLibrary": {
-    "description": "Settings group: imports, downloads, catalogue sync"
+    "description": "Settings group: imports and downloads"
+  },
+  "settingsSectionSources": "Sources",
+  "@settingsSectionSources": {
+    "description": "Settings group: the built-in catalogues the app reads from (Dharma Seed), each with its sync status"
   },
   "settingsSectionAppearance": "Appearance",
   "@settingsSectionAppearance": {

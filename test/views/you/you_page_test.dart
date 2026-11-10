@@ -149,6 +149,7 @@ void main() {
         'settings_practice',
         'settings_sounds',
         'settings_library',
+        'settings_sources',
         'settings_appearance',
         'settings_reminders',
         'settings_about',

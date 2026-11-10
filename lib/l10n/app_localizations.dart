@@ -2206,12 +2206,6 @@ abstract class AppLocalizations {
   /// **'Upstream project'**
   String get upstreamProject;
 
-  /// Settings row for the built-in Dharma Seed catalogue sync
-  ///
-  /// In en, this message translates to:
-  /// **'Dharma Seed library'**
-  String get dharmaSeedLibrary;
-
   /// Sync progress, e.g. Updating talks: 500 of 48994
   ///
   /// In en, this message translates to:
@@ -3267,12 +3261,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Shared with Meditejo'**
   String get shareArrived;
-
-  /// Heading above the library courses on Explore
-  ///
-  /// In en, this message translates to:
-  /// **'In your library'**
-  String get exploreLibraryHeading;
 
   /// Button that plays a session from the start instead of resuming
   ///
@@ -4354,11 +4342,17 @@ abstract class AppLocalizations {
   /// **'Sounds & cues'**
   String get settingsSectionSounds;
 
-  /// Settings group: imports, downloads, catalogue sync
+  /// Settings group: imports and downloads
   ///
   /// In en, this message translates to:
   /// **'Library & downloads'**
   String get settingsSectionLibrary;
+
+  /// Settings group: the built-in catalogues the app reads from (Dharma Seed), each with its sync status
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get settingsSectionSources;
 
   /// Settings group: theme, icon, home layout, widget
   ///

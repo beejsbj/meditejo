@@ -38,7 +38,7 @@ import 'package:medito/widgets/medito_icon.dart';
 typedef SettingsRow = Widget Function(bool last);
 
 /// Every setting, grouped by what a person is trying to do: Practice, Sounds
-/// & cues, Library & downloads, Appearance, Notifications & reminders, and
+/// & cues, Library & downloads, Sources, Appearance, Notifications & reminders, and
 /// About, which holds the version and Check for updates. Stats, session
 /// history and pins are on the You page, not here.
 ///
@@ -145,8 +145,15 @@ class SettingsSections extends ConsumerWidget {
             hasUnderline: !last,
             onTap: () => _push(context, const DownloadsView()),
           ),
-          (last) => DharmaSeedSyncTile(hasUnderline: !last),
         ],
+      ),
+      // The built-in catalogues, each with its own status. Only Dharma Seed
+      // has one: dhammatalks.org ships as a snapshot and reads its feeds
+      // quietly, with nothing to show or set.
+      SettingsGroup.rows(
+        key: const ValueKey('settings_sources'),
+        title: l10n.settingsSectionSources,
+        rows: [(last) => DharmaSeedSyncTile(hasUnderline: !last)],
       ),
       SettingsGroup.rows(
         key: const ValueKey('settings_appearance'),

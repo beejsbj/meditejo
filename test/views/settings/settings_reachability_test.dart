@@ -32,7 +32,8 @@ const _everywhere = {
   // Library & downloads: from Help and Customisation
   'Add to your library',
   'Downloads',
-  'Dharma Seed library',
+  // Sources
+  'Dharma Seed',
   // Appearance
   'Theme',
   'Organize Home layout',
@@ -54,6 +55,7 @@ const _groups = [
   'Practice',
   'Sounds & cues',
   'Library & downloads',
+  'Sources',
   'Appearance',
   'Notifications & reminders',
   'About',

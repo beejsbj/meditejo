@@ -1239,9 +1239,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get upstreamProject => 'Proyecto original';
 
   @override
-  String get dharmaSeedLibrary => 'Biblioteca de Dharma Seed';
-
-  @override
   String dharmaSeedSyncProgress(String what, int done, int total) {
     return 'Actualizando $what: $done de $total';
   }
@@ -1893,9 +1890,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get shareArrived => 'Compartido con Meditejo';
 
   @override
-  String get exploreLibraryHeading => 'En tu biblioteca';
-
-  @override
   String get libraryFromStart => 'Desde el principio';
 
   @override
@@ -2523,6 +2517,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsSectionLibrary => 'Biblioteca y descargas';
+
+  @override
+  String get settingsSectionSources => 'Fuentes';
 
   @override
   String get settingsSectionAppearance => 'Apariencia';
