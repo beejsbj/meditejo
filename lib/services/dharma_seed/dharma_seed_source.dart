@@ -347,9 +347,8 @@ class DharmaSeedSource
   @override
   Future<CatalogueExplore> explore({ContentGroup? group}) =>
       _quietly('explore', () async {
-        // Courses in the library are shown by the Explore screen itself, so
-        // they stay visible under any chip; here they are only left out of
-        // the browse list to avoid showing them twice.
+        // Courses already in the library are left out: Explore is for
+        // finding something to add, and the Library tab has the rest.
         final savedIds = {...await _savedIds(DsSavedKind.retreat)};
         final recent = await db.recentRetreatsOf(group, limit: browseLimit);
         final courses = [

@@ -75,7 +75,9 @@ void main() {
       expect(find.text('Settling'), findsNothing);
     });
 
-    testWidgets('library courses and saved teachers lead', (tester) async {
+    testWidgets('saved teachers lead; library courses are not repeated', (
+      tester,
+    ) async {
       final app = await DharmaSeedTestApp.create(tester);
       await tester.runAsync(() async {
         await app.source.setSaved('ds-retreat-200', saved: true);
@@ -83,28 +85,13 @@ void main() {
       });
       await app.pump(tester, const ExploreView());
 
-      expect(find.text('In your library'), findsOneWidget);
       expect(find.text('Saved teachers'), findsOneWidget);
-      final library = tester.getTopLeft(find.text('In your library')).dy;
-      final courses = tester.getTopLeft(find.text('Courses')).dy;
-      expect(library, lessThan(courses));
-      // The library course appears once, under In your library.
-      expect(find.text('Dharma Talks Winter'), findsOneWidget);
-    });
-
-    testWidgets('library courses stay visible under a chip', (tester) async {
-      final app = await DharmaSeedTestApp.create(tester);
-      await tester.runAsync(
-        () => app.source.setSaved('ds-retreat-200', saved: true),
-      );
-      await app.pump(tester, const ExploreView());
-
-      // Practice chip: the library's Talks course is not hidden by it.
-      await tester.tap(find.text('Practice'));
-      await DharmaSeedTestApp.settle(tester);
-      expect(find.text('In your library'), findsOneWidget);
-      expect(find.text('Dharma Talks Winter'), findsOneWidget);
-      expect(find.text('Latest guided practice'), findsOneWidget);
+      final saved = tester.getTopLeft(find.text('Saved teachers')).dy;
+      final teachers = tester.getTopLeft(find.text('Teachers')).dy;
+      expect(saved, lessThan(teachers));
+      // No "In your library" on Explore: the Library tab has what is kept.
+      expect(find.text('In your library'), findsNothing);
+      expect(find.text('Dharma Talks Winter'), findsNothing);
     });
 
     testWidgets('before the first sync, a calm card explains', (tester) async {

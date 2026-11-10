@@ -11,19 +11,15 @@ import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
-import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/routes/routes.dart';
-import 'package:medito/services/library/library_models.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/views/categories/category_chips.dart';
 import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
 import 'package:medito/views/dharma_seed/widgets/teacher_widgets.dart';
 import 'package:medito/views/explore/widgets/kind_chips.dart';
 import 'package:medito/views/explore/widgets/library_state_card.dart';
-import 'package:medito/views/library/library_actions.dart';
-import 'package:medito/views/library/library_widgets.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/search/search_results.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
@@ -41,11 +37,12 @@ import 'package:medito/widgets/widgets.dart';
 const searchSuggestions = ['Rob Burbea', 'metta', 'jhana', 'emptiness'];
 
 /// The Explore tab: find something to add. A search field sits at the top.
-/// With nothing typed it browses: Practice and Talks chips, "In your library"
-/// as a strip of small cards, Dharma Seed retreats as large course cards, the
-/// teachers behind them, and the latest single sessions (guided practice
-/// unless Talks is chosen). Typing replaces that with grouped results
-/// (Teachers, Courses, Talks), the user's library first.
+/// With nothing typed it browses: Practice and Talks chips, the ways to
+/// practise, Dharma Seed retreats as large course cards, the teachers behind
+/// them, and the latest single sessions (guided practice unless Talks is
+/// chosen). What the user already keeps is not listed here: the Library tab
+/// has it. Typing replaces browsing with grouped results (Teachers, Courses,
+/// Talks), the user's library first.
 class ExploreView extends ConsumerStatefulWidget {
   const ExploreView({super.key});
 
@@ -302,27 +299,10 @@ class ExploreViewState extends ConsumerState<ExploreView> {
       ];
     }
 
-    // Courses in the library lead, under any chip: they are the user's own,
-    // so a filter must never hide them.
-    final library =
-        ref
-            .watch(librarySectionsProvider)
-            .value
-            ?.contentFirstPractice
-            .where((e) => e.kind == LibraryKind.course)
-            .toList() ??
-        const <LibraryEntry>[];
     final l10n = AppLocalizations.of(context)!;
-    final libraryStrip = library.isEmpty
-        ? const <Widget>[]
-        : [
-            _title(l10n.exploreLibraryHeading),
-            SliverToBoxAdapter(child: _LibraryStrip(entries: library)),
-          ];
 
     if (explore.isEmpty) {
       return [
-        ...libraryStrip,
         SliverFillRemaining(
           hasScrollBody: false,
           child: Center(
@@ -342,7 +322,6 @@ class ExploreViewState extends ConsumerState<ExploreView> {
     }
 
     return [
-      ...libraryStrip,
       if (explore.courses.isNotEmpty) ...[
         _title(l10n.exploreCourses),
         SliverToBoxAdapter(child: _CourseStrip(courses: explore.courses)),
@@ -366,54 +345,6 @@ class ExploreViewState extends ConsumerState<ExploreView> {
         SessionRowsSliver(items: explore.talks),
       ],
     ];
-  }
-}
-
-/// "In your library": the courses and playlists the user keeps, as a strip of
-/// small cards. Each opens its page.
-class _LibraryStrip extends ConsumerWidget {
-  const _LibraryStrip({required this.entries});
-
-  final List<LibraryEntry> entries;
-
-  static const _width = 136.0;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    return SizedBox(
-      height: CourseCard.heightFor(
-        context,
-        width: _width,
-        size: CourseCardSize.compact,
-        detail: false,
-      ),
-      child: ListView.separated(
-        key: const ValueKey('explore_library_strip'),
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: kCardGutter),
-        itemCount: entries.length,
-        separatorBuilder: (_, _) => const SizedBox(width: kCardGap),
-        itemBuilder: (context, i) {
-          final entry = entries[i];
-          return SizedBox(
-            width: _width,
-            child: CourseCard(
-              key: ValueKey('pack_${entry.sourceId}'),
-              size: CourseCardSize.compact,
-              title: entry.displayTitle,
-              overline: librarySourceLabel(l10n, entry.sourceId),
-              art: CardArt(
-                url: entry.coverUrl,
-                art: libraryArt(entry.kind, entry.sourceId),
-                avatarSize: 28,
-              ),
-              onTap: () => openLibraryEntry(context, ref, entry),
-            ),
-          );
-        },
-      ),
-    );
   }
 }
 

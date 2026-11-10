@@ -33,7 +33,6 @@ void main() {
     final order = [
       find.byKey(const ValueKey('explore_search_field')),
       find.byKey(const ValueKey('explore_chip_practice')),
-      find.text('In your library'),
       find.text('Courses'),
       find.text('Teachers'),
       find.text('Latest guided practice'),
@@ -48,15 +47,11 @@ void main() {
         reason: '${order[i - 1]} before ${order[i]}',
       );
     }
-    // The library strip says what each is; the course cards offer Add.
-    expect(find.text('Playlist'), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('explore_library_strip')),
-        matching: find.text('Dharma Seed'),
-      ),
-      findsOneWidget,
-    );
+    // What the library already holds is not repeated here (the Library tab
+    // has it); the course cards offer Add.
+    expect(find.text('In your library'), findsNothing);
+    expect(find.text('Morning sits'), findsNothing);
+    expect(find.text('Dharma Talks Winter'), findsNothing);
     expect(
       find.byKey(const ValueKey('add_to_library_ds-retreat-100')),
       findsOneWidget,
