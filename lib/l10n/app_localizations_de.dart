@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -2448,7 +2447,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           'Sie ist auch in $count deiner Playlists und wird dort als nicht verfügbar angezeigt.',
-      one: 'Sie ist auch in einer deiner Playlists und wird dort als nicht verfügbar angezeigt.',
+      one:
+          'Sie ist auch in einer deiner Playlists und wird dort als nicht verfügbar angezeigt.',
     );
     return '$_temp0';
   }
