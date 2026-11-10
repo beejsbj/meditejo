@@ -15,6 +15,7 @@ import 'package:medito/views/categories/category_chips.dart';
 import 'package:medito/views/categories/category_view.dart';
 import 'package:medito/views/categories/practice_tile.dart';
 import 'package:medito/views/library/library_view.dart';
+import 'package:medito/widgets/art/art_cover.dart';
 
 import '../../helpers/dharma_seed_app.dart';
 import '../../helpers/library_app.dart';
@@ -98,6 +99,51 @@ void main() {
       await settle(tester);
       expect(_text('Practising the Jhānas'), findsOneWidget);
       expect(_text('Qualia Mastery'), findsOneWidget);
+    });
+
+    testWidgets('a practice\'s chip leads with its art; a label of the '
+        'user\'s own is a plain chip', (tester) async {
+      final app = await _library(tester);
+      await tester.runAsync(() async {
+        final service = CategoryService(
+          catalogue: _catalogue,
+          library: app.harness.store,
+        );
+        await service.addLabel('yt-playlist-q', 'evening reading');
+      });
+      await app.pump(tester, const LibraryView(), overrides: _overrides(app));
+
+      final body = find.byKey(const ValueKey('library_label_body'));
+      final own = find.byKey(const ValueKey('library_label_evening-reading'));
+      expect(body, findsOneWidget);
+      expect(own, findsOneWidget);
+      Finder artIn(Finder chip) =>
+          find.descendant(of: chip, matching: find.byType(ArtCover));
+      expect(artIn(body), findsOneWidget);
+      expect(artIn(own), findsNothing);
+      expect(tester.widget(own), isA<ChoiceChip>());
+
+      // The art is a square of the chip's height at its start, the name
+      // beside it, centred on it.
+      final art = tester.getRect(artIn(body));
+      final name = tester.getRect(
+        find.descendant(of: body, matching: find.text('Body')),
+      );
+      expect(art.size, const Size(32, 32));
+      expect(name.left, greaterThan(art.right));
+      expect(name.center.dy, moreOrLessEquals(art.center.dy, epsilon: 1));
+      // As tall as the plain chip beside it.
+      expect(tester.getSize(body).height, tester.getSize(own).height);
+
+      // It still filters.
+      await tester.tap(body);
+      await settle(tester);
+      expect(_text('Body scan'), findsOneWidget);
+      expect(_text('Qualia Mastery'), findsNothing);
+      expect(
+        tester.getSemantics(body),
+        isSemantics(isSelected: true, isButton: true, label: 'Body'),
+      );
     });
 
     testWidgets('are not shown when nothing is labelled', (tester) async {

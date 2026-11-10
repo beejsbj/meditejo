@@ -52,7 +52,7 @@ Future<void> add(
 
 void main() {
   group('the library screen', () {
-    testWidgets('lists courses, then sessions, then teachers (#80)', (
+    testWidgets('lists sessions, then courses, then teachers (#80)', (
       tester,
     ) async {
       final app = await LibraryTestApp.create(tester);
@@ -82,11 +82,11 @@ void main() {
       );
       await app.pump(tester, const LibraryView());
 
-      final courses = tester.getTopLeft(heading('Courses')).dy;
       final sessions = tester.getTopLeft(heading('Sessions')).dy;
+      final courses = tester.getTopLeft(heading('Courses')).dy;
       final teachers = tester.getTopLeft(heading('Teachers')).dy;
-      expect(courses, lessThan(sessions));
-      expect(sessions, lessThan(teachers));
+      expect(sessions, lessThan(courses));
+      expect(courses, lessThan(teachers));
       // No Practice or Talks sections: a talk course and a practice course
       // sit together, under Courses.
       expect(heading('Practice'), findsNothing);
@@ -94,8 +94,11 @@ void main() {
       for (final title in ['Body scan course', 'A winter talk series']) {
         final y = tester.getTopLeft(find.text(title)).dy;
         expect(y, greaterThan(courses), reason: title);
-        expect(y, lessThan(sessions), reason: title);
+        expect(y, lessThan(teachers), reason: title);
       }
+      final talk = tester.getTopLeft(find.text('One long talk')).dy;
+      expect(talk, greaterThan(sessions));
+      expect(talk, lessThan(courses));
       expect(find.text('One long talk'), findsOneWidget);
     });
 

@@ -162,9 +162,12 @@ void main() {
       ),
       findsOneWidget,
     );
+    // Its round play button says Resume as its tooltip.
     expect(
-      find.widgetWithText(FilledButton, l10n.packContinue),
-      findsOneWidget,
+      tester
+          .widget<IconButton>(find.byKey(const ValueKey('continue_play_x-a-5')))
+          .tooltip,
+      l10n.homeContinueResume,
     );
     handle.dispose();
   });
