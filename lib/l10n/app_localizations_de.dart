@@ -3118,14 +3118,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get extendEndCaption =>
-      'Nach dem Ende der Aufnahme in Stille weitermachen (mit Hintergrundklang, falls an), dann läutet die Abschlussglocke.';
+      'Fügt so viel Stille nach dem Ende der Aufnahme hinzu, bevor die Abschlussglocke läutet.';
 
   @override
   String get extendTitle => 'Verlängern';
 
   @override
   String get extendCaption =>
-      'Verlängert die Sitzung um so viel, mit Stille, als wäre die Aufnahme länger.';
+      'Fügt der Sitzung so viel Stille hinzu, in den Pausen der Anleitung und am Ende.';
 
   @override
   String get editStatsTitle => 'Edit stats';

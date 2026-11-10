@@ -3527,7 +3527,7 @@
   "@extendEndLabel": {
     "description": "Ending bell: wheel for minutes of silence after the recording, before the bell"
   },
-  "extendEndCaption": "Keep going in silence (with any background sound) after the audio ends, then ring the ending bell.",
+  "extendEndCaption": "Adds this much silence after the audio ends, before the ending bell rings.",
   "@extendEndCaption": {
     "description": "Caption above the Silence after the audio wheel"
   },
@@ -3535,9 +3535,9 @@
   "@extendTitle": {
     "description": "Customize row: minutes added to a guided session, as if the recording were longer"
   },
-  "extendCaption": "Make the session longer by this much, with silence, as if the recording were longer.",
+  "extendCaption": "Adds this much silence to the session, in the pauses between the guidance and at the end.",
   "@extendCaption": {
-    "description": "Caption under Extend"
+    "description": "Caption under Extend: its silence goes into the guide's own pauses where it can, the rest after the recording"
   },
   "editStatsTitle": "Edit stats",
   "submit": "Submit",

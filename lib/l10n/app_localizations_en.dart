@@ -3077,14 +3077,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get extendEndCaption =>
-      'Keep going in silence (with any background sound) after the audio ends, then ring the ending bell.';
+      'Adds this much silence after the audio ends, before the ending bell rings.';
 
   @override
   String get extendTitle => 'Extend';
 
   @override
   String get extendCaption =>
-      'Make the session longer by this much, with silence, as if the recording were longer.';
+      'Adds this much silence to the session, in the pauses between the guidance and at the end.';
 
   @override
   String get editStatsTitle => 'Edit stats';

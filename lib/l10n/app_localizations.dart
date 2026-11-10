@@ -5359,7 +5359,7 @@ abstract class AppLocalizations {
   /// Caption above the Silence after the audio wheel
   ///
   /// In en, this message translates to:
-  /// **'Keep going in silence (with any background sound) after the audio ends, then ring the ending bell.'**
+  /// **'Adds this much silence after the audio ends, before the ending bell rings.'**
   String get extendEndCaption;
 
   /// Customize row: minutes added to a guided session, as if the recording were longer
@@ -5368,10 +5368,10 @@ abstract class AppLocalizations {
   /// **'Extend'**
   String get extendTitle;
 
-  /// Caption under Extend
+  /// Caption under Extend: its silence goes into the guide's own pauses where it can, the rest after the recording
   ///
   /// In en, this message translates to:
-  /// **'Make the session longer by this much, with silence, as if the recording were longer.'**
+  /// **'Adds this much silence to the session, in the pauses between the guidance and at the end.'**
   String get extendCaption;
 
   /// No description provided for @editStatsTitle.
