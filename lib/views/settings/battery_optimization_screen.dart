@@ -6,10 +6,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
-import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
 import 'package:medito/widgets/medito_icon.dart';
 
@@ -41,8 +39,8 @@ final batteryGuidanceNeededProvider = FutureProvider.autoDispose<bool>((
 /// Asks to let Meditejo run in the background, on phones known to stop apps
 /// (Samsung and others) and only while it is still held back. Lived in
 /// Medito's onboarding until #87; it is now a Settings row under Reminders
-/// ([BatteryGuidanceTile]) and is offered once, right after a daily reminder
-/// is turned on ([offerBatteryGuidanceOnce]).
+/// ([BatteryGuidanceTile]) and nothing else: the app never opens it by
+/// itself (it was once offered after the first reminder was turned on).
 ///
 /// It closes itself once the phone lets Meditejo run. Coming back without
 /// that change (or from the plugin's own dialog, which also pauses and
@@ -195,35 +193,6 @@ class BatteryGuidanceTile extends ConsumerWidget {
       },
     );
   }
-}
-
-/// Right after a daily reminder is turned on, the first time only: on a
-/// phone that would hold the reminder back, open [BatteryOptimizationScreen].
-/// Everywhere else this does nothing; the Settings row stays for later.
-///
-/// Takes the navigator and container rather than a context: the end-screen
-/// card that turns reminders on is gone by the time this runs.
-Future<void> offerBatteryGuidanceOnce({
-  required NavigatorState navigator,
-  required ProviderContainer container,
-}) async {
-  final prefs = container.read(sharedPreferencesProvider);
-  if (prefs.getBool(SharedPreferenceConstants.batteryGuidanceOffered) ??
-      false) {
-    return;
-  }
-  bool show;
-  try {
-    show = await container.read(batteryGuidanceCheckProvider)();
-  } catch (_) {
-    show = false;
-  }
-  if (!show || !navigator.mounted) return;
-  await prefs.setBool(SharedPreferenceConstants.batteryGuidanceOffered, true);
-  await navigator.push<void>(
-    MaterialPageRoute(builder: (_) => const BatteryOptimizationScreen()),
-  );
-  container.invalidate(batteryGuidanceNeededProvider);
 }
 
 // OEMs known for aggressive battery optimization.

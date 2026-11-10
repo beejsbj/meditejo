@@ -1,4 +1,3 @@
-import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +7,6 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/services/intro/first_run_intro.dart';
 import 'package:medito/views/intro/intro_view.dart';
-import 'package:medito/views/settings/battery_optimization_screen.dart';
 import 'package:medito/views/splash_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -169,82 +167,5 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('open'), findsOneWidget);
     expect(prefs.getBool(SharedPreferenceConstants.introSeen), isNull);
-  });
-
-  group('battery guidance, after the first reminder', () {
-    Future<(NavigatorState, ProviderContainer)> pumpHost(
-      WidgetTester tester,
-      SharedPreferences prefs, {
-      required bool needed,
-    }) async {
-      final container = ProviderContainer(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          batteryGuidanceCheckProvider.overrideWithValue(() async => needed),
-        ],
-      );
-      addTearDown(container.dispose);
-      final key = GlobalKey<NavigatorState>();
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp(
-            navigatorKey: key,
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: _home,
-          ),
-        ),
-      );
-      return (key.currentState!, container);
-    }
-
-    testWidgets('is offered once, on a phone that needs it', (tester) async {
-      final prefs = await _prefs();
-      final (navigator, container) = await pumpHost(
-        tester,
-        prefs,
-        needed: true,
-      );
-
-      unawaited(
-        offerBatteryGuidanceOnce(navigator: navigator, container: container),
-      );
-      await tester.pumpAndSettle();
-      expect(find.byType(BatteryOptimizationScreen), findsOneWidget);
-      expect(find.text('Keep Meditejo running'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('battery_not_now')));
-      await tester.pumpAndSettle();
-      expect(find.text('HOME'), findsOneWidget);
-
-      // A second reminder later does not ask again.
-      unawaited(
-        offerBatteryGuidanceOnce(navigator: navigator, container: container),
-      );
-      await tester.pumpAndSettle();
-      expect(find.byType(BatteryOptimizationScreen), findsNothing);
-    });
-
-    testWidgets('is not offered where the phone lets Meditejo run', (
-      tester,
-    ) async {
-      final prefs = await _prefs();
-      final (navigator, container) = await pumpHost(
-        tester,
-        prefs,
-        needed: false,
-      );
-      await offerBatteryGuidanceOnce(
-        navigator: navigator,
-        container: container,
-      );
-      await tester.pumpAndSettle();
-      expect(find.byType(BatteryOptimizationScreen), findsNothing);
-      // Still offered later, should the phone start holding it back.
-      expect(
-        prefs.getBool(SharedPreferenceConstants.batteryGuidanceOffered),
-        isNull,
-      );
-    });
   });
 }

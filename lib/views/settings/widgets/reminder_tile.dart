@@ -12,7 +12,6 @@ import 'package:medito/services/reminders/daily_reminders_service.dart';
 import 'package:medito/utils/notification_permission_flow.dart';
 import 'package:medito/utils/permission_handler.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
-import 'package:medito/views/settings/battery_optimization_screen.dart';
 import 'package:medito/widgets/medito_icon.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -156,16 +155,9 @@ class _ReminderTileState extends ConsumerState<ReminderTile> {
     try {
       if (!await _ensurePermission() || !mounted) return;
 
-      final navigator = Navigator.of(context);
-      final container = ProviderScope.containerOf(context, listen: false);
       await _service().enableAt(time, l10n: AppLocalizations.of(context));
       await ref.read(reminderEnabledProvider.notifier).setEnabled(true);
       await ref.read(reminderTimeProvider.notifier).setTime(time);
-      // A reminder the phone holds back is no reminder: the first time one is
-      // turned on, ask to let Meditejo run (only on phones that need it).
-      unawaited(
-        offerBatteryGuidanceOnce(navigator: navigator, container: container),
-      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }

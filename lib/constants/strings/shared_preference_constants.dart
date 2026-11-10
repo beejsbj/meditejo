@@ -74,9 +74,6 @@ class SharedPreferenceConstants {
   /// on an install that was in use before the intro existed.
   static const String introSeen = 'intro_seen_v1';
 
-  /// Set once the battery page has been offered after a reminder was turned
-  /// on, so it is offered only that once.
-  static const String batteryGuidanceOffered = 'battery_guidance_offered_v1';
   static const String timerMinutes = 'timer_minutes';
   static const String sessionBellsEnabled = 'session_bells_enabled';
   static const String timerSessionBellsEnabled = 'timer_session_bells_enabled';

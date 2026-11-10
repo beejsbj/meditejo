@@ -3,11 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/providers/notification/reminder_provider.dart';
-import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/utils/stats_manager.dart';
 import 'package:medito/views/end_screen/end_screen_view.dart';
@@ -176,21 +174,16 @@ void main() {
     });
   });
 
-  group('turning on the first daily reminder offers the battery page', () {
+  group('turning on the first daily reminder never opens the battery page', () {
     List<Override> overrides(bool held) => [
       reminderProvider.overrideWithValue(_QuietReminders()),
       statsProvider.overrideWith(_EmptyStats.new),
       batteryGuidanceCheckProvider.overrideWithValue(() async => held),
     ];
 
-    SharedPreferences prefsOf(WidgetTester tester, Type widget) =>
-        ProviderScope.containerOf(
-          tester.element(find.byType(widget)),
-        ).read(sharedPreferencesProvider);
-
     for (final held in [true, false]) {
-      testWidgets('from Settings, ${held ? '' : 'not '}on a phone that '
-          'needs it', (tester) async {
+      testWidgets('from Settings, on a phone that '
+          '${held ? 'holds' : 'does not hold'} the app back', (tester) async {
         _grantNotifications();
         _freshStats();
         await tester.pumpWidget(
@@ -209,17 +202,10 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(
-          find.byType(BatteryOptimizationScreen),
-          held ? findsOneWidget : findsNothing,
-        );
-        expect(
-          prefsOf(
-            tester,
-            MaterialApp,
-          ).getBool(SharedPreferenceConstants.batteryGuidanceOffered),
-          held ? isTrue : isNull,
-        );
+        // The reminder is on, and the page stays in Settings for whoever
+        // wants it.
+        expect(find.byType(BatteryOptimizationScreen), findsNothing);
+        expect(find.text('Keep Meditejo running'), findsNothing);
       });
     }
 
@@ -258,14 +244,10 @@ void main() {
       await tester.tap(find.textContaining('Morning', findRichText: true).last);
       await tester.pumpAndSettle();
 
-      expect(find.byType(BatteryOptimizationScreen), findsOneWidget);
-      expect(
-        prefsOf(
-          tester,
-          MaterialApp,
-        ).getBool(SharedPreferenceConstants.batteryGuidanceOffered),
-        isTrue,
-      );
+      // Even on a phone that holds the app back.
+      expect(find.byType(BatteryOptimizationScreen), findsNothing);
+      expect(find.text('Keep Meditejo running'), findsNothing);
+      expect(find.text('Turn on reminders'), findsNothing);
     });
   });
 }
