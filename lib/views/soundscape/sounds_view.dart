@@ -330,7 +330,12 @@ class SoundsViewState extends ConsumerState<SoundsView>
             builder: (context, child) {
               final t = _dock.value;
               return SizedBox(
-                height: lerpDouble(bar, full, t)!.clamp(bar, box.maxHeight),
+                // The keyboard on another tab can leave less than the bar's
+                // height here, and clamp throws when its bounds cross.
+                height: math.min(
+                  math.max(lerpDouble(bar, full, t)!, bar),
+                  box.maxHeight,
+                ),
                 child: child,
               );
             },
