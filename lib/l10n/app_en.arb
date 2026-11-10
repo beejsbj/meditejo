@@ -2321,33 +2321,9 @@
   "@noiseBrown": {
     "description": "Sounds screen, generated layers: noiseBrown"
   },
-  "noiseBands": "Bands",
+  "noiseBands": "Equaliser",
   "@noiseBands": {
-    "description": "Sounds screen, generated layers: noiseBands"
-  },
-  "noiseShape": "Shape",
-  "@noiseShape": {
-    "description": "Noise editor: heading over the named band curves (Even, Soft, Deep, Airy)"
-  },
-  "noiseShapeEven": "Even",
-  "@noiseShapeEven": {
-    "description": "Noise shape: the colour as it is, every band level"
-  },
-  "noiseShapeSoft": "Soft",
-  "@noiseShapeSoft": {
-    "description": "Noise shape: the high frequencies fall gently away"
-  },
-  "noiseShapeDeep": "Deep",
-  "@noiseShapeDeep": {
-    "description": "Noise shape: a low rumble, mids and highs well down"
-  },
-  "noiseShapeAiry": "Airy",
-  "@noiseShapeAiry": {
-    "description": "Noise shape: the lows thinned, the highs kept"
-  },
-  "noiseShapeCustom": "Custom",
-  "@noiseShapeCustom": {
-    "description": "Noise shape chip shown when the bands were set by hand and match no named shape"
+    "description": "Noise editor: heading that opens the ten frequency-band sliders shaping the noise"
   },
   "binauralDelta": "Delta",
   "@binauralDelta": {
@@ -3523,7 +3499,7 @@
   "@extendEndLabel": {
     "description": "Ending bell: wheel for minutes of silence after the recording, before the bell"
   },
-  "extendEndCaption": "Keep going in silence (with any background sound) after the audio ends, then ring the ending bell.",
+  "extendEndCaption": "Adds this much silence after the audio ends, before the ending bell rings.",
   "@extendEndCaption": {
     "description": "Caption above the Silence after the audio wheel"
   },
@@ -3531,9 +3507,13 @@
   "@extendTitle": {
     "description": "Customize row: minutes added to a guided session, as if the recording were longer"
   },
-  "extendCaption": "Make the session longer by this much, with silence, as if the recording were longer.",
+  "extendCaption": "Adds this much silence to the session, in the pauses between the guidance and at the end.",
   "@extendCaption": {
-    "description": "Caption under Extend"
+    "description": "Caption under Extend: its silence goes into the guide's own pauses where it can, the rest after the recording"
+  },
+  "playerSilence": "Silence",
+  "@playerSilence": {
+    "description": "Player, between the seek bar's two times: shown while the session is in silence it added (Extend or the ending bell's silence), not the recording"
   },
   "editStatsTitle": "Edit stats",
   "submit": "Submit",
@@ -3930,7 +3910,7 @@
       }
     }
   },
-  "bellDeleteBody": "Cues that ring it go back to the Original bell.",
+  "bellDeleteBody": "Cues that ring it go back to the Session bell.",
   "@bellDeleteBody": {
     "description": "Bell picker: delete confirmation body"
   },

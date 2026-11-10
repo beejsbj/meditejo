@@ -82,7 +82,7 @@ class BellFigure extends Figure {
   /// `lib/models/cues/cue_settings.dart`), each a preset of the five
   /// controls.
   static const List<ShippedBell> shipped = [
-    ShippedBell('bell-swell', 'Original bell', 'session_bell_v2', 'swell'),
+    ShippedBell('bell-swell', 'Session bell', 'session_bell_v2', 'swell'),
     ShippedBell(
       'bell-bowl-small',
       'Singing bowl, small',

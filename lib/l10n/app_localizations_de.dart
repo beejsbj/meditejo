@@ -2218,25 +2218,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get noiseBrown => 'Braun';
 
   @override
-  String get noiseBands => 'Bänder';
-
-  @override
-  String get noiseShape => 'Form';
-
-  @override
-  String get noiseShapeEven => 'Gleichmäßig';
-
-  @override
-  String get noiseShapeSoft => 'Weich';
-
-  @override
-  String get noiseShapeDeep => 'Tief';
-
-  @override
-  String get noiseShapeAiry => 'Luftig';
-
-  @override
-  String get noiseShapeCustom => 'Eigene';
+  String get noiseBands => 'Equalizer';
 
   @override
   String get binauralDelta => 'Delta';
@@ -3115,14 +3097,17 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get extendEndCaption =>
-      'Nach dem Ende der Aufnahme in Stille weitermachen (mit Hintergrundklang, falls an), dann läutet die Abschlussglocke.';
+      'Fügt so viel Stille nach dem Ende der Aufnahme hinzu, bevor die Abschlussglocke läutet.';
 
   @override
   String get extendTitle => 'Verlängern';
 
   @override
   String get extendCaption =>
-      'Verlängert die Sitzung um so viel, mit Stille, als wäre die Aufnahme länger.';
+      'Fügt der Sitzung so viel Stille hinzu, in den Pausen der Anleitung und am Ende.';
+
+  @override
+  String get playerSilence => 'Stille';
 
   @override
   String get editStatsTitle => 'Edit stats';
@@ -3460,7 +3445,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get bellDeleteBody =>
-      'Signale, die sie läuten, wechseln zur „Original bell“.';
+      'Signale, die sie läuten, wechseln zur „Session bell“.';
 
   @override
   String bellMenu(String name) {

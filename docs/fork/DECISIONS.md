@@ -1495,3 +1495,16 @@ Burooj asked for a single test APK. `staging` is `apk/ux-pass` plus #97, #57, #4
 - **Swell is the drone's word.** The bell that was "Swell bell" is "Original bell" (label only; my call, he delegated it).
 - **Extend and the countdown count toward "your time"** (Burooj). Details in the entry above.
 - **#64, when it is built:** "Preset" is the saved sit, "Mix" is only the sound layers. Home shows up to four preset tiles **for now**; Burooj is not settled on four.
+
+## 2026-11-10 (staging fixes: cues and sounds, from the first staging test)
+
+Burooj's notes on the staging build (#139). All reversible.
+
+- **The default bell is "Session bell"**, not "Original bell". Label only, as before: the stored id, the asset, the art id `bell-swell` and the art preset `swell` are unchanged. Bell names are not translated, so the German and Spanish delete message quotes it in English, as the picker shows it.
+- **Extend says where its silence goes.** The caption is now "Adds this much silence to the session, in the pauses between the guidance and at the end." This revises 2026-11-02's "nothing on screen says which": he found "as if the recording were longer" weird. The ending bell's wheel reads beside it: "Adds this much silence after the audio ends, before the ending bell rings."
+- **The player says "Silence" while added silence runs** (he: "hard to tell when a session is being extended"). A quiet label between the seek bar's two times fades in for a hold in the guide's pauses and for the silence after the recording, and out when the voice returns. This also revises 2026-11-02's "No hold UI"; there is still no card and no skip.
+  - It reads the native cue phase (`hold`, `extension`) that the cue channel's `state` call already returned; no new native code. The player screen now polls that call twice a second through any guided session with added silence (foreground only), where before it polled only around the countdown and the end. The label can trail a hold's start or end by up to half a second.
+  - Not in the screen reader's reading of the seek bar yet.
+- **The noise editor has no shape chips** ("Even / Soft / Deep / Airy / Custom" are gone; he: the words make no sense, colour is the control). The ten bands stay, folded under their own heading, now called "Equaliser" (was "Bands"), always folded when the editor opens. Stored params are untouched: a mix saved with a shape or a hand-drawn curve plays and round-trips as it was, and a colour change keeps its bands. Cost: "Even" was the one-tap reset of the bands, and "Custom" brought a hand-drawn curve back; neither exists now.
+- **A toast from the mix floats above the docked bar** ("Mix cleared · Undo", "Preset saved"), on the Sounds tab and in the drawer; it covered the bar.
+- **The bell maker's Name field** has its label above it like "Start from", the count beside the label, and the app's filled field under them; the floating label and the counter under the field read as a broken slab.

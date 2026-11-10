@@ -230,6 +230,43 @@ class SoundsMixHeader extends ConsumerWidget {
   }
 }
 
+/// The height of the mix's docked bar, for what is drawn under it: a
+/// snackbar shown from the mix sits above the bar instead of over it. Absent
+/// where the mix is a pane beside the library.
+class SoundsDockBar extends InheritedWidget {
+  const SoundsDockBar({super.key, required this.height, required super.child});
+
+  /// From the Scaffold's foot to the bar's top edge.
+  final double height;
+
+  @override
+  bool updateShouldNotify(SoundsDockBar old) => height != old.height;
+}
+
+/// Shows [content] as a snackbar from the mix, replacing the one showing. It
+/// floats clear of the docked bar where there is one (an emptied mix folds
+/// the dock to its bar, and a snackbar at the foot would cover it).
+void _showMixSnackBar(
+  BuildContext context,
+  Widget content, {
+  SnackBarAction? action,
+}) {
+  final bar = context.getInheritedWidgetOfExactType<SoundsDockBar>()?.height;
+  ScaffoldMessenger.maybeOf(context)
+    ?..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: content,
+        // An action keeps a SnackBar up until dismissed; Undo is for the
+        // moment after Clear, so let it time out.
+        persist: false,
+        action: action,
+        behavior: bar == null ? null : SnackBarBehavior.floating,
+        margin: bar == null ? null : EdgeInsets.fromLTRB(16, 0, 16, bar + 8),
+      ),
+    );
+}
+
 /// Empties the mix and offers Undo, which restores it exactly (and plays it
 /// again if it was playing).
 void _clear(BuildContext context, WidgetRef ref) {
@@ -240,24 +277,18 @@ void _clear(BuildContext context, WidgetRef ref) {
   // A paused mix is loaded but not playing; Undo brings it back paused.
   final wasPaused =
       before.owner == SoundscapeOwner.standalone && !before.playing;
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(
-        content: Text(l10n.soundsMixCleared),
-        // An action keeps a SnackBar up until dismissed; Undo is for the
-        // moment after Clear, so let it time out.
-        persist: false,
-        action: SnackBarAction(
-          label: l10n.undo,
-          onPressed: () => controller.restoreMix(
-            before.mix,
-            play: before.playing || wasPaused,
-            paused: wasPaused,
-          ),
-        ),
+  _showMixSnackBar(
+    context,
+    Text(l10n.soundsMixCleared),
+    action: SnackBarAction(
+      label: l10n.undo,
+      onPressed: () => controller.restoreMix(
+        before.mix,
+        play: before.playing || wasPaused,
+        paused: wasPaused,
       ),
-    );
+    ),
+  );
 }
 
 /// The open panel under the header: the mix's volume, its layers (each
@@ -623,9 +654,7 @@ Future<void> saveMixAsPreset(BuildContext context, WidgetRef ref) async {
   if (!context.mounted || name == null || name.trim().isEmpty) return;
   final saved = ref.read(soundscapeProvider.notifier).savePreset(name);
   if (saved != null && context.mounted) {
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(content: Text(l10n.soundsPresetSaved(saved.name))),
-    );
+    _showMixSnackBar(context, Text(l10n.soundsPresetSaved(saved.name)));
   }
 }
 

@@ -131,6 +131,26 @@ void main() {
     expect(mix().isEmpty, isTrue);
     expect(container.read(soundscapeProvider).active, isFalse);
     expect(find.text('Mix cleared'), findsOneWidget);
+    // Folded to its bar, the dock is not under the toast: it sits above.
+    await tester.tap(find.byKey(const ValueKey('sounds_mix_toggle')));
+    await tester.pumpAndSettle();
+    expect(find.text('Mix cleared'), findsOneWidget);
+    expect(
+      // The toast's own surface: the SnackBar's box includes its margin.
+      tester
+          .getRect(
+            find
+                .descendant(
+                  of: find.byType(SnackBar),
+                  matching: find.byType(Material),
+                )
+                .first,
+          )
+          .bottom,
+      lessThanOrEqualTo(
+        tester.getRect(find.byKey(const ValueKey('sounds_dock'))).top,
+      ),
+    );
 
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
@@ -924,7 +944,7 @@ void main() {
     expect(engine.retuned.containsKey(kSynthBinauralId), isTrue);
   });
 
-  testWidgets('noise editor: colour and a named shape commit to the layer', (
+  testWidgets('noise editor: a colour commits to the layer, its bands kept', (
     tester,
   ) async {
     phone(tester);
@@ -933,32 +953,23 @@ void main() {
       ..clearMix()
       ..toggleSound(kSynthNoiseId);
     await tester.pumpAndSettle();
+    const curve = [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0];
     controller.setLayerParams(
       kSynthNoiseId,
-      const NoiseParams(bands: [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]).toJson(),
+      const NoiseParams(bands: curve).toJson(),
     );
     await tester.pumpAndSettle();
     await openMix(tester);
     await tester.tap(find.byKey(const ValueKey('adjust_synth-noise')));
     await tester.pumpAndSettle();
-    // Bands drawn by hand: "Custom", with the bands open under it.
-    expect(find.byKey(const ValueKey('noise_shape_other')), findsOneWidget);
-    expect(find.byKey(const ValueKey('noise_band_0')), findsOneWidget);
+    // The bands are folded away, whatever they hold; no shape chips.
+    expect(find.byKey(const ValueKey('noise_band_0')), findsNothing);
+    expect(find.byKey(const ValueKey('noise_bands_fold')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('noise_colour_brown')));
     await tester.pumpAndSettle();
-    // "Even" is what Reset bands was.
-    await tester.tap(find.byKey(const ValueKey('noise_shape_even')));
-    await tester.pumpAndSettle();
-    // Custom stays on offer, no longer chosen, to bring the curve back.
-    expect(
-      tester
-          .widget<ChoiceChip>(find.byKey(const ValueKey('noise_shape_other')))
-          .selected,
-      isFalse,
-    );
     final params = NoiseParams.fromJson(mix().layer(kSynthNoiseId)!.params);
     expect(params.colour, NoiseColour.brown);
-    expect(params.bands, NoiseParams.flat);
+    expect(params.bands, curve);
     expect(engine.retuned.containsKey(kSynthNoiseId), isTrue);
   });
 

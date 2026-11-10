@@ -1028,9 +1028,9 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
     ),
   );
 
-  /// Extend: the session reads as if the recording were longer. How it is
-  /// spent (the guide's pauses first, then after the recording) is not the
-  /// listener's concern.
+  /// Extend: the session reads as if the recording were longer. The caption
+  /// says where the silence goes: the guide's pauses first, then after the
+  /// recording.
   Widget _extendEditor(CueSettings s) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [

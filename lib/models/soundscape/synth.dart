@@ -44,39 +44,6 @@ enum NoiseColour {
       values.firstWhere((c) => c.name == v, orElse: () => NoiseColour.pink);
 }
 
-/// Named curves for the ten bands (#71): what most people want from the
-/// equaliser, one tap each. The bands stay the stored truth, so a curve
-/// shaped by hand, or saved before these existed, plays as it was.
-enum NoiseShape {
-  /// The colour as it is.
-  even([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
-
-  /// The highs fall gently away (the Stillness preset's curve).
-  soft([1, 1, 1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3]),
-
-  /// A low rumble: mids and highs well down.
-  deep([1, 1, 1, 0.8, 0.55, 0.35, 0.22, 0.14, 0.09, 0.06]),
-
-  /// Light and open: the lows thinned, the highs kept.
-  airy([0.25, 0.35, 0.5, 0.7, 0.85, 1, 1, 1, 1, 1]);
-
-  const NoiseShape(this.bands);
-
-  final List<double> bands;
-
-  /// The shape [bands] make, or null for a curve of their own.
-  static NoiseShape? of(List<double> bands) {
-    for (final shape in values) {
-      var same = shape.bands.length == bands.length;
-      for (var i = 0; same && i < bands.length; i++) {
-        same = (shape.bands[i] - bands[i]).abs() < 1e-6;
-      }
-      if (same) return shape;
-    }
-    return null;
-  }
-}
-
 /// A myNoise-style generator: a colour, then ten octave bands to shape it.
 class NoiseParams {
   const NoiseParams({this.colour = NoiseColour.pink, this.bands = flat});
@@ -114,9 +81,6 @@ class NoiseParams {
 
   NoiseParams copyWith({NoiseColour? colour, List<double>? bands}) =>
       NoiseParams(colour: colour ?? this.colour, bands: bands ?? this.bands);
-
-  /// The named curve the bands make, or null for a curve of their own.
-  NoiseShape? get shape => NoiseShape.of(bands);
 
   /// A slider at 0 is this far down (−60 dB), not a hole in the spectrum.
   static const floor = 0.001;

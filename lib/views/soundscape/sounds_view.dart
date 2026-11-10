@@ -295,6 +295,21 @@ class SoundsViewState extends ConsumerState<SoundsView>
     final full = math.max(bar, box.maxHeight - 32);
     final travel = math.max(1.0, full - bar);
     final bottom = MediaQuery.paddingOf(context).bottom;
+    return SoundsDockBar(
+      height: bar,
+      child: _dockedStack(context, box, scheme, bar, full, travel, bottom),
+    );
+  }
+
+  Widget _dockedStack(
+    BuildContext context,
+    BoxConstraints box,
+    ColorScheme scheme,
+    double bar,
+    double full,
+    double travel,
+    double bottom,
+  ) {
     return Stack(
       children: [
         Positioned.fill(

@@ -40,8 +40,9 @@ String _bandLabel(double hz) =>
     hz >= 1000 ? '${(hz / 1000).round()}k' : '${hz.round()}';
 
 // ---------------------------------------------------------------------------
-// Noise: the colour, then a named shape; the ten bands fold under the shape
-// for anyone who wants to draw their own curve.
+// Noise: the colour is the control. The ten bands stay for anyone who wants
+// to shape it, folded under their own heading. A mix saved with a curve (a
+// named shape from before, or one drawn by hand) keeps its bands untouched.
 
 final noiseControls = SoundControlSpec(
   adjust: [
@@ -57,36 +58,18 @@ final noiseControls = SoundControlSpec(
       write: (p, s) =>
           NoiseParams.fromJson(p).copyWith(colour: s.single).toJson(),
     ),
-    SoundChips<NoiseShape>(
-      id: 'noise_shape',
-      title: (l) => l.noiseShape,
-      choices: [
-        SoundChoice(NoiseShape.even, 'even', (l) => l.noiseShapeEven),
-        SoundChoice(NoiseShape.soft, 'soft', (l) => l.noiseShapeSoft),
-        SoundChoice(NoiseShape.deep, 'deep', (l) => l.noiseShapeDeep),
-        SoundChoice(NoiseShape.airy, 'airy', (l) => l.noiseShapeAiry),
-      ],
-      read: (p) => {?NoiseParams.fromJson(p).shape},
-      write: (p, s) =>
-          NoiseParams.fromJson(p).copyWith(bands: s.single.bands).toJson(),
-      otherLabel: (l) => l.noiseShapeCustom,
-      // The curve drawn by hand comes back; the colour stays as now.
-      restoreOther: (p, custom) => NoiseParams.fromJson(
-        p,
-      ).copyWith(bands: NoiseParams.fromJson(custom).bands).toJson(),
-      fineFolds: true,
-      fine: SoundRanges(
-        id: 'noise_bands',
-        title: (l) => l.noiseBands,
-        count: NoiseParams.bandCentres.length,
-        label: (i) => _bandLabel(NoiseParams.bandCentres[i]),
-        partId: (i) => 'noise_band_$i',
-        read: (p, i) => NoiseParams.fromJson(p).bands[i],
-        write: (p, i, v) {
-          final params = NoiseParams.fromJson(p);
-          return params.copyWith(bands: [...params.bands]..[i] = v).toJson();
-        },
-      ),
+    SoundRanges(
+      id: 'noise_bands',
+      title: (l) => l.noiseBands,
+      folds: true,
+      count: NoiseParams.bandCentres.length,
+      label: (i) => _bandLabel(NoiseParams.bandCentres[i]),
+      partId: (i) => 'noise_band_$i',
+      read: (p, i) => NoiseParams.fromJson(p).bands[i],
+      write: (p, i, v) {
+        final params = NoiseParams.fromJson(p);
+        return params.copyWith(bands: [...params.bands]..[i] = v).toJson();
+      },
     ),
   ],
 );

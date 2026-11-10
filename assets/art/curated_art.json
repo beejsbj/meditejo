@@ -11371,7 +11371,7 @@
    "inkSeed": "ds-talk-60864#3:ink"
   },
   "bell-swell": {
-   "title": "Original bell",
+   "title": "Session bell",
    "kind": "bell",
    "asset": "assets/audio/session_bell_v2.wav",
    "preset": "swell",

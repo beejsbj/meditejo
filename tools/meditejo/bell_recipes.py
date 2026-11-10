@@ -9,7 +9,7 @@ imports the generator, swaps its render() and strike() for recorders, calls
 each sound's build, and writes what they were given, so the numbers come from
 the generator and not from a copy of its tables.
 
-The eleventh bell, Medito's "Original bell" (assets/audio/session_bell_v2.wav),
+The eleventh bell, Medito's "Session bell" (assets/audio/session_bell_v2.wav),
 is a recording, so its two modes are the ones measured from the WAV for
 identity round 5 (docs/fork/design/identity/round5/bell_params.py).
 
