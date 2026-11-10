@@ -24,7 +24,6 @@ import 'package:medito/services/identity/daily_mark.dart';
 import 'package:medito/services/identity/mark_generator.dart';
 import 'package:medito/services/identity/mark_moments.dart';
 import 'package:medito/services/identity/mark_spec.dart';
-import 'package:medito/widgets/branding/home_mark_sheet.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -32,8 +31,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// one-tap starts, and the courses the user pinned. Browsing lives in
 /// Explore and everything added in Library. The user chooses which sections
 /// show and in what order; the mark always leads. The mark is today's (a
-/// new one each day) unless the user pinned one; a long-press on it opens
-/// [HomeMarkSheet] to pin or unpin it, and a tap sends a breath through it.
+/// new one each day), and a tap sends a breath through it.
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({super.key});
 
@@ -260,9 +258,9 @@ class _HomeMarkState extends ConsumerState<_HomeMark> {
 
   /// The mark was seen: on a new day, say today's name. Not on the very
   /// first Home (no day before to turn from; the intro has just shown the
-  /// mark), and not for a pinned mark.
+  /// mark).
   void _onSeen() {
-    if (!_noteSeen() || ref.read(pinnedMarkProvider) != null) return;
+    if (!_noteSeen()) return;
     setState(() {
       _named = ref.read(homeMarkProvider).type;
       _announced = false;
@@ -278,50 +276,28 @@ class _HomeMarkState extends ConsumerState<_HomeMark> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final pinned = ref.watch(pinnedMarkProvider) != null;
     ref.watch(identityDayProvider);
-    // Back to the daily mark: it simply draws in, as on a pin. The day
-    // the pinned mark was seen counts as seen.
-    ref.listen(pinnedMarkProvider, (previous, next) {
-      if (previous != null && next == null) _noteSeen();
-    });
     final scheme = Theme.of(context).colorScheme;
     final named = _named;
     final mark = Semantics(
       key: const ValueKey('home_mark'),
       label: l10n.homeMarkTitle,
-      value: pinned ? l10n.homeMarkPinned : l10n.homeMarkToday,
-      onLongPressHint: l10n.homeMarkPinHint,
+      value: l10n.homeMarkToday,
       child: GestureDetector(
-        onLongPress: () => showHomeMarkSheet(context),
-        child: Stack(
-          children: [
-            GestureDetector(
-              // The breath is felt, not announced: no action for TalkBack.
-              excludeFromSemantics: true,
-              onTap: () => _mark.currentState?.breathe(),
-              child: MeditejoMark(
-                key: _mark,
-                mark: ref.watch(homeMarkProvider),
-                size: kHomeMarkSize,
-                animate: widget.animate,
-                from: pinned ? null : _arrivingFrom(),
-                onSeen: _onSeen,
-                turnClock: _turn,
-              ),
-            ),
-            if (pinned)
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: Icon(
-                  Icons.push_pin_rounded,
-                  key: const ValueKey('home_mark_pinned'),
-                  size: 16,
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-          ],
+        // The breath is felt, not announced: no action for TalkBack.
+        excludeFromSemantics: true,
+        onTap: () => _mark.currentState?.breathe(),
+        // A hold is not a tap: it does nothing, rather than breathe on
+        // release.
+        onLongPress: () {},
+        child: MeditejoMark(
+          key: _mark,
+          mark: ref.watch(homeMarkProvider),
+          size: kHomeMarkSize,
+          animate: widget.animate,
+          from: _arrivingFrom(),
+          onSeen: _onSeen,
+          turnClock: _turn,
         ),
       ),
     );

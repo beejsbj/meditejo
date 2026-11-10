@@ -31,8 +31,8 @@ class SharedPreferenceConstants {
   /// The identity palette: `daily`, or a palette's id. Unset is Tidewater.
   static const String identityPalette = 'identity_palette';
 
-  /// A pinned Home mark, as frozen geometry (`MarkSpec` JSON). Unset is the
-  /// daily mark.
+  /// A pinned Home mark, from when the mark could be pinned. No longer
+  /// read; `forgetPinnedMark` removes it at launch.
   static const String identityPinnedMark = 'identity_pinned_mark';
 
   /// The local day (`YYYY-MM-DD`) Home's mark was last seen on. A day after

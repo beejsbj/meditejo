@@ -251,14 +251,6 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
       await _captureView(tester, 'palette-picker-${brightness.name}');
-      await tester.pageBack();
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 1));
-
-      await tester.tap(find.byKey(const ValueKey('settings_home_mark')));
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 1));
-      await _captureView(tester, 'home-mark-sheet-${brightness.name}');
     }, skip: !_enabled);
 
     testWidgets('a week of daily marks, ${brightness.name}', (tester) async {

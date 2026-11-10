@@ -148,6 +148,13 @@ void main() async {
     AppLogger.w('MAIN', 'Failed to move favourites into pins: $e');
   }
 
+  // Home's mark is no longer pinnable; drop a pin an earlier build kept.
+  try {
+    await forgetPinnedMark(prefs);
+  } catch (e) {
+    AppLogger.w('MAIN', 'Failed to drop the pinned Home mark: $e');
+  }
+
   await initializeAudioService();
 
   usePathUrlStrategy();

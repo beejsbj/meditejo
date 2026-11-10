@@ -148,56 +148,22 @@ void main() {
     expect(tester.takeAnnouncements(), isEmpty);
   });
 
-  testWidgets('a pinned mark has no daily turn and no name', (tester) async {
-    final app = await LibraryTestApp.create(tester);
-    final pin = MarkGenerator.build('g-1kq');
-    await app.prefs.setString(_seenKey, '2026-10-25');
-    await app.prefs.setString(
-      SharedPreferenceConstants.identityPinnedMark,
-      pin.encode(),
-    );
-    await app.pump(tester, const HomeView(), overrides: _overrides);
-    expect(_widget(tester).mark.seed, pin.seed);
-    expect(_widget(tester).from, isNull);
-    expect(_name, findsNothing);
-    expect(tester.takeAnnouncements(), isEmpty);
-    // Today counts as seen: unpinning later today just draws today's in.
-    expect(app.prefs.getString(_seenKey), '2026-10-26');
-
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(HomeView)),
-    );
-    await container.read(pinnedMarkProvider.notifier).unpin();
-    await tester.pump();
-    expect(_widget(tester).mark.seed, _markOf(_day2).seed);
-    expect(_widget(tester).from, isNull);
-    expect(_state(tester).isArriving, isFalse);
-    await tester.pump(const Duration(seconds: 1));
-    expect(_name, findsNothing);
-  });
-
-  testWidgets('a pin kept past midnight, unpinned the next day: no turn', (
+  testWidgets('a mark pinned by an earlier build does not stop the turn', (
     tester,
   ) async {
-    now = _day1;
     final app = await LibraryTestApp.create(tester);
+    await app.prefs.setString(_seenKey, '2026-10-25');
     await app.prefs.setString(
       SharedPreferenceConstants.identityPinnedMark,
       MarkGenerator.build('g-1kq').encode(),
     );
     await app.pump(tester, const HomeView(), overrides: _overrides);
-    expect(app.prefs.getString(_seenKey), '2026-10-25');
-
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(HomeView)),
-    );
-    now = _day2;
-    container.read(identityDayProvider.notifier).refresh();
-    await tester.pump();
-    await container.read(pinnedMarkProvider.notifier).unpin();
-    await tester.pump();
-    expect(_widget(tester).from, isNull);
-    expect(_state(tester).isArriving, isFalse);
+    // Today's mark, turned to from yesterday's and named, as with no pin.
+    expect(_widget(tester).mark.seed, _markOf(_day2).seed);
+    expect(app.prefs.getString(_seenKey), '2026-10-26');
+    expect(tester.takeAnnouncements().map((a) => a.message), [
+      "Today's mark: ${_nameOf(_day2)}",
+    ]);
   });
 
   testWidgets('the day turns while Home is open: the mark turns then', (
@@ -376,9 +342,7 @@ void main() {
     },
   );
 
-  testWidgets('a long-press opens the mark sheet, without a breath', (
-    tester,
-  ) async {
+  testWidgets('a long-press does nothing: no sheet, no breath', (tester) async {
     final app = await LibraryTestApp.create(tester);
     await app.prefs.setString(_seenKey, '2026-10-26');
     await app.pump(tester, const HomeView(), overrides: _overrides);
@@ -386,7 +350,7 @@ void main() {
     await tester.pump();
     expect(_state(tester).isBreathing, isFalse);
     await tester.pump(const Duration(milliseconds: 600));
-    expect(find.byKey(const ValueKey('home_mark_pin')), findsOneWidget);
+    expect(find.byType(BottomSheet), findsNothing);
     expect(_state(tester).isBreathing, isFalse);
   });
 
@@ -409,8 +373,7 @@ void main() {
     expect(_state(tester).isBreathing, isTrue);
     await tester.pump(const Duration(milliseconds: 3600));
     expect(_state(tester).isBreathing, isFalse);
-    // A tap is not a long-press: no sheet.
-    expect(find.byKey(const ValueKey('home_mark_pin')), findsNothing);
+    expect(find.byType(BottomSheet), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('home_mark')));
     await tester.pump();

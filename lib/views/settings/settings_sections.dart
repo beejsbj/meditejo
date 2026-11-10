@@ -158,7 +158,6 @@ class SettingsSections extends ConsumerWidget {
             hasUnderline: !last,
           ),
           (last) => PaletteTile(hasUnderline: !last),
-          (last) => HomeMarkTile(hasUnderline: !last),
           (last) => RowItemWidget(
             icon: MeditoIcon(assetName: MeditoIcons.pencil, color: onSurface),
             title: l10n.customiseHomeLayout,
