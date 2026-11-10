@@ -3902,7 +3902,7 @@
       }
     }
   },
-  "bellDeleteBody": "Cues that ring it go back to the Swell bell.",
+  "bellDeleteBody": "Cues that ring it go back to the Original bell.",
   "@bellDeleteBody": {
     "description": "Bell picker: delete confirmation body"
   },

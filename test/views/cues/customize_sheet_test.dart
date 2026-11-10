@@ -336,7 +336,7 @@ void main() {
     expect(y('rhythm'), greaterThan(y('sound')));
     expect(x('rhythm'), x('sound'));
     expect(_says(tester, 'sound'), ['Sound', 'Off']);
-    expect(_says(tester, 'bells'), ['Bells', 'Swell bell', 'Start · End']);
+    expect(_says(tester, 'bells'), ['Bells', 'Original bell', 'Start · End']);
     expect(_says(tester, 'rhythm'), ['Rhythm', 'Off']);
     // A recording sets its own length: shown, not set.
     expect(_says(tester, 'length'), ['Length', '20 min', 'Set by the session']);
@@ -654,7 +654,7 @@ void main() {
     expect(_read(container).intervalMinutes, 6, reason: 'kept for later');
     expect(_read(container).hasIntervalBell, isTrue);
     expect(_wheel('Random window'), findsNothing, reason: 'one bell');
-    expect(_value(tester, 'Interval bell'), 'Halfway · Swell bell');
+    expect(_value(tester, 'Interval bell'), 'Halfway · Original bell');
     expect(_says(tester, 'bells').last, 'Start · Halfway · End');
     await _turn(tester, 'Every', '6 min');
     expect(_read(container).intervalHalfway, isFalse);
@@ -682,7 +682,7 @@ void main() {
       expect(_value(tester, 'Interval bell'), 'Off');
       await _turn(tester, 'Every', 'Halfway');
       expect(_read(container).hasIntervalBell, isTrue);
-      expect(_value(tester, 'Interval bell'), 'Halfway · Swell bell');
+      expect(_value(tester, 'Interval bell'), 'Halfway · Original bell');
       await _unmount(tester);
     },
   );
@@ -1272,7 +1272,7 @@ void main() {
     final semantics = tester.ensureSemantics();
     await _pump(tester);
     expect(
-      find.semantics.byLabel('Bells, Swell bell, Start · End, default'),
+      find.semantics.byLabel('Bells, Original bell, Start · End, default'),
       findsOne,
     );
     SemanticsNode node(Finder of, String label) => tester.getSemantics(
@@ -1285,7 +1285,7 @@ void main() {
     );
     final bells = node(
       _tile('bells'),
-      'Bells, Swell bell, Start · End, default',
+      'Bells, Original bell, Start · End, default',
     );
     expect(bells.flagsCollection.isExpanded, Tristate.isFalse);
     expect(bells.flagsCollection.isButton, isTrue);
@@ -1293,7 +1293,7 @@ void main() {
     expect(
       node(
         _tile('bells'),
-        'Bells, Swell bell, Start · End, default',
+        'Bells, Original bell, Start · End, default',
       ).flagsCollection.isExpanded,
       Tristate.isTrue,
     );
@@ -1310,24 +1310,24 @@ void main() {
     await _turn(tester, 'Every', 'Halfway');
     expect(
       find.semantics.byLabel(
-        'Bells, Swell bell, Start · Halfway · End, changed',
+        'Bells, Original bell, Start · Halfway · End, changed',
       ),
       findsOne,
     );
     await _row(tester, 'Interval bell');
     // The rows inside open the same way.
-    expect(find.semantics.byLabel('Starting bell, Swell bell'), findsOne);
+    expect(find.semantics.byLabel('Starting bell, Original bell'), findsOne);
     await _row(tester, 'Starting bell');
     expect(
       node(
         find.byKey(const ValueKey('customize_startBell')),
-        'Starting bell, Swell bell',
+        'Starting bell, Original bell',
       ).flagsCollection.isExpanded,
       Tristate.isTrue,
     );
     // The play buttons are their own controls, named by their tooltip: one
     // for each bell that rings (the interval bell is on now).
-    expect(find.byTooltip('Play Swell bell'), findsNWidgets(3));
+    expect(find.byTooltip('Play Original bell'), findsNWidgets(3));
     semantics.dispose();
     await _unmount(tester);
   });
@@ -2077,7 +2077,7 @@ void main() {
       // The Ending bell's silence is its own setting, and untouched.
       expect(_filled(tester, 'bells'), isFalse);
       await _slot(tester, 'bells');
-      expect(_value(tester, 'Ending bell'), 'Swell bell');
+      expect(_value(tester, 'Ending bell'), 'Original bell');
       await _row(tester, 'Ending bell');
       await _turn(tester, 'Silence after the audio', '+2 min');
       expect(_read(container).extendMinutes, 10);
@@ -2096,7 +2096,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(_says(tester, 'length'), ['Length', '20 min', '+ 10 min silence']);
       await _slot(tester, 'bells');
-      expect(_value(tester, 'Ending bell'), '6 min silence · Swell bell');
+      expect(_value(tester, 'Ending bell'), '6 min silence · Original bell');
       await _unmount(tester);
     }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
 

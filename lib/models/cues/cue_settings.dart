@@ -12,7 +12,7 @@ enum CueKind { practice, talks }
 /// setting (`session_bell_v2.wav` is the original bell).
 const cueBellSounds = <String, String>{
   'Off': '',
-  'Swell bell': 'assets/audio/session_bell_v2.wav',
+  'Original bell': 'assets/audio/session_bell_v2.wav',
   'Singing bowl, small': 'assets/audio/bell_bowl_small.wav',
   'Singing bowl': 'assets/audio/bell_bowl_medium.wav',
   'Singing bowl, deep': 'assets/audio/bell_bowl_deep.wav',

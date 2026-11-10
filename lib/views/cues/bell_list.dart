@@ -93,7 +93,7 @@ class _BellListState extends ConsumerState<BellList> {
         ),
         content: Text(
           l10n?.bellDeleteBody ??
-              'Cues that ring it go back to the Swell bell.',
+              'Cues that ring it go back to the Original bell.',
         ),
         actions: [
           TextButton(

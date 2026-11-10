@@ -1244,7 +1244,7 @@
   "bellRename": "Renombrar",
   "bellRenameTitle": "Renombrar campana",
   "bellDeleteTitle": "¿Borrar «{name}»?",
-  "bellDeleteBody": "Las señales que la usan volverán a «Swell bell».",
+  "bellDeleteBody": "Las señales que la usan volverán a «Original bell».",
   "bellMenu": "Más sobre {name}",
   "bellMakerDefaultName": "Mi campana"
 }

@@ -3442,7 +3442,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get bellDeleteBody =>
-      'Signale, die sie läuten, wechseln zur „Swell bell“.';
+      'Signale, die sie läuten, wechseln zur „Original bell“.';
 
   @override
   String bellMenu(String name) {

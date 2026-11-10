@@ -528,7 +528,7 @@ void main() {
       await tester.tap(row);
       await _settle(tester);
       expect(find.byType(BellMakerView), findsOneWidget);
-      // The cue rang the swell bell, so that is where the maker starts.
+      // The cue rang the original bell, so that is where the maker starts.
       expect(
         tester
             .widget<ChoiceChip>(
