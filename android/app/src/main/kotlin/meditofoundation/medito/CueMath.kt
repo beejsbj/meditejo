@@ -297,6 +297,15 @@ internal object CueMath {
         else 1.0 / max(speed, 0.05)
         return Math.round(durationMs * ratio)
     }
+
+    /**
+     * Real time a whole session took, for "your time": the recording at the
+     * speeds it was heard at ([recordingRealMs], see [realDurationMs]), plus
+     * what no speed shortens: the silence sat in ([silenceMs]: Extend and
+     * the ending bell's own) and the countdown before the start.
+     */
+    fun sessionRealMs(recordingRealMs: Long, silenceMs: Long, countdownMs: Long): Long =
+        max(0L, recordingRealMs) + max(0L, silenceMs) + max(0L, countdownMs)
 }
 
 /**
@@ -409,8 +418,12 @@ internal class ListeningTracker(private val maxStepMs: Long = CueMath.LISTENING_
      * [speed] widens the largest step in proportion, so a sped-up talk keeps
      * the same margin for a late or skipped sample as one at 1x. Slower
      * playback keeps the 1x limit.
+     *
+     * A step through silence (an Extend hold or the tail, [voice] false)
+     * counts as heard but stays out of the speed mix, which is the voice's:
+     * silence is added to the real time whole, see [CueMath.sessionRealMs].
      */
-    fun sample(positionMs: Long, playing: Boolean, speed: Double = 1.0) {
+    fun sample(positionMs: Long, playing: Boolean, speed: Double = 1.0, voice: Boolean = true) {
         if (!playing || positionMs < 0) { last = -1L; return }
         val from = last
         last = positionMs
@@ -418,6 +431,7 @@ internal class ListeningTracker(private val maxStepMs: Long = CueMath.LISTENING_
         val step = positionMs - from
         if (step <= 0 || step > (maxStepMs * max(speed, 1.0)).toLong()) return
         add(from, positionMs)
+        if (!voice) return
         playedMediaMs += step
         playedRealMs += step / max(speed, 0.05)
     }

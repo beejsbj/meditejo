@@ -1233,3 +1233,19 @@ Burooj on the combined test APK: "Make a bell is cool. I'd rather have sliders b
 - **Not done:** at 200% text on 320 dp the app bar title reads "Make a …" (the Save button takes the room); that is the bar's, not this change's.
 - **Tests:** `range_control_test` (vertical order of the parts, dragging up raises the value, also in right-to-left; name and value on one semantics node; the bank's rows at 360 dp and at 200% on 360 dp; a bank with no width) and `bell_maker_test` (five vertical tracks in one row; 320 dp at 200% is 2 + 2 + 1 with every control inside the screen). **Screenshots:** `docs/fork/design/bell-maker-{light,dark}.png` and `bell-maker-narrow-large-text-{light,dark}.png`, from `MEDITEJO_SCREENSHOTS=1 flutter test test/screenshots/design_screenshots_test.dart --plain-name "Bell maker"`.
 - **For Burooj:** whether five channels at that width are comfortable to hit with a thumb on the S23+ (a channel is about 76 dp wide there with the track 48 dp across); whether the end words belong above and below the track or are noise once the figure moves with each control.
+
+## 2026-11-10 (staging: Extend and the bell maker meet the regrouped Customize)
+
+`staging-cues` merges #49 (Extend) and #51 (make a bell) onto `apk/ux-pass` for the single test build. Placement calls, all reversible:
+
+- **Extend lives under the Length tile.** For a recording, Length was read-only in #108; it now opens and holds the Extend wheel. A timer keeps its duration wheel there. The tile is filled when Extend differs from the defaults, and its second line reads "+ N min silence" for all added silence (Extend plus the ending bell's).
+- **The ending bell's silence is one control:** #108's wheel in the Ending bell row, now saving #49's `endSilenceMinutes` (label "Silence after the audio"). `extendMinutes` is Extend again, as in 0.1.4. A value the ux-pass test builds saved as the ending bell's silence therefore reads as Extend.
+- **"Make a bell"** stays the last row of the bell picker, inside each bell row of the Bells tile. The picker is #51's `BellList`.
+- **The default bell is "Original bell".** #103 named the drone's rise and fall "Swell", so the bell gave up the word. Label only: the stored id, the asset, the art id `bell-swell` and the art preset `swell` are unchanged.
+- **"Your time" counts Extend, the ending bell's silence and the countdown** (owner, 2026-11-10). A completion's `duration` stays the recording's length; its `realDuration` is the recording at the speeds heard, plus all of the session's silence, plus the countdown that ran (`CueMath.sessionRealMs`, mirrored in `played_time.dart`).
+  - Like the recording's real time, the silence is the whole session's, also when the completion goes out at 90%.
+  - It is carried by the session's first completion only; repeat passes add none.
+  - On Android, steps through silence count as heard but stay out of the voice's speed mix (`ListeningTracker.sample(voice = false)`).
+  - A timer keeps a real time only when it is longer than its length (its countdown); a shorter one is still dropped as a leftover speed.
+  - iOS counts the configured countdown once it has begun, also when it is skipped.
+- **Not verified here:** `CueEngine.kt` and `AudioPlayerService.kt` compile only in the Android build (the APK workflow). The pure Kotlin (`CueMath`, `ExtendedTimeline`, `SilenceDetector`) was compiled and run standalone: 97 tests.

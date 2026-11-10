@@ -368,14 +368,36 @@ class IosAudioHandler extends BaseAudioHandler {
   /// Real time a play-through of the current track takes, as its completion
   /// records it; null with no known length. A timer is never sped up, so its
   /// real time is its length, whether or not playback was ever sampled.
+  ///
+  /// The session's first completion also carries what the session adds to
+  /// the recording: its silence (Extend and the ending bell's) and the
+  /// countdown that ran, which are sitting time too. A repeat adds none.
   @visibleForTesting
   int? get completionRealDurationMs {
     final length = duration?.inMilliseconds;
     if (length == null || length <= 0) return null;
     final id = _trackStateSubject.valueOrNull?.id;
-    if (_isTimer || (id != null && isTimerSessionId(id))) return length;
-    return _playedTime.realMs(length, speed: _player.speed);
+    final timer = _isTimer || (id != null && isTimerSessionId(id));
+    final recording = timer
+        ? length
+        : _playedTime.realMs(length, speed: _player.speed);
+    if (!_nativeCues || _addedRealCounted) return recording;
+    return sessionRealMs(
+      recording,
+      silenceMs: _extensionMs,
+      countdownMs: _countdownSatMs,
+    );
   }
+
+  // This session's countdown, once it has begun, and whether a completion
+  // has already carried the session's added time.
+  int _countdownMs = 0;
+  int _countdownSatMs = 0;
+  bool _addedRealCounted = false;
+
+  /// A completion carried the session's silence and countdown: once only.
+  @visibleForTesting
+  void markAddedRealCounted() => _addedRealCounted = true;
 
   Stream<IosStateData> get iosStateStream =>
       Rx.combineLatest7<
@@ -485,6 +507,7 @@ class IosAudioHandler extends BaseAudioHandler {
       if (duration == null) return;
 
       final payload = await _createTrackCompletionPayload();
+      markAddedRealCounted();
 
       // Try to update stats immediately
       if (await _tryUpdateStats(payload)) {
@@ -592,6 +615,7 @@ class IosAudioHandler extends BaseAudioHandler {
           await NativeCueController.channel.invokeMethod<int>('begin') ?? 0;
       if (countdown > 0) {
         _nativeCountdown = true;
+        _countdownSatMs = _countdownMs;
         return;
       }
     }
@@ -691,6 +715,9 @@ class IosAudioHandler extends BaseAudioHandler {
     _completionPlaythroughIndex = 0;
     _isTimer = request.trackId.startsWith('timer-');
     _extensionMs = _isTimer ? 0 : settings.extraMinutes * 60000;
+    _countdownMs = settings.countdownSeconds * 1000;
+    _countdownSatMs = 0;
+    _addedRealCounted = false;
     _lastExtensionRemainingMs = null;
     NativeCueController.channel.setMethodCallHandler((call) async {
       if (!_nativeCues) return;

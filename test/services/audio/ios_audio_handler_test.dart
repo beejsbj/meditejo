@@ -385,6 +385,48 @@ void main() {
       expect(handler.completionRealDurationMs, 1200000);
     });
 
+    test('a timer\'s countdown is sitting time too', () async {
+      _mockSwift({'sampleListening': false, 'begin': 10000});
+      final handler = _WiredHandler(player);
+      await handler.ensureInitialized();
+      await handler.configureCues(
+        const CueSettings(countdownSeconds: 10, extendMinutes: 5),
+        timer,
+      );
+      // Not before it has begun, and a timer has no Extend.
+      expect(handler.completionRealDurationMs, 1200000);
+      await handler.play();
+      expect(handler.completionRealDurationMs, 1210000);
+    });
+
+    test('Extend, the ending bell\'s silence and the countdown count once, '
+        'beside the recording at its speed', () async {
+      _mockSwift({'sampleListening': false, 'begin': 5000});
+      when(() => player.duration).thenReturn(const Duration(hours: 1));
+      final handler = _WiredHandler(player);
+      await handler.ensureInitialized();
+      await handler.configureCues(
+        const CueSettings(
+          countdownSeconds: 5,
+          extendMinutes: 10,
+          endSilenceMinutes: 2,
+        ),
+        _guided,
+      );
+      await handler.play();
+      // The hour at 2x is 30 minutes; 12 of silence and 5 s are added whole.
+      expect(handler.completionRealDurationMs, 1800000 + 720000 + 5000);
+      // Once a completion has carried them, a repeat adds none.
+      handler.markAddedRealCounted();
+      expect(handler.completionRealDurationMs, 1800000);
+      // The next session starts fresh.
+      await handler.configureCues(
+        const CueSettings(extendMinutes: 10),
+        _guided,
+      );
+      expect(handler.completionRealDurationMs, 1800000 + 600000);
+    });
+
     test('no length, or an empty one, records none', () async {
       final handler = _WiredHandler(player);
       await handler.ensureInitialized();

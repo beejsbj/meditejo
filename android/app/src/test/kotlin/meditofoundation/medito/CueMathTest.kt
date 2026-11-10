@@ -631,6 +631,37 @@ class CueMathTest {
         assertEquals(0L, ListeningTracker().realMs(0, 2.0))
     }
 
+    @Test fun silenceIsHeardButStaysOutOfTheVoicesSpeeds() {
+        // A 10-minute recording at 2x with 5 minutes of Extend, on the
+        // session's timeline: the silence is walked in real time.
+        val t = ListeningTracker()
+        playAt(t, 0, 300_000, 2.0)
+        var p = 300_000L
+        while (p < 600_000L) { p += 1000; t.sample(p, true, 2.0, voice = false) } // a hold
+        t.rebase(600_000)
+        var q = 600_000L
+        while (q < 900_000L) { q = minOf(q + 2000, 900_000L); t.sample(q, true, 2.0) }
+        // All 15 minutes of the session count as heard.
+        assertTrue(t.completed(900_000))
+        assertEquals(900_000L, t.heardMs())
+        // The mix is the voice's alone: 10 minutes of media in 5 real ones.
+        assertEquals(600_000.0, t.playedMediaMs, 0.0)
+        assertEquals(300_000.0, t.playedRealMs, 0.0)
+        assertEquals(300_000L, t.realMs(600_000, 2.0))
+    }
+
+    @Test fun yourTimeIsTheRecordingAtItsSpeedsPlusSilenceAndCountdown() {
+        // 10 minutes at 2x, 5 minutes of Extend, a 10 s countdown.
+        assertEquals(610_000L, CueMath.sessionRealMs(300_000, 300_000, 10_000))
+        // Nothing added: the recording's real time alone.
+        assertEquals(300_000L, CueMath.sessionRealMs(300_000, 0, 0))
+        // A timer with a countdown: its length and the countdown.
+        val timer = CueMath.realDurationMs(1_200_000, 0.0, 0.0, 1.0, isTimer = true)
+        assertEquals(1_205_000L, CueMath.sessionRealMs(timer, 0, 5_000))
+        // Nonsense never subtracts.
+        assertEquals(300_000L, CueMath.sessionRealMs(300_000, -1, -1))
+    }
+
     @Test fun aTimersRealTimeIsItsLength() {
         val t = ListeningTracker()
         playAt(t, 0, 60_000, 2.0)

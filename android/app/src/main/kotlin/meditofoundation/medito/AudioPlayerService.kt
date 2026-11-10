@@ -243,24 +243,33 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     }
 
     private fun createCompletionData(state: PlaybackState): CompletionData {
+        // The state reads as the extended session; the completion's length is
+        // the recording's own, with Extend in the real time beside it.
+        val recording = if (extendsTimeline() && ::primaryPlayer.isInitialized) {
+            primaryPlayer.duration.takeIf { it != C.TIME_UNSET && it > 0 } ?: state.duration
+        } else state.duration
         return CompletionData(
             trackId = state.track.id,
-            duration = state.duration,
+            duration = recording,
             fileId = state.track.fileId,
             guideId = state.track.artist,
             timestamp = System.currentTimeMillis(),
-            realDuration = realDurationOf(state.duration),
+            realDuration = realDurationOf(recording),
         )
     }
 
-    // The real time this pass took at the speeds it was heard at, beside the
-    // recording's length: a 60-minute talk heard at 2x took 30. A timer is
-    // never sped up, so its real time is its length.
-    private fun realDurationOf(durationMs: Long): Long = listening.realMs(
-        durationMs,
-        playbackSpeed(),
-        isTimer = ::cues.isInitialized && cues.isTimer,
-    )
+    // The real time this pass took, beside the recording's length: the
+    // recording at the speeds it was heard at (a 60-minute talk heard at 2x
+    // took 30; a timer is never sped up), plus the session's silence (Extend
+    // and the ending bell's) and its countdown, which are sitting time too.
+    private fun realDurationOf(durationMs: Long): Long {
+        val recording = listening.realMs(
+            durationMs,
+            playbackSpeed(),
+            isTimer = ::cues.isInitialized && cues.isTimer,
+        )
+        return recording + if (::cues.isInitialized) cues.addedRealMs() else 0L
+    }
 
     // 90% of the track really heard, or a timer at its end, earns the
     // completion. Seeking to the end does not, even past a finished extension.
@@ -294,8 +303,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         primaryPlayer.isPlaying || (::cues.isInitialized && cues.isHoldRunning())
 
     /** Listening follows the session: a hold or the tail walked through counts like the voice. */
-    private fun noteSessionRunningChanged(speed: Double = sessionStepSpeed()) {
-        listening.sample(sessionPositionMs(), true, speed)
+    private fun noteSessionRunningChanged(voice: Boolean = !sessionInSilence()) {
+        listening.sample(sessionPositionMs(), true, playbackSpeed(), voice)
         if (!sessionRunning()) {
             listening.markNotPlaying()
             persistListening(force = true)
@@ -342,15 +351,14 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         if (::primaryPlayer.isInitialized) primaryPlayer.playbackParameters.speed.toDouble() else 1.0
 
     /**
-     * The speed the session position is moving at: the voice's, or 1x through
-     * silence (a hold or the tail), which no playback speed shortens.
+     * The session position is moving through silence (an Extend hold or the
+     * tail), not the voice: heard, but no part of the voice's speed mix.
      */
-    private fun sessionStepSpeed(): Double =
-        if (extendsTimeline() && cues.isSilent) 1.0 else playbackSpeed()
+    private fun sessionInSilence(): Boolean = extendsTimeline() && cues.isSilent
 
     private fun sampleListeningFromPlayer() {
         if (!::primaryPlayer.isInitialized) return
-        listening.sample(sessionPositionMs(), sessionRunning(), sessionStepSpeed())
+        listening.sample(sessionPositionMs(), sessionRunning(), playbackSpeed(), !sessionInSilence())
         persistListening()
     }
 
@@ -428,8 +436,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     // was one. The end bell is already ringing; the service lives until it is done.
     private fun finalizeSession(extensionFinished: Boolean, tailMs: Long) {
         stopPositionUpdates()
-        // The last step was the tail's silence when there was one, at 1x.
-        listening.sample(currentDurationMs(), true, if (extensionFinished && extendsTimeline()) 1.0 else playbackSpeed())
+        // The last step was the tail's silence when there was one, not the voice.
+        listening.sample(currentDurationMs(), true, playbackSpeed(), voice = !(extensionFinished && extendsTimeline()))
         recordPlaythroughFromPlayer(extensionFinished)
         persistListening(force = true)
         // The true end is always terminal for the player, whether or not the
@@ -476,6 +484,8 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         // Persist first: completion is replayed by MainActivity on next launch if
         // the app is killed before Dart records it, so nothing is lost.
         SharedPreferencesManager.saveCompletionData(this@AudioPlayerService, completionData)
+        // Its real time carried the session's silence and countdown: once only.
+        if (::cues.isInitialized) cues.markAddedRealCounted()
 
         // Tear down the foreground service + notification immediately and natively.
         // Teardown must NOT depend on the Dart reply below — on devices that freeze
@@ -897,7 +907,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         // The voice stopping for a hold does not stop the session. What was
         // walked through up to here was the voice, at its speed.
         if (isPlaying) listening.rebase(sessionPositionMs())
-        else noteSessionRunningChanged(playbackSpeed())
+        else noteSessionRunningChanged(voice = true)
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -1452,7 +1462,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         isCompletionHandled = false
         if (extendsTimeline()) {
             // What was walked through up to here counts before the jump.
-            listening.sample(sessionPositionMs(), sessionRunning(), sessionStepSpeed())
+            listening.sample(sessionPositionMs(), sessionRunning(), playbackSpeed(), !sessionInSilence())
             if (cues.seekTo(position)) {
                 listening.rebase(sessionPositionMs())
                 // A seek into the tail before the voice was ever ready ends it

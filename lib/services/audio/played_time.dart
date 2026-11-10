@@ -59,6 +59,21 @@ class PlayedTime {
   );
 }
 
+/// Real time a whole session took, for "your time": the recording at the
+/// speeds it was heard at ([recordingRealMs]), plus what no speed shortens:
+/// the silence sat in ([silenceMs]: Extend and the ending bell's own) and the
+/// countdown before the start. Mirrors `CueMath.sessionRealMs` on Android.
+int sessionRealMs(
+  int recordingRealMs, {
+  int silenceMs = 0,
+  int countdownMs = 0,
+}) {
+  int atLeastZero(int ms) => ms < 0 ? 0 : ms;
+  return atLeastZero(recordingRealMs) +
+      atLeastZero(silenceMs) +
+      atLeastZero(countdownMs);
+}
+
 /// The [durationMs] recording's length scaled by the real time playback took
 /// over the media it covered. Nothing played yet takes the [speed] in force.
 /// Mirrors `CueMath.realDurationMs` on Android.

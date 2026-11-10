@@ -59,6 +59,18 @@ void main() {
     expect(PlayedTime().realMs(0, speed: 2), 0);
   });
 
+  test('your time is the recording at its speeds, plus silence and '
+      'countdown', () {
+    // 10 minutes at 2x, 5 minutes of Extend, a 10 s countdown.
+    expect(
+      sessionRealMs(300000, silenceMs: 300000, countdownMs: 10000),
+      610000,
+    );
+    expect(sessionRealMs(300000), 300000);
+    // Nonsense never subtracts.
+    expect(sessionRealMs(300000, silenceMs: -1, countdownMs: -1), 300000);
+  });
+
   test('a new track starts fresh', () {
     final t = PlayedTime();
     playAt(t, 0, 60000, 2);

@@ -73,6 +73,10 @@ internal class CueEngine(
     private var lastSeekOwn = false
     // A seek into silence asked for during the countdown, taken when the voice starts.
     private var seekAfterCountdownMs = -1L
+    // The countdown as it was sat through (a skipped one counts what ran), and
+    // whether this session's added time has gone out with a completion.
+    private var countdownSatMs = 0L
+    private var addedRealCounted = false
 
     // Session time.
     private var started = false
@@ -140,6 +144,8 @@ internal class CueEngine(
         if (config == null) return
         stopTimers()
         seekAfterCountdownMs = -1L
+        countdownSatMs = 0L
+        addedRealCounted = false
         timeline.reset()
         started = false
         sessionMs = 0.0
@@ -277,6 +283,23 @@ internal class CueEngine(
         Phase.HOLD, Phase.EXTENSION -> timeline.silenceRunning
         else -> false
     }
+
+    /**
+     * What the session adds to the recording's real time, for the stats'
+     * "your time": all of its silence (Extend and the ending bell's own,
+     * wherever it is spent) and the countdown that ran. Like the recording's
+     * real time it is the whole session's, also when the completion goes out
+     * at 90%. Zero once [markAddedRealCounted]: a repeat pass adds none.
+     */
+    fun addedRealMs(): Long {
+        val cfg = config ?: return 0L
+        if (addedRealCounted) return 0L
+        val silence = if (cfg.isTimer) 0L else timeline.extensionMs
+        return CueMath.sessionRealMs(0L, silence, countdownSatMs)
+    }
+
+    /** A completion carrying [addedRealMs] went out. */
+    fun markAddedRealCounted() { addedRealCounted = true }
 
     /** The session is under way: the voice playing (or about to), or its silence running. */
     fun isSessionRunning(): Boolean = when (phase) {
@@ -514,6 +537,7 @@ internal class CueEngine(
     }
 
     private fun finishCountdown() {
+        countdownSatMs = ((config?.countdownMs ?: 0L) - heldRemaining()).coerceAtLeast(0L)
         releaseWake()
         holdAnchor = 0L
         holdRemainingMs = 0L

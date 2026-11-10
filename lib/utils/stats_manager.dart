@@ -185,8 +185,10 @@ class StatsManager {
 
   /// [duration] is the recording's length (audio covered); [realDuration]
   /// the real time it took at the speed it was played at, when the player
-  /// measured it. A timer is never sped up, so it keeps none: its real time
-  /// is its length, as it is for a manual entry and for older payloads.
+  /// measured it, with the session's silence (Extend, the ending bell's) and
+  /// countdown. A timer is never sped up: it keeps a real time only when
+  /// that is longer than its length (a countdown before it), and otherwise
+  /// none, as a manual entry and older payloads have none.
   Future<void> addAudioCompleted(
     LocalAudioCompleted audioCompleted,
     int duration, {
@@ -199,7 +201,9 @@ class StatsManager {
   }) => _mutate(() async {
     // The history keeps how long each session ran, and what it was (Practice
     // or Talks, and which course), for the stats page. Recorded from here on.
-    final realMs = isTimerSessionId(audioCompleted.id) ? null : realDuration;
+    final realMs = isTimerSessionId(audioCompleted.id)
+        ? _timerRealMs(duration, realDuration)
+        : realDuration;
     audioCompleted = audioCompleted.copyWith(
       durationMs: duration,
       realMs: realMs,
@@ -284,7 +288,7 @@ class StatsManager {
       stats: _allStats,
       duration: duration,
       realDuration: trackId != null && isTimerSessionId(trackId)
-          ? null
+          ? _timerRealMs(duration, realDuration)
           : realDuration,
       trackId: trackId,
     );
@@ -622,3 +626,8 @@ class StatsManager {
   @visibleForTesting
   Future<void> initializeForTesting() => initialize();
 }
+
+/// A timer runs at 1x, so a real time shorter than its length is a speed
+/// left over from a talk and is dropped. A longer one is its countdown.
+int? _timerRealMs(int duration, int? realDuration) =>
+    realDuration != null && realDuration > duration ? realDuration : null;
