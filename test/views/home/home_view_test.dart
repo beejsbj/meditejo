@@ -71,8 +71,34 @@ void main() {
     expect(find.textContaining('Session 2 of 5'), findsNWidgets(2));
     expect(find.textContaining('8:00 left'), findsOneWidget);
     // Resume where it was left; Start for the next session of a course.
-    expect(find.widgetWithText(FilledButton, 'Resume'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'Start'), findsOneWidget);
+    // A round play button with no word: the word is its tooltip.
+    expect(find.text('Resume'), findsNothing);
+    expect(find.text('Start'), findsNothing);
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const ValueKey('continue_play_t1')))
+          .tooltip,
+      'Resume',
+    );
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const ValueKey('continue_play_t2')))
+          .tooltip,
+      'Start',
+    );
+    // The same button on the first card and the rest, beside the menu.
+    for (final id in ['t1', 't2']) {
+      final play = tester.getRect(find.byKey(ValueKey('continue_play_$id')));
+      final menu = tester.getRect(
+        find.descendant(
+          of: find.byKey(ValueKey('continue_$id')),
+          matching: find.byIcon(Icons.more_vert_rounded),
+        ),
+      );
+      expect(play.size, const Size(48, 48), reason: id);
+      expect(play.center.dy, moreOrLessEquals(menu.center.dy), reason: id);
+      expect(play.right, lessThanOrEqualTo(menu.left), reason: id);
+    }
     expect(find.textContaining('Consistency'), findsNothing);
     expect(find.textContaining('streak'), findsNothing);
     expect(sectionHeader('Pinned'), findsNothing);

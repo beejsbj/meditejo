@@ -172,12 +172,6 @@ class ContinueTile extends ConsumerWidget {
     final muted = lead
         ? scheme.onPrimaryContainer.withValues(alpha: 0.8)
         : scheme.onSurfaceVariant;
-    final buttonStyle = FilledButton.styleFrom(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      visualDensity: VisualDensity.compact,
-      textStyle: type.emphasized.labelLarge,
-    );
-
     return Semantics(
       button: true,
       label: '$label: ${item.title}. $subtitle',
@@ -257,31 +251,22 @@ class ContinueTile extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  CardMenuButton(
-                    title: item.title,
-                    actions: actions,
-                    color: muted,
-                  ),
-                  lead
-                      ? FilledButton.icon(
-                          key: ValueKey('continue_play_${item.trackId}'),
-                          style: buttonStyle,
-                          onPressed: start,
-                          icon: const Icon(Icons.play_arrow_rounded),
-                          label: Text(label),
-                        )
-                      : FilledButton.tonal(
-                          key: ValueKey('continue_play_${item.trackId}'),
-                          style: buttonStyle,
-                          onPressed: start,
-                          child: Text(label),
-                        ),
-                ],
+              // Play, then the menu, as one row centred on the card. A round
+              // button with no word: the card says what it is, and "Resume"
+              // (or "Start") is its tooltip and what a screen reader hears.
+              // Every card has the same button; the first differs only by
+              // the card's own colour.
+              IconButton.filled(
+                key: ValueKey('continue_play_${item.trackId}'),
+                tooltip: label,
+                style: IconButton.styleFrom(
+                  backgroundColor: lead ? scheme.primary : scheme.secondary,
+                  foregroundColor: lead ? scheme.onPrimary : scheme.onSecondary,
+                ),
+                onPressed: start,
+                icon: const Icon(Icons.play_arrow_rounded),
               ),
+              CardMenuButton(title: item.title, actions: actions, color: muted),
             ],
           ),
         ),
