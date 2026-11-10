@@ -12,6 +12,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/models/cues/cue_settings.dart';
@@ -19,6 +20,7 @@ import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/models/track/track.dart' as model;
+import 'package:medito/providers/cues/cue_runtime_provider.dart';
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
@@ -288,17 +290,33 @@ void main() {
       expect(find.byType(MeditoErrorWidget), findsNothing);
       expect(find.byType(PlayerView), findsOneWidget);
       expect(autoplay, inCourse ? findsOneWidget : findsNothing);
-      if (_enabled) {
-        await tester.runAsync(() async {
-          final render =
-              _boundary.currentContext!.findRenderObject()!
-                  as RenderRepaintBoundary;
-          final image = await render.toImage(pixelRatio: 2.625);
-          final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-          File('$_out/$file.png')
-            ..parent.createSync(recursive: true)
-            ..writeAsBytesSync(bytes!.buffer.asUint8List());
-        });
+      Future<void> shoot(String file) => tester.runAsync(() async {
+        final render =
+            _boundary.currentContext!.findRenderObject()!
+                as RenderRepaintBoundary;
+        final image = await render.toImage(pixelRatio: 2.625);
+        final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+        File('$_out/$file.png')
+          ..parent.createSync(recursive: true)
+          ..writeAsBytesSync(bytes!.buffer.asUint8List());
+      });
+      if (_enabled) await shoot(file);
+      // In one of Extend's holds: "Silence" between the seek bar's times.
+      if (!inCourse && !isTimer && !short) {
+        ProviderScope.containerOf(
+          tester.element(find.byType(PlayerView)),
+        ).read(cueRuntimeProvider.notifier).updateFromMap({'phase': 'hold'});
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        expect(
+          tester
+              .widget<AnimatedOpacity>(
+                find.byKey(const ValueKey('player_silence')),
+              )
+              .opacity,
+          greaterThan(0),
+        );
+        if (_enabled) await shoot('player-silence-${brightness.name}');
       }
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 1));

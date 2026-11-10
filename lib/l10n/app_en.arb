@@ -3539,6 +3539,10 @@
   "@extendCaption": {
     "description": "Caption under Extend: its silence goes into the guide's own pauses where it can, the rest after the recording"
   },
+  "playerSilence": "Silence",
+  "@playerSilence": {
+    "description": "Player, between the seek bar's two times: shown while the session is in silence it added (Extend or the ending bell's silence), not the recording"
+  },
   "editStatsTitle": "Edit stats",
   "submit": "Submit",
   "onboarding": "Onboarding",

@@ -168,12 +168,19 @@ class _PlayerViewState extends ConsumerState<PlayerView>
   }
 
   /// Polls the native cue state only while this screen is in the foreground
-  /// and a countdown or the extension runs or may begin; nothing else shows
-  /// it. Silence inside the recording needs no polling: the player's own
-  /// position runs through it.
+  /// and a countdown or the extension runs or may begin, or the session has
+  /// added silence: the seek bar says "Silence" while a hold or the tail
+  /// runs, and only the native phase knows when one does.
   void _syncCuePoll() {
     final audio = ref.read(audioStateProvider);
     final phase = ref.read(cueRuntimeProvider).phase;
+    final request = ref.read(playerProvider);
+    final scope = _cueScope;
+    final silenceExpected =
+        request != null &&
+        !request.isTimer &&
+        scope != null &&
+        ref.read(cueSettingsProvider(scope)).extraMinutes > 0;
     final wanted =
         (Platform.isAndroid || Platform.isIOS) &&
         mounted &&
@@ -185,6 +192,7 @@ class _PlayerViewState extends ConsumerState<PlayerView>
           countdownExpected: _countdownExpected,
           voiceAtEnd:
               audio.duration > 0 && audio.position >= audio.duration - 1000,
+          silenceExpected: silenceExpected,
         );
     final voiceAtEnd =
         audio.duration > 0 && audio.position >= audio.duration - 1000;
@@ -194,7 +202,8 @@ class _PlayerViewState extends ConsumerState<PlayerView>
             _countdownExpected ||
             voiceAtEnd
         ? const Duration(milliseconds: 200)
-        : const Duration(seconds: 1);
+        // A hold's beginning and end, seen within half a second.
+        : const Duration(milliseconds: 500);
     if (!wanted) {
       _countdownPoll?.cancel();
       _countdownPoll = null;

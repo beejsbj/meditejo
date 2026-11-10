@@ -1353,6 +1353,7 @@
   "extendEndCaption": "Fügt so viel Stille nach dem Ende der Aufnahme hinzu, bevor die Abschlussglocke läutet.",
   "extendTitle": "Verlängern",
   "extendCaption": "Fügt der Sitzung so viel Stille hinzu, in den Pausen der Anleitung und am Ende.",
+  "playerSilence": "Stille",
   "bellMakerTitle": "Glocke gestalten",
   "bellMakerSave": "Speichern",
   "bellMakerName": "Name",

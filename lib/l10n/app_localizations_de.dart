@@ -3128,6 +3128,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Fügt der Sitzung so viel Stille hinzu, in den Pausen der Anleitung und am Ende.';
 
   @override
+  String get playerSilence => 'Stille';
+
+  @override
   String get editStatsTitle => 'Edit stats';
 
   @override

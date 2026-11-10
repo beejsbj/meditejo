@@ -5374,6 +5374,12 @@ abstract class AppLocalizations {
   /// **'Adds this much silence to the session, in the pauses between the guidance and at the end.'**
   String get extendCaption;
 
+  /// Player, between the seek bar's two times: shown while the session is in silence it added (Extend or the ending bell's silence), not the recording
+  ///
+  /// In en, this message translates to:
+  /// **'Silence'**
+  String get playerSilence;
+
   /// No description provided for @editStatsTitle.
   ///
   /// In en, this message translates to:

@@ -3130,6 +3130,9 @@ class AppLocalizationsEs extends AppLocalizations {
       'Añade este tiempo de silencio a la sesión, en las pausas de la guía y al final.';
 
   @override
+  String get playerSilence => 'Silencio';
+
+  @override
   String get editStatsTitle => 'Edit stats';
 
   @override

@@ -1224,6 +1224,7 @@
   "extendEndCaption": "Añade este tiempo de silencio cuando termina el audio, antes de que suene la campana final.",
   "extendTitle": "Extender",
   "extendCaption": "Añade este tiempo de silencio a la sesión, en las pausas de la guía y al final.",
+  "playerSilence": "Silencio",
   "bellMakerTitle": "Crear una campana",
   "bellMakerSave": "Guardar",
   "bellMakerName": "Nombre",
