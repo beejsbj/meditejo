@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:drift/native.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:medito/services/dhammatalks/dhammatalks_source.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_database.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_source.dart';
 import 'package:medito/services/library/import_http.dart';
@@ -100,6 +101,7 @@ class LibraryHarness {
     Future<int?> Function(String)? probe,
     DharmaSeedDatabase? dsDb,
     DharmaSeedSource? Function(LibraryStore)? dharmaSeed,
+    DhammatalksSource? Function(LibraryStore)? dhammatalks,
   }) {
     final db = memoryLibraryDb();
     final store = LibraryStore(db);
@@ -115,6 +117,7 @@ class LibraryHarness {
       lib: lib,
       library: store,
       dharmaSeed: ds,
+      dhammatalks: dhammatalks?.call(store),
       storageDirectory: () async => storage,
       temporaryDirectories: () async => ['${storage.path}/cache'],
       durationProbe: probe,

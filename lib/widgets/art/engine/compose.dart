@@ -28,6 +28,7 @@ class ArtClass {
     this.pairs = const [],
     this.accents = const [null],
     this.layout,
+    this.library = const [],
   });
 
   final String label;
@@ -38,12 +39,64 @@ class ArtClass {
 
   /// A fixed layout (the bell icons').
   final String? layout;
+
+  /// More (ground, figure) pairs drawn alongside [grounds] × [figures]: the
+  /// figure library, each figure on the ground it was designed for.
+  final List<(String, String?)> library;
 }
 
 /// Where a figure sits.
 typedef Place = ({double cx, double cy, double s});
 
 abstract final class ArtMap {
+  /// The figure library (Burooj, 2026-11-02): the practice figures' variants
+  /// that weren't picked for their practice and are generic enough for any
+  /// item (`"library": "any"` in docs/fork/design/practices/r2.json and
+  /// r3.json). Generated covers draw from them beside their classic figures.
+  static const figureLibrary = <(String, String?)>[
+    ('mist', 'dialogue_strokes'),
+    ('bokeh', 'dialogue_thread'),
+    ('mist', 'glimpse_widen'),
+    ('dawn', 'glimpse_veils'),
+    ('mist', 'body_pebble'),
+    ('dawn', 'body_contours'),
+    ('night', 'energy_motes'),
+    ('hearth', 'energy_orbit'),
+    ('mist', 'focus_blur'),
+    ('paper', 'focus_handle'),
+    ('night', 'nidra_sheaths'),
+    ('night', 'nidra_moon'),
+    ('mist', 'headless_eye'),
+    ('night', 'dzogchen_thigle'),
+    ('dawn', 'dzogchen_rainbow'),
+    ('night', 'mahamudra_recognise'),
+    ('night', 'mahamudra_taste'),
+    ('hearth', 'trataka_still'),
+    ('paper', 'kasina_earth'),
+    ('mist', 'kasina_extend'),
+    ('mist', 'headless_capacity'),
+    ('paper', 'headless_tube'),
+    ('mist', 'walk_stones'),
+    ('dawn', 'forgive_knot'),
+    ('paper', 'tmi_steady'),
+    ('dawn', 'tmi_petals'),
+    ('mist', 'tmi_switchback'),
+    ('dawn', 'jewels_lights'),
+    ('night', 'jewels_weave'),
+    ('hearth', 'karuna_hold'),
+    ('paper', 'karuna_rise'),
+    ('paper', 'jhana_spring'),
+    ('paper', 'jhana_lotus'),
+  ];
+
+  /// Variants too tied to one practice for anything else (`"library":
+  /// "practice"`): drawn only for content carrying that practice.
+  static const practiceLibrary = <String, List<(String, String?)>>{
+    'noting': [('paper', 'noting_notes'), ('dawn', 'noting_touch')],
+    'headless': [('mist', 'headless_face'), ('dawn', 'headless_point')],
+    'trataka': [('paper', 'trataka_point')],
+  };
+
   static const classes = <String, ArtClass>{
     // Round 5: places, as (ground, figure) pairs.
     'terrace': ArtClass(
@@ -213,6 +266,7 @@ abstract final class ArtMap {
     ),
     'course': ArtClass(
       'Courses',
+      library: figureLibrary,
       grounds: ['dawn', 'mist', 'paper'],
       figures: [
         'mandala',
@@ -226,6 +280,7 @@ abstract final class ArtMap {
     ),
     'single': ArtClass(
       'Singles',
+      library: figureLibrary,
       grounds: ['paper', 'mist'],
       figures: ['disc', 'breath', 'lotus', 'rings:ripple', 'ammonite'],
     ),
@@ -236,6 +291,7 @@ abstract final class ArtMap {
     ),
     'playlist': ArtClass(
       'Playlists',
+      library: figureLibrary,
       grounds: ['paper', 'mist'],
       figures: ['cairn', 'scales', 'mandala', 'rings:target'],
     ),
@@ -349,6 +405,12 @@ abstract final class ArtMap {
         : {
             for (final g in m.grounds)
               for (final f in m.figures) (name(g)!, name(f)),
+            // The figure library's pairs, each on its own ground, and the
+            // practices' own variants for content carrying them.
+            for (final (g, f) in m.library) (name(g)!, name(f)),
+            if (m.library.isNotEmpty)
+              for (final list in practiceLibrary.values)
+                for (final (g, f) in list) (name(g)!, name(f)),
           };
     return (pairs: pairs, accents: {for (final a in m.accents) name(a)});
   }
@@ -521,13 +583,30 @@ abstract final class Compose {
     String seed, {
     Map<String, Object?> groundExtra = const {},
     Map<String, Object?> figureExtra = const {},
+    List<(String, String?)> extraPairs = const [],
   }) {
     final m = ArtMap.classes[cls]!;
     final r = SeededRandom('r4:$cls:$seed');
     final String gName;
     final ({String name, String? kind})? f, a;
     final gOpts = <String, Object?>{...groundExtra};
-    if (m.pairs.isNotEmpty) {
+    // The library (and a practice's own variants) beside the classic
+    // figures, in proportion to how many each offers.
+    final library = [...m.library, ...extraPairs];
+    var fromLibrary = false;
+    if (m.pairs.isEmpty && library.isNotEmpty) {
+      fromLibrary =
+          r.next() < library.length / (m.figures.length + library.length);
+    }
+    if (fromLibrary) {
+      final (gs, fs) = _pick(r, library);
+      final g = _parse(gs)!;
+      gName = g.name;
+      if (g.kind != null) gOpts['variant'] = g.kind;
+      f = _parse(fs);
+      // A library figure stands alone, centred, as it was designed.
+      a = null;
+    } else if (m.pairs.isNotEmpty) {
       final (gs, fs) = _pick(r, m.pairs);
       final g = _parse(gs)!;
       gName = g.name;
@@ -546,8 +625,9 @@ abstract final class Compose {
     final mis = (r.range(-0.01, 0.01), r.range(0.003, 0.01));
     ArtLayer? figure, accent;
     if (f != null) {
-      final layout =
-          m.layout ?? _pick(r, ArtMap.homes[f.name] ?? ArtMap.anywhere);
+      final layout = fromLibrary
+          ? 'centre'
+          : m.layout ?? _pick(r, ArtMap.homes[f.name] ?? ArtMap.anywhere);
       final pl = ArtMap.layouts[layout]!;
       final p = ArtRegistry.figure(f.name).build(SeededRandom('$seed:f'), {
         'cx': pl.cx,
@@ -585,6 +665,51 @@ abstract final class Compose {
     );
   }
 
+  /// A way to practise: its curated [ground] and [figure] (`rings:ripple`
+  /// pins a variant), seeded by the practice's id so it never moves. Unknown
+  /// names fall back to paper and no figure rather than throwing, so a
+  /// figure renamed in the asset ahead of its port still draws.
+  static ArtComposition buildPractice(
+    String id, {
+    required String ground,
+    String? figure,
+  }) {
+    final seed = 'practice:$id';
+    final gName = ArtRegistry.grounds.containsKey(ground) ? ground : 'paper';
+    final g = ArtLayer(
+      gName,
+      ArtRegistry.ground(gName).build(SeededRandom('$seed:g'), const {}),
+    );
+    final f = _parse(figure);
+    ArtLayer? layer;
+    if (f != null && ArtRegistry.figures.containsKey(f.name)) {
+      // Where the figure normally sits (fire low, the moon high), first
+      // choice, so a practice's art never moves.
+      final layout = ArtMap.homes[f.name]?.first ?? 'centre';
+      final pl = ArtMap.layouts[layout]!;
+      final p = ArtRegistry.figure(f.name).build(SeededRandom('$seed:f'), {
+        'cx': pl.cx,
+        'cy': pl.cy,
+        's': pl.s,
+      }, 'figure');
+      if (f.kind != null) p['kind'] = f.kind;
+      layer = ArtLayer(
+        f.name,
+        p,
+        kind: f.kind ?? p['kind'] as String?,
+        layout: layout,
+      );
+    }
+    return ArtComposition(
+      cls: 'practice',
+      seed: seed,
+      ground: g,
+      figure: layer,
+      inkSeed: '$seed:ink',
+      misregister: (0.0, 0.006),
+    );
+  }
+
   /// `compose.js` `buildFor`: an item by id and kind. Null when the map has
   /// no class for it.
   static ArtComposition? buildFor(
@@ -592,12 +717,15 @@ abstract final class Compose {
     String? kind, {
     String? seed,
     bool legacy = false,
+    String? practice,
   }) {
     final cls = ArtMap.classOf(id, kind, legacy: legacy);
     if (cls == null) return null;
     return build(
       cls,
       seed ?? id,
+      // Content carrying a practice may draw that practice's own variants.
+      extraPairs: ArtMap.practiceLibrary[practice] ?? const [],
       groundExtra: id.startsWith('noise-')
           ? {'colour': id.substring(6)}
           : const {},

@@ -3379,7 +3379,7 @@ abstract class AppLocalizations {
   /// No description provided for @exploreSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search your library and Dharma Seed'**
+  /// **'Search your library and catalogues'**
   String get exploreSearchHint;
 
   /// The shortcuts section's name in Customize, and its screen-reader heading on Home (not drawn)
@@ -4858,17 +4858,89 @@ abstract class AppLocalizations {
   /// **'Pinned to Home'**
   String get libraryPinned;
 
-  /// Heading above the category chips on Explore
+  /// Heading above the practice chips on Explore (Metta, Jhāna, …). Avoid the words 'categories' and 'tags'
   ///
   /// In en, this message translates to:
-  /// **'Categories'**
+  /// **'Ways to practise'**
   String get exploreCategories;
 
-  /// Screen-reader label of Explore's category chips
+  /// Screen-reader label of Explore's practice chips
   ///
   /// In en, this message translates to:
-  /// **'Browse by category'**
+  /// **'Browse ways to practise'**
   String get exploreCategoriesLabel;
+
+  /// Opens the page of every way to practise, from Explore's carousels
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get practicesSeeAll;
+
+  /// Group of practices: metta, compassion, forgiveness…
+  ///
+  /// In en, this message translates to:
+  /// **'Heart'**
+  String get practiceGroupHeart;
+
+  /// Group of practices: samatha, jhāna, breath…
+  ///
+  /// In en, this message translates to:
+  /// **'Concentration'**
+  String get practiceGroupConcentration;
+
+  /// Group of practices: vipassanā, noting, emptiness…
+  ///
+  /// In en, this message translates to:
+  /// **'Insight'**
+  String get practiceGroupInsight;
+
+  /// Group of practices: open awareness, Zen, Dzogchen…
+  ///
+  /// In en, this message translates to:
+  /// **'Awareness'**
+  String get practiceGroupAwareness;
+
+  /// Group of practices: body, walking, movement, energy…
+  ///
+  /// In en, this message translates to:
+  /// **'Body & energy'**
+  String get practiceGroupBody;
+
+  /// Group of practices: chanting, mantra, devotion
+  ///
+  /// In en, this message translates to:
+  /// **'Sound & devotion'**
+  String get practiceGroupDevotion;
+
+  /// Group of practices: visualisation, soulmaking
+  ///
+  /// In en, this message translates to:
+  /// **'Imagination'**
+  String get practiceGroupImagination;
+
+  /// The language a practice name comes from (shown small under the name)
+  ///
+  /// In en, this message translates to:
+  /// **'Pāli'**
+  String get practiceLangPali;
+
+  /// The language a practice name comes from
+  ///
+  /// In en, this message translates to:
+  /// **'Sanskrit'**
+  String get practiceLangSanskrit;
+
+  /// The language a practice name comes from
+  ///
+  /// In en, this message translates to:
+  /// **'Tibetan'**
+  String get practiceLangTibetan;
+
+  /// The language a practice name comes from
+  ///
+  /// In en, this message translates to:
+  /// **'Japanese'**
+  String get practiceLangJapanese;
 
   /// Title of a category page with nothing in it
   ///
@@ -4882,40 +4954,40 @@ abstract class AppLocalizations {
   /// **'Label something in your library, or add a course from Explore, and it will appear here.'**
   String get categoryEmptyBody;
 
-  /// Shown when a category page fails to load
+  /// Shown when the page of one practice (Metta, Jhāna, …) fails to load
   ///
   /// In en, this message translates to:
-  /// **'Could not load this category'**
+  /// **'Could not load this list'**
   String get categoryLoadFailed;
 
-  /// Screen-reader label of the Library's category and label chips
+  /// Screen-reader label of the Library's row of label chips
   ///
   /// In en, this message translates to:
-  /// **'Category or label'**
+  /// **'Filter by label'**
   String get libraryLabelFilterLabel;
 
-  /// Menu item that opens the categories and labels of a library item
+  /// Menu item that opens the labels of a library item
   ///
   /// In en, this message translates to:
-  /// **'Categories and labels'**
+  /// **'Labels'**
   String get libraryMenuLabels;
 
-  /// Title of the sheet where a library item's categories and labels are chosen
+  /// Title of the sheet where a library item's labels are chosen
   ///
   /// In en, this message translates to:
-  /// **'Categories and labels'**
+  /// **'Labels'**
   String get labelsTitle;
 
-  /// Explains the category chips in the labels sheet
+  /// Explains the practice chips in the labels sheet: the app pre-ticks its guesses, the user's choice wins
   ///
   /// In en, this message translates to:
-  /// **'Ticked categories are Meditejo\'s best guess or your own choice. Your choice always wins.'**
+  /// **'Meditejo ticks what it thinks fits. Change anything: your choice always wins.'**
   String get labelsExplain;
 
   /// Heading above the user's own labels in the labels sheet
   ///
   /// In en, this message translates to:
-  /// **'Your labels'**
+  /// **'Your own labels'**
   String get labelsCustomHeading;
 
   /// Hint of the text field for a new label
@@ -5265,6 +5337,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Today\'s mark: {name}'**
   String homeMarkTodayIs(String name);
+
+  /// Teacher page section: every talk, by year, each year closed until opened
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get teacherArchive;
+
+  /// Teacher page section: the newest talks, above the archive
+  ///
+  /// In en, this message translates to:
+  /// **'Latest talks'**
+  String get teacherLatestTalks;
 }
 
 class _AppLocalizationsDelegate

@@ -1,0 +1,77 @@
+{
+  "title": "round 3",
+  "lede": "Burooj on round 2 (2026-11-02): the picks stand except Kasiṇa (B) and the Headless Way, which none of the three caught; it is redrawn here with the six round 1 figures flagged last round. Same rules: <b>abstract, quiet, graceful</b>, a slow ~10 s breath, <b>something true about the practice</b>, <b>no human shapes</b>, varied grounds. Each practice shows <b>round 1's tile first</b> (and the Headless Way's rejected round 2 variants), then two or three variants, on phone-sized tiles (170 dp) in Tidewater light and dark. The orange outline is the variant I'd ship; <i>library: any</i> marks an unpicked variant generic enough for the figure library, <i>library: practice</i> one too tied to its practice.",
+  "library": "Unpicked variants join the art engine's figure library, to be drawn at random for user content (imports, playlists) as other figures are. `any`: generic enough for any item. `practice`: too tied to its practice to appear on an unrelated import; only for content about that practice. `none`: kept out of the library entirely (Burooj, 2026-11-03).",
+  "decided": "Burooj, 2026-11-03: the picks stand except Forgiveness (B, mended with gold) and The Mind Illuminated (a combination of A and B: steadying upwards). Walking A and Forgiveness C are out of the library.",
+  "practices": [
+    { "id": "headless", "pick": 1, "group": "awareness", "name": "Headless Way", "script": "", "lang": "English",
+      "desc": "Looking back at where your head should be, and finding open space.",
+      "was": { "figure": "headless", "ground": "dawn" },
+      "why": "Round 2: face to no-face was too busy, pointing back didn't land. Quieter: here, no head — open capacity, full of the world.",
+      "also": [
+        { "figure": "headless_face", "ground": "mist", "tag": "Round 2 · A" },
+        { "figure": "headless_point", "ground": "dawn", "tag": "Round 2 · C" }
+      ],
+      "variants": [
+        { "figure": "headless_capacity", "library": "any", "ground": "mist" },
+        { "figure": "headless_passing", "ground": "dawn" },
+        { "figure": "headless_tube", "library": "any", "ground": "paper" }
+      ] },
+    { "id": "walking", "pick": 1, "group": "body", "name": "Caṅkama · Kinhin", "script": "経行", "lang": "Pāli · Japanese",
+      "desc": "Walking slowly and knowing each step: lifting, moving, placing.",
+      "was": { "figure": "steps", "ground": "paper" },
+      "why": "Footprints were the last people-shape.",
+      "variants": [
+        { "figure": "walk_path", "library": "none", "ground": "paper", "gopts": { "key": "mid" } },
+        { "figure": "walk_arcs", "ground": "dawn" },
+        { "figure": "walk_stones", "library": "any", "ground": "mist" }
+      ] },
+    { "id": "forgiveness", "pick": 1, "group": "heart", "name": "Forgiveness", "script": "", "lang": "English",
+      "desc": "Loosening resentment, towards others and towards yourself.",
+      "was": { "figure": "knot", "ground": "paper" },
+      "why": "The still was a near-straight scribble.",
+      "variants": [
+        { "figure": "forgive_knot", "library": "any", "ground": "dawn" },
+        { "figure": "forgive_mend", "ground": "paper" },
+        { "figure": "forgive_soften", "library": "none", "ground": "mist" }
+      ] },
+    { "id": "tmi", "pick": 4, "group": "concentration", "name": "The Mind Illuminated", "script": "", "lang": "English",
+      "desc": "Culadasa's ten stages, from a wandering mind to effortless attention.",
+      "was": { "figure": "stages", "ground": "paper" },
+      "why": "Ten small dots on an arc read as a loading spinner. Round 3: Burooj asked for A and B combined, steadying upwards; D and E are that combination, without A's triangle (it read as a Christmas tree).",
+      "variants": [
+        { "figure": "tmi_path", "library": "none", "ground": "mist" },
+        { "figure": "tmi_steady", "library": "any", "ground": "paper" },
+        { "figure": "tmi_petals", "library": "any", "ground": "dawn" },
+        { "figure": "tmi_switchback", "library": "any", "ground": "mist" },
+        { "figure": "tmi_climb", "ground": "paper" }
+      ] },
+    { "id": "recollections", "pick": 1, "group": "concentration", "name": "Anussati", "script": "", "lang": "Pāli",
+      "desc": "Recollecting the Buddha, Dhamma and Saṅgha, virtue, generosity and peace.",
+      "was": { "figure": "jewels", "ground": "dawn" },
+      "why": "The diamonds read as card suits.",
+      "variants": [
+        { "figure": "jewels_lights", "library": "any", "ground": "dawn" },
+        { "figure": "jewels_gem", "ground": "hearth" },
+        { "figure": "jewels_weave", "library": "any", "ground": "night" }
+      ] },
+    { "id": "compassion", "pick": 0, "group": "heart", "name": "Karuṇā", "script": "", "lang": "Pāli · Sanskrit",
+      "desc": "Letting suffering in and meeting it with care; in tonglen, breathing it in and sending ease out.",
+      "was": { "figure": "tonglen", "ground": "mist" },
+      "why": "The still read as an eye.",
+      "variants": [
+        { "figure": "karuna_breath", "ground": "mist" },
+        { "figure": "karuna_hold", "library": "any", "ground": "hearth" },
+        { "figure": "karuna_rise", "library": "any", "ground": "paper" }
+      ] },
+    { "id": "jhana", "pick": 0, "group": "concentration", "name": "Jhāna", "script": "", "lang": "Pāli",
+      "desc": "The meditative absorptions: joy and ease gathering into deep stillness.",
+      "was": { "figure": "absorption", "ground": "dawn" },
+      "why": "The still read as a sun icon.",
+      "variants": [
+        { "figure": "jhana_gather", "ground": "night" },
+        { "figure": "jhana_spring", "library": "any", "ground": "paper", "gopts": { "key": "mid" } },
+        { "figure": "jhana_lotus", "library": "any", "ground": "paper", "gopts": { "key": "mid" } }
+      ] }
+  ]
+}

@@ -145,6 +145,7 @@ Burooj's practice material is scattered across Dharma Seed, YouTube and courses 
     - **Freesound:** all eleven originals and the three replacements are approved by ear.
 22. **Generated art rules** (Burooj, 2026-10-26, after identity round 3):
     - **Random generation is for what the user adds, imports or creates.** **Everything Meditejo ships is curated**: built-in sounds, presets, the starter set, and featured catalogue items each get a hand-chosen composition.
+    - **Clarified 2026-10-28 (Burooj, on the catalogues PR):** "shipped" means hand-picked, not "present in a catalogue". The starter set and featured items get curated art; catalogue items (Dharma Seed retreats, dhammatalks collections and talks) get ID-seeded generated art (a teacher shows the source's photo where it has one, as before, and generated art otherwise), because the app does not ship every item in them.
     - **Round 2's atmosphere returns** as grounds under round 3's figures.
     - **A tight meaning map:** each sound or kind has only a few fitting grounds and figures, so no arbitrary pairings.
     - **Drop the weak primitives.** Constellation becomes a scatter of stars forming a shape, not stars linked in sequence.

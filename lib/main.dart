@@ -159,6 +159,12 @@ void main() async {
 
   usePathUrlStrategy();
 
+  // Covers of practice-labelled library items, as last seen: no flicker
+  // while the labels load (bottom_navigation_bar_view.dart keeps it).
+  artPractices.value = readArtPractices(
+    prefs.getString(SharedPreferenceConstants.artPractices),
+  );
+
   _initCompleter?.complete();
 
   runApp(

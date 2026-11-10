@@ -947,6 +947,61 @@ Decisions 16, 18 and 19. Layout and hierarchy, not final visuals: colours come f
     - Strings: de `libraryPinned` says "Auf Home angeheftet" where the other pin strings say "Start"; es `libraryTeachers` is "Maestros" where Explore and search say "Docentes". Both are my translations; Burooj to check.
     - Test helper `_visibleText` in `library_layout_test.dart` uses `skipOffstage: false`, so it proves a widget was built, not that it is visible; rename it `_builtText`.
 
+## 2026-10-27 (slice 8: more built-in catalogues; dhammatalks.org, and Hermes Amāra behind a flag)
+
+**The shared seam**
+
+- **`CatalogueSource` extends `ContentSource`** with the Explore, search and teacher reads (`explore`, `search`, `teacherPage`, `teacherTalks`), plus `name`, `ownsTeacher`, `revision`, `libraryDraft` and `catchUp`. What the two sources really share turned out to be exactly what `DharmaSeedSource` already exposed, so it was lifted as it stood. The `Ds*` view models became source-neutral (`CatalogueExplore`, `CatalogueSearchResults`, `CatalogueTeacherPage`, `CatalogueTeacher`, `ContentGroup`) and moved to `lib/models/catalogue/`; `dharma_seed_models.dart` is gone. `CatalogueTeacher` gained an `attribution` (the teacher page no longer hard-codes Dharma Seed), `CatalogueExplore` an `archives` list (removed again 2026-11-02, see below).
+- **Merge policy** (`catalogue_merge.dart`): courses and sessions alternate between sources so neither fills the page; teachers rank by talk count; followed teachers lead. Chosen over "newest first across sources" because Dharma Seed has dozens of recordings a day and would bury the rest. A source that throws is skipped.
+- **~~The source filter also narrows search.~~ Removed 2026-10-28, see the rework below.** There is no source filter; search and Explore always merge the catalogues.
+- **`ImportOrigin.dharmaSeed` is now `.catalogue`**, and `ImportShape.dharmaSeedRetreat/Talk` are `catalogueCourse/Single`: the preview code branches on the draft's kind, not on Dharma Seed's link kinds.
+
+**dhammatalks.org (`dt-`)**
+
+- **The snapshot is in git, not a release asset.** 313,031 bytes gzipped (1.2 MB raw) for 9,311 talks (5,482 evening, 3,829 morning) and 8 courses (218 collection items): under the 1 MB line in the brief, so no fetch step and no second pin to keep in step. A refresh costs 313 KB of history; the tool is deterministic, so an unchanged site gives identical bytes.
+- **Scope of the scrape:** the evening and morning archive years, the guided meditations index and the collections index (Basics, Four Guardian Meditations, Five Strengths, Seven Factors, A Refuge from Death, Noble Eightfold Path, With Each & Every Breath). 47 requests, 4 s apart, `robots.txt` honoured (it only disallows `/Archive/MachineTranscripts/`). **Not scraped:** `/audio/lectures/` (it exists now, with lengths and Q&A sessions) and the chants and "other themes" indexes. Follow-up if wanted.
+- **Archive talks have no length.** The year pages carry none, so they show without one; the RSS feeds supply lengths for recent talks, and a length filter keeps only talks that have one. Fetching 9,000 file headers was not worth the load on a donation-run site.
+- **The early archive (2000–2003 retreat sittings, keys like `0308n3-…`) has a month, not a day** (`YYYY-MM`); the year folder is the fallback.
+- **Staleness is a clock rule, in two places.** The feeds hold 50 items each, about 45 days, so a snapshot older than that leaves a gap. ~~`dhammatalks_snapshot_test.dart` fails the build past 45 days;~~ (now a warning, see the rework below); `release.sh` refuses a snapshot older than **14 days**, because a user opens a release for weeks after it ships and the gap must still be bridged then (Opus review of #57: the 45-day check alone limited the snapshot's age on release day, not the gap a user sees). ~~**The cost, named:** CI on `develop` goes red on 2026-12-11 …~~ Superseded 2026-10-28: CI only warns (see the rework below). What remains is that a release needs a refresh within two weeks of it (about four minutes of polite scraping); the release-side rule is the one that matters for users.
+- **A refresh may not lose IDs.** `dhammatalks.py build` compares the new snapshot with the committed one and refuses when any ID a library, stats or downloads could hold is gone (a removed talk, a renamed collection, a collection file that has since joined the archive and so changes from `dt-talk-c-…` to `dt-talk-e-…`); `--allow-id-loss` is the deliberate override. Follow-up: alias the old `c-` ID to the archive talk in the app instead of refusing.
+- **Feeds are read when Explore opens** (and on pull to refresh), at most every 6 hours, one request each. Talks they add are kept in preferences, so a talk the user kept stays playable after the feed moves on.
+- **Collections are courses; years are lists you can't keep.** A year of the archive cannot be added to the library (it is an archive, not a course to follow); the talks in it can. ~~It opened as a course page from a "Talks by year" chip strip in Explore~~ (moved to the teacher page 2026-11-02, see below). Morning talks are reachable through their years and search.
+- **Practice or Talks.** The guided meditations are Practice (and allow background sound); everything else, **including Basics, is Talks.** The brief said "guided meditations as Practice, the Basics collection" and Basics is fifty Dhamma talks that happen to teach breath meditation, so I filed it as Talks. **For Burooj:** relabelling is one tap in the library; say if Basics should lead as Practice.
+- **With no chip, Dhammatalks shows its guided practice only** (decision 11); the Talks chip shows the latest talks.
+- **Attribution** is per item (talk, course, year, teacher): source dhammatalks.org, creator Thanissaro Bhikkhu, the item's page, CC BY-NC 4.0 and the licence link. Audio streams unmodified. The teacher's one-paragraph bio is written for the app from public facts, not copied from the site.
+- **A collection file the archive also holds is the archive talk** (same ID), so progress and Resume are shared wherever it is listed.
+- **Import.** A talk page, a talk's mp3, a year, the guided index or a collection anchor on dhammatalks.org previews and adds the built-in item with no request. A year link is "not found" for import (it cannot be kept). A feed link (`/rss/…`) still imports as a feed, with the Talks default.
+- **Art.** New courses and the teacher use the art engine seeded by ID. (First flagged against decision 22; Burooj's ruling of 2026-10-28 settles it, see the rework below.)
+
+**Rework after Burooj's review (2026-10-28)**
+
+- **No source filter.** Burooj: "no need". The All · Dharma Seed · Dhammatalks chips are gone from Explore and search, with `exploreSourceProvider`, `activeCataloguesProvider`, the `exploreSourceAll` string and the tests and screenshots that drove them. Explore and search always read every built-in catalogue, merged (`catalogueSourcesProvider`); each item still carries its own source attribution, ~~and the "Talks by year" strip stays~~ (the strip moved to the teacher page on 2026-11-02, see below). A source that throws is still skipped. The Explore screenshots are now one pair (`explore-catalogues-*`) in place of `explore-all-*` and `explore-dhammatalks-*`.
+- **The art rule, clarified.** Burooj: "we aren't shipping all of those 9000 talks though; same as Dharma Seed, only some are 'shipped'." So: **hand-picked, featured items (the starter set, and any catalogue item chosen to be featured) get curated art; catalogue items (Dharma Seed retreats, dhammatalks collections and talks) get ID-seeded generated art; a teacher shows the source's photo where it supplies one (Dharma Seed does, dhammatalks has none) and generated art otherwise.** A catalogue is something the user browses, not something Meditejo ships item by item. Nothing to build: the eight dhammatalks courses and the teacher already take generated art, exactly as Dharma Seed does. The flag against decision 22 is dropped, and BRIEF decision 22 carries the clarification.
+- **Basics stays Talks.** Burooj: keep it (about fifty talks teaching the basics of breath meditation). Hermes Amāra stays off, unchanged.
+- **The snapshot's age no longer fails CI.** The test `dhammatalks_snapshot_test.dart` asserted `now - asOf <= 45 days`, which would turn CI on `develop` red on 2026-12-11 with no code change (and fail any old commit, for example when bisecting). **Now:** past 45 days that one test prints a `WARNING:` and reports itself skipped, a CI step (`ci-develop.yml`, "dhammatalks.org snapshot age (warning only)") runs `dhammatalks.py check --max-age-days 45` and turns a failure into a `::warning::` annotation, and a separate hard step runs `check` with no age limit so a malformed snapshot still fails CI (Opus review P3). **`release.sh` still refuses a snapshot older than 14 days**, which is the rule that protects users. **The cost, named:** a warning is easier to ignore than a red build; the release refusal is what makes a stale snapshot impossible to ship, and the next release needs the refresh (BUILD.md) if the snapshot is over two weeks old by then.
+- **Merged develop (twice).** Conflicts were in DECISIONS.md (both sections kept) and the de/es ARB files (develop's translated category strings plus this branch's `exploreArchives`). Explore's view and `local_catalogue.dart` from #56 merged without a text conflict (`local_catalogue.dart` is identical to develop's); Explore's rows are now Practice · Talks, the search suggestions, then #56's Categories chips. The git-ignored Pigeon bindings had to be regenerated after the merge (the `uploader` field from #58).
+- **Categories (#56) across both catalogues.** What works: a dhammatalks item **in the library** is categorised and labelled like anything else (its title is classified, and the user's own labels apply), and library entries from either catalogue show on a category page. **What does not:** a category page lists only Dharma Seed's catalogue courses and sessions not yet in the library, because `CategoryService` queries Dharma Seed's database (FTS5) directly, and `categories.json` holds no `dt-` IDs. Making the page read dhammatalks means either teaching `CategoryService` the `CatalogueSource` seam (a `categorised(categoryId)` read on the source) or curating the eight courses by hand. That is a change to #56's design, not a cheap addition, so it is **logged as a follow-up for the categories pass**: Basics, the guided meditations and the four meditations series are the obvious first entries.
+- **Strings.** The de and es strings that were still English on this branch were translated by the merge (develop's #60 translated the category strings; `exploreArchives` is "Vorträge nach Jahr" / "Charlas por año"). `untranslated_messages.txt` is `{}`.
+- **README lineage.** After #96 landed, "Lineage and sources" in README.md gained a dhammatalks.org paragraph (CC BY-NC 4.0, metadata snapshot plus RSS, audio streamed unmodified, per-item attribution) and says Dharma Seed is *one of* the built-in catalogues. Hermes Amāra is not listed while it is off; list it if it is ever turned on.
+
+**The archive moves to the teacher page (2026-11-02, after Burooj tried the test APK)**
+
+Burooj: "The by year talks are very large. Is that the only way to access dhammatalks?" It was not, but the year chips were the most visible door, and each opened a list of hundreds.
+
+- **"Talks by year" is gone from Explore** (the strip, `CatalogueExplore.archives`, the `exploreArchives` string).
+- **Thanissaro Bhikkhu's page now holds the archive.** Top to bottom: counts, Save, bio, Courses (the eight collections), **Latest talks** (the newest ten, no Show more: any more and the archive would sit a long scroll below them), then **Archive**. Archive has an **Evening | Morning** switch and, under it, the years newest first as **closed, compact rows** (title "2025", subtitle "218 talks"). Tapping a row reads that year's talks and builds them (`SliverList.builder`, so only the visible rows), tapping again closes it. Nothing renders hundreds of rows at once on open; the largest thing built is one opened year, and only its visible rows.
+- **My call, evening and morning: a switch, not a label on each row.** One group per year with both channels mixed would be a bigger list under each year (a year holds hundreds of evening talks), would need a label on every row, and would hide which channel a year belongs to. The switch halves each list and matches how the site files them. **Cost:** a morning talk is one more tap away (switch, then year). Morning is the shorter list (3,829 talks); evening shows first because it is most of the archive (5,482). Changing it is one place (`_archive` in the source and `_archive` in `teacher_view.dart`).
+- **Generic, not a dhammatalks special-case:** `CatalogueTeacherPage.archive` (sections of groups) and `CatalogueSource.archiveTalks(groupId)`. Dharma Seed and Hermes Amāra have no archive (empty), so their pages are unchanged. For a source with an archive the page's talks list is only the latest few and its heading reads "Latest talks"; the section names ("Evening", "Morning") come from the source in English, like its course titles ("Guided meditations"). New strings: `teacherArchive`, `teacherLatestTalks` (de, es translated).
+- **Kept:** the year pack (`dt-year-e-2025`) and year-link resolution in the source. A pasted year link still resolves and is still "not found" for import; nothing in the UI opens a year page any more, so it is a candidate for removal if you want it gone.
+- **How a person reaches a dhammatalks talk now:** (1) **Explore › Courses**: Basics, Four Guardian Meditations, Five Strengths, Seven Factors, A Refuge from Death, Noble Eightfold Path, With Each & Every Breath and Guided meditations sit among Dharma Seed's courses (the two sources alternate, so all eight are in the first sixteen cards; under the Talks chip the seven collections, under Practice the guided meditations); (2) **Explore › Latest guided practice** (the guided meditations as sessions); (3) **Explore › Teachers**, Thanissaro Bhikkhu (his talk count leads that row) → his page: collections, latest talks, the archive; (4) **search**, merged across both sources; (5) a pasted dhammatalks.org link. Later, **"Ways to practise"** (categories) once the categories pass covers dhammatalks: a follow-up, not here.
+
+**Hermes Amāra (`ha-`): built, off**
+
+- **Research (2026-10-27, 4 page requests, 2 HEADs):** the site is Next.js but server-rendered, so nothing is JS-only. `/resources/audio` embeds all 439 Rob Burbea talks as JSON; each talk page has a plain `<audio src="https://storage.googleapis.com/hermes-amara/stems/<slug>.mp3">` (two files confirmed `audio/mpeg`). Their own listing points 385 of the talks at Dharma Seed audio (CC BY-NC-ND), and the rest at Google Drive. No `robots.txt` (404). The listing has no practice/talk type (only each talk page does), so the adapter classifies by a small title/tag heuristic.
+- **Gated by a compile-time flag**, `hermesAmaraEnabled` (`bool.fromEnvironment('MEDITEJO_HERMES_AMARA')`), default false and never set by any workflow or script. When off, the source is not registered, nothing is fetched, nothing is listed, and no data ships. The adapter **reads the live listing at runtime, so no snapshot is bundled**: the foundation's metadata is not in the APK while permission is pending. Turning it on later is building with the define (or flipping the default).
+- **Never re-hosts audio;** it would stream the address the foundation's own page plays. The attribution says "Copyright Hermes Amāra Foundation" with no licence link, because none is stated.
+- **Waiting on:** Burooj's email of 2026-10-26 to info@hermesamara.org, no reply yet. Plum Village and QRI are not being asked (decision 18).
+
 ## 2026-10-27 (housekeeping batch E: dead code, the day turnover test, the player capture)
 
 Three small mechanical fixes from the review follow-ups above. CI is the verification route (see the last bullet); the local codegen could not run here.
@@ -968,6 +1023,8 @@ Three small mechanical fixes from the review follow-ups above. CI is the verific
   - **The local codegen cannot run on bjslab under load.** `dart run build_runner build` is SIGKILLed during the riverpod generator, even when admitted through `cockpit resources run --profile local-small`, whose 2 GiB budget is probably too small for 600 analyzed inputs. The Daytona profiles have no Flutter image. Until one of those changes, analyze and the tests go to CI.
   - **The other screenshot tests are still gated** on `MEDITEJO_SCREENSHOTS=1`. Un-gating them would write their images into the working tree on every CI run unless each gets the same write gate.
   - **The branch keeps three diagnostic commits** on the way to the fix (the un-skip, the unused-gate silencing, the database stand-in). The final commit explains the state; a squash merge would hide them.
+
+**Review of PR #57** (Claude Opus 5.5, read-only; posted on the PR). No P0. Fixed in this PR: the release refusal at 14 days and the doc wording (P1); the ID-loss guard on rebuild (P1); course and year pages and search now refresh when a feed read lands (P2); a pull to refresh now forces a read even when the Explore-open read is still running (P2); a failed add of a dhammatalks item no longer says Dharma Seed (P2); the revision bumps only when talks or lengths changed (P2); scraper politeness tests (robots refusal, the delay floor, the User-Agent) (P2); the docs' request count and window wording (P2). **Declined / left:** (P2) feed IDs come from the page filename and snapshot IDs from the list entry id; in the committed snapshot all 9,311 agree (the builder stores an explicit page when they differ, and there are none), so no talk is doubled today. (P2) the stale-snapshot refusal in `release.sh` is not exercised by `test_release.py`, whose scratch repo has no tool: the check itself is tested in `test_dhammatalks.py`. (P2) `test/fixtures/hermes_amara/resources_audio_sample.html` holds 9 of the foundation's listing records (titles, dates, tags) in the public repo, for tests: Burooj to say if he'd rather it be made up. (P2) the Hermes Amāra cache stores the raw 500 KB listing page in shared preferences, which loads all values at app start; irrelevant while it is off, and worth storing the extracted JSON when it is turned on.
 
 ## 2026-10-27 (bug batch D: the lone episode's licence, and releases through a PR)
 
@@ -1017,6 +1074,7 @@ Implementation calls for categories and labels (BRIEF decision 16 asked for labe
 - **The curated list is a first pass of 100, read from titles.** It is worth a pass by someone who knows the teachers.
 - **Teachers have no labels.** Labelling a teacher by tradition ("jhāna teachers") would be a different feature.
 
+
 ## 2026-10-27 (bug batch C: YouTube gaps)
 
 The slice 5 review gaps (a)–(c), (f)–(h) and the 0.1.2 follow-ups, checked against `develop` first.
@@ -1045,6 +1103,186 @@ The slice 5 review gaps (a)–(c), (f)–(h) and the 0.1.2 follow-ups, checked a
 - **CodeRabbit on #58.** Fixed: the redaction pattern (Dart and Kotlin) no longer stops at `)` or `]`, so a signed address holding one is redacted to its end; an empty stored channel counts as missing before the playlist's is used. Already fixed before the comment landed: `YoutubeSource.track` for a video opened from a personal course (the session-course lookup above). Declined: gating the Media3 logger on `BuildConfig.DEBUG` or raising its level. The redaction is the control for signed addresses, and Media3's default log level is its own existing behaviour that this PR did not change; a release-log policy is a separate decision.
   - *Second CodeRabbit pass (on `dd700080`):* the redactor judges a matched token whole, so a signed address joined to an ordinary one by a comma, or carried in another address's query, is redacted too (over-redacting the ordinary neighbour, which is the safe side).
 
+
+## 2026-10-28 (categories, second pass: a fuller list, a model pass, empty ones hidden)
+
+Follow-up to #56 (BJS-586) from Burooj's review: the list was only what he could name, the rules were thin, empty categories showed, and the two YouTube starter playlists were unlabelled. The model is unchanged (multi-label; user → hand-picked → model pass → rules); what it holds and how it is filled changed.
+
+- **On screen, neither "Categories" nor "Tags"** (Burooj, 2026-10-28: an item carries several, so "category" suggests one box per item). Explore's heading is **Ways to practise** (de *Arten zu üben*, es *Formas de practicar*); the library item's menu entry and its sheet are **Labels** (*Labels*, *Etiquetas*), with "Your own labels" for the user's; the load error says "this list". Keys and code keep `category`. Wording is Burooj's to veto.
+- **36 practices, in seven groups** (the asset's optional `group`: heart, concentration, insight, awareness, body, devotion, imagination; flat, multi-label; nothing reads the group yet). The ten IDs are unchanged. Added, and why:
+  - *Heart:* **Compassion** (karuṇā, tonglen, self-compassion: Burooj asked for compassion beyond metta; 1,272 talk titles say it), **Forgiveness** (a guided practice in its own right; 324 talk titles), **Relational** (Insight Dialogue and dyads, 36 retreats; also where Vervaeke's dialogos would go).
+  - *Concentration:* **Gazing** (trāṭaka and kasiṇa together; Burooj named trāṭaka; nothing on Dharma Seed yet), **Recollections** (the anussatis, ~100 talk titles).
+  - *Insight:* **Noting** (Mahasi; 50 retreats name the method), **Death contemplation** (maraṇasati; 30 retreats, 355 talks), **MBSR** (secular mindfulness programmes, Burooj's "modern ones"; 39 retreats).
+  - *Awareness:* **Zen** (zazen, shikantaza, kōan), **Dzogchen & Mahāmudrā** (moved out of Open awareness's aliases: a tradition, not a synonym), **Self-inquiry**, **Headless Way** (Burooj's "looking at head": Douglas Harding), **Effortless mindfulness** (Loch Kelly's glimpses), **Nature** (practising outdoors; 36 retreat titles).
+  - *Body & energy:* **Walking** (Burooj; 266 talk titles of walking instructions), **Movement** (yoga, qigong, tai chi; 146 retreats), **Energy body** (prāṇa, qi; Burbea's energy-body practice), **Kundalini** and **Chakras** (Burooj named both; kept apart because a user may want one without the other), **Yoga nidra** (where a sankalpa is set), **Focusing** (Gendlin).
+  - *Sound & devotion:* **Chanting** (Burooj; 467 talk titles), **Mantra**, **Devotion** (prayer, refuge, pūjā, lectio divina).
+  - *Imagination:* **Visualisation**, **Soulmaking** (Burbea's imaginal practice).
+  - *Considered, not added:* Sound/listening (rare on Dharma Seed; a user label covers it), Sleep (not a practice), RAIN and self-compassion (aliases under Compassion), Equanimity and Joy (inside Metta's brahmavihāras), Chan and kōan as their own (inside Zen).
+- **Rules for the new ones read titles, narrowly.** Each was sampled against the snapshot and the loose ones cut: bare "walking" ("Walking Each Other Home"), "glimpse" ("A Glimpse of Connection"), "felt sense" (satipaṭṭhāna talks, not Focusing), "mindfulness based" ("…Based on Right View"), bare "energy" (viriya, the awakening factor). Tests pin both sides.
+- **The model pass replaces "rules for most things".** Claude Haiku read all 4,184 retreats with talks (name, description to 600 characters, top three teachers, up to eight talk titles spread across the retreat) against `tools/meditejo/categories/pass/GUIDE.md`, 100 per agent, one committed file per batch. Claude Sonnet then audited 1,725: every retreat Haiku gave none (1,321) or four or more (4), plus a random 400 (`AUDIT.md`); Sonnet's reading wins. **Sonnet changed 27 of the random 400** (Haiku agrees ~93% of the time; the changes mostly drop a label resting on one talk) and 10 of the 1,321 nones (mostly a missed Vipassanā on an introductory mindfulness series). 1,332 retreats end with no practice focus: talk series, study courses, sangha nights. Reasons for every retreat are in `pass/haiku/` and `pass/sonnet/`. Three thin readings found in review (a Dzogchen, a Walking and a Recollections each resting on one talk) are fixed in `pass/corrections.jsonl`, which `build` applies last; correct the pass there, with a reason, rather than by hand-picking. `check` and `build` fail on missing batches or incomplete coverage.
+  - **Shipped compactly and apart:** `assets/categories/dharma_seed_pass.json` (category → retreat IDs, plus `none`), 31 KB. `CategorySource.model` sits between rule and curated. A retreat the pass read, even as none, never reaches the rules; the rules now cover retreats newer than the snapshot, talk titles, and other sources' titles. Talks inherit their retreat's reading and add their own title matches. The hand-picked entries still win.
+  - **The 98 hand-picked retreats with talks were in the pass too**, as a check. They overlap on 86 and match exactly on 53; most differences are the pass adding a fair second label (Samatha beside Jhāna, Compassion beside Metta). Hand-picked entries win, so those stay as they were, except:
+  - **The nine `"categories": []` suppressions are removed.** They silenced keyword guesses under the old ten; the pass now decides those retreats (which never reach the rules), and under the new list several were wrong to silence: "Sŏn (Zen) Retreat" is Zen, the Mahasi "Vipassana Retreat" is Vipassanā and Noting, "Nature is Our Body" is Nature and Body.
+  - **The two "Dzogchen Retreat" entries add Dzogchen** to Open awareness.
+  - **Vipassanā is over the quarter bound, on purpose.** The pass reads it on 1,590 of 4,184 retreats (38%), against 667 under the old rules. That is not drift: Dharma Seed is largely the Insight Meditation movement's archive and most retreats are insight retreats ("Insight Meditation Retreat", "Vipassana Intensive"). The bound's purpose was to stop a keyword rule swallowing the catalogue, so it now applies to the rules alone (still under a quarter), and the pass has its own check: under a quarter for every category but Vipassanā, which may reach 45%. Narrowing it is a product call (question below).
+  - Category pages list hand-picked retreats, then the guessed ones (pass and rules) newest first, up to 50 (was 30, rules only).
+- **Empty categories are hidden from browsing, kept in the asset.** `CategoryService.nonEmpty` (a library entry carries it, guessed or the user's; or a hand-picked or passed retreat with talks; or a rule hit) drives Explore's chips (`browsableCategoriesProvider`). The Library's chip row already showed only what entries carry. The Labels sheet still offers all 36, so an empty one can be filled; filling it shows it on Explore.
+- **The YouTube starter playlists are hand-picked now.** yt-dlp (in a throwaway venv, 2 s between requests) read both playlists' 27 videos; Vervaeke's descriptions are boilerplate, so six lessons' auto-captions were excerpted too. Haiku labelled each video and each playlist (three or more videos, or the stated purpose); I added Breath to Vervaeke's lesson 3 ("Finding your flow" follows the breath). Vervaeke: Vipassanā, Body, Walking. QRI: Energy body. Two videos read as none ("Integration", "The Phenomenology of Ontology") are hand-picked as `[]`. Reasons in `pass/youtube.jsonl`.
+- **dhammatalks.org is not labelled here** (PR #57 is not on `develop`). Follow-up: when it lands, run the same pass over its talks or teach the pass a second source.
+- **A label of the user's own can become a category on upgrade.** A typed label that names a category (by ID, name or alias, folded) *is* that category (BJS-586), so a user who labelled something "Zen", "Walking", "Nature", "Death", "Energy" or "Focusing" before this edition now sees it as the new category, with its blurb and page. That is the rule working as designed, and nothing is lost (the stored row is unchanged); it is noted because it changes what such a chip opens. An alias may name only one category; the parser enforces it.
+- **Explore's list is cheap and stays current.** Which categories Dharma Seed fills is worked out once per catalogue edition (`dharmaSeedCategoriesProvider`, re-read on a sync), with a `LIMIT 1` existence query per category, and unioned with the labels the Library already computes; category pages sort and cut the pass's retreats in SQL. (Opus review on #97.)
+- **Asset editions:** `categories.json` version 2, `dharma_seed_pass.json` version 1, both 2026-10-28.
+- **Shared files touched:** `lib/l10n/app_{en,de,es}.arb` (8 values; no keys added or removed), `test/views/library/library_layout_test.dart` (the menu label), `docs/fork/ARCHITECTURE.md`.
+- **Before → after, retreats with talks:** Metta 283 → 799, Vipassanā 667 → 1,590, Samatha 84 → 181, Body 55 → 173, Open awareness 10 → 114, Emptiness 29 → 58, Jhāna 31 → 49, Breath 18 → 39, Sankalpa 0 → 12, TMI 0 → 0. New: Compassion 201, Movement 120, Nature 72, MBSR 51, Relational 49, Noting 47, Death contemplation 38, Zen 31, Devotion 30, Forgiveness 29, Chanting 26, Soulmaking 19, Energy body 11, Recollections 9, Dzogchen 5, Self-inquiry 6, Walking 4 (and 158 talk titles by rule), Mantra 3, Visualisation 3. No retreat, but a talk or two by rule, so they show on Explore: Headless Way ("On Having No Head"), Effortless mindfulness (a Tara Brach and Loch Kelly conversation), Yoga nidra (one), Chakras (8), and Gazing and Kundalini (one Q&A each whose description mentions them: thin, but what a person tapping them would find). **Hidden on Explore, nothing at all: TMI** (Culadasa's retreat page is hand-picked but has no talks) **and Focusing.** A retreat with no stored talks never counts, as on the category page. 2,854 of 4,184 retreats carry at least one.
+- **Seen in passing:** Dharma Seed retreat 5371 ("ORIGINAL RECORDINGS, TO BE EDITED", Ajahn Sucitto) says "Not for public distribution" in its description, yet is in the public API and the bundled snapshot. Not this slice's to decide; raised in the PR.
+
+**Follow-ups, for Burooj:**
+- **Is Vipassanā the right size?** 38% is a faithful reading of this archive but not much of a filter. Narrowing it to retreats that name vipassana, satipaṭṭhāna or noting is a change to `GUIDE.md` and a re-run.
+- **The wording** (Ways to practise / Labels) and **the list** (36, the groups, the names: Gazing for trāṭaka and kasiṇa, Death contemplation, MBSR, Effortless mindfulness).
+- **A grouped view** for the Labels sheet (36 chips in one wrap) and Explore (up to ~28 chips in one row); the `group` field is there for it.
+- **Talks are labelled by title rules only.** A model pass over talk titles (49,007) is possible but much bigger; the retreat pass plus inheritance covers most.
+- **dhammatalks.org** (PR #57): run a pass when it lands.
+
+## 2026-11-02 (ways to practise, Phase 2: tiles, original names, the splits)
+
+Burooj tried the test APK: "not a fan of the categories being bland as pills. And English sanitized translations. Cards/tiles could allow us the og language with a small description. Each meditation technique could be given identity." Phase 1 was an exploration (`docs/fork/design/practices/`, three tile layouts, a figure per practice, names in their own language). His picks, the same day:
+
+- **One tile, three sizes** (`PracticeTile`, `lib/views/categories/practice_tile.dart`): figure, name, where the name comes from, one line.
+  - **card** on Explore: "Ways to practise" with **See all**, then one carousel per group.
+  - **tall** on the practices page (`PracticesView`), a grid by group.
+  - **compact** in the Labels sheet: the figure as background, the name over a scrim, a ring and check when ticked.
+  - Empty practices and groups are hidden from Explore and the practices page, as before. The sheet still offers all 38.
+- **Varied grounds stay** (night, hearth, canopy beside paper, mist and dawn).
+- **Dzogchen and Mahāmudrā, Trāṭaka and Kasiṇa are four practices.** IDs `trataka` and `kasina` replace `gazing`, which never shipped. Claude Haiku re-read the 23 retreats the splits touch (the five Haiku had tagged Dzogchen, plus every retreat mentioning dzogchen, mahamudra, rigpa, kasina, trataka, candle or "nature of mind"). The result is in `pass/split.jsonl`, which `model_pass.py` applies after the audit and before the corrections.
+  - 814 "Mahumudra" (sic) is Mahāmudrā.
+  - 595, 2628, 2629 and 5995 stay Dzogchen.
+  - "Nature of Mind" talk titles and ceremonial candles count for nothing.
+  - No retreat is trāṭaka or kasiṇa yet, so those two show only through a talk title, or once a user labels something.
+  - The rules follow: "nature of mind" left the Dzogchen title rule (it caught insight talks); Mahāmudrā has its own rule.
+- **The naming rule** (the orchestrator's, Burooj's to veto):
+  - When one tradition owns a practice, the tile shows its own name, and the label line shows its language, translated (Pāli, Sanskrit, Tibetan, Japanese), then its script.
+  - When a practice is shared, the tile shows the plain English name, and the label line lists the originals as written (Chanting: Paritta · Kīrtan · Okyō).
+  - A practice born in English shows its founder on the label line (Headless Way: Douglas Harding).
+  - **Names are never translated. The one-line descriptions are**, in en, de and es, kept in the asset (`blurb` per language), beside the name they describe. Language names are `.arb` strings.
+  - **English names stay as aliases**, so typing "loving-kindness", "Zen" or "gazing" still finds Mettā, Zazen and Trāṭaka.
+  - **Where the rule is debatable:**
+    - **Compassion.** It is English because the category also holds tonglen and self-compassion. If it narrowed to Buddhist karuṇā, Karuṇā would be its name.
+    - **Mantra.** It is English by the rule, but the English word is the Sanskrit one, so nothing visible changes.
+    - **Body, Walking and Energy body** showed Kāyagatāsati, Caṅkama · Kinhin and Prāṇa · Qì in Phase 1. The rule makes them English, because each spans traditions. I think the rule is right there.
+    - **Relational.** Insight Dialogue is one teacher's practice, but the category also holds dyads.
+    - **Samatha, Jhāna, Vipassanā and Śūnyatā** span the Buddhist schools; "one tradition" is read as Buddhism. Śūnyatā takes the Sanskrit (Mahāyāna) over Pāli suññatā, as Burbea and Dharma Seed do.
+    - **Mahāmudrā** is a Sanskrit name in a Tibetan tradition, so its label line reads "Sanskrit · Tibetan" with the Tibetan script ཕྱག་ཆེན་.
+    - **Forgiveness's originals** ("Khamā · Kṣamā") are thin; the practice as taught is modern.
+- **Art.** Each practice names a ground and a figure in the asset (`art`), drawn by `ArtSubject.practice` → `Compose.buildPractice`, seeded by the practice's ID, curated per decision 22.
+  - **The figures are stand-ins** from the current Dart engine (Mettā `rings:ripple`, Trāṭaka `fire:tongues`, Kasiṇa `disc:plain` on hearth…). A separate figure round is redrawing several of Phase 1's figures and adding the four new practices'. Porting them to Dart comes last, once that round lands on this branch. After the port, the asset's `figure` names change and nothing else does.
+  - `buildPractice` falls back to paper and no figure for an unknown name, so the asset can name a figure ahead of its port.
+- **Assets:** `categories.json` version 3, `dharma_seed_pass.json` version 2, both 2026-11-02.
+- **Strings:** 12 new in en, de and es: See all, the seven group names and four language names. The 38 descriptions, in three languages, are in the asset.
+- **Shared files touched:** `lib/widgets/art/art_subject.dart` and `lib/widgets/art/engine/compose.dart` (a new subject and builder), `lib/views/explore/widgets/explore_view.dart` (one line), `lib/l10n/app_{en,de,es}.arb`.
+
+## 2026-11-02 (ways to practise: the figures in Dart, and live tiles)
+
+Burooj's picks on the figure round 2 (branch `fork/practice-figures`, merged here): the designer's picks for all, **Kasiṇa B** (the fire seen through the hole in the mat). Headless Way, Caṅkama/Walking, Forgiveness, The Mind Illuminated, Anussati, Karuṇā/Compassion and Jhāna go to a round 3.
+
+- **Ported to Dart: 29 figures.** Ānāpānasati keeps round 4's `breath:orb` and Nature round 4's `grass`.
+  - **18 from round 1** (`practice_figures_r1a.dart`, `practice_figures_r1b.dart`), including round 2's fixes to the ensō and the open sky.
+  - **The 11 round 2 picks** (`practice_figures_r2.dart`).
+  - **Shared helpers** live in `practice_helpers.dart`.
+  - They are registered beside round 4's, under their JavaScript names (`metta`, `dialogue_ripples`, `kasina_fire`, …), and none shadows an older name. `categories.json` version 4 names them.
+  - **Round 3's seven keep their stand-ins.** Porting figures about to be redrawn would be wasted work.
+  - **The port was split across three Sonnet workers, one brief, one file each,** then integrated here. A contact sheet of all 38 in Dart was checked by eye against the JavaScript.
+- **Kasiṇa's hole and `Ctx.arc`.** The engine's `Ctx` draws `arc(x, y, r, 0, τ, true)` (a full anticlockwise circle) as nothing, where Chrome draws the circle. The port spells it `0, −τ`. `canvas2d.dart` is left alone, because fixing it there could change art already curated. **Follow-up:** fix `Ctx.ellipse`'s full-turn case behind the art reference test.
+- **A design bug found in the port, not fixed in it:** Visualisation's lotus never fades with the image's `form`. The lotus's own fills reset `globalAlpha`, in JavaScript and Dart alike. This is for the figure designer.
+- **Live tiles, only while seen** (Burooj: "Maybe only the animations of what are visible on screen will be running?"). Every practice tile is `live` again. `ArtCover` now runs its ticker only while some of the cover is in the window:
+  - It listens to every scroll position it sits in (a carousel inside a page), with a periodic and a post-frame re-check for moves no scroll reports.
+  - It stops when the app is not in front (lifecycle observer).
+  - It shows the still frame under reduce motion and on covered routes (`TickerMode`), as before.
+  - This is a shared widget, so the player's live cover follows the same rules.
+  - Tested by counting running tickers: 3 of 12 built covers in a 400-px row, 0 in the background, 0 under reduce motion.
+- **Frame cost, measured here, not on the phone** (`practice_art_cost_test.dart`, opt-in with `MEDITEJO_BENCH=1`). Six cards at the S23+'s density (148×132 dp at 2.8125×), every practice once, on bjslab in debug JIT with a load of about 4.4:
+  - **Painting six: 1.7–5.1 ms per frame.** That is the UI thread's share, against `ArtCover`'s 30 fps cap (33 ms).
+  - **Rasterising on the CPU: 29–65 ms.** The phone rasterises on the GPU, so this only ranks the figures. The heaviest are Open awareness's veils and Dzogchen and Mahāmudrā.
+  - A profile run on the S23+ would settle it, and needs an APK, which Burooj will call for.
+- **The random pool of unpicked variants: not done.** Burooj wants the variants that weren't picked to join the random library for user content. The designer marks each one generic or practice-tied in round 3, and that flag isn't on the branch yet. When it lands, port the generic ones into the random pool. It is the last step.
+
+## 2026-11-03 (practice figures round 3, and the figure library)
+
+Burooj's round 3 picks: Headless Way B (full of what passes), Caṅkama · Kinhin B (one step, then the next), **Forgiveness B (mended with gold)**, **The Mind Illuminated E (the long climb)**, Anussati B (the triple gem), Karuṇā A (taking in, sending out), Jhāna A (light gathering in). `fork/practice-figures` was merged again.
+
+- **No stand-ins left.** The seven picks are ported (`practice_figures_r3a.dart`, `_r3b.dart`), and `categories.json` version 5 names them.
+- **The figure library** (Burooj: the variants that weren't picked are drawn at random for user content). The designer flagged each unpicked variant in `r2.json` and `r3.json`:
+  - **`any` (33):** they join the course, single and playlist classes as `ArtClass.library`, as (ground, figure) pairs. Each figure stays on the ground it was designed for (decision 22: a tight meaning map, no arbitrary pairings), centred and without an accent. A cover picks the library over its classic figures in proportion to how many each offers.
+  - **`practice` (5):** Noting's two label figures, the Headless Way's face and point, and the trāṭaka point. They are drawn only for content carrying that practice (`ArtMap.practiceLibrary`).
+    - **The practice comes from one place, so every screen agrees** (review). `artPractices` (`art_subject.dart`) maps each library item to the first practice it carries that has variants of its own. The app shell keeps it current from the library's labels, guessed or the user's.
+    - Every cover of that item reads it, whether in the Library, on Home, in Explore or in the player. A change re-resolves only the covers it affects, because the practice is part of the cover's key.
+    - Items not in the library have no labels here, so they draw the shared library only.
+    - The map is saved (`art_practices` in shared preferences) and loaded before the first frame, so a launch draws the same covers from the start, without flicking while the labels load (delta review). It changes only when it really changes.
+    - Teachers never take a practice.
+    - **By design:** a catalogue item draws the practice's variants only while it's in the Library. Saved, it becomes yours, and its cover can change; removed, the cover goes back.
+  - **`none`** (Walking A, Forgiveness C, TMI A): never drawn.
+- **Generated covers re-roll once.** A cover class with a library draws one more random number, so every non-curated course, single and playlist gets new art with this build. Curated art (shipped items, sounds, presets, bells) doesn't move, and neither does sound and preset art, whose classes have no library.
+- **The port:** 45 figures by five Sonnet workers from one brief, a file each, split by practice so shared private helpers stay together.
+  - `clearDisc` and the five lights became shared helpers.
+  - Round 3's pen-drawn figures use `stroke_engine.dart`'s `Pen` and `makeStroke`, with private copies of `resample` and `drawStroke`.
+  - Yoga nidrā's moon uses the same full-circle workaround as Kasiṇa.
+  - `dialogue_strokes` keeps its strokes as objects in its params, so a composition holding it can't be frozen to JSON. Nothing in the app freezes generated art, but curating one later would need it rebuilt from a seed.
+- **Live art, after review:**
+  - A hidden tab stops ticking (`Visibility.of`).
+  - A cover off screen re-checks every half second, so it notices coming back by a way no scroll reports.
+  - Covers measure themselves after layout, because scroll positions notify before it. The tests found that bug.
+  - Each scroll view's viewport bounds what counts as showing.
+  - An unfocused window keeps animating; only hidden and paused stop it.
+  - The half-second look runs only while coming into view is all that stops a cover. A hidden tab, the background, reduce motion or a covered route cancels it, and the rebuild that lifts the block checks again (review).
+- **Verified:**
+  - Tests: 74 practice figures registered, none shadowed; all 38 practices and 38 library pairs draw; covers draw from the library, and Noting's variants appear only with that practice.
+  - Visibility: 3 of 12 covers tick, again after scrolling away and back; 2 in a 200-wide list; 0 on a hidden tab, in the background, or under reduce motion.
+  - A Dart contact sheet of every new figure, checked by eye. **No APK** (Burooj will say when).
+
+## 2026-11-03 (decided: names, library reach, German heading, retreat 5371, Vipassanā)
+
+Burooj left the names to the orchestrator ("You know more about the names than me") and settled the rest. These are decisions now, not questions.
+
+- **The naming rule stands as built.** One tradition owns a practice → its own name. Shared → plain English, with the originals on the label line:
+  - Compassion (Karuṇā · Tonglen)
+  - Body (Kāyagatāsati · Kāyānupassanā)
+  - Walking (Caṅkama · Kinhin)
+  - Energy body (Prāṇa · Qì · Lung)
+  - Mantra (Japa · Nembutsu · Dhikr)
+  - Relational (Insight Dialogue · Dyads). These are modern practices whose own names are English: Gregory Kramer's Insight Dialogue, and the dyads of Charles Berner's Enlightenment Intensive. For a modern practice, its own name is the original, as Headless Way and Focusing show their founders.
+  - **Three label lines named English terms rather than originals, now fixed:**
+    - Body: "Body scan" became Kāyānupassanā.
+    - Visualisation: "Deity yoga" became Devatā-yoga, and "Guided imagery" became Ignatius's *Compositio loci*.
+    - Movement: Tai chi became *Tàijíquán*, with tones like the Qìgōng beside it. Tàijí alone is the cosmological "supreme ultimate".
+    - The English terms stay as aliases, so search still finds them. The new originals are aliases too, so typing one in the Labels sheet picks the practice. `categories.json` version 7.
+- **The figure library keeps its reach** (Burooj: "It's fine, we're still beta. Let generated ones change."). It covers about 85% of generated covers, Dharma Seed included.
+- **German heading: *Übungswege*** (and *Übungswege durchsuchen* for screen readers).
+- **Dharma Seed retreat 5371 is hidden.** "ORIGINAL RECORDINGS, TO BE EDITED - Ajahn Sucitto at IMS-FR" says "Not for public distribution". The app respects the teacher's note.
+  - `DharmaSeedDatabase.hiddenRetreatIds` keeps it and its 13 talks out of browsing: recent retreats and talks, every group, teacher pages and counts, and top teachers.
+  - It is also out of search (through `DsTalkFilter`) and out of category pages and probes.
+  - Opening it by ID still works, so a library that already holds it keeps it.
+  - `hidden_retreat_test.dart` checks all of this against the bundled snapshot.
+  - **To hide another retreat, add its ID to the set.**
+- **Vipassanā is narrowed, and filters: 38% → 22% of the pass.** It is for retreats whose **practice is insight**, not every event from an Insight Meditation centre or series (`pass/GUIDE.md`).
+  - **Insight counts as the practice when:**
+    - the retreat calls itself a vipassanā retreat in its own title or description; or
+    - its description or talk titles teach satipaṭṭhāna, noting, the three characteristics, or arising and passing as the method.
+  - **"Insight meditation" in a title counts only with that support.** It is also the name of the movement, its centres and their series.
+  - **Drops:** a centre or series label alone, another stated theme (mettā, a sutta study, illness, daily life), and one insight-sounding talk among unrelated ones.
+  - **Audience never matters.** A young adults', women's, LGBTQ+ or people-of-colour retreat that practises insight is Vipassanā.
+  - **A retreat with no description that would be dropped is judged from every talk title, not the 8-title sample.** Keeps were left on the sample, since a sample showing insight is enough.
+  - **Haiku re-read the pass's 1,578 Vipassanā retreats** (curated ones aside). It kept 1,206 (`pass/vipassana/`).
+  - **A Sonnet spot-check found Haiku lenient.** On a random 300, Sonnet kept 159 of Haiku's 200 keeps but only 3 of its 100 drops.
+  - **So Sonnet re-read every remaining keep** (1,006, in ten batches), and its reading wins (`pass/vipassana-audit.jsonl`).
+  - **The Opus review of that result (P2) found two faults, both fixed:**
+    - affinity retreats had been dropped for their audience (24, "Vipassana Retreat for Ages 18 to 32", among them);
+    - retreats with no description had been judged from 8 sampled talk titles.
+  - **So Sonnet re-read 214 retreats with every talk title** (120 affinity, and 97 with no description and more than 8 talks). 36 regained Vipassanā and 2 lost it (`pass/vipassana-reread.jsonl`).
+    - U Tejaniya's 1446 regained it on its titles.
+    - His 2470 and 2511 did not: their titles are only "instructions" and "group sessions", and a teacher's reputation alone does not count.
+  - **One correction stands** (`pass/corrections.jsonl`): Sayadaw U Pandita's three-month retreat (2898, 89 talks) keeps Vipassanā. It meets the rule on its own titles, read in full, not on his name: "Vipassana Jhanas", the seven factors of enlightenment taught one by one, and "Factors Conducive to Wisdom". No Noting: no title names it, and a teacher's method alone does not count.
+  - **Result:** 913 of 4,184 retreats (21.8%), down from 1,599. Retreats the pass gives no label rise from 1,332 to 1,810, and keyword rules still don't reach them.
+  - **The bound test holds every category under a quarter, Vipassanā included,** and Vipassanā above a tenth, so it can't quietly empty.
+  - Pass meta v3.
 
 ## 2026-11-03 (#72: Customize regrouped around the four slots)
 

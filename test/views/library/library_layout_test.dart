@@ -459,7 +459,7 @@ void main() {
           'Share',
           'Move to Talks',
           'Rename',
-          'Categories and labels',
+          'Labels',
           'Remove from library',
         });
         expect(await menuOf(tester, 'my-course-0123456789abcdef'), {
@@ -470,7 +470,7 @@ void main() {
           'Pin to Home',
           'Move to Talks',
           'Rename',
-          'Categories and labels',
+          'Labels',
           'Delete playlist',
         });
         expect(await menuOf(tester, 'ds-talk-2'), {
@@ -481,7 +481,7 @@ void main() {
           'Share',
           'Move to Practice',
           'Rename',
-          'Categories and labels',
+          'Labels',
           'Pin to Home',
           'Remove from library',
         });
