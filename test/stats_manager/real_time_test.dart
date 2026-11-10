@@ -75,6 +75,37 @@ void main() {
     expect(entry.realOrDurationMs, 1200000);
   });
 
+  test('a timer with a countdown keeps the longer real time', () async {
+    await boot();
+    await manager.addAudioCompleted(
+      LocalAudioCompleted(
+        id: 'timer-1200',
+        timestamp: now.millisecondsSinceEpoch,
+      ),
+      1200000,
+      realDuration: 1210000,
+    );
+    final entry = (await restart()).audioCompleted!.single;
+    expect(entry.durationMs, 1200000);
+    expect(entry.realMs, 1210000);
+  });
+
+  test('Extend and the countdown are in your time, not in the recording\'s '
+      'length', () async {
+    await boot();
+    // 20 minutes of audio, 5 of Extend and a 10 s countdown, at 1x.
+    await manager.addAudioCompleted(
+      LocalAudioCompleted(id: 'lib-x', timestamp: now.millisecondsSinceEpoch),
+      1200000,
+      realDuration: 1510000,
+    );
+    final stored = await restart();
+    final entry = stored.audioCompleted!.single;
+    expect(entry.durationMs, 1200000);
+    expect(entry.realMs, 1510000);
+    expect(stored.totalTimeListened, 1200000);
+  });
+
   test('a session with no measured real time reads as its length', () async {
     await boot();
     await manager.addAudioCompleted(

@@ -5349,6 +5349,666 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Latest talks'**
   String get teacherLatestTalks;
+
+  /// Ending bell: wheel for minutes of silence after the recording, before the bell
+  ///
+  /// In en, this message translates to:
+  /// **'Silence after the audio'**
+  String get extendEndLabel;
+
+  /// Caption above the Silence after the audio wheel
+  ///
+  /// In en, this message translates to:
+  /// **'Keep going in silence (with any background sound) after the audio ends, then ring the ending bell.'**
+  String get extendEndCaption;
+
+  /// Customize row: minutes added to a guided session, as if the recording were longer
+  ///
+  /// In en, this message translates to:
+  /// **'Extend'**
+  String get extendTitle;
+
+  /// Caption under Extend
+  ///
+  /// In en, this message translates to:
+  /// **'Make the session longer by this much, with silence, as if the recording were longer.'**
+  String get extendCaption;
+
+  /// No description provided for @editStatsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit stats'**
+  String get editStatsTitle;
+
+  /// No description provided for @submit.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit'**
+  String get submit;
+
+  /// Title for the onboarding section in settings
+  ///
+  /// In en, this message translates to:
+  /// **'Onboarding'**
+  String get onboarding;
+
+  /// No description provided for @enableNotificationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay on Track with Meditation Reminders'**
+  String get enableNotificationsTitle;
+
+  /// Notifications screen title for users who want to learn to meditate (intent: learn_properly)
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the learning going'**
+  String get enableNotificationsTitleLearn;
+
+  /// Notifications screen title for users who want to build a habit (intent: build_habit)
+  ///
+  /// In en, this message translates to:
+  /// **'Build the habit you\'re after'**
+  String get enableNotificationsTitleHabit;
+
+  /// Notifications screen title for users managing stress, sleep, or emotions (intent: stress_sleep_emotions)
+  ///
+  /// In en, this message translates to:
+  /// **'Make it part of your day'**
+  String get enableNotificationsTitleStress;
+
+  /// Timestamp shown on a fake iOS notification preview, mirroring iOS's 'now' label for a notification that just arrived
+  ///
+  /// In en, this message translates to:
+  /// **'now'**
+  String get notificationPreviewTimestamp;
+
+  /// Title of the fake notification shown in the onboarding notifications screen preview
+  ///
+  /// In en, this message translates to:
+  /// **'A quieter mind starts here'**
+  String get notificationPreviewTitleB;
+
+  /// Body of the fake notification shown in the onboarding notifications screen preview
+  ///
+  /// In en, this message translates to:
+  /// **'Your daily breath is waiting. Just tap to begin.'**
+  String get notificationPreviewBodyB;
+
+  /// Progress label under the onboarding pages, next to the circular progress ring
+  ///
+  /// In en, this message translates to:
+  /// **'Step {current} of {total}'**
+  String onboardingStepIndicator(int current, int total);
+
+  /// Shown on the onboarding reminder screen when a reminder is already set, above the chips that let the user change it
+  ///
+  /// In en, this message translates to:
+  /// **'Daily reminder set for {time}'**
+  String onboardingReminderCurrentlySet(String time);
+
+  /// Feedback shown when the user opens the custom time picker and dismisses it without choosing, so the tap is not a silent dead end
+  ///
+  /// In en, this message translates to:
+  /// **'No time picked yet — choose one above, or skip for now.'**
+  String get reminderCustomCancelled;
+
+  /// No description provided for @onboardingBatteryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'One Setting, Smoother Meditations'**
+  String get onboardingBatteryTitle;
+
+  /// No description provided for @onboardingBatteryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone can pause Meditejo mid-session. One quick change prevents this.'**
+  String get onboardingBatteryBody;
+
+  /// No description provided for @onboardingBatteryOptimize.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Setting'**
+  String get onboardingBatteryOptimize;
+
+  /// No description provided for @skipForNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip for Now'**
+  String get skipForNow;
+
+  /// No description provided for @favorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get favorites;
+
+  /// No description provided for @noFavoriteTracksYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No favorite tracks yet'**
+  String get noFavoriteTracksYet;
+
+  /// No description provided for @noFavoritePacksYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No favorite packs yet'**
+  String get noFavoritePacksYet;
+
+  /// No description provided for @noFavoritesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No favorites yet'**
+  String get noFavoritesYet;
+
+  /// No description provided for @addItemsToFavoritesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Add items to your favorites to see them here'**
+  String get addItemsToFavoritesMessage;
+
+  /// No description provided for @all.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get all;
+
+  /// No description provided for @packs.
+  ///
+  /// In en, this message translates to:
+  /// **'Packs'**
+  String get packs;
+
+  /// Title for app icon selection setting in customization section
+  ///
+  /// In en, this message translates to:
+  /// **'App Icon'**
+  String get appIconTitle;
+
+  /// Label for the near-black app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get appIconNearBlack;
+
+  /// Label for the dusk gradient app icon option (now the default)
+  ///
+  /// In en, this message translates to:
+  /// **'Dusk'**
+  String get appIconDusk;
+
+  /// Label for the original purple app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get appIconPurple;
+
+  /// Label for the classic app icon option (purple M on white)
+  ///
+  /// In en, this message translates to:
+  /// **'Classic'**
+  String get appIconClassic;
+
+  /// Label for the blush pink gradient app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Blush'**
+  String get appIconBlush;
+
+  /// Label for the ocean blue gradient app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Ocean'**
+  String get appIconOcean;
+
+  /// Label for the forest green gradient app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Forest'**
+  String get appIconForest;
+
+  /// Label for the pink-to-gold sunset gradient app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Golden'**
+  String get appIconPink;
+
+  /// Snackbar message shown on Android after changing the app icon
+  ///
+  /// In en, this message translates to:
+  /// **'Icon updated. Restarting…'**
+  String get appIconChanged;
+
+  /// Label for default guide name setting
+  ///
+  /// In en, this message translates to:
+  /// **'Default Guide Name'**
+  String get defaultGuideName;
+
+  /// Label for default duration setting
+  ///
+  /// In en, this message translates to:
+  /// **'Default Duration'**
+  String get defaultDuration;
+
+  /// Message shown when default guide name is cleared
+  ///
+  /// In en, this message translates to:
+  /// **'Default guide name cleared'**
+  String get defaultGuideNameCleared;
+
+  /// Text shown when a default value is not set
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get notSet;
+
+  /// Note explaining how defaults work in Up Next
+  ///
+  /// In en, this message translates to:
+  /// **'These defaults are set from your last selection on any track. Home uses them to skip the selection screen when you continue a pack.'**
+  String get defaultsNote;
+
+  /// Speed sheet: button that sets playback speed back to 1.0x
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get speedReset;
+
+  /// Accessibility label for the button that clears the saved default guide preference
+  ///
+  /// In en, this message translates to:
+  /// **'Clear default guide'**
+  String get clearDefault;
+
+  /// Question on onboarding screen 1 — asking about the user's meditation experience
+  ///
+  /// In en, this message translates to:
+  /// **'Have you meditated before?'**
+  String get onboardingExperienceQuestion;
+
+  /// Subtext below the question on onboarding screen 1
+  ///
+  /// In en, this message translates to:
+  /// **'This helps us show you the right starting point.'**
+  String get onboardingExperienceSubtext;
+
+  /// Option 1 on onboarding screen 1 — user has never meditated
+  ///
+  /// In en, this message translates to:
+  /// **'Never tried it'**
+  String get onboardingExperienceNever;
+
+  /// Option 2 on onboarding screen 1 — user has meditated a little
+  ///
+  /// In en, this message translates to:
+  /// **'A little, here and there'**
+  String get onboardingExperienceALittle;
+
+  /// Option 3 on onboarding screen 1 — user has a regular meditation practice
+  ///
+  /// In en, this message translates to:
+  /// **'I have a regular practice'**
+  String get onboardingExperienceRegular;
+
+  /// CTA button label on the onboarding result screen
+  ///
+  /// In en, this message translates to:
+  /// **'Get started'**
+  String get onboardingResultCta;
+
+  /// Accessibility label for the favorite button when the item is not yet favorited
+  ///
+  /// In en, this message translates to:
+  /// **'Add to favorites'**
+  String get addToFavorites;
+
+  /// Snackbar after the star button adds a pack or track to Favorites
+  ///
+  /// In en, this message translates to:
+  /// **'Added to Favorites'**
+  String get addedToFavorites;
+
+  /// Snackbar after the star button removes a pack or track from Favorites
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from Favorites'**
+  String get removedFromFavorites;
+
+  /// Accessibility label for the favorite button when the item is already favorited
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get removeFromFavorites;
+
+  /// Local introduction heading for someone new to meditation.
+  ///
+  /// In en, this message translates to:
+  /// **'A little time to begin.'**
+  String get localIntroBeginHeading;
+
+  /// Local introduction heading for someone with some meditation experience.
+  ///
+  /// In en, this message translates to:
+  /// **'Ease back into your practice.'**
+  String get localIntroReturnHeading;
+
+  /// Local introduction heading for someone with a regular meditation practice.
+  ///
+  /// In en, this message translates to:
+  /// **'Space for your practice.'**
+  String get localIntroPracticeHeading;
+
+  /// Instructions for a first unguided meditation using the local timer.
+  ///
+  /// In en, this message translates to:
+  /// **'Find a comfortable seat, set a short timer, and notice your breath. When your attention wanders, gently begin again.'**
+  String get localIntroBeginBody;
+
+  /// Encouragement to resume practice using the local timer.
+  ///
+  /// In en, this message translates to:
+  /// **'Start with a few quiet minutes. The timer is ready whenever you are.'**
+  String get localIntroReturnBody;
+
+  /// Introduction to the local timer and its configurable bells and duration.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the timer for an unguided sit, with the bells and duration you prefer.'**
+  String get localIntroPracticeBody;
+
+  /// Explains that practice history, favourites and preferences are stored on the device.
+  ///
+  /// In en, this message translates to:
+  /// **'Your practice history, favourites and settings stay on this device.'**
+  String get localIntroDeviceOnlyNote;
+
+  /// Course progress line
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {total} left'**
+  String courseLeft(int count, int total);
+
+  /// Button that opens the import screen
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get libraryAdd;
+
+  /// No description provided for @homeShortcutAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get homeShortcutAdd;
+
+  /// No description provided for @pinnedLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Home holds up to three pinned courses or playlists. Unpin one first.'**
+  String get pinnedLimitReached;
+
+  /// Sounds screen: soundsDrift
+  ///
+  /// In en, this message translates to:
+  /// **'Drift'**
+  String get soundsDrift;
+
+  /// Sounds screen: soundsDriftHint
+  ///
+  /// In en, this message translates to:
+  /// **'Let the level rise and fall slowly'**
+  String get soundsDriftHint;
+
+  /// Sounds screen: soundsUnderSessions
+  ///
+  /// In en, this message translates to:
+  /// **'Under sessions'**
+  String get soundsUnderSessions;
+
+  /// Sounds screen: soundsUnderPractice
+  ///
+  /// In en, this message translates to:
+  /// **'Play under practice'**
+  String get soundsUnderPractice;
+
+  /// Sounds screen: soundsUnderTalks
+  ///
+  /// In en, this message translates to:
+  /// **'Play under talks'**
+  String get soundsUnderTalks;
+
+  /// Sounds screen: soundsUnderSessionsHint
+  ///
+  /// In en, this message translates to:
+  /// **'Your mix plays beneath the session, at its own volume'**
+  String get soundsUnderSessionsHint;
+
+  /// Sounds screen, generated layers: noiseReset
+  ///
+  /// In en, this message translates to:
+  /// **'Reset bands'**
+  String get noiseReset;
+
+  /// In the player's Customize sheet, under Background sound: opens the Sounds screen
+  ///
+  /// In en, this message translates to:
+  /// **'Edit your mix in Sounds'**
+  String get soundsEditMix;
+
+  /// Library heading over what the user has started and not finished
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get libraryInProgress;
+
+  /// Library filter chip: courses from a source
+  ///
+  /// In en, this message translates to:
+  /// **'Courses'**
+  String get libraryFilterCourses;
+
+  /// Library filter chip: what the user made
+  ///
+  /// In en, this message translates to:
+  /// **'Playlists'**
+  String get libraryFilterPlaylists;
+
+  /// Library filter chip: single sessions
+  ///
+  /// In en, this message translates to:
+  /// **'Singles'**
+  String get libraryFilterSingles;
+
+  /// Screen-reader label of the Library's Practice/Talks switch
+  ///
+  /// In en, this message translates to:
+  /// **'Practice or talks'**
+  String get libraryGroupLabel;
+
+  /// Bell maker: the screen's title and the row that opens it
+  ///
+  /// In en, this message translates to:
+  /// **'Make a bell'**
+  String get bellMakerTitle;
+
+  /// Bell maker: saves the bell
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get bellMakerSave;
+
+  /// Bell maker: the bell's name field
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get bellMakerName;
+
+  /// Bell maker: the bells to start from
+  ///
+  /// In en, this message translates to:
+  /// **'Start from'**
+  String get bellMakerStartFrom;
+
+  /// Bell maker: plays the bell as it is now
+  ///
+  /// In en, this message translates to:
+  /// **'Hear it'**
+  String get bellMakerHear;
+
+  /// Bell maker: shown while the sound is rendered
+  ///
+  /// In en, this message translates to:
+  /// **'Making the sound'**
+  String get bellMakerMaking;
+
+  /// Bell maker: the sound could not be made or played
+  ///
+  /// In en, this message translates to:
+  /// **'The bell could not be played.'**
+  String get bellMakerPlayFailed;
+
+  /// Bell maker: saving failed
+  ///
+  /// In en, this message translates to:
+  /// **'The bell could not be saved.'**
+  String get bellMakerSaveFailed;
+
+  /// Bell maker: the limit of saved bells
+  ///
+  /// In en, this message translates to:
+  /// **'You can keep up to {count} bells. Delete one to make another.'**
+  String bellMakerLimit(int count);
+
+  /// Bell maker: control
+  ///
+  /// In en, this message translates to:
+  /// **'Pitch'**
+  String get bellPitch;
+
+  /// Bell maker: pitch, low end
+  ///
+  /// In en, this message translates to:
+  /// **'Deep'**
+  String get bellPitchLow;
+
+  /// Bell maker: pitch, high end
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get bellPitchHigh;
+
+  /// Bell maker: control
+  ///
+  /// In en, this message translates to:
+  /// **'Brightness'**
+  String get bellBright;
+
+  /// Bell maker: brightness, low end
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get bellBrightLow;
+
+  /// Bell maker: brightness, high end
+  ///
+  /// In en, this message translates to:
+  /// **'Bright'**
+  String get bellBrightHigh;
+
+  /// Bell maker: control, how long it rings
+  ///
+  /// In en, this message translates to:
+  /// **'Ring'**
+  String get bellRing;
+
+  /// Bell maker: ring, short end
+  ///
+  /// In en, this message translates to:
+  /// **'Short'**
+  String get bellRingLow;
+
+  /// Bell maker: ring, long end
+  ///
+  /// In en, this message translates to:
+  /// **'Long'**
+  String get bellRingHigh;
+
+  /// Bell maker: control, soft mallet to hard
+  ///
+  /// In en, this message translates to:
+  /// **'Strike'**
+  String get bellStrike;
+
+  /// Bell maker: strike, soft end
+  ///
+  /// In en, this message translates to:
+  /// **'Soft'**
+  String get bellStrikeLow;
+
+  /// Bell maker: strike, hard end
+  ///
+  /// In en, this message translates to:
+  /// **'Hard'**
+  String get bellStrikeHigh;
+
+  /// Bell maker: control, the slow wobble of a ring
+  ///
+  /// In en, this message translates to:
+  /// **'Shimmer'**
+  String get bellShimmer;
+
+  /// Bell maker: shimmer, still end
+  ///
+  /// In en, this message translates to:
+  /// **'Still'**
+  String get bellShimmerLow;
+
+  /// Bell maker: shimmer, wobbling end
+  ///
+  /// In en, this message translates to:
+  /// **'Wobbling'**
+  String get bellShimmerHigh;
+
+  /// Bell picker: the bells the user made
+  ///
+  /// In en, this message translates to:
+  /// **'Your bells'**
+  String get bellYours;
+
+  /// Bell picker: renames a bell the user made
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get bellRename;
+
+  /// Bell picker: rename dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Rename bell'**
+  String get bellRenameTitle;
+
+  /// Bell picker: delete confirmation title
+  ///
+  /// In en, this message translates to:
+  /// **'Delete “{name}”?'**
+  String bellDeleteTitle(String name);
+
+  /// Bell picker: delete confirmation body
+  ///
+  /// In en, this message translates to:
+  /// **'Cues that ring it go back to the Original bell.'**
+  String get bellDeleteBody;
+
+  /// Bell picker: screen-reader label of a made bell's menu
+  ///
+  /// In en, this message translates to:
+  /// **'More about {name}'**
+  String bellMenu(String name);
+
+  /// Bell maker: the name suggested for a new bell
+  ///
+  /// In en, this message translates to:
+  /// **'My bell'**
+  String get bellMakerDefaultName;
 }
 
 class _AppLocalizationsDelegate

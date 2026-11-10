@@ -32,6 +32,22 @@ class IosAudioHandler extends BaseAudioHandler {
   bool _nativeNeedsBegin = false;
   bool _nativeCountdown = false;
   bool _nativeExtending = false;
+
+  /// All of this session's added silence (Extend and the Ending bell's), for
+  /// the player's length; 0 for a timer or without native cues.
+  int get extensionMs => _extensionMs;
+  int _extensionMs = 0;
+
+  /// A Customize edit mid-session: the player's length follows it.
+  void updateExtension(CueSettings settings, PlaybackRequest request) {
+    if (!_nativeCues) return;
+    _extensionMs = _isTimer ? 0 : settings.extraMinutes * 60000;
+  }
+
+  /// What the silence after the recording has left while it runs; null otherwise.
+  int? get extensionRemainingMs =>
+      _nativeExtending ? _lastExtensionRemainingMs : null;
+  int? _lastExtensionRemainingMs;
   bool _nativeHoldPaused = false;
   // A hold paused by an interruption, to resume when it ends.
   bool _interruptedHold = false;
@@ -220,6 +236,7 @@ class IosAudioHandler extends BaseAudioHandler {
         if (_nativeCues) {
           await _reportNativeTransport();
           _nativeExtending = true;
+          _lastExtensionRemainingMs = _extensionMs;
           _nativeHoldPaused = false;
           _sessionCompleted.add(false);
           await NativeCueController.channel.invokeMethod<void>('voiceEnded');
@@ -351,14 +368,36 @@ class IosAudioHandler extends BaseAudioHandler {
   /// Real time a play-through of the current track takes, as its completion
   /// records it; null with no known length. A timer is never sped up, so its
   /// real time is its length, whether or not playback was ever sampled.
+  ///
+  /// The session's first completion also carries what the session adds to
+  /// the recording: its silence (Extend and the ending bell's) and the
+  /// countdown that ran, which are sitting time too. A repeat adds none.
   @visibleForTesting
   int? get completionRealDurationMs {
     final length = duration?.inMilliseconds;
     if (length == null || length <= 0) return null;
     final id = _trackStateSubject.valueOrNull?.id;
-    if (_isTimer || (id != null && isTimerSessionId(id))) return length;
-    return _playedTime.realMs(length, speed: _player.speed);
+    final timer = _isTimer || (id != null && isTimerSessionId(id));
+    final recording = timer
+        ? length
+        : _playedTime.realMs(length, speed: _player.speed);
+    if (!_nativeCues || _addedRealCounted) return recording;
+    return sessionRealMs(
+      recording,
+      silenceMs: _extensionMs,
+      countdownMs: _countdownSatMs,
+    );
   }
+
+  // This session's countdown, once it has begun, and whether a completion
+  // has already carried the session's added time.
+  int _countdownMs = 0;
+  int _countdownSatMs = 0;
+  bool _addedRealCounted = false;
+
+  /// A completion carried the session's silence and countdown: once only.
+  @visibleForTesting
+  void markAddedRealCounted() => _addedRealCounted = true;
 
   Stream<IosStateData> get iosStateStream =>
       Rx.combineLatest7<
@@ -468,6 +507,7 @@ class IosAudioHandler extends BaseAudioHandler {
       if (duration == null) return;
 
       final payload = await _createTrackCompletionPayload();
+      markAddedRealCounted();
 
       // Try to update stats immediately
       if (await _tryUpdateStats(payload)) {
@@ -575,6 +615,7 @@ class IosAudioHandler extends BaseAudioHandler {
           await NativeCueController.channel.invokeMethod<int>('begin') ?? 0;
       if (countdown > 0) {
         _nativeCountdown = true;
+        _countdownSatMs = _countdownMs;
         return;
       }
     }
@@ -673,6 +714,11 @@ class IosAudioHandler extends BaseAudioHandler {
     _thresholdRecorded = false;
     _completionPlaythroughIndex = 0;
     _isTimer = request.trackId.startsWith('timer-');
+    _extensionMs = _isTimer ? 0 : settings.extraMinutes * 60000;
+    _countdownMs = settings.countdownSeconds * 1000;
+    _countdownSatMs = 0;
+    _addedRealCounted = false;
+    _lastExtensionRemainingMs = null;
     NativeCueController.channel.setMethodCallHandler((call) async {
       if (!_nativeCues) return;
       if (call.method == 'countdownFinished') {
@@ -767,11 +813,13 @@ class IosAudioHandler extends BaseAudioHandler {
         return;
       }
       if (!_nativeExtending || generation != _cueGeneration) return;
+      _lastExtensionRemainingMs = remaining;
       _extensionRemaining.add(remaining);
+      // Once a second at least: the player's position runs on through it.
       final waitMs = _nativeHoldPaused
           ? 1000
           : remaining > 15000
-          ? 5000
+          ? 1000
           : remaining > 10200
           ? remaining - 10000
           : 200;

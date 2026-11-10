@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/models/pauses/pause_hold.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -240,7 +241,7 @@ void main() {
     expect(practice.interludeSeconds, 30);
     expect(practice.showBeforeSession, isFalse);
     expect(practice.countdownSeconds, 10, reason: 'now the starting bell');
-    expect(practice.extendMinutes, 5, reason: 'now the ending bell');
+    expect(practice.extendMinutes, 5, reason: 'Extend, under Length');
     expect(practice.durationMinutes, 25);
     final course = store.read(const CueScope(CueKind.talks, courseId: 'c1'));
     expect(course.showBeforeSession, isTrue);
@@ -265,10 +266,97 @@ void main() {
       isFalse,
     );
     expect(
-      CueSettings.decode('{"hideBeforePractice":"yes"}', CueKind.practice)
-          .showBeforeSession,
+      CueSettings.decode(
+        '{"hideBeforePractice":"yes"}',
+        CueKind.practice,
+      ).showBeforeSession,
       isTrue,
       reason: 'a damaged value shows the sheet',
     );
+  });
+
+  group('Extend', () {
+    const holds = [PauseHold(105000, 60000), PauseHold(215000, 120000)];
+
+    test(
+      'Extend and the Ending bell silence are apart and survive a round trip',
+      () {
+        expect(const CueSettings().endSilenceMinutes, 0);
+        const s = CueSettings(extendMinutes: 10, endSilenceMinutes: 5);
+        final back = CueSettings.fromJson(s.toJson());
+        expect(back.extendMinutes, 10);
+        expect(back.endSilenceMinutes, 5);
+        expect(CueSettings.fromJson(const {}).endSilenceMinutes, 0);
+        expect(
+          CueSettings.fromJson({'endSilenceMinutes': 'ten'}).endSilenceMinutes,
+          0,
+        );
+        expect(
+          CueSettings.fromJson({'endSilenceMinutes': 500}).endSilenceMinutes,
+          60,
+        );
+        expect(s.copyWith(extendMinutes: 0).endSilenceMinutes, 5);
+        expect(s.copyWith(endSilenceMinutes: 0).extendMinutes, 10);
+        // 0.1.4's "Extend with silence" is still Extend.
+        expect(CueSettings.fromJson({'extendMinutes': 6}).extendMinutes, 6);
+      },
+    );
+
+    test('a test build rest in the pauses becomes Extend', () {
+      // The 2026-10-28 builds of #49 stored the silence after the recording
+      // as extendMinutes and the rest in the pauses as pauseMinutes.
+      final s = CueSettings.fromJson({'extendMinutes': 3, 'pauseMinutes': 8});
+      expect(s.extendMinutes, 8);
+      expect(s.endSilenceMinutes, 3);
+      // Once saved in the new shape it is read as it is.
+      expect(CueSettings.fromJson(s.toJson()).extendMinutes, 8);
+      expect(CueSettings.fromJson(s.toJson()).endSilenceMinutes, 3);
+      expect(s.toJson().containsKey('pauseMinutes'), isFalse);
+    });
+
+    test(
+      'the engines get all the silence as one extension, holds from Extend',
+      () {
+        const s = CueSettings(extendMinutes: 10, endSilenceMinutes: 5);
+        final sent = s.nativeConfiguration(
+          durationMs: 600000,
+          isTimer: false,
+          holds: holds,
+        );
+        expect(sent['extendMinutes'], 15);
+        expect(sent['holds'], [
+          {'atMs': 105000, 'holdMs': 60000},
+          {'atMs': 215000, 'holdMs': 120000},
+        ]);
+        // No Extend: whatever was computed, nothing is held in the recording.
+        final atEnd = const CueSettings(
+          endSilenceMinutes: 10,
+        ).nativeConfiguration(durationMs: 600000, isTimer: false, holds: holds);
+        expect(atEnd['holds'], isEmpty);
+        expect(atEnd['extendMinutes'], 10);
+        // A timer has no recording to extend.
+        final timer = s.nativeConfiguration(
+          durationMs: 600000,
+          isTimer: true,
+          holds: holds,
+        );
+        expect(timer['holds'], isEmpty);
+        expect(timer['extendMinutes'], 0);
+      },
+    );
+
+    test('the session lasts the recording plus all of its silence', () {
+      const s = CueSettings(extendMinutes: 10, endSilenceMinutes: 5);
+      expect(s.extraMinutes, 15);
+      expect(
+        s.sessionDuration(const Duration(minutes: 30), isTimer: false),
+        const Duration(minutes: 45),
+      );
+      final now = DateTime(2026, 10, 28, 9);
+      expect(
+        s.finishesAt(now, const Duration(minutes: 30), isTimer: false),
+        now.add(const Duration(minutes: 45)),
+      );
+    });
   });
 }

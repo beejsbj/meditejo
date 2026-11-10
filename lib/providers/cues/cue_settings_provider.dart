@@ -39,6 +39,48 @@ class CueSettingsStore {
     await prefs.setString(_key(scope), jsonEncode(settings.toJson()));
   }
 
+  /// The stores that hold a bell's id, as the start of their preference keys.
+  /// Deleting a bell moves every id it finds under these (see
+  /// [replaceSound]), so anything new that keeps a cue's bell, such as a
+  /// preset that saves its bells with it (UX issue #64), adds its key here.
+  static const bellReferenceKeyPrefixes = ['cues.v1.'];
+
+  /// Moves every stored bell id [from] to [to] in the stores that hold one:
+  /// what happens to the cues of a bell when it is deleted. It reads each
+  /// value as JSON and swaps the strings that are exactly the id, wherever
+  /// they sit, so a store may keep its bells under any field names.
+  Future<void> replaceSound(
+    String from,
+    String to, {
+    List<String> prefixes = bellReferenceKeyPrefixes,
+  }) async {
+    for (final key in prefs.getKeys().toList()) {
+      if (!prefixes.any(key.startsWith)) continue;
+      final raw = prefs.getString(key);
+      if (raw == null) continue;
+      try {
+        final decoded = jsonDecode(raw);
+        var changed = false;
+        Object? swap(Object? node) {
+          if (node == from) {
+            changed = true;
+            return to;
+          }
+          if (node is List) return [for (final e in node) swap(e)];
+          if (node is Map) {
+            return {for (final e in node.entries) e.key: swap(e.value)};
+          }
+          return node;
+        }
+
+        final moved = swap(decoded);
+        if (changed) await prefs.setString(key, jsonEncode(moved));
+      } catch (_) {
+        // A value that doesn't decode is read as defaults anyway.
+      }
+    }
+  }
+
   Future<void> removeOverride(CueScope scope) async {
     if (scope.courseId != null) await prefs.remove(_key(scope));
   }

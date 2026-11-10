@@ -88,6 +88,7 @@ class _PlayerViewState extends ConsumerState<PlayerView>
   bool _playbackStarted = false;
   Timer? _playbackStartFallback;
   Timer? _countdownPoll;
+  Duration? _pollEvery;
   int _countdownMs = 0;
   bool _foreground = true;
   bool _cueStateFailed = false;
@@ -152,17 +153,27 @@ class _PlayerViewState extends ConsumerState<PlayerView>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _foreground = state == AppLifecycleState.resumed;
-    // Back on screen: read once, in case a hold began or ended meanwhile.
+    // Back on screen: read once, in case the countdown or extension moved meanwhile.
     if (_foreground && _playRequested && !_cueStateFailed) {
       if (Platform.isAndroid || Platform.isIOS) unawaited(_pollCueState());
     }
     _syncCuePoll();
   }
 
+  /// A guided session's added silence (Extend and the Ending bell's).
+  int _extraMs(PlaybackRequest request) {
+    final scope = _cueScope;
+    if (request.isTimer || scope == null) return 0;
+    return ref.watch(cueSettingsProvider(scope)).extraMinutes * 60000;
+  }
+
   /// Polls the native cue state only while this screen is in the foreground
-  /// and a countdown or extension runs or may begin; nothing else shows it.
+  /// and a countdown or the extension runs or may begin; nothing else shows
+  /// it. Silence inside the recording needs no polling: the player's own
+  /// position runs through it.
   void _syncCuePoll() {
     final audio = ref.read(audioStateProvider);
+    final phase = ref.read(cueRuntimeProvider).phase;
     final wanted =
         (Platform.isAndroid || Platform.isIOS) &&
         mounted &&
@@ -170,19 +181,28 @@ class _PlayerViewState extends ConsumerState<PlayerView>
         !_cueStateFailed &&
         shouldPollCueState(
           foreground: _foreground,
-          phase: ref.read(cueRuntimeProvider).phase,
+          phase: phase,
           countdownExpected: _countdownExpected,
           voiceAtEnd:
               audio.duration > 0 && audio.position >= audio.duration - 1000,
         );
+    final voiceAtEnd =
+        audio.duration > 0 && audio.position >= audio.duration - 1000;
+    final every =
+        phase == 'countdown' ||
+            phase == 'extension' ||
+            _countdownExpected ||
+            voiceAtEnd
+        ? const Duration(milliseconds: 200)
+        : const Duration(seconds: 1);
     if (!wanted) {
       _countdownPoll?.cancel();
       _countdownPoll = null;
-    } else {
-      _countdownPoll ??= Timer.periodic(
-        const Duration(milliseconds: 200),
-        (_) => unawaited(_pollCueState()),
-      );
+      _pollEvery = null;
+    } else if (_countdownPoll == null || _pollEvery != every) {
+      _countdownPoll?.cancel();
+      _pollEvery = every;
+      _countdownPoll = Timer.periodic(every, (_) => unawaited(_pollCueState()));
     }
   }
 
@@ -287,6 +307,8 @@ class _PlayerViewState extends ConsumerState<PlayerView>
         ref
             .read(backgroundSoundsNotifierProvider.notifier)
             .applyCueSettings(settings);
+        // Extend moved into (or out of) the pauses: start or stop watching for rests.
+        _syncCuePoll();
         // A new Background sound choice for this scope plays at once.
         if (previous?.soundscape != settings.soundscape) {
           _playSessionSounds(
@@ -478,6 +500,7 @@ class _PlayerViewState extends ConsumerState<PlayerView>
                 !currentlyPlayingTrack.isTimer && _cueScope?.courseId != null
                 ? _cueScope
                 : null,
+            extraMs: _extraMs(currentlyPlayingTrack),
           ),
           if (_countdownMs > 0)
             Positioned.fill(
@@ -840,9 +863,14 @@ class PlayerScreenLayout extends StatelessWidget {
     this.onEndSession,
     this.courseId,
     this.autoplayScope,
+    this.extraMs = 0,
   });
 
   final PlaybackRequest currentlyPlayingTrack;
+
+  /// The session's added silence, so the length shown before the player has
+  /// reported its own already reads recording + Extend.
+  final int extraMs;
   final bool isPlaying;
   final bool isAudioLoading;
   final bool isBackgroundSoundSelected;
@@ -949,7 +977,8 @@ class PlayerScreenLayout extends StatelessWidget {
                                       artistUrl: artistUrl,
                                       attribution: attribution,
                                       totalDurationMs:
-                                          currentlyPlayingTrack.duration,
+                                          currentlyPlayingTrack.duration +
+                                          extraMs,
                                       isPlaying: isPlaying,
                                       isLoading: isAudioLoading,
                                       onPlayPause: onPlayPausePressed,
@@ -970,7 +999,8 @@ class PlayerScreenLayout extends StatelessWidget {
                                         artistUrl: artistUrl,
                                         attribution: attribution,
                                         totalDurationMs:
-                                            currentlyPlayingTrack.duration,
+                                            currentlyPlayingTrack.duration +
+                                            extraMs,
                                         isPlaying: isPlaying,
                                         isLoading: isAudioLoading,
                                         onPlayPause: onPlayPausePressed,

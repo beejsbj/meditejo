@@ -336,7 +336,7 @@ void main() {
     expect(y('rhythm'), greaterThan(y('sound')));
     expect(x('rhythm'), x('sound'));
     expect(_says(tester, 'sound'), ['Sound', 'Off']);
-    expect(_says(tester, 'bells'), ['Bells', 'Swell bell', 'Start · End']);
+    expect(_says(tester, 'bells'), ['Bells', 'Original bell', 'Start · End']);
     expect(_says(tester, 'rhythm'), ['Rhythm', 'Off']);
     // A recording sets its own length: shown, not set.
     expect(_says(tester, 'length'), ['Length', '20 min', 'Set by the session']);
@@ -375,7 +375,7 @@ void main() {
     expect(_wheel('Countdown'), findsOneWidget);
     await _row(tester, 'Ending bell');
     expect(_wheel('Countdown'), findsNothing);
-    expect(_wheel('Extra minutes'), findsOneWidget);
+    expect(_wheel('Silence after the audio'), findsOneWidget);
 
     await _slot(tester, 'rhythm');
     expect(_section('bells'), findsNothing);
@@ -389,10 +389,12 @@ void main() {
     await _closeDrawer(tester);
     expect(_section('rhythm'), findsOneWidget, reason: 'rhythm stayed open');
 
-    // A recording's Length does not open.
-    await tester.tap(_tile('length'));
-    await tester.pumpAndSettle();
-    expect(_section('length'), findsNothing);
+    // A recording's Length holds Extend: the recording sets the rest.
+    await _slot(tester, 'length');
+    expect(_section('rhythm'), findsNothing);
+    expect(_section('length'), findsOneWidget);
+    expect(_wheel('Extend'), findsOneWidget);
+    expect(_wheel('Duration'), findsNothing);
     await _unmount(tester);
   });
 
@@ -434,8 +436,10 @@ void main() {
     await _turn(tester, 'Countdown', '10 sec');
     await _row(tester, 'Starting bell');
     await _row(tester, 'Ending bell');
-    await _type(tester, 'Extra minutes', '12');
+    await _type(tester, 'Silence after the audio', '12');
     await _row(tester, 'Ending bell');
+    await _slot(tester, 'length');
+    await _type(tester, 'Extend', '3');
 
     await _slot(tester, 'rhythm');
     await tester.tap(find.widgetWithText(ChoiceChip, 'Heartbeat'));
@@ -465,7 +469,8 @@ void main() {
             pulseEndBpm: 30,
             pulseVolume: 0.6,
             countdownSeconds: 10,
-            extendMinutes: 12,
+            extendMinutes: 3,
+            endSilenceMinutes: 12,
             hideBeforePractice: true,
           )
           .toJson(),
@@ -485,7 +490,9 @@ void main() {
       'over 10 min',
       '30 BPM',
     ]);
-    expect(_says(tester, 'length'), ['Length', '20 min', '+ 12 min silence']);
+    // Extend and the ending bell's silence: the session is 15 min longer.
+    expect(_says(tester, 'length'), ['Length', '20 min', '+ 15 min silence']);
+    expect(_filled(tester, 'length'), isTrue);
     expect(_filled(tester, 'bells'), isTrue);
     expect(_filled(tester, 'rhythm'), isTrue);
     expect(_filled(tester, 'sound'), isFalse);
@@ -496,8 +503,11 @@ void main() {
     );
     expect(_value(tester, 'Interval bell'), 'Every 30 min ± 20 · Chime');
     expect(_value(tester, 'Ending bell'), '12 min silence · Gong');
-    // 9:00, a 10 s countdown, 20 min of audio and 12 min of silence.
-    expect(find.text('Finishes at 9:32 AM'), findsOneWidget);
+    // Its play button names the bell, not the silence before it.
+    expect(find.byTooltip('Play Gong'), findsOneWidget);
+    // 9:00, a 10 s countdown, 20 min of audio, 3 min of Extend and 12 of
+    // the Ending bell's silence.
+    expect(find.text('Finishes at 9:35 AM'), findsOneWidget);
     await _unmount(tester);
   });
 
@@ -644,7 +654,7 @@ void main() {
     expect(_read(container).intervalMinutes, 6, reason: 'kept for later');
     expect(_read(container).hasIntervalBell, isTrue);
     expect(_wheel('Random window'), findsNothing, reason: 'one bell');
-    expect(_value(tester, 'Interval bell'), 'Halfway · Swell bell');
+    expect(_value(tester, 'Interval bell'), 'Halfway · Original bell');
     expect(_says(tester, 'bells').last, 'Start · Halfway · End');
     await _turn(tester, 'Every', '6 min');
     expect(_read(container).intervalHalfway, isFalse);
@@ -672,7 +682,7 @@ void main() {
       expect(_value(tester, 'Interval bell'), 'Off');
       await _turn(tester, 'Every', 'Halfway');
       expect(_read(container).hasIntervalBell, isTrue);
-      expect(_value(tester, 'Interval bell'), 'Halfway · Swell bell');
+      expect(_value(tester, 'Interval bell'), 'Halfway · Original bell');
       await _unmount(tester);
     },
   );
@@ -717,7 +727,8 @@ void main() {
     for (final asset in cueBellSounds.values.where((a) => a.isNotEmpty)) {
       expect(find.byKey(ValueKey('bell_icon_$asset')), findsOneWidget);
     }
-    // Off is silent: it stops the preview rather than playing anything.
+    // Off is silent: it stops the preview rather than playing anything. The
+    // list's Off is the last: the silence wheel above it has one too.
     final before = preview.played.length;
     final off = find
         .descendant(
@@ -784,7 +795,7 @@ void main() {
     // A timer's ending bell has no silence before it: its length is its own.
     await _slot(tester, 'bells');
     await _row(tester, 'Ending bell');
-    expect(_wheel('Extra minutes'), findsNothing);
+    expect(_wheel('Silence after the audio'), findsNothing);
     await _unmount(tester);
   });
 
@@ -1261,7 +1272,7 @@ void main() {
     final semantics = tester.ensureSemantics();
     await _pump(tester);
     expect(
-      find.semantics.byLabel('Bells, Swell bell, Start · End, default'),
+      find.semantics.byLabel('Bells, Original bell, Start · End, default'),
       findsOne,
     );
     SemanticsNode node(Finder of, String label) => tester.getSemantics(
@@ -1274,7 +1285,7 @@ void main() {
     );
     final bells = node(
       _tile('bells'),
-      'Bells, Swell bell, Start · End, default',
+      'Bells, Original bell, Start · End, default',
     );
     expect(bells.flagsCollection.isExpanded, Tristate.isFalse);
     expect(bells.flagsCollection.isButton, isTrue);
@@ -1282,41 +1293,41 @@ void main() {
     expect(
       node(
         _tile('bells'),
-        'Bells, Swell bell, Start · End, default',
+        'Bells, Original bell, Start · End, default',
       ).flagsCollection.isExpanded,
       Tristate.isTrue,
     );
-    // A recording's Length is read, not pressed.
+    // A recording's Length opens Extend: a button like the others.
     expect(
       node(
         _tile('length'),
-        'Length, 20 min, Set by the session',
+        'Length, 20 min, Set by the session, default',
       ).flagsCollection.isButton,
-      isFalse,
+      isTrue,
     );
     // A change is said as well as shown.
     await _row(tester, 'Interval bell');
     await _turn(tester, 'Every', 'Halfway');
     expect(
       find.semantics.byLabel(
-        'Bells, Swell bell, Start · Halfway · End, changed',
+        'Bells, Original bell, Start · Halfway · End, changed',
       ),
       findsOne,
     );
     await _row(tester, 'Interval bell');
     // The rows inside open the same way.
-    expect(find.semantics.byLabel('Starting bell, Swell bell'), findsOne);
+    expect(find.semantics.byLabel('Starting bell, Original bell'), findsOne);
     await _row(tester, 'Starting bell');
     expect(
       node(
         find.byKey(const ValueKey('customize_startBell')),
-        'Starting bell, Swell bell',
+        'Starting bell, Original bell',
       ).flagsCollection.isExpanded,
       Tristate.isTrue,
     );
     // The play buttons are their own controls, named by their tooltip: one
     // for each bell that rings (the interval bell is on now).
-    expect(find.byTooltip('Play Swell bell'), findsNWidgets(3));
+    expect(find.byTooltip('Play Original bell'), findsNWidgets(3));
     semantics.dispose();
     await _unmount(tester);
   });
@@ -1388,7 +1399,7 @@ void main() {
   });
 
   for (final brightness in Brightness.values) {
-    testWidgets('a read-only Length tile keeps its text readable, '
+    testWidgets('a recording\'s Length tile keeps its text readable, '
         '${brightness.name}', (tester) async {
       final theme = meditejoTheme(brightness, IdentityPalettes.byId(null));
       await _pump(tester, theme: theme);
@@ -1486,7 +1497,7 @@ void main() {
       expect(_wheel('Random window'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await _row(tester, 'Ending bell');
-      expect(_wheel('Extra minutes'), findsOneWidget);
+      expect(_wheel('Silence after the audio'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await _slot(tester, 'rhythm');
       await tester.ensureVisible(_wheel('Ends at'));
@@ -2025,9 +2036,10 @@ void main() {
           settings,
           isTimer: false,
           audioDurationMs: 1200000,
-          positionMs: 1200000,
+          // Three minutes into the five after the recording.
+          positionMs: 1380000,
           isActive: true,
-          extensionRemainingMs: 120000,
+          silenceLeftMs: 120000,
         ),
         now.add(const Duration(minutes: 2)),
       );
@@ -2044,4 +2056,94 @@ void main() {
       );
     },
   );
+
+  group('Extend', () {
+    testWidgets('is one setting under Length, apart from the Ending bell\'s '
+        'silence', (tester) async {
+      final container = await _pump(tester);
+      expect(_says(tester, 'length'), [
+        'Length',
+        '20 min',
+        'Set by the session',
+      ]);
+      await _slot(tester, 'length');
+      // How it is spent is not shown: no choice between the end and the pauses.
+      expect(find.byType(ChoiceChip), findsNothing);
+      await _turn(tester, 'Extend', '+10 min');
+      expect(_read(container).extendMinutes, 10);
+      expect(_read(container).endSilenceMinutes, 0);
+      expect(_says(tester, 'length'), ['Length', '20 min', '+ 10 min silence']);
+      expect(_filled(tester, 'length'), isTrue);
+      // The Ending bell's silence is its own setting, and untouched.
+      expect(_filled(tester, 'bells'), isFalse);
+      await _slot(tester, 'bells');
+      expect(_value(tester, 'Ending bell'), 'Original bell');
+      await _row(tester, 'Ending bell');
+      await _turn(tester, 'Silence after the audio', '+2 min');
+      expect(_read(container).extendMinutes, 10);
+      expect(_read(container).endSilenceMinutes, 2);
+      await _unmount(tester);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+    testWidgets('both silences show, each with its own', (tester) async {
+      final container = await _pump(tester);
+      await container
+          .read(cueSettingsProvider(_practice).notifier)
+          .update(
+            const CueSettings(extendMinutes: 4, endSilenceMinutes: 6),
+            courseOverride: false,
+          );
+      await tester.pumpAndSettle();
+      expect(_says(tester, 'length'), ['Length', '20 min', '+ 10 min silence']);
+      await _slot(tester, 'bells');
+      expect(_value(tester, 'Ending bell'), '6 min silence · Original bell');
+      await _unmount(tester);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+
+    test('finish time reads the session\'s own length and position', () {
+      const s = CueSettings(extendMinutes: 4, endSilenceMinutes: 6);
+      final now = DateTime(2026, 1, 1, 9);
+      // A 20-minute recording with 10 minutes of silence: the player reads 30.
+      // At 18 minutes in, 12 remain, whatever part of them is silence.
+      expect(
+        customizeFinishesAt(
+          now,
+          s,
+          isTimer: false,
+          audioDurationMs: 20 * 60000,
+          positionMs: 18 * 60000,
+          isActive: true,
+          sessionDurationMs: 30 * 60000,
+        ),
+        now.add(const Duration(minutes: 12)),
+      );
+      // At 2x the voice goes twice as fast; the silence (taken as all of it
+      // ahead) does not: 2 min of voice in 1, then 10 of silence.
+      expect(
+        customizeFinishesAt(
+          now,
+          s,
+          isTimer: false,
+          audioDurationMs: 20 * 60000,
+          positionMs: 18 * 60000,
+          speed: 2,
+          isActive: true,
+          sessionDurationMs: 30 * 60000,
+        ),
+        now.add(const Duration(minutes: 11)),
+      );
+      // Before the player has said, the settings give the length.
+      expect(
+        customizeFinishesAt(
+          now,
+          s,
+          isTimer: false,
+          audioDurationMs: 20 * 60000,
+          positionMs: 15 * 60000,
+          isActive: true,
+        ),
+        now.add(const Duration(minutes: 15)),
+      );
+    });
+  });
 }
