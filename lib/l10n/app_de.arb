@@ -1381,7 +1381,7 @@
   "bellRename": "Umbenennen",
   "bellRenameTitle": "Glocke umbenennen",
   "bellDeleteTitle": "„{name}“ löschen?",
-  "bellDeleteBody": "Signale, die sie läuten, wechseln zur „Original bell“.",
+  "bellDeleteBody": "Signale, die sie läuten, wechseln zur „Session bell“.",
   "bellMenu": "Mehr zu {name}",
   "bellMakerDefaultName": "Meine Glocke"
 }

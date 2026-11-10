@@ -3419,8 +3419,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get bellDeleteBody =>
-      'Cues that ring it go back to the Original bell.';
+  String get bellDeleteBody => 'Cues that ring it go back to the Session bell.';
 
   @override
   String bellMenu(String name) {

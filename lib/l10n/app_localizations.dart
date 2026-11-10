@@ -5995,7 +5995,7 @@ abstract class AppLocalizations {
   /// Bell picker: delete confirmation body
   ///
   /// In en, this message translates to:
-  /// **'Cues that ring it go back to the Original bell.'**
+  /// **'Cues that ring it go back to the Session bell.'**
   String get bellDeleteBody;
 
   /// Bell picker: screen-reader label of a made bell's menu

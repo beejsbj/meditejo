@@ -3934,7 +3934,7 @@
       }
     }
   },
-  "bellDeleteBody": "Cues that ring it go back to the Original bell.",
+  "bellDeleteBody": "Cues that ring it go back to the Session bell.",
   "@bellDeleteBody": {
     "description": "Bell picker: delete confirmation body"
   },

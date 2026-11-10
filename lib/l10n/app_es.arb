@@ -1252,7 +1252,7 @@
   "bellRename": "Renombrar",
   "bellRenameTitle": "Renombrar campana",
   "bellDeleteTitle": "¿Borrar «{name}»?",
-  "bellDeleteBody": "Las señales que la usan volverán a «Original bell».",
+  "bellDeleteBody": "Las señales que la usan volverán a «Session bell».",
   "bellMenu": "Más sobre {name}",
   "bellMakerDefaultName": "Mi campana"
 }
