@@ -42,8 +42,7 @@ class SoundChoice<T> {
 
 /// Named choices. One at a time, or up to [maxSelected] together (a drone
 /// chord, #69). A [fine] control, when given, sits under the chips and
-/// refines what they chose (the binaural beat within its band; the noise
-/// bands under a shape).
+/// refines what they chose (the binaural beat within its band).
 class SoundChips<T> extends SoundControl {
   const SoundChips({
     required super.id,
@@ -53,13 +52,9 @@ class SoundChips<T> extends SoundControl {
     required this.write,
     this.maxSelected = 1,
     this.extraChoices,
-    this.otherLabel,
-    this.restoreOther,
     this.caption,
     this.fine,
-    this.fineFolds = false,
-  }) : assert(maxSelected >= 1),
-       assert(otherLabel == null || restoreOther != null);
+  }) : assert(maxSelected >= 1);
 
   final List<SoundChoice<T>> choices;
 
@@ -76,26 +71,10 @@ class SoundChips<T> extends SoundControl {
   /// be seen and turned off. [read] includes them.
   final List<SoundChoice<T>> Function(SoundParams params)? extraChoices;
 
-  /// Shown as a selected chip of its own when the params match no choice
-  /// (bands shaped by hand), so the editor never shows nothing chosen.
-  /// Once such params have been seen, the chip stays while the editor is
-  /// open, and choosing it brings them back ([restoreOther]): a tap on a
-  /// name never loses a curve drawn by hand.
-  final SoundText? otherLabel;
-
-  /// [current] with what these chips set taken from [remembered] (params
-  /// that matched no choice): the noise's bands, its colour left alone.
-  final SoundParams Function(SoundParams current, SoundParams remembered)?
-  restoreOther;
-
   /// A line under the chips about what is chosen ("4–8 Hz").
   final String? Function(AppLocalizations l10n, SoundParams params)? caption;
 
   final SoundControl? fine;
-
-  /// The [fine] control starts folded under its title (unless the params
-  /// match no choice, when it is what made them).
-  final bool fineFolds;
 
   /// [write] for a view that does not know [T].
   SoundParams choose(SoundParams params, Iterable<Object?> selected) =>
@@ -154,7 +133,12 @@ class SoundRanges extends SoundControl {
     required this.read,
     required this.write,
     required this.partId,
+    this.folds = false,
   });
+
+  /// The ranges start folded under their title, which opens them: for the
+  /// few who want them, out of the way of everyone else.
+  final bool folds;
 
   final int count;
 
@@ -245,7 +229,7 @@ class SoundControlHeading extends StatelessWidget {
   }
 }
 
-class _ChipsView extends StatefulWidget {
+class _ChipsView extends StatelessWidget {
   const _ChipsView({
     super.key,
     required this.control,
@@ -257,43 +241,7 @@ class _ChipsView extends StatefulWidget {
   final SoundParams params;
   final SoundParamsChanged onChanged;
 
-  @override
-  State<_ChipsView> createState() => _ChipsViewState();
-}
-
-class _ChipsViewState extends State<_ChipsView> {
-  SoundChips<Object?> get _c => widget.control;
-
-  /// Folded only where the chips' own choice explains the params.
-  late bool _folded = _c.fineFolds && _c.read(widget.params).isNotEmpty;
-
-  /// The last params this editor saw that matched no choice (a curve drawn
-  /// by hand), kept so the "other" chip can bring them back.
-  SoundParams? _other;
-
-  void _remember(SoundParams params) {
-    if (_c.otherLabel != null && _c.read(params).isEmpty) _other = params;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _remember(widget.params);
-  }
-
-  @override
-  void didUpdateWidget(_ChipsView oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _remember(widget.params);
-  }
-
-  void _restoreOther(Set<Object?> selected) {
-    final other = _other;
-    final restore = _c.restoreOther;
-    // Already showing it: nothing to bring back.
-    if (other == null || restore == null || selected.isEmpty) return;
-    widget.onChanged(restore(widget.params, other));
-  }
+  SoundChips<Object?> get _c => control;
 
   void _toggle(Object? value, bool on, Set<Object?> selected) {
     final Set<Object?> next;
@@ -305,18 +253,17 @@ class _ChipsViewState extends State<_ChipsView> {
       next = on ? {...selected, value} : ({...selected}..remove(value));
       if (next.isEmpty || next.length > _c.maxSelected) return;
     }
-    widget.onChanged(_c.choose(widget.params, next));
+    onChanged(_c.choose(params, next));
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final selected = _c.read(widget.params);
+    final selected = _c.read(params);
     final multi = _c.maxSelected > 1;
     final full = multi && selected.length >= _c.maxSelected;
-    final other = _c.otherLabel;
-    final caption = _c.caption?.call(l10n, widget.params);
+    final caption = _c.caption?.call(l10n, params);
     final fine = _c.fine;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -330,7 +277,7 @@ class _ChipsViewState extends State<_ChipsView> {
             children: [
               for (final choice in [
                 ..._c.choices,
-                ...?_c.extraChoices?.call(widget.params),
+                ...?_c.extraChoices?.call(params),
               ])
                 if (multi)
                   MergeSemantics(
@@ -360,14 +307,6 @@ class _ChipsViewState extends State<_ChipsView> {
                     selected: selected.contains(choice.value),
                     onSelected: (on) => _toggle(choice.value, on, selected),
                   ),
-              if (other != null && (selected.isEmpty || _other != null))
-                ChoiceChip(
-                  key: ValueKey('${_c.id}_other'),
-                  label: Text(other(l10n)),
-                  selected: selected.isEmpty,
-                  // After a name replaced the curve, this brings it back.
-                  onSelected: (_) => _restoreOther(selected),
-                ),
             ],
           ),
         ),
@@ -382,42 +321,20 @@ class _ChipsViewState extends State<_ChipsView> {
               ),
             ),
           ),
-        if (fine != null && _c.fineFolds)
-          SoundControlHeading(
-            fine.title(l10n),
-            trailing: IconButton(
-              key: ValueKey('${fine.id}_fold'),
-              tooltip: _folded
-                  ? MaterialLocalizations.of(context).collapsedIconTapHint
-                  : MaterialLocalizations.of(context).expandedIconTapHint,
-              onPressed: () => setState(() => _folded = !_folded),
-              icon: Icon(
-                _folded
-                    ? Symbols.keyboard_arrow_down_rounded
-                    : Symbols.keyboard_arrow_up_rounded,
-              ),
-            ),
-          ),
-        if (fine != null && !(_c.fineFolds && _folded))
+        if (fine != null)
           Padding(
-            padding: EdgeInsets.only(top: _c.fineFolds ? 0 : padding8),
+            padding: const EdgeInsets.only(top: padding8),
             child: switch (fine) {
               final SoundWheel<Object?> w => _WheelView(
                 control: w,
-                params: widget.params,
-                onChanged: widget.onChanged,
-                heading: false,
-              ),
-              final SoundRanges r => _RangesView(
-                control: r,
-                params: widget.params,
-                onChanged: widget.onChanged,
+                params: params,
+                onChanged: onChanged,
                 heading: false,
               ),
               _ => SoundControlView(
                 control: fine,
-                params: widget.params,
-                onChanged: widget.onChanged,
+                params: params,
+                onChanged: onChanged,
               ),
             },
           ),
@@ -507,72 +424,104 @@ class _WheelView extends StatelessWidget {
   }
 }
 
-class _RangesView extends StatelessWidget {
+class _RangesView extends StatefulWidget {
   const _RangesView({
     required this.control,
     required this.params,
     required this.onChanged,
-    this.heading = true,
   });
 
   final SoundRanges control;
   final SoundParams params;
   final SoundParamsChanged onChanged;
-  final bool heading;
+
+  @override
+  State<_RangesView> createState() => _RangesViewState();
+}
+
+class _RangesViewState extends State<_RangesView> {
+  late bool _folded = widget.control.folds;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final control = widget.control;
+    final params = widget.params;
+    final onChanged = widget.onChanged;
+    final title = control.title(l10n);
     return Column(
       key: ValueKey(control.id),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (heading) SoundControlHeading(control.title(l10n)),
-        SizedBox(
-          height: 200,
-          child: Row(
-            children: [
-              for (var i = 0; i < control.count; i++)
-                Expanded(
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: RotatedBox(
-                          quarterTurns: 3,
-                          child: Slider(
-                            key: ValueKey(control.partId(i)),
-                            value: control.read(params, i),
-                            activeColor: context.brandAccent,
-                            semanticFormatterCallback: (v) =>
-                                '${control.label(i)} Hz ${(v * 100).round()}%',
-                            onChanged: (v) => onChanged(
-                              control.write(params, i, v),
-                              live: true,
-                            ),
-                            onChangeEnd: (v) =>
-                                onChanged(control.write(params, i, v)),
-                          ),
-                        ),
-                      ),
-                      // Ten across a 360 dp phone: a label shrinks rather
-                      // than run into its neighbour.
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 1),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            control.label(i),
-                            maxLines: 1,
-                            style: Theme.of(context).textTheme.labelSmall,
-                          ),
-                        ),
-                      ),
-                    ],
+        if (!control.folds)
+          SoundControlHeading(title)
+        else
+          // The whole heading opens it, not only the arrow.
+          Semantics(
+            button: true,
+            expanded: !_folded,
+            child: InkWell(
+              key: ValueKey('${control.id}_fold'),
+              onTap: () => setState(() => _folded = !_folded),
+              child: SoundControlHeading(
+                title,
+                trailing: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Icon(
+                    _folded
+                        ? Symbols.keyboard_arrow_down_rounded
+                        : Symbols.keyboard_arrow_up_rounded,
                   ),
                 ),
-            ],
+              ),
+            ),
           ),
-        ),
+        if (!_folded)
+          SizedBox(
+            height: 200,
+            child: Row(
+              children: [
+                for (var i = 0; i < control.count; i++)
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: RotatedBox(
+                            quarterTurns: 3,
+                            child: Slider(
+                              key: ValueKey(control.partId(i)),
+                              value: control.read(params, i),
+                              activeColor: context.brandAccent,
+                              semanticFormatterCallback: (v) =>
+                                  '${control.label(i)} Hz ${(v * 100).round()}%',
+                              onChanged: (v) => onChanged(
+                                control.write(params, i, v),
+                                live: true,
+                              ),
+                              onChangeEnd: (v) =>
+                                  onChanged(control.write(params, i, v)),
+                            ),
+                          ),
+                        ),
+                        // Ten across a 360 dp phone: a label shrinks rather
+                        // than run into its neighbour.
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 1),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              control.label(i),
+                              maxLines: 1,
+                              style: Theme.of(context).textTheme.labelSmall,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
       ],
     );
   }

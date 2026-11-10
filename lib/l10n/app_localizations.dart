@@ -3844,47 +3844,11 @@ abstract class AppLocalizations {
   /// **'Brown'**
   String get noiseBrown;
 
-  /// Sounds screen, generated layers: noiseBands
+  /// Noise editor: heading that opens the ten frequency-band sliders shaping the noise
   ///
   /// In en, this message translates to:
-  /// **'Bands'**
+  /// **'Equaliser'**
   String get noiseBands;
-
-  /// Noise editor: heading over the named band curves (Even, Soft, Deep, Airy)
-  ///
-  /// In en, this message translates to:
-  /// **'Shape'**
-  String get noiseShape;
-
-  /// Noise shape: the colour as it is, every band level
-  ///
-  /// In en, this message translates to:
-  /// **'Even'**
-  String get noiseShapeEven;
-
-  /// Noise shape: the high frequencies fall gently away
-  ///
-  /// In en, this message translates to:
-  /// **'Soft'**
-  String get noiseShapeSoft;
-
-  /// Noise shape: a low rumble, mids and highs well down
-  ///
-  /// In en, this message translates to:
-  /// **'Deep'**
-  String get noiseShapeDeep;
-
-  /// Noise shape: the lows thinned, the highs kept
-  ///
-  /// In en, this message translates to:
-  /// **'Airy'**
-  String get noiseShapeAiry;
-
-  /// Noise shape chip shown when the bands were set by hand and match no named shape
-  ///
-  /// In en, this message translates to:
-  /// **'Custom'**
-  String get noiseShapeCustom;
 
   /// Binaural beat band chip: below 4 Hz
   ///

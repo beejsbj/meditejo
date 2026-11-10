@@ -68,27 +68,26 @@ void main() {
     });
   });
 
-  group('noise shapes', () {
-    test('flat bands are Even; the Stillness preset is Soft', () {
-      expect(const NoiseParams().shape, NoiseShape.even);
+  group('noise bands', () {
+    test('a curve saved with a mix is kept as it was', () {
+      // The Stillness preset's highs fall away: the curve the "Soft" shape
+      // chip once named. The chips are gone; the bands still say it.
       final stillness = kStarterPresets
           .firstWhere((p) => p.id == 'starter-stillness')
           .mix
           .layer(kSynthNoiseId)!;
-      expect(NoiseParams.fromJson(stillness.params).shape, NoiseShape.soft);
+      final bands = NoiseParams.fromJson(stillness.params).bands;
+      expect(bands, [1, 1, 1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3]);
+      expect(NoiseParams.fromJson(stillness.params).toJson(), {
+        'colour': NoiseParams.fromJson(stillness.params).colour.name,
+        'bands': bands,
+      });
     });
 
-    test('a curve of its own is no shape', () {
+    test('a curve drawn by hand round-trips', () {
       final legacy = _legacyLayers.first['params']! as Map<String, Object?>;
-      expect(NoiseParams.fromJson(legacy).shape, isNull);
-    });
-
-    test('every shape has ten bands within the sliders\' range', () {
-      for (final shape in NoiseShape.values) {
-        expect(shape.bands, hasLength(NoiseParams.bandCentres.length));
-        expect(shape.bands.every((b) => b >= 0 && b <= 1), isTrue);
-        expect(NoiseShape.of(shape.bands), shape);
-      }
+      final params = NoiseParams.fromJson(legacy);
+      expect(NoiseParams.fromJson(params.toJson()).bands, params.bands);
     });
   });
 

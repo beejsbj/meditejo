@@ -238,100 +238,59 @@ void main() {
   });
 
   group('noise', () {
-    testWidgets('a named shape sets the bands, which fold under it', (
+    testWidgets('colour is the control; the bands fold under Equaliser', (
       tester,
     ) async {
       await pump(tester, layers: {kSynthNoiseId: const {}});
       await open(tester, kSynthNoiseId);
-      expect(chipSelected(tester, 'noise_shape_even'), isTrue);
-      expect(find.byKey(const ValueKey('noise_shape_other')), findsNothing);
-      // Folded while a name says what they are.
+      expect(chipSelected(tester, 'noise_colour_pink'), isTrue);
+      // No shape words.
+      for (final word in ['Shape', 'Even', 'Soft', 'Deep', 'Airy', 'Custom']) {
+        expect(find.text(word), findsNothing, reason: word);
+      }
+      expect(find.text('Equaliser'), findsOneWidget);
       expect(find.byKey(const ValueKey('noise_band_0')), findsNothing);
-
-      await tester.tap(find.byKey(const ValueKey('noise_shape_deep')));
-      await tester.pumpAndSettle();
-      expect(
-        NoiseParams.fromJson(params(kSynthNoiseId)).bands,
-        NoiseShape.deep.bands,
-      );
 
       await tester.tap(find.byKey(const ValueKey('noise_bands_fold')));
       await tester.pumpAndSettle();
       final band = find.byKey(const ValueKey('noise_band_9'));
       await tester.ensureVisible(band);
       await tester.pumpAndSettle();
-      // Drawing a band by hand makes the curve the user's own.
-      await tester.drag(band, const Offset(0, -60));
+      // Its thumb is at the top: a drag down the track lowers the band.
+      await tester.drag(band, const Offset(0, 60));
       await tester.pumpAndSettle();
       final bands = NoiseParams.fromJson(params(kSynthNoiseId)).bands;
-      expect(bands[9], greaterThan(NoiseShape.deep.bands[9]));
-      expect(bands.sublist(0, 9), NoiseShape.deep.bands.sublist(0, 9));
-      expect(find.byKey(const ValueKey('noise_shape_other')), findsOneWidget);
-      expect(chipSelected(tester, 'noise_shape_deep'), isFalse);
+      expect(bands[9], lessThan(1));
+      expect(bands.sublist(0, 9), NoiseParams.flat.sublist(0, 9));
+
+      await tester.tap(find.byKey(const ValueKey('noise_bands_fold')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('noise_band_0')), findsNothing);
     });
 
-    testWidgets('a curve saved by hand opens as Custom, bands showing, '
-        'and stays as it was', (tester) async {
-      const saved = {
-        'colour': 'white',
-        'bands': [0, 0.25, 1, 0.8, 0.31, 0.6, 1, 0.4, 0.1, 0],
-      };
-      await pump(tester, layers: {kSynthNoiseId: saved});
-      await open(tester, kSynthNoiseId);
-      expect(chipSelected(tester, 'noise_colour_white'), isTrue);
-      expect(chipSelected(tester, 'noise_shape_other'), isTrue);
-      for (final shape in NoiseShape.values) {
-        expect(chipSelected(tester, 'noise_shape_${shape.name}'), isFalse);
-      }
-      expect(find.byKey(const ValueKey('noise_band_0')), findsOneWidget);
-      await close(tester);
-      expect(params(kSynthNoiseId), saved);
-      expect(engine.retuned, isEmpty);
-    });
-  });
+    for (final (name, bands) in [
+      // What the "Deep" chip once set, and a curve drawn by hand.
+      ('a shape', [1, 1, 1, 0.8, 0.55, 0.35, 0.22, 0.14, 0.09, 0.06]),
+      ('a curve of its own', [0, 0.25, 1, 0.8, 0.31, 0.6, 1, 0.4, 0.1, 0]),
+    ]) {
+      testWidgets('a mix saved with $name opens and closes as it was, and '
+          'keeps its bands through a colour change', (tester) async {
+        final saved = {'colour': 'white', 'bands': bands};
+        await pump(tester, layers: {kSynthNoiseId: saved});
+        await open(tester, kSynthNoiseId);
+        expect(chipSelected(tester, 'noise_colour_white'), isTrue);
+        await close(tester);
+        expect(params(kSynthNoiseId), saved);
+        expect(engine.retuned, isEmpty);
 
-  testWidgets('noise: a shape over a hand-drawn curve can be undone with '
-      'Custom', (tester) async {
-    const curve = [0.0, 0.25, 1.0, 0.8, 0.31, 0.6, 1.0, 0.4, 0.1, 0.0];
-    await pump(
-      tester,
-      layers: {
-        kSynthNoiseId: const {'colour': 'white', 'bands': curve},
-      },
-    );
-    await open(tester, kSynthNoiseId);
-    await tester.tap(find.byKey(const ValueKey('noise_shape_soft')));
-    await tester.pumpAndSettle();
-    expect(
-      NoiseParams.fromJson(params(kSynthNoiseId)).bands,
-      NoiseShape.soft.bands,
-    );
-    expect(chipSelected(tester, 'noise_shape_other'), isFalse);
-    // A colour changed meanwhile stays when the curve comes back.
-    await tester.tap(find.byKey(const ValueKey('noise_colour_brown')));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const ValueKey('noise_shape_other')));
-    await tester.pumpAndSettle();
-    final noise = NoiseParams.fromJson(params(kSynthNoiseId));
-    expect(noise.bands, curve);
-    expect(noise.colour, NoiseColour.brown);
-    expect(chipSelected(tester, 'noise_shape_other'), isTrue);
-    expect(chipSelected(tester, 'noise_shape_soft'), isFalse);
-    // Tapping it again while chosen changes nothing.
-    await tester.tap(find.byKey(const ValueKey('noise_shape_other')));
-    await tester.pumpAndSettle();
-    expect(NoiseParams.fromJson(params(kSynthNoiseId)).bands, curve);
-  });
-
-  testWidgets('noise: no Custom chip until a curve of its own exists', (
-    tester,
-  ) async {
-    await pump(tester, layers: {kSynthNoiseId: const {}});
-    await open(tester, kSynthNoiseId);
-    await tester.tap(find.byKey(const ValueKey('noise_shape_airy')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('noise_shape_other')), findsNothing);
+        await open(tester, kSynthNoiseId);
+        await tester.tap(find.byKey(const ValueKey('noise_colour_brown')));
+        await tester.pumpAndSettle();
+        final noise = NoiseParams.fromJson(params(kSynthNoiseId));
+        expect(noise.colour, NoiseColour.brown);
+        expect(noise.bands, bands);
+      });
+    }
   });
 
   group('drone', () {

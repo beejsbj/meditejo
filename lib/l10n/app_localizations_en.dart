@@ -2188,25 +2188,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noiseBrown => 'Brown';
 
   @override
-  String get noiseBands => 'Bands';
-
-  @override
-  String get noiseShape => 'Shape';
-
-  @override
-  String get noiseShapeEven => 'Even';
-
-  @override
-  String get noiseShapeSoft => 'Soft';
-
-  @override
-  String get noiseShapeDeep => 'Deep';
-
-  @override
-  String get noiseShapeAiry => 'Airy';
-
-  @override
-  String get noiseShapeCustom => 'Custom';
+  String get noiseBands => 'Equaliser';
 
   @override
   String get binauralDelta => 'Delta';
