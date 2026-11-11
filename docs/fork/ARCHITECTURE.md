@@ -416,14 +416,15 @@ clipboard reader and share intake as providers, so tests need no platform.
 
 ### Screens
 
-- **Tabs** (`lib/views/bottom_navigation/`): **Home · Explore · Sounds ·
-  Library · You** (BRIEF decision 18). `MainTab` and `mainTabProvider`
+- **Tabs** (`lib/views/bottom_navigation/`): **Home · Explore · Library ·
+  Settings** since 2026-11-10 (Sounds was a tab from BRIEF decision 18 until
+  then; it is now a sheet, see "The Sounds sheet" below; the rest of this
+  paragraph describes the saved-tab format of the older bars). `MainTab` and
+  `mainTabProvider`
   (`lib/providers/main_tab_provider.dart`) hold the selected tab, so any screen
-  or link can move it; the main screen listens, drops the keyboard, on Explore
-  loads its lists and runs the Dharma Seed catch-up, and on Sounds retries a
-  failed legacy background-sound fetch. Android back from any other tab
-  returns Home, except that on Sounds an open mix panel folds first
-  (`SoundsViewState.collapseMix`, through a `GlobalKey`). **`MainTab`'s order
+  or link can move it; the main screen listens, drops the keyboard, and on
+  Explore loads its lists and runs the Dharma Seed catch-up. Android back from
+  any other tab returns Home. **`MainTab`'s order
   is a saved format** (`last_main_tab_index`, with `main_tab_layout` saying
   which bar wrote it; now 3). `MainTab.restore` maps a saved index through
   the bar that wrote it (`_olderLayouts`): the first bar (Home · Explore ·
@@ -671,8 +672,8 @@ preferences `soundscape_mix`, `soundscape_presets`, `soundscape_volume`,
 ### API for the player's Customize sheet
 
 The sheet's **Background sound** row should drive the mixer only through these
-(stable) members; the Sounds screen (`SoundsView`: the Sounds tab, or
-`openSoundsPage` over anything else) is the place to build or edit a mix.
+(stable) members; the Sounds sheet (`SoundsView` in `showSoundsSheet`) is
+the place to build or edit a mix.
 
 ```dart
 // What to play, as a string the cue settings can store:
@@ -722,11 +723,22 @@ ends natively (the end screen opens without stopping the player, so the end
 bell's tail survives) ends it directly. Bells belong to the cue scheduler
 (Session cues and Customize); the legacy ambient layer follows Customize
 through `applyCueSettings`. The player's bottom row keeps the sound button,
-which opens the Sounds screen as a page (`openSoundsPage`), beside Customize.
+which opens the Sounds sheet on the session's sound (`openSessionSounds`),
+beside Customize.
 
-**The Sounds screen** (`lib/views/soundscape/sounds_view.dart`, BRIEF
-decisions 16 and 18) is presentation over the controller above; it adds no
-mixer state. Presets are a row of `PresetCard`s and the library a grid of
+**The Sounds sheet** (`lib/views/soundscape/sounds_sheet.dart` opens it,
+`sounds_view.dart` is its body; BRIEF decision 16, a sheet since 2026-11-10)
+is presentation over the controller above; it adds no mixer state. There is
+one sheet and three ways in, all through `sounds_sheet.dart`:
+`showSoundsSheet` (Home's Sounds tile, `meditejo://sounds`,
+`route/sounds`) on the user's own mix, which plays on its own and goes on
+after the sheet closes; `showSoundsSheetFor` (Customize's Sound button) and
+`openSessionSounds` (the player's) on what plays under a session or a kind
+of session, as a draft the mixer auditions (`beginAudition` /
+`endAudition`). A `SoundsSheetSession` says which, and lets the sheet on the
+user's mix turn in place to a kind's default (its "Plays under practice /
+talks" rows) and back. One sheet at a time (`claimChooser`); a session that
+starts or ends under it closes it. Presets are a row of `PresetCard`s and the library a grid of
 `SoundCard`s per shelf, both on `GeneratedArtwork` (`sound_cards.dart`), three
 cards across a phone (`SoundGridMetrics`: cells at most 140 dp wide, which
 grows past 1.3× text so a phone falls back to two columns); a
@@ -739,10 +751,8 @@ the library. An empty mix stays docked. Layers enter and leave through an
 `AnimatedList` diffed against the mix, whoever changed it. **Mute** is
 `setLayerVolume(id, 0)` plus the old level in `layerUnmuteVolumesProvider`
 (in memory), so a mix or preset saved while muted keeps the layer silent.
-Entry points: Home's Sounds tile selects the tab; the player's sound button
-and Customize's Background sound sub-sheet ("Edit your mix in Sounds") push
-it full height with `openSoundsPage`, where back folds an open mix before
-closing.
+Android back folds an open mix panel first, then leaves a kind's default for
+the user's mix, then closes the sheet.
 
 ## Completion, stats and favourites
 

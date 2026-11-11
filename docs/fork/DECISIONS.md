@@ -1543,3 +1543,28 @@ Burooj's notes on the staging build (#139): the wide Play / Resume "weirdly plac
   - A pack of packs, an empty course, and a page still loading show no bar.
 - **One player bar.** Five fixed slots: Close · Sound · Customize · Download · Speed. A timer leaves the last two empty (as an imported file leaves Download empty), so Sound and Customize are in the same place for every session. Before, a timer had Sound and Customize at the right edge and a recording had Download second.
 - **Needs the phone:** thumb reach of the bar's play disc at the left; whether the ring reads as "resume" at a glance; the Back disc over pale art; the bar above the gesture inset.
+
+
+## 2026-11-10 (staging: Sounds is a sheet, not a tab)
+
+Burooj on the staging build (#139): "I'm also not sure it should be a tab at bottom. I think it being a sheet that opens makes sense. Like even when outside a session"; the mixer as "its own layer"; Sounds stays separate from Explore; the drawer "could use polishing". All reversible.
+
+- **Four tabs: Home · Explore · Library · Settings.** This **supersedes the Sounds tab of BRIEF decision 18** and the five-tab bar. `MainTab` loses `sounds`; nothing reads a saved tab index any more (#92), so there is no migration.
+- **One Sounds sheet, the same from every way in.** It supersedes three things: the Sounds tab, the full-screen `openSoundsPage`, and #66's separate "mixer drawer". They were already one widget (`SoundsView`) in three wrappers; now there is one wrapper (`lib/views/soundscape/sounds_sheet.dart`).
+  - **From Home's Sounds tile, `meditejo://sounds` and `route/sounds`** (which open it over Home): your own mix. It holds what the tab held: presets (play, save, delete), every sound and its editor, the mix, "Plays under practice / talks", the credits. What is started here plays on its own and goes on, with its notification, after the sheet closes.
+  - **From the player's Sound button and Customize's Sound button:** the sound of that session, or of those sessions, as #66's drawer did: silent until a sound is tapped, heard at that kind's level, kept as the sheet closes.
+  - **The one line that says which is the dock's title:** "Your mix", or "Plays under practice" / "Plays under talks". Nothing else differs but what follows from it (below).
+  - **"Plays under practice / talks" turn the sheet in place** to that choice (the same sheet, from its top, with a back arrow in its header) instead of opening a second sheet over it. Back, or closing the sheet, keeps the choice; your own mix comes back playing or silent as it was.
+  - **A session that starts or ends under the sheet closes it**, on your own mix too.
+- **Judgement calls, for Burooj to overrule:**
+  - *Customize's Sound button outside a session still chooses what those sessions will play* (it does not start a sound on its own). "Outside a session it plays standalone" is true of the sheet opened from Home; from the Timer's Customize, a sound that started playing by itself and was not kept for the timer would make the button useless.
+  - *One of Stop and Clear at a time in the dock.* On a session's sound: Clear, no Stop (Clear is the choice Off; the two together pushed the title onto two lines). On your own mix: Stop while the mix is folded, Clear once it is open (the art still pauses). Above 1.3× text Clear is an icon, so the title keeps its line.
+  - *The sheet keeps Material's sheet width* (640 dp at most), so the mix-beside-the-library layout for windows 840 dp and wider no longer shows in the app; `SoundsView` still has it.
+  - *A link to Sounds while a Sounds sheet is open* closes it and opens it again on your own mix (links close whatever is over the tabs).
+  - *The app-bar credits button is gone*; "Sound credits" is the last row of the sheet (and still in Settings › About).
+  - *"Update a preset"* was never in the tab and is not added: saving a changed mix makes a new preset; a saved one can be deleted.
+- **Home's Sounds tile** names what plays on its own (the preset, or the sounds) and takes the primary container colour while it plays; a tap opens the sheet either way. It is its own widget (`SoundsShortcutTile`) so Home's other work does not meet it.
+- **Polish.** Presets is a shelf heading like the others (icon, same size) under one "Sounds" title; the dock is one tone up from the sheet with no shadow; Done is tonal. Clear's toast floats above the dock (already so since `f48470cb`, after the screenshot in #139; now asserted in the sheet). The noise editor's opened Equaliser has a small **Reset** under the bands, shown only while they are not flat; it leaves the colour alone.
+- **Screenshots:** `MEDITEJO_SCREENSHOTS=1 MEDITEJO_SHOT_DIR=<dir> flutter test test/screenshots/sounds_sheet_screenshots_test.dart` (411 dp light and dark with the S23+'s insets, 360 × 640 at 2× text, 360 dp German at 1.3×). `docs/fork/design/sounds-*.png` (the sheet's body) are regenerated, and `navbar-four-*.png` replaces `navbar-five-*.png`.
+- **Known limits.** At 2× text on a 360 dp phone the dock's "Plays under practice" ends in an ellipsis on its second line. The sheet opened from Home while a session is somehow still running edits the live mix, as the tab did, without becoming that session's choice.
+- **Needs the phone:** that a mix started in the sheet keeps sounding, with its notification and Stop, after the sheet closes and with the screen off; that your own mix comes back at its own level after choosing for practice or talks; the swipe-down on the sheet against the library's scroll and the dock's own drag; the toast's place above the gesture bar.
