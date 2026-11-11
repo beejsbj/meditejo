@@ -314,6 +314,129 @@ void main() {
     expect(count('transport'), 3);
   });
 
+  test(
+    'a completion records the real time playback took at its speed',
+    () async {
+      _mockSwift({'sampleListening': false});
+      final streams = _Streams();
+      final player = streams.player();
+      when(() => player.playing).thenReturn(true);
+      when(() => player.processingState).thenReturn(ProcessingState.ready);
+      when(() => player.speed).thenReturn(2);
+      final handler = _WiredHandler(player);
+      await handler.ensureInitialized();
+
+      // Ten minutes of the hour-long talk at 2x, a position tick each second.
+      for (var ms = 0; ms <= 600000; ms += 2000) {
+        streams.position.add(Duration(milliseconds: ms));
+        await _settle();
+      }
+      expect(handler.completionRealDurationMs, 1800000);
+
+      // Paused: ticks add nothing.
+      when(() => player.playing).thenReturn(false);
+      streams.position.add(const Duration(milliseconds: 602000));
+      await _settle();
+      expect(handler.completionRealDurationMs, 1800000);
+    },
+  );
+
+  group('real time cannot be made up', () {
+    const timer = PlaybackRequest(
+      trackId: 'timer-1200',
+      fileId: 'timer-1200',
+      title: 'Timer',
+      description: '',
+      coverUrl: '',
+      remoteUrl: 'asset:///timer.mp3',
+      duration: 1200000,
+      hasBackgroundSound: false,
+    );
+
+    late _Streams streams;
+    late _Player player;
+
+    setUp(() {
+      _mockSwift({'sampleListening': false});
+      streams = _Streams();
+      player = streams.player();
+      when(() => player.playing).thenReturn(true);
+      when(() => player.processingState).thenReturn(ProcessingState.ready);
+      // A speed a timer never plays at: it must not leak into its time.
+      when(() => player.speed).thenReturn(2);
+      when(() => player.duration).thenReturn(const Duration(minutes: 20));
+    });
+
+    test('a timer that never started is its length', () async {
+      final handler = _WiredHandler(player);
+      await handler.ensureInitialized();
+      await handler.configureCues(const CueSettings(), timer);
+      expect(handler.completionRealDurationMs, 1200000);
+    });
+
+    test('a timer that played is its length too', () async {
+      final handler = _WiredHandler(player);
+      await handler.ensureInitialized();
+      await handler.configureCues(const CueSettings(), timer);
+      for (var ms = 0; ms <= 60000; ms += 2000) {
+        streams.position.add(Duration(milliseconds: ms));
+        await _settle();
+      }
+      expect(handler.completionRealDurationMs, 1200000);
+    });
+
+    test('a timer\'s countdown is sitting time too', () async {
+      _mockSwift({'sampleListening': false, 'begin': 10000});
+      final handler = _WiredHandler(player);
+      await handler.ensureInitialized();
+      await handler.configureCues(
+        const CueSettings(countdownSeconds: 10, extendMinutes: 5),
+        timer,
+      );
+      // Not before it has begun, and a timer has no Extend.
+      expect(handler.completionRealDurationMs, 1200000);
+      await handler.play();
+      expect(handler.completionRealDurationMs, 1210000);
+    });
+
+    test('Extend, the ending bell\'s silence and the countdown count once, '
+        'beside the recording at its speed', () async {
+      _mockSwift({'sampleListening': false, 'begin': 5000});
+      when(() => player.duration).thenReturn(const Duration(hours: 1));
+      final handler = _WiredHandler(player);
+      await handler.ensureInitialized();
+      await handler.configureCues(
+        const CueSettings(
+          countdownSeconds: 5,
+          extendMinutes: 10,
+          endSilenceMinutes: 2,
+        ),
+        _guided,
+      );
+      await handler.play();
+      // The hour at 2x is 30 minutes; 12 of silence and 5 s are added whole.
+      expect(handler.completionRealDurationMs, 1800000 + 720000 + 5000);
+      // Once a completion has carried them, a repeat adds none.
+      handler.markAddedRealCounted();
+      expect(handler.completionRealDurationMs, 1800000);
+      // The next session starts fresh.
+      await handler.configureCues(
+        const CueSettings(extendMinutes: 10),
+        _guided,
+      );
+      expect(handler.completionRealDurationMs, 1800000 + 600000);
+    });
+
+    test('no length, or an empty one, records none', () async {
+      final handler = _WiredHandler(player);
+      await handler.ensureInitialized();
+      when(() => player.duration).thenReturn(null);
+      expect(handler.completionRealDurationMs, isNull);
+      when(() => player.duration).thenReturn(Duration.zero);
+      expect(handler.completionRealDurationMs, isNull);
+    });
+  });
+
   group('repeat play-throughs follow the 90% rule', () {
     late Map<String, Object?> swift;
     late _Streams streams;

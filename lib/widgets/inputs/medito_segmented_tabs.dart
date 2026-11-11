@@ -3,7 +3,7 @@ import 'package:medito/constants/constants.dart';
 
 /// The app's tab switcher: a card-coloured track with the selected segment
 /// filled in the brand accent, like a primary button. Used wherever a screen
-/// or dialog switches between a few views (Timer/Stopwatch, Stats/History,
+/// or dialog switches between a few views (Stats/History,
 /// Single day/Date range, cm/in).
 ///
 /// Pass [position] (a [TabController.animation]) to have the indicator follow

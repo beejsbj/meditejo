@@ -1,3 +1,4 @@
+import 'package:medito/models/catalogue/catalogue_models.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -9,22 +10,16 @@ import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/pack/pack_model.dart';
-import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
-import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/routes/routes.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
-import 'package:medito/services/library/library_models.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/views/categories/category_chips.dart';
 import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
 import 'package:medito/views/dharma_seed/widgets/teacher_widgets.dart';
 import 'package:medito/views/explore/widgets/kind_chips.dart';
 import 'package:medito/views/explore/widgets/library_state_card.dart';
-import 'package:medito/views/library/library_actions.dart';
-import 'package:medito/views/library/library_widgets.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/search/search_results.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
@@ -42,11 +37,12 @@ import 'package:medito/widgets/widgets.dart';
 const searchSuggestions = ['Rob Burbea', 'metta', 'jhana', 'emptiness'];
 
 /// The Explore tab: find something to add. A search field sits at the top.
-/// With nothing typed it browses: Practice and Talks chips, "In your library"
-/// as a strip of small cards, Dharma Seed retreats as large course cards, the
-/// teachers behind them, and the latest single sessions (guided practice
-/// unless Talks is chosen). Typing replaces that with grouped results
-/// (Teachers, Courses, Talks), the user's library first.
+/// With nothing typed it browses: Practice and Talks chips, the ways to
+/// practise, Dharma Seed retreats as large course cards, the teachers behind
+/// them, and the latest single sessions (guided practice unless Talks is
+/// chosen). What the user already keeps is not listed here: the Library tab
+/// has it. Typing replaces browsing with grouped results (Teachers, Courses,
+/// Talks), the user's library first.
 class ExploreView extends ConsumerStatefulWidget {
   const ExploreView({super.key});
 
@@ -84,7 +80,7 @@ class ExploreViewState extends ConsumerState<ExploreView> {
   void loadData() {
     if (_hasLoadedData) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.invalidate(dharmaSeedExploreProvider);
+      ref.invalidate(catalogueExploreProvider);
       _hasLoadedData = true;
     });
   }
@@ -131,15 +127,15 @@ class ExploreViewState extends ConsumerState<ExploreView> {
     _focusNode.requestFocus();
   }
 
-  /// Pulling down re-reads the lists and asks Dharma Seed for what changed
-  /// (an incremental sync: a few requests), without waiting for it.
+  /// Pulling down re-reads the lists and asks every catalogue for what changed
+  /// (a few small requests), without waiting for them.
   Future<void> _refresh() async {
     AppLogger.d('ExploreView', 'Refreshing explore lists');
-    unawaited(ref.read(dharmaSeedSyncProvider).sync(force: true));
+    catchUpCatalogues(ref, force: true);
     final group = ref.read(exploreGroupProvider);
-    ref.invalidate(dharmaSeedExploreProvider(group));
+    ref.invalidate(catalogueExploreProvider(group));
     try {
-      await ref.read(dharmaSeedExploreProvider(group).future);
+      await ref.read(catalogueExploreProvider(group).future);
     } catch (_) {
       // The error state below shows it.
     }
@@ -260,7 +256,7 @@ class ExploreViewState extends ConsumerState<ExploreView> {
             ),
           ),
           // Category entry points: each opens that category's page.
-          const SliverToBoxAdapter(child: ExploreCategoryChips()),
+          const SliverToBoxAdapter(child: ExplorePractices()),
           ..._buildContent(),
           SliverPadding(
             padding: EdgeInsets.only(
@@ -282,7 +278,7 @@ class ExploreViewState extends ConsumerState<ExploreView> {
 
   List<Widget> _buildContent() {
     final group = ref.watch(exploreGroupProvider);
-    final async = ref.watch(dharmaSeedExploreProvider(group));
+    final async = ref.watch(catalogueExploreProvider(group));
     final explore = async.value;
 
     if (explore == null) {
@@ -293,7 +289,7 @@ class ExploreViewState extends ConsumerState<ExploreView> {
             child: MeditoErrorWidget(
               error: err is AppError ? err : const UnknownError(),
               isScaffold: false,
-              onTap: () => ref.invalidate(dharmaSeedExploreProvider(group)),
+              onTap: () => ref.invalidate(catalogueExploreProvider(group)),
             ),
           ),
         ];
@@ -303,27 +299,10 @@ class ExploreViewState extends ConsumerState<ExploreView> {
       ];
     }
 
-    // Courses in the library lead, under any chip: they are the user's own,
-    // so a filter must never hide them.
-    final library =
-        ref
-            .watch(librarySectionsProvider)
-            .value
-            ?.contentFirstPractice
-            .where((e) => e.kind == LibraryKind.course)
-            .toList() ??
-        const <LibraryEntry>[];
     final l10n = AppLocalizations.of(context)!;
-    final libraryStrip = library.isEmpty
-        ? const <Widget>[]
-        : [
-            _title(l10n.exploreLibraryHeading),
-            SliverToBoxAdapter(child: _LibraryStrip(entries: library)),
-          ];
 
     if (explore.isEmpty) {
       return [
-        ...libraryStrip,
         SliverFillRemaining(
           hasScrollBody: false,
           child: Center(
@@ -343,16 +322,9 @@ class ExploreViewState extends ConsumerState<ExploreView> {
     }
 
     return [
-      ...libraryStrip,
       if (explore.courses.isNotEmpty) ...[
         _title(l10n.exploreCourses),
         SliverToBoxAdapter(child: _CourseStrip(courses: explore.courses)),
-      ],
-      if (explore.savedTeachers.isNotEmpty) ...[
-        _title(l10n.exploreSavedTeachers),
-        SliverToBoxAdapter(
-          child: TeacherStrip(teachers: explore.savedTeachers),
-        ),
       ],
       if (explore.teachers.isNotEmpty) ...[
         _title(l10n.exploreTeachers),
@@ -360,7 +332,7 @@ class ExploreViewState extends ConsumerState<ExploreView> {
       ],
       if (explore.talks.isNotEmpty) ...[
         _title(
-          group == DsContentGroup.talks
+          group == ContentGroup.talks
               ? l10n.exploreLatestTalks
               : l10n.exploreLatestPractice,
         ),
@@ -370,57 +342,10 @@ class ExploreViewState extends ConsumerState<ExploreView> {
   }
 }
 
-/// "In your library": the courses and playlists the user keeps, as a strip of
-/// small cards. Each opens its page.
-class _LibraryStrip extends ConsumerWidget {
-  const _LibraryStrip({required this.entries});
-
-  final List<LibraryEntry> entries;
-
-  static const _width = 136.0;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    return SizedBox(
-      height: CourseCard.heightFor(
-        context,
-        width: _width,
-        size: CourseCardSize.compact,
-        detail: false,
-      ),
-      child: ListView.separated(
-        key: const ValueKey('explore_library_strip'),
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: kCardGutter),
-        itemCount: entries.length,
-        separatorBuilder: (_, _) => const SizedBox(width: kCardGap),
-        itemBuilder: (context, i) {
-          final entry = entries[i];
-          return SizedBox(
-            width: _width,
-            child: CourseCard(
-              key: ValueKey('pack_${entry.sourceId}'),
-              size: CourseCardSize.compact,
-              title: entry.displayTitle,
-              overline: librarySourceLabel(l10n, entry.sourceId),
-              art: CardArt(
-                url: entry.coverUrl,
-                art: libraryArt(entry.kind, entry.sourceId),
-                avatarSize: 28,
-              ),
-              onTap: () => openLibraryEntry(context, ref, entry),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
 /// Dharma Seed's courses as a strip of large cards: their art with the
 /// teacher's photo as a small avatar, the name, "teacher · year · N talks",
-/// and a quiet Add to library on the art.
+/// and a quiet Add to library on the art. A course in the library keeps its
+/// place in the strip, its "+" a tick; adding one moves nothing.
 class _CourseStrip extends ConsumerWidget {
   const _CourseStrip({required this.courses});
 

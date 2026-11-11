@@ -43,7 +43,7 @@ class TrackRepositoryImpl extends TrackRepository {
       if (e is! CatalogueEntryUnavailable && e is! YoutubeUnavailableError) {
         rethrow;
       }
-      // Saved favourites resolve by ID too. Keep downloaded metadata usable
+      // Pinned sessions resolve by ID too. Keep downloaded metadata usable
       // when its source catalogue is empty or no longer carries the track.
       final downloads = await fetchTrackFromPreference();
       for (final track in downloads) {

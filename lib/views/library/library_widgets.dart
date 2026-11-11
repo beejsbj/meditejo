@@ -6,21 +6,15 @@ import 'package:medito/providers/library/library_view_provider.dart';
 import 'package:medito/providers/meditation/downloaded_track_ids_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_ids.dart';
-import 'package:medito/services/home/continue_rules.dart';
 import 'package:medito/services/library/lib_ids.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
-import 'package:medito/views/home/widgets/continue/continue_section.dart';
-import 'package:medito/views/categories/labels_sheet.dart';
 import 'package:medito/views/library/library_actions.dart';
-import 'package:medito/views/library/library_format.dart';
-import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/widgets/cards/card_art.dart';
 import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/cards/card_tokens.dart';
 import 'package:medito/widgets/cards/course_card.dart';
 import 'package:medito/widgets/cards/session_row.dart';
-import 'package:medito/widgets/cards/section_title.dart';
 import 'package:medito/widgets/cards/teacher_tiles.dart';
 
 /// Where a library entry came from, as its card's overline: "Dharma Seed",
@@ -46,7 +40,7 @@ CardProgress? libraryProgress(
   return CardProgress.of(p.done, p.total, l10n.upNextProgress(p.done, p.total));
 }
 
-/// A mark on a course pinned to Home.
+/// A mark on a course or session pinned to Home.
 class _PinMark extends StatelessWidget {
   const _PinMark({this.disc = false});
 
@@ -83,7 +77,15 @@ class LibraryEntryTile extends ConsumerWidget {
   final LibraryEntry entry;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) => GestureDetector(
+    onLongPress: () {
+      Feedback.forLongPress(context);
+      showLibraryEntryActions(context, ref, entry);
+    },
+    child: _row(context, ref),
+  );
+
+  Widget _row(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     void open() => openLibraryEntry(context, ref, entry);
     final menu = LibraryEntryMenu(entry: entry);
@@ -131,7 +133,11 @@ class LibraryEntryTile extends ConsumerWidget {
               .watch(downloadedTrackIdsProvider)
               .contains(entry.sourceId),
           onTap: open,
-          trailing: [menu],
+          trailing: [
+            if (ref.watch(pinnedCoursesProvider).contains(entry.sourceId))
+              const _PinMark(),
+            menu,
+          ],
         );
       case LibraryKind.teacher:
         return TeacherRow(
@@ -155,7 +161,15 @@ class LibraryEntryCard extends ConsumerWidget {
   final LibraryEntry entry;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) => GestureDetector(
+    onLongPress: () {
+      Feedback.forLongPress(context);
+      showLibraryEntryActions(context, ref, entry);
+    },
+    child: _card(context, ref),
+  );
+
+  Widget _card(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final pinned = ref.watch(pinnedCoursesProvider).contains(entry.sourceId);
     return CourseCard(
@@ -176,219 +190,18 @@ class LibraryEntryCard extends ConsumerWidget {
   }
 }
 
-/// Something in progress, as a large card: the session, its course, how far
-/// along, and Play. Tapping anywhere starts it, as on Home.
-class InProgressCard extends ConsumerWidget {
-  const InProgressCard({super.key, required this.item});
-
-  final ContinueItem item;
-
-  static const width = 280.0;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final resume = item.resume;
-    final left = resume != null && resume.durationMs > resume.positionMs
-        ? l10n.homeContinueTimeLeft(
-            formatClock(resume.durationMs - resume.positionMs),
-          )
-        : null;
-    final total = item.sessionTotal ?? 0;
-    final progress =
-        CardProgress.of(
-          item.completedSessions,
-          total,
-          l10n.upNextProgress(item.completedSessions, total),
-        ) ??
-        (resume == null || resume.durationMs <= 0 || left == null
-            ? null
-            : CardProgress(resume.positionMs / resume.durationMs, left));
-    final label = resume != null
-        ? l10n.homeContinueResume
-        : l10n.homeContinueStart;
-    void start() => startContinueItem(context, ref, item);
-    final courseId = item.courseId;
-
-    return SizedBox(
-      width: width,
-      child: CourseCard(
-        key: ValueKey('in_progress_${item.trackId}'),
-        size: CourseCardSize.large,
-        title: item.title,
-        overline: item.courseTitle,
-        detail: [
-          if (item.sessionNumber != null && item.sessionTotal != null)
-            l10n.homeContinueSessionOf(item.sessionNumber!, item.sessionTotal!),
-          if (left != null && progress?.label != left) left,
-        ].join(' · '),
-        progress: progress,
-        art: CardArt(
-          url: item.coverUrl,
-          art: courseId != null ? courseArt(courseId) : singleArt(item.trackId),
-        ),
-        onTap: start,
-        action: IconButton(
-          key: ValueKey('in_progress_play_${item.trackId}'),
-          tooltip: '$label · ${item.title}',
-          onPressed: start,
-          icon: const Icon(Icons.play_arrow_rounded),
-        ),
-      ),
-    );
-  }
-}
-
-/// The Library's In progress: everything started and not finished, as a
-/// strip of large cards. Hidden when nothing is in progress.
-class InProgressStrip extends ConsumerWidget {
-  const InProgressStrip({super.key, required this.items});
-
-  final List<ContinueItem> items;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SectionTitle(l10n.libraryInProgress),
-        SizedBox(
-          height: CourseCard.heightFor(
-            context,
-            width: InProgressCard.width,
-            size: CourseCardSize.large,
-            progress: true,
-          ),
-          child: ListView.separated(
-            key: const ValueKey('library_in_progress'),
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: kCardGutter),
-            itemCount: items.length,
-            separatorBuilder: (_, _) => const SizedBox(width: kCardGap),
-            itemBuilder: (context, i) => InProgressCard(item: items[i]),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Edit or copy a course, add to a personal course, reclassify, rename, pin,
-/// or remove an entry. A personal course is deleted rather than removed: it
-/// exists nowhere else.
+/// A library entry's "⋮": the one actions sheet, with the Library's own
+/// actions (move, rename, labels, remove) added.
 class LibraryEntryMenu extends ConsumerWidget {
   const LibraryEntryMenu({super.key, required this.entry});
 
   final LibraryEntry entry;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final isTeacher = entry.kind == LibraryKind.teacher;
-    final mine = isMyCourseId(entry.sourceId);
-    return PopupMenuButton<_Action>(
-      key: ValueKey('library_menu_${entry.sourceId}'),
-      tooltip: MaterialLocalizations.of(context).showMenuTooltip,
-      icon: const Icon(Icons.more_vert_rounded),
-      onSelected: (action) => switch (action) {
-        _Action.edit => openMyCourseEditor(context, entry.sourceId),
-        _Action.addToCourse => showAddToCourse(
-          context,
-          ref,
-          id: entry.sourceId,
-        ),
-        _Action.duplicate => duplicateAsMyCourse(
-          context,
-          ref,
-          packId: entry.sourceId,
-          title: entry.displayTitle,
-        ),
-        _Action.delete => deleteMyCourse(context, ref, entry.sourceId),
-        _Action.toPractice => setLibraryGroup(
-          ref,
-          entry,
-          LibraryGroup.practice,
-        ),
-        _Action.toTalks => setLibraryGroup(ref, entry, LibraryGroup.talks),
-        _Action.rename => renameLibraryEntry(context, ref, entry),
-        _Action.labels => showLabelsSheet(
-          context,
-          id: entry.sourceId,
-          title: entry.title,
-        ),
-        _Action.pin => togglePinnedCourse(context, ref, entry.sourceId),
-        _Action.remove => removeFromLibrary(context, ref, entry),
-      },
-      itemBuilder: (context) => [
-        if (mine)
-          PopupMenuItem(
-            key: const ValueKey('library_menu_edit'),
-            value: _Action.edit,
-            child: Text(l10n.myCourseEdit),
-          ),
-        if (!isTeacher)
-          PopupMenuItem(
-            key: const ValueKey('library_menu_add_to_course'),
-            value: _Action.addToCourse,
-            child: Text(l10n.myCourseAddTo),
-          ),
-        if (entry.isCourse)
-          PopupMenuItem(
-            key: const ValueKey('library_menu_duplicate'),
-            value: _Action.duplicate,
-            child: Text(l10n.myCourseDuplicate),
-          ),
-        if (!isTeacher && entry.group == LibraryGroup.talks)
-          PopupMenuItem(
-            value: _Action.toPractice,
-            child: Text(l10n.libraryMoveToPractice),
-          ),
-        if (!isTeacher && entry.group == LibraryGroup.practice)
-          PopupMenuItem(
-            value: _Action.toTalks,
-            child: Text(l10n.libraryMoveToTalks),
-          ),
-        if (!isTeacher)
-          PopupMenuItem(value: _Action.rename, child: Text(l10n.libraryRename)),
-        if (!isTeacher)
-          PopupMenuItem(
-            key: const ValueKey('library_menu_labels'),
-            value: _Action.labels,
-            child: Text(l10n.libraryMenuLabels),
-          ),
-        if (entry.isCourse)
-          PopupMenuItem(
-            key: const ValueKey('library_menu_pin'),
-            value: _Action.pin,
-            child: Text(
-              ref.read(pinnedCoursesProvider).contains(entry.sourceId)
-                  ? l10n.unpinCourse
-                  : l10n.pinCourse,
-            ),
-          ),
-        if (mine)
-          PopupMenuItem(
-            key: const ValueKey('library_menu_delete'),
-            value: _Action.delete,
-            child: Text(l10n.myCourseDelete),
-          )
-        else
-          PopupMenuItem(value: _Action.remove, child: Text(l10n.libraryRemove)),
-      ],
-    );
-  }
-}
-
-enum _Action {
-  edit,
-  addToCourse,
-  duplicate,
-  toPractice,
-  toTalks,
-  rename,
-  labels,
-  pin,
-  remove,
-  delete,
+  Widget build(BuildContext context, WidgetRef ref) => IconButton(
+    key: ValueKey('library_menu_${entry.sourceId}'),
+    tooltip: MaterialLocalizations.of(context).showMenuTooltip,
+    icon: const Icon(Icons.more_vert_rounded),
+    onPressed: () => showLibraryEntryActions(context, ref, entry),
+  );
 }

@@ -21,6 +21,7 @@ object SharedPreferencesManager {
                 put("fileId", completionData.fileId)
                 put("guideId", completionData.guideId)
                 put("timestamp", completionData.timestamp)
+                completionData.realDuration?.let { put("realDuration", it) }
             }
 
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -47,7 +48,8 @@ object SharedPreferencesManager {
                         duration = json.getLong("duration"),
                         fileId = json.getString("fileId"),
                         guideId = json.optString("guideId", "None"),
-                        timestamp = json.getLong("timestamp")
+                        timestamp = json.getLong("timestamp"),
+                        realDuration = realDurationOf(json),
                     )
                 } else {
                     Log.w(TAG, "Missing required fields in stored completion data")
@@ -79,6 +81,7 @@ object SharedPreferencesManager {
             put("fileId", completionData.fileId)
             put("guideId", completionData.guideId)
             put("timestamp", completionData.timestamp)
+            completionData.realDuration?.let { put("realDuration", it) }
         })
         writePendingRepeats(context, pending)
     }
@@ -94,7 +97,8 @@ object SharedPreferencesManager {
                     duration = json.getLong("duration"),
                     fileId = json.getString("fileId"),
                     guideId = json.optString("guideId", "None"),
-                    timestamp = json.getLong("timestamp")
+                    timestamp = json.getLong("timestamp"),
+                    realDuration = realDurationOf(json),
                 )
             } catch (e: JSONException) {
                 Log.e(TAG, "Error parsing pending repeat: ${e.message}")
@@ -113,6 +117,11 @@ object SharedPreferencesManager {
         }
         writePendingRepeats(context, remaining)
     }
+
+    // Absent from a completion saved before real time was recorded: Dart then
+    // takes the recording's length.
+    private fun realDurationOf(json: JSONObject): Long? =
+        if (json.has("realDuration")) json.optLong("realDuration") else null
 
     private fun readPendingRepeats(context: Context): JSONArray {
         val raw = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

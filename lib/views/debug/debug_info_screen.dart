@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:medito/widgets/headers/page_back_button.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/providers/device_and_app_info/device_and_app_info_provider.dart';
 import 'package:medito/providers/notification/reminder_provider.dart'
@@ -13,7 +14,7 @@ import 'package:medito/providers/notification/reminder_provider.dart'
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/views/home/widgets/header/home_header_widget.dart';
-import 'package:medito/views/onboarding/onboarding_pager_screen.dart';
+import 'package:medito/views/intro/intro_view.dart';
 import 'package:medito/widgets/snackbar_widget.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/services/history/app_history_service.dart';
@@ -57,6 +58,11 @@ class DebugInfoScreen extends ConsumerWidget {
       appBar: AppBar(
         centerTitle: false,
         automaticallyImplyLeading: false,
+        leading: PageBackButton(
+          // Development aid: the first-launch intro, as a new install
+          // sees it.
+          onLongPress: () => _openIntro(context),
+        ),
         title: HomeHeaderWidget(
           greeting: AppLocalizations.of(context)!.debugInfo,
         ),
@@ -72,12 +78,6 @@ class DebugInfoScreen extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         child: Row(
           children: [
-            IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.of(context).pop(),
-              onLongPress: () => _openOnboardingFlow(context),
-              tooltip: AppLocalizations.of(context)!.goBack,
-            ),
             const Spacer(),
             FilledButton.icon(
               onPressed: () => _copyDebugInfo(context, ref),
@@ -426,10 +426,8 @@ class DebugInfoScreen extends ConsumerWidget {
     return scheduledDate;
   }
 
-  void _openOnboardingFlow(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const OnboardingPagerScreen()),
-    );
+  void _openIntro(BuildContext context) {
+    Navigator.of(context).push(IntroView.firstRunRoute());
   }
 
   Widget _buildHistorySection(

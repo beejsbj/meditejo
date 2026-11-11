@@ -199,7 +199,9 @@ data class YoutubeVideo (
   val uploader: String,
   val durationSeconds: Long,
   val thumbnail: String,
-  val description: String
+  val description: String,
+  val channelUrl: String? = null,
+  val channelAvatar: String? = null
 )
  {
   companion object {
@@ -210,7 +212,9 @@ data class YoutubeVideo (
       val durationSeconds = pigeonVar_list[3] as Long
       val thumbnail = pigeonVar_list[4] as String
       val description = pigeonVar_list[5] as String
-      return YoutubeVideo(videoId, title, uploader, durationSeconds, thumbnail, description)
+      val channelUrl = pigeonVar_list[6] as String?
+      val channelAvatar = pigeonVar_list[7] as String?
+      return YoutubeVideo(videoId, title, uploader, durationSeconds, thumbnail, description, channelUrl, channelAvatar)
     }
   }
   fun toList(): List<Any?> {
@@ -221,6 +225,8 @@ data class YoutubeVideo (
       durationSeconds,
       thumbnail,
       description,
+      channelUrl,
+      channelAvatar,
     )
   }
   override fun equals(other: Any?): Boolean {
@@ -231,7 +237,7 @@ data class YoutubeVideo (
       return true
     }
     val other = other as YoutubeVideo
-    return YoutubeApiPigeonUtils.deepEquals(this.videoId, other.videoId) && YoutubeApiPigeonUtils.deepEquals(this.title, other.title) && YoutubeApiPigeonUtils.deepEquals(this.uploader, other.uploader) && YoutubeApiPigeonUtils.deepEquals(this.durationSeconds, other.durationSeconds) && YoutubeApiPigeonUtils.deepEquals(this.thumbnail, other.thumbnail) && YoutubeApiPigeonUtils.deepEquals(this.description, other.description)
+    return YoutubeApiPigeonUtils.deepEquals(this.videoId, other.videoId) && YoutubeApiPigeonUtils.deepEquals(this.title, other.title) && YoutubeApiPigeonUtils.deepEquals(this.uploader, other.uploader) && YoutubeApiPigeonUtils.deepEquals(this.durationSeconds, other.durationSeconds) && YoutubeApiPigeonUtils.deepEquals(this.thumbnail, other.thumbnail) && YoutubeApiPigeonUtils.deepEquals(this.description, other.description) && YoutubeApiPigeonUtils.deepEquals(this.channelUrl, other.channelUrl) && YoutubeApiPigeonUtils.deepEquals(this.channelAvatar, other.channelAvatar)
   }
 
   override fun hashCode(): Int {
@@ -242,6 +248,8 @@ data class YoutubeVideo (
     result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.durationSeconds)
     result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.thumbnail)
     result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.description)
+    result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.channelUrl)
+    result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.channelAvatar)
     return result
   }
 }
@@ -249,6 +257,7 @@ data class YoutubeVideo (
 /**
  * A playlist row. [uploader] is the channel that made this video, which is
  * not the playlist's own owner; empty when the extractor does not say.
+ * [channelUrl] is that channel's page, null or empty when unknown.
  *
  * Generated class from Pigeon that represents data sent in messages.
  */
@@ -257,7 +266,8 @@ data class YoutubePlaylistItem (
   val title: String,
   val uploader: String,
   val durationSeconds: Long,
-  val thumbnail: String
+  val thumbnail: String,
+  val channelUrl: String? = null
 )
  {
   companion object {
@@ -267,7 +277,8 @@ data class YoutubePlaylistItem (
       val uploader = pigeonVar_list[2] as String
       val durationSeconds = pigeonVar_list[3] as Long
       val thumbnail = pigeonVar_list[4] as String
-      return YoutubePlaylistItem(videoId, title, uploader, durationSeconds, thumbnail)
+      val channelUrl = pigeonVar_list[5] as String?
+      return YoutubePlaylistItem(videoId, title, uploader, durationSeconds, thumbnail, channelUrl)
     }
   }
   fun toList(): List<Any?> {
@@ -277,6 +288,7 @@ data class YoutubePlaylistItem (
       uploader,
       durationSeconds,
       thumbnail,
+      channelUrl,
     )
   }
   override fun equals(other: Any?): Boolean {
@@ -287,7 +299,7 @@ data class YoutubePlaylistItem (
       return true
     }
     val other = other as YoutubePlaylistItem
-    return YoutubeApiPigeonUtils.deepEquals(this.videoId, other.videoId) && YoutubeApiPigeonUtils.deepEquals(this.title, other.title) && YoutubeApiPigeonUtils.deepEquals(this.uploader, other.uploader) && YoutubeApiPigeonUtils.deepEquals(this.durationSeconds, other.durationSeconds) && YoutubeApiPigeonUtils.deepEquals(this.thumbnail, other.thumbnail)
+    return YoutubeApiPigeonUtils.deepEquals(this.videoId, other.videoId) && YoutubeApiPigeonUtils.deepEquals(this.title, other.title) && YoutubeApiPigeonUtils.deepEquals(this.uploader, other.uploader) && YoutubeApiPigeonUtils.deepEquals(this.durationSeconds, other.durationSeconds) && YoutubeApiPigeonUtils.deepEquals(this.thumbnail, other.thumbnail) && YoutubeApiPigeonUtils.deepEquals(this.channelUrl, other.channelUrl)
   }
 
   override fun hashCode(): Int {
@@ -297,12 +309,15 @@ data class YoutubePlaylistItem (
     result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.uploader)
     result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.durationSeconds)
     result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.thumbnail)
+    result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.channelUrl)
     return result
   }
 }
 
 /**
- * A whole playlist, every page of it, in playlist order.
+ * A whole playlist, every page of it, in playlist order. [description] is
+ * the playlist's own text; [channelUrl] and [channelAvatar] are its owner's
+ * channel page and picture. Each is null or empty when unknown.
  *
  * Generated class from Pigeon that represents data sent in messages.
  */
@@ -310,7 +325,10 @@ data class YoutubePlaylist (
   val title: String,
   val uploader: String,
   val thumbnail: String,
-  val items: List<YoutubePlaylistItem>
+  val items: List<YoutubePlaylistItem>,
+  val description: String? = null,
+  val channelUrl: String? = null,
+  val channelAvatar: String? = null
 )
  {
   companion object {
@@ -319,7 +337,10 @@ data class YoutubePlaylist (
       val uploader = pigeonVar_list[1] as String
       val thumbnail = pigeonVar_list[2] as String
       val items = pigeonVar_list[3] as List<YoutubePlaylistItem>
-      return YoutubePlaylist(title, uploader, thumbnail, items)
+      val description = pigeonVar_list[4] as String?
+      val channelUrl = pigeonVar_list[5] as String?
+      val channelAvatar = pigeonVar_list[6] as String?
+      return YoutubePlaylist(title, uploader, thumbnail, items, description, channelUrl, channelAvatar)
     }
   }
   fun toList(): List<Any?> {
@@ -328,6 +349,9 @@ data class YoutubePlaylist (
       uploader,
       thumbnail,
       items,
+      description,
+      channelUrl,
+      channelAvatar,
     )
   }
   override fun equals(other: Any?): Boolean {
@@ -338,7 +362,7 @@ data class YoutubePlaylist (
       return true
     }
     val other = other as YoutubePlaylist
-    return YoutubeApiPigeonUtils.deepEquals(this.title, other.title) && YoutubeApiPigeonUtils.deepEquals(this.uploader, other.uploader) && YoutubeApiPigeonUtils.deepEquals(this.thumbnail, other.thumbnail) && YoutubeApiPigeonUtils.deepEquals(this.items, other.items)
+    return YoutubeApiPigeonUtils.deepEquals(this.title, other.title) && YoutubeApiPigeonUtils.deepEquals(this.uploader, other.uploader) && YoutubeApiPigeonUtils.deepEquals(this.thumbnail, other.thumbnail) && YoutubeApiPigeonUtils.deepEquals(this.items, other.items) && YoutubeApiPigeonUtils.deepEquals(this.description, other.description) && YoutubeApiPigeonUtils.deepEquals(this.channelUrl, other.channelUrl) && YoutubeApiPigeonUtils.deepEquals(this.channelAvatar, other.channelAvatar)
   }
 
   override fun hashCode(): Int {
@@ -347,6 +371,60 @@ data class YoutubePlaylist (
     result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.uploader)
     result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.thumbnail)
     result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.items)
+    result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.description)
+    result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.channelUrl)
+    result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.channelAvatar)
+    return result
+  }
+}
+
+/**
+ * A channel's own page: its name, picture and "About" text. Unknown strings
+ * are empty.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class YoutubeChannel (
+  val url: String,
+  val name: String,
+  val avatar: String,
+  val description: String
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): YoutubeChannel {
+      val url = pigeonVar_list[0] as String
+      val name = pigeonVar_list[1] as String
+      val avatar = pigeonVar_list[2] as String
+      val description = pigeonVar_list[3] as String
+      return YoutubeChannel(url, name, avatar, description)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      url,
+      name,
+      avatar,
+      description,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as YoutubeChannel
+    return YoutubeApiPigeonUtils.deepEquals(this.url, other.url) && YoutubeApiPigeonUtils.deepEquals(this.name, other.name) && YoutubeApiPigeonUtils.deepEquals(this.avatar, other.avatar) && YoutubeApiPigeonUtils.deepEquals(this.description, other.description)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.url)
+    result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.name)
+    result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.avatar)
+    result = 31 * result + YoutubeApiPigeonUtils.deepHash(this.description)
     return result
   }
 }
@@ -422,6 +500,11 @@ private open class YoutubeApiPigeonCodec : StandardMessageCodec() {
       }
       132.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
+          YoutubeChannel.fromList(it)
+        }
+      }
+      133.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
           YoutubeAudioStream.fromList(it)
         }
       }
@@ -442,8 +525,12 @@ private open class YoutubeApiPigeonCodec : StandardMessageCodec() {
         stream.write(131)
         writeValue(stream, value.toList())
       }
-      is YoutubeAudioStream -> {
+      is YoutubeChannel -> {
         stream.write(132)
+        writeValue(stream, value.toList())
+      }
+      is YoutubeAudioStream -> {
+        stream.write(133)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -465,6 +552,8 @@ interface YoutubeExtractorApi {
   fun resolvePlaylist(url: String, callback: (Result<YoutubePlaylist>) -> Unit)
   fun resolveVideo(urlOrId: String, callback: (Result<YoutubeVideo>) -> Unit)
   fun resolveAudioStream(videoId: String, callback: (Result<YoutubeAudioStream>) -> Unit)
+  /** [url] is a channel page, as a video or a playlist reported it. */
+  fun resolveChannel(url: String, callback: (Result<YoutubeChannel>) -> Unit)
 
   companion object {
     /** The codec used by YoutubeExtractorApi. */
@@ -522,6 +611,26 @@ interface YoutubeExtractorApi {
             val args = message as List<Any?>
             val videoIdArg = args[0] as String
             api.resolveAudioStream(videoIdArg) { result: Result<YoutubeAudioStream> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(YoutubeApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(YoutubeApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.medito.YoutubeExtractorApi.resolveChannel$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val urlArg = args[0] as String
+            api.resolveChannel(urlArg) { result: Result<YoutubeChannel> ->
               val error = result.exceptionOrNull()
               if (error != null) {
                 reply.reply(YoutubeApiPigeonUtils.wrapError(error))

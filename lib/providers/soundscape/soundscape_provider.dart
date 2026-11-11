@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../models/presets/preset.dart';
 import '../../models/soundscape/sound_library.dart';
 import '../../models/soundscape/sound_mix.dart';
 import '../../models/soundscape/starter_presets.dart';
@@ -85,7 +86,7 @@ class SoundscapeState {
   final bool playing;
   final SoundscapeOwner owner;
   final SoundscapeSessionKind? sessionKind;
-  final List<SoundPreset> userPresets;
+  final List<Preset> userPresets;
 
   /// Sounds that failed to load this run; skipped until picked again.
   final Set<String> failed;
@@ -100,11 +101,18 @@ class SoundscapeState {
   /// plays under it. Sounds added meanwhile join the session.
   bool get inSession => sessionKind != null;
 
-  List<SoundPreset> get presets => [...kStarterPresets, ...userPresets];
+  /// Every preset: the built-in ones, then the user's.
+  List<Preset> get presets => [...kStarterPresets, ...userPresets];
 
-  /// The preset the current mix still matches, if any.
-  SoundPreset? get matchingPreset {
-    for (final p in presets) {
+  /// The presets with sound layers to play: what the Sounds sheet offers.
+  Iterable<Preset> get soundPresets => presets.where((p) => p.playsSound);
+
+  Preset? preset(String id) => presets.where((p) => p.id == id).firstOrNull;
+
+  /// The preset whose sound the current mix still is, if any.
+  Preset? get matchingPreset {
+    if (mix.isEmpty) return null;
+    for (final p in soundPresets) {
       if (p.mix == mix) return p;
     }
     return null;
@@ -112,6 +120,16 @@ class SoundscapeState {
 
   SoundscapeSessionDefault sessionDefault(SoundscapeSessionKind kind) =>
       sessionDefaults[kind] ?? SoundscapeSessionDefault.initial(kind);
+
+  /// What choosing [mix] in the Sounds sheet keeps: nothing, a preset it
+  /// still matches, or the layers themselves.
+  SoundscapeSelection selectionFor(SoundMix mix) {
+    if (mix.isEmpty) return SoundscapeSelection.none;
+    for (final p in soundPresets) {
+      if (p.mix == mix) return SoundscapeSelection.preset(p.id);
+    }
+    return SoundscapeSelection.layers(mix);
+  }
 
   /// [selection] as it will play: a preset that was deleted (or whose sounds
   /// the library has all dropped), or a sound a later library dropped, means
@@ -129,6 +147,14 @@ class SoundscapeState {
             !library.contains(selection.id) &&
             !isSynthId(selection.id) =>
       SoundscapeSelection.currentMix,
+    // A mix chosen for sessions is its own: with none of its sounds left
+    // it is silence, never the user's own mix, which it never named.
+    SoundscapeSelectionKind.layers
+        when library != null &&
+            !(selection.mix ?? SoundMix.empty).layers.any(
+              (l) => library.contains(l.soundId) || isSynthId(l.soundId),
+            ) =>
+      SoundscapeSelection.none,
     _ => selection,
   };
 
@@ -136,8 +162,8 @@ class SoundscapeState {
   /// no sounds left, or none to begin with, does not). [library] null (still
   /// loading) takes its sounds on trust.
   bool _presetPlays(String id, SoundLibrary? library) {
-    final preset = presets.where((p) => p.id == id).firstOrNull;
-    if (preset == null) return false;
+    final preset = this.preset(id);
+    if (preset == null || !preset.playsSound) return false;
     if (library == null) return true;
     return preset.mix.layers.any(
       (l) => library.contains(l.soundId) || isSynthId(l.soundId),
@@ -150,7 +176,7 @@ class SoundscapeState {
     bool? playing,
     SoundscapeOwner? owner,
     Object? sessionKind = _keep,
-    List<SoundPreset>? userPresets,
+    List<Preset>? userPresets,
     Set<String>? failed,
     Map<SoundscapeSessionKind, SoundscapeSessionDefault>? sessionDefaults,
   }) => SoundscapeState(
@@ -212,6 +238,9 @@ class SoundscapeController extends Notifier<SoundscapeState> {
 
   /// Paused for another app's transient audio (a call); resumed with it.
   bool _pausedByFocus = false;
+
+  /// A sound chooser (the Sounds sheet, on a session's sound) is open: see [beginAudition].
+  _Audition? _audition;
 
   /// How long Sounds may sit paused on their own (after a manual pause, an
   /// unplug, a lost focus) before they stop and let go of the foreground
@@ -344,7 +373,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
 
   /// Master volume. Under a session it is that session kind's level.
   void setVolume(double volume) {
-    final kind = state.sessionKind;
+    final kind = _levelKind;
     if (kind != null) {
       setSessionVolume(kind, volume);
     } else {
@@ -363,13 +392,17 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       kind: state.sessionDefault(kind).copyWith(volume: v),
     };
     _store.writeSessionDefaults(defaults);
+    final audible = _levelKind == kind;
     _update(
-      state.copyWith(
-        volume: state.sessionKind == kind ? v : null,
-        sessionDefaults: defaults,
-      ),
+      state.copyWith(volume: audible ? v : null, sessionDefaults: defaults),
     );
   }
+
+  /// Whose level the mixer plays at: while a chooser is open, the kind it
+  /// chooses for (a talks chooser opened during a sit is heard, and sets its
+  /// level, as talks); otherwise the running session's kind; null on its
+  /// own.
+  SoundscapeSessionKind? get _levelKind => _audition?.kind ?? state.sessionKind;
 
   /// Play or pause. Starting from silence plays the current mix on its own.
   void togglePlay() {
@@ -399,6 +432,16 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   /// Stops the sounds (the Sounds screen's Stop; the notification's Stop).
   /// A running session stays a session: sounds added later join it.
   void stop() {
+    // Stopped by hand while a chooser is open (its dock's Stop, the
+    // notification's): what played before it opened stays stopped when it
+    // closes.
+    _audition = _audition?.stopped();
+    _halt();
+  }
+
+  /// Stops the sounds because nothing is left to play (an emptied mix, a
+  /// mix none of whose sounds would load): not a Stop the user asked for.
+  void _halt() {
     _pausedByFocus = false;
     if (state.inSession) {
       _update(state.copyWith(playing: false, owner: SoundscapeOwner.none));
@@ -409,9 +452,18 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         playing: false,
         owner: SoundscapeOwner.none,
         sessionKind: null,
-        volume: _store.readVolume(),
+        volume: _standaloneVolume(),
       ),
     );
+  }
+
+  /// The level sounds play at on their own: the Sounds volume, or while a
+  /// chooser auditions, the level of the sessions it chooses for.
+  double _standaloneVolume() {
+    final audition = _audition;
+    return audition == null
+        ? _store.readVolume()
+        : state.sessionDefault(audition.kind).volume;
   }
 
   /// Plays [selection] now. Outside a session it plays on its own; under a
@@ -426,18 +478,18 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       if (state.underSession) {
         _update(state.copyWith(playing: false));
       } else {
-        stop();
+        _halt();
       }
       return;
     }
-    _store.writeMix(mix);
+    if (_audition == null) _store.writeMix(mix);
     if (state.inSession) {
       _update(
         state.copyWith(
           mix: mix,
           playing: _sessionPlaying,
           owner: SoundscapeOwner.session,
-          volume: volume ?? state.sessionDefault(state.sessionKind!).volume,
+          volume: volume ?? state.sessionDefault(_levelKind!).volume,
           failed: const {},
         ),
       );
@@ -450,20 +502,56 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   void applyPreset(String presetId) =>
       unawaited(play(SoundscapeSelection.preset(presetId)));
 
-  /// Saves the current mix as a preset named [name] and returns it.
-  SoundPreset? savePreset(String name) {
+  /// A fresh id for a preset the user saves.
+  static String newPresetId() =>
+      'user-${DateTime.now().microsecondsSinceEpoch}';
+
+  /// Saves the current mix as a preset named [name], holding only its
+  /// Sound slot, and returns it.
+  Preset? savePreset(String name) {
     final trimmed = name.trim();
     if (trimmed.isEmpty || state.mix.isEmpty) return null;
-    final preset = SoundPreset(
-      id: 'user-${DateTime.now().microsecondsSinceEpoch}',
+    final preset = Preset.sound(
+      id: newPresetId(),
       name: trimmed,
       mix: state.mix,
     );
-    final presets = [...state.userPresets, preset];
-    _store.writePresets(presets);
-    _update(state.copyWith(userPresets: presets));
+    putPreset(preset);
     return preset;
   }
+
+  /// Keeps [preset]: in place of the one with its id, or as a new one, last.
+  void putPreset(Preset preset) {
+    if (preset.builtIn) return;
+    final at = state.userPresets.indexWhere((p) => p.id == preset.id);
+    final presets = [...state.userPresets];
+    if (at < 0) {
+      presets.add(preset);
+    } else {
+      presets[at] = preset;
+    }
+    _store.writePresets(presets);
+    _update(state.copyWith(userPresets: presets));
+  }
+
+  /// Reads the presets again, after something else rewrote the store (a
+  /// deleted bell is swapped for the default one in every preset).
+  void reloadPresets() =>
+      _update(state.copyWith(userPresets: _store.readPresets()));
+
+  /// [selection] as layers, without waiting for the library: what a preset
+  /// saved now would hold as its sound.
+  SoundMix selectionMix(SoundscapeSelection selection) =>
+      switch (selection.kind) {
+        SoundscapeSelectionKind.none => SoundMix.empty,
+        SoundscapeSelectionKind.mix => _currentMix(),
+        SoundscapeSelectionKind.preset =>
+          state.preset(selection.id)?.mix ?? SoundMix.empty,
+        SoundscapeSelectionKind.sound => SoundMix([
+          SoundLayer(soundId: selection.id, volume: 0.8),
+        ]),
+        SoundscapeSelectionKind.layers => selection.mix ?? SoundMix.empty,
+      };
 
   void deletePreset(String presetId) {
     final presets = [
@@ -506,14 +594,160 @@ class SoundscapeController extends Notifier<SoundscapeState> {
 
   void setSessionDefault(
     SoundscapeSessionKind kind,
-    SoundscapeSessionDefault value,
-  ) {
+    SoundscapeSessionDefault value, {
+    bool followNow = false,
+  }) {
     final defaults = {...state.sessionDefaults, kind: value};
     _store.writeSessionDefaults(defaults);
     _update(state.copyWith(sessionDefaults: defaults));
     if (state.sessionKind == kind) {
+      // Chosen from inside the running session (its player, its Customize):
+      // it plays now, even over what the session was started with.
+      if (followNow) _sessionSelection = null;
       unawaited(startSession(kind, selection: _sessionSelection));
     }
+  }
+
+  /// Keeps [choice] as what plays under sessions of [kind]: `none` switches
+  /// the kind off and keeps its last selection for when it is on again.
+  /// [followNow]: see [setSessionDefault].
+  void setSessionChoice(
+    SoundscapeSessionKind kind,
+    SoundscapeSelection choice, {
+    bool followNow = false,
+  }) {
+    final current = state.sessionDefault(kind);
+    final off = choice.kind == SoundscapeSelectionKind.none;
+    setSessionDefault(
+      kind,
+      current.copyWith(
+        enabled: !off,
+        selection: off ? current.selection : choice,
+      ),
+      followNow: followNow,
+    );
+  }
+
+  /// What sessions of [kind] play with [selection] (the scope's own choice,
+  /// or null for the kind's default), as the choice a chooser starts from:
+  /// `none` while it is off, a dropped preset or sound as the current mix.
+  SoundscapeSelection sessionChoice(
+    SoundscapeSessionKind kind,
+    SoundscapeSelection? selection, {
+    SoundLibrary? library,
+  }) {
+    final setting = sessionSetting(state.sessionDefault(kind), selection);
+    if (!setting.enabled) return SoundscapeSelection.none;
+    return state.playable(setting.selection, library);
+  }
+
+  /// [selection] as the layers it plays (a stored default's fallbacks
+  /// included: a dropped preset plays the current mix).
+  Future<SoundMix> resolveSelection(SoundscapeSelection selection) =>
+      _resolve(selection);
+
+  // ---------------------------------------------------------------------------
+  // The Sounds sheet on a session's sound (#66): choosing sounds is editing a mix, heard as it is
+  // made. The draft lives in [state] while the chooser is open, so the same
+  // controls (cards, presets, layers) edit it, but it is never written as
+  // the user's own mix.
+
+  /// Whether a chooser is open.
+  bool get auditioning => _audition != null;
+
+  /// A chooser is opening or open (one at a time: a double tap opens one).
+  bool _chooserClaimed = false;
+
+  /// Claims the one chooser; false when one is already opening or open.
+  /// [releaseChooser] gives it back.
+  bool claimChooser() {
+    if (_chooserClaimed) return false;
+    return _chooserClaimed = true;
+  }
+
+  void releaseChooser() => _chooserClaimed = false;
+
+  /// Whether the open chooser still holds the mixer: false once a session
+  /// has started or ended under it, when what plays is no longer its draft
+  /// and nothing in the sheet should be kept.
+  bool get auditionIntact =>
+      _audition != null && _audition!.token == _sessionToken;
+
+  /// A chooser opened on [draft], for sessions of [kind]. Inside a running
+  /// session of that kind which plays [draft] already, it keeps playing and
+  /// edits are heard under the session. Otherwise whatever played stops and
+  /// [draft] waits, silent, for the first tap (a card, a preset, play);
+  /// then it plays on its own at the level of [kind]'s sessions, or under
+  /// the running session.
+  void beginAudition(SoundscapeSessionKind kind, SoundMix draft) {
+    if (_audition != null) endAudition();
+    final before = state;
+    _audition = _Audition(before, _sessionToken, kind);
+    if (before.underSession &&
+        before.sessionKind == kind &&
+        before.mix == draft) {
+      return;
+    }
+    _pausedByFocus = false;
+    _update(
+      state.copyWith(
+        mix: draft,
+        playing: false,
+        owner: SoundscapeOwner.none,
+        sessionKind: before.sessionKind,
+        volume: state.sessionDefault(kind).volume,
+        failed: const {},
+      ),
+    );
+  }
+
+  /// The chooser closed. What was there before it opened comes back (the
+  /// user's own mix, playing or paused as it was; a session's sound),
+  /// unless [keep]: inside a running session, the draft just chosen for it
+  /// keeps playing. A session that started or ended meanwhile owns the
+  /// mixer now, and nothing is put back over it.
+  void endAudition({bool keep = false}) {
+    final audition = _audition;
+    if (audition == null) return;
+    _audition = null;
+    if (audition.token != _sessionToken) {
+      if (!state.inSession) {
+        _update(
+          state.copyWith(
+            mix: _currentMix(),
+            playing: false,
+            owner: SoundscapeOwner.none,
+            volume: _store.readVolume(),
+          ),
+        );
+      }
+      return;
+    }
+    final before = audition.before;
+    // Back in the same running session: its level is what is stored for
+    // its kind now (the sheet's slider may have moved it), not the one it
+    // had when the chooser opened. On its own, the Sounds volume.
+    final sessionKind = before.sessionKind;
+    final volume = sessionKind != null
+        ? state.sessionDefault(sessionKind).volume
+        : _store.readVolume();
+    if (keep && state.inSession) {
+      if (state.volume != volume) _update(state.copyWith(volume: volume));
+      return;
+    }
+    final owner = before.owner;
+    _update(
+      state.copyWith(
+        mix: before.mix,
+        owner: owner,
+        playing: owner == SoundscapeOwner.session
+            ? _sessionPlaying
+            : before.playing,
+        sessionKind: sessionKind,
+        volume: volume,
+        failed: before.failed,
+      ),
+    );
   }
 
   /// The running session's own choice (a course's Customize selection),
@@ -621,6 +855,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       SoundscapeSelectionKind.sound => SoundMix([
         SoundLayer(soundId: selection.id, volume: 0.8),
       ]),
+      SoundscapeSelectionKind.layers => selection.mix ?? SoundMix.empty,
     };
     return mix.where((id) => _isKnown(id, library));
   }
@@ -646,10 +881,11 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       };
 
   void _editMix(SoundMix mix, {Set<String>? failed, bool start = false}) {
-    _store.writeMix(mix);
+    // A chooser's draft is not the user's own mix.
+    if (_audition == null) _store.writeMix(mix);
     if (mix.isEmpty && state.active) {
       _update(state.copyWith(mix: mix, failed: failed));
-      stop();
+      _halt();
       return;
     }
     _update(state.copyWith(mix: mix, failed: failed));
@@ -659,8 +895,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   /// Plays the current mix: under the running session if there is one,
   /// otherwise on its own.
   void _start({double? volume}) {
-    final kind = state.sessionKind;
-    if (kind == null) {
+    if (state.sessionKind == null) {
       _startStandalone(volume: volume);
       return;
     }
@@ -668,20 +903,22 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       state.copyWith(
         playing: _sessionPlaying,
         owner: SoundscapeOwner.session,
-        volume: volume ?? state.sessionDefault(kind).volume,
+        volume: volume ?? state.sessionDefault(_levelKind!).volume,
         failed: const {},
       ),
     );
   }
 
   void _startStandalone({double? volume}) {
-    if (volume != null) _store.writeVolume(volume.clamp(0.0, 1.0));
+    if (volume != null && _audition == null) {
+      _store.writeVolume(volume.clamp(0.0, 1.0));
+    }
     _update(
       state.copyWith(
         playing: true,
         owner: SoundscapeOwner.standalone,
         sessionKind: null,
-        volume: _store.readVolume(),
+        volume: _standaloneVolume(),
         failed: const {},
       ),
     );
@@ -870,7 +1107,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
         _applied.isEmpty &&
         state.active &&
         state.mix == s.mix) {
-      stop();
+      _halt();
     }
     // Silent and nothing loaded: close the output stream too.
     if (ref.mounted && !s.active && _applied.isEmpty && !state.active) {
@@ -900,4 +1137,26 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       await _keepAlive.release();
     }
   }
+}
+
+/// What a chooser found when it opened, to put back as it closes.
+class _Audition {
+  const _Audition(this.before, this.token, this.kind);
+
+  /// The same, with what played before it silenced: a Stop while the
+  /// chooser was open.
+  _Audition stopped() => _Audition(
+    before.copyWith(playing: false, owner: SoundscapeOwner.none),
+    token,
+    kind,
+  );
+
+  final SoundscapeState before;
+
+  /// The session token then: a different one means a session started or
+  /// ended while the chooser was open.
+  final int token;
+
+  /// The sessions the chooser chooses for: their level is the draft's.
+  final SoundscapeSessionKind kind;
 }

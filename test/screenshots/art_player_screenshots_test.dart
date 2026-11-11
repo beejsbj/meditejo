@@ -12,12 +12,17 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/theme/app_theme.dart';
+import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/player/playback_request.dart';
+import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/models/track/track.dart' as model;
+import 'package:medito/providers/cues/cue_runtime_provider.dart';
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
+import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/providers.dart';
@@ -179,9 +184,28 @@ void main() {
     await _loadFonts();
   });
 
-  for (final brightness in Brightness.values) {
-    testWidgets('the player over its art, ${brightness.name}', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2340);
+  // In a course the player offers Autoplay under the transport (#72).
+  for (final (brightness, inCourse, isTimer, short, stopwatch) in [
+    for (final b in Brightness.values)
+      for (final (c, t) in [(false, false), (true, false), (false, true)])
+        (b, c, t, false, false),
+    // A short phone (360 x 640 dp): the mark shrinks so the transport fits.
+    (Brightness.light, false, true, true, false),
+    (Brightness.light, false, true, true, true),
+  ]) {
+    final name = short
+        ? 'the ${stopwatch ? 'stopwatch' : 'timer'} player on a short phone'
+        : isTimer
+        ? 'the timer player'
+        : inCourse
+        ? 'the player in a course'
+        : 'the player over its art';
+    final file =
+        'player-${inCourse ? 'course-' : ''}${isTimer ? 'timer-' : ''}${stopwatch ? 'stopwatch-' : ''}${short ? 'short-' : ''}${brightness.name}';
+    testWidgets('$name, ${brightness.name}', (tester) async {
+      tester.view.physicalSize = short
+          ? const Size(945, 1680)
+          : const Size(1080, 2340);
       tester.view.devicePixelRatio = 2.625;
       addTearDown(tester.view.reset);
       await tester.pumpWidget(
@@ -204,7 +228,18 @@ void main() {
                 return db;
               }),
               playerProvider.overrideWith(
-                () => _FakePlayer(_request(attribution: _credit)),
+                () => _FakePlayer(
+                  isTimer
+                      ? timerPlaybackRequest(
+                          mode: stopwatch
+                              ? TimerMode.stopwatch
+                              : TimerMode.countdown,
+                          duration: const Duration(minutes: 20),
+                          filePath: '/tmp/silence.mp3',
+                          title: 'Timer',
+                        )
+                      : _request(attribution: _credit),
+                ),
               ),
               audioStateProvider.overrideWith(_IdleAudio.new),
               backgroundSoundsNotifierProvider.overrideWith(
@@ -212,6 +247,13 @@ void main() {
               ),
               statsProvider.overrideWith(_Stats.new),
               reviewServiceProvider.overrideWithValue(_Review()),
+              if (inCourse)
+                cueScopeForRequestProvider.overrideWith(
+                  (ref, request) async => const CueScope(
+                    CueKind.practice,
+                    courseId: 'ds-retreat-4496',
+                  ),
+                ),
             ],
             child: Builder(
               builder: (context) => Theme(
@@ -233,22 +275,48 @@ void main() {
         );
         await tester.pump(const Duration(milliseconds: 100));
       }
+      // The course is resolved off the test's clock; give a loaded machine
+      // longer before the Autoplay button is looked for.
+      final autoplay = find.byKey(const ValueKey('player_autoplay'));
+      for (var i = 0; i < 40 && inCourse && autoplay.evaluate().isEmpty; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+      }
       // The player shows an error screen instead when it cannot start (an
       // unknown track, or a failed start); that must fail here, not pass as
       // a capture of the error.
       expect(find.byType(MeditoErrorWidget), findsNothing);
       expect(find.byType(PlayerView), findsOneWidget);
-      if (_enabled) {
-        await tester.runAsync(() async {
-          final render =
-              _boundary.currentContext!.findRenderObject()!
-                  as RenderRepaintBoundary;
-          final image = await render.toImage(pixelRatio: 2.625);
-          final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-          File('$_out/player-${brightness.name}.png')
-            ..parent.createSync(recursive: true)
-            ..writeAsBytesSync(bytes!.buffer.asUint8List());
-        });
+      expect(autoplay, inCourse ? findsOneWidget : findsNothing);
+      Future<void> shoot(String file) => tester.runAsync(() async {
+        final render =
+            _boundary.currentContext!.findRenderObject()!
+                as RenderRepaintBoundary;
+        final image = await render.toImage(pixelRatio: 2.625);
+        final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+        File('$_out/$file.png')
+          ..parent.createSync(recursive: true)
+          ..writeAsBytesSync(bytes!.buffer.asUint8List());
+      });
+      if (_enabled) await shoot(file);
+      // In one of Extend's holds: "Silence" between the seek bar's times.
+      if (!inCourse && !isTimer && !short) {
+        ProviderScope.containerOf(
+          tester.element(find.byType(PlayerView)),
+        ).read(cueRuntimeProvider.notifier).updateFromMap({'phase': 'hold'});
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        expect(
+          tester
+              .widget<AnimatedOpacity>(
+                find.byKey(const ValueKey('player_silence')),
+              )
+              .opacity,
+          greaterThan(0),
+        );
+        if (_enabled) await shoot('player-silence-${brightness.name}');
       }
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 1));

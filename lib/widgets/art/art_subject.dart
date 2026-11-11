@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/synth.dart';
+import 'package:medito/services/bells/bell_recipe.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/widgets/art/engine/compose.dart';
 
@@ -19,8 +20,23 @@ sealed class ArtSubject {
   const factory ArtSubject.sound(String id, [Map<String, Object?> params]) =
       SoundArt;
   const factory ArtSubject.layers(String id, List<SoundLayer> layers) = MixArt;
-  const factory ArtSubject.cover(ArtCoverKind kind, String id) = CoverArt;
+  const factory ArtSubject.cover(
+    ArtCoverKind kind,
+    String id, {
+    String? practice,
+  }) = CoverArt;
   const factory ArtSubject.bell(String asset, {bool icon}) = BellArt;
+  const factory ArtSubject.practice(
+    String id, {
+    required String ground,
+    String? figure,
+  }) = PracticeArt;
+  const factory ArtSubject.customBell(
+    String id,
+    String preset,
+    BellKnobs knobs, {
+    bool icon,
+  }) = CustomBellArt;
 
   /// Stable across runs: the raster cache's key.
   String get key;
@@ -82,13 +98,26 @@ enum ArtCoverKind { course, playlist, single, teacher }
 
 /// A course, playlist, single or teacher's cover.
 final class CoverArt extends ArtSubject {
-  const CoverArt(this.kind, this.id);
+  const CoverArt(this.kind, this.id, {this.practice});
 
   final ArtCoverKind kind;
   final String id;
 
+  /// A practice whose own figure variants the item may draw
+  /// (`ArtMap.practiceLibrary`). Null asks [artPractices], so every screen
+  /// showing the item agrees.
+  final String? practice;
+
+  /// The practice this cover draws for: its own, or the one the app knows
+  /// the item by.
+  String? get drawnPractice =>
+      kind == ArtCoverKind.teacher ? null : practice ?? artPractices.value[id];
+
   @override
-  String get key => 'cover:${kind.name}:$id';
+  String get key {
+    final p = drawnPractice;
+    return 'cover:${kind.name}:$id${p == null ? '' : ':$p'}';
+  }
 
   @override
   bool operator ==(Object other) => other is CoverArt && other.key == key;
@@ -114,6 +143,79 @@ final class BellArt extends ArtSubject {
   int get hashCode => key.hashCode;
 }
 
+/// A way to practise (Mettā, Zazen…): its curated ground and figure, named
+/// in `assets/categories/categories.json` (decision 22: shipped, so curated).
+final class PracticeArt extends ArtSubject {
+  const PracticeArt(this.id, {required this.ground, this.figure});
+
+  final String id;
+  final String ground;
+
+  /// A figure in the registry, with an optional pinned variant
+  /// (`rings:ripple`); null draws the ground alone.
+  final String? figure;
+
+  @override
+  String get key => 'practice:$id:$ground:${figure ?? ''}';
+
+  @override
+  bool operator ==(Object other) => other is PracticeArt && other.key == key;
+
+  @override
+  int get hashCode => key.hashCode;
+}
+
+/// A bell the user made, drawn from its five controls: its card, or its
+/// icon. Seeded by [id], so it keeps its picture when renamed (decision 22);
+/// the controls move its figure, so a bell being made redraws as they move.
+final class CustomBellArt extends ArtSubject {
+  const CustomBellArt(this.id, this.preset, this.knobs, {this.icon = false});
+
+  /// The saved bell's id, or any stable word for one not saved yet.
+  final String id;
+
+  /// The shipped bell it started from (a key of `BellFigure.family`).
+  final String preset;
+  final BellKnobs knobs;
+  final bool icon;
+
+  @override
+  String get key =>
+      'custom-bell:${icon ? 'icon' : 'card'}:$id:$preset:'
+      '${knobs.pitch.toStringAsFixed(1)}:${knobs.bright.toStringAsFixed(3)}:'
+      '${knobs.ring.toStringAsFixed(3)}:${knobs.strike.toStringAsFixed(3)}:'
+      '${knobs.shimmer.toStringAsFixed(2)}';
+
+  @override
+  bool operator ==(Object other) => other is CustomBellArt && other.key == key;
+
+  @override
+  int get hashCode => key.hashCode;
+}
+
+/// For the library's items, the first practice each carries that has figure
+/// variants of its own (Noting, the Headless Way, Trāṭaka), by content id.
+/// Kept up to date from the library's labels (the app shell listens), and
+/// read by every cover of the item, so the Library, Home, Explore and the
+/// player draw the same art.
+final artPractices = ValueNotifier<Map<String, String>>(const {});
+
+/// [artPractices] as saved (a JSON object of id → practice); empty when
+/// missing or unreadable.
+Map<String, String> readArtPractices(String? saved) {
+  if (saved == null) return const {};
+  try {
+    final m = jsonDecode(saved);
+    if (m is! Map) return const {};
+    return {
+      for (final MapEntry(:key, :value) in m.entries)
+        if (key is String && value is String) key: value,
+    };
+  } on FormatException {
+    return const {};
+  }
+}
+
 /// The id the meaning map knows a mix layer by. Generated layers are named
 /// for what they are: the noise by its colour (`noise-brown`), the drone
 /// and binaural beats by their kind.
@@ -131,7 +233,11 @@ String artSoundId(String soundId, Map<String, Object?> params) =>
 /// frozen params and never rebuilt, so later engine changes can't move it
 /// (decision 22). Everything else is built from its id by [Compose].
 class CuratedArt extends ChangeNotifier {
-  CuratedArt._();
+  // A cover's key includes its item's practice, so a change there only
+  // needs the covers to look again.
+  CuratedArt._() {
+    artPractices.addListener(notifyListeners);
+  }
 
   static final instance = CuratedArt._();
 
@@ -178,6 +284,9 @@ class CuratedArt extends ChangeNotifier {
   /// may be curated.
   ArtComposition? resolve(ArtSubject subject) {
     if (_items == null) return null;
+    // A bell being made takes a new key with every move of a control: not
+    // worth remembering.
+    if (subject is CustomBellArt) return _resolve(subject);
     final key = subject.key;
     if (_resolved.containsKey(key)) return _resolved[key];
     return _resolved[key] = _resolve(subject);
@@ -203,14 +312,40 @@ class CuratedArt extends ChangeNotifier {
             for (final l in layers) (artSoundId(l.soundId, l.params), l.volume),
           ],
         ));
-      case CoverArt(:final kind, :final id):
+      case CoverArt(:final kind, :final id, :final drawnPractice):
+        final practice = drawnPractice;
         return _frozen(id) ??
             Compose.buildFor(id, switch (kind) {
               ArtCoverKind.course => 'course',
               ArtCoverKind.playlist => 'playlist',
               ArtCoverKind.single => 'single',
               ArtCoverKind.teacher => 'teacher',
-            });
+            }, practice: practice);
+      case PracticeArt(:final id, :final ground, :final figure):
+        return Compose.buildPractice(id, ground: ground, figure: figure);
+      case CustomBellArt(:final id, :final preset, :final knobs, :final icon):
+        final base = Compose.build(
+          icon ? 'bellicon' : 'bell',
+          id,
+          figureExtra: {'preset': preset},
+        );
+        final figure = base.figure;
+        if (figure == null) return base;
+        return ArtComposition(
+          cls: base.cls,
+          seed: base.seed,
+          ground: base.ground,
+          figure: ArtLayer(
+            figure.name,
+            {...figure.params, 'knobs': knobs.toJson()},
+            kind: figure.kind,
+            layout: figure.layout,
+          ),
+          accent: base.accent,
+          inkSeed: base.inkSeed,
+          misregister: base.misregister,
+          preset: base.preset,
+        );
       case BellArt(:final asset, :final icon):
         // Every shipped bell is curated, and its entry names its asset.
         final e = _items!.values

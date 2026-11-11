@@ -538,12 +538,6 @@ abstract class AppLocalizations {
   /// **'Completed'**
   String get completed;
 
-  /// No description provided for @submit.
-  ///
-  /// In en, this message translates to:
-  /// **'Submit'**
-  String get submit;
-
   /// No description provided for @duration.
   ///
   /// In en, this message translates to:
@@ -736,73 +730,13 @@ abstract class AppLocalizations {
   /// **'Minutes per day (optional)'**
   String get minutesPerDayOptional;
 
-  /// Title for the onboarding section in settings
-  ///
-  /// In en, this message translates to:
-  /// **'Onboarding'**
-  String get onboarding;
-
-  /// No description provided for @enableNotificationsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Stay on Track with Meditation Reminders'**
-  String get enableNotificationsTitle;
-
   /// No description provided for @enableNotificationsBody.
   ///
   /// In en, this message translates to:
   /// **'Enable notifications so you never miss a session.'**
   String get enableNotificationsBody;
 
-  /// Notifications screen title for users who want to learn to meditate (intent: learn_properly)
-  ///
-  /// In en, this message translates to:
-  /// **'Keep the learning going'**
-  String get enableNotificationsTitleLearn;
-
-  /// Notifications screen title for users who want to build a habit (intent: build_habit)
-  ///
-  /// In en, this message translates to:
-  /// **'Build the habit you\'re after'**
-  String get enableNotificationsTitleHabit;
-
-  /// Notifications screen title for users managing stress, sleep, or emotions (intent: stress_sleep_emotions)
-  ///
-  /// In en, this message translates to:
-  /// **'Make it part of your day'**
-  String get enableNotificationsTitleStress;
-
-  /// Timestamp shown on a fake iOS notification preview, mirroring iOS's 'now' label for a notification that just arrived
-  ///
-  /// In en, this message translates to:
-  /// **'now'**
-  String get notificationPreviewTimestamp;
-
-  /// Title of the fake notification shown in the onboarding notifications screen preview
-  ///
-  /// In en, this message translates to:
-  /// **'A quieter mind starts here'**
-  String get notificationPreviewTitleB;
-
-  /// Body of the fake notification shown in the onboarding notifications screen preview
-  ///
-  /// In en, this message translates to:
-  /// **'Your daily breath is waiting. Just tap to begin.'**
-  String get notificationPreviewBodyB;
-
-  /// Progress label under the onboarding pages, next to the circular progress ring
-  ///
-  /// In en, this message translates to:
-  /// **'Step {current} of {total}'**
-  String onboardingStepIndicator(int current, int total);
-
-  /// Shown on the onboarding reminder screen when a reminder is already set, above the chips that let the user change it
-  ///
-  /// In en, this message translates to:
-  /// **'Daily reminder set for {time}'**
-  String onboardingReminderCurrentlySet(String time);
-
-  /// Question above the time-of-day chips in the onboarding notifications screen (chips arm of the reminder experiment)
+  /// Question above the reminder time choices (Morning, Evening, Night, custom), in the sheet opened from Settings and from the end-of-session reminder card
   ///
   /// In en, this message translates to:
   /// **'When will you meditate?'**
@@ -880,12 +814,6 @@ abstract class AppLocalizations {
   /// **'Continue'**
   String get reminderPrimerContinue;
 
-  /// Feedback shown when the user opens the custom time picker and dismisses it without choosing, so the tap is not a silent dead end
-  ///
-  /// In en, this message translates to:
-  /// **'No time picked yet — choose one above, or skip for now.'**
-  String get reminderCustomCancelled;
-
   /// Title of the settings tile that opens the reminder time bottom sheet (replaced the Daily reminders switch)
   ///
   /// In en, this message translates to:
@@ -904,29 +832,47 @@ abstract class AppLocalizations {
   /// **'Turn off reminders'**
   String get reminderTurnOff;
 
-  /// No description provided for @onboardingBatteryTitle.
+  /// Title of the page that asks to let the app run in the background (battery optimisation), on phones known to stop apps
   ///
   /// In en, this message translates to:
-  /// **'One Setting, Smoother Meditations'**
-  String get onboardingBatteryTitle;
+  /// **'Keep Meditejo running'**
+  String get batteryGuidanceTitle;
 
-  /// No description provided for @onboardingBatteryBody.
+  /// Why battery optimisation matters: sessions and reminders can be stopped
   ///
   /// In en, this message translates to:
-  /// **'Your phone can pause Meditejo mid-session. One quick change prevents this.'**
-  String get onboardingBatteryBody;
+  /// **'Your phone may pause Meditejo during a session or hold back a reminder. Letting it run in the background stops this.'**
+  String get batteryGuidanceBody;
 
-  /// No description provided for @onboardingBatteryOptimize.
+  /// Button opening the phone's battery optimisation settings
   ///
   /// In en, this message translates to:
-  /// **'Update Setting'**
-  String get onboardingBatteryOptimize;
+  /// **'Open battery settings'**
+  String get batteryGuidanceOpen;
 
-  /// No description provided for @skipForNow.
+  /// Title of the phone's own dialog that leads to its auto-start setting (shown by the battery page's button)
   ///
   /// In en, this message translates to:
-  /// **'Skip for Now'**
-  String get skipForNow;
+  /// **'Let Meditejo start on its own'**
+  String get batteryAutoStartTitle;
+
+  /// Body of the phone's own auto-start dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone stops apps from starting in the background. Follow the steps to let Meditejo start, so reminders arrive.'**
+  String get batteryAutoStartBody;
+
+  /// Title of the dialog that leads to the manufacturer's extra battery optimisation setting
+  ///
+  /// In en, this message translates to:
+  /// **'One more battery setting'**
+  String get batteryManufacturerTitle;
+
+  /// Body of the manufacturer's extra battery optimisation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone has its own battery saving as well. Follow the steps to let Meditejo run, so sessions are not paused.'**
+  String get batteryManufacturerBody;
 
   /// No description provided for @skip.
   ///
@@ -1084,53 +1030,11 @@ abstract class AppLocalizations {
   /// **'\"Medito pulled me through a seriously dark period in my life\" - Medito meditator'**
   String get impactCardTestimonial;
 
-  /// No description provided for @favorites.
-  ///
-  /// In en, this message translates to:
-  /// **'Favorites'**
-  String get favorites;
-
-  /// No description provided for @noFavoriteTracksYet.
-  ///
-  /// In en, this message translates to:
-  /// **'No favorite tracks yet'**
-  String get noFavoriteTracksYet;
-
-  /// No description provided for @noFavoritePacksYet.
-  ///
-  /// In en, this message translates to:
-  /// **'No favorite packs yet'**
-  String get noFavoritePacksYet;
-
-  /// No description provided for @noFavoritesYet.
-  ///
-  /// In en, this message translates to:
-  /// **'No favorites yet'**
-  String get noFavoritesYet;
-
-  /// No description provided for @addItemsToFavoritesMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Add items to your favorites to see them here'**
-  String get addItemsToFavoritesMessage;
-
-  /// No description provided for @all.
-  ///
-  /// In en, this message translates to:
-  /// **'All'**
-  String get all;
-
   /// No description provided for @tracks.
   ///
   /// In en, this message translates to:
   /// **'Tracks'**
   String get tracks;
-
-  /// No description provided for @packs.
-  ///
-  /// In en, this message translates to:
-  /// **'Packs'**
-  String get packs;
 
   /// No description provided for @noResultsFound.
   ///
@@ -1918,11 +1822,41 @@ abstract class AppLocalizations {
   /// **'Playback speed'**
   String get playbackSpeed;
 
-  /// Speed sheet: button that sets playback speed back to 1.0x
+  /// Speed sheet: tab for the speed practice sessions (guided sits) start at
   ///
   /// In en, this message translates to:
-  /// **'Reset'**
-  String get speedReset;
+  /// **'Practice'**
+  String get speedKindPractice;
+
+  /// Speed sheet: tab for the speed talks start at
+  ///
+  /// In en, this message translates to:
+  /// **'Talks'**
+  String get speedKindTalks;
+
+  /// Speed sheet: note under the speeds while the Practice tab is open; the choice is kept for later sessions
+  ///
+  /// In en, this message translates to:
+  /// **'Every practice session starts at this speed.'**
+  String get speedPracticeCaption;
+
+  /// Speed sheet: note under the speeds while the Talks tab is open; the choice is kept for later talks
+  ///
+  /// In en, this message translates to:
+  /// **'Every talk starts at this speed.'**
+  String get speedTalksCaption;
+
+  /// Settings: row opening the speed each kind of session starts at. Short: it shares the row with an icon and a chevron at large text
+  ///
+  /// In en, this message translates to:
+  /// **'Playback speed'**
+  String get settingsPlaybackSpeed;
+
+  /// Settings: caption of the Playback speed row, the speed each kind of session starts at, e.g. 'Practice 1× · Talks 1.5×'
+  ///
+  /// In en, this message translates to:
+  /// **'Practice {practice} · Talks {talks}'**
+  String settingsPlaybackSpeedCaption(String practice, String talks);
 
   /// Background sound sheet: label above the list of ambient sounds
   ///
@@ -1959,66 +1893,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear search'**
   String get clearSearch;
-
-  /// Question on onboarding screen 1 — asking about the user's meditation experience
-  ///
-  /// In en, this message translates to:
-  /// **'Have you meditated before?'**
-  String get onboardingExperienceQuestion;
-
-  /// Subtext below the question on onboarding screen 1
-  ///
-  /// In en, this message translates to:
-  /// **'This helps us show you the right starting point.'**
-  String get onboardingExperienceSubtext;
-
-  /// Option 1 on onboarding screen 1 — user has never meditated
-  ///
-  /// In en, this message translates to:
-  /// **'Never tried it'**
-  String get onboardingExperienceNever;
-
-  /// Option 2 on onboarding screen 1 — user has meditated a little
-  ///
-  /// In en, this message translates to:
-  /// **'A little, here and there'**
-  String get onboardingExperienceALittle;
-
-  /// Option 3 on onboarding screen 1 — user has a regular meditation practice
-  ///
-  /// In en, this message translates to:
-  /// **'I have a regular practice'**
-  String get onboardingExperienceRegular;
-
-  /// CTA button label on the onboarding result screen
-  ///
-  /// In en, this message translates to:
-  /// **'Get started'**
-  String get onboardingResultCta;
-
-  /// Accessibility label for the favorite button when the item is not yet favorited
-  ///
-  /// In en, this message translates to:
-  /// **'Add to favorites'**
-  String get addToFavorites;
-
-  /// Snackbar after the star button adds a pack or track to Favorites
-  ///
-  /// In en, this message translates to:
-  /// **'Added to Favorites'**
-  String get addedToFavorites;
-
-  /// Snackbar after the star button removes a pack or track from Favorites
-  ///
-  /// In en, this message translates to:
-  /// **'Removed from Favorites'**
-  String get removedFromFavorites;
-
-  /// Accessibility label for the favorite button when the item is already favorited
-  ///
-  /// In en, this message translates to:
-  /// **'Remove from favorites'**
-  String get removeFromFavorites;
 
   /// Swipe action on the home Your Path card that opens the pack
   ///
@@ -2116,12 +1990,6 @@ abstract class AppLocalizations {
   /// **'Timer'**
   String get timerTitle;
 
-  /// Timer screen mode toggle: counts up until the user ends the session
-  ///
-  /// In en, this message translates to:
-  /// **'Stopwatch'**
-  String get timerModeStopwatch;
-
   /// Label under the hours wheel on the Timer screen
   ///
   /// In en, this message translates to:
@@ -2133,12 +2001,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Minutes'**
   String get timerMinutesLabel;
-
-  /// Body of the card explaining Stopwatch mode on the Timer screen
-  ///
-  /// In en, this message translates to:
-  /// **'The time counts up from zero. Tap stop when you\'re done and the session is saved.'**
-  String get timerStopwatchCaption;
 
   /// Timer screen primary button
   ///
@@ -2181,12 +2043,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not downloaded. Connect to play'**
   String get soundNeedsConnection;
-
-  /// Title of the card explaining Stopwatch mode on the Timer screen
-  ///
-  /// In en, this message translates to:
-  /// **'Sit for as long as you like'**
-  String get timerStopwatchTitle;
 
   /// Offline screen link that opens the Timer, which works without a connection
   ///
@@ -2260,7 +2116,7 @@ abstract class AppLocalizations {
   /// **'Meditated today'**
   String get meditatedToday;
 
-  /// Button that closes an end screen shown on the next launch and returns to Home
+  /// Button that closes an end screen shown on the next launch and returns to Home. Also closes the battery page (Settings › Keep Meditejo running) once its settings were opened
   ///
   /// In en, this message translates to:
   /// **'Done'**
@@ -2308,48 +2164,6 @@ abstract class AppLocalizations {
   /// **'Time to sit.'**
   String get localHomeHeading;
 
-  /// Local introduction heading for someone new to meditation.
-  ///
-  /// In en, this message translates to:
-  /// **'A little time to begin.'**
-  String get localIntroBeginHeading;
-
-  /// Local introduction heading for someone with some meditation experience.
-  ///
-  /// In en, this message translates to:
-  /// **'Ease back into your practice.'**
-  String get localIntroReturnHeading;
-
-  /// Local introduction heading for someone with a regular meditation practice.
-  ///
-  /// In en, this message translates to:
-  /// **'Space for your practice.'**
-  String get localIntroPracticeHeading;
-
-  /// Instructions for a first unguided meditation using the local timer.
-  ///
-  /// In en, this message translates to:
-  /// **'Find a comfortable seat, set a short timer, and notice your breath. When your attention wanders, gently begin again.'**
-  String get localIntroBeginBody;
-
-  /// Encouragement to resume practice using the local timer.
-  ///
-  /// In en, this message translates to:
-  /// **'Start with a few quiet minutes. The timer is ready whenever you are.'**
-  String get localIntroReturnBody;
-
-  /// Introduction to the local timer and its configurable bells and duration.
-  ///
-  /// In en, this message translates to:
-  /// **'Use the timer for an unguided sit, with the bells and duration you prefer.'**
-  String get localIntroPracticeBody;
-
-  /// Explains that practice history, favourites and preferences are stored on the device.
-  ///
-  /// In en, this message translates to:
-  /// **'Your practice history, favourites and settings stay on this device.'**
-  String get localIntroDeviceOnlyNote;
-
   /// No description provided for @aboutMeditejo.
   ///
   /// In en, this message translates to:
@@ -2373,12 +2187,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Upstream project'**
   String get upstreamProject;
-
-  /// Settings row for the built-in Dharma Seed catalogue sync
-  ///
-  /// In en, this message translates to:
-  /// **'Dharma Seed library'**
-  String get dharmaSeedLibrary;
 
   /// Sync progress, e.g. Updating talks: 500 of 48994
   ///
@@ -2433,18 +2241,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Talks'**
   String get exploreKindTalks;
-
-  /// Explore section title
-  ///
-  /// In en, this message translates to:
-  /// **'Saved courses'**
-  String get exploreSavedCourses;
-
-  /// Explore section title
-  ///
-  /// In en, this message translates to:
-  /// **'Saved teachers'**
-  String get exploreSavedTeachers;
 
   /// Section title for retreats shown as courses
   ///
@@ -2572,17 +2368,29 @@ abstract class AppLocalizations {
   /// **'Over 45 min'**
   String get searchLengthOver45;
 
-  /// Course progress line
+  /// Course progress, beside its bar: sessions played of all
   ///
   /// In en, this message translates to:
-  /// **'{count} of {total} left'**
-  String courseLeft(int count, int total);
+  /// **'{count} of {total} played'**
+  String coursePlayed(int count, int total);
 
   /// Course progress line when every session is done
   ///
   /// In en, this message translates to:
   /// **'All {total} played'**
   String courseAllPlayed(int total);
+
+  /// A finished course's play button: starts it again from its first session
+  ///
+  /// In en, this message translates to:
+  /// **'Play again'**
+  String get coursePlayAgain;
+
+  /// How many sessions a course holds, in its header's meta line (the word its Sessions tab uses)
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 session} other{{count} sessions}}'**
+  String courseSessionCount(int count);
 
   /// Button to save a course
   ///
@@ -2637,6 +2445,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{minutes} min'**
   String courseSessionLength(int minutes);
+
+  /// Kind chip on a course row: a guided meditation
+  ///
+  /// In en, this message translates to:
+  /// **'Meditation'**
+  String get sessionKindMeditation;
+
+  /// Kind chip on a course row: chanting
+  ///
+  /// In en, this message translates to:
+  /// **'Chanting'**
+  String get sessionKindChanting;
+
+  /// Kind chip on a course row: a talk
+  ///
+  /// In en, this message translates to:
+  /// **'Talk'**
+  String get sessionKindTalk;
+
+  /// Kind chip on a course row: questions and answers
+  ///
+  /// In en, this message translates to:
+  /// **'Q & A'**
+  String get sessionKindQuestions;
+
+  /// Kind chip on a course row: any other recording
+  ///
+  /// In en, this message translates to:
+  /// **'Recording'**
+  String get sessionKindRecording;
 
   /// Button to save a teacher
   ///
@@ -2872,12 +2710,6 @@ abstract class AppLocalizations {
   /// **'Your library'**
   String get libraryTitle;
 
-  /// Button that opens the import screen
-  ///
-  /// In en, this message translates to:
-  /// **'Add'**
-  String get libraryAdd;
-
   /// Library section for guided practice
   ///
   /// In en, this message translates to:
@@ -2931,6 +2763,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Move to Talks'**
   String get libraryMoveToTalks;
+
+  /// Library menu item that forgets the user's Practice/Talks choice for an entry, so its Practice and Talks chips follow its sessions again
+  ///
+  /// In en, this message translates to:
+  /// **'Show by sessions'**
+  String get libraryShowBySessions;
 
   /// Menu item that renames a library entry
   ///
@@ -3022,6 +2860,12 @@ abstract class AppLocalizations {
   /// **'In library'**
   String get libraryInLibrary;
 
+  /// Small text beside the Resume icon on an episode's bottom bar: where playback picks up
+  ///
+  /// In en, this message translates to:
+  /// **'from {position}'**
+  String playFromPosition(String position);
+
   /// Row label for a session left partway, with the position
   ///
   /// In en, this message translates to:
@@ -3034,11 +2878,29 @@ abstract class AppLocalizations {
   /// **'Play · {minutes} min'**
   String playForMinutes(int minutes);
 
-  /// Title of the import screen
+  /// Title of the import screen, and the tooltip and heading of Library's + and its sheet
   ///
   /// In en, this message translates to:
   /// **'Add to your library'**
   String get importTitle;
+
+  /// Library's + sheet: opens the import screen
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get libraryAddImport;
+
+  /// Library's + sheet: what Import takes, under its label
+  ///
+  /// In en, this message translates to:
+  /// **'A link, a podcast feed, a YouTube playlist, or files on your phone'**
+  String get libraryAddImportHint;
+
+  /// Library's + sheet: what a new playlist is, under New playlist
+  ///
+  /// In en, this message translates to:
+  /// **'Your own list of sessions, in your order'**
+  String get libraryAddNewPlaylistHint;
 
   /// Hint in the link field
   ///
@@ -3376,12 +3238,6 @@ abstract class AppLocalizations {
   /// **'Shared with Meditejo'**
   String get shareArrived;
 
-  /// Heading above the library courses on Explore
-  ///
-  /// In en, this message translates to:
-  /// **'In your library'**
-  String get exploreLibraryHeading;
-
   /// Button that plays a session from the start instead of resuming
   ///
   /// In en, this message translates to:
@@ -3460,6 +3316,18 @@ abstract class AppLocalizations {
   /// **'YouTube is busy or asking for a bot check. Try again later'**
   String get youtubeRateLimited;
 
+  /// Button on a YouTube channel's teacher page that opens the channel on YouTube
+  ///
+  /// In en, this message translates to:
+  /// **'Open on YouTube'**
+  String get youtubeChannelOpen;
+
+  /// Shown on a YouTube channel's teacher page, and a YouTube course's Teacher tab, when the channel has no description
+  ///
+  /// In en, this message translates to:
+  /// **'No channel description on YouTube.'**
+  String get youtubeChannelNoAbout;
+
   /// No description provided for @youtubePlaylistEmpty.
   ///
   /// In en, this message translates to:
@@ -3475,7 +3343,7 @@ abstract class AppLocalizations {
   /// No description provided for @exploreSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search your library and Dharma Seed'**
+  /// **'Search your library and catalogues'**
   String get exploreSearchHint;
 
   /// The shortcuts section's name in Customize, and its screen-reader heading on Home (not drawn)
@@ -3505,7 +3373,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeContinueEmpty.
   ///
   /// In en, this message translates to:
-  /// **'Nothing in progress. Add something to your library, or open Explore.'**
+  /// **'Nothing in progress. Start something in Explore or your library, or pin it there to keep it on Home.'**
   String get homeContinueEmpty;
 
   /// No description provided for @homeContinueResume.
@@ -3532,18 +3400,6 @@ abstract class AppLocalizations {
   /// **'{time} left'**
   String homeContinueTimeLeft(String time);
 
-  /// No description provided for @homeShortcutAdd.
-  ///
-  /// In en, this message translates to:
-  /// **'Add'**
-  String get homeShortcutAdd;
-
-  /// Screen-reader label of a Home tile that starts the timer with a saved background-sound preset.
-  ///
-  /// In en, this message translates to:
-  /// **'Start the timer with {preset}'**
-  String homeShortcutPresetTimer(String preset);
-
   /// No description provided for @pinCourse.
   ///
   /// In en, this message translates to:
@@ -3556,11 +3412,29 @@ abstract class AppLocalizations {
   /// **'Unpin from Home'**
   String get unpinCourse;
 
-  /// No description provided for @pinnedLimitReached.
+  /// No description provided for @itemMarkPlayed.
   ///
   /// In en, this message translates to:
-  /// **'Home holds up to three pinned courses or playlists. Unpin one first.'**
-  String get pinnedLimitReached;
+  /// **'Mark as played'**
+  String get itemMarkPlayed;
+
+  /// No description provided for @itemMarkUnplayed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as unplayed'**
+  String get itemMarkUnplayed;
+
+  /// No description provided for @itemGoToTeacher.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to teacher'**
+  String get itemGoToTeacher;
+
+  /// No description provided for @itemMarkPlayedFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the played state. Please try again.'**
+  String get itemMarkPlayedFailed;
 
   /// No description provided for @pinnedCourseAdded.
   ///
@@ -3568,11 +3442,47 @@ abstract class AppLocalizations {
   /// **'Pinned to Home'**
   String get pinnedCourseAdded;
 
+  /// Home's Pinned section: opens the full list of pins when there are more than Home shows
+  ///
+  /// In en, this message translates to:
+  /// **'See all {count}'**
+  String pinnedSeeAll(int count);
+
+  /// Snackbar after pinning a fourth or later item: Home shows the first three pins, the rest are under See all
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned to Home, under See all'**
+  String get pinnedUnderSeeAll;
+
+  /// Pinned list: title when nothing is pinned
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing pinned yet'**
+  String get pinnedEmpty;
+
+  /// Pinned list: how to pin something, under pinnedEmpty
+  ///
+  /// In en, this message translates to:
+  /// **'Pin a course, a session or a preset to keep it on Home.'**
+  String get pinnedEmptyHint;
+
+  /// A pinned course or session whose source no longer has it: its title (or the line under its saved title)
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get pinnedUnavailable;
+
   /// No description provided for @statsFeedbackNote.
   ///
   /// In en, this message translates to:
   /// **'These numbers are feedback, not a score.'**
   String get statsFeedbackNote;
+
+  /// Screen reader label of Home's Sounds tile while sounds play on their own; name is the preset or the sounds of the mix
+  ///
+  /// In en, this message translates to:
+  /// **'Sounds, playing {name}'**
+  String homeSoundsPlaying(String name);
 
   /// Sounds screen: soundsYourMix
   ///
@@ -3649,7 +3559,7 @@ abstract class AppLocalizations {
   /// Sounds screen: soundsSavePreset
   ///
   /// In en, this message translates to:
-  /// **'Save mix'**
+  /// **'Save preset'**
   String get soundsSavePreset;
 
   /// Sounds screen: the overline on a preset that ships with the app
@@ -3712,29 +3622,35 @@ abstract class AppLocalizations {
   /// **'This sound could not be played'**
   String get soundsCouldNotPlay;
 
-  /// Sounds screen: soundsUnderSessions
+  /// Sounds sheet: what plays under practice sessions; its value (Off, a preset, sounds) follows
   ///
   /// In en, this message translates to:
-  /// **'Under sessions'**
-  String get soundsUnderSessions;
+  /// **'Plays under practice'**
+  String get soundsPlaysUnderPractice;
 
-  /// Sounds screen: soundsUnderPractice
+  /// Sounds sheet: what plays under talks; its value follows
   ///
   /// In en, this message translates to:
-  /// **'Play under practice'**
-  String get soundsUnderPractice;
+  /// **'Plays under talks'**
+  String get soundsPlaysUnderTalks;
 
-  /// Sounds screen: soundsUnderTalks
+  /// Closes the mixer drawer, keeping what is in it as the choice
   ///
   /// In en, this message translates to:
-  /// **'Play under talks'**
-  String get soundsUnderTalks;
+  /// **'Done'**
+  String get soundsDone;
 
-  /// Sounds screen: soundsUnderSessionsHint
+  /// Mixer drawer, when nothing is chosen for these sessions
   ///
   /// In en, this message translates to:
-  /// **'Your mix plays beneath the session, at its own volume'**
-  String get soundsUnderSessionsHint;
+  /// **'Off. Tap a sound or a preset to choose it.'**
+  String get soundsChooserEmpty;
+
+  /// Snackbar when a session starts or ends while the mixer drawer is open: the drawer closes and keeps nothing
+  ///
+  /// In en, this message translates to:
+  /// **'The session changed, so the sound was left as it was.'**
+  String get soundsChooserOvertaken;
 
   /// Sounds screen: soundsCredits
   ///
@@ -3892,17 +3808,47 @@ abstract class AppLocalizations {
   /// **'Brown'**
   String get noiseBrown;
 
-  /// Sounds screen, generated layers: noiseBands
+  /// Noise editor: heading that opens the ten frequency-band sliders shaping the noise
   ///
   /// In en, this message translates to:
-  /// **'Bands'**
+  /// **'Equaliser'**
   String get noiseBands;
 
-  /// Sounds screen, generated layers: noiseReset
+  /// Binaural beat band chip: below 4 Hz
   ///
   /// In en, this message translates to:
-  /// **'Reset bands'**
-  String get noiseReset;
+  /// **'Delta'**
+  String get binauralDelta;
+
+  /// Binaural beat band chip: 4 to 8 Hz
+  ///
+  /// In en, this message translates to:
+  /// **'Theta'**
+  String get binauralTheta;
+
+  /// Binaural beat band chip: 8 to 13 Hz
+  ///
+  /// In en, this message translates to:
+  /// **'Alpha'**
+  String get binauralAlpha;
+
+  /// Binaural beat band chip: 13 Hz and above
+  ///
+  /// In en, this message translates to:
+  /// **'Beta'**
+  String get binauralBeta;
+
+  /// Sounds screen, drone editor: caption under the Root chips, a chord can hold this many
+  ///
+  /// In en, this message translates to:
+  /// **'Up to five notes'**
+  String get droneRootHint;
+
+  /// Screen-reader hint on the last chosen chip of a multiple-choice chip row: it cannot be turned off
+  ///
+  /// In en, this message translates to:
+  /// **'At least one stays chosen'**
+  String get soundChipsKeepOne;
 
   /// Sounds screen, generated layers: droneRoot
   ///
@@ -4234,13 +4180,31 @@ abstract class AppLocalizations {
   /// **'Edit'**
   String get myCourseEditAction;
 
-  /// The tab bar's last tab: the user's own place (stats and settings)
+  /// Title of the You page: the user's own place (stats, session history, pins). Opened from the person button at the top right of Home, Library and Settings
   ///
   /// In en, this message translates to:
   /// **'You'**
   String get navYou;
 
-  /// The Sounds tab's mix panel when the mix has no layers
+  /// Tooltip and screen-reader label of the person button at the top right of Home, Library and Settings, which opens the You page
+  ///
+  /// In en, this message translates to:
+  /// **'You: stats and history'**
+  String get youButton;
+
+  /// Heading on the You page above the rows for session history and pins
+  ///
+  /// In en, this message translates to:
+  /// **'Your practice'**
+  String get youSectionPractice;
+
+  /// Label of the fifth tab in the bottom bar, under a gear. Keep it short: a fifth of a 360 dp phone's width
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get navSettings;
+
+  /// The Sounds sheet's mix panel when the mix has no layers
   ///
   /// In en, this message translates to:
   /// **'Nothing in your mix yet'**
@@ -4264,7 +4228,7 @@ abstract class AppLocalizations {
   /// **'Unmute {sound}'**
   String soundsUnmute(String sound);
 
-  /// Opens the mix panel docked at the bottom of the Sounds tab
+  /// Opens the mix panel docked at the bottom of the Sounds sheet
   ///
   /// In en, this message translates to:
   /// **'Show your mix'**
@@ -4300,12 +4264,6 @@ abstract class AppLocalizations {
   /// **'Adjust'**
   String get soundsAdjust;
 
-  /// In the player's Customize sheet, under Background sound: opens the Sounds screen
-  ///
-  /// In en, this message translates to:
-  /// **'Edit your mix in Sounds'**
-  String get soundsEditMix;
-
   /// Names what the user makes (a Playlist), shown beside a course on Library rows and as the kind on a playlist page. A course comes from a source.
   ///
   /// In en, this message translates to:
@@ -4324,11 +4282,17 @@ abstract class AppLocalizations {
   /// **'Sounds & cues'**
   String get settingsSectionSounds;
 
-  /// Settings group: imports, favorites, downloads, catalogue sync
+  /// Settings group: imports and downloads
   ///
   /// In en, this message translates to:
   /// **'Library & downloads'**
   String get settingsSectionLibrary;
+
+  /// Settings group: the built-in catalogues the app reads from (Dharma Seed), each with its sync status
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get settingsSectionSources;
 
   /// Settings group: theme, icon, home layout, widget
   ///
@@ -4408,6 +4372,60 @@ abstract class AppLocalizations {
   /// **'Open-source licences'**
   String get settingsLicenses;
 
+  /// First-launch intro: the one-line summary of what the app is, under its name
+  ///
+  /// In en, this message translates to:
+  /// **'One calm place for your practice.'**
+  String get introLead;
+
+  /// First-launch intro: what you can do (courses, talks, timer)
+  ///
+  /// In en, this message translates to:
+  /// **'Follow a course session by session, listen to talks, or sit with the timer.'**
+  String get introPractice;
+
+  /// First-launch intro: where the content comes from
+  ///
+  /// In en, this message translates to:
+  /// **'Dharma Seed is built in. Add podcasts, YouTube or your own files.'**
+  String get introSources;
+
+  /// First-launch intro: no account, data stays on the device
+  ///
+  /// In en, this message translates to:
+  /// **'No account. Your history and settings stay on this phone.'**
+  String get introPrivate;
+
+  /// First-launch intro: what the name means, small print
+  ///
+  /// In en, this message translates to:
+  /// **'Meditejo is Esperanto for “a place of meditation”.'**
+  String get introMeaning;
+
+  /// First-launch intro: button that closes the intro and opens Home
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get introStart;
+
+  /// First-launch intro: button that starts the guided tour (shown once the tour exists)
+  ///
+  /// In en, this message translates to:
+  /// **'Take the tour'**
+  String get introTour;
+
+  /// Settings > About row that opens the first-launch intro again
+  ///
+  /// In en, this message translates to:
+  /// **'What Meditejo is'**
+  String get aboutWhatIsMeditejo;
+
+  /// Settings row subtitle, under the battery title, on phones known to stop apps in the background
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone may pause sessions and reminders'**
+  String get batteryGuidanceRow;
+
   /// Stats card: today, week, month and all-time totals
   ///
   /// In en, this message translates to:
@@ -4449,6 +4467,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sessions from before the app recorded their length ({count}) count as days practised, not as minutes.'**
   String statsUntimedNote(int count);
+
+  /// Quiet line under the all-time totals when sessions were played faster or slower than recorded, e.g. '4 h of audio · 3 h 10 min of your time'. audio = total length of the recordings; real = the time it actually took
+  ///
+  /// In en, this message translates to:
+  /// **'{audio} of audio · {real} of your time'**
+  String statsAudioVersusRealTime(String audio, String real);
 
   /// Stats empty state
   ///
@@ -4606,42 +4630,6 @@ abstract class AppLocalizations {
   /// **'Today\'s mark'**
   String get homeMarkToday;
 
-  /// The Home mark when the user pinned it
-  ///
-  /// In en, this message translates to:
-  /// **'Pinned'**
-  String get homeMarkPinned;
-
-  /// Home mark sheet, daily
-  ///
-  /// In en, this message translates to:
-  /// **'A new mark arrives each day. Pin this one to keep it on Home.'**
-  String get homeMarkTodayBody;
-
-  /// Home mark sheet, pinned
-  ///
-  /// In en, this message translates to:
-  /// **'This mark stays on Home until you go back to the daily mark.'**
-  String get homeMarkPinnedBody;
-
-  /// Button: keep today's mark on Home
-  ///
-  /// In en, this message translates to:
-  /// **'Pin this mark'**
-  String get homeMarkPin;
-
-  /// Button: unpin the Home mark
-  ///
-  /// In en, this message translates to:
-  /// **'Back to the daily mark'**
-  String get homeMarkUnpin;
-
-  /// Screen reader hint for long-pressing Home's mark
-  ///
-  /// In en, this message translates to:
-  /// **'pin or unpin'**
-  String get homeMarkPinHint;
-
   /// Settings row and screen: the app's colour palette
   ///
   /// In en, this message translates to:
@@ -4660,35 +4648,11 @@ abstract class AppLocalizations {
   /// **'Daily · {name} today'**
   String paletteDailyToday(String name);
 
-  /// Library heading over what the user has started and not finished
-  ///
-  /// In en, this message translates to:
-  /// **'In progress'**
-  String get libraryInProgress;
-
   /// Library filter chip: everything
   ///
   /// In en, this message translates to:
   /// **'All'**
   String get libraryFilterAll;
-
-  /// Library filter chip: courses from a source
-  ///
-  /// In en, this message translates to:
-  /// **'Courses'**
-  String get libraryFilterCourses;
-
-  /// Library filter chip: what the user made
-  ///
-  /// In en, this message translates to:
-  /// **'Playlists'**
-  String get libraryFilterPlaylists;
-
-  /// Library filter chip: single sessions
-  ///
-  /// In en, this message translates to:
-  /// **'Singles'**
-  String get libraryFilterSingles;
 
   /// Library filter chip: what is downloaded
   ///
@@ -4701,12 +4665,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show'**
   String get libraryFilterLabel;
-
-  /// Screen-reader label of the Library's Practice/Talks switch
-  ///
-  /// In en, this message translates to:
-  /// **'Practice or talks'**
-  String get libraryGroupLabel;
 
   /// Tooltip of the Library's sort menu
   ///
@@ -4762,6 +4720,66 @@ abstract class AppLocalizations {
   /// **'Find something in Explore, or add a link or a file.'**
   String get libraryFilterEmptyBody;
 
+  /// A Library filter chip with how many items it shows, e.g. "Talks 9"
+  ///
+  /// In en, this message translates to:
+  /// **'{label} {count}'**
+  String libraryFilterCount(String label, int count);
+
+  /// Library section heading: the playlists the user made
+  ///
+  /// In en, this message translates to:
+  /// **'Playlists'**
+  String get librarySectionPlaylists;
+
+  /// Library section heading: courses from a source (retreats, feeds, YouTube series)
+  ///
+  /// In en, this message translates to:
+  /// **'Courses'**
+  String get librarySectionCourses;
+
+  /// Library section heading: single sessions
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions'**
+  String get librarySectionSessions;
+
+  /// Library heading when the Practice chip matches nothing
+  ///
+  /// In en, this message translates to:
+  /// **'No practice here yet'**
+  String get libraryPracticeEmpty;
+
+  /// Library text when the Practice chip matches nothing
+  ///
+  /// In en, this message translates to:
+  /// **'Guided meditations, and courses with them, show up here.'**
+  String get libraryPracticeEmptyBody;
+
+  /// Library heading when the Talks chip matches nothing
+  ///
+  /// In en, this message translates to:
+  /// **'No talks here yet'**
+  String get libraryTalksEmpty;
+
+  /// Library text when the Talks chip matches nothing
+  ///
+  /// In en, this message translates to:
+  /// **'Talks, and courses with talks, show up here.'**
+  String get libraryTalksEmptyBody;
+
+  /// Library heading when the Downloads chip matches nothing
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing downloaded'**
+  String get libraryDownloadsEmpty;
+
+  /// Library text when the Downloads chip matches nothing
+  ///
+  /// In en, this message translates to:
+  /// **'Download a session from its menu to have it offline. It shows up here.'**
+  String get libraryDownloadsEmptyBody;
+
   /// Button in an empty Library that opens the Explore tab
   ///
   /// In en, this message translates to:
@@ -4774,17 +4792,89 @@ abstract class AppLocalizations {
   /// **'Pinned to Home'**
   String get libraryPinned;
 
-  /// Heading above the category chips on Explore
+  /// Heading above the practice chips on Explore (Metta, Jhāna, …). Avoid the words 'categories' and 'tags'
   ///
   /// In en, this message translates to:
-  /// **'Categories'**
+  /// **'Ways to practise'**
   String get exploreCategories;
 
-  /// Screen-reader label of Explore's category chips
+  /// Screen-reader label of Explore's practice chips
   ///
   /// In en, this message translates to:
-  /// **'Browse by category'**
+  /// **'Browse ways to practise'**
   String get exploreCategoriesLabel;
+
+  /// Opens the page of every way to practise, from Explore's carousels
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get practicesSeeAll;
+
+  /// Group of practices: metta, compassion, forgiveness…
+  ///
+  /// In en, this message translates to:
+  /// **'Heart'**
+  String get practiceGroupHeart;
+
+  /// Group of practices: samatha, jhāna, breath…
+  ///
+  /// In en, this message translates to:
+  /// **'Concentration'**
+  String get practiceGroupConcentration;
+
+  /// Group of practices: vipassanā, noting, emptiness…
+  ///
+  /// In en, this message translates to:
+  /// **'Insight'**
+  String get practiceGroupInsight;
+
+  /// Group of practices: open awareness, Zen, Dzogchen…
+  ///
+  /// In en, this message translates to:
+  /// **'Awareness'**
+  String get practiceGroupAwareness;
+
+  /// Group of practices: body, walking, movement, energy…
+  ///
+  /// In en, this message translates to:
+  /// **'Body & energy'**
+  String get practiceGroupBody;
+
+  /// Group of practices: chanting, mantra, devotion
+  ///
+  /// In en, this message translates to:
+  /// **'Sound & devotion'**
+  String get practiceGroupDevotion;
+
+  /// Group of practices: visualisation, soulmaking
+  ///
+  /// In en, this message translates to:
+  /// **'Imagination'**
+  String get practiceGroupImagination;
+
+  /// The language a practice name comes from (shown small under the name)
+  ///
+  /// In en, this message translates to:
+  /// **'Pāli'**
+  String get practiceLangPali;
+
+  /// The language a practice name comes from
+  ///
+  /// In en, this message translates to:
+  /// **'Sanskrit'**
+  String get practiceLangSanskrit;
+
+  /// The language a practice name comes from
+  ///
+  /// In en, this message translates to:
+  /// **'Tibetan'**
+  String get practiceLangTibetan;
+
+  /// The language a practice name comes from
+  ///
+  /// In en, this message translates to:
+  /// **'Japanese'**
+  String get practiceLangJapanese;
 
   /// Title of a category page with nothing in it
   ///
@@ -4798,40 +4888,40 @@ abstract class AppLocalizations {
   /// **'Label something in your library, or add a course from Explore, and it will appear here.'**
   String get categoryEmptyBody;
 
-  /// Shown when a category page fails to load
+  /// Shown when the page of one practice (Metta, Jhāna, …) fails to load
   ///
   /// In en, this message translates to:
-  /// **'Could not load this category'**
+  /// **'Could not load this list'**
   String get categoryLoadFailed;
 
-  /// Screen-reader label of the Library's category and label chips
+  /// Screen-reader label of the Library's row of label chips
   ///
   /// In en, this message translates to:
-  /// **'Category or label'**
+  /// **'Filter by label'**
   String get libraryLabelFilterLabel;
 
-  /// Menu item that opens the categories and labels of a library item
+  /// Menu item that opens the labels of a library item
   ///
   /// In en, this message translates to:
-  /// **'Categories and labels'**
+  /// **'Labels'**
   String get libraryMenuLabels;
 
-  /// Title of the sheet where a library item's categories and labels are chosen
+  /// Title of the sheet where a library item's labels are chosen
   ///
   /// In en, this message translates to:
-  /// **'Categories and labels'**
+  /// **'Labels'**
   String get labelsTitle;
 
-  /// Explains the category chips in the labels sheet
+  /// Explains the practice chips in the labels sheet: the app pre-ticks its guesses, the user's choice wins
   ///
   /// In en, this message translates to:
-  /// **'Ticked categories are Meditejo\'s best guess or your own choice. Your choice always wins.'**
+  /// **'Meditejo ticks what it thinks fits. Change anything: your choice always wins.'**
   String get labelsExplain;
 
   /// Heading above the user's own labels in the labels sheet
   ///
   /// In en, this message translates to:
-  /// **'Your labels'**
+  /// **'Your own labels'**
   String get labelsCustomHeading;
 
   /// Hint of the text field for a new label
@@ -4888,6 +4978,12 @@ abstract class AppLocalizations {
   /// **'More options for {title}'**
   String homeCardMenu(String title);
 
+  /// Screen-reader hint for a long-press on a Home card, read after 'double-tap and hold to'; lower case, an action
+  ///
+  /// In en, this message translates to:
+  /// **'show more options'**
+  String get homeCardActionsHint;
+
   /// Settings row that opens the History tab of Stats: the calendar where past sessions are added or edited
   ///
   /// In en, this message translates to:
@@ -4905,6 +5001,1026 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Asks GitHub once a day when Meditejo opens.'**
   String get updateAutoCheckDescription;
+
+  /// Customize: name of the tile for what plays under a session
+  ///
+  /// In en, this message translates to:
+  /// **'Sound'**
+  String get customizeSlotSound;
+
+  /// Customize: name of the tile for the pulse
+  ///
+  /// In en, this message translates to:
+  /// **'Rhythm'**
+  String get customizeSlotRhythm;
+
+  /// Customize: a tile's value when it plays nothing
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get customizeOff;
+
+  /// Customize: name of the tile and card for the bell that starts a session
+  ///
+  /// In en, this message translates to:
+  /// **'Starting bell'**
+  String get customizeStartingBell;
+
+  /// Customize: name of the tile and card for the bell that rings during a session
+  ///
+  /// In en, this message translates to:
+  /// **'Interval bell'**
+  String get customizeIntervalBell;
+
+  /// Customize: name of the tile and card for the bell that ends a session
+  ///
+  /// In en, this message translates to:
+  /// **'Ending bell'**
+  String get customizeEndingBell;
+
+  /// Customize: Starting bell tile's second line, the countdown before the bell
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} sec countdown'**
+  String customizeCountdownDetail(int seconds);
+
+  /// Customize: Ending bell tile's second line, the silence before the bell
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min silence'**
+  String customizeSilenceDetail(int minutes);
+
+  /// A timer with no set length, which counts up until it is ended: the ∞ on the length wheel, its button, and the Home tile
+  ///
+  /// In en, this message translates to:
+  /// **'Open-ended'**
+  String get timerOpenEnded;
+
+  /// Customize: Interval bell tile, one bell rings at the midpoint
+  ///
+  /// In en, this message translates to:
+  /// **'Halfway'**
+  String get customizeBellsHalfway;
+
+  /// Customize: Interval bell tile, how often the bell rings
+  ///
+  /// In en, this message translates to:
+  /// **'Every {minutes} min'**
+  String customizeBellsEvery(int minutes);
+
+  /// Customize: under the timer dial when it rests on ∞, where a countdown shows when it finishes
+  ///
+  /// In en, this message translates to:
+  /// **'Counts up'**
+  String get customizeLengthCountsUp;
+
+  /// Customize: footer switch; off starts sessions straight away
+  ///
+  /// In en, this message translates to:
+  /// **'Show before each session'**
+  String get customizeShowBeforeSession;
+
+  /// Player: title of the autoplay sheet for a course's sessions
+  ///
+  /// In en, this message translates to:
+  /// **'Autoplay'**
+  String get playerAutoplay;
+
+  /// Player: autoplay button while the next session starts by itself
+  ///
+  /// In en, this message translates to:
+  /// **'Autoplay on'**
+  String get playerAutoplayOn;
+
+  /// Player: autoplay button while it is off
+  ///
+  /// In en, this message translates to:
+  /// **'Autoplay off'**
+  String get playerAutoplayOff;
+
+  /// Player: autoplay switch
+  ///
+  /// In en, this message translates to:
+  /// **'Play the next session automatically'**
+  String get playerAutoplaySwitch;
+
+  /// Player: label above the pause choices
+  ///
+  /// In en, this message translates to:
+  /// **'Pause between sessions'**
+  String get playerAutoplayPause;
+
+  /// Player: no pause between sessions
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get playerAutoplayNoPause;
+
+  /// Player: a pause between sessions, in seconds
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} sec'**
+  String playerAutoplaySeconds(int seconds);
+
+  /// Player: the course's next session
+  ///
+  /// In en, this message translates to:
+  /// **'Up next: {title}'**
+  String playerAutoplayUpNext(String title);
+
+  /// Player: no next session to autoplay
+  ///
+  /// In en, this message translates to:
+  /// **'This is the last session of the course'**
+  String get playerAutoplayLast;
+
+  /// Customize: Sound tile's value when the current mix plays under sessions
+  ///
+  /// In en, this message translates to:
+  /// **'Current mix'**
+  String get customizeCurrentMix;
+
+  /// Customize: read by a screen reader after a tile that differs from the defaults
+  ///
+  /// In en, this message translates to:
+  /// **'changed'**
+  String get customizeSlotChanged;
+
+  /// Customize: read by a screen reader after a tile at its defaults
+  ///
+  /// In en, this message translates to:
+  /// **'default'**
+  String get customizeSlotDefault;
+
+  /// Customize › Rhythm: label over the wheel that sets the pulse's beats a minute
+  ///
+  /// In en, this message translates to:
+  /// **'Rate'**
+  String get customizeRhythmRate;
+
+  /// Customize › Rhythm: what the ramp wheel sets (minutes the pulse takes to slow to its end rate); read by a screen reader and in the Undo bar
+  ///
+  /// In en, this message translates to:
+  /// **'Slow down over'**
+  String get customizeRhythmSlowDownOver;
+
+  /// Customize › Rhythm: short label over the ramp wheel, in the row 'Rate · Over · Ends at'
+  ///
+  /// In en, this message translates to:
+  /// **'Over'**
+  String get customizeRhythmOver;
+
+  /// Customize › Rhythm: label over the wheel that sets the rate the pulse slows to; dimmed while the ramp is Off
+  ///
+  /// In en, this message translates to:
+  /// **'Ends at'**
+  String get customizeRhythmEndsAt;
+
+  /// Customize › Rhythm tile: small text set above the arrow in '60 ⟶ 40 BPM'
+  ///
+  /// In en, this message translates to:
+  /// **'over {minutes} min'**
+  String customizeRhythmOverMinutes(int minutes);
+
+  /// Customize › Rhythm tile, for a screen reader: the pulse slowing from one rate to another
+  ///
+  /// In en, this message translates to:
+  /// **'{from} to {to} BPM over {minutes} min'**
+  String customizeRhythmRampSpoken(int from, int to, int minutes);
+
+  /// Customize: the bar shown after a wheel changes a setting, with an Undo button, e.g. 'Slow down over: 9 min'
+  ///
+  /// In en, this message translates to:
+  /// **'{setting}: {value}'**
+  String customizeUndoChange(String setting, String value);
+
+  /// Player: the autoplay setting applies to every practice course
+  ///
+  /// In en, this message translates to:
+  /// **'For all practice'**
+  String get playerAutoplayForPractice;
+
+  /// Player: the autoplay setting applies to every talks course
+  ///
+  /// In en, this message translates to:
+  /// **'For all talks'**
+  String get playerAutoplayForTalks;
+
+  /// Player: the autoplay setting applies to this course only
+  ///
+  /// In en, this message translates to:
+  /// **'For this course'**
+  String get playerAutoplayForCourse;
+
+  /// Player: the autoplay setting applies to this playlist only
+  ///
+  /// In en, this message translates to:
+  /// **'For this playlist'**
+  String get playerAutoplayForPlaylist;
+
+  /// Player: no next session to autoplay in a playlist
+  ///
+  /// In en, this message translates to:
+  /// **'This is the last session of the playlist'**
+  String get playerAutoplayLastOfPlaylist;
+
+  /// Episode page: the course the session belongs to, tappable, when the course is not in the library
+  ///
+  /// In en, this message translates to:
+  /// **'Part of {course}'**
+  String trackPartOf(String course);
+
+  /// Episode page: the saved course the session belongs to, shown instead of Add to library
+  ///
+  /// In en, this message translates to:
+  /// **'In {course}'**
+  String trackInCourse(String course);
+
+  /// Episode page: expands a long description
+  ///
+  /// In en, this message translates to:
+  /// **'Show more'**
+  String get trackShowMore;
+
+  /// Episode page: collapses the expanded description
+  ///
+  /// In en, this message translates to:
+  /// **'Show less'**
+  String get trackShowLess;
+
+  /// Home: the name of the day's mark, by its kind (shown briefly on the first open of a day)
+  ///
+  /// In en, this message translates to:
+  /// **'{type, select, doorway{Doorway} cushion{Cushion} horizon{Horizon} hearth{Hearth} path{Path home} shelter{Shelter} window{Window} step{Threshold} loops{Loops} enso{Ensō} wave{Breath wave} split{Split sun} arch{Arch} pebble{Pebble and bindu} crescent{Crescent} vesica{Vesica} cairn{Cairn} clearing{Clearing} dawn{Dawn over water} ridges{Ridges in mist} moonpool{Moon pool} doorlight{Lit doorway} halo{Halo} shoreline{Shoreline} other{Today\'s mark}}'**
+  String homeMarkName(String type);
+
+  /// Screen reader announcement of the day's mark on Home
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s mark: {name}'**
+  String homeMarkTodayIs(String name);
+
+  /// Teacher page section: every talk, by year, each year closed until opened
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get teacherArchive;
+
+  /// Teacher page section: the newest talks, above the archive
+  ///
+  /// In en, this message translates to:
+  /// **'Latest talks'**
+  String get teacherLatestTalks;
+
+  /// Ending bell: wheel for minutes of silence after the recording, before the bell
+  ///
+  /// In en, this message translates to:
+  /// **'Silence after the audio'**
+  String get extendEndLabel;
+
+  /// Caption of the Ending bell's silence wheel
+  ///
+  /// In en, this message translates to:
+  /// **'Silence before the ending bell.'**
+  String get extendEndCaption;
+
+  /// Customize row: minutes added to a guided session, as if the recording were longer
+  ///
+  /// In en, this message translates to:
+  /// **'Extend'**
+  String get extendTitle;
+
+  /// Caption of Extend, the dial of the Customize sheet for a recording
+  ///
+  /// In en, this message translates to:
+  /// **'Adds silence to the session.'**
+  String get extendCaption;
+
+  /// Player, between the seek bar's two times: shown while the session is in silence it added (Extend or the ending bell's silence), not the recording
+  ///
+  /// In en, this message translates to:
+  /// **'Silence'**
+  String get playerSilence;
+
+  /// No description provided for @editStatsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit stats'**
+  String get editStatsTitle;
+
+  /// No description provided for @submit.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit'**
+  String get submit;
+
+  /// Title for the onboarding section in settings
+  ///
+  /// In en, this message translates to:
+  /// **'Onboarding'**
+  String get onboarding;
+
+  /// No description provided for @enableNotificationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay on Track with Meditation Reminders'**
+  String get enableNotificationsTitle;
+
+  /// Notifications screen title for users who want to learn to meditate (intent: learn_properly)
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the learning going'**
+  String get enableNotificationsTitleLearn;
+
+  /// Notifications screen title for users who want to build a habit (intent: build_habit)
+  ///
+  /// In en, this message translates to:
+  /// **'Build the habit you\'re after'**
+  String get enableNotificationsTitleHabit;
+
+  /// Notifications screen title for users managing stress, sleep, or emotions (intent: stress_sleep_emotions)
+  ///
+  /// In en, this message translates to:
+  /// **'Make it part of your day'**
+  String get enableNotificationsTitleStress;
+
+  /// Timestamp shown on a fake iOS notification preview, mirroring iOS's 'now' label for a notification that just arrived
+  ///
+  /// In en, this message translates to:
+  /// **'now'**
+  String get notificationPreviewTimestamp;
+
+  /// Title of the fake notification shown in the onboarding notifications screen preview
+  ///
+  /// In en, this message translates to:
+  /// **'A quieter mind starts here'**
+  String get notificationPreviewTitleB;
+
+  /// Body of the fake notification shown in the onboarding notifications screen preview
+  ///
+  /// In en, this message translates to:
+  /// **'Your daily breath is waiting. Just tap to begin.'**
+  String get notificationPreviewBodyB;
+
+  /// Progress label under the onboarding pages, next to the circular progress ring
+  ///
+  /// In en, this message translates to:
+  /// **'Step {current} of {total}'**
+  String onboardingStepIndicator(int current, int total);
+
+  /// Shown on the onboarding reminder screen when a reminder is already set, above the chips that let the user change it
+  ///
+  /// In en, this message translates to:
+  /// **'Daily reminder set for {time}'**
+  String onboardingReminderCurrentlySet(String time);
+
+  /// Feedback shown when the user opens the custom time picker and dismisses it without choosing, so the tap is not a silent dead end
+  ///
+  /// In en, this message translates to:
+  /// **'No time picked yet — choose one above, or skip for now.'**
+  String get reminderCustomCancelled;
+
+  /// No description provided for @onboardingBatteryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'One Setting, Smoother Meditations'**
+  String get onboardingBatteryTitle;
+
+  /// No description provided for @onboardingBatteryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone can pause Meditejo mid-session. One quick change prevents this.'**
+  String get onboardingBatteryBody;
+
+  /// No description provided for @onboardingBatteryOptimize.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Setting'**
+  String get onboardingBatteryOptimize;
+
+  /// No description provided for @skipForNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip for Now'**
+  String get skipForNow;
+
+  /// No description provided for @favorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get favorites;
+
+  /// No description provided for @noFavoriteTracksYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No favorite tracks yet'**
+  String get noFavoriteTracksYet;
+
+  /// No description provided for @noFavoritePacksYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No favorite packs yet'**
+  String get noFavoritePacksYet;
+
+  /// No description provided for @noFavoritesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No favorites yet'**
+  String get noFavoritesYet;
+
+  /// No description provided for @addItemsToFavoritesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Add items to your favorites to see them here'**
+  String get addItemsToFavoritesMessage;
+
+  /// No description provided for @all.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get all;
+
+  /// No description provided for @packs.
+  ///
+  /// In en, this message translates to:
+  /// **'Packs'**
+  String get packs;
+
+  /// Title for app icon selection setting in customization section
+  ///
+  /// In en, this message translates to:
+  /// **'App Icon'**
+  String get appIconTitle;
+
+  /// Label for the near-black app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get appIconNearBlack;
+
+  /// Label for the dusk gradient app icon option (now the default)
+  ///
+  /// In en, this message translates to:
+  /// **'Dusk'**
+  String get appIconDusk;
+
+  /// Label for the original purple app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get appIconPurple;
+
+  /// Label for the classic app icon option (purple M on white)
+  ///
+  /// In en, this message translates to:
+  /// **'Classic'**
+  String get appIconClassic;
+
+  /// Label for the blush pink gradient app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Blush'**
+  String get appIconBlush;
+
+  /// Label for the ocean blue gradient app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Ocean'**
+  String get appIconOcean;
+
+  /// Label for the forest green gradient app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Forest'**
+  String get appIconForest;
+
+  /// Label for the pink-to-gold sunset gradient app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Golden'**
+  String get appIconPink;
+
+  /// Snackbar message shown on Android after changing the app icon
+  ///
+  /// In en, this message translates to:
+  /// **'Icon updated. Restarting…'**
+  String get appIconChanged;
+
+  /// Label for default guide name setting
+  ///
+  /// In en, this message translates to:
+  /// **'Default Guide Name'**
+  String get defaultGuideName;
+
+  /// Label for default duration setting
+  ///
+  /// In en, this message translates to:
+  /// **'Default Duration'**
+  String get defaultDuration;
+
+  /// Message shown when default guide name is cleared
+  ///
+  /// In en, this message translates to:
+  /// **'Default guide name cleared'**
+  String get defaultGuideNameCleared;
+
+  /// Text shown when a default value is not set
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get notSet;
+
+  /// Note explaining how defaults work in Up Next
+  ///
+  /// In en, this message translates to:
+  /// **'These defaults are set from your last selection on any track. Home uses them to skip the selection screen when you continue a pack.'**
+  String get defaultsNote;
+
+  /// Speed sheet: button that sets playback speed back to 1.0x
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get speedReset;
+
+  /// Accessibility label for the button that clears the saved default guide preference
+  ///
+  /// In en, this message translates to:
+  /// **'Clear default guide'**
+  String get clearDefault;
+
+  /// Question on onboarding screen 1 — asking about the user's meditation experience
+  ///
+  /// In en, this message translates to:
+  /// **'Have you meditated before?'**
+  String get onboardingExperienceQuestion;
+
+  /// Subtext below the question on onboarding screen 1
+  ///
+  /// In en, this message translates to:
+  /// **'This helps us show you the right starting point.'**
+  String get onboardingExperienceSubtext;
+
+  /// Option 1 on onboarding screen 1 — user has never meditated
+  ///
+  /// In en, this message translates to:
+  /// **'Never tried it'**
+  String get onboardingExperienceNever;
+
+  /// Option 2 on onboarding screen 1 — user has meditated a little
+  ///
+  /// In en, this message translates to:
+  /// **'A little, here and there'**
+  String get onboardingExperienceALittle;
+
+  /// Option 3 on onboarding screen 1 — user has a regular meditation practice
+  ///
+  /// In en, this message translates to:
+  /// **'I have a regular practice'**
+  String get onboardingExperienceRegular;
+
+  /// CTA button label on the onboarding result screen
+  ///
+  /// In en, this message translates to:
+  /// **'Get started'**
+  String get onboardingResultCta;
+
+  /// Accessibility label for the favorite button when the item is not yet favorited
+  ///
+  /// In en, this message translates to:
+  /// **'Add to favorites'**
+  String get addToFavorites;
+
+  /// Snackbar after the star button adds a pack or track to Favorites
+  ///
+  /// In en, this message translates to:
+  /// **'Added to Favorites'**
+  String get addedToFavorites;
+
+  /// Snackbar after the star button removes a pack or track from Favorites
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from Favorites'**
+  String get removedFromFavorites;
+
+  /// Accessibility label for the favorite button when the item is already favorited
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get removeFromFavorites;
+
+  /// Local introduction heading for someone new to meditation.
+  ///
+  /// In en, this message translates to:
+  /// **'A little time to begin.'**
+  String get localIntroBeginHeading;
+
+  /// Local introduction heading for someone with some meditation experience.
+  ///
+  /// In en, this message translates to:
+  /// **'Ease back into your practice.'**
+  String get localIntroReturnHeading;
+
+  /// Local introduction heading for someone with a regular meditation practice.
+  ///
+  /// In en, this message translates to:
+  /// **'Space for your practice.'**
+  String get localIntroPracticeHeading;
+
+  /// Instructions for a first unguided meditation using the local timer.
+  ///
+  /// In en, this message translates to:
+  /// **'Find a comfortable seat, set a short timer, and notice your breath. When your attention wanders, gently begin again.'**
+  String get localIntroBeginBody;
+
+  /// Encouragement to resume practice using the local timer.
+  ///
+  /// In en, this message translates to:
+  /// **'Start with a few quiet minutes. The timer is ready whenever you are.'**
+  String get localIntroReturnBody;
+
+  /// Introduction to the local timer and its configurable bells and duration.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the timer for an unguided sit, with the bells and duration you prefer.'**
+  String get localIntroPracticeBody;
+
+  /// Explains that practice history, favourites and preferences are stored on the device.
+  ///
+  /// In en, this message translates to:
+  /// **'Your practice history, favourites and settings stay on this device.'**
+  String get localIntroDeviceOnlyNote;
+
+  /// Course progress line
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {total} left'**
+  String courseLeft(int count, int total);
+
+  /// Button that opens the import screen
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get libraryAdd;
+
+  /// No description provided for @homeShortcutAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get homeShortcutAdd;
+
+  /// No description provided for @pinnedLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Home holds up to three pinned courses or playlists. Unpin one first.'**
+  String get pinnedLimitReached;
+
+  /// Sounds screen: soundsDrift
+  ///
+  /// In en, this message translates to:
+  /// **'Drift'**
+  String get soundsDrift;
+
+  /// Sounds screen: soundsDriftHint
+  ///
+  /// In en, this message translates to:
+  /// **'Let the level rise and fall slowly'**
+  String get soundsDriftHint;
+
+  /// Sounds screen: soundsUnderSessions
+  ///
+  /// In en, this message translates to:
+  /// **'Under sessions'**
+  String get soundsUnderSessions;
+
+  /// Sounds screen: soundsUnderPractice
+  ///
+  /// In en, this message translates to:
+  /// **'Play under practice'**
+  String get soundsUnderPractice;
+
+  /// Sounds screen: soundsUnderTalks
+  ///
+  /// In en, this message translates to:
+  /// **'Play under talks'**
+  String get soundsUnderTalks;
+
+  /// Sounds screen: soundsUnderSessionsHint
+  ///
+  /// In en, this message translates to:
+  /// **'Your mix plays beneath the session, at its own volume'**
+  String get soundsUnderSessionsHint;
+
+  /// Noise editor, inside the opened Equaliser: sets the ten bands back to flat. Shown only when they are not flat
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get noiseReset;
+
+  /// In the player's Customize sheet, under Background sound: opens the Sounds screen
+  ///
+  /// In en, this message translates to:
+  /// **'Edit your mix in Sounds'**
+  String get soundsEditMix;
+
+  /// Library heading over what the user has started and not finished
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get libraryInProgress;
+
+  /// Library filter chip: courses from a source
+  ///
+  /// In en, this message translates to:
+  /// **'Courses'**
+  String get libraryFilterCourses;
+
+  /// Library filter chip: what the user made
+  ///
+  /// In en, this message translates to:
+  /// **'Playlists'**
+  String get libraryFilterPlaylists;
+
+  /// Library filter chip: single sessions
+  ///
+  /// In en, this message translates to:
+  /// **'Singles'**
+  String get libraryFilterSingles;
+
+  /// Screen-reader label of the Library's Practice/Talks switch
+  ///
+  /// In en, this message translates to:
+  /// **'Practice or talks'**
+  String get libraryGroupLabel;
+
+  /// Bell maker: the screen's title and the row that opens it
+  ///
+  /// In en, this message translates to:
+  /// **'Make a bell'**
+  String get bellMakerTitle;
+
+  /// Bell maker: saves the bell
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get bellMakerSave;
+
+  /// Bell maker: the bell's name field
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get bellMakerName;
+
+  /// Bell maker: the bells to start from
+  ///
+  /// In en, this message translates to:
+  /// **'Start from'**
+  String get bellMakerStartFrom;
+
+  /// Bell maker: plays the bell as it is now
+  ///
+  /// In en, this message translates to:
+  /// **'Hear it'**
+  String get bellMakerHear;
+
+  /// Bell maker: shown while the sound is rendered
+  ///
+  /// In en, this message translates to:
+  /// **'Making the sound'**
+  String get bellMakerMaking;
+
+  /// Bell maker: the sound could not be made or played
+  ///
+  /// In en, this message translates to:
+  /// **'The bell could not be played.'**
+  String get bellMakerPlayFailed;
+
+  /// Bell maker: saving failed
+  ///
+  /// In en, this message translates to:
+  /// **'The bell could not be saved.'**
+  String get bellMakerSaveFailed;
+
+  /// Bell maker: the limit of saved bells
+  ///
+  /// In en, this message translates to:
+  /// **'You can keep up to {count} bells. Delete one to make another.'**
+  String bellMakerLimit(int count);
+
+  /// Bell maker: control
+  ///
+  /// In en, this message translates to:
+  /// **'Pitch'**
+  String get bellPitch;
+
+  /// Bell maker: pitch, low end
+  ///
+  /// In en, this message translates to:
+  /// **'Deep'**
+  String get bellPitchLow;
+
+  /// Bell maker: pitch, high end
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get bellPitchHigh;
+
+  /// Bell maker: control
+  ///
+  /// In en, this message translates to:
+  /// **'Brightness'**
+  String get bellBright;
+
+  /// Bell maker: brightness, low end
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get bellBrightLow;
+
+  /// Bell maker: brightness, high end
+  ///
+  /// In en, this message translates to:
+  /// **'Bright'**
+  String get bellBrightHigh;
+
+  /// Bell maker: control, how long it rings
+  ///
+  /// In en, this message translates to:
+  /// **'Ring'**
+  String get bellRing;
+
+  /// Bell maker: ring, short end
+  ///
+  /// In en, this message translates to:
+  /// **'Short'**
+  String get bellRingLow;
+
+  /// Bell maker: ring, long end
+  ///
+  /// In en, this message translates to:
+  /// **'Long'**
+  String get bellRingHigh;
+
+  /// Bell maker: control, soft mallet to hard
+  ///
+  /// In en, this message translates to:
+  /// **'Strike'**
+  String get bellStrike;
+
+  /// Bell maker: strike, soft end
+  ///
+  /// In en, this message translates to:
+  /// **'Soft'**
+  String get bellStrikeLow;
+
+  /// Bell maker: strike, hard end
+  ///
+  /// In en, this message translates to:
+  /// **'Hard'**
+  String get bellStrikeHigh;
+
+  /// Bell maker: control, the slow wobble of a ring
+  ///
+  /// In en, this message translates to:
+  /// **'Shimmer'**
+  String get bellShimmer;
+
+  /// Bell maker: shimmer, still end
+  ///
+  /// In en, this message translates to:
+  /// **'Still'**
+  String get bellShimmerLow;
+
+  /// Bell maker: shimmer, wobbling end
+  ///
+  /// In en, this message translates to:
+  /// **'Wobbling'**
+  String get bellShimmerHigh;
+
+  /// Bell picker: the bells the user made
+  ///
+  /// In en, this message translates to:
+  /// **'Your bells'**
+  String get bellYours;
+
+  /// Bell picker: renames a bell the user made
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get bellRename;
+
+  /// Bell picker: rename dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Rename bell'**
+  String get bellRenameTitle;
+
+  /// Bell picker: delete confirmation title
+  ///
+  /// In en, this message translates to:
+  /// **'Delete “{name}”?'**
+  String bellDeleteTitle(String name);
+
+  /// Bell picker: delete confirmation body
+  ///
+  /// In en, this message translates to:
+  /// **'Cues that ring it go back to the Session bell.'**
+  String get bellDeleteBody;
+
+  /// Bell picker: screen-reader label of a made bell's menu
+  ///
+  /// In en, this message translates to:
+  /// **'More about {name}'**
+  String bellMenu(String name);
+
+  /// Bell maker: the name suggested for a new bell
+  ///
+  /// In en, this message translates to:
+  /// **'My bell'**
+  String get bellMakerDefaultName;
+
+  /// Screen-reader label of a pinned preset tile on Home, which starts that sit
+  ///
+  /// In en, this message translates to:
+  /// **'Start {name}'**
+  String presetStart(String name);
+
+  /// Screen-reader label of a preset in a picker, which sets what the preset holds
+  ///
+  /// In en, this message translates to:
+  /// **'Use {name}'**
+  String presetApply(String name);
+
+  /// Presets: the name of the Bells slot
+  ///
+  /// In en, this message translates to:
+  /// **'Bells'**
+  String get presetSlotBells;
+
+  /// Presets: the name of the Length slot
+  ///
+  /// In en, this message translates to:
+  /// **'Length'**
+  String get presetSlotLength;
+
+  /// Save preset sheet: writes the ticked slots into the loaded preset
+  ///
+  /// In en, this message translates to:
+  /// **'Update “{name}”'**
+  String presetUpdate(String name);
+
+  /// Save preset sheet: makes a new preset instead of updating the loaded one
+  ///
+  /// In en, this message translates to:
+  /// **'Save as new'**
+  String get presetSaveAsNew;
+
+  /// Shown after a preset was updated
+  ///
+  /// In en, this message translates to:
+  /// **'Updated “{name}”'**
+  String presetUpdated(String name);
+
+  /// Save preset sheet: a slot of the loaded preset that this save leaves as it is
+  ///
+  /// In en, this message translates to:
+  /// **'{value} · kept'**
+  String presetKept(String value);
+
+  /// Save preset sheet: a slot the preset does not hold
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get presetNotSet;
+
+  /// The preset that was loaded here
+  ///
+  /// In en, this message translates to:
+  /// **'From {name}'**
+  String presetFrom(String name);
+
+  /// The preset that was loaded here, changed since
+  ///
+  /// In en, this message translates to:
+  /// **'From {name} · edited'**
+  String presetFromEdited(String name);
+
+  /// Preset summary: its Sound slot is silence
+  ///
+  /// In en, this message translates to:
+  /// **'No sound'**
+  String get presetNoSound;
+
+  /// Preset summary: its Bells slot has every bell off
+  ///
+  /// In en, this message translates to:
+  /// **'No bells'**
+  String get presetNoBells;
+
+  /// Preset summary: its Rhythm slot is off
+  ///
+  /// In en, this message translates to:
+  /// **'No rhythm'**
+  String get presetNoRhythm;
 }
 
 class _AppLocalizationsDelegate

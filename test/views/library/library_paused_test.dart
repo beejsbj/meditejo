@@ -43,8 +43,9 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('course_pin')));
       await settle(tester);
-      await tester.ensureVisible(find.byType(SaveButton));
-      await tester.tap(find.byType(SaveButton));
+      // The header's Library toggle (#81).
+      await tester.ensureVisible(find.byType(SaveIconButton));
+      await tester.tap(find.byType(SaveIconButton));
       await settle(tester);
       await tester.tap(
         find.descendant(

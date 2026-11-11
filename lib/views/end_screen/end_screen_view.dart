@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 
@@ -739,9 +741,9 @@ class _EndScreenViewState extends ConsumerState<EndScreenView>
         if (!recovered || !mounted) return;
       }
 
-      // Time first, permission second — same order as onboarding's chips and
-      // the Settings tile. Replaces the old silent "same time tomorrow"
-      // default that the other two surfaces had already dropped.
+      // Time first, permission second — same order as the Settings tile.
+      // Replaces the old silent "same time tomorrow" default that the tile
+      // had already dropped.
       final pick = await _pickReminderTime();
       if (pick == null || !mounted) return;
       final time = pick;
@@ -766,7 +768,6 @@ class _EndScreenViewState extends ConsumerState<EndScreenView>
         prefs: prefs,
         reminders: ref.read(reminderProvider),
       );
-
       await service.enableAt(time, l10n: AppLocalizations.of(context));
       await ref.read(reminderEnabledProvider.notifier).setEnabled(true);
       await ref.read(reminderTimeProvider.notifier).setTime(time);

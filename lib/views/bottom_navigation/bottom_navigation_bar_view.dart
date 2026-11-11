@@ -1,13 +1,19 @@
 import 'package:medito/widgets/adaptive/adaptive_content.dart';
 import 'package:medito/views/bottom_navigation/widgets/medito_sidebar.dart';
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:medito/constants/strings/shared_preference_constants.dart';
+import 'package:flutter/foundation.dart';
+import 'package:medito/widgets/cover_art.dart';
+import 'package:medito/widgets/art/art_subject.dart';
+import 'package:medito/providers/categories/category_providers.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
+import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/providers/stats_provider.dart';
@@ -20,8 +26,7 @@ import 'package:medito/views/library/share_intake_host.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/views/library/library_view.dart';
-import 'package:medito/views/you/you_view.dart';
-import 'package:medito/views/soundscape/sounds_view.dart';
+import 'package:medito/views/settings/settings_screen.dart';
 
 class BottomNavigationBarView extends ConsumerStatefulWidget {
   const BottomNavigationBarView({super.key});
@@ -34,9 +39,10 @@ class BottomNavigationBarView extends ConsumerStatefulWidget {
 class _BottomNavigationBarViewState
     extends ConsumerState<BottomNavigationBarView> {
   // Nav destination index == MainTab index == page index in _pages: Home,
-  // Explore, Sounds, Library, You. Search lives inside Explore.
+  // Explore, Library, Settings. Search lives inside Explore; You (stats and
+  // history) is a page opened from Home, Library and Settings; Sounds is a
+  // sheet over any of them.
   final _exploreViewKey = GlobalKey<ExploreViewState>();
-  final _soundsViewKey = GlobalKey<SoundsViewState>();
   late final List<Widget> _pages;
   bool _restoringEndScreen = false;
 
@@ -120,6 +126,28 @@ class _BottomNavigationBarViewState
     final currentTab = ref.watch(mainTabProvider);
     final currentIndex = currentTab.index;
     ref.listen(mainTabProvider, (_, next) => _onTabChanged(next));
+    // Which library items carry a practice with its own figure variants,
+    // for their covers on every screen (art_subject.dart, artPractices).
+    ref.listen(libraryLabelsProvider, (_, next) {
+      final labels = next.value;
+      if (labels == null) return;
+      final practices = <String, String>{
+        for (final MapEntry(:key, :value) in labels.entries)
+          key: ?artPractice(value),
+      };
+      // Only a real change refreshes covers; it is saved so the next launch
+      // draws the same covers from its first frame (main.dart).
+      if (mapEquals(practices, artPractices.value)) return;
+      artPractices.value = practices;
+      unawaited(
+        ref
+            .read(sharedPreferencesProvider)
+            .setString(
+              SharedPreferenceConstants.artPractices,
+              jsonEncode(practices),
+            ),
+      );
+    });
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
@@ -145,11 +173,6 @@ class _BottomNavigationBarViewState
           canPop: currentTab == MainTab.home,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
-            // An open mix panel folds first; then back returns Home.
-            if (currentTab == MainTab.sounds &&
-                (_soundsViewKey.currentState?.collapseMix() ?? false)) {
-              return;
-            }
             _onDestinationSelected(MainTab.home.index);
           },
           child: Scaffold(
@@ -211,10 +234,8 @@ class _BottomNavigationBarViewState
   Widget _page(MainTab tab) => switch (tab) {
     MainTab.home => const HomeView(),
     MainTab.explore => ExploreView(key: _exploreViewKey),
-    MainTab.sounds => SoundsView(key: _soundsViewKey),
     MainTab.library => const LibraryView(),
-    // You's own screen (stats and Settings) replaces this line.
-    MainTab.you => const YouView(),
+    MainTab.settings => const SettingsScreen(),
   };
 
   static MeditoNavItem _navItem(MainTab tab, AppLocalizations l10n) =>
@@ -227,17 +248,13 @@ class _BottomNavigationBarViewState
           icon: Symbols.search_rounded,
           label: l10n.explore,
         ),
-        MainTab.sounds => MeditoNavItem(
-          icon: Symbols.graphic_eq_rounded,
-          label: l10n.backgroundSoundsSection,
-        ),
         MainTab.library => MeditoNavItem(
           icon: Symbols.library_books_rounded,
           label: l10n.navLibrary,
         ),
-        MainTab.you => MeditoNavItem(
-          icon: Symbols.person_rounded,
-          label: l10n.navYou,
+        MainTab.settings => MeditoNavItem(
+          icon: Symbols.settings_rounded,
+          label: l10n.navSettings,
         ),
       };
 
@@ -252,8 +269,7 @@ class _BottomNavigationBarViewState
     // changed since the bundled copy; never at startup.
     if (tab == MainTab.explore) {
       _exploreViewKey.currentState?.loadData();
-      catchUpDharmaSeed(ref);
+      catchUpCatalogues(ref);
     }
-    if (tab == MainTab.sounds) retryLegacySounds(ref.container);
   }
 }

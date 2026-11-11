@@ -7,10 +7,16 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/soundscape/sound_library.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/synth.dart';
+import 'package:medito/providers/presets/preset_providers.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
+import 'package:medito/views/presets/preset_picker.dart';
+import 'package:medito/views/presets/save_preset_sheet.dart';
 import 'package:medito/widgets/art/art_cover.dart';
 import 'package:medito/widgets/art/art_subject.dart';
 
+import 'sound_control_spec.dart';
+import 'sound_controls.dart';
+import 'sounds_sheet.dart';
 import 'sound_labels.dart';
 import 'synth_editors.dart';
 
@@ -70,15 +76,25 @@ String mixSummary(
       : titles.join(', ');
 }
 
-/// Play/pause the whole mix, what it is, Stop, and (in the dock) the button
-/// that opens or folds the panel.
+/// Play/pause the whole mix, whose it is and what it is, Stop or Clear, and
+/// (in the dock) the button that opens or folds the panel.
 class SoundsMixHeader extends ConsumerWidget {
-  const SoundsMixHeader({super.key, this.expanded = false, this.onToggle});
+  const SoundsMixHeader({
+    super.key,
+    this.expanded = false,
+    this.onToggle,
+    this.chooser,
+  });
 
   final bool expanded;
 
   /// Opens or folds the dock; null where the panel is always open.
   final VoidCallback? onToggle;
+
+  /// The mix is what plays under [SoundChooser.kind]'s sessions, and says
+  /// so: the one line that tells the sheet on a session from the sheet on
+  /// your own mix.
+  final SoundChooser? chooser;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -89,7 +105,16 @@ class SoundsMixHeader extends ConsumerWidget {
     final state = ref.watch(soundscapeProvider);
     final library = ref.watch(soundLibraryProvider).value ?? SoundLibrary.empty;
     final controller = ref.read(soundscapeProvider.notifier);
-    final summary = mixSummary(l10n, state, library);
+    final chooser = this.chooser;
+    // A mix that began as a preset and moved on says where it came from.
+    final loaded = ref.watch(
+      loadedPresetProvider(PresetContext.sounds(chooserKind: chooser?.kind)),
+    );
+    final summary = chooser != null && state.mix.isEmpty
+        ? l10n.soundsChooserEmpty
+        : loaded != null && loaded.edited
+        ? presetFromLine(l10n, loaded)
+        : mixSummary(l10n, state, library);
     const motion = MeditejoMotion.standardSpatial;
     return Row(
       children: [
@@ -149,8 +174,15 @@ class SoundsMixHeader extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                l10n.soundsYourMix,
-                maxLines: 1,
+                switch (chooser?.kind) {
+                  null => l10n.soundsYourMix,
+                  SoundscapeSessionKind.practice =>
+                    l10n.soundsPlaysUnderPractice,
+                  SoundscapeSessionKind.talks => l10n.soundsPlaysUnderTalks,
+                },
+                // A session's longer title wraps rather than cut ("Läuft
+                // bei Übungen" at 360 dp with large text).
+                maxLines: chooser == null ? 1 : 2,
                 overflow: TextOverflow.ellipsis,
                 style: type.emphasized.titleMedium,
               ),
@@ -173,7 +205,10 @@ class SoundsMixHeader extends ConsumerWidget {
             ],
           ),
         ),
-        if (state.active)
+        // On your own mix, while the panel is folded. Open, Clear takes its
+        // place (and the art still pauses). For a session, Clear is the way
+        // to silence: an empty mix is the choice Off.
+        if (state.active && chooser == null && !expanded)
           IconButton(
             key: const ValueKey('sounds_stop'),
             tooltip: l10n.soundsStop,
@@ -181,13 +216,25 @@ class SoundsMixHeader extends ConsumerWidget {
             icon: const Icon(Symbols.stop_rounded, fill: 1),
           ),
         // Clear takes the whole mix off the deck; Undo in the snackbar puts
-        // it back. Only where the panel is open (the dock's chevron stays).
-        if ((expanded || onToggle == null) && !state.mix.isEmpty)
-          TextButton(
-            key: const ValueKey('sounds_clear'),
-            onPressed: () => _clear(context, ref),
-            child: Text(l10n.soundsClear),
-          ),
+        // it back. Only where the panel is open (the dock's chevron stays),
+        // except on a session's sound, where an empty mix is the choice Off.
+        if ((expanded || onToggle == null || chooser != null) &&
+            !state.mix.isEmpty)
+          // Words where they fit; at large text an icon, so the title
+          // keeps its line.
+          if (MediaQuery.textScalerOf(context).scale(1) > 1.3)
+            IconButton(
+              key: const ValueKey('sounds_clear'),
+              tooltip: l10n.soundsClear,
+              onPressed: () => _clear(context, ref),
+              icon: const Icon(Symbols.playlist_remove_rounded),
+            )
+          else
+            TextButton(
+              key: const ValueKey('sounds_clear'),
+              onPressed: () => _clear(context, ref),
+              child: Text(l10n.soundsClear),
+            ),
         // An empty mix has nothing to open: its line says how to start.
         if (onToggle != null && (expanded || !state.mix.isEmpty))
           IconButton(
@@ -206,6 +253,45 @@ class SoundsMixHeader extends ConsumerWidget {
   }
 }
 
+/// The height of the mix's docked bar, for what is drawn under it: a
+/// snackbar shown from the mix sits above the bar instead of over it. Absent
+/// where the mix is a pane beside the library.
+class SoundsDockBar extends InheritedWidget {
+  const SoundsDockBar({super.key, required this.height, required super.child});
+
+  /// From the Scaffold's foot to the bar's top edge.
+  final double height;
+
+  @override
+  bool updateShouldNotify(SoundsDockBar old) => height != old.height;
+}
+
+/// Shows [content] as a snackbar from the mix, replacing the one showing. It
+/// floats clear of the docked bar where there is one (an emptied mix folds
+/// the dock to its bar, and a snackbar at the foot would cover it).
+void _showMixSnackBar(
+  BuildContext context,
+  Widget content, {
+  SnackBarAction? action,
+}) {
+  final bar = context.getInheritedWidgetOfExactType<SoundsDockBar>()?.height;
+  ScaffoldMessenger.maybeOf(context)
+    ?..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: content,
+        // An action keeps a SnackBar up until dismissed; Undo is for the
+        // moment after Clear, so let it time out.
+        persist: false,
+        // A quiet lift: it floats over the library's cards.
+        elevation: 2,
+        action: action,
+        behavior: bar == null ? null : SnackBarBehavior.floating,
+        margin: bar == null ? null : EdgeInsets.fromLTRB(16, 0, 16, bar + 8),
+      ),
+    );
+}
+
 /// Empties the mix and offers Undo, which restores it exactly (and plays it
 /// again if it was playing).
 void _clear(BuildContext context, WidgetRef ref) {
@@ -216,31 +302,28 @@ void _clear(BuildContext context, WidgetRef ref) {
   // A paused mix is loaded but not playing; Undo brings it back paused.
   final wasPaused =
       before.owner == SoundscapeOwner.standalone && !before.playing;
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(
-        content: Text(l10n.soundsMixCleared),
-        // An action keeps a SnackBar up until dismissed; Undo is for the
-        // moment after Clear, so let it time out.
-        persist: false,
-        action: SnackBarAction(
-          label: l10n.undo,
-          onPressed: () => controller.restoreMix(
-            before.mix,
-            play: before.playing || wasPaused,
-            paused: wasPaused,
-          ),
-        ),
+  _showMixSnackBar(
+    context,
+    Text(l10n.soundsMixCleared),
+    action: SnackBarAction(
+      label: l10n.undo,
+      onPressed: () => controller.restoreMix(
+        before.mix,
+        play: before.playing || wasPaused,
+        paused: wasPaused,
       ),
-    );
+    ),
+  );
 }
 
 /// The open panel under the header: the mix's volume, its layers (each
 /// with volume, mute, swell, settings for a generated one, and remove) and
 /// Save mix. Scrolls with [controller].
 class SoundsMixBody extends ConsumerWidget {
-  const SoundsMixBody({super.key, this.controller, this.padding});
+  const SoundsMixBody({super.key, this.controller, this.padding, this.chooser});
+
+  /// As [SoundsMixHeader.chooser]: whose mix this is.
+  final SoundChooser? chooser;
 
   final ScrollController? controller;
   final EdgeInsetsGeometry? padding;
@@ -318,7 +401,10 @@ class SoundsMixBody extends ConsumerWidget {
             child: FilledButton.tonalIcon(
               key: const ValueKey('mix_save'),
               style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
-              onPressed: () => saveMixAsPreset(context, ref),
+              onPressed: () => saveMixAsPreset(
+                context,
+                PresetContext.sounds(chooserKind: chooser?.kind),
+              ),
               icon: const Icon(Symbols.bookmark_add_rounded),
               label: Text(l10n.soundsSavePreset),
             ),
@@ -481,6 +567,8 @@ class _LayerTile extends ConsumerWidget {
     final type = context.typography;
     final mixer = ref.read(soundscapeProvider.notifier);
     final id = layer.soundId;
+    // Every layer: volume and Swell; a generated one adds Adjust (#71).
+    final spec = soundControlSpec(id);
     final muted = layer.volume == 0;
     final playing = ref.watch(soundscapeProvider.select((s) => s.playing));
     return Padding(
@@ -560,29 +648,12 @@ class _LayerTile extends ConsumerWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FilterChip(
-                          key: ValueKey('swell_$id'),
-                          avatar: const Icon(Symbols.waves_rounded),
-                          label: Text(l10n.soundsSwell),
-                          selected: layer.animate,
-                          // The waves stay; the tonal fill says it is on.
-                          showCheckmark: false,
-                          onSelected: (on) => mixer.setLayerAnimate(id, on),
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            l10n.soundsSwellHint,
-                            style: context.typography.baseline.bodySmall
-                                ?.copyWith(color: scheme.onSurfaceVariant),
-                          ),
-                        ),
-                      ],
+                    SwellToggle(
+                      chipKey: ValueKey('swell_$id'),
+                      selected: layer.animate,
+                      onChanged: (on) => mixer.setLayerAnimate(id, on),
                     ),
-                    if (isSynthId(id))
+                    if (spec.adjustable)
                       ActionChip(
                         key: ValueKey('adjust_$id'),
                         tooltip: l10n.synthAdjust(title),
@@ -593,7 +664,7 @@ class _LayerTile extends ConsumerWidget {
                   ],
                 ),
               ),
-              if (id == kSynthBinauralId) const BinauralHeadphonesNote(),
+              if (spec.headphones) const BinauralHeadphonesNote(),
             ],
           ),
         ),
@@ -602,91 +673,19 @@ class _LayerTile extends ConsumerWidget {
   }
 }
 
-/// Asks for a name and keeps the current mix as a preset.
-Future<void> saveMixAsPreset(BuildContext context, WidgetRef ref) async {
+/// Opens the save sheet on the mix (the Sound slot is all the Sounds
+/// sheet saves) and says what was saved.
+Future<void> saveMixAsPreset(BuildContext context, PresetContext place) async {
   final l10n = AppLocalizations.of(context)!;
-  final name = await showDialog<String>(
-    context: context,
-    builder: (context) => const _PresetNameDialog(),
-  );
-  if (name == null || name.trim().isEmpty) return;
-  final saved = ref.read(soundscapeProvider.notifier).savePreset(name);
-  if (saved != null && context.mounted) {
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(content: Text(l10n.soundsPresetSaved(saved.name))),
-    );
-  }
-}
-
-/// Confirms, then deletes one of the user's presets.
-Future<void> confirmDeletePreset(
-  BuildContext context,
-  WidgetRef ref,
-  SoundPreset preset,
-) async {
-  final l10n = AppLocalizations.of(context)!;
-  final delete = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(l10n.soundsDeletePreset(preset.name)),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: Text(l10n.soundsCancel),
-        ),
-        TextButton(
-          key: const ValueKey('preset_delete_confirm'),
-          onPressed: () => Navigator.pop(context, true),
-          child: Text(l10n.soundsDelete),
-        ),
-      ],
+  final saved = await showSavePresetSheet(context, place);
+  // The sheet may have closed under it (a session took the mixer).
+  if (saved == null || !context.mounted) return;
+  _showMixSnackBar(
+    context,
+    Text(
+      saved.updated
+          ? l10n.presetUpdated(saved.preset.name)
+          : l10n.soundsPresetSaved(saved.preset.name),
     ),
   );
-  if (delete == true) {
-    ref.read(soundscapeProvider.notifier).deletePreset(preset.id);
-  }
-}
-
-class _PresetNameDialog extends StatefulWidget {
-  const _PresetNameDialog();
-
-  @override
-  State<_PresetNameDialog> createState() => _PresetNameDialogState();
-}
-
-class _PresetNameDialogState extends State<_PresetNameDialog> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return AlertDialog(
-      title: Text(l10n.soundsSavePreset),
-      content: TextField(
-        key: const ValueKey('preset_name'),
-        controller: _controller,
-        autofocus: true,
-        textCapitalization: TextCapitalization.sentences,
-        decoration: InputDecoration(hintText: l10n.soundsPresetName),
-        onSubmitted: (v) => Navigator.pop(context, v),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l10n.soundsCancel),
-        ),
-        TextButton(
-          key: const ValueKey('preset_name_save'),
-          onPressed: () => Navigator.pop(context, _controller.text),
-          child: Text(l10n.soundsSave),
-        ),
-      ],
-    );
-  }
 }

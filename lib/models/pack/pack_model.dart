@@ -43,6 +43,10 @@ abstract class PackItemsModel with _$PackItemsModel {
     /// optional: sources without them get the plain row.
     String? kind,
     String? teacher,
+
+    /// The app ID of [teacher]'s own page (`ds-teacher-210`), when the source
+    /// has one. Null hides "Go to teacher".
+    String? teacherId,
     int? durationMs,
 
     /// Recording date as `yyyy-MM-dd`, for grouping a long course by day.

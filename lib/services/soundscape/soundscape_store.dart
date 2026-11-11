@@ -3,7 +3,9 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../models/presets/preset.dart';
 import '../../models/soundscape/sound_mix.dart';
+import '../../models/soundscape/starter_presets.dart';
 
 /// Remembers the mixer: the current mix, the user's presets, the Sounds
 /// volume and what plays under each kind of session. Plain JSON in shared
@@ -12,7 +14,23 @@ class SoundscapeStore {
   SoundscapeStore(this._prefs);
 
   static const mixKey = 'soundscape_mix';
-  static const presetsKey = 'soundscape_presets';
+
+  /// The user's presets (#64): a list of [Preset.toJson].
+  static const presetsKey = 'presets.v1';
+
+  /// Where saved mixes were kept before #64. Read once, to become
+  /// [presetsKey], and then left as it is: an older build still finds its
+  /// mixes there.
+  static const legacyPresetsKey = 'soundscape_presets';
+
+  /// The presets pinned to Home, oldest pin first.
+  static const pinnedPresetsKey = 'presets.pinned';
+
+  /// Which preset was last loaded in each place (see `PresetContext`).
+  static const loadedPresetsKey = 'presets.loaded';
+
+  /// How many preset tiles Home showed by itself before presets were pinned.
+  static const _legacyHomeTiles = 2;
   static const volumeKey = 'soundscape_volume';
   static const sessionDefaultsKey = 'soundscape_session_defaults';
   static const sessionDefaultsVersionKey =
@@ -30,13 +48,43 @@ class SoundscapeStore {
   void writeMix(SoundMix mix) =>
       unawaited(_prefs.setString(mixKey, jsonEncode(mix.toJson())));
 
-  List<SoundPreset> readPresets() {
+  /// The user's presets. The first read after #64 turns every saved mix
+  /// into a preset holding only its Sound slot, under the same id (so
+  /// `preset:<id>` choices still resolve), and writes [presetsKey]; from
+  /// then on the old list is not read again.
+  List<Preset> readPresets() {
+    if (!_prefs.containsKey(presetsKey)) {
+      final legacy = _decode(legacyPresetsKey);
+      final migrated = [
+        if (legacy is List)
+          for (final item in legacy) ?_fromSavedMix(item),
+      ];
+      writePresets(migrated);
+      // With them, the tiles Home showed: pinned now, before anything new
+      // is saved and would look like one of them.
+      if (!_prefs.containsKey(pinnedPresetsKey)) {
+        writePinnedPresets(_legacyHomePins(migrated));
+      }
+      return migrated;
+    }
     final raw = _decode(presetsKey);
     if (raw is! List) return const [];
-    return [for (final item in raw) ?SoundPreset.tryFromJson(item)];
+    return [for (final item in raw) ?Preset.tryFromJson(item)];
   }
 
-  void writePresets(List<SoundPreset> presets) => unawaited(
+  static Preset? _fromSavedMix(Object? json) {
+    if (json is! Map) return null;
+    final id = json['id'];
+    final name = json['name'];
+    if (id is! String || name is! String || id.isEmpty) return null;
+    return Preset.sound(
+      id: id,
+      name: name,
+      mix: SoundMix.fromJson(json['layers']),
+    );
+  }
+
+  void writePresets(List<Preset> presets) => unawaited(
     _prefs.setString(
       presetsKey,
       jsonEncode([
@@ -45,6 +93,41 @@ class SoundscapeStore {
       ]),
     ),
   );
+
+  /// The ids of the presets pinned to Home. Before pinning, Home showed two
+  /// preset tiles by itself (the newest saved mixes, then the built-in
+  /// ones): the first read pins exactly those, so Home keeps them, and
+  /// writes [pinnedPresetsKey] so it happens once.
+  List<String> readPinnedPresets() {
+    final saved = _prefs.getStringList(pinnedPresetsKey);
+    if (saved != null) return saved.toSet().toList();
+    final presets = readPresets();
+    final migrated = _prefs.getStringList(pinnedPresetsKey);
+    if (migrated != null) return migrated;
+    final seen = _legacyHomePins(presets);
+    writePinnedPresets(seen);
+    return seen;
+  }
+
+  static List<String> _legacyHomePins(List<Preset> saved) => [
+    ...saved.reversed,
+    ...kStarterPresets,
+  ].take(_legacyHomeTiles).map((p) => p.id).toList();
+
+  void writePinnedPresets(List<String> ids) =>
+      unawaited(_prefs.setStringList(pinnedPresetsKey, ids));
+
+  Map<String, String> readLoadedPresets() {
+    final raw = _decode(loadedPresetsKey);
+    return {
+      if (raw is Map)
+        for (final MapEntry(:key, :value) in raw.entries)
+          if (key is String && value is String) key: value,
+    };
+  }
+
+  void writeLoadedPresets(Map<String, String> loaded) =>
+      unawaited(_prefs.setString(loadedPresetsKey, jsonEncode(loaded)));
 
   double readVolume() => (_prefs.getDouble(volumeKey) ?? 0.7).clamp(0.0, 1.0);
 

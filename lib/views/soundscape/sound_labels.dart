@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/models/presets/preset.dart';
 import 'package:medito/models/soundscape/sound_library.dart';
-import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/synth.dart';
 
 /// Localised names for the shelves of the library.
@@ -18,7 +18,7 @@ String soundCategoryLabel(AppLocalizations l10n, SoundCategory category) =>
     };
 
 /// Built-in presets carry English names in code; show them localised.
-String soundPresetLabel(AppLocalizations l10n, SoundPreset preset) =>
+String soundPresetLabel(AppLocalizations l10n, Preset preset) =>
     switch (preset.id) {
       'starter-rain-forest' => l10n.soundPresetRainForest,
       'starter-night' => l10n.soundPresetNight,

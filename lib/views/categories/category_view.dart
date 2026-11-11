@@ -44,6 +44,11 @@ class CategoryView extends ConsumerWidget {
       body: AdaptivePageBody(
         maxWidth: 760,
         child: listing.when(
+          // The listing is re-read whenever the library changes (Add to
+          // library on a row here). Keep showing the one there is meanwhile:
+          // swapping in the spinner would drop the list, and with it how far
+          // the user had scrolled.
+          skipLoadingOnReload: true,
           data: (data) => _Body(listing: data),
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => MeditoErrorWidget(
@@ -57,15 +62,34 @@ class CategoryView extends ConsumerWidget {
   }
 }
 
-class _Body extends StatelessWidget {
+class _Body extends StatefulWidget {
   const _Body({required this.listing});
 
   final CategoryListing listing;
 
   @override
+  State<_Body> createState() => _BodyState();
+}
+
+class _BodyState extends State<_Body> {
+  /// What the page shows: the newest listing, with anything added to the
+  /// library from this page kept in its place ([CategoryListing.keepingPlace]).
+  late CategoryListing listing = widget.listing;
+
+  @override
+  void didUpdateWidget(_Body oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(widget.listing, oldWidget.listing)) {
+      listing = widget.listing.keepingPlace(listing);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final blurb = listing.category.blurb;
+    final blurb = listing.category.blurbFor(
+      Localizations.localeOf(context).languageCode,
+    );
     return CustomScrollView(
       key: ValueKey('category_page_${listing.category.id}'),
       slivers: [

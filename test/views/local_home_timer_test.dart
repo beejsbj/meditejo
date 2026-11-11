@@ -1,9 +1,13 @@
 import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/models/presets/preset.dart';
+import 'package:medito/services/soundscape/soundscape_store.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/starter_presets.dart';
 import 'package:medito/models/timer/timer_session.dart';
+import 'package:medito/providers/presets/preset_providers.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -24,7 +28,10 @@ import 'package:medito/providers/timer/timer_settings_provider.dart';
 import 'package:medito/utils/stats_manager.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/player/player_view.dart';
-import 'package:medito/views/timer/timer_view.dart';
+import 'package:medito/constants/types/type_constants.dart';
+import 'package:medito/routes/routes.dart';
+import 'package:medito/views/cues/customize_sheet.dart';
+import 'package:medito/views/player/widgets/stopwatch_elapsed_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/soundscape_fakes.dart';
@@ -240,10 +247,35 @@ Future<void> _openTimer(WidgetTester tester) async {
     EnginePhase.sendSemanticsUpdate,
     _settleTimeout,
   );
-  expect(find.byType(TimerView), findsOneWidget);
+  // The Timer is the Customize sheet, over Home: not a page of its own.
+  expect(find.byType(CustomizeSheet), findsOneWidget);
+  expect(find.byType(HomeView), findsOneWidget);
+  expect(find.byType(BottomSheet), findsOneWidget);
   expect(find.widgetWithText(FilledButton, 'Start'), findsOneWidget);
   expect(tester.getBottomLeft(find.text('Start')).dy, lessThan(844));
-  expect(find.text('Duration'), findsOneWidget);
+  // The timer's length is the sheet's dial, there as it opens.
+  expect(
+    find.descendant(
+      of: find.byKey(const ValueKey('customize_dial')),
+      matching: find.byKey(_wheel),
+    ),
+    findsOneWidget,
+  );
+  expect(find.textContaining('Stopwatch'), findsNothing);
+}
+
+const _wheel = ValueKey('wheel_Duration');
+
+/// Start on the Timer sheet, through to the player.
+Future<void> _start(WidgetTester tester) async {
+  final start = find.widgetWithText(FilledButton, 'Start');
+  await tester.ensureVisible(start);
+  await tester.tap(start);
+  await _pumpUntil(
+    tester,
+    () => find.byType(PlayerView).evaluate().isNotEmpty,
+    reason: 'Start must navigate to the real player after creating audio',
+  );
 }
 
 /// Runs [body] with the native audio boundary faked and a temporary
@@ -336,11 +368,8 @@ void main() {
       final container = await _home(tester, prefs);
       await _openTimer(tester);
 
-      // The Duration row opens its wheel in place; turn it to 3 minutes.
-      await tester.tap(find.text('Duration'));
-      await tester.pumpAndSettle();
-      const wheel = ValueKey('wheel_Duration');
-      tester.state<WheelPickerState<int>>(find.byKey(wheel)).moveTo(2);
+      // Turn the dial to 3 minutes (∞ is its first place, then 1 min).
+      tester.state<WheelPickerState<int>>(find.byKey(_wheel)).moveTo(3);
       await tester.pumpAndSettle();
       expect(
         container
@@ -348,14 +377,7 @@ void main() {
             .durationMinutes,
         3,
       );
-      final start = find.widgetWithText(FilledButton, 'Start');
-      await tester.ensureVisible(start);
-      await tester.tap(start);
-      await _pumpUntil(
-        tester,
-        () => find.byType(PlayerView).evaluate().isNotEmpty,
-        reason: 'Start must navigate to the real player after creating audio',
-      );
+      await _start(tester);
 
       final request = container.read(playerProvider)!;
       expect(
@@ -416,9 +438,147 @@ void main() {
     });
   }, timeout: const Timeout(Duration(seconds: 45)));
 
-  testWidgets('a Home preset tile starts the timer with that preset under it', (
+  testWidgets('∞ on the dial starts an open-ended timer, which counts up', (
     tester,
   ) async {
+    await _withNativeAudio(tester, (native, directory) async {
+      final container = await _home(
+        tester,
+        prefs,
+        sounds: FakeSoundscapeEngine(),
+        ownAudioState: true,
+      );
+      await _openTimer(tester);
+      await tester.tap(find.byKey(const ValueKey('customize_infinity')));
+      await tester.pumpAndSettle();
+      expect(
+        tester.state<WheelPickerState<int>>(find.byKey(_wheel)).selectedIndex,
+        0,
+      );
+      await _start(tester);
+
+      // The stopwatch engine underneath: its file id, and the longest file.
+      final request = container.read(playerProvider)!;
+      expect(request.isTimer, isTrue);
+      expect(request.timerMode, TimerMode.stopwatch);
+      expect(request.fileId, 'timer-stopwatch-0');
+      expect(request.duration, kStopwatchMaxDuration.inMilliseconds);
+      // It is a Timer by name, and the player counts up.
+      expect(request.title, 'Timer');
+      expect(find.byType(StopwatchElapsedWidget), findsOneWidget);
+      // The sheet has gone: the player is over Home, not over the sheet.
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump();
+      expect(find.byType(CustomizeSheet), findsNothing);
+      expect(find.textContaining('Stopwatch'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }, timeout: const Timeout(Duration(seconds: 45)));
+
+  testWidgets('a link to the stopwatch opens the Timer sheet on ∞ and starts '
+      'open-ended', (tester) async {
+    await _withNativeAudio(tester, (native, directory) async {
+      final container = await _home(
+        tester,
+        prefs,
+        sounds: FakeSoundscapeEngine(),
+        ownAudioState: true,
+      );
+      // It completes when the sheet closes.
+      unawaited(
+        handleNavigation(TypeConstants.route, [
+          RouteConstants.stopwatch,
+        ], tester.element(find.byType(HomeView))),
+      );
+      await tester.pumpAndSettle(
+        const Duration(milliseconds: 100),
+        EnginePhase.sendSemanticsUpdate,
+        _settleTimeout,
+      );
+      expect(find.byType(CustomizeSheet), findsOneWidget);
+      expect(
+        tester.state<WheelPickerState<int>>(find.byKey(_wheel)).selectedIndex,
+        0,
+        reason: 'resting on ∞',
+      );
+      await _start(tester);
+      final request = container.read(playerProvider)!;
+      expect(request.timerMode, TimerMode.stopwatch);
+      expect(request.fileId, 'timer-stopwatch-0');
+      expect(tester.takeException(), isNull);
+    });
+  }, timeout: const Timeout(Duration(seconds: 45)));
+
+  testWidgets('the timer link opens the same sheet, on the length', (
+    tester,
+  ) async {
+    await _home(tester, prefs, ownAudioState: true);
+    unawaited(
+      handleNavigation(TypeConstants.route, [
+        RouteConstants.timer,
+      ], tester.element(find.byType(HomeView))),
+    );
+    await tester.pumpAndSettle(
+      const Duration(milliseconds: 100),
+      EnginePhase.sendSemanticsUpdate,
+      _settleTimeout,
+    );
+    expect(find.byType(CustomizeSheet), findsOneWidget);
+    expect(
+      tester.state<WheelPickerState<int>>(find.byKey(_wheel)).selectedIndex,
+      10,
+    );
+    expect(find.textContaining('Finishes at'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a timer left on the stopwatch still starts open-ended from a '
+      'preset tile, and Home calls it open-ended', (tester) async {
+    await _withNativeAudio(tester, (native, directory) async {
+      final container = await _home(
+        tester,
+        prefs,
+        sounds: FakeSoundscapeEngine(),
+        ownAudioState: true,
+      );
+      // As the old Timer page's Stopwatch tab set it.
+      container
+          .read(timerSettingsProvider.notifier)
+          .setMode(TimerMode.stopwatch);
+      await tester.pumpAndSettle(
+        const Duration(milliseconds: 100),
+        EnginePhase.sendSemanticsUpdate,
+        _settleTimeout,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('shortcut_timer')),
+          matching: find.text('Open-ended'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Stopwatch'), findsNothing);
+
+      // A sound-only preset has no length of its own: the Timer's stands.
+      final preset = kStarterPresets[1];
+      final tile = find.byKey(ValueKey('pinned_preset_${preset.id}'));
+      await tester.ensureVisible(tile);
+      await tester.pump();
+      await tester.tap(tile);
+      await _pumpUntil(
+        tester,
+        () => find.byType(PlayerView).evaluate().isNotEmpty,
+        reason: 'The preset tile must open the player at once',
+      );
+      final request = container.read(playerProvider)!;
+      expect(request.timerMode, TimerMode.stopwatch);
+      expect(request.fileId, 'timer-stopwatch-0');
+      expect(tester.takeException(), isNull);
+    });
+  }, timeout: const Timeout(Duration(seconds: 45)));
+
+  testWidgets('a pinned sound-only preset starts the Timer at its current '
+      'length with that sound under it', (tester) async {
     await _withNativeAudio(tester, (native, directory) async {
       final sounds = FakeSoundscapeEngine();
       // Its own audio state: the global one belongs to the test above.
@@ -430,7 +590,7 @@ void main() {
       );
       // Not the first built-in: that is also Practice's default mix.
       final preset = kStarterPresets[1];
-      final tile = find.byKey(ValueKey('shortcut_preset_${preset.id}'));
+      final tile = find.byKey(ValueKey('pinned_preset_${preset.id}'));
       await tester.ensureVisible(tile);
       await tester.pump();
       await tester.tap(tile);
@@ -443,7 +603,6 @@ void main() {
       final request = container.read(playerProvider)!;
       expect(request.isTimer, isTrue);
       expect(request.trackId, 'timer-600');
-      expect(request.soundscape, 'preset:${preset.id}');
 
       await _pumpUntil(
         tester,
@@ -463,16 +622,115 @@ void main() {
         containsAll([for (final layer in preset.mix.layers) layer.soundId]),
       );
 
-      // For this session only: Practice's saved choices are untouched.
+      // A tile is the preset picked on the Timer, then Start: the Timer
+      // (and so practice, whose settings it shares) keeps the sound, and
+      // names the preset it came from.
       const practice = CueScope(CueKind.practice);
       expect(container.read(cueSettingsProvider(practice)).soundscape, '');
+      final kept = container
+          .read(soundscapeProvider.notifier)
+          .sessionDefault(SoundscapeSessionKind.practice);
+      expect(kept.enabled, isTrue);
+      expect(kept.selection, SoundscapeSelection.preset(preset.id));
       expect(
         container
-            .read(soundscapeProvider.notifier)
-            .sessionDefault(SoundscapeSessionKind.practice)
-            .selection,
-        isNot(SoundscapeSelection.preset(preset.id)),
+            .read(loadedPresetProvider(const PresetContext.timer()))
+            ?.preset
+            .id,
+        preset.id,
       );
+      expect(tester.takeException(), isNull);
+    });
+  }, timeout: const Timeout(Duration(seconds: 45)));
+
+  testWidgets('a pinned preset with a length starts a timer of that length, '
+      'with its bell and its sound', (tester) async {
+    await _withNativeAudio(tester, (native, directory) async {
+      const bowl = 'assets/audio/bell_bowl_medium.wav';
+      final sit = Preset(
+        id: 'user-sit',
+        name: 'Morning sit',
+        slots: PresetSlots(
+          sound: kStarterPresets[1].mix,
+          bells: PresetCues.bells(const CueSettings(startSound: bowl)),
+          length: const PresetLength.minutes(20),
+        ),
+      );
+      SoundscapeStore(prefs)
+        ..writePresets([sit])
+        ..writePinnedPresets([sit.id]);
+      final sounds = FakeSoundscapeEngine();
+      final container = await _home(
+        tester,
+        prefs,
+        sounds: sounds,
+        ownAudioState: true,
+      );
+      final tile = find.byKey(const ValueKey('pinned_preset_user-sit'));
+      expect(
+        find.descendant(of: tile, matching: find.text('20 min · Singing bowl')),
+        findsOneWidget,
+      );
+      await tester.ensureVisible(tile);
+      await tester.pump();
+      await tester.tap(tile);
+      await _pumpUntil(
+        tester,
+        () => find.byType(PlayerView).evaluate().isNotEmpty,
+        reason: 'The preset tile must open the player at once',
+      );
+      final request = container.read(playerProvider)!;
+      expect(request.isTimer, isTrue);
+      expect(request.timerMode, TimerMode.countdown);
+      expect(request.trackId, 'timer-1200');
+      const practice = CueScope(CueKind.practice);
+      expect(container.read(cueSettingsProvider(practice)).startSound, bowl);
+      expect(container.read(cueSettingsProvider(practice)).durationMinutes, 20);
+      await _pumpUntil(
+        tester,
+        () => container.read(soundscapeProvider).underSession,
+        reason: 'Its sound must play under the timer session',
+      );
+      expect(container.read(soundscapeProvider).mix, sit.mix);
+      expect(tester.takeException(), isNull);
+    });
+  }, timeout: const Timeout(Duration(seconds: 45)));
+
+  testWidgets('a pinned ∞ preset counts up, whatever length the Timer was '
+      'left on', (tester) async {
+    await _withNativeAudio(tester, (native, directory) async {
+      const open = Preset(
+        id: 'user-open',
+        name: 'Open sit',
+        slots: PresetSlots(length: PresetLength.openEnded()),
+      );
+      SoundscapeStore(prefs)
+        ..writePresets([open])
+        ..writePinnedPresets([open.id]);
+      final container = await _home(
+        tester,
+        prefs,
+        sounds: FakeSoundscapeEngine(),
+        ownAudioState: true,
+      );
+      expect(container.read(timerSettingsProvider).mode, TimerMode.countdown);
+      final tile = find.byKey(const ValueKey('pinned_preset_user-open'));
+      expect(
+        find.descendant(of: tile, matching: find.text('∞')),
+        findsOneWidget,
+      );
+      await tester.ensureVisible(tile);
+      await tester.pump();
+      await tester.tap(tile);
+      await _pumpUntil(
+        tester,
+        () => find.byType(PlayerView).evaluate().isNotEmpty,
+        reason: 'The preset tile must open the player at once',
+      );
+      final request = container.read(playerProvider)!;
+      expect(request.timerMode, TimerMode.stopwatch);
+      expect(request.fileId, 'timer-stopwatch-0');
+      expect(container.read(timerSettingsProvider).mode, TimerMode.stopwatch);
       expect(tester.takeException(), isNull);
     });
   }, timeout: const Timeout(Duration(seconds: 45)));

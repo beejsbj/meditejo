@@ -68,6 +68,12 @@ PackModel _course(Set<int> done, {int sessions = 18}) => PackModel(
   ],
 );
 
+/// The bar's tappable action, which carries its label.
+final _playAction = find.descendant(
+  of: find.byType(PackPlayButton),
+  matching: find.byType(InkWell),
+);
+
 void main() {
   late AppLocalizations l10n;
 
@@ -127,7 +133,7 @@ void main() {
         packDataProvider(packId: pack.id).overrideWith((ref) async => pack),
       ],
     );
-    final label = tester.getSemantics(find.byType(PackPlayButton)).label;
+    final label = tester.getSemantics(_playAction).label;
     return label;
   }
 
@@ -154,10 +160,20 @@ void main() {
     // Home's Continue offers the same session, at its resume point.
     expect(find.byKey(const ValueKey('continue_x-a-5')), findsOneWidget);
     expect(find.byKey(const ValueKey('continue_x-a-2')), findsNothing);
-    expect(find.text('Lesson 5'), findsOneWidget);
+    // The course's Play names it too; this is Home's card.
     expect(
-      find.widgetWithText(FilledButton, l10n.packContinue),
+      find.descendant(
+        of: find.byType(ContinueSection),
+        matching: find.text('Lesson 5'),
+      ),
       findsOneWidget,
+    );
+    // Its round play button says Resume as its tooltip.
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const ValueKey('continue_play_x-a-5')))
+          .tooltip,
+      l10n.homeContinueResume,
     );
     handle.dispose();
   });
@@ -178,7 +194,14 @@ void main() {
 
     expect(label, contains('${l10n.packContinue}: Lesson 3'));
     expect(find.byKey(const ValueKey('continue_x-a-3')), findsOneWidget);
-    expect(find.text('Lesson 3'), findsOneWidget);
+    // The course's Play names it too; this is Home's card.
+    expect(
+      find.descendant(
+        of: find.byType(ContinueSection),
+        matching: find.text('Lesson 3'),
+      ),
+      findsOneWidget,
+    );
     handle.dispose();
   });
 
@@ -195,7 +218,7 @@ void main() {
         packDataProvider(packId: pack.id).overrideWith((ref) async => pack),
       ],
     );
-    String label() => tester.getSemantics(find.byType(PackPlayButton)).label;
+    String label() => tester.getSemantics(_playAction).label;
 
     expect(label(), contains('${l10n.packStart}: Lesson 1'));
 

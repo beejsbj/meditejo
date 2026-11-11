@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/categories/category_providers.dart';
-import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/services/categories/category_catalogue.dart';
 import 'package:medito/services/categories/category_service.dart';
@@ -14,7 +13,9 @@ import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
 import 'package:medito/views/categories/category_chips.dart';
 import 'package:medito/views/categories/category_view.dart';
+import 'package:medito/views/categories/practice_tile.dart';
 import 'package:medito/views/library/library_view.dart';
+import 'package:medito/widgets/art/art_cover.dart';
 
 import '../../helpers/dharma_seed_app.dart';
 import '../../helpers/library_app.dart';
@@ -39,7 +40,6 @@ final _catalogue = CategoryCatalogue.parse(
 );
 
 List<Override> _overrides(LibraryTestApp app) => [
-  inProgressItemsProvider.overrideWith((ref) async => const []),
   packTrackIdsProvider.overrideWith((ref) async => const {}),
   categoryCatalogueProvider.overrideWith((ref) async => _catalogue),
 ];
@@ -101,6 +101,51 @@ void main() {
       expect(_text('Qualia Mastery'), findsOneWidget);
     });
 
+    testWidgets('a practice\'s chip leads with its art; a label of the '
+        'user\'s own is a plain chip', (tester) async {
+      final app = await _library(tester);
+      await tester.runAsync(() async {
+        final service = CategoryService(
+          catalogue: _catalogue,
+          library: app.harness.store,
+        );
+        await service.addLabel('yt-playlist-q', 'evening reading');
+      });
+      await app.pump(tester, const LibraryView(), overrides: _overrides(app));
+
+      final body = find.byKey(const ValueKey('library_label_body'));
+      final own = find.byKey(const ValueKey('library_label_evening-reading'));
+      expect(body, findsOneWidget);
+      expect(own, findsOneWidget);
+      Finder artIn(Finder chip) =>
+          find.descendant(of: chip, matching: find.byType(ArtCover));
+      expect(artIn(body), findsOneWidget);
+      expect(artIn(own), findsNothing);
+      expect(tester.widget(own), isA<ChoiceChip>());
+
+      // The art is a square of the chip's height at its start, the name
+      // beside it, centred on it.
+      final art = tester.getRect(artIn(body));
+      final name = tester.getRect(
+        find.descendant(of: body, matching: find.text('Body')),
+      );
+      expect(art.size, const Size(32, 32));
+      expect(name.left, greaterThan(art.right));
+      expect(name.center.dy, moreOrLessEquals(art.center.dy, epsilon: 1));
+      // As tall as the plain chip beside it.
+      expect(tester.getSize(body).height, tester.getSize(own).height);
+
+      // It still filters.
+      await tester.tap(body);
+      await settle(tester);
+      expect(_text('Body scan'), findsOneWidget);
+      expect(_text('Qualia Mastery'), findsNothing);
+      expect(
+        tester.getSemantics(body),
+        isSemantics(isSelected: true, isButton: true, label: 'Body'),
+      );
+    });
+
     testWidgets('are not shown when nothing is labelled', (tester) async {
       final app = await LibraryTestApp.create(tester);
       await _add(tester, app.harness.store, 'yt-playlist-q', 'Qualia Mastery');
@@ -127,20 +172,21 @@ void main() {
         find.byKey(const ValueKey('library_menu_yt-playlist-q')),
       );
       await settle(tester);
-      await tester.tap(find.byKey(const ValueKey('library_menu_labels')));
+      await tester.tap(find.byKey(const ValueKey('item_action_labels')));
       await settle(tester);
 
       // Metta is not ticked; ticking it pins it.
       final metta = find.byKey(const ValueKey('labels_category_metta'));
-      expect(tester.widget<FilterChip>(metta).selected, isFalse);
+      await tester.ensureVisible(metta);
+      expect(tester.widget<PracticeTile>(metta).selected, isFalse);
       await tester.tap(metta);
       await settle(tester);
-      expect(tester.widget<FilterChip>(metta).selected, isTrue);
+      expect(tester.widget<PracticeTile>(metta).selected, isTrue);
 
-      await tester.enterText(
-        find.byKey(const ValueKey('labels_field')),
-        'Evening',
-      );
+      // 38 tiles: the field sits below the fold.
+      final field = find.byKey(const ValueKey('labels_field'));
+      await tester.ensureVisible(field);
+      await tester.enterText(field, 'Evening');
       await tester.tap(find.byKey(const ValueKey('labels_add')));
       await settle(tester);
       expect(
@@ -173,13 +219,15 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('library_menu_lib-track-a')));
       await settle(tester);
-      await tester.tap(find.byKey(const ValueKey('library_menu_labels')));
+      await tester.tap(find.byKey(const ValueKey('item_action_labels')));
       await settle(tester);
       final body = find.byKey(const ValueKey('labels_category_body'));
-      expect(tester.widget<FilterChip>(body).selected, isTrue);
+      await tester.ensureVisible(body);
+      await settle(tester);
+      expect(tester.widget<PracticeTile>(body).selected, isTrue);
       await tester.tap(body);
       await settle(tester);
-      expect(tester.widget<FilterChip>(body).selected, isFalse);
+      expect(tester.widget<PracticeTile>(body).selected, isFalse);
 
       Navigator.of(tester.element(find.byType(BottomSheet))).pop();
       await settle(tester);
@@ -307,17 +355,18 @@ void main() {
   });
 
   group('the entry points', () {
-    testWidgets('Explore offers every category, and a chip opens its page', (
+    testWidgets('Explore offers the categories with something in them', (
       tester,
     ) async {
       final app = await LibraryTestApp.create(tester);
       await app.pump(
         tester,
-        const Scaffold(
-          body: SingleChildScrollView(child: ExploreCategoryChips()),
-        ),
+        const Scaffold(body: SingleChildScrollView(child: ExplorePractices())),
         overrides: [
           ..._overrides(app),
+          browsableCategoriesProvider.overrideWith(
+            (ref) async => {'metta', 'breath', 'walking'},
+          ),
           categoryListingProvider('breath').overrideWith(
             (ref) async =>
                 CategoryListing(category: _catalogue.category('breath')!),
@@ -327,7 +376,9 @@ void main() {
       for (final c in _catalogue.categories) {
         expect(
           find.byKey(ValueKey('category_${c.id}'), skipOffstage: false),
-          findsOneWidget,
+          {'metta', 'breath', 'walking'}.contains(c.id)
+              ? findsOneWidget
+              : findsNothing,
           reason: c.id,
         );
       }
@@ -336,7 +387,7 @@ void main() {
       await tester.tap(chip);
       await settle(tester);
       expect(find.text('Nothing here yet'), findsOneWidget);
-      expect(find.text('Breath'), findsWidgets);
+      expect(find.text('Ānāpānasati'), findsWidgets);
     });
 
     testWidgets('a course page shows its categories and the user\'s labels', (

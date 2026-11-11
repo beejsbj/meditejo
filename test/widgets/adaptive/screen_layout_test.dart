@@ -5,14 +5,12 @@ import 'package:medito/models/explore/session_length.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_ui_providers.dart';
 import 'package:medito/services/content/content_source.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_models.dart';
+import 'package:medito/models/catalogue/catalogue_models.dart';
 import '../../helpers/fake_savable_source.dart';
 import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/track/track_view.dart';
 import 'package:medito/views/end_screen/end_screen_view.dart';
 import 'package:medito/providers/meditation/track_provider.dart';
-import 'package:medito/providers/favorites/favorites_provider.dart';
-import 'package:medito/models/favorites/favorite_item.dart';
 import 'package:medito/models/explore/explore_list_item.dart';
 import 'package:medito/models/track/track.dart' as model;
 import 'package:medito/views/settings/settings_screen.dart';
@@ -27,7 +25,7 @@ import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/src/audio_pigeon.g.dart';
 import 'package:medito/views/home/home_view.dart';
-import 'package:medito/views/timer/timer_view.dart';
+import 'package:medito/views/cues/customize_sheet.dart';
 import 'package:medito/views/home/previews/stats_fixtures.dart';
 import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/services/home/continue_rules.dart';
@@ -35,22 +33,18 @@ import 'package:medito/services/library/library_models.dart';
 import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/player/widgets/artist_title_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/player_action_bar.dart';
+import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_speed_widget.dart';
+import 'package:medito/views/player/widgets/bottom_actions/widgets/speed_sheet.dart';
+import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/views/player/widgets/duration_indicator_widget.dart';
 import 'package:medito/views/player/widgets/player_buttons/player_buttons_widget.dart';
 import 'package:medito/views/previews/preview_support.dart';
 import 'package:medito/views/bottom_navigation/widgets/medito_sidebar.dart';
 import 'package:medito/widgets/adaptive/adaptive_content.dart';
 
-import 'package:medito/constants/constants.dart';
-import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/views/onboarding/onboarding_question_screen.dart';
-import 'package:medito/views/onboarding/notifications_screen.dart';
-import 'package:medito/widgets/onboarding/onboarding_header_image.dart';
-import 'package:medito/widgets/onboarding/onboarding_option_button.dart';
-import 'package:medito/widgets/onboarding/progress_indicator_widget.dart';
-
-import 'package:medito/views/onboarding/onboarding_result_screen.dart';
-import 'package:medito/views/onboarding/battery_optimization_screen.dart';
+import 'package:medito/views/settings/battery_optimization_screen.dart';
+import 'package:medito/views/intro/intro_view.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/providers/stats_provider.dart';
 
@@ -159,11 +153,6 @@ class _JourneyTracks extends Tracks {
   );
 }
 
-class _JourneyFavorites extends FavoritesNotifier {
-  @override
-  Future<List<FavoriteItem>> build() async => [];
-}
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() async {
@@ -239,7 +228,7 @@ void main() {
       expect(timer.hitTestable(), findsOneWidget);
       await tester.tap(timer);
       await tester.pumpAndSettle();
-      expect(find.byType(TimerView), findsOneWidget);
+      expect(find.byType(CustomizeSheet), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     }
@@ -259,7 +248,9 @@ void main() {
         const Size(390, 844),
       ]) {
         tester.view.physicalSize = size;
-        final bytes = await rootBundle.load('assets/images/open_awareness.png');
+        final bytes = await rootBundle.load(
+          'assets/images/personal_insights.png',
+        );
         final codec = await tester.runAsync(
           () => ui.instantiateImageCodec(bytes.buffer.asUint8List()),
         );
@@ -281,7 +272,13 @@ void main() {
         await tester.pumpWidget(
           PreviewShell(
             prefs: prefsDark,
-            overrides: [audioStateProvider.overrideWith(_PreviewAudio.new)],
+            overrides: [
+              audioStateProvider.overrideWith(_PreviewAudio.new),
+              // The speed sheet opens on the session's kind.
+              cueScopeForRequestProvider.overrideWith(
+                (ref, request) async => const CueScope(CueKind.talks),
+              ),
+            ],
             child: PlayerScreenLayout(
               currentlyPlayingTrack: request,
               isPlaying: false,
@@ -304,185 +301,30 @@ void main() {
         }
         expect(tester.takeException(), isNull);
       }
-      // The speed chip opens a sheet; tapping a step label applies it.
-      await tester.tap(find.text('1.0×'));
+      // The speed chip opens a sheet; tapping a speed applies it.
+      await tester.tap(find.byType(AudioSpeedWidget));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('0.6×'));
+      await tester.tap(find.byKey(const ValueKey('speed_option_0.6×')));
       await tester.pump();
       expect(speed, 0.6);
-      Navigator.of(tester.element(find.text('0.6×').first)).pop();
+      Navigator.of(tester.element(find.byType(SpeedSheet))).pop();
       await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.close));
       expect(closed, isTrue);
     },
   );
-  testWidgets('onboarding keeps existing steps readable when resized', (
+  testWidgets('the intro and the battery page fit every size and large text', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    int? selected;
-    for (final size in [
-      const Size(1200, 900),
-      const Size(820, 900),
-      const Size(390, 844),
-    ]) {
-      tester.view.physicalSize = size;
-      await tester.pumpWidget(
-        PreviewShell(
-          prefs: prefsDark,
-          child: Scaffold(
-            body: SafeArea(
-              top: false,
-              child: SizedBox(
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: Builder(
-                        builder: (context) {
-                          final l10n = AppLocalizations.of(context)!;
-                          return OnboardingQuestionScreen(
-                            headerImage: AssetConstants.onboardingImage1,
-                            question: l10n.onboardingExperienceQuestion,
-                            subtext: l10n.onboardingExperienceSubtext,
-                            options: [
-                              l10n.onboardingExperienceNever,
-                              l10n.onboardingExperienceALittle,
-                              l10n.onboardingExperienceRegular,
-                            ],
-                            // Fix fixture order only; the live question still shuffles.
-                            pinnedTrailingCount: 3,
-                            onOptionSelected: (index) => selected = index,
-                          );
-                        },
-                      ),
-                    ),
-                    const OnboardingProgressIndicator(
-                      currentIndex: 0,
-                      totalSteps: 3,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.runAsync(
-        () => precacheImage(
-          const AssetImage(AssetConstants.onboardingImage1),
-          tester.element(find.byType(Scaffold)),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(
-        tester.getSize(find.byType(OnboardingOptionButton).first).width,
-        (size.width > 600 ? 600 : size.width) - 48,
-      );
-      expect(find.byType(OnboardingOptionButton), findsNWidgets(3));
-      expect(
-        tester.getSize(find.byType(OnboardingHeaderImage)).width,
-        size.width,
-      );
-      expect(tester.takeException(), isNull);
-    }
-    await tester.tap(find.byType(OnboardingOptionButton).first);
-    await tester.pump(const Duration(milliseconds: 250));
-    expect(selected, 0);
-
-    tester.view.physicalSize = const Size(1200, 900);
-    await tester.pumpWidget(
-      PreviewShell(
-        prefs: prefsDark,
-        child: Scaffold(
-          body: SafeArea(
-            top: false,
-            child: SizedBox(
-              child: Column(
-                children: [
-                  Expanded(
-                    child: NotificationsScreen(
-                      headerImage: AssetConstants.onboardingImage3,
-                      onNext: () {},
-                    ),
-                  ),
-                  const OnboardingProgressIndicator(
-                    currentIndex: 2,
-                    totalSteps: 3,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.runAsync(
-      () => precacheImage(
-        const AssetImage(AssetConstants.onboardingImage3),
-        tester.element(find.byType(Scaffold).first),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-  });
-  testWidgets('audit every onboarding step across sizes and large text', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final steps = <String, Widget Function()>{
-      'question': () => Builder(
-        builder: (context) {
-          final l10n = AppLocalizations.of(context)!;
-          return OnboardingQuestionScreen(
-            headerImage: AssetConstants.onboardingImage1,
-            question: l10n.onboardingExperienceQuestion,
-            subtext: l10n.onboardingExperienceSubtext,
-            options: [
-              l10n.onboardingExperienceNever,
-              l10n.onboardingExperienceALittle,
-              l10n.onboardingExperienceRegular,
-            ],
-            pinnedTrailingCount: 3,
-            onOptionSelected: (_) {},
-          );
-        },
-      ),
-
-      'reminder': () => NotificationsScreen(
-        headerImage: AssetConstants.onboardingImage3,
-        onNext: () {},
-      ),
-      'battery': () => BatteryOptimizationScreen(
-        headerImage: AssetConstants.onboardingImage3,
-        onNext: () {},
-      ),
-
-      'first-meditation': () => OnboardingResultScreen(
-        headerImage: AssetConstants.onboardingImage3,
-        state: OnboardingResultState.stateA,
-        onGetStarted: () {},
-      ),
-      'returning-meditation': () => OnboardingResultScreen(
-        headerImage: AssetConstants.onboardingImage3,
-        state: OnboardingResultState.stateB,
-        onGetStarted: () {},
-      ),
-      'experienced-meditation': () => OnboardingResultScreen(
-        headerImage: AssetConstants.onboardingImage3,
-        state: OnboardingResultState.stateC,
-        onGetStarted: () {},
-      ),
-      'get-started': () => OnboardingResultScreen(
-        headerImage: AssetConstants.onboardingImage3,
-        state: OnboardingResultState.stateC,
-        onGetStarted: () {},
-      ),
+    final pages = <String, Widget Function()>{
+      'intro': () => const IntroView(firstRun: true),
+      'intro-about': () => const IntroView(),
+      'battery': () => const BatteryOptimizationScreen(),
     };
-    for (final entry in steps.entries) {
+    for (final entry in pages.entries) {
       for (final configuration in [
         (const Size(360, 640), 1.0, ThemeMode.dark),
         (const Size(820, 900), 1.0, ThemeMode.dark),
@@ -499,61 +341,28 @@ void main() {
           PreviewShell(
             prefs: mode == ThemeMode.dark ? prefsDark : prefsLight,
             themeMode: mode,
-            overrides: [
-              audioStateProvider.overrideWith(_PreviewAudio.new),
-              statsProvider.overrideWith(_OnboardingStats.new),
-            ],
             child: Builder(
               builder: (context) => MediaQuery(
-                data: MediaQuery.of(
-                  context,
-                ).copyWith(textScaler: TextScaler.linear(scale)),
-                child: Scaffold(
-                  body: SafeArea(
-                    top: false,
-                    child: Column(
-                      children: [
-                        Expanded(child: entry.value()),
-                        if (!entry.key.contains('meditation') &&
-                            entry.key != 'get-started')
-                          const OnboardingProgressIndicator(
-                            currentIndex: 1,
-                            totalSteps: 3,
-                          ),
-                      ],
-                    ),
-                  ),
+                data: MediaQuery.of(context).copyWith(
+                  textScaler: TextScaler.linear(scale),
+                  // The mark is still, so the page settles.
+                  disableAnimations: true,
                 ),
+                child: entry.value(),
               ),
             ),
           ),
         );
-        await tester.runAsync(() async {
-          for (final path in [
-            AssetConstants.onboardingImage1,
-            AssetConstants.onboardingImage2,
-            AssetConstants.onboardingImage3,
-          ]) {
-            await precacheImage(
-              AssetImage(path),
-              tester.element(find.byType(Scaffold).first),
-            );
-          }
-        });
-        await tester.pump();
-        await tester.pump(const Duration(seconds: 3));
         await tester.pump(const Duration(seconds: 1));
         expect(
           tester.takeException(),
           isNull,
           reason: '${entry.key}: $size text $scale',
         );
-        // Exercise the scroll view so lower-page controls are laid out too.
+        // Exercise the scroll view so lower-page text is laid out too.
         final scrollables = find.byType(Scrollable);
         if (scrollables.evaluate().isNotEmpty) {
           await tester.drag(scrollables.first, const Offset(0, -1200));
-          await tester.pump();
-          await tester.pump(const Duration(seconds: 3));
           await tester.pump(const Duration(seconds: 1));
           expect(
             tester.takeException(),
@@ -648,7 +457,9 @@ void main() {
               .toList();
       ui.FrameInfo? frame;
       await tester.runAsync(() async {
-        final bytes = await rootBundle.load('assets/images/open_awareness.png');
+        final bytes = await rootBundle.load(
+          'assets/images/personal_insights.png',
+        );
         final codec = await ui.instantiateImageCodec(
           bytes.buffer.asUint8List(),
         );
@@ -712,8 +523,8 @@ void main() {
                 contentRouterProvider.overrideWithValue(
                   ContentRouter(sources: [FakeSavableSource()]),
                 ),
-                dharmaSeedExploreProvider(null).overrideWith(
-                  (ref) async => DsExplore(
+                catalogueExploreProvider(null).overrideWith(
+                  (ref) async => CatalogueExplore(
                     hasCatalogue: true,
                     courses: [
                       for (final pack in packs)
@@ -727,23 +538,26 @@ void main() {
                         ),
                     ],
                     teachers: [
-                      DsTeacherItem(
+                      CatalogueTeacher(
                         id: 'ds-teacher-1',
                         name: 'Rob Burbea',
                         photoUrl: request.coverUrl,
                       ),
-                      const DsTeacherItem(id: 'ds-teacher-2', name: 'No Photo'),
+                      const CatalogueTeacher(
+                        id: 'ds-teacher-2',
+                        name: 'No Photo',
+                      ),
                     ],
                   ),
                 ),
                 for (final length in [null, SessionLength.under10])
-                  dharmaSeedSearchProvider((
+                  catalogueSearchProvider((
                     query: 'mind',
                     length: length,
                   )).overrideWith(
-                    (ref) async => DsSearchResults(
+                    (ref) async => CatalogueSearchResults(
                       teachers: const [
-                        DsTeacherItem(
+                        CatalogueTeacher(
                           id: 'ds-teacher-1',
                           name: 'Mind Teacher',
                           talkCount: 12,
@@ -776,9 +590,9 @@ void main() {
                           : const [],
                     ),
                   ),
-                dharmaSeedTeacherProvider('ds-teacher-1').overrideWith(
-                  (ref) async => DsTeacherPage(
-                    teacher: DsTeacherItem(
+                catalogueTeacherProvider('ds-teacher-1').overrideWith(
+                  (ref) async => CatalogueTeacherPage(
+                    teacher: CatalogueTeacher(
                       id: 'ds-teacher-1',
                       name: 'Rob Burbea',
                       photoUrl: request.coverUrl,
@@ -810,7 +624,6 @@ void main() {
                 tracksProvider(
                   trackId: 'preview',
                 ).overrideWith(_JourneyTracks.new),
-                favoritesNotifierProvider.overrideWith(_JourneyFavorites.new),
                 statsProvider.overrideWith(_OnboardingStats.new),
               ],
               child: RepaintBoundary(
@@ -852,7 +665,7 @@ void main() {
             expect(tester.takeException(), isNull);
           }
           if (name == 'course') {
-            expect(find.text('10 of 10 left'), findsOneWidget);
+            expect(find.textContaining('10 sessions'), findsOneWidget);
             // On a short viewport the tabs start below the fold.
             await tester.scrollUntilVisible(
               find.text('Teacher'),

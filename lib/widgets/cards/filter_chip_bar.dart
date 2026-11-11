@@ -4,11 +4,16 @@ import 'package:medito/widgets/cards/card_tokens.dart';
 /// One choice in a [FilterChipBar].
 @immutable
 class FilterOption<T> {
-  const FilterOption(this.value, this.label, {this.key});
+  const FilterOption(this.value, this.label, {this.key, this.leading});
 
   final T value;
   final String label;
   final Key? key;
+
+  /// A picture for the chip's start (a practice's art on the Library's label
+  /// chips): it fills the chip's height, clipped to its shape, with the
+  /// label beside it. Null leaves a plain chip.
+  final Widget? leading;
 }
 
 /// A row of single-choice chips that scrolls sideways when it does not fit:
@@ -75,6 +80,10 @@ class _FilterChipBarState<T> extends State<FilterChipBar<T>> {
     return false;
   }
 
+  void _choose(T value) => widget.onSelected(
+    value == widget.selected && widget.allowDeselect ? null : value,
+  );
+
   @override
   Widget build(BuildContext context) {
     final rtl = Directionality.of(context) == TextDirection.rtl;
@@ -100,17 +109,21 @@ class _FilterChipBarState<T> extends State<FilterChipBar<T>> {
                   children: [
                     for (final (i, option) in widget.options.indexed) ...[
                       if (i > 0) const SizedBox(width: 8),
-                      ChoiceChip(
-                        key: option.key,
-                        label: Text(option.label),
-                        selected: option.value == widget.selected,
-                        onSelected: (_) => widget.onSelected(
-                          option.value == widget.selected &&
-                                  widget.allowDeselect
-                              ? null
-                              : option.value,
+                      if (option.leading case final leading?)
+                        _PictureChip(
+                          key: option.key,
+                          label: option.label,
+                          leading: leading,
+                          selected: option.value == widget.selected,
+                          onTap: () => _choose(option.value),
+                        )
+                      else
+                        ChoiceChip(
+                          key: option.key,
+                          label: Text(option.label),
+                          selected: option.value == widget.selected,
+                          onSelected: (_) => _choose(option.value),
                         ),
-                      ),
                     ],
                   ],
                 ),
@@ -130,6 +143,104 @@ class _FilterChipBarState<T> extends State<FilterChipBar<T>> {
                 child: scroller,
               );
             },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A choice chip that leads with a picture: the picture is a square of the
+/// chip's height at its start, clipped to the chip's shape, and the label
+/// sits beside it, centred. It takes the theme's chip colours, shape and
+/// text styles, so it sits in a row with plain [ChoiceChip]s; chosen, it
+/// shows the tick over its picture.
+class _PictureChip extends StatelessWidget {
+  const _PictureChip({
+    super.key,
+    required this.label,
+    required this.leading,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final Widget leading;
+  final bool selected;
+  final VoidCallback onTap;
+
+  /// A Material 3 chip's height, and the height it takes with its padding.
+  static const _height = 32.0;
+  static const _tapHeight = 48.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final chips = ChipTheme.of(context);
+    final scheme = theme.colorScheme;
+    final shape = (chips.shape ?? const StadiumBorder()).copyWith(
+      side: selected
+          ? BorderSide.none
+          : chips.side ?? BorderSide(color: scheme.outlineVariant),
+    );
+    final style =
+        (selected ? chips.secondaryLabelStyle : chips.labelStyle) ??
+        theme.textTheme.labelLarge;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      excludeSemantics: true,
+      onTap: onTap,
+      // The whole 48 dp slot takes the tap, as a plain chip's does.
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(
+          height: _tapHeight,
+          child: Center(
+            child: Material(
+              color: selected
+                  ? chips.selectedColor ?? scheme.secondaryContainer
+                  : chips.backgroundColor ?? scheme.surfaceContainerLow,
+              shape: shape,
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: onTap,
+                child: SizedBox(
+                  height: _height,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox.square(
+                        dimension: _height,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            leading,
+                            if (selected) ...[
+                              const ColoredBox(color: Color(0x66000000)),
+                              const Icon(
+                                Icons.check_rounded,
+                                size: 18,
+                                color: Colors.white,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(
+                          start: 8,
+                          end: 12,
+                        ),
+                        child: Text(label, style: style),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ),

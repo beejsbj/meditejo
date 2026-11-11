@@ -9,6 +9,7 @@ import 'package:medito/src/youtube_api.g.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
+import 'package:medito/providers/dhammatalks/dhammatalks_providers.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/services/library/feed_refresher.dart';
 import 'package:medito/services/library/import_http.dart';
@@ -145,6 +146,24 @@ final youtubeRefreshErrorProvider = Provider.autoDispose
       return ref.watch(youtubeSourceProvider).refreshError(id);
     });
 
+/// The channel's picture on a YouTube course's or video's card (#85); empty
+/// until the channel's page has given one.
+final youtubeAvatarProvider = FutureProvider.autoDispose.family<String, String>(
+  (ref, id) {
+    ref.watch(youtubeContentRevisionProvider);
+    return ref.watch(youtubeSourceProvider).avatarFor(id);
+  },
+);
+
+/// A YouTube channel as a teacher (`yt-channel-<key>`): itself and what of
+/// its own is saved. Null when the channel is not stored.
+final youtubeChannelPageProvider = FutureProvider.autoDispose
+    .family<YoutubeChannelPage?, String>((ref, id) {
+      ref.watch(youtubeContentRevisionProvider);
+      ref.watch(libraryRevisionProvider);
+      return ref.watch(youtubeSourceProvider).channelPage(id);
+    });
+
 final importHttpProvider = Provider<ImportHttp>((ref) {
   final http = ImportHttp();
   ref.onDispose(http.close);
@@ -173,6 +192,7 @@ final importServiceProvider = Provider<ImportService>(
     lib: ref.watch(libSourceProvider),
     library: ref.watch(libraryStoreProvider),
     dharmaSeed: ref.watch(dharmaSeedSourceProvider),
+    dhammatalks: ref.watch(dhammatalksSourceProvider),
     youtube: ref.watch(youtubeAvailableProvider)
         ? ref.watch(youtubeSourceProvider)
         : null,

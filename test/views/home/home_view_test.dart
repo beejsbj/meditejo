@@ -16,8 +16,11 @@ import 'package:medito/views/home/home_styles.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/home/widgets/pinned/pinned_section.dart';
 import 'package:medito/views/library/import_view.dart';
-import 'package:medito/views/timer/timer_view.dart';
+import 'package:medito/views/cues/customize_sheet.dart';
+import 'package:medito/views/soundscape/sounds_view.dart';
+import 'package:medito/providers/soundscape/soundscape_provider.dart';
 
+import 'package:medito/models/presets/preset.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/starter_presets.dart';
 import 'package:medito/services/soundscape/soundscape_store.dart';
@@ -25,6 +28,7 @@ import 'package:medito/widgets/branding/meditejo_mark.dart';
 
 import '../../helpers/dharma_seed_app.dart';
 import '../../helpers/library_app.dart';
+import '../../helpers/soundscape_fakes.dart';
 
 Future<void> settle(WidgetTester tester) => DharmaSeedTestApp.settle(tester);
 
@@ -71,11 +75,44 @@ void main() {
     expect(find.textContaining('Session 2 of 5'), findsNWidgets(2));
     expect(find.textContaining('8:00 left'), findsOneWidget);
     // Resume where it was left; Start for the next session of a course.
-    expect(find.widgetWithText(FilledButton, 'Resume'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'Start'), findsOneWidget);
+    // A round play button with no word: the word is its tooltip.
+    expect(find.text('Resume'), findsNothing);
+    expect(find.text('Start'), findsNothing);
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const ValueKey('continue_play_t1')))
+          .tooltip,
+      'Resume',
+    );
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const ValueKey('continue_play_t2')))
+          .tooltip,
+      'Start',
+    );
+    // The same button on the first card and the rest: alone at the right,
+    // centred on the card, with no ⋮ beside it.
+    for (final id in ['t1', 't2']) {
+      final card = find.byKey(ValueKey('continue_$id'));
+      final play = tester.getRect(find.byKey(ValueKey('continue_play_$id')));
+      final box = tester.getRect(card);
+      expect(
+        find.descendant(
+          of: card,
+          matching: find.byIcon(Icons.more_vert_rounded),
+        ),
+        findsNothing,
+        reason: id,
+      );
+      expect(play.size, const Size(48, 48), reason: id);
+      expect(play.center.dy, moreOrLessEquals(box.center.dy), reason: id);
+      expect(box.right - play.right, 16, reason: id);
+    }
     expect(find.textContaining('Consistency'), findsNothing);
     expect(find.textContaining('streak'), findsNothing);
-    expect(sectionHeader('Pinned'), findsNothing);
+    // The two preset tiles Home always showed are pinned presets now.
+    expect(sectionHeader('Pinned'), findsOneWidget);
+    expect(find.byType(PinnedPresetTile), findsNWidgets(2));
   });
 
   testWidgets('draws no section headings, but announces them as headers', (
@@ -144,9 +181,7 @@ void main() {
     );
   });
 
-  testWidgets('an unavailable pin can be removed to free its slot', (
-    tester,
-  ) async {
+  testWidgets('an unavailable pin says so and can be removed', (tester) async {
     final app = await LibraryTestApp.create(tester);
     await app.prefs.setStringList('pinned_course_ids', ['lib-course-gone']);
     await app.pump(
@@ -162,7 +197,10 @@ void main() {
     final container = ProviderScope.containerOf(
       tester.element(find.byType(HomeView)),
     );
-    await tester.tap(find.byTooltip('More options for lib-course-gone'));
+    // It says it is gone rather than show its ID (#79).
+    expect(find.text('lib-course-gone'), findsNothing);
+    expect(find.text('Unavailable'), findsOneWidget);
+    await tester.tap(find.byTooltip('More options for Unavailable'));
     await settle(tester);
     await tester.tap(find.byKey(const ValueKey('pinned_menu_unpin')));
     await settle(tester);
@@ -198,7 +236,39 @@ void main() {
     expect(find.byKey(const ValueKey('continue_empty')), findsOneWidget);
     expect(find.byKey(const ValueKey('shortcut_timer')), findsOneWidget);
     expect(find.byKey(const ValueKey('shortcut_sounds')), findsOneWidget);
-    expect(find.byKey(const ValueKey('shortcut_add')), findsOneWidget);
+    // It points at Explore, the library, and pinning, not at an Add on Home.
+    expect(
+      find.text(
+        'Nothing in progress. Start something in Explore or your library, '
+        'or pin it there to keep it on Home.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  // #62: Home gains things by pinning them elsewhere; importing lives behind
+  // Library's "+". Home has no Add, in the shortcuts or in its header.
+  testWidgets('Home has no Add, and nothing on it opens import', (
+    tester,
+  ) async {
+    final app = await LibraryTestApp.create(tester);
+    await app.prefs.setStringList('pinned_course_ids', ['lib-course-a']);
+    await app.pump(
+      tester,
+      const HomeView(),
+      overrides: [
+        continueItemsProvider.overrideWith((ref) async => [_item('t1')]),
+      ],
+    );
+    expect(find.byKey(const ValueKey('shortcut_add')), findsNothing);
+    expect(find.text('Add'), findsNothing);
+    expect(find.byIcon(Icons.add_rounded), findsNothing);
+    expect(find.byIcon(Icons.add), findsNothing);
+    expect(find.byTooltip('Add to your library'), findsNothing);
+    expect(find.byType(ImportView), findsNothing);
+    // The header keeps Customize and You, and nothing else.
+    expect(find.byKey(const ValueKey('home_customize')), findsOneWidget);
+    expect(find.byKey(const ValueKey('you_button')), findsOneWidget);
   });
 
   group('shortcuts', () {
@@ -207,34 +277,76 @@ void main() {
       await app.pump(
         tester,
         const HomeView(),
-        overrides: [continueItemsProvider.overrideWith((ref) async => [])],
+        overrides: [
+          continueItemsProvider.overrideWith((ref) async => []),
+          ...soundscapeTestOverrides(FakeSoundscapeEngine()),
+        ],
       );
       return app;
     }
 
-    testWidgets('Timer opens the timer', (tester) async {
+    testWidgets('Timer opens the timer, as the Customize sheet', (
+      tester,
+    ) async {
       await home(tester);
       await tester.tap(find.byKey(const ValueKey('shortcut_timer')));
       await settle(tester);
-      expect(find.byType(TimerView), findsOneWidget);
+      expect(find.byType(CustomizeSheet), findsOneWidget);
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.byKey(const ValueKey('wheel_Duration')), findsOneWidget);
+      expect(find.text('Start'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
     });
 
-    testWidgets('Sounds opens the Sounds tab', (tester) async {
+    testWidgets('Sounds opens the Sounds sheet, and says what plays', (
+      tester,
+    ) async {
       await home(tester);
       final container = ProviderScope.containerOf(
         tester.element(find.byType(HomeView)),
       );
-      expect(container.read(mainTabProvider), MainTab.home);
-      await tester.tap(find.byKey(const ValueKey('shortcut_sounds')));
-      await settle(tester);
-      expect(container.read(mainTabProvider), MainTab.sounds);
-    });
+      final tile = find.byKey(const ValueKey('shortcut_sounds'));
+      String caption() => tester
+          .widget<Text>(
+            find.descendant(of: tile, matching: find.byType(Text)).last,
+          )
+          .data!;
+      expect(caption(), isEmpty, reason: 'nothing plays');
 
-    testWidgets('Add opens import', (tester) async {
-      await home(tester);
-      await tester.tap(find.byKey(const ValueKey('shortcut_add')));
+      await tester.tap(tile);
       await settle(tester);
-      expect(find.byType(ImportView), findsOneWidget);
+      expect(container.read(mainTabProvider), MainTab.home);
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.byType(SoundsView), findsOneWidget);
+      expect(find.text('Your mix'), findsOneWidget);
+
+      // A preset started there plays on its own after the sheet closes,
+      // and the tile names it; a tap opens the sheet on it again.
+      await tester.tap(
+        find.byKey(const ValueKey('preset_starter-rain-forest')),
+      );
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('sounds_chooser_done')));
+      await settle(tester);
+      expect(find.byType(SoundsView), findsNothing);
+      final state = container.read(soundscapeProvider);
+      expect(state.owner, SoundscapeOwner.standalone);
+      expect(state.playing, isTrue);
+      expect(caption(), 'Rain on the forest');
+      expect(
+        tester.getSemantics(tile).label,
+        'Sounds, playing Rain on the forest',
+      );
+
+      await tester.tap(tile);
+      await settle(tester);
+      expect(find.byType(SoundsView), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('sounds_stop')));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('sounds_chooser_done')));
+      await settle(tester);
+      expect(caption(), isEmpty);
+      await tester.pumpWidget(const SizedBox());
     });
   });
 
@@ -469,14 +581,15 @@ void main() {
       expect(mark(tester).isRunning, isTrue);
     });
 
-    testWidgets('preset tiles show the newest saved presets, then built-ins', (
+    testWidgets('the two preset tiles Home showed by itself (the newest saved '
+        'mix, then a built-in) are pinned presets after the update', (
       tester,
     ) async {
       final app = await LibraryTestApp.create(tester);
-      const mine = SoundPreset(
+      final mine = Preset.sound(
         id: 'user-1',
         name: 'My rain',
-        mix: SoundMix([SoundLayer(soundId: 'rain-terrace', volume: 0.5)]),
+        mix: const SoundMix([SoundLayer(soundId: 'rain-terrace', volume: 0.5)]),
       );
       SoundscapeStore(app.prefs).writePresets([mine]);
       await app.pump(
@@ -485,22 +598,23 @@ void main() {
         overrides: [continueItemsProvider.overrideWith((ref) async => [])],
       );
       expect(
-        find.byKey(const ValueKey('shortcut_preset_user-1')),
+        find.byKey(const ValueKey('pinned_preset_user-1')),
         findsOneWidget,
       );
       expect(
-        find.byKey(ValueKey('shortcut_preset_${kStarterPresets.first.id}')),
+        find.byKey(ValueKey('pinned_preset_${kStarterPresets.first.id}')),
         findsOneWidget,
       );
       expect(
-        find.byKey(ValueKey('shortcut_preset_${kStarterPresets[1].id}')),
+        find.byKey(ValueKey('pinned_preset_${kStarterPresets[1].id}')),
         findsNothing,
       );
       expect(find.text('My rain'), findsOneWidget);
-      expect(
-        find.bySemanticsLabel('Start the timer with My rain'),
-        findsOneWidget,
-      );
+      expect(find.bySemanticsLabel('Start My rain, 10 min'), findsOneWidget);
+      expect(app.prefs.getStringList(SoundscapeStore.pinnedPresetsKey), [
+        'user-1',
+        kStarterPresets.first.id,
+      ]);
     });
   });
 }

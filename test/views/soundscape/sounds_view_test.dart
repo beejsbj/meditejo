@@ -1,17 +1,24 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/models/presets/preset.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/starter_presets.dart';
 import 'package:medito/models/soundscape/synth.dart';
+import 'package:medito/providers/cues/cue_settings_provider.dart';
+import 'package:medito/providers/presets/preset_providers.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
+import 'package:medito/services/soundscape/soundscape_store.dart';
 import 'package:medito/views/soundscape/sound_credits_view.dart';
 import 'package:medito/views/soundscape/sound_cards.dart';
+import 'package:medito/views/soundscape/sounds_sheet.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:medito/views/soundscape/synth_editors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,8 +35,9 @@ void main() {
     WidgetTester tester, {
     Locale locale = const Locale('en'),
     Widget home = const SoundsView(),
+    Map<String, Object> prefsValues = const {},
   }) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(prefsValues);
     final prefs = await SharedPreferences.getInstance();
     engine = FakeSoundscapeEngine();
     await tester.pumpWidget(
@@ -130,6 +138,26 @@ void main() {
     expect(mix().isEmpty, isTrue);
     expect(container.read(soundscapeProvider).active, isFalse);
     expect(find.text('Mix cleared'), findsOneWidget);
+    // Folded to its bar, the dock is not under the toast: it sits above.
+    await tester.tap(find.byKey(const ValueKey('sounds_mix_toggle')));
+    await tester.pumpAndSettle();
+    expect(find.text('Mix cleared'), findsOneWidget);
+    expect(
+      // The toast's own surface: the SnackBar's box includes its margin.
+      tester
+          .getRect(
+            find
+                .descendant(
+                  of: find.byType(SnackBar),
+                  matching: find.byType(Material),
+                )
+                .first,
+          )
+          .bottom,
+      lessThanOrEqualTo(
+        tester.getRect(find.byKey(const ValueKey('sounds_dock'))).top,
+      ),
+    );
 
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
@@ -284,6 +312,140 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  group('a preset that is a whole sit', () {
+    const bowl = 'assets/audio/bell_bowl_medium.wav';
+    final sit = Preset(
+      id: 'user-sit',
+      name: 'Morning sit',
+      slots: PresetSlots(
+        sound: const SoundMix([SoundLayer(soundId: 'river', volume: 0.6)]),
+        bells: PresetCues.bells(const CueSettings(startSound: bowl)),
+        length: const PresetLength.minutes(20),
+      ),
+    );
+    final silent = Preset(
+      id: 'user-bells',
+      name: 'Bells only',
+      slots: PresetSlots(
+        bells: PresetCues.bells(const CueSettings(startSound: bowl)),
+      ),
+    );
+    final saved = {
+      SoundscapeStore.presetsKey: jsonEncode([sit.toJson(), silent.toJson()]),
+      SoundscapeStore.pinnedPresetsKey: <String>[],
+    };
+    final card = find.byKey(const ValueKey('preset_user-sit'));
+
+    testWidgets('its card plays its sound and says what else it holds; the '
+        'rest is not set from here', (tester) async {
+      phone(tester);
+      await pump(tester, prefsValues: saved);
+      await revealPreset(tester, card);
+      expect(
+        find.descendant(
+          of: card,
+          matching: find.byKey(const ValueKey('preset_also_user-sit')),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<RichText>(
+              find.descendant(
+                of: find.byKey(const ValueKey('preset_also_user-sit')),
+                matching: find.byType(RichText),
+              ),
+            )
+            .text
+            .toPlainText(),
+        'Singing bowl · 20 min',
+      );
+      // A preset that ships holds nothing else, and says nothing more.
+      expect(find.byKey(ValueKey('preset_also_${starter.id}')), findsNothing);
+      // One with no sound has nothing to play here.
+      expect(find.byKey(const ValueKey('preset_user-bells')), findsNothing);
+
+      final row = tester.getRect(
+        find.byKey(const PageStorageKey('sounds_presets')),
+      );
+      await tester.tapAt(tester.getRect(card).intersect(row).center);
+      await tester.pumpAndSettle();
+      final state = container.read(soundscapeProvider);
+      expect(state.playing, isTrue);
+      expect(state.owner, SoundscapeOwner.standalone);
+      expect(state.mix, sit.mix);
+      const practice = CueScope(CueKind.practice);
+      final cues = container.read(cueSettingsProvider(practice));
+      expect(cues.startSound, cueDefaultBell);
+      expect(cues.durationMinutes, 10);
+      expect(
+        container
+            .read(soundscapeProvider.notifier)
+            .sessionDefault(SoundscapeSessionKind.practice),
+        SoundscapeSessionDefault.initial(SoundscapeSessionKind.practice),
+      );
+      await tester.tap(find.byKey(const ValueKey('sounds_stop')));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('changed, the dock says where the mix came from, and saving '
+        'offers Update', (tester) async {
+      phone(tester);
+      await pump(tester, prefsValues: saved);
+      await applyPreset(container, const PresetContext.sounds(), sit);
+      await tester.pumpAndSettle();
+      expect(find.text('From Morning sit · edited'), findsNothing);
+      container.read(soundscapeProvider.notifier).toggleSound('cafe');
+      await tester.pumpAndSettle();
+      expect(find.text('From Morning sit · edited'), findsOneWidget);
+
+      final save = find.byKey(const ValueKey('preset_save'));
+      await revealPreset(tester, save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(find.text('Update “Morning sit”'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('preset_update')));
+      await tester.pumpAndSettle();
+      final updated = container
+          .read(soundscapeProvider)
+          .userPresets
+          .firstWhere((p) => p.id == 'user-sit');
+      expect(updated.mix.contains('cafe'), isTrue);
+      expect(updated.slots.bells, sit.slots.bells);
+      expect(updated.slots.length, sit.slots.length);
+      expect(find.text('Updated “Morning sit”'), findsOneWidget);
+      expect(find.text('From Morning sit · edited'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('sounds_stop')));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('its ⋮ pins it to Home and unpins it', (tester) async {
+      phone(tester);
+      await pump(tester, prefsValues: saved);
+      final menu = find.byKey(const ValueKey('preset_menu_user-sit'));
+      final pin = find.byKey(const ValueKey('preset_pin_user-sit'));
+      await revealPreset(tester, menu);
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: pin, matching: find.text('Pin to Home')),
+        findsOneWidget,
+      );
+      await tester.tap(pin);
+      await tester.pumpAndSettle();
+      expect(container.read(pinnedPresetIdsProvider), ['user-sit']);
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: pin, matching: find.text('Unpin from Home')),
+        findsOneWidget,
+      );
+      await tester.tap(pin);
+      await tester.pumpAndSettle();
+      expect(container.read(pinnedPresetIdsProvider), isEmpty);
+    });
   });
 
   testWidgets('presets and sounds look different, and tap differently', (
@@ -467,6 +629,8 @@ void main() {
       find.byKey(const ValueKey('preset_name')),
       'Morning',
     );
+    // Save waits for a name.
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('preset_name_save')));
     await tester.pumpAndSettle();
     final preset = container.read(soundscapeProvider).userPresets.single;
@@ -490,11 +654,30 @@ void main() {
     await tester.tap(save);
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('preset_name')), 'Eve');
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('preset_name_save')));
     await tester.pumpAndSettle();
     final id = container.read(soundscapeProvider).userPresets.single.id;
-    // Built-in presets have no menu.
-    expect(find.byKey(ValueKey('preset_menu_${starter.id}')), findsNothing);
+    // A built-in preset's menu pins it; it cannot be deleted.
+    final builtIn = find.byKey(ValueKey('preset_menu_${starter.id}'));
+    // Back at the start of the row, which Save scrolled away from.
+    await tester.scrollUntilVisible(
+      builtIn,
+      -200,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const PageStorageKey('sounds_presets')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(builtIn);
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('preset_pin_${starter.id}')), findsOneWidget);
+    expect(find.byKey(ValueKey('preset_delete_${starter.id}')), findsNothing);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
 
     final menu = find.byKey(ValueKey('preset_menu_$id'));
     await revealPreset(tester, menu);
@@ -526,29 +709,566 @@ void main() {
     expect(mix().layers, hasLength(SoundMix.kMaxLayers));
   });
 
-  testWidgets('session switches start off and follow the taps (decision 17)', (
-    tester,
-  ) async {
-    phone(tester);
-    await pump(tester);
-    final practice = find.byKey(const ValueKey('under_practice'));
-    await reveal(tester, practice);
-    expect(tester.widget<SwitchListTile>(practice).value, isFalse);
-    await tester.tap(practice);
-    await tester.pumpAndSettle();
-    expect(tester.widget<SwitchListTile>(practice).value, isTrue);
-    final talks = find.byKey(const ValueKey('under_talks'));
-    await reveal(tester, talks);
-    expect(tester.widget<SwitchListTile>(talks).value, isFalse);
-    await tester.tap(talks);
-    await tester.pumpAndSettle();
-    expect(
-      container
-          .read(soundscapeProvider)
-          .sessionDefault(SoundscapeSessionKind.talks)
-          .enabled,
-      isTrue,
+  /// Opens the Sounds sheet over a page, as Home's tile does.
+  Future<void> pumpSheet(
+    WidgetTester tester, {
+    Locale locale = const Locale('en'),
+    Map<String, Object> prefsValues = const {},
+    Future<void> Function()? before,
+  }) async {
+    await pump(
+      tester,
+      locale: locale,
+      prefsValues: prefsValues,
+      home: Builder(
+        builder: (context) => Scaffold(
+          body: TextButton(
+            onPressed: () => showSoundsSheet(context),
+            child: const Text('open sounds'),
+          ),
+        ),
+      ),
     );
+    await before?.call();
+    await tester.tap(find.text('open sounds'));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> done(WidgetTester tester) async {
+    await tester.tap(find.byKey(const ValueKey('sounds_chooser_done')));
+    await tester.pumpAndSettle();
+  }
+
+  group('the sheet on your own mix', () {
+    testWidgets('is the mixer in a bottom sheet, saying whose mix it is', (
+      tester,
+    ) async {
+      phone(tester);
+      await pumpSheet(tester);
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.byType(SoundsView), findsOneWidget);
+      expect(find.text('Your mix'), findsOneWidget);
+      // Nothing plays until something is tapped.
+      expect(container.read(soundscapeProvider).active, isFalse);
+      expect(find.byKey(const ValueKey('sounds_back')), findsNothing);
+    });
+
+    testWidgets('a sound started in it plays on its own, and goes on after '
+        'the sheet closes', (tester) async {
+      phone(tester);
+      await pumpSheet(tester);
+      final night = find.byKey(const ValueKey('preset_starter-night'));
+      await revealPreset(tester, night);
+      await tester.tap(night);
+      await tester.pumpAndSettle();
+      final night_ = kStarterPresets.firstWhere((p) => p.id == 'starter-night');
+      expect(
+        container.read(soundscapeProvider).owner,
+        SoundscapeOwner.standalone,
+      );
+      expect(engine.playing.keys, night_.mix.layers.map((l) => l.soundId));
+
+      await done(tester);
+      expect(find.byType(SoundsView), findsNothing);
+      final state = container.read(soundscapeProvider);
+      expect(state.owner, SoundscapeOwner.standalone);
+      expect(state.playing, isTrue);
+      expect(state.mix, night_.mix);
+      expect(engine.playing, isNotEmpty, reason: 'still sounding');
+      expect(engine.paused, isFalse);
+
+      // Opened again, it is the same mix, still playing; Stop stops it.
+      await tester.tap(find.text('open sounds'));
+      await tester.pumpAndSettle();
+      expect(container.read(soundscapeProvider).playing, isTrue);
+      expect(find.text('Night'), findsWidgets);
+      await tester.tap(find.byKey(const ValueKey('sounds_stop')));
+      await tester.pumpAndSettle();
+      expect(container.read(soundscapeProvider).active, isFalse);
+      expect(engine.playing, isEmpty);
+    });
+
+    testWidgets('a swipe down closes it like Done, and the sound goes on', (
+      tester,
+    ) async {
+      phone(tester);
+      await pumpSheet(tester);
+      await tester.tap(find.byKey(const ValueKey('sounds_play')));
+      await tester.pumpAndSettle();
+      await tester.fling(find.text('Sounds'), const Offset(0, 600), 2000);
+      await tester.pumpAndSettle();
+      expect(find.byType(SoundsView), findsNothing);
+      expect(container.read(soundscapeProvider).playing, isTrue);
+      expect(engine.playing, isNotEmpty);
+    });
+
+    testWidgets('back folds the open mix, then closes the sheet', (
+      tester,
+    ) async {
+      phone(tester);
+      await pumpSheet(tester);
+      await openMix(tester);
+      expect(find.byKey(const ValueKey('sounds_volume')), findsOneWidget);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(SoundsView), findsOneWidget);
+      expect(find.byKey(const ValueKey('sounds_volume')), findsNothing);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(SoundsView), findsNothing);
+    });
+
+    testWidgets('a double tap opens one sheet', (tester) async {
+      phone(tester);
+      await pumpSheet(tester);
+      final context = tester.element(find.text('open sounds'));
+      unawaited(showSoundsSheet(context));
+      await tester.pumpAndSettle();
+      expect(find.byType(SoundsView), findsOneWidget);
+      await done(tester);
+      expect(find.byType(SoundsView), findsNothing);
+    });
+
+    testWidgets('a session that starts under it closes it, and takes the '
+        'mixer', (tester) async {
+      phone(tester);
+      await pumpSheet(tester);
+      await tester.tap(find.byKey(const ValueKey('sounds_play')));
+      await tester.pumpAndSettle();
+      expect(
+        container.read(soundscapeProvider).owner,
+        SoundscapeOwner.standalone,
+      );
+
+      await container
+          .read(soundscapeProvider.notifier)
+          .startSession(SoundscapeSessionKind.practice);
+      await tester.pumpAndSettle();
+      expect(find.byType(SoundsView), findsNothing);
+      // Practice plays nothing by default: the session silenced the mix.
+      expect(container.read(soundscapeProvider).playing, isFalse);
+      expect(
+        container.read(soundscapeProvider).sessionKind,
+        SoundscapeSessionKind.practice,
+      );
+    });
+  });
+
+  group('what plays under sessions', () {
+    /// The "Plays under practice" / "Plays under talks" line.
+    Finder line(SoundscapeSessionKind kind) =>
+        find.byKey(ValueKey('under_${kind.name}'));
+
+    /// What that line says under its title.
+    String says(WidgetTester tester, SoundscapeSessionKind kind) => tester
+        .widget<Text>(
+          find.descendant(of: line(kind), matching: find.byType(Text)).at(1),
+        )
+        .data!;
+
+    SoundscapeSessionDefault setting(SoundscapeSessionKind kind) =>
+        container.read(soundscapeProvider).sessionDefault(kind);
+
+    Finder sheetList(String key) => find
+        .descendant(
+          of: find.byKey(PageStorageKey<String>(key)),
+          matching: find.byType(Scrollable),
+        )
+        .last;
+
+    /// Turns the sheet to [kind]'s choice, from its line.
+    Future<void> open(WidgetTester tester, SoundscapeSessionKind kind) async {
+      await reveal(tester, line(kind));
+      await tester.tap(line(kind));
+      await tester.pumpAndSettle();
+    }
+
+    /// Back to the user's own mix, keeping the choice.
+    Future<void> back(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('sounds_back')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> tapPreset(WidgetTester tester, String id) async {
+      final card = find.byKey(ValueKey('preset_$id'));
+      await tester.scrollUntilVisible(
+        card,
+        200,
+        scrollable: sheetList('sounds_presets'),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(card);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> tapCard(WidgetTester tester, String id) async {
+      final card = find.byKey(ValueKey('sound_$id'));
+      await tester.scrollUntilVisible(
+        card,
+        200,
+        scrollable: sheetList('sounds_library'),
+      );
+      await tester.pumpAndSettle();
+      for (var i = 0; i < 8 && card.hitTestable().evaluate().isEmpty; i++) {
+        await tester.drag(sheetList('sounds_library'), const Offset(0, -80));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(card.hitTestable());
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('is one line each, starting at Off (decision 17)', (
+      tester,
+    ) async {
+      phone(tester);
+      await pumpSheet(tester);
+      await reveal(tester, line(SoundscapeSessionKind.practice));
+      // No switches: the line says what plays, and opens the chooser.
+      expect(find.byType(SwitchListTile), findsNothing);
+      expect(find.text('Plays under practice'), findsOneWidget);
+      expect(find.text('Plays under talks'), findsOneWidget);
+      expect(says(tester, SoundscapeSessionKind.practice), 'Off');
+      expect(says(tester, SoundscapeSessionKind.talks), 'Off');
+      expect(setting(SoundscapeSessionKind.practice).enabled, isFalse);
+    });
+
+    testWidgets('a tap turns the same sheet to that choice, and what is left '
+        'in it is what plays', (tester) async {
+      phone(tester);
+      await pumpSheet(tester);
+      await open(tester, SoundscapeSessionKind.practice);
+      // The same sheet, saying whose sound this is, back at its top.
+      expect(find.byType(SoundsView), findsOneWidget);
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.text('Plays under practice'), findsOneWidget);
+      expect(find.text('Your mix'), findsNothing);
+      expect(find.text('Presets').hitTestable(), findsOneWidget);
+      expect(line(SoundscapeSessionKind.talks), findsNothing);
+
+      await tapPreset(tester, 'starter-night');
+      expect(engine.playing, isNotEmpty, reason: 'heard as it is chosen');
+      await back(tester);
+
+      expect(find.byType(SoundsView), findsOneWidget);
+      expect(find.text('Your mix'), findsOneWidget);
+      expect(setting(SoundscapeSessionKind.practice).enabled, isTrue);
+      expect(
+        setting(SoundscapeSessionKind.practice).selection,
+        const SoundscapeSelection.preset('starter-night'),
+      );
+      await reveal(tester, line(SoundscapeSessionKind.practice));
+      expect(says(tester, SoundscapeSessionKind.practice), 'Night');
+      // Your own mix is back, as it was, and nothing plays on.
+      expect(mix(), starter.mix);
+      expect(container.read(soundscapeProvider).playing, isFalse);
+      expect(engine.playing, isEmpty);
+    });
+
+    testWidgets('your own mix, playing, is silenced while choosing and comes '
+        'back after', (tester) async {
+      phone(tester);
+      await pumpSheet(tester);
+      await tester.tap(find.byKey(const ValueKey('sounds_play')));
+      await tester.pumpAndSettle();
+      expect(engine.playing.keys, starter.mix.layers.map((l) => l.soundId));
+
+      await open(tester, SoundscapeSessionKind.talks);
+      expect(engine.playing, isEmpty, reason: 'silent until a sound is tapped');
+      await tapPreset(tester, 'starter-shore');
+      // Android's back also returns to your own mix.
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(SoundsView), findsOneWidget);
+      expect(find.byKey(const ValueKey('sounds_back')), findsNothing);
+
+      final state = container.read(soundscapeProvider);
+      expect(state.mix, starter.mix);
+      expect(state.owner, SoundscapeOwner.standalone);
+      expect(state.playing, isTrue);
+      expect(engine.playing.keys, starter.mix.layers.map((l) => l.soundId));
+      expect(
+        setting(SoundscapeSessionKind.talks).selection,
+        const SoundscapeSelection.preset('starter-shore'),
+      );
+    });
+
+    testWidgets('talks keep their own choice; closing the sheet keeps it too', (
+      tester,
+    ) async {
+      phone(tester);
+      await pumpSheet(tester);
+      await open(tester, SoundscapeSessionKind.talks);
+      expect(find.text('Plays under talks'), findsOneWidget);
+      await tapPreset(tester, 'starter-shore');
+      await done(tester);
+      expect(find.byType(SoundsView), findsNothing);
+      expect(
+        setting(SoundscapeSessionKind.talks).selection,
+        const SoundscapeSelection.preset('starter-shore'),
+      );
+      expect(
+        setting(SoundscapeSessionKind.practice).enabled,
+        isFalse,
+        reason: 'practice is untouched',
+      );
+      // Chosen, not started: nothing plays on its own after the sheet.
+      expect(container.read(soundscapeProvider).active, isFalse);
+      expect(mix(), starter.mix);
+      expect(engine.playing, isEmpty);
+    });
+
+    testWidgets('an existing choice from the old switches carries over', (
+      tester,
+    ) async {
+      phone(tester);
+      await pumpSheet(
+        tester,
+        prefsValues: {
+          // What a user of 0.1.4 who switched "Play under practice" on and
+          // chose Night in Customize has stored.
+          'soundscape_session_defaults':
+              '{"practice":{"enabled":true,"selection":"preset:starter-night",'
+              '"volume":0.5},"talks":{"enabled":false,"selection":"mix",'
+              '"volume":0.35}}',
+          'soundscape_session_defaults_version': 2,
+        },
+      );
+      await reveal(tester, line(SoundscapeSessionKind.practice));
+      expect(says(tester, SoundscapeSessionKind.practice), 'Night');
+      expect(says(tester, SoundscapeSessionKind.talks), 'Off');
+    });
+
+    testWidgets('Clear and its Undo (#67) work inside the sheet, above its '
+        'dock', (tester) async {
+      phone(tester);
+      await pumpSheet(tester);
+      await open(tester, SoundscapeSessionKind.practice);
+      await tapPreset(tester, 'starter-night');
+      final chosen = container.read(soundscapeProvider).mix;
+      expect(chosen.isEmpty, isFalse);
+
+      await tester.tap(find.byKey(const ValueKey('sounds_clear')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(container.read(soundscapeProvider).mix.isEmpty, isTrue);
+      // The snackbar is in the sheet, over it, not behind it on the page,
+      // and clear of the dock at its foot.
+      final undo = find.widgetWithText(SnackBarAction, 'Undo');
+      expect(undo.hitTestable(), findsOneWidget);
+      expect(
+        tester.getRect(find.text('Mix cleared')).bottom,
+        lessThanOrEqualTo(
+          tester.getRect(find.byKey(const ValueKey('sounds_dock'))).top,
+        ),
+      );
+      await tester.tap(undo);
+      await tester.pumpAndSettle();
+      expect(container.read(soundscapeProvider).mix, chosen);
+
+      await done(tester);
+      expect(
+        setting(SoundscapeSessionKind.practice).selection,
+        const SoundscapeSelection.preset('starter-night'),
+      );
+    });
+
+    testWidgets('Done closes the sheet even with the mix panel open; '
+        'back folds it first', (tester) async {
+      phone(tester);
+      await pumpSheet(tester);
+      await open(tester, SoundscapeSessionKind.practice);
+      await tapPreset(tester, 'starter-night');
+      await openMix(tester);
+      expect(
+        find.byKey(const ValueKey('sounds_volume')),
+        findsOneWidget,
+        reason: 'the mix panel is open',
+      );
+
+      // Back folds the panel, and only then leaves the choice.
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('sounds_back')), findsOneWidget);
+      expect(find.byKey(const ValueKey('sounds_volume')), findsNothing);
+
+      // Done leaves whatever is open.
+      await openMix(tester);
+      await done(tester);
+      expect(find.byType(SoundsView), findsNothing);
+      expect(
+        setting(SoundscapeSessionKind.practice).selection,
+        const SoundscapeSelection.preset('starter-night'),
+      );
+    });
+
+    testWidgets('a session that starts while choosing closes the sheet, '
+        'and nothing is kept', (tester) async {
+      phone(tester);
+      await pumpSheet(tester);
+      await open(tester, SoundscapeSessionKind.practice);
+      await tapPreset(tester, 'starter-night');
+
+      // Autoplay moves on, or a sit starts elsewhere.
+      await container
+          .read(soundscapeProvider.notifier)
+          .startSession(SoundscapeSessionKind.talks);
+      await tester.pumpAndSettle();
+      expect(find.byType(SoundsView), findsNothing, reason: 'it left');
+      expect(
+        find.text('The session changed, so the sound was left as it was.'),
+        findsOneWidget,
+      );
+      expect(setting(SoundscapeSessionKind.practice).enabled, isFalse);
+      expect(
+        container.read(soundscapeProvider).sessionKind,
+        SoundscapeSessionKind.talks,
+        reason: 'the session owns the mixer',
+      );
+    });
+
+    testWidgets('a page pushed over the sheet stays when a session closes '
+        'the sheet', (tester) async {
+      phone(tester);
+      await pumpSheet(tester);
+      await open(tester, SoundscapeSessionKind.practice);
+      // A deep link, or the player of the session about to start.
+      unawaited(
+        Navigator.of(
+          tester.element(find.byKey(const ValueKey('sounds_chooser_done'))),
+        ).push(
+          MaterialPageRoute<void>(
+            builder: (_) => const Scaffold(body: Text('a page over it')),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await container
+          .read(soundscapeProvider.notifier)
+          .startSession(SoundscapeSessionKind.practice);
+      await tester.pumpAndSettle();
+      expect(find.text('a page over it'), findsOneWidget, reason: 'it stays');
+      expect(
+        find.byType(SoundsView, skipOffstage: false),
+        findsNothing,
+        reason: 'the sheet was taken out from under the page',
+      );
+      expect(container.read(soundscapeProvider.notifier).auditioning, isFalse);
+    });
+
+    testWidgets('a session that ends while choosing closes the sheet too', (
+      tester,
+    ) async {
+      phone(tester);
+      await pumpSheet(
+        tester,
+        before: () async {
+          final mixer = container.read(soundscapeProvider.notifier);
+          mixer.setSessionDefault(
+            SoundscapeSessionKind.practice,
+            const SoundscapeSessionDefault(enabled: true),
+          );
+          await mixer.startSession(SoundscapeSessionKind.practice);
+          await tester.pumpAndSettle();
+        },
+      );
+      await open(tester, SoundscapeSessionKind.practice);
+      await tapCard(tester, kSynthNoiseId);
+
+      container.read(soundscapeProvider.notifier).endSession();
+      await tester.pumpAndSettle();
+      expect(find.byType(SoundsView), findsNothing);
+      // Your own mix, silent; the noise was never kept anywhere.
+      expect(mix(), starter.mix);
+      expect(container.read(soundscapeProvider).active, isFalse);
+      expect(
+        setting(SoundscapeSessionKind.practice).selection,
+        SoundscapeSelection.currentMix,
+      );
+    });
+
+    testWidgets('chosen during a sit of that kind, it plays on under it', (
+      tester,
+    ) async {
+      phone(tester);
+      await pumpSheet(
+        tester,
+        before: () async {
+          final mixer = container.read(soundscapeProvider.notifier);
+          mixer.setSessionDefault(
+            SoundscapeSessionKind.practice,
+            const SoundscapeSessionDefault(enabled: true),
+          );
+          await mixer.startSession(SoundscapeSessionKind.practice);
+          await tester.pumpAndSettle();
+        },
+      );
+
+      await open(tester, SoundscapeSessionKind.practice);
+      await tapPreset(tester, 'starter-night');
+      final night = container.read(soundscapeProvider).mix;
+      await done(tester);
+      final state = container.read(soundscapeProvider);
+      expect(state.owner, SoundscapeOwner.session);
+      expect(state.mix, night, reason: 'the new choice, under the sit');
+      expect(
+        setting(SoundscapeSessionKind.practice).selection,
+        const SoundscapeSelection.preset('starter-night'),
+      );
+    });
+
+    testWidgets('a double tap on a line turns the sheet once', (tester) async {
+      phone(tester);
+      await pumpSheet(tester);
+      await reveal(tester, line(SoundscapeSessionKind.practice));
+      await tester.tap(line(SoundscapeSessionKind.practice));
+      await tester.tap(
+        line(SoundscapeSessionKind.practice),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(SoundsView), findsOneWidget);
+      expect(find.byKey(const ValueKey('sounds_back')), findsOneWidget);
+      await back(tester);
+      expect(find.byKey(const ValueKey('sounds_back')), findsNothing);
+      expect(container.read(soundscapeProvider.notifier).auditioning, isFalse);
+      await done(tester);
+      expect(find.byType(SoundsView), findsNothing);
+    });
+
+    testWidgets('the dock\'s title wraps at 360 dp in German with large '
+        'text', (tester) async {
+      tester.view
+        ..physicalSize = const Size(360, 740)
+        ..devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.view.reset);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pumpSheet(tester, locale: const Locale('de'));
+      await open(tester, SoundscapeSessionKind.practice);
+      expect(tester.takeException(), isNull);
+      final title = tester.widget<Text>(find.text('Läuft bei Übungen').last);
+      expect(title.maxLines, 2);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a mix of layers is named by its sounds', (tester) async {
+      phone(tester);
+      await pumpSheet(tester);
+      await open(tester, SoundscapeSessionKind.practice);
+      // Two sounds that match no preset, on the same shelf.
+      await tapCard(tester, kSynthNoiseId);
+      await tapCard(tester, kSynthDroneId);
+      await back(tester);
+      expect(
+        setting(SoundscapeSessionKind.practice).selection.kind,
+        SoundscapeSelectionKind.layers,
+      );
+      await reveal(tester, line(SoundscapeSessionKind.practice));
+      expect(says(tester, SoundscapeSessionKind.practice), 'Noise, Drone');
+    });
   });
 
   testWidgets('binaural beats: layer, headphones note and editor', (
@@ -570,18 +1290,32 @@ void main() {
       find.text('Binaural beats need headphones: each ear hears its own tone.'),
       findsWidgets,
     );
-    await tester.drag(
-      find.byKey(const ValueKey('binaural_beat')),
-      const Offset(200, 0),
+    BinauralParams params() =>
+        BinauralParams.fromJson(mix().layer(kSynthBinauralId)!.params);
+    // The band chips set the beat (#71) ...
+    expect(
+      tester
+          .widget<ChoiceChip>(find.byKey(const ValueKey('binaural_band_theta')))
+          .selected,
+      isTrue,
+    );
+    await tester.tap(find.byKey(const ValueKey('binaural_band_alpha')));
+    await tester.pumpAndSettle();
+    expect(params().beatHz, 10);
+    expect(find.text('8–13 Hz'), findsOneWidget);
+    // ... and the wheel under them refines it within the band.
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('binaural_beat')),
+        matching: find.text('10.5 Hz'),
+      ),
     );
     await tester.pumpAndSettle();
-    final params = BinauralParams.fromJson(
-      mix().layer(kSynthBinauralId)!.params,
-    );
-    expect(params.beatHz, greaterThan(6));
+    expect(params().beatHz, 10.5);
+    expect(engine.retuned.containsKey(kSynthBinauralId), isTrue);
   });
 
-  testWidgets('noise editor: colour and reset commit to the layer', (
+  testWidgets('noise editor: a colour commits to the layer, its bands kept', (
     tester,
   ) async {
     phone(tester);
@@ -590,22 +1324,73 @@ void main() {
       ..clearMix()
       ..toggleSound(kSynthNoiseId);
     await tester.pumpAndSettle();
+    const curve = [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0];
     controller.setLayerParams(
       kSynthNoiseId,
-      const NoiseParams(bands: [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]).toJson(),
+      const NoiseParams(bands: curve).toJson(),
     );
     await tester.pumpAndSettle();
     await openMix(tester);
     await tester.tap(find.byKey(const ValueKey('adjust_synth-noise')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Brown'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('noise_reset')));
+    // The bands are folded away, whatever they hold; no shape chips.
+    expect(find.byKey(const ValueKey('noise_band_0')), findsNothing);
+    expect(find.byKey(const ValueKey('noise_bands_fold')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('noise_colour_brown')));
     await tester.pumpAndSettle();
     final params = NoiseParams.fromJson(mix().layer(kSynthNoiseId)!.params);
     expect(params.colour, NoiseColour.brown);
-    expect(params.bands, NoiseParams.flat);
+    expect(params.bands, curve);
     expect(engine.retuned.containsKey(kSynthNoiseId), isTrue);
+  });
+
+  testWidgets('noise editor: Reset, inside the opened Equaliser, flattens '
+      'the bands and hides itself', (tester) async {
+    phone(tester);
+    await pump(tester);
+    final controller = container.read(soundscapeProvider.notifier)
+      ..clearMix()
+      ..toggleSound(kSynthNoiseId);
+    await tester.pumpAndSettle();
+    await openMix(tester);
+    await tester.tap(find.byKey(const ValueKey('adjust_synth-noise')));
+    await tester.pumpAndSettle();
+    final reset = find.byKey(const ValueKey('noise_bands_reset'));
+    // Folded: no Reset. Opened on flat bands: still none.
+    expect(reset, findsNothing);
+    await tester.tap(find.byKey(const ValueKey('noise_bands_fold')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('noise_band_0')), findsOneWidget);
+    expect(reset, findsNothing);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('noise_bands_fold')), findsNothing);
+
+    // With a shaped spectrum (and a colour, which Reset leaves alone).
+    const curve = [0.0, 0.2, 0.4, 1.0, 1.0, 1.0, 1.0, 0.5, 0.5, 0.5];
+    controller.setLayerParams(
+      kSynthNoiseId,
+      const NoiseParams(colour: NoiseColour.brown, bands: curve).toJson(),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('adjust_synth-noise')));
+    await tester.pumpAndSettle();
+    expect(reset, findsNothing, reason: 'inside the fold');
+    await tester.tap(find.byKey(const ValueKey('noise_bands_fold')));
+    await tester.pumpAndSettle();
+    expect(reset, findsOneWidget);
+    expect(find.text('Reset'), findsOneWidget);
+
+    await tester.tap(reset);
+    await tester.pumpAndSettle();
+    final params = NoiseParams.fromJson(mix().layer(kSynthNoiseId)!.params);
+    expect(params.bands, NoiseParams.flat);
+    expect(params.colour, NoiseColour.brown);
+    expect(
+      tester.widget<Slider>(find.byKey(const ValueKey('noise_band_0'))).value,
+      1.0,
+    );
+    expect(reset, findsNothing, reason: 'nothing left to reset');
   });
 
   testWidgets('the editors scroll on a short screen at large text', (
@@ -628,9 +1413,9 @@ void main() {
     expect(tester.takeException(), isNull);
     final context = tester.element(find.byType(SoundsView));
     for (final (id, last) in [
-      (kSynthNoiseId, 'noise_band_9'),
+      (kSynthNoiseId, 'noise_bands_fold'),
       (kSynthDroneId, 'drone_movement'),
-      (kSynthBinauralId, 'binaural_beat'),
+      (kSynthBinauralId, 'binaural_carrier'),
     ]) {
       unawaited(showSynthEditor(context, id));
       await tester.pumpAndSettle();
@@ -769,7 +1554,10 @@ void main() {
   testWidgets('credits are one tap away and list every sound', (tester) async {
     phone(tester);
     await pump(tester);
-    await tester.tap(find.byKey(const ValueKey('sound_credits')));
+    // From the foot of the library.
+    final footer = find.byKey(const ValueKey('sound_credits_footer'));
+    await reveal(tester, footer);
+    await tester.tap(footer);
     await tester.pumpAndSettle();
     expect(find.byType(SoundCreditsView), findsOneWidget);
     final library = await container.read(soundLibraryProvider.future);
@@ -803,43 +1591,6 @@ void main() {
     expect(find.text('CC0 1.0'), findsWidgets);
     await tester.pageBack();
     await tester.pumpAndSettle();
-
-    // And from the foot of the library.
-    final footer = find.byKey(const ValueKey('sound_credits_footer'));
-    await reveal(tester, footer);
-    await tester.tap(footer);
-    await tester.pumpAndSettle();
-    expect(find.byType(SoundCreditsView), findsOneWidget);
-  });
-
-  testWidgets('as a page: back folds the open mix, then closes', (
-    tester,
-  ) async {
-    phone(tester);
-    await pump(
-      tester,
-      home: Builder(
-        builder: (context) => Scaffold(
-          body: TextButton(
-            onPressed: () => openSoundsPage(context),
-            child: const Text('open'),
-          ),
-        ),
-      ),
-    );
-    await tester.tap(find.text('open'));
-    await tester.pumpAndSettle();
     expect(find.byType(SoundsView), findsOneWidget);
-    await openMix(tester);
-    expect(find.byKey(const ValueKey('sounds_volume')), findsOneWidget);
-
-    await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
-    expect(find.byType(SoundsView), findsOneWidget);
-    expect(find.byKey(const ValueKey('sounds_volume')), findsNothing);
-
-    await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
-    expect(find.byType(SoundsView), findsNothing);
   });
 }

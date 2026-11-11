@@ -1,15 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/models/timer/timer_session.dart';
+import 'package:medito/providers/cues/cue_settings_provider.dart';
+import 'package:medito/utils/logger.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_download_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_speed_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/bg_sound_widget.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
-import 'package:medito/views/soundscape/sounds_view.dart';
+import 'package:medito/views/soundscape/sounds_sheet.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/speed_sheet.dart';
 
 import 'bottom_action_bar.dart';
@@ -32,65 +36,48 @@ class PlayerActionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    // A timer is local silence: nothing to download, and speed would only
-    // change how long the session takes. Keep close, Sounds and Customize.
-    if (request.isTimer) {
-      return BottomActionBar(
-        leftItem: BottomActionBarItem(
-          child: const Icon(Icons.close, color: ColorConstants.white),
-          onTap: onClosePressed,
-          semanticLabel: l10n.close,
-        ),
-        rightCenterItem: BottomActionBarItem(
-          child: _buildBackgroundSoundWidget(),
-          onTap: () => openSoundsPage(context),
-          semanticLabel: l10n.backgroundSounds,
-        ),
-        rightItem: BottomActionBarItem(
-          child: _customizeIcon,
-          onTap: () => _customize(context),
-          semanticLabel: _customizeLabel,
-        ),
-      );
-    }
-
+    // One bar for every session, in five fixed slots: Close, Sound, Customize,
+    // then what only a recording has. A timer is local silence (nothing to
+    // download, and speed would only change how long it takes), so its last
+    // two slots stay empty and Sound and Customize never move.
+    final recording = !request.isTimer;
     return BottomActionBar(
-      layout: BottomActionBarLayout.edgeAligned,
+      layout: BottomActionBarLayout.fixedSlots,
       leftItem: BottomActionBarItem(
         child: const Icon(Icons.close, color: ColorConstants.white),
         onTap: onClosePressed,
         semanticLabel: l10n.close,
       ),
-      leftCenterItem: BottomActionBarItem.custom(
-        // A file imported into the app is already on the device; there is
-        // nothing to download.
-        child: request.remoteUrl.startsWith('http')
-            ? AudioDownloadWidget(request: request)
-            : const SizedBox(width: 48, height: 48),
-      ),
       // Open for every session: the Sounds mixer can play under a talk too
       // (its Talks default or a Customize choice), so it must be reachable
-      // here to adjust or stop it.
-      centerItem: BottomActionBarItem(
+      // here to adjust or stop it. The Sounds sheet, the same choice as
+      // Customize › Sound (#66).
+      leftCenterItem: BottomActionBarItem(
         child: _buildBackgroundSoundWidget(),
-        onTap: () => openSoundsPage(context),
+        onTap: () => unawaited(openSessionSounds(context, request)),
         semanticLabel: l10n.backgroundSounds,
       ),
-      rightCenterItem: BottomActionBarItem(
+      centerItem: BottomActionBarItem(
         child: _customizeIcon,
         onTap: () => _customize(context),
         semanticLabel: _customizeLabel,
       ),
-      rightItem: BottomActionBarItem(
-        child: const AudioSpeedWidget(),
-        onTap: () => showSpeedSheet(
-          context,
-          onSpeedChanged: (speed) {
-            onSpeedChanged(speed);
-          },
-        ),
-        semanticLabel: l10n.playbackSpeed,
+      rightCenterItem: BottomActionBarItem.custom(
+        // A file imported into the app is already on the device; there is
+        // nothing to download.
+        child: recording && request.remoteUrl.startsWith('http')
+            ? AudioDownloadWidget(request: request)
+            : const SizedBox(width: 48, height: 48),
       ),
+      rightItem: recording
+          ? BottomActionBarItem(
+              child: const AudioSpeedWidget(),
+              onTap: () => unawaited(_speed(context)),
+              semanticLabel: l10n.playbackSpeed,
+            )
+          : const BottomActionBarItem.custom(
+              child: SizedBox(width: 48, height: 48),
+            ),
     );
   }
 
@@ -102,6 +89,41 @@ class PlayerActionBar extends StatelessWidget {
     Icons.tune_rounded,
     color: ColorConstants.white,
   );
+
+  /// Navigators with a speed sheet being opened or open, so a double tap
+  /// opens one sheet. Keyed by the navigator, so a navigator that goes away
+  /// with a sheet open leaves nothing behind.
+  static final _speedSheetOpen = Expando<bool>('speed sheet open');
+
+  /// The speed sheet, open on this session's kind (the kind its cues and
+  /// speed were chosen by at the start). If the kind cannot be told, the
+  /// sheet still opens, for both kinds, without a session.
+  Future<void> _speed(BuildContext context) async {
+    final navigator = Navigator.of(context);
+    if (_speedSheetOpen[navigator] == true) return;
+    _speedSheetOpen[navigator] = true;
+    try {
+      CueKind? kind;
+      try {
+        final scope = await ProviderScope.containerOf(
+          context,
+        ).read(cueScopeForRequestProvider(request).future);
+        kind = scope.kind;
+      } catch (e, st) {
+        AppLogger.e('PLAYER', 'Could not tell the session\'s kind', e, st);
+      }
+      if (!context.mounted) return;
+      await (kind == null
+          ? showSpeedSheet(context)
+          : showSpeedSheet(
+              context,
+              sessionKind: kind,
+              onSpeedChanged: onSpeedChanged,
+            ));
+    } finally {
+      _speedSheetOpen[navigator] = null;
+    }
+  }
 
   void _customize(BuildContext context) {
     unawaited(showCustomizeSheet(context, request: request));

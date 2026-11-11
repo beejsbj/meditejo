@@ -1,0 +1,155 @@
+{
+  "_doc": "The cue sounds that are generated samples, not synthesis (meditejo#76, licence route meditejo#101). Generated on Burooj's paid ElevenLabs Creator plan and dedicated to the public domain under CC0-1.0. generate_bells.py and generate_pulse_sounds.py never write these files; their --check (the bells workflow) and test/models/cues/cue_samples_test.dart compare each file with sha256. Takes were chosen by measurement (onsets, envelope, spectrum, noise floor), not by ear. The raw takes and the scripts that cut them are kept outside the repository (Projects/sfx-pilot/cues on bjslab).",
+  "samples": [
+    {
+      "file": "bell_chime.wav",
+      "name": "Wind chimes",
+      "sha256": "fb6e0f11c28877e50eaa3333ef1031bfffda584193c1013b48bc89800b9a356a",
+      "license": "CC0-1.0",
+      "source": "ElevenLabs text-to-sound-effects",
+      "model": "eleven_text_to_sound_v3",
+      "plan": "ElevenLabs Creator (paid)",
+      "date": "2026-11-11",
+      "prompt": "Metal wind chimes in a light breeze: a few aluminium tubes gently struck one after another, then ringing out and fading naturally to silence. Calm, sparse, close and dry. No wind noise, no background, no music.",
+      "requestedSeconds": 6.0,
+      "loop": false,
+      "promptInfluence": 0.5,
+      "take": 1,
+      "takesGenerated": 3,
+      "changes": {
+        "cutSeconds": [
+          0.015,
+          5.8
+        ],
+        "highPassHz": 300,
+        "fadeInSeconds": 0.001,
+        "fadeOutSeconds": 1.4,
+        "levelledToMomentaryLufs": -9.84,
+        "format": "mono 16-bit PCM WAV, 22050 Hz"
+      },
+      "measured": {
+        "seconds": 5.785,
+        "peak_dbfs": -1.35,
+        "momentary_max_lufs": -9.84,
+        "centroid_hz": 1395,
+        "onsets_s": [
+          0.02,
+          0.81,
+          1.94,
+          2.79
+        ]
+      }
+    },
+    {
+      "file": "pulse_heartbeat.wav",
+      "name": "Heartbeat",
+      "sha256": "d8dbf1cc30058d85ced35f158a7a5eee3b2e50df95be58d8f4986dfafac3c112",
+      "license": "CC0-1.0",
+      "source": "ElevenLabs text-to-sound-effects",
+      "model": "eleven_text_to_sound_v3",
+      "plan": "ElevenLabs Creator (paid)",
+      "date": "2026-11-11",
+      "prompt": "One single human heartbeat recorded through a stethoscope: a low soft 'lub' followed a quarter second later by a slightly higher, shorter 'dub', then silence. Only one beat. Warm, deep, dry, close. No music, no hiss, no beeps.",
+      "requestedSeconds": 2.0,
+      "loop": false,
+      "promptInfluence": 0.5,
+      "take": 2,
+      "takesGenerated": 4,
+      "changes": {
+        "cutSeconds": [
+          0.495,
+          1.13
+        ],
+        "highPassHz": 25,
+        "fadeInSeconds": 0.015,
+        "fadeOutSeconds": 0.15,
+        "levelledToMomentaryLufs": -25.85,
+        "format": "mono 16-bit PCM WAV, 44100 Hz"
+      },
+      "measured": {
+        "seconds": 0.635,
+        "peak_dbfs": -7.45,
+        "momentary_max_lufs": -25.85,
+        "centroid_hz": 104,
+        "onsets_s": [
+          0.02,
+          0.31
+        ]
+      }
+    },
+    {
+      "file": "pulse_chirp.wav",
+      "name": "Chirp",
+      "sha256": "c8173306a295d21bf3d8bacd2e5994c6f9ddf72060fb36c105e336842ec1cc25",
+      "license": "CC0-1.0",
+      "source": "ElevenLabs text-to-sound-effects",
+      "model": "eleven_text_to_sound_v3",
+      "plan": "ElevenLabs Creator (paid)",
+      "date": "2026-11-11",
+      "prompt": "One single short tweet from a small songbird, a sparrow, just one note, close and clean. Field recording, no background noise, no other birds, no echo.",
+      "requestedSeconds": 0.5,
+      "loop": false,
+      "promptInfluence": 0.5,
+      "take": 7,
+      "takesGenerated": 8,
+      "changes": {
+        "cutSeconds": [
+          0.078,
+          0.478
+        ],
+        "highPassHz": 1500,
+        "fadeInSeconds": 0.004,
+        "fadeOutSeconds": 0.07,
+        "levelledToMomentaryLufs": -25.71,
+        "format": "mono 16-bit PCM WAV, 44100 Hz"
+      },
+      "measured": {
+        "seconds": 0.4,
+        "peak_dbfs": -13.24,
+        "momentary_max_lufs": -25.71,
+        "centroid_hz": 3862,
+        "onsets_s": [
+          0.01,
+          0.08,
+          0.21
+        ]
+      }
+    },
+    {
+      "file": "pulse_footstep.wav",
+      "name": "Footstep",
+      "sha256": "b84842b0312f0efc37bcf9218b98c897a87e1a741b5eaf09adec903eca84875d",
+      "license": "CC0-1.0",
+      "source": "ElevenLabs text-to-sound-effects",
+      "model": "eleven_text_to_sound_v3",
+      "plan": "ElevenLabs Creator (paid)",
+      "date": "2026-11-11",
+      "prompt": "One single soft footstep on a wooden floor, barefoot, a low dull muffled thud, then silence. Close, dry, no creak, no hiss, no reverb, no second step.",
+      "requestedSeconds": 1.0,
+      "loop": false,
+      "promptInfluence": 0.5,
+      "take": 2,
+      "takesGenerated": 3,
+      "changes": {
+        "cutSeconds": [
+          0.06,
+          0.44
+        ],
+        "highPassHz": 30,
+        "fadeInSeconds": 0.002,
+        "fadeOutSeconds": 0.08,
+        "levelledToMomentaryLufs": -30.0,
+        "format": "mono 16-bit PCM WAV, 44100 Hz"
+      },
+      "measured": {
+        "seconds": 0.38,
+        "peak_dbfs": -8.66,
+        "momentary_max_lufs": -30.0,
+        "centroid_hz": 191,
+        "onsets_s": [
+          0.04
+        ]
+      }
+    }
+  ]
+}

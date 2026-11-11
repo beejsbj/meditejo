@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
@@ -8,14 +10,16 @@ import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/downloads/downloads_view.dart';
-import 'package:medito/views/favorites/favorites_view.dart';
+import 'package:medito/views/home/widgets/pinned/pinned_list_view.dart';
 import 'package:medito/views/home/customise_home_layout_screen.dart';
 import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/settings/settings_screen.dart';
+import 'package:medito/views/soundscape/sounds_sheet.dart';
 import 'package:medito/views/stats/stats_screen.dart';
 import 'package:medito/views/teacher/teacher_view.dart';
-import 'package:medito/views/timer/timer_view.dart';
+import 'package:medito/views/timer/timer_sheet.dart';
 import 'package:medito/views/track/track_view.dart';
+import 'package:medito/views/you/you_view.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 extension SanitisePath on String {
@@ -25,16 +29,24 @@ extension SanitisePath on String {
 final navigatorKey = GlobalKey<NavigatorState>();
 
 /// The tab a link such as `meditejo://library` opens; `search` is Explore with
-/// the cursor in its field, and `settings` is You, where Settings lives. Null
-/// for anything else.
+/// the cursor in its field. Null for anything else: You is a page, and Sounds
+/// a sheet ([opensSoundsSheet]), not tabs.
 MainTab? tabForLink(String type) => switch (type) {
   TypeConstants.tabHome => MainTab.home,
   TypeConstants.tabExplore || TypeConstants.tabSearch => MainTab.explore,
-  TypeConstants.tabSounds => MainTab.sounds,
   TypeConstants.tabLibrary => MainTab.library,
-  TypeConstants.tabYou || TypeConstants.tabSettings => MainTab.you,
+  TypeConstants.tabSettings => MainTab.settings,
   _ => null,
 };
+
+/// Whether a link opens the Sounds sheet: `meditejo://sounds`, which chose
+/// the Sounds tab while there was one (until 2026-11-10), and `route` links that name it.
+bool opensSoundsSheet(String type, List<String> values) =>
+    type == TypeConstants.sounds ||
+    (type == TypeConstants.route && values.contains(TypeConstants.sounds));
+
+/// The route name of course [id]'s page.
+String coursePageRouteName(String id) => '/packs/$id';
 
 /// Source repositories supply track/pack IDs; navigation does not resolve media.
 ///
@@ -76,8 +88,38 @@ Future<void> handleNavigation(
     onNavigationComplete?.call();
     return;
   }
+  if (opensSoundsSheet(type, values)) {
+    // Sounds is a sheet over Home, whatever was open.
+    final tabs = ref != null
+        ? ref.read(mainTabProvider.notifier)
+        : ProviderScope.containerOf(
+            context,
+            listen: false,
+          ).read(mainTabProvider.notifier);
+    navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    tabs.select(MainTab.home);
+    onNavigationComplete?.call();
+    final host = navigatorKey.currentContext ?? context;
+    // On the next frame, and not awaited: a Sounds sheet this link has just
+    // closed has let go of the mixer by then, and the link is handled once
+    // the sheet is on its way up.
+    WidgetsBinding.instance
+      ..addPostFrameCallback((_) {
+        if (host.mounted) unawaited(showSoundsSheet(host));
+      })
+      ..scheduleFrame();
+    return;
+  }
   Widget? page;
-  if (type.contains('track') && values.isNotEmpty) {
+  // The Timer is not a page: it opens as the Customize sheet over wherever
+  // the user is.
+  var timer = false;
+  var timerOpenEnded = false;
+  if (type == TypeConstants.tabYou) {
+    // The old You tab's link: the You page, alone over the tabs.
+    navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    page = const YouView();
+  } else if (type.contains('track') && values.isNotEmpty) {
     if (values.first != kLegacyTimerTrackId && context.mounted) {
       final store = ref != null
           ? ref.read(libraryStoreProvider)
@@ -88,9 +130,18 @@ Future<void> handleNavigation(
       await noteSessionOrigin(store, values.first, courseId);
       if (!context.mounted) return;
     }
-    page = values.first == kLegacyTimerTrackId
-        ? const TimerView()
-        : TrackView(trackId: values.first, fromStart: fromStart);
+    timer = values.first == kLegacyTimerTrackId;
+    page = timer
+        ? null
+        : TrackView(
+            trackId: values.first,
+            fromStart: fromStart,
+            // The page it opens over (a course's), so its course line can
+            // go back to it rather than open it again.
+            openedOver: context.mounted
+                ? ModalRoute.of(context)?.settings.name
+                : null,
+          );
   } else if (type == TypeConstants.teacher && values.isNotEmpty) {
     page = TeacherView(teacherId: values.first);
   } else if (type.contains('pack') && values.isNotEmpty) {
@@ -100,8 +151,9 @@ Future<void> handleNavigation(
         ? 1
         : 0;
     if (index >= values.length) return;
+    // Medito's favourites "pack" is now the list of pins (#79).
     page = values[index] == 'favorites'
-        ? const FavoritesView()
+        ? const PinnedListView()
         : PackView(id: values[index]);
   } else if (type == TypeConstants.url || type == TypeConstants.link) {
     if (values.isEmpty) return;
@@ -124,13 +176,30 @@ Future<void> handleNavigation(
       page = StatsScreen(
         initialTabIndex: values.any((id) => id.contains(':history')) ? 1 : 0,
       );
-    } else if (values.contains(RouteConstants.timer)) {
-      page = const TimerView();
+    } else if (values.contains(RouteConstants.timer) ||
+        values.contains(RouteConstants.stopwatch)) {
+      timer = true;
+      timerOpenEnded = values.contains(RouteConstants.stopwatch);
     }
+  }
+  if (timer) {
+    final host = navigatorKey.currentContext ?? context;
+    if (!host.mounted) return;
+    await showTimerSheet(host, openEnded: timerOpenEnded);
+    if (ref != null && context.mounted) {
+      ref.read(statsProvider.notifier).refresh();
+    }
+    return;
   }
   if (page == null) return;
   await navigatorKey.currentState?.push<void>(
-    MaterialPageRoute(builder: (_) => page!),
+    MaterialPageRoute(
+      builder: (_) => page!,
+      // A course's page is named for it: an episode opened over it knows.
+      settings: page is PackView
+          ? RouteSettings(name: coursePageRouteName(page.id))
+          : null,
+    ),
   );
   if (ref != null && context.mounted) {
     ref.read(statsProvider.notifier).refresh();

@@ -1,11 +1,12 @@
 import 'package:medito/models/player/playback_request.dart';
 
-/// The two ways the home Timer runs: down from a chosen length, or up until
-/// the user ends it.
+/// The two ways the Timer runs: down from a chosen length, or up until the
+/// user ends it (∞ on its length wheel; "open-ended" in the UI, never
+/// "stopwatch").
 enum TimerMode { countdown, stopwatch }
 
 /// Track id of the old bell-only "Timer" track that the home shortcut opened
-/// before the native timer existed. Navigation to it now opens [TimerView].
+/// before the native timer existed. Navigation to it now opens the Timer sheet.
 const kLegacyTimerTrackId = 'Hdu7YtWSmHtU4bDh';
 
 /// Timer sessions are recorded in stats as `timer-<seconds>`. There is no

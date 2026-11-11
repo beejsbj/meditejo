@@ -106,13 +106,6 @@ double worstChannelPeak(List<OscillatorPartial> partials) {
   return math.max(left, right);
 }
 
-/// Peak bound for one generated layer at full volume, every voice in
-/// phase: −12 dBFS. Among the editor's roots the loudest, a bright A1
-/// drone, peaks at about 0.15 (−16 dBFS); a bright 40 Hz drone, the lowest
-/// root saved params can hold, at about 0.185; binaural beats at about
-/// 0.065 an ear.
-const kLayerPeakBound = 0.25;
-
 /// Power between [lo] and [hi] Hz, from a forward DFT (via the inverse:
 /// DFT(x) = conj(IDFT(conj(x))) · n).
 double bandPower(Float64List x, double lo, double hi) {
@@ -254,7 +247,7 @@ void main() {
   group('drone', () {
     test('is a chord on the root', () {
       for (final timbre in DroneTimbre.values) {
-        final partials = DroneParams(rootHz: 110, timbre: timbre).partials();
+        final partials = DroneParams(rootsHz: [110], timbre: timbre).partials();
         expect(partials.first.hz, 110);
         expect(partials.map((p) => p.hz), contains(220));
         expect(partials.map((p) => p.hz), contains(165));
@@ -265,11 +258,343 @@ void main() {
       );
     });
 
+    test('a chord holds every root, and is no louder than one root', () {
+      for (final timbre in DroneTimbre.values) {
+        final chord = DroneParams(
+          rootsHz: [55, 110, 164.81],
+          timbre: timbre,
+        ).partials();
+        final hz = chord.map((p) => p.hz).toList();
+        for (final root in [55.0, 110.0, 164.81]) {
+          expect(hz, contains(closeTo(root, 0.001)));
+          expect(hz, contains(closeTo(root * 2, 0.001)));
+        }
+        final single = DroneParams(rootsHz: [110], timbre: timbre).partials();
+        // Voices on one frequency are one voice (A1's octave is A2's root).
+        expect(chord.length, lessThan(single.length * 3));
+        expect(chord.length, greaterThan(single.length));
+        for (var i = 0; i < chord.length; i++) {
+          for (var j = i + 1; j < chord.length; j++) {
+            expect(
+              chord[i].wave == chord[j].wave &&
+                  (chord[i].hz - chord[j].hz).abs() < 0.01,
+              isFalse,
+              reason: '${chord[i].hz} twice',
+            );
+          }
+        }
+        expect(renderedLufs(chord), closeTo(kSynthTargetLufs, 0.2));
+        expect(worstChannelPeak(chord), lessThan(kSynthPeakBound));
+      }
+    });
+
+    test('no two voices of a chord share a frequency, in any timbre', () {
+      for (final timbre in DroneTimbre.values) {
+        for (final roots in [
+          [55.0, 110.0],
+          [55.0, 110.0, 220.0],
+          [110.0, 220.0],
+          [73.42, 146.83],
+          [82.41, 164.81, 55.0],
+          [55.0, 82.41, 98.0],
+        ]) {
+          final ps = DroneParams(rootsHz: roots, timbre: timbre).partials();
+          for (var i = 0; i < ps.length; i++) {
+            for (var j = i + 1; j < ps.length; j++) {
+              expect(
+                (ps[i].hz - ps[j].hz).abs() > 1e-4 * ps[i].hz,
+                isTrue,
+                reason: '$roots ${timbre.name}: ${ps[i].hz} and ${ps[j].hz}',
+              );
+            }
+          }
+          expect(
+            renderedLufs(ps),
+            closeTo(kSynthTargetLufs, 0.2),
+            reason: '$roots ${timbre.name}',
+          );
+        }
+      }
+    });
+
+    test('merging is deterministic: same voices and loudness every time', () {
+      const chord = DroneParams(
+        rootsHz: [55, 110, 220],
+        timbre: DroneTimbre.bright,
+      );
+      final a = chord.partials(), b = chord.partials();
+      // A1+A2+A3 bright: 24 voices, 8 shared.
+      expect(a.length, 16);
+      expect(
+        [for (final p in a) (p.hz, p.gain, p.pan)],
+        [for (final p in b) (p.hz, p.gain, p.pan)],
+      );
+      expect(renderedLufs(a), closeTo(kSynthTargetLufs, 0.2));
+    });
+
+    test('the peak bound holds for any chord, stored or chosen', () {
+      final lows = [...DroneParams.roots.values, 40.0, 41.0, 42.0, 40.5, 440.0];
+      for (final timbre in DroneTimbre.values) {
+        // The editor's loudest chord: low roots weigh little in the
+        // K-weighting, so they get the most gain.
+        final worst = DroneParams(
+          rootsHz: [55, 73.42, 82.41],
+          timbre: timbre,
+        ).partials();
+        expect(worstChannelPeak(worst), lessThan(kSynthPeakBound));
+        // Clustered lowest roots the clamp allows, every triple, and every
+        // chord of four and five.
+        for (final roots in [
+          [40.0, 41.0, 42.0],
+          [40.0, 40.5, 41.0],
+          [40.0, 40.5, 41.0, 41.5, 42.0],
+          for (var i = 0; i < lows.length; i++)
+            for (var j = i + 1; j < lows.length; j++)
+              for (var k = j + 1; k < lows.length; k++) ...[
+                [lows[i], lows[j], lows[k]],
+                for (var l = k + 1; l < lows.length; l++) ...[
+                  [lows[i], lows[j], lows[k], lows[l]],
+                  for (var m = l + 1; m < lows.length; m++)
+                    [lows[i], lows[j], lows[k], lows[l], lows[m]],
+                ],
+              ],
+        ]) {
+          final p = DroneParams(rootsHz: roots, timbre: timbre).partials();
+          expect(
+            worstChannelPeak(p),
+            lessThan(kSynthPeakBound),
+            reason: '$roots ${timbre.name}',
+          );
+        }
+      }
+    });
+
+    test('a chord never swells in step', () {
+      final ps = const DroneParams(
+        rootsHz: [55, 82.41, 110],
+        timbre: DroneTimbre.bright,
+        movement: 1,
+      ).partials();
+      expect(ps.map((p) => p.swellPeriod).toSet().length, ps.length);
+      // Nor the largest there is: five bright roots sharing no frequency.
+      final most = const DroneParams(
+        rootsHz: [55, 73.42, 82.41, 98, 130.81],
+        timbre: DroneTimbre.bright,
+        movement: 1,
+      ).partials();
+      expect(most.length, 40);
+      expect(most.map((p) => p.swellPeriod).toSet().length, 40);
+    });
+
+    group('five roots (#69, raised from three)', () {
+      const chips = [55.0, 73.42, 82.41, 98.0, 110.0, 130.81, 146.83, 164.81];
+      test('the cap is five, and the editor offers nine roots', () {
+        expect(DroneParams.maxRoots, 5);
+        expect(DroneParams.roots.values, [...chips, 220.0]);
+      });
+
+      test('a root is 4, 6 or 8 voices, so a chord is at most 40', () {
+        const perRoot = {
+          DroneTimbre.pure: 4,
+          DroneTimbre.warm: 6,
+          DroneTimbre.bright: 8,
+        };
+        final roots = DroneParams.roots.values.toList();
+        for (final timbre in DroneTimbre.values) {
+          expect(
+            DroneParams(rootsHz: const [110], timbre: timbre).partials().length,
+            perRoot[timbre],
+          );
+          var most = 0;
+          for (var a = 0; a < roots.length; a++) {
+            for (var b = a + 1; b < roots.length; b++) {
+              for (var c = b + 1; c < roots.length; c++) {
+                for (var d = c + 1; d < roots.length; d++) {
+                  for (var e = d + 1; e < roots.length; e++) {
+                    final n = DroneParams(
+                      rootsHz: [
+                        roots[a],
+                        roots[b],
+                        roots[c],
+                        roots[d],
+                        roots[e],
+                      ],
+                      timbre: timbre,
+                    ).partials().length;
+                    if (n > most) most = n;
+                  }
+                }
+              }
+            }
+          }
+          // No merge at all in the worst chord: five times one root.
+          expect(most, 5 * perRoot[timbre]!, reason: timbre.name);
+        }
+      });
+
+      test('a middle chord of five is as loud as one root', () {
+        for (final timbre in DroneTimbre.values) {
+          final chord = DroneParams(
+            rootsHz: const [110, 130.81, 146.83, 164.81, 220],
+            timbre: timbre,
+          ).partials();
+          final hz = chord.map((p) => p.hz).toList();
+          for (final root in [110.0, 130.81, 146.83, 164.81, 220.0]) {
+            expect(hz, contains(closeTo(root, 0.001)));
+          }
+          // A2's octave is A3's root: one voice.
+          final single = DroneParams(
+            rootsHz: const [110],
+            timbre: timbre,
+          ).partials();
+          expect(chord.length, lessThan(5 * single.length));
+          expect(chord.length, greaterThan(3 * single.length));
+          for (var i = 0; i < chord.length; i++) {
+            for (var j = i + 1; j < chord.length; j++) {
+              expect(
+                chord[i].wave == chord[j].wave &&
+                    (chord[i].hz - chord[j].hz).abs() <= 1e-4 * chord[i].hz,
+                isFalse,
+                reason: '${chord[i].hz} twice',
+              );
+            }
+          }
+          expect(
+            renderedLufs(chord),
+            closeTo(kSynthTargetLufs, 0.2),
+            reason: timbre.name,
+          );
+          expect(worstChannelPeak(chord), lessThan(kSynthPeakBound));
+        }
+      });
+
+      test('five low bright roots are held under the peak bound, and play '
+          'a little under the target for it', () {
+        // The editor's worst: no shared frequency, and low roots weigh
+        // least in the K-weighting, so they ask for the most gain.
+        final low = const DroneParams(
+          rootsHz: [55, 73.42, 82.41, 98, 130.81],
+          timbre: DroneTimbre.bright,
+        ).partials();
+        expect(low.length, 40);
+        expect(worstChannelPeak(low), lessThan(kSynthPeakBound));
+        expect(worstChannelPeak(low), greaterThan(0.97 * kSynthPeakBound));
+        final under = renderedLufs(low) - kSynthTargetLufs;
+        // Never louder than a single root; about 1.5 dB quieter here.
+        expect(under, lessThan(0));
+        expect(under, closeTo(-1.52, 0.15));
+        // The lowest five a stored mix may hold (the range's floor).
+        final floor = const DroneParams(
+          rootsHz: [40, 40.5, 41, 41.5, 42],
+          timbre: DroneTimbre.bright,
+        ).partials();
+        expect(worstChannelPeak(floor), lessThan(kSynthPeakBound));
+        expect(renderedLufs(floor), lessThan(kSynthTargetLufs));
+      });
+
+      test('chords of one to three roots are the voices they were', () {
+        // Pinned from the three-root build: counts, the first voices, and
+        // every swell period (the table's first 24 entries are unchanged).
+        const was = [
+          29, 41, 53, 67, 37, 47, 59, 71, 31, 43, 61, 73, //
+          79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137,
+        ];
+        final three = const DroneParams(
+          rootsHz: [55, 73.42, 82.41],
+          timbre: DroneTimbre.bright,
+          movement: 0.6,
+        ).partials();
+        expect(three.length, 24);
+        expect(
+          [for (final p in three) p.swellPeriod!.inMilliseconds],
+          [for (final s in was) s * 1000],
+        );
+        expect(
+          const DroneParams(
+            rootsHz: [55, 110, 220],
+            timbre: DroneTimbre.bright,
+          ).partials().length,
+          16,
+        );
+        final stored = DroneParams.fromJson({
+          'rootHz': 73.42,
+          'rootsHz': [73.42, 110.0, 164.81],
+          'timbre': 'warm',
+          'movement': 0.5,
+        });
+        expect(stored.rootsHz, [73.42, 110, 164.81]);
+        expect(stored.toJson(), {
+          'rootHz': 73.42,
+          'rootsHz': [73.42, 110.0, 164.81],
+          'timbre': 'warm',
+          'movement': 0.5,
+        });
+        final ps = stored.partials();
+        expect(ps.length, 18);
+        expect(renderedLufs(ps), closeTo(kSynthTargetLufs, 0.2));
+      });
+    });
+
+    test('a single root saves as it always did', () {
+      expect(const DroneParams(rootsHz: [98]).toJson().keys.toSet(), {
+        'rootHz',
+        'timbre',
+        'movement',
+      });
+      expect(const DroneParams().toJson(), {
+        'rootHz': 110.0,
+        'timbre': 'warm',
+        'movement': 0.5,
+      });
+    });
+
+    test('roots are tidied however the params were built', () {
+      expect(const DroneParams(rootsHz: []).rootHz, 110);
+      expect(const DroneParams(rootsHz: [220, 55]).rootHz, 55);
+      expect(const DroneParams(rootsHz: [220, 55, 110, 82.41]).rootsHz, [
+        55,
+        82.41,
+        110,
+        220,
+      ]);
+      // A sixth and seventh are dropped from the top.
+      expect(
+        const DroneParams(
+          rootsHz: [220, 55, 110, 82.41, 98, 146.83, 73.42],
+        ).rootsHz,
+        [55, 73.42, 82.41, 98, 110],
+      );
+    });
+
+    test('params round-trip, and read the old single rootHz', () {
+      const chord = DroneParams(rootsHz: [73.42, 110, 164.81]);
+      expect(DroneParams.fromJson(chord.toJson()).rootsHz, chord.rootsHz);
+      expect(chord.toJson()['rootHz'], 73.42);
+      final old = DroneParams.fromJson({'rootHz': 98.0, 'timbre': 'bright'});
+      expect(old.rootsHz, [98.0]);
+      expect(old.timbre, DroneTimbre.bright);
+      // Unsorted, duplicated, too many, junk: tidied.
+      expect(
+        DroneParams.fromJson({
+          'rootsHz': [220, 55, 55, 110, 82.41, 'x'],
+        }).rootsHz,
+        [55, 82.41, 110, 220],
+      );
+      expect(
+        DroneParams.fromJson({
+          'rootsHz': [220, 55, 55, 110, 82.41, 'x', 98, 164.81, 130.81],
+        }).rootsHz,
+        [55, 82.41, 98, 110, 130.81],
+      );
+      expect(DroneParams.fromJson({'rootsHz': []}).rootsHz, [110]);
+      expect(DroneParams.fromJson(const {}).rootsHz, [110]);
+    });
+
     for (final root in ['A1', 'D2', 'A2', 'A3']) {
       test('$root plays at the target loudness, as rendered', () {
         for (final timbre in DroneTimbre.values) {
           final partials = DroneParams(
-            rootHz: DroneParams.roots[root]!,
+            rootsHz: [DroneParams.roots[root]!],
             timbre: timbre,
           ).partials();
           expect(
@@ -279,7 +604,7 @@ void main() {
           );
           expect(
             worstChannelPeak(partials),
-            lessThan(kLayerPeakBound),
+            lessThan(kSynthPeakBound),
             reason: '$root ${timbre.name}',
           );
         }
@@ -291,8 +616,11 @@ void main() {
       // (40–440 Hz; a bright 40 Hz drone peaks at about 0.185).
       for (final hz in [40.0, ...DroneParams.roots.values, 440.0]) {
         for (final timbre in DroneTimbre.values) {
-          final partials = DroneParams(rootHz: hz, timbre: timbre).partials();
-          expect(worstChannelPeak(partials), lessThan(kLayerPeakBound));
+          final partials = DroneParams(
+            rootsHz: [hz],
+            timbre: timbre,
+          ).partials();
+          expect(worstChannelPeak(partials), lessThan(kSynthPeakBound));
         }
       }
     });
@@ -361,7 +689,7 @@ void main() {
           closeTo(kSynthTargetLufs, 0.2),
           reason: '$carrier Hz',
         );
-        expect(worstChannelPeak(ps), lessThan(kLayerPeakBound));
+        expect(worstChannelPeak(ps), lessThan(kSynthPeakBound));
         // Each ear carries the same loudness.
         expect(
           renderedLufs([ps[0]]),
@@ -372,10 +700,10 @@ void main() {
     });
 
     test('names the band and clamps to sane ranges', () {
-      expect(const BinauralParams(beatHz: 2).band, 'delta');
-      expect(const BinauralParams(beatHz: 6).band, 'theta');
-      expect(const BinauralParams(beatHz: 10).band, 'alpha');
-      expect(const BinauralParams(beatHz: 20).band, 'beta');
+      expect(const BinauralParams(beatHz: 2).band, BeatBand.delta);
+      expect(const BinauralParams(beatHz: 6).band, BeatBand.theta);
+      expect(const BinauralParams(beatHz: 10).band, BeatBand.alpha);
+      expect(const BinauralParams(beatHz: 20).band, BeatBand.beta);
       final p = BinauralParams.fromJson({'carrierHz': 5000, 'beatHz': -3});
       expect(p.carrierHz, BinauralParams.maxCarrier);
       expect(p.beatHz, BinauralParams.minBeat);

@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/providers/day_boundary_offset_provider.dart';
+import 'package:medito/providers/player/playback_speed_provider.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
+import 'package:medito/views/player/widgets/bottom_actions/widgets/speed_sheet.dart';
 import 'package:medito/views/settings/widgets/day_boundary_offset_dialog.dart';
 
 /// When a new day starts for streaks and stats.
@@ -71,18 +73,43 @@ class CueDefaultsTile extends StatelessWidget {
           ? l10n.settingsPracticeCuesCaption
           : l10n.settingsTalksCuesCaption,
       hasUnderline: hasUnderline,
-      onTap: () => showModalBottomSheet<void>(
-        context: context,
-        showDragHandle: true,
-        isScrollControlled: true,
-        useSafeArea: true,
-        backgroundColor: Theme.of(context).bottomSheetTheme.backgroundColor,
-        builder: (_) => CustomizeSheet(
+      onTap: () => showCustomizeModal<void>(
+        context,
+        (_) => CustomizeSheet(
           scope: CueScope(kind),
           // No session, so no "Finishes at" line.
           showFinishes: false,
         ),
       ),
+    );
+  }
+}
+
+/// The speed each kind of session starts at, side by side, opening the
+/// player's speed sheet without a session.
+class PlaybackSpeedTile extends ConsumerWidget {
+  const PlaybackSpeedTile({super.key, this.hasUnderline = true});
+
+  final bool hasUnderline;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final practice = ref.watch(playbackSpeedProvider(CueKind.practice));
+    final talks = ref.watch(playbackSpeedProvider(CueKind.talks));
+    return RowItemWidget(
+      key: const ValueKey('settings_playback_speed'),
+      icon: Icon(
+        Icons.speed_rounded,
+        color: Theme.of(context).colorScheme.onSurface,
+      ),
+      title: l10n.settingsPlaybackSpeed,
+      subTitle: l10n.settingsPlaybackSpeedCaption(
+        formatSpeed(practice),
+        formatSpeed(talks),
+      ),
+      hasUnderline: hasUnderline,
+      onTap: () => showSpeedSheet(context),
     );
   }
 }

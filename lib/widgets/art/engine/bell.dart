@@ -11,8 +11,14 @@ import 'package:medito/widgets/art/engine/primitives.dart';
 /// its figure is drawn from.
 @immutable
 class ShippedBell {
-  const ShippedBell(this.id, this.title, String file, this.preset)
-    : asset = 'assets/audio/$file.wav';
+  const ShippedBell(
+    this.id,
+    this.title,
+    String file,
+    this.preset, {
+    String? recipeTitle,
+  }) : asset = 'assets/audio/$file.wav',
+       recipeTitle = recipeTitle ?? title;
 
   /// The curated id (`bell-temple`), as `curated_art.json` keys it.
   final String id;
@@ -24,6 +30,12 @@ class ShippedBell {
 
   /// The preset in the bell data (`temple`).
   final String preset;
+
+  /// What the synthesised recipe of [preset] is called, where the bell
+  /// maker lists it under "Start from". The [title], unless the shipped
+  /// sound is a sample and so is not its recipe: "Wind chimes" plays a
+  /// sample, and its preset is the struck bar it replaced, "Bar chime".
+  final String recipeTitle;
 
   /// The figure's family ([BellFigure.family] of [preset]).
   String get kind => BellFigure.family[preset]!;
@@ -82,7 +94,7 @@ class BellFigure extends Figure {
   /// `lib/models/cues/cue_settings.dart`), each a preset of the five
   /// controls.
   static const List<ShippedBell> shipped = [
-    ShippedBell('bell-swell', 'Swell bell', 'session_bell_v2', 'swell'),
+    ShippedBell('bell-swell', 'Session bell', 'session_bell_v2', 'swell'),
     ShippedBell(
       'bell-bowl-small',
       'Singing bowl, small',
@@ -103,7 +115,13 @@ class BellFigure extends Figure {
     ),
     ShippedBell('bell-temple', 'Temple bell', 'bell_temple', 'temple'),
     ShippedBell('bell-handbell', 'Hand bell', 'bell_handbell', 'handbell'),
-    ShippedBell('bell-chime', 'Chime', 'bell_chime', 'chime'),
+    ShippedBell(
+      'bell-chime',
+      'Wind chimes',
+      'bell_chime',
+      'chime',
+      recipeTitle: 'Bar chime',
+    ),
     ShippedBell('bell-tingsha', 'Tingsha', 'bell_tingsha', 'tingsha'),
     ShippedBell(
       'bell-wood-block',

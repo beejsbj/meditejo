@@ -18,7 +18,7 @@ boundary, which is still empty. Everything else arrives through a
 
 ```dart
 abstract interface class ContentSource {
-  String get prefix;                       // 'ds-', later 'lib-', 'yt-'
+  String get prefix;                       // 'ds-', 'dt-', 'lib-', 'yt-'
   Future<List<PackModel>> browsePacks();   // bounded, saved first
   Future<PackModel> pack(String id);       // a course: tracks in play order
   Future<Track> track(String id);          // one voice, one playable file
@@ -35,7 +35,8 @@ so views and providers are unchanged. The interface's doc comment holds the
 rules for a new source: stable IDs, `/tracks/<id>` item paths, URLs resolved
 in `track()`, `CatalogueEntryUnavailable` for unknown IDs, and degrading to
 stored data when offline. An RSS or YouTube adapter implements those seven
-methods and joins the provider list.
+methods and joins the provider list; a catalogue the Explore tab browses also
+implements `CatalogueSource` (below).
 
 A source whose courses, talks or teachers can be kept also implements
 `SavableContentSource` (`canSave`, `isSaved`, `setSaved`); `ContentRouter`
@@ -174,16 +175,83 @@ and because the updater also refuses any tag that is not `v<MAJOR.MINOR.PATCH>`
   trade is that a checkout needs one network step before a full test run or
   build.
 
-`DharmaSeedSource` also carries the Dharma Seed screens' reads, outside the
-interface until a second source shows what is shared: `explore({group})`,
-`search(query, {length})`, `teacherPage(id)` and `teacherTalks(id, offset)`.
-They return the view models in `dharma_seed_models.dart` (`DsExplore`,
-`DsSearchResults`, `DsTeacherPage`, `DsTeacherItem`). `DsContentGroup` (practice
-or talks, from `recording_type`; `dsPracticeRecordingTypes` is the list the SQL
-filters on) and `SessionLength` (`lib/models/explore/session_length.dart`, the
-`[min, max)` minute buckets) are the filters. `lib/providers/dharma_seed/
-dharma_seed_ui_providers.dart` holds the Explore chip, the saved toggle and the
-Explore, search and teacher providers.
+The screens' reads sit on a second interface, below.
+
+### The catalogue seam
+
+`CatalogueSource` (`lib/services/content/catalogue_source.dart`) is a
+`ContentSource` plus what the Explore, search and teacher screens read:
+`name`, `ownsTeacher`, `revision`, `explore({group})`, `search(query, {length})`,
+`teacherPage`, `teacherTalks`, `libraryDraft` (how the library describes one of
+its items; Add to library and a pasted link store it) and `catchUp` (the only
+call that may use the network to refresh the catalogue; it runs when Explore
+opens, never at startup). `DharmaSeedSource` and `DhammatalksSource` implement
+it. They answer in source-neutral view models
+(`lib/models/catalogue/catalogue_models.dart`: `CatalogueExplore`,
+`CatalogueSearchResults`, `CatalogueTeacherPage`, `CatalogueTeacher`, and the
+`ContentGroup` enum, Practice or Talks), so no screen knows which source it is
+showing. `CatalogueTeacherPage.archive` carries a source's whole archive as sections of
+closed groups (dhammatalks: evening and morning, by year); a group's talks come
+from `CatalogueSource.archiveTalks` only when it is opened. `catalogue_merge.dart` merges answers: courses and talks alternate
+between sources, teachers rank by talk count, followed teachers lead.
+
+`lib/providers/dharma_seed/dharma_seed_ui_providers.dart` holds the wiring:
+`catalogueSourcesProvider` (the `CatalogueSource`s in `contentSourcesProvider`,
+in the order their results are merged), `catalogueRevisionProvider`
+(bumps when any source lands records), `catalogueExploreProvider(group)`,
+`catalogueSearchProvider` (merged), `catalogueTeacherProvider` (routed by
+`ownsTeacher`) and `catchUpCatalogues(ref)`. A source that throws is skipped,
+so one failing catalogue does not blank the others. Adding a catalogue is:
+implement the interface, add it to `contentSourcesProvider`; merged Explore and
+search, teacher routing and import need nothing else.
+
+### dhammatalks.org (`dt-`)
+
+`lib/services/dhammatalks/`. Thanissaro Bhikkhu's talks, CC BY-NC 4.0, as a
+built-in catalogue (BRIEF decision 3; research in `content-sources.md`).
+
+- **Snapshot** (`assets/dhammatalks/`, **in git**, 313 KB for 9,311 talks):
+  built by `tools/meditejo/dhammatalks.py` (see BUILD.md), which documents the
+  format. Metadata only: the evening and morning archive year pages, the guided
+  meditations and the collections. `DtCatalogue` (`dhammatalks_catalogue.dart`)
+  reads it (gunzip and JSON in a `compute` isolate) and answers searches in
+  memory over folded title words. A collection item whose file the archive also
+  holds is that archive talk, so a talk has one ID wherever it is listed.
+- **Staleness.** `dtSnapshotMaxAgeDays` (45) is how far the RSS feeds (50 items
+  each) reach back; `dhammatalks_snapshot_test.dart` and a CI step only warn past it, and
+  `release.sh` refuses a snapshot over 14 days old. A rebuild refuses to drop IDs.
+- **Runtime additions** (`dhammatalks_feed.dart`): `catchUp` reads
+  `/rss/evening.xml` and `/rss/morning.xml` (one request each, serially, via
+  `ImportHttp`) at most every 6 h unless forced (pull to refresh), merges the new
+  talks, and keeps every talk the feeds have shown in shared preferences
+  (`dhammatalks_feed_v1`), so a kept talk stays playable. Offline it does
+  nothing. The feed's `pubDate` is when the file was published, so the date is
+  the key's (`261026-…`).
+- **IDs** (`dhammatalks_ids.dart`): `dt-talk-e-<key>` (evening),
+  `dt-talk-m-<key>` (short morning talk), `dt-talk-c-<slug>` (a file only a
+  collection lists), `dt-course-<collection>`, `dt-year-e|m-<year>` (a year of
+  the archive: the group `archiveTalks` opens; the source still resolves it as a pack that
+  cannot be kept, though no screen opens one),
+  `dt-teacher-thanissaro`.
+- **Shape.** The guided meditations are a Practice course; Basics and the other
+  collections are Talks courses (relabelling is one tap). The archive (about 9,300 talks) is browsed on
+  the one teacher page, Thanissaro Bhikkhu's: his latest talks, then an Archive
+  section with an Evening/Morning switch and the years as closed rows that read
+  and build their talks only when opened. Explore has no year strip. Every item carries
+  `SourceAttribution` (dhammatalks.org, Thanissaro Bhikkhu, the item's page,
+  CC BY-NC 4.0 and the licence link); audio streams unmodified from the site.
+- **Import.** `DhammatalksSource.idForLink` maps a talk page, a talk's mp3, a
+  year, the guided index or a collection anchor to the built-in ID;
+  `ImportService.resolve` asks it before treating the link as a web address, so
+  such a link previews and adds the built-in item with no request. A link it
+  does not hold imports as before (a feed stays a feed).
+
+### Hermes Amāra (`ha-`, off)
+
+See DECISIONS.md, 2026-10-27 (slice 8). The adapter exists but
+`hermesAmaraEnabled` (`lib/services/hermes_amara/hermes_amara_flag.dart`) is a
+compile-time flag, off in every build until Burooj has the foundation's
+permission.
 
 ### The library and imports (`lib-`)
 
@@ -348,14 +416,15 @@ clipboard reader and share intake as providers, so tests need no platform.
 
 ### Screens
 
-- **Tabs** (`lib/views/bottom_navigation/`): **Home · Explore · Sounds ·
-  Library · You** (BRIEF decision 18). `MainTab` and `mainTabProvider`
+- **Tabs** (`lib/views/bottom_navigation/`): **Home · Explore · Library ·
+  Settings** since 2026-11-10 (Sounds was a tab from BRIEF decision 18 until
+  then; it is now a sheet, see "The Sounds sheet" below; the rest of this
+  paragraph describes the saved-tab format of the older bars). `MainTab` and
+  `mainTabProvider`
   (`lib/providers/main_tab_provider.dart`) hold the selected tab, so any screen
-  or link can move it; the main screen listens, drops the keyboard, on Explore
-  loads its lists and runs the Dharma Seed catch-up, and on Sounds retries a
-  failed legacy background-sound fetch. Android back from any other tab
-  returns Home, except that on Sounds an open mix panel folds first
-  (`SoundsViewState.collapseMix`, through a `GlobalKey`). **`MainTab`'s order
+  or link can move it; the main screen listens, drops the keyboard, and on
+  Explore loads its lists and runs the Dharma Seed catch-up. Android back from
+  any other tab returns Home. **`MainTab`'s order
   is a saved format** (`last_main_tab_index`, with `main_tab_layout` saying
   which bar wrote it; now 3). `MainTab.restore` maps a saved index through
   the bar that wrote it (`_olderLayouts`): the first bar (Home · Explore ·
@@ -380,6 +449,9 @@ clipboard reader and share intake as providers, so tests need no platform.
   large cards with Add to library on the art, saved teachers and teachers
   (`TeacherStrip`), and the latest sessions (`SessionRowsSliver`): guided
   practice unless Talks is chosen. `LibraryStateCard` explains the first sync.
+  Browse and search always read every built-in catalogue, merged (see "The
+  catalogue seam"; there is no source filter, each item carries its own source
+  attribution). A source's archive lives on its teacher page, not here.
   Pull to refresh runs an incremental sync. Typing (400 ms debounce, not
   ASCII-filtered) replaces that with `SearchResults` (`lib/views/search/`):
   Teachers, Courses, Talks, with the length chips over the talks, and the
@@ -422,9 +494,18 @@ category *is* that category; anything else is a label of their own.
   `CategoryCatalogue`, `lib/services/categories/`). `format` is the layout
   this build reads, `version` and `updated` the edition of the curation (bump
   `version` by hand whenever the mapping changes). It holds:
-  - `categories`: ID, name, a one-line blurb and aliases. Metta, Vipassanā,
-    Jhāna, Samatha, Open awareness, Breath, Body, TMI, Sankalpa, Emptiness.
-    Names are practice terms and live here, not in the `.arb` files.
+  - `categories`: 38 practices in seven groups (heart, concentration,
+    insight, awareness, body, devotion, imagination), listed group by group.
+    Each has an ID, `name` (its own name when one tradition owns it, plain
+    English when shared; never translated), optional `script`, `langs`
+    (language codes the app translates) or `label` (originals or founder, as
+    written), `blurb` by language (`en`, `de`, `es`), `aliases` (the English
+    names, so search still finds them; an alias must not name two
+    categories) and `art` (a ground and a figure, drawn by
+    `ArtSubject.practice`). The practice figures are in
+    `lib/widgets/art/engine/practice_figures_*.dart` (ported from
+    `docs/fork/design/practices/`), registered under their JavaScript
+    names.
   - `curated`: content IDs (`ds-retreat-4496`, `ds-talk-60864`, or another
     source's ID) with their categories and the item's name. A curated entry
     **replaces** the keyword rules for that ID; `"categories": []` says "none of
@@ -437,11 +518,22 @@ category *is* that category; anything else is a label of their own.
     makes the last word a prefix (`jhan*`). Descriptions mention everything in
     passing, so only distinctive words are allowed there (jhana, samatha,
     anapanasati, …).
+- **The model pass** (`assets/categories/dharma_seed_pass.json`, read with
+  the asset): every Dharma Seed retreat with talks in the bundled snapshot,
+  read by Claude Haiku and audited by Claude Sonnet
+  (`tools/meditejo/categories/model_pass.py`; working files and reasons in
+  `tools/meditejo/categories/pass/`). It is stored by category (retreat IDs)
+  plus `none`, the retreats it read as having no practice focus. Regenerate
+  it, do not hand-edit it; correct a reading in `pass/corrections.jsonl`
+  (with a reason), or hand-pick the retreat in `curated`.
 - **Precedence, one rule everywhere:** the user's labels, then the curated
-  mapping, then the keyword rules. A talk with no entry of its own also takes
-  its retreat's categories (`classify(inherited:)`). The guesses are computed
-  on read, never stored, so a new catalogue or a new asset edition changes only
-  the guesses.
+  (hand-picked) mapping, then the model pass, then the keyword rules
+  (`CategorySource.user > curated > model > rule`). A retreat the pass read,
+  even as none, never reaches the rules; the rules cover retreats newer than
+  the snapshot, talk titles, and other sources' titles. A talk with no entry
+  of its own takes its retreat's categories (`classify(inherited:)`) and adds
+  its own title matches. The guesses are computed on read, never stored, so a
+  new catalogue or a new asset edition changes only the guesses.
 - **The user's labels** are `LibraryLabels` in `meditejo_library.sqlite`
   (schema 5), keyed by content ID: a row either *adds* a label (a category ID,
   or the folded text of a label of their own with the text as typed) or
@@ -454,18 +546,25 @@ category *is* that category; anything else is a label of their own.
 - **`CategoryService`** reads and edits: `labelsOfEntries`, `labelsOf`,
   `setCategory`, `addLabel`, and `listing(categoryId)`. A category page is the
   library's entries with that category (exact, including the user's), plus
-  Dharma Seed: the curated retreats and talks, then what the rules find
-  through the on-device FTS index (title terms in `name` / `title`,
-  description terms in `description`; the rules re-check each hit, because the
-  index is looser and knows nothing of curated exclusions). Up to 30 rule
-  courses and 30 rule sessions per group, curated ones always. Retreats with
+  Dharma Seed: the curated retreats and talks, then the guessed retreats (the
+  model pass's, and what the rules find through the on-device FTS index:
+  title terms in `name` / `title`, description terms in `description`; the
+  rules re-check each hit, because the index is looser and knows nothing of
+  curated exclusions), newest first. Up to 50 guessed courses and 30 rule
+  sessions per group, curated ones always. `nonEmpty` says which categories
+  have anything at all (a library entry, a curated or passed retreat, or a
+  rule hit); browsing offers only those. Retreats with
   no stored talks are left out; a session whose retreat is already listed is
   not repeated. Retreats are Practice; sessions follow `recording_type`.
-- **Screens, kept thin** (`lib/views/categories/`): `ExploreCategoryChips` (a
-  chip per category on Explore), `CategoryView` (Practice, then Talks: the
+- **Screens, kept thin** (`lib/views/categories/`): `PracticeTile` (one
+  tile in three sizes: card, tall, compact), `ExplorePractices` (Explore's
+  "Ways to practise": See all, then a carousel of cards per group, only the
+  non-empty ones; the word "category" is not on screen, the sheet is
+  "Labels"), `PracticesView` (See all: the grid of tall tiles),
+  `CategoryView` (Practice, then Talks: the
   library's entries, then catalogue courses, then sessions), `LabelsSheet`
-  (opened from a library entry's menu: category chips, the user's own labels,
-  a field to add one) and `CategoryChips` (course and session pages). The
+  (opened from a library entry's menu: every practice as compact tiles by
+  group, the user's own labels, a field to add one) and `CategoryChips` (course and session pages). The
   Library gets a row of category and label chips under the kind chips
   (`libraryLabelOptionsProvider`; `LibraryViewOptions.label`, not kept between
   visits); `arrangeLibrary` filters on it.
@@ -567,14 +666,28 @@ follows `audioStateProvider.isPlaying`; Dart never holds both.
 **Controller.** `soundscapeProvider` (`SoundscapeController`,
 `lib/providers/soundscape/soundscape_provider.dart`) owns the state and
 reconciles it to the engine, one pass at a time. Persistence: shared
-preferences `soundscape_mix`, `soundscape_presets`, `soundscape_volume`,
+preferences `soundscape_mix`, `presets.v1` (the presets; `soundscape_presets`
+is the list from before #64, read once), `soundscape_volume`,
 `soundscape_session_defaults`.
+
+**Presets (#64).** A `Preset` (`lib/models/presets/preset.dart`) holds up to
+four slots: Sound (a `SoundMix`, stored as `layers`), Bells and Rhythm
+(`PresetCues`, slices of `CueSettings` read and written through it) and
+Length (minutes, or open-ended). It stores only the slots that were set.
+`lib/providers/presets/preset_providers.dart` has the rest: a `PresetContext`
+says which slots a place offers (the Timer all four; under a recording no
+Length; the Sounds sheet Sound only), `applyPreset`, `saveNewPreset` and
+`updatePreset` work through it, `loadedPresetProvider` names the preset
+loaded in a place and whether it was edited, and `pinnedPresetIdsProvider`
+(`presets.pinned`) is the presets pinned to Home. Views are in
+`lib/views/presets/`: the one save sheet, the list Customize opens, and the
+pin and delete actions.
 
 ### API for the player's Customize sheet
 
 The sheet's **Background sound** row should drive the mixer only through these
-(stable) members; the Sounds screen (`SoundsView`: the Sounds tab, or
-`openSoundsPage` over anything else) is the place to build or edit a mix.
+(stable) members; the Sounds sheet (`SoundsView` in `showSoundsSheet`) is
+the place to build or edit a mix.
 
 ```dart
 // What to play, as a string the cue settings can store:
@@ -624,11 +737,22 @@ ends natively (the end screen opens without stopping the player, so the end
 bell's tail survives) ends it directly. Bells belong to the cue scheduler
 (Session cues and Customize); the legacy ambient layer follows Customize
 through `applyCueSettings`. The player's bottom row keeps the sound button,
-which opens the Sounds screen as a page (`openSoundsPage`), beside Customize.
+which opens the Sounds sheet on the session's sound (`openSessionSounds`),
+beside Customize.
 
-**The Sounds screen** (`lib/views/soundscape/sounds_view.dart`, BRIEF
-decisions 16 and 18) is presentation over the controller above; it adds no
-mixer state. Presets are a row of `PresetCard`s and the library a grid of
+**The Sounds sheet** (`lib/views/soundscape/sounds_sheet.dart` opens it,
+`sounds_view.dart` is its body; BRIEF decision 16, a sheet since 2026-11-10)
+is presentation over the controller above; it adds no mixer state. There is
+one sheet and three ways in, all through `sounds_sheet.dart`:
+`showSoundsSheet` (Home's Sounds tile, `meditejo://sounds`,
+`route/sounds`) on the user's own mix, which plays on its own and goes on
+after the sheet closes; `showSoundsSheetFor` (Customize's Sound button) and
+`openSessionSounds` (the player's) on what plays under a session or a kind
+of session, as a draft the mixer auditions (`beginAudition` /
+`endAudition`). A `SoundsSheetSession` says which, and lets the sheet on the
+user's mix turn in place to a kind's default (its "Plays under practice /
+talks" rows) and back. One sheet at a time (`claimChooser`); a session that
+starts or ends under it closes it. Presets are a row of `PresetCard`s and the library a grid of
 `SoundCard`s per shelf, both on `GeneratedArtwork` (`sound_cards.dart`), three
 cards across a phone (`SoundGridMetrics`: cells at most 140 dp wide, which
 grows past 1.3× text so a phone falls back to two columns); a
@@ -641,10 +765,8 @@ the library. An empty mix stays docked. Layers enter and leave through an
 `AnimatedList` diffed against the mix, whoever changed it. **Mute** is
 `setLayerVolume(id, 0)` plus the old level in `layerUnmuteVolumesProvider`
 (in memory), so a mix or preset saved while muted keeps the layer silent.
-Entry points: Home's Sounds tile selects the tab; the player's sound button
-and Customize's Background sound sub-sheet ("Edit your mix in Sounds") push
-it full height with `openSoundsPage`, where back folds an open mix before
-closing.
+Android back folds an open mix panel first, then leaves a kind's default for
+the user's mix, then closes the sheet.
 
 ## Completion, stats and favourites
 
@@ -766,13 +888,13 @@ the You page), whose copy says the numbers are feedback, not a score.
   first item also feeds the Android Up Next widget. `inProgressItemsProvider`
   reads the same items with no limit and no fallback, for the Library's In
   progress; both start an item with `startContinueItem`.
-- **Shortcuts** (`lib/views/home/widgets/shortcuts/`): Timer (Medito's timer), Sounds (the background-sound
-  picker), up to two **sound presets** (`homeSoundPresetsProvider`: the
-  user's own, newest first, then the built-ins) and Add (import). A preset
-  tile starts the timer at once (`startTimerSession`,
-  `lib/views/timer/start_timer.dart`) with the preset as that session's
-  background: `PlaybackRequest.soundscape`, which the player prefers over the
-  scope's Customize choice, so the user's saved choices are untouched.
+- **Shortcuts** (`lib/views/home/widgets/shortcuts/`): the two fixed ways
+  in, Timer and Sounds. Nothing else: a preset is on Home because it is
+  pinned.
+- **Pinned presets** (`pinnedPresetsProvider`): tiles at the top of the
+  Pinned section, four before "See all". A tap is `startPresetSession`
+  (`lib/views/timer/start_timer.dart`): the preset is applied to the Timer,
+  as picking it in the Timer's Customize does, and the timer starts.
 - **Pinned courses** (`pinnedCoursesProvider`, `pinned_course_ids`): at most
   three, each with its progress, opening the course. Pinned from a library
   row's menu or a course page; a fourth is refused with a message. The course
@@ -848,11 +970,63 @@ WAV under `assets/audio/`, an entry in the map, a line in `assets/audio/NOTICE`.
 The ten new bells are synthesised by `tools/meditejo/generate_bells.py`
 (`--check` proves byte-identical regeneration; `tools/meditejo/bells_report.py`
 prints per-file numbers and builds the sampler). A bell the build does not know
-reads as the default. The Customize sheet's three bell rows share `_BellList`:
+reads as the default. The Customize sheet's three bell rows share `BellList` (`lib/views/cues/bell_list.dart`):
 tapping a row selects it and rings it once through `SessionBellPreview` at the
 bell volume; a folded row's play button rings the chosen bell; folding the
 list or closing the sheet stops it. `CueBellCatalogueTest` (Kotlin)
 reads the Dart catalogue, so the native side and the list cannot drift.
+
+**Extend, as if the recording were longer.** `CueSettings.extendMinutes`
+(Extend) and `endSilenceMinutes` (the Ending bell's own silence) make a guided
+session longer; the engines get their sum as one extension. On Android,
+Extend's silence goes into the guide's own pauses where it can: `MediaSpanMap`
+(`lib/models/pauses/media_spans.dart`) is the per-recording store of time
+ranges with a kind (silence today; section markers can add kinds);
+`PauseMapService` reads a recording once through `meditejo/pauses`
+(`PauseMapAnalyzer.kt` decodes with MediaCodec, `SilenceDetector.kt` finds the
+quiet from the file's own floor), keeps the result as JSON, and
+`distributeExtension` (pure Dart) turns it into holds. `PlayerProvider` sends
+the holds in the cue configuration and again when a map arrives mid-session.
+Natively, `ExtendedTimeline` (pure, JVM-tested) lays the holds and the tail
+after the recording into one timeline whose length is recording + silence,
+and maps it to and from media positions; `CueEngine` plays it (its `HOLD`
+phase pauses the voice at a pause, `EXTENSION` is the tail) and answers
+`positionMs`, `durationMs` and `seekTo`. `AudioPlayerService` reports that
+timeline to Dart and samples listening on it, and the media session wraps the
+player in `SessionPlayer` (a `ForwardingPlayer`) so the lock screen, the
+notification and a headset see the same session. iOS has no holds; Dart maps
+its tail onto the same shape (`extendedIosPlayback`). See DECISIONS, "BJS-583".
+**Bells the user makes (BJS-587).** `lib/services/bells/` runs the generator's
+modal synthesis in Dart. `bell_recipes.dart` is **generated** from
+`generate_bells.py` by `tools/meditejo/bell_recipes.py` (`--check` in the Bells
+workflow): each bell's modes (frequency, amplitude, decay, beat, swell-in,
+phase, glide) and strike, the swell bell's two modes being the ones measured
+for identity round 5. `BellSynth.render(BellSpec)` moves a bell's modes with the
+five controls (pitch and ring and shimmer scale every mode, brightness sets the
+upper modes' share of the ring's energy, strike sets the mallet noise's
+low-pass), then scales to the session bell's momentary loudness under a
+-1 dBFS ceiling, as `finish()` in the generator does. It has no clock and no
+platform random, so a spec gives the same bytes every time;
+`renderBellWavInBackground` runs it in an isolate.
+`CustomBellStore` keeps the list (name, starting bell, controls: preferences key
+`bells.custom.v1`) and each WAV in `<app support>/custom_bells/<token>.wav`. A
+bell's id is `custom-bell:<token>`: random, never derived from its name, so a
+rename keeps every cue that rings it. `CueSettings` accepts a well-formed id for
+the three bell cues, whether or not the bell still exists. The WAV is a cache of
+the controls: a missing file is rendered again.
+Native engines play paths, so `NativeCueController.configure` swaps each
+`custom-bell:` id for the file's path on the way over
+(`nativeBellSound`); a bell that was deleted or cannot be made rings as the
+default bell. Android's `CueSoundBank` opens an absolute path as well as a Flutter asset, and
+accepts only a plain file under 1 MiB inside the app's data directory
+(`CueSoundBank.resolveFile`, `CueCustomBellFileTest`); iOS is shelved
+(decision 24) and its bank still reads assets only. Deleting a bell moves
+every stored bell id under `CueSettingsStore.bellReferenceKeyPrefixes` (today the cue
+scopes) to the default bell (`CueSettingsStore.replaceSound`). The editor is
+`BellMakerView`, opened from the last row of `BellList`, which also lists "Your
+bells" with rename and delete. Its five controls are vertical `RangeControl`s in a
+`RangeControlBank` (`lib/widgets/inputs/range_control.dart`), which know nothing of bells. A bell being made is drawn by
+`ArtSubject.customBell` (a `BellFigure` from the live controls, not cached).
 
 `NativeCueController` sends plain configuration over `meditejo/cues`.
 Android's `CueEngine` lives in `AudioPlayerService`, with predecoded SoundPool

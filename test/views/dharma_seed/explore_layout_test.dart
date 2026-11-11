@@ -33,7 +33,6 @@ void main() {
     final order = [
       find.byKey(const ValueKey('explore_search_field')),
       find.byKey(const ValueKey('explore_chip_practice')),
-      find.text('In your library'),
       find.text('Courses'),
       find.text('Teachers'),
       find.text('Latest guided practice'),
@@ -48,11 +47,23 @@ void main() {
         reason: '${order[i - 1]} before ${order[i]}',
       );
     }
-    // The library strip says what each is; the course cards offer Add.
-    expect(find.text('Playlist'), findsOneWidget);
-    expect(find.text('Dharma Seed'), findsOneWidget);
+    // Explore is not tied to the library: there is no section for what it
+    // holds, the user's own playlist is not here, and a catalogue course
+    // that was added keeps its card, ticked, among the ones that offer Add.
+    expect(find.text('In your library'), findsNothing);
+    expect(find.text('Saved teachers'), findsNothing);
+    expect(find.text('Morning sits'), findsNothing);
+    expect(find.text('Dharma Talks Winter'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('add_to_library_ds-retreat-100')),
+      tester
+          .widget<IconButton>(
+            find.byKey(const ValueKey('add_to_library_ds-retreat-200')),
+          )
+          .tooltip,
+      'In library',
+    );
+    expect(
+      find.byKey(const ValueKey('add_to_library_ds-retreat-300')),
       findsOneWidget,
     );
     // With no chip, the latest sessions are guided practice.

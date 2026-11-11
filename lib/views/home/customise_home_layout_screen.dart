@@ -5,7 +5,7 @@ import 'package:medito/constants/enums/home_widget_type.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/home/widget_order_provider.dart';
-import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
+import 'package:medito/widgets/headers/page_back_button.dart';
 import 'package:medito/widgets/medito_icon.dart';
 
 class CustomiseHomeLayoutScreen extends ConsumerStatefulWidget {
@@ -35,10 +35,10 @@ class CustomiseHomeLayoutScreenState
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
+          leading: PageBackButton(onPressed: _pop),
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           elevation: 0,
         ),
-        bottomNavigationBar: SingleBackButtonActionBar(onBackPressed: _pop),
         body: AdaptivePageBody(
           maxWidth: 760,
           child: Column(

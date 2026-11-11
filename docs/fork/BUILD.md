@@ -67,6 +67,27 @@ with this command in its message, and the app would build with no catalogue.
 Tool tests: `python3 -I -m unittest discover -s tools/meditejo -p 'test_catalogue.py'`.
 See ARCHITECTURE.md ("The bundled catalogue") for the rest.
 
+## The dhammatalks.org snapshot (in git)
+
+`assets/dhammatalks/catalogue.json.gz` (313 KB, 9,311 talks) and `manifest.json`
+are **committed**: unlike the Dharma Seed catalogue they are well under 1 MB, so
+there is no fetch step. Titles, dates and file addresses only, never audio. The
+app bridges the snapshot to today with the site's two RSS feeds (50 items each),
+so a snapshot more than 45 days old leaves a gap. The calendar must not turn CI
+red, so past 45 days `dhammatalks_snapshot_test.dart` prints a warning and
+reports itself skipped, and a CI step annotates the run with a warning;
+`release.sh` is the hard rule and refuses a snapshot more than 14 days old (users
+open a release for weeks). Refresh and commit:
+
+```bash
+python3 -I tools/meditejo/dhammatalks.py build      # about 47 requests, 4 s apart (~4 min); refuses to drop IDs
+python3 -I tools/meditejo/dhammatalks.py check --max-age-days 14
+python3 -I -m unittest discover -s tools/meditejo -p 'test_dhammatalks.py'
+```
+
+The builder reads `robots.txt` first, refuses what it disallows, makes serial
+requests at least 3 s apart and identifies itself in its User-Agent.
+
 ## Publishing a release
 
 `tools/meditejo/release.sh <version>` wraps this route (`build_apk.sh --flavor prod`) and publishes the signed APK as a GitHub release for the in-app updater; see [UPDATES.md](UPDATES.md). The build on GitHub fetches the catalogue snapshot that `catalogue.json` pins; `build_apk.sh` and `release.sh` check it is downloadable first.

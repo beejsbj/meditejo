@@ -7,12 +7,25 @@ import 'package:medito/widgets/cards/pressable_card.dart';
 const kHomeCardRadius = kCardRadius;
 const kHomeTileRadius = kCardRadius;
 const kHomeArtRadius = kCardArtRadius;
-const kHomeGutter = kCardGutter;
-const kHomeGap = kCardGap;
-const kHomeSectionGap = 28.0;
 
-/// The logo mark's size at the top of Home.
-const kHomeMarkSize = 168.0;
+/// Home is roomier than the lists it borrows its cards from: wider gutters,
+/// and more air between cards, tiles and sections.
+const kHomeGutter = 20.0;
+const kHomeGap = 14.0;
+
+/// Between two cards of one section (Continue, Pinned).
+const kHomeRowGap = 10.0;
+const kHomeSectionGap = 40.0;
+
+/// The mark's block at the top of Home, as shares of the screen's height:
+/// up to [kHomeMarkMaxShare] when little is below it, and never under
+/// [kHomeMarkMinShare]. Within it the mark is a square, as large as fits.
+const kHomeMarkMaxShare = 0.46;
+const kHomeMarkMinShare = 0.28;
+
+/// Above the mark, and the largest the mark is drawn (a tablet).
+const kHomeMarkTop = 12.0;
+const kHomeMarkMaxSize = 440.0;
 
 /// A section's heading on Home, for screen readers only: nothing is drawn.
 /// Sections are told apart by spacing and grouping alone (Waking Up's tiles
