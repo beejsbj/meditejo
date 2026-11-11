@@ -1508,3 +1508,24 @@ Burooj's notes on the staging build (#139). All reversible.
 - **The noise editor has no shape chips** ("Even / Soft / Deep / Airy / Custom" are gone; he: the words make no sense, colour is the control). The ten bands stay, folded under their own heading, now called "Equaliser" (was "Bands"), always folded when the editor opens. Stored params are untouched: a mix saved with a shape or a hand-drawn curve plays and round-trips as it was, and a colour change keeps its bands. Cost: "Even" was the one-tap reset of the bands, and "Custom" brought a hand-drawn curve back; neither exists now.
 - **A toast from the mix floats above the docked bar** ("Mix cleared · Undo", "Preset saved"), on the Sounds tab and in the drawer; it covered the bar.
 - **The bell maker's Name field** has its label above it like "Start from", the count beside the label, and the app's filled field under them; the floating label and the counter under the field read as a broken slab.
+
+## 2026-11-10 (staging: Customize is one sheet with a dial; the Timer opens in it)
+
+Burooj's notes on the staging build: a section opened at the top of Customize could not be folded once scrolled away from; Length held one thing; Timer and Stopwatch should not be tabs; the Timer was a page where everything else is a sheet; Extend's caption said too much. All reversible.
+
+- **One sheet, everywhere** (`showCustomizeModal`): before a recording, during a session, from Settings, and for the Timer. Home's Timer tile, `meditejo://meditejo/route/timer`, the old timer track id and a timer row in the calendar open it in its timer form (`showTimerSheet`); Start closes it and opens the same timer player. **The full-screen Timer page (`TimerView`) is gone.** Supersedes 2026-10-19's "the timer setup embeds the same widget".
+- **The dial is on top, outside any tile.** A timer's length, or for a recording Extend, with the sum under it ("45 min + 5 min = 50 min", the ending bell's silence included) and "Finishes at". The dial is a larger wheel (five rows on a tall screen for the Timer, three for Extend); with large text it is an ordinary wheel. A timer under way shows its length and cannot set it.
+- **∞ replaces Stopwatch.** ∞ is the length wheel's first place, above 1 min; a small ∞ button at the dial's top right turns the wheel there and back to the length it left. Underneath it is still `TimerMode.stopwatch` and the `timer-stopwatch-0` file id, so history and a running session read as before. The word "Stopwatch" is out of en/de/es: the Home tile says "Open-ended" ("Ohne Ende", "Sin límite") and the session is titled "Timer".
+  - **∞ is now kept across launches** (`timer_open_ended`), like the length: it is a place on the wheel, and a wheel that forgot where it was left would be odd. This reverses "the screen always opens on the countdown".
+  - `route/stopwatch` is accepted as a link and opens the sheet on ∞. No such link existed before; it is there so the open-ended timer can be linked to.
+  - A running open-ended timer's sheet no longer shows "5 h" and a "Finishes at" five hours away.
+- **Four tiles under the dial: Starting bell · Interval bell · Ending bell · Rhythm**, each with its value and a second line for what belongs to it (countdown, the bell, silence, the ramp). With large text they stand in one column. Supersedes 2026-11-03's four slots (Sound · Bells / Rhythm · Length) and the in-place sections.
+- **A tile opens a card that replaces the sheet's content**, with Back at its top left and the tile's name; Back (and system back) returns to the dial and the tiles at the same scroll position. The dial and tiles stay laid out underneath, so the sheet is never shorter for a card. Nothing expands in place any more, which is what could not be folded.
+  - Each bell's card: what is its own (Countdown; how often; the silence before the ending bell), the bell list with "Make a bell" last, then **Bell volume, the one shared control, at the foot of each bell card**. It marks no tile as changed.
+  - The folded bell rows' play buttons are gone: a tap in the list rings the bell.
+- **Sound is the header's button** (art or the Sounds symbol, and the sound's name), in the same place on every form of the sheet; it opens the mixer drawer as the Sound tile did.
+- **"Use these only for this course" sits under the tiles** (it was above them), so the dial stays on top.
+- **Short captions.** Extend: "Adds silence to the session." The ending bell's silence: "Silence before the ending bell." (its wheel's only title). This revises this morning's longer captions.
+- Kept: per-kind defaults, per-course overrides, "Show before each session" and Start in the footer, the wheel gutters and the Undo bar (#73, #91; Undo also puts ∞ back), reduced motion (a card swaps in one step).
+- **Not localised here:** the wheel labels and the scope sentences are still English (#74). The new tile names, ∞'s word and the two captions are in en/de/es.
+
