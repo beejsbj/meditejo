@@ -11,6 +11,7 @@ import 'package:medito/providers/home/home_presets_provider.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/providers/timer/timer_settings_provider.dart';
 import 'package:medito/views/home/home_styles.dart';
+import 'package:medito/views/home/widgets/home_mark_layout.dart';
 import 'package:medito/views/timer/start_timer.dart';
 import 'package:medito/views/timer/timer_format.dart';
 import 'package:medito/views/timer/timer_sheet.dart';
@@ -95,12 +96,22 @@ class ShortcutsSection extends ConsumerWidget {
                 spacing: kHomeGap,
                 runSpacing: kHomeGap,
                 children: [
-                  for (final tile in tiles)
-                    SizedBox(
-                      width: width,
-                      height: height < 116 ? 116 : height,
-                      child: tile,
-                    ),
+                  for (final (i, tile) in tiles.indexed)
+                    // The first row is what Home's mark gives way to.
+                    if (i == 0)
+                      HomeFoldMarker(
+                        child: SizedBox(
+                          width: width,
+                          height: height < 116 ? 116 : height,
+                          child: tile,
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        width: width,
+                        height: height < 116 ? 116 : height,
+                        child: tile,
+                      ),
                 ],
               );
             },

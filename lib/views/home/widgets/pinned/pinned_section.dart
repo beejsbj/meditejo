@@ -38,7 +38,7 @@ class PinnedSection extends ConsumerWidget {
           Padding(
             padding: EdgeInsets.fromLTRB(
               kHomeGutter,
-              i == 0 ? 0 : kHomeGap / 2,
+              i == 0 ? 0 : kHomeRowGap,
               kHomeGutter,
               0,
             ),

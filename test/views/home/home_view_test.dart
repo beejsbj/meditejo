@@ -86,18 +86,23 @@ void main() {
           .tooltip,
       'Start',
     );
-    // The same button on the first card and the rest, beside the menu.
+    // The same button on the first card and the rest: alone at the right,
+    // centred on the card, with no ⋮ beside it.
     for (final id in ['t1', 't2']) {
+      final card = find.byKey(ValueKey('continue_$id'));
       final play = tester.getRect(find.byKey(ValueKey('continue_play_$id')));
-      final menu = tester.getRect(
+      final box = tester.getRect(card);
+      expect(
         find.descendant(
-          of: find.byKey(ValueKey('continue_$id')),
+          of: card,
           matching: find.byIcon(Icons.more_vert_rounded),
         ),
+        findsNothing,
+        reason: id,
       );
       expect(play.size, const Size(48, 48), reason: id);
-      expect(play.center.dy, moreOrLessEquals(menu.center.dy), reason: id);
-      expect(play.right, lessThanOrEqualTo(menu.left), reason: id);
+      expect(play.center.dy, moreOrLessEquals(box.center.dy), reason: id);
+      expect(box.right - play.right, 16, reason: id);
     }
     expect(find.textContaining('Consistency'), findsNothing);
     expect(find.textContaining('streak'), findsNothing);

@@ -66,8 +66,7 @@ class PinnedListView extends ConsumerWidget {
                   32,
                 ),
                 itemCount: ids.length,
-                separatorBuilder: (_, _) =>
-                    const SizedBox(height: kHomeGap / 2),
+                separatorBuilder: (_, _) => const SizedBox(height: kHomeRowGap),
                 itemBuilder: (_, i) => PinnedTile(id: ids[i]),
               ),
       ),

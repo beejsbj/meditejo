@@ -681,8 +681,6 @@
   "dharmaSeedSyncFailed": "Sincronización en pausa ({error}). Toca para reintentar.",
   "exploreKindPractice": "Práctica",
   "exploreKindTalks": "Charlas",
-  "exploreSavedCourses": "Cursos guardados",
-  "exploreSavedTeachers": "Docentes guardados",
   "exploreCourses": "Cursos",
   "exploreTeachers": "Docentes",
   "exploreLatestPractice": "Última práctica guiada",
@@ -1160,6 +1158,7 @@
   "@homeCardMenu": {
     "description": "Tooltip and screen-reader label of the more-options button on a Home card"
   },
+  "homeCardActionsHint": "ver más opciones",
   "settingsSessionHistory": "Historial de sesiones",
   "updateAutoCheck": "Buscar actualizaciones automáticamente",
   "updateAutoCheckDescription": "Consulta GitHub una vez al día al abrir Meditejo.",

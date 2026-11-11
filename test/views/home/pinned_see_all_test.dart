@@ -143,7 +143,9 @@ void main() {
     expect(find.text('Talk t1'), findsOneWidget);
     expect(find.text('Talk · Ajahn Sucitto · 42 min'), findsOneWidget);
 
+    // Under a mark this large, See all starts below the fold.
     await tester.ensureVisible(_seeAll);
+    await tester.pump();
     expect(find.text('See all 5'), findsOneWidget);
     await tester.tap(_seeAll);
     await DharmaSeedTestApp.settle(tester);

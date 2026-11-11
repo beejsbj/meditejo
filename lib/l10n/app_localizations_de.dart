@@ -1254,12 +1254,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exploreKindTalks => 'Vorträge';
 
   @override
-  String get exploreSavedCourses => 'Gespeicherte Kurse';
-
-  @override
-  String get exploreSavedTeachers => 'Gespeicherte Lehrende';
-
-  @override
   String get exploreCourses => 'Kurse';
 
   @override
@@ -2878,6 +2872,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String homeCardMenu(String title) {
     return 'Weitere Optionen für $title';
   }
+
+  @override
+  String get homeCardActionsHint => 'weitere Optionen anzeigen';
 
   @override
   String get settingsSessionHistory => 'Verlauf der Sitzungen';
