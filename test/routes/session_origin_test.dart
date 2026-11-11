@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/providers/library/library_providers.dart';
+import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/routes/routes.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/memory_session_store.dart';
 
@@ -20,11 +22,16 @@ void main() {
     String? courseId,
     String trackId = 'x-1',
   }) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
     late BuildContext context;
     late WidgetRef ref;
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [libraryStoreProvider.overrideWithValue(store)],
+        overrides: [
+          libraryStoreProvider.overrideWithValue(store),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
         child: MaterialApp(
           home: Consumer(
             builder: (c, r, _) {
@@ -36,13 +43,16 @@ void main() {
         ),
       ),
     );
-    await handleNavigation(
+    // The legacy timer opens the Customize sheet and waits for it to close,
+    // so the navigation's future is not awaited here.
+    final opened = handleNavigation(
       TypeConstants.track,
       [trackId, '/tracks/$trackId'],
       context,
       ref: ref,
       courseId: courseId,
     );
+    if (trackId != kLegacyTimerTrackId) await opened;
     await tester.pump();
   }
 
