@@ -22,7 +22,7 @@ import 'package:medito/services/audio/session_bell_preview.dart';
 import 'package:medito/services/bells/custom_bell.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/views/cues/bell_list.dart';
-import 'package:medito/views/soundscape/sound_drawer.dart';
+import 'package:medito/views/soundscape/sounds_sheet.dart';
 import 'package:medito/widgets/art/art_cover.dart';
 import 'package:medito/widgets/inputs/wheel_picker.dart';
 
@@ -257,7 +257,7 @@ enum _Card { startBell, intervalBell, endBell, rhythm }
 /// each showing its value (filled when it differs from the defaults,
 /// outlined when it does not); tapping one swaps the sheet's content for
 /// that setting's card, with a back arrow. Sound is the header's button,
-/// which opens the mixer drawer. Edits are saved as the defaults for the
+/// which opens the Sounds sheet. Edits are saved as the defaults for the
 /// scope's kind (or as a per-course override) and picked up by the player
 /// through the provider.
 class CustomizeSheet extends ConsumerStatefulWidget {
@@ -1390,19 +1390,19 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
     );
   }
 
-  /// Opens the mixer drawer on what plays under these sessions; what is
+  /// Opens the Sounds sheet on what plays under these sessions; what is
   /// left in it is kept: for the course when it has its own settings,
-  /// otherwise for the kind (the Sounds tab's "Plays under" line shows the
+  /// otherwise for the kind (the Sounds sheet's "Plays under" line shows the
   /// same). During a session it plays at once.
   Future<void> _chooseSound() async {
     _dismissUndo();
     _silence();
-    // Taken now: the sheet may be gone by the time the drawer closes.
+    // Taken now: the sheet may be gone by the time the Sounds sheet closes.
     final container = ProviderScope.containerOf(context);
     final scope = _scope;
     final courseOverride = _courseOverride;
     final inSession = widget.isActive;
-    final choice = await showSoundDrawer(
+    final choice = await showSoundsSheetFor(
       context,
       kind: _soundscapeKind,
       current: _soundscapeChoice(
@@ -1543,7 +1543,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
 
   /// The header's Sound button: what plays under these sessions, by name,
   /// with the chosen sound's art as on the Sounds screen. Filled when it
-  /// differs from the defaults. It opens the mixer drawer (#66).
+  /// differs from the defaults. It opens the Sounds sheet (#66).
   Widget _soundButton(CueSettings s, CueSettings reference) {
     final mixer = ref.watch(soundscapeProvider);
     final subject = soundChoiceArt(mixer, _soundscapeChoice(s, mixer));

@@ -9,7 +9,7 @@ import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/widgets/art/art_cover.dart';
 import 'package:medito/widgets/art/art_subject.dart';
 
-/// Corner radius of the Sounds tab's cards and of the art inside its panel.
+/// Corner radius of the Sounds sheet's cards and of the art inside its panel.
 const kSoundCardRadius = MeditejoShapes.largeIncreased;
 const kPresetCardRadius = MeditejoShapes.extraLarge;
 

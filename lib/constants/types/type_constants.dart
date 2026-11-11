@@ -30,8 +30,11 @@ class TypeConstants {
   static const String tabExplore = 'explore';
   static const String tabSearch = 'search';
   static const String tabLibrary = 'library';
-  static const String tabSounds = 'sounds';
   static const String tabSettings = 'settings';
+
+  /// `meditejo://sounds` opens the Sounds sheet over Home. Sounds was a tab
+  /// before it became a sheet.
+  static const String sounds = 'sounds';
 
   /// `meditejo://you` opens the You page (stats and history) over the tabs.
   /// You was the fifth tab before Settings took its place.

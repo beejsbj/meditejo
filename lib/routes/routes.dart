@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
@@ -12,6 +14,7 @@ import 'package:medito/views/home/widgets/pinned/pinned_list_view.dart';
 import 'package:medito/views/home/customise_home_layout_screen.dart';
 import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/settings/settings_screen.dart';
+import 'package:medito/views/soundscape/sounds_sheet.dart';
 import 'package:medito/views/stats/stats_screen.dart';
 import 'package:medito/views/teacher/teacher_view.dart';
 import 'package:medito/views/timer/timer_sheet.dart';
@@ -26,16 +29,21 @@ extension SanitisePath on String {
 final navigatorKey = GlobalKey<NavigatorState>();
 
 /// The tab a link such as `meditejo://library` opens; `search` is Explore with
-/// the cursor in its field. Null for anything else, `you` included: You is a
-/// page, not a tab.
+/// the cursor in its field. Null for anything else: You is a page, and Sounds
+/// a sheet ([opensSoundsSheet]), not tabs.
 MainTab? tabForLink(String type) => switch (type) {
   TypeConstants.tabHome => MainTab.home,
   TypeConstants.tabExplore || TypeConstants.tabSearch => MainTab.explore,
-  TypeConstants.tabSounds => MainTab.sounds,
   TypeConstants.tabLibrary => MainTab.library,
   TypeConstants.tabSettings => MainTab.settings,
   _ => null,
 };
+
+/// Whether a link opens the Sounds sheet: `meditejo://sounds`, which chose
+/// the Sounds tab while there was one (until 2026-11-10), and `route` links that name it.
+bool opensSoundsSheet(String type, List<String> values) =>
+    type == TypeConstants.sounds ||
+    (type == TypeConstants.route && values.contains(TypeConstants.sounds));
 
 /// The route name of course [id]'s page.
 String coursePageRouteName(String id) => '/packs/$id';
@@ -78,6 +86,28 @@ Future<void> handleNavigation(
       }
     }
     onNavigationComplete?.call();
+    return;
+  }
+  if (opensSoundsSheet(type, values)) {
+    // Sounds is a sheet over Home, whatever was open.
+    final tabs = ref != null
+        ? ref.read(mainTabProvider.notifier)
+        : ProviderScope.containerOf(
+            context,
+            listen: false,
+          ).read(mainTabProvider.notifier);
+    navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    tabs.select(MainTab.home);
+    onNavigationComplete?.call();
+    final host = navigatorKey.currentContext ?? context;
+    // On the next frame, and not awaited: a Sounds sheet this link has just
+    // closed has let go of the mixer by then, and the link is handled once
+    // the sheet is on its way up.
+    WidgetsBinding.instance
+      ..addPostFrameCallback((_) {
+        if (host.mounted) unawaited(showSoundsSheet(host));
+      })
+      ..scheduleFrame();
     return;
   }
   Widget? page;

@@ -70,6 +70,8 @@ final noiseControls = SoundControlSpec(
         final params = NoiseParams.fromJson(p);
         return params.copyWith(bands: [...params.bands]..[i] = v).toJson();
       },
+      reset: (p) =>
+          NoiseParams.fromJson(p).copyWith(bands: NoiseParams.flat).toJson(),
     ),
   ],
 );

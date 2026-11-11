@@ -215,7 +215,7 @@ class SoundPreset {
 ///   Sounds screen;
 /// * `preset:<id>`: a preset;
 /// * `sound:<id>`: one sound on its own;
-/// * `layers:<json>`: a mix of its own, chosen in the mixer drawer (#66):
+/// * `layers:<json>`: a mix of its own, chosen in the Sounds sheet (#66):
 ///   the layers as [SoundMix.toJson] writes them;
 /// * `none`: silence.
 @immutable
@@ -232,7 +232,7 @@ class SoundscapeSelection {
     : this._(SoundscapeSelectionKind.sound, id);
 
   /// Layers chosen together, kept as they are: a later change to the
-  /// Sounds tab's mix or to a preset does not change them.
+  /// user's own mix or to a preset does not change them.
   const SoundscapeSelection.layers(SoundMix mix)
     : this._(SoundscapeSelectionKind.layers, '', mix);
 

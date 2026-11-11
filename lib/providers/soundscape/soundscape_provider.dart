@@ -113,7 +113,7 @@ class SoundscapeState {
   SoundscapeSessionDefault sessionDefault(SoundscapeSessionKind kind) =>
       sessionDefaults[kind] ?? SoundscapeSessionDefault.initial(kind);
 
-  /// What choosing [mix] in the mixer drawer keeps: nothing, a preset it
+  /// What choosing [mix] in the Sounds sheet keeps: nothing, a preset it
   /// still matches, or the layers themselves.
   SoundscapeSelection selectionFor(SoundMix mix) {
     if (mix.isEmpty) return SoundscapeSelection.none;
@@ -139,8 +139,8 @@ class SoundscapeState {
             !library.contains(selection.id) &&
             !isSynthId(selection.id) =>
       SoundscapeSelection.currentMix,
-    // A mix chosen in the drawer is its own: with none of its sounds left
-    // it is silence, never the Sounds tab's mix, which it never named.
+    // A mix chosen for sessions is its own: with none of its sounds left
+    // it is silence, never the user's own mix, which it never named.
     SoundscapeSelectionKind.layers
         when library != null &&
             !(selection.mix ?? SoundMix.empty).layers.any(
@@ -231,7 +231,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   /// Paused for another app's transient audio (a call); resumed with it.
   bool _pausedByFocus = false;
 
-  /// A sound chooser (the mixer drawer) is open: see [beginAudition].
+  /// A sound chooser (the Sounds sheet, on a session's sound) is open: see [beginAudition].
   _Audition? _audition;
 
   /// How long Sounds may sit paused on their own (after a manual pause, an
@@ -391,7 +391,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   }
 
   /// Whose level the mixer plays at: while a chooser is open, the kind it
-  /// chooses for (a talks drawer opened during a sit is heard, and sets its
+  /// chooses for (a talks chooser opened during a sit is heard, and sets its
   /// level, as talks); otherwise the running session's kind; null on its
   /// own.
   SoundscapeSessionKind? get _levelKind => _audition?.kind ?? state.sessionKind;
@@ -603,10 +603,10 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       _resolve(selection);
 
   // ---------------------------------------------------------------------------
-  // The mixer drawer (#66): choosing sounds is editing a mix, heard as it is
-  // made. The draft lives in [state] while the drawer is open, so the same
+  // The Sounds sheet on a session's sound (#66): choosing sounds is editing a mix, heard as it is
+  // made. The draft lives in [state] while the chooser is open, so the same
   // controls (cards, presets, layers) edit it, but it is never written as
-  // the Sounds tab's mix.
+  // the user's own mix.
 
   /// Whether a chooser is open.
   bool get auditioning => _audition != null;
@@ -625,7 +625,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
 
   /// Whether the open chooser still holds the mixer: false once a session
   /// has started or ended under it, when what plays is no longer its draft
-  /// and nothing in the drawer should be kept.
+  /// and nothing in the sheet should be kept.
   bool get auditionIntact =>
       _audition != null && _audition!.token == _sessionToken;
 
@@ -658,7 +658,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   }
 
   /// The chooser closed. What was there before it opened comes back (the
-  /// Sounds tab's mix, playing or paused as it was; a session's sound),
+  /// user's own mix, playing or paused as it was; a session's sound),
   /// unless [keep]: inside a running session, the draft just chosen for it
   /// keeps playing. A session that started or ended meanwhile owns the
   /// mixer now, and nothing is put back over it.
@@ -681,8 +681,8 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     }
     final before = audition.before;
     // Back in the same running session: its level is what is stored for
-    // its kind now (the drawer's slider may have moved it), not the one it
-    // had when the drawer opened. On its own, the Sounds volume.
+    // its kind now (the sheet's slider may have moved it), not the one it
+    // had when the chooser opened. On its own, the Sounds volume.
     final sessionKind = before.sessionKind;
     final volume = sessionKind != null
         ? state.sessionDefault(sessionKind).volume
@@ -837,7 +837,7 @@ class SoundscapeController extends Notifier<SoundscapeState> {
       };
 
   void _editMix(SoundMix mix, {Set<String>? failed, bool start = false}) {
-    // A chooser's draft is not the Sounds tab's mix.
+    // A chooser's draft is not the user's own mix.
     if (_audition == null) _store.writeMix(mix);
     if (mix.isEmpty && state.active) {
       _update(state.copyWith(mix: mix, failed: failed));

@@ -105,7 +105,6 @@ void main() {
   const nav = [
     MeditoNavItem(icon: Symbols.home_rounded, label: 'Home'),
     MeditoNavItem(icon: Symbols.search_rounded, label: 'Explore'),
-    MeditoNavItem(icon: Symbols.graphic_eq_rounded, label: 'Sounds'),
     MeditoNavItem(icon: Symbols.library_books_rounded, label: 'Library'),
     MeditoNavItem(icon: Symbols.settings_rounded, label: 'Settings'),
   ];

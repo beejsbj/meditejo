@@ -62,7 +62,7 @@ void main() {
     );
   });
 
-  testWidgets('a talk keeps the sound button; it opens the mixer drawer for '
+  testWidgets('a talk keeps the sound button; it opens the Sounds sheet for '
       'the session and keeps what is left in it', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
@@ -113,9 +113,12 @@ void main() {
     expect(find.byType(SoundsView), findsOneWidget);
     expect(find.byType(BottomSheet), findsOneWidget);
     expect(
-      tester.widget<SoundsView>(find.byType(SoundsView)).chooser?.kind,
+      tester.widget<SoundsView>(find.byType(SoundsView)).session?.kind,
       SoundscapeSessionKind.talks,
     );
+    // The session's own sheet: no way from it to your own mix.
+    expect(find.byKey(const ValueKey('sounds_back')), findsNothing);
+    expect(find.text('Your mix'), findsNothing);
     expect(find.text('Plays under talks'), findsOneWidget);
 
     // Choosing a preset auditions it and keeps it for talks.
@@ -168,6 +171,92 @@ void main() {
     expect(talks.selection, const SoundscapeSelection.preset('starter-night'));
     // Nothing is left playing: no session is running in this test.
     expect(container.read(soundscapeProvider).playing, isFalse);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('opened in a running session, the sheet starts from what the '
+      'session plays and changes it at once', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    tester.view
+      ..physicalSize = const Size(412, 915)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final engine = FakeSoundscapeEngine();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        audioStateProvider.overrideWith(AudioStateNotifier.new),
+        cueScopeForRequestProvider(
+          _talk,
+        ).overrideWith((ref) async => const CueScope(CueKind.talks)),
+        ...soundscapeTestOverrides(engine),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            bottomNavigationBar: PlayerActionBar(
+              request: _talk,
+              isBackgroundSoundSelected: true,
+              onSpeedChanged: (_) {},
+              onClosePressed: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    Future<void> pumps([int n = 20]) async {
+      for (var i = 0; i < n; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
+
+    // A talk is running, with the Shore preset under it.
+    final mixer = container.read(soundscapeProvider.notifier);
+    mixer.setSessionChoice(
+      SoundscapeSessionKind.talks,
+      const SoundscapeSelection.preset('starter-shore'),
+    );
+    await mixer.startSession(SoundscapeSessionKind.talks);
+    await pumps();
+    final shore = container.read(soundscapeProvider).mix;
+    expect(container.read(soundscapeProvider).owner, SoundscapeOwner.session);
+    expect(engine.playing.keys, shore.layers.map((l) => l.soundId));
+
+    await tester.tap(find.byType(BgSoundWidget));
+    await pumps();
+    // The session's sound, still playing under it: nothing was silenced.
+    expect(find.text('Plays under talks'), findsOneWidget);
+    expect(container.read(soundscapeProvider).mix, shore);
+    expect(engine.playing.keys, shore.layers.map((l) => l.soundId));
+
+    // A preset tapped in the sheet is what the session plays, at once.
+    await tester.tap(find.byKey(const ValueKey('preset_starter-rain-forest')));
+    await pumps();
+    final forest = container.read(soundscapeProvider).mix;
+    expect(forest, isNot(shore));
+    expect(container.read(soundscapeProvider).owner, SoundscapeOwner.session);
+    expect(engine.playing.keys, forest.layers.map((l) => l.soundId));
+
+    // Closed: it stays the session's sound, and the choice for talks.
+    await tester.tap(find.byKey(const ValueKey('sounds_chooser_done')));
+    await pumps();
+    expect(find.byType(SoundsView), findsNothing);
+    final state = container.read(soundscapeProvider);
+    expect(state.owner, SoundscapeOwner.session);
+    expect(state.sessionKind, SoundscapeSessionKind.talks);
+    expect(state.mix, forest);
+    expect(engine.playing.keys, forest.layers.map((l) => l.soundId));
+    expect(
+      state.sessionDefault(SoundscapeSessionKind.talks).selection,
+      const SoundscapeSelection.preset('starter-rain-forest'),
+    );
     await tester.pumpWidget(const SizedBox());
   });
 

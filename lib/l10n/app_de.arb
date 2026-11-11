@@ -1040,6 +1040,8 @@
   "pinnedUnavailable": "Nicht verfügbar",
   "pinnedEmptyHint": "Hefte in Entdecken oder deiner Bibliothek einen Kurs oder eine Sitzung an, um sie auf Start zu behalten.",
   "statsFeedbackNote": "Diese Zahlen sind Rückmeldung, keine Bewertung.",
+  "homeSoundsPlaying": "Klänge, es läuft {name}",
+  "noiseReset": "Zurücksetzen",
   "soundsYourMix": "Dein Mix",
   "soundsEmptyMix": "Tippe unten auf ein Geräusch, um einen Mix zu beginnen.",
   "soundsLayerCount": "{count, plural, =1{1 Geräusch} other{{count} Geräusche}}",

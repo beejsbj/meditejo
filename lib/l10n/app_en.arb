@@ -2060,6 +2060,15 @@
     "description": "A pinned course or session whose source no longer has it: its title (or the line under its saved title)"
   },
   "statsFeedbackNote": "These numbers are feedback, not a score.",
+  "homeSoundsPlaying": "Sounds, playing {name}",
+  "@homeSoundsPlaying": {
+    "description": "Screen reader label of Home's Sounds tile while sounds play on their own; name is the preset or the sounds of the mix",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "soundsYourMix": "Your mix",
   "@soundsYourMix": {
     "description": "Sounds screen: soundsYourMix"
@@ -2179,11 +2188,11 @@
   },
   "soundsPlaysUnderPractice": "Plays under practice",
   "@soundsPlaysUnderPractice": {
-    "description": "Sounds tab line and mixer drawer: what plays under practice sessions; its value (Off, a preset, sounds) follows"
+    "description": "Sounds sheet: what plays under practice sessions; its value (Off, a preset, sounds) follows"
   },
   "soundsPlaysUnderTalks": "Plays under talks",
   "@soundsPlaysUnderTalks": {
-    "description": "Sounds tab line and mixer drawer: what plays under talks; its value follows"
+    "description": "Sounds sheet: what plays under talks; its value follows"
   },
   "soundsDone": "Done",
   "@soundsDone": {
@@ -2618,7 +2627,7 @@
   },
   "soundsMixEmptyTitle": "Nothing in your mix yet",
   "@soundsMixEmptyTitle": {
-    "description": "The Sounds tab's mix panel when the mix has no layers"
+    "description": "The Sounds sheet's mix panel when the mix has no layers"
   },
   "soundsMixEmptyHint": "Tap a sound or a preset to start a mix.",
   "@soundsMixEmptyHint": {
@@ -2644,7 +2653,7 @@
   },
   "soundsShowMix": "Show your mix",
   "@soundsShowMix": {
-    "description": "Opens the mix panel docked at the bottom of the Sounds tab"
+    "description": "Opens the mix panel docked at the bottom of the Sounds sheet"
   },
   "soundsHideMix": "Hide your mix",
   "@soundsHideMix": {
@@ -3735,9 +3744,9 @@
   "@soundsUnderSessionsHint": {
     "description": "Sounds screen: soundsUnderSessionsHint"
   },
-  "noiseReset": "Reset bands",
+  "noiseReset": "Reset",
   "@noiseReset": {
-    "description": "Sounds screen, generated layers: noiseReset"
+    "description": "Noise editor, inside the opened Equaliser: sets the ten bands back to flat. Shown only when they are not flat"
   },
   "soundsEditMix": "Edit your mix in Sounds",
   "@soundsEditMix": {

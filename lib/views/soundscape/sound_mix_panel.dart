@@ -13,7 +13,7 @@ import 'package:medito/widgets/art/art_subject.dart';
 
 import 'sound_control_spec.dart';
 import 'sound_controls.dart';
-import 'sound_drawer.dart';
+import 'sounds_sheet.dart';
 import 'sound_labels.dart';
 import 'synth_editors.dart';
 
@@ -73,8 +73,8 @@ String mixSummary(
       : titles.join(', ');
 }
 
-/// Play/pause the whole mix, what it is, Stop, and (in the dock) the button
-/// that opens or folds the panel.
+/// Play/pause the whole mix, whose it is and what it is, Stop or Clear, and
+/// (in the dock) the button that opens or folds the panel.
 class SoundsMixHeader extends ConsumerWidget {
   const SoundsMixHeader({
     super.key,
@@ -88,8 +88,9 @@ class SoundsMixHeader extends ConsumerWidget {
   /// Opens or folds the dock; null where the panel is always open.
   final VoidCallback? onToggle;
 
-  /// In the drawer, the mix is what plays under [SoundChooser.kind]'s
-  /// sessions, and says so.
+  /// The mix is what plays under [SoundChooser.kind]'s sessions, and says
+  /// so: the one line that tells the sheet on a session from the sheet on
+  /// your own mix.
   final SoundChooser? chooser;
 
   @override
@@ -170,7 +171,7 @@ class SoundsMixHeader extends ConsumerWidget {
                     l10n.soundsPlaysUnderPractice,
                   SoundscapeSessionKind.talks => l10n.soundsPlaysUnderTalks,
                 },
-                // The drawer's longer title wraps rather than cut ("Läuft
+                // A session's longer title wraps rather than cut ("Läuft
                 // bei Übungen" at 360 dp with large text).
                 maxLines: chooser == null ? 1 : 2,
                 overflow: TextOverflow.ellipsis,
@@ -195,7 +196,10 @@ class SoundsMixHeader extends ConsumerWidget {
             ],
           ),
         ),
-        if (state.active)
+        // On your own mix, while the panel is folded. Open, Clear takes its
+        // place (and the art still pauses). For a session, Clear is the way
+        // to silence: an empty mix is the choice Off.
+        if (state.active && chooser == null && !expanded)
           IconButton(
             key: const ValueKey('sounds_stop'),
             tooltip: l10n.soundsStop,
@@ -204,14 +208,24 @@ class SoundsMixHeader extends ConsumerWidget {
           ),
         // Clear takes the whole mix off the deck; Undo in the snackbar puts
         // it back. Only where the panel is open (the dock's chevron stays),
-        // except in the drawer, where an empty mix is the choice Off.
+        // except on a session's sound, where an empty mix is the choice Off.
         if ((expanded || onToggle == null || chooser != null) &&
             !state.mix.isEmpty)
-          TextButton(
-            key: const ValueKey('sounds_clear'),
-            onPressed: () => _clear(context, ref),
-            child: Text(l10n.soundsClear),
-          ),
+          // Words where they fit; at large text an icon, so the title
+          // keeps its line.
+          if (MediaQuery.textScalerOf(context).scale(1) > 1.3)
+            IconButton(
+              key: const ValueKey('sounds_clear'),
+              tooltip: l10n.soundsClear,
+              onPressed: () => _clear(context, ref),
+              icon: const Icon(Symbols.playlist_remove_rounded),
+            )
+          else
+            TextButton(
+              key: const ValueKey('sounds_clear'),
+              onPressed: () => _clear(context, ref),
+              child: Text(l10n.soundsClear),
+            ),
         // An empty mix has nothing to open: its line says how to start.
         if (onToggle != null && (expanded || !state.mix.isEmpty))
           IconButton(
@@ -260,6 +274,8 @@ void _showMixSnackBar(
         // An action keeps a SnackBar up until dismissed; Undo is for the
         // moment after Clear, so let it time out.
         persist: false,
+        // A quiet lift: it floats over the library's cards.
+        elevation: 2,
         action: action,
         behavior: bar == null ? null : SnackBarBehavior.floating,
         margin: bar == null ? null : EdgeInsets.fromLTRB(16, 0, 16, bar + 8),
@@ -649,7 +665,7 @@ Future<void> saveMixAsPreset(BuildContext context, WidgetRef ref) async {
     context: context,
     builder: (context) => const _PresetNameDialog(),
   );
-  // The drawer may have closed under the dialog (a session took the
+  // The sheet may have closed under the dialog (a session took the
   // mixer): what it held is no longer the mix to save.
   if (!context.mounted || name == null || name.trim().isEmpty) return;
   final saved = ref.read(soundscapeProvider.notifier).savePreset(name);

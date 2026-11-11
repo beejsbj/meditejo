@@ -6,8 +6,9 @@ import 'package:medito/providers/shared_preference/shared_preference_provider.da
 const _legacyTabIndexKey = 'last_main_tab_index';
 const _legacyTabLayoutKey = 'main_tab_layout';
 
-/// The five tabs, in bar order.
-enum MainTab { home, explore, sounds, library, settings }
+/// The four tabs, in bar order. Sounds is not one: it is a sheet over
+/// whatever is open (`showSoundsSheet`).
+enum MainTab { home, explore, library, settings }
 
 /// The tab on screen. Any screen can move it (Home's "See all", a deep link);
 /// the main screen listens and does the rest. The app always opens on Home.

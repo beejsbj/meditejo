@@ -9,9 +9,12 @@ import 'package:medito/providers/shared_preference/shared_preference_provider.da
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/views/settings/settings_screen.dart';
+import 'package:medito/providers/soundscape/soundscape_provider.dart';
+import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:medito/views/you/you_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers/soundscape_fakes.dart';
 import '../helpers/update_fakes.dart';
 
 class _EmptyStats extends StatsNotifier {
@@ -37,6 +40,7 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           // The You page reads the stats.
           statsProvider.overrideWith(_EmptyStats.new),
+          ...soundscapeTestOverrides(FakeSoundscapeEngine()),
         ],
         child: MaterialApp(
           navigatorKey: navigatorKey,
@@ -71,17 +75,57 @@ void main() {
     expect(container.read(mainTabProvider), MainTab.home);
   });
 
-  testWidgets('meditejo://sounds and settings select their tab', (
-    tester,
-  ) async {
+  testWidgets('meditejo://settings selects its tab', (tester) async {
     await pump(tester);
-
-    await handleNavigation('sounds', [''], context, ref: widgetRef);
-    expect(container.read(mainTabProvider), MainTab.sounds);
 
     await handleNavigation('settings', [''], context, ref: widgetRef);
     expect(container.read(mainTabProvider), MainTab.settings);
   });
+
+  // Sounds was a tab; its links now open the Sounds sheet over Home.
+  for (final (name, type, ids) in [
+    ('meditejo://sounds', 'sounds', ['']),
+    ('meditejo://route/sounds', 'route', ['sounds']),
+  ]) {
+    testWidgets('$name opens the Sounds sheet over Home', (tester) async {
+      await pump(tester);
+      await handleNavigation('library', [''], context, ref: widgetRef);
+      // Something open above the tabs closes first.
+      navigatorKey.currentState!.push<void>(
+        MaterialPageRoute(builder: (_) => const Scaffold(body: Text('page'))),
+      );
+      await tester.pumpAndSettle();
+
+      var completed = false;
+      await handleNavigation(
+        type,
+        ids,
+        context,
+        ref: widgetRef,
+        onNavigationComplete: () => completed = true,
+      );
+      await tester.pumpAndSettle();
+
+      expect(completed, isTrue);
+      expect(find.text('page'), findsNothing);
+      expect(container.read(mainTabProvider), MainTab.home);
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.byType(SoundsView), findsOneWidget);
+      // Your own mix, silent until something is tapped.
+      expect(find.text('Your mix'), findsOneWidget);
+      expect(container.read(soundscapeProvider).active, isFalse);
+
+      // The same link again, while it is open, leaves one sheet up.
+      await handleNavigation(type, ids, context, ref: widgetRef);
+      await tester.pumpAndSettle();
+      expect(find.byType(SoundsView), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('sounds_chooser_done')));
+      await tester.pumpAndSettle();
+      expect(find.byType(SoundsView), findsNothing);
+      expect(find.text('root'), findsOneWidget);
+    });
+  }
 
   testWidgets('meditejo://you, the old You tab, opens the You page', (
     tester,
@@ -155,6 +199,7 @@ void main() {
         overrides: [
           ...h.overrides,
           statsProvider.overrideWith(_EmptyStats.new),
+          ...soundscapeTestOverrides(FakeSoundscapeEngine()),
         ],
         child: MaterialApp(
           navigatorKey: navigatorKey,

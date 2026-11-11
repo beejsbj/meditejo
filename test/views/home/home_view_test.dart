@@ -17,6 +17,8 @@ import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/home/widgets/pinned/pinned_section.dart';
 import 'package:medito/views/library/import_view.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
+import 'package:medito/views/soundscape/sounds_view.dart';
+import 'package:medito/providers/soundscape/soundscape_provider.dart';
 
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/starter_presets.dart';
@@ -25,6 +27,7 @@ import 'package:medito/widgets/branding/meditejo_mark.dart';
 
 import '../../helpers/dharma_seed_app.dart';
 import '../../helpers/library_app.dart';
+import '../../helpers/soundscape_fakes.dart';
 
 Future<void> settle(WidgetTester tester) => DharmaSeedTestApp.settle(tester);
 
@@ -266,7 +269,10 @@ void main() {
       await app.pump(
         tester,
         const HomeView(),
-        overrides: [continueItemsProvider.overrideWith((ref) async => [])],
+        overrides: [
+          continueItemsProvider.overrideWith((ref) async => []),
+          ...soundscapeTestOverrides(FakeSoundscapeEngine()),
+        ],
       );
       return app;
     }
@@ -284,15 +290,55 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
 
-    testWidgets('Sounds opens the Sounds tab', (tester) async {
+    testWidgets('Sounds opens the Sounds sheet, and says what plays', (
+      tester,
+    ) async {
       await home(tester);
       final container = ProviderScope.containerOf(
         tester.element(find.byType(HomeView)),
       );
-      expect(container.read(mainTabProvider), MainTab.home);
-      await tester.tap(find.byKey(const ValueKey('shortcut_sounds')));
+      final tile = find.byKey(const ValueKey('shortcut_sounds'));
+      String caption() => tester
+          .widget<Text>(
+            find.descendant(of: tile, matching: find.byType(Text)).last,
+          )
+          .data!;
+      expect(caption(), isEmpty, reason: 'nothing plays');
+
+      await tester.tap(tile);
       await settle(tester);
-      expect(container.read(mainTabProvider), MainTab.sounds);
+      expect(container.read(mainTabProvider), MainTab.home);
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.byType(SoundsView), findsOneWidget);
+      expect(find.text('Your mix'), findsOneWidget);
+
+      // A preset started there plays on its own after the sheet closes,
+      // and the tile names it; a tap opens the sheet on it again.
+      await tester.tap(
+        find.byKey(const ValueKey('preset_starter-rain-forest')),
+      );
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('sounds_chooser_done')));
+      await settle(tester);
+      expect(find.byType(SoundsView), findsNothing);
+      final state = container.read(soundscapeProvider);
+      expect(state.owner, SoundscapeOwner.standalone);
+      expect(state.playing, isTrue);
+      expect(caption(), 'Rain on the forest');
+      expect(
+        tester.getSemantics(tile).label,
+        'Sounds, playing Rain on the forest',
+      );
+
+      await tester.tap(tile);
+      await settle(tester);
+      expect(find.byType(SoundsView), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('sounds_stop')));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('sounds_chooser_done')));
+      await settle(tester);
+      expect(caption(), isEmpty);
+      await tester.pumpWidget(const SizedBox());
     });
   });
 

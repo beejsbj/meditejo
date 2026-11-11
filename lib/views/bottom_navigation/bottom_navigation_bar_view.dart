@@ -27,7 +27,6 @@ import 'package:medito/views/home/home_view.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/views/library/library_view.dart';
 import 'package:medito/views/settings/settings_screen.dart';
-import 'package:medito/views/soundscape/sounds_view.dart';
 
 class BottomNavigationBarView extends ConsumerStatefulWidget {
   const BottomNavigationBarView({super.key});
@@ -40,10 +39,10 @@ class BottomNavigationBarView extends ConsumerStatefulWidget {
 class _BottomNavigationBarViewState
     extends ConsumerState<BottomNavigationBarView> {
   // Nav destination index == MainTab index == page index in _pages: Home,
-  // Explore, Sounds, Library, Settings. Search lives inside Explore; You
-  // (stats and history) is a page opened from Home, Library and Settings.
+  // Explore, Library, Settings. Search lives inside Explore; You (stats and
+  // history) is a page opened from Home, Library and Settings; Sounds is a
+  // sheet over any of them.
   final _exploreViewKey = GlobalKey<ExploreViewState>();
-  final _soundsViewKey = GlobalKey<SoundsViewState>();
   late final List<Widget> _pages;
   bool _restoringEndScreen = false;
 
@@ -174,11 +173,6 @@ class _BottomNavigationBarViewState
           canPop: currentTab == MainTab.home,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
-            // An open mix panel folds first; then back returns Home.
-            if (currentTab == MainTab.sounds &&
-                (_soundsViewKey.currentState?.collapseMix() ?? false)) {
-              return;
-            }
             _onDestinationSelected(MainTab.home.index);
           },
           child: Scaffold(
@@ -240,7 +234,6 @@ class _BottomNavigationBarViewState
   Widget _page(MainTab tab) => switch (tab) {
     MainTab.home => const HomeView(),
     MainTab.explore => ExploreView(key: _exploreViewKey),
-    MainTab.sounds => SoundsView(key: _soundsViewKey),
     MainTab.library => const LibraryView(),
     MainTab.settings => const SettingsScreen(),
   };
@@ -254,10 +247,6 @@ class _BottomNavigationBarViewState
         MainTab.explore => MeditoNavItem(
           icon: Symbols.search_rounded,
           label: l10n.explore,
-        ),
-        MainTab.sounds => MeditoNavItem(
-          icon: Symbols.graphic_eq_rounded,
-          label: l10n.backgroundSoundsSection,
         ),
         MainTab.library => MeditoNavItem(
           icon: Symbols.library_books_rounded,
@@ -282,6 +271,5 @@ class _BottomNavigationBarViewState
       _exploreViewKey.currentState?.loadData();
       catchUpCatalogues(ref);
     }
-    if (tab == MainTab.sounds) retryLegacySounds(ref.container);
   }
 }

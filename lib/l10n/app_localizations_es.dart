@@ -2029,6 +2029,11 @@ class AppLocalizationsEs extends AppLocalizations {
       'Estas cifras son una guía, no una puntuación.';
 
   @override
+  String homeSoundsPlaying(String name) {
+    return 'Sonidos, suena $name';
+  }
+
+  @override
   String get soundsYourMix => 'Tu mezcla';
 
   @override
@@ -3317,7 +3322,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Your mix plays beneath the session, at its own volume';
 
   @override
-  String get noiseReset => 'Reset bands';
+  String get noiseReset => 'Restablecer';
 
   @override
   String get soundsEditMix => 'Edit your mix in Sounds';

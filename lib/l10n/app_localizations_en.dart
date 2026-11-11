@@ -1991,6 +1991,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statsFeedbackNote => 'These numbers are feedback, not a score.';
 
   @override
+  String homeSoundsPlaying(String name) {
+    return 'Sounds, playing $name';
+  }
+
+  @override
   String get soundsYourMix => 'Your mix';
 
   @override
@@ -3274,7 +3279,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your mix plays beneath the session, at its own volume';
 
   @override
-  String get noiseReset => 'Reset bands';
+  String get noiseReset => 'Reset';
 
   @override
   String get soundsEditMix => 'Edit your mix in Sounds';

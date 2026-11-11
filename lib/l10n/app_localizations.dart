@@ -3496,6 +3496,12 @@ abstract class AppLocalizations {
   /// **'These numbers are feedback, not a score.'**
   String get statsFeedbackNote;
 
+  /// Screen reader label of Home's Sounds tile while sounds play on their own; name is the preset or the sounds of the mix
+  ///
+  /// In en, this message translates to:
+  /// **'Sounds, playing {name}'**
+  String homeSoundsPlaying(String name);
+
   /// Sounds screen: soundsYourMix
   ///
   /// In en, this message translates to:
@@ -3634,13 +3640,13 @@ abstract class AppLocalizations {
   /// **'This sound could not be played'**
   String get soundsCouldNotPlay;
 
-  /// Sounds tab line and mixer drawer: what plays under practice sessions; its value (Off, a preset, sounds) follows
+  /// Sounds sheet: what plays under practice sessions; its value (Off, a preset, sounds) follows
   ///
   /// In en, this message translates to:
   /// **'Plays under practice'**
   String get soundsPlaysUnderPractice;
 
-  /// Sounds tab line and mixer drawer: what plays under talks; its value follows
+  /// Sounds sheet: what plays under talks; its value follows
   ///
   /// In en, this message translates to:
   /// **'Plays under talks'**
@@ -4216,7 +4222,7 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get navSettings;
 
-  /// The Sounds tab's mix panel when the mix has no layers
+  /// The Sounds sheet's mix panel when the mix has no layers
   ///
   /// In en, this message translates to:
   /// **'Nothing in your mix yet'**
@@ -4240,7 +4246,7 @@ abstract class AppLocalizations {
   /// **'Unmute {sound}'**
   String soundsUnmute(String sound);
 
-  /// Opens the mix panel docked at the bottom of the Sounds tab
+  /// Opens the mix panel docked at the bottom of the Sounds sheet
   ///
   /// In en, this message translates to:
   /// **'Show your mix'**
@@ -5716,10 +5722,10 @@ abstract class AppLocalizations {
   /// **'Your mix plays beneath the session, at its own volume'**
   String get soundsUnderSessionsHint;
 
-  /// Sounds screen, generated layers: noiseReset
+  /// Noise editor, inside the opened Equaliser: sets the ten bands back to flat. Shown only when they are not flat
   ///
   /// In en, this message translates to:
-  /// **'Reset bands'**
+  /// **'Reset'**
   String get noiseReset;
 
   /// In the player's Customize sheet, under Background sound: opens the Sounds screen

@@ -1030,7 +1030,7 @@ Future<ProviderContainer> _pumpCustomize(
   return container;
 }
 
-/// A generated sound's editor (#71), opened from the Sounds tab over a mix
+/// A generated sound's editor (#71), opened from the Sounds sheet over a mix
 /// of all three generated sounds: noise and drone as the Stillness preset
 /// has them (or noise with [customBands]), binaural beats as they start.
 Future<void> _pumpSoundEditor(
@@ -1228,7 +1228,6 @@ void main() {
   const nav = [
     MeditoNavItem(icon: Symbols.home_rounded, label: 'Home'),
     MeditoNavItem(icon: Symbols.search_rounded, label: 'Explore'),
-    MeditoNavItem(icon: Symbols.graphic_eq_rounded, label: 'Sounds'),
     MeditoNavItem(icon: Symbols.library_books_rounded, label: 'Library'),
     MeditoNavItem(icon: Symbols.settings_rounded, label: 'Settings'),
   ];
@@ -1530,7 +1529,7 @@ void main() {
       expect(tester.takeException(), isNull);
     }, skip: !_enabled);
 
-    testWidgets('five tabs, ${brightness.name}', (tester) async {
+    testWidgets('four tabs, ${brightness.name}', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: _frame(
@@ -1539,7 +1538,7 @@ void main() {
               body: const SizedBox.expand(),
               bottomNavigationBar: MeditoNavBar(
                 items: nav,
-                selectedIndex: 2,
+                selectedIndex: 1,
                 onSelected: (_) {},
               ),
             ),
@@ -1551,13 +1550,13 @@ void main() {
       tester.view.physicalSize = const Size(1080, 360);
       await tester.pump();
       expect(tester.takeException(), isNull);
-      await _capture(tester, 'navbar-five-${brightness.name}');
+      await _capture(tester, 'navbar-four-${brightness.name}');
     }, skip: !_enabled);
 
     // The longest translations, on the narrowest phone: each label stays on
     // one line, set smaller where it must.
     for (final lang in ['es', 'de']) {
-      testWidgets('five tabs in $lang, ${brightness.name}', (tester) async {
+      testWidgets('four tabs in $lang, ${brightness.name}', (tester) async {
         final l10n = lookupAppLocalizations(Locale(lang));
         await tester.pumpWidget(
           MaterialApp(
@@ -1573,10 +1572,6 @@ void main() {
                       label: l10n.explore,
                     ),
                     MeditoNavItem(
-                      icon: Symbols.graphic_eq_rounded,
-                      label: l10n.backgroundSoundsSection,
-                    ),
-                    MeditoNavItem(
                       icon: Symbols.library_books_rounded,
                       label: l10n.navLibrary,
                     ),
@@ -1585,7 +1580,7 @@ void main() {
                       label: l10n.navSettings,
                     ),
                   ],
-                  selectedIndex: 4,
+                  selectedIndex: 3,
                   onSelected: (_) {},
                 ),
               ),
@@ -1596,7 +1591,7 @@ void main() {
         tester.view.physicalSize = const Size(1080, 360);
         await tester.pump();
         expect(tester.takeException(), isNull);
-        await _capture(tester, 'navbar-five-$lang-${brightness.name}');
+        await _capture(tester, 'navbar-four-$lang-${brightness.name}');
       }, skip: !_enabled);
     }
 
@@ -1695,7 +1690,7 @@ void main() {
       }, skip: !_enabled);
     }
 
-    // The Sounds tab: the starter mix (three layers) docked under the
+    // The Sounds sheet's body: the starter mix (three layers) docked under the
     // presets and the library; the same mix open; an empty mix (which stays
     // docked); and a wide window with the panel beside the library.
     for (final (name, empty, open, wide) in [
@@ -1711,15 +1706,14 @@ void main() {
           tester,
           _frame(
             brightness,
-            Scaffold(
-              body: const SoundsView(),
-              bottomNavigationBar: wide
-                  ? null
-                  : MeditoNavBar(
-                      items: nav,
-                      selectedIndex: 2,
-                      onSelected: (_) {},
-                    ),
+            // The sheet's body alone, on the sheet's colour.
+            Builder(
+              builder: (context) => Scaffold(
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerLow,
+                body: const SafeArea(child: SoundsView()),
+              ),
             ),
           ),
           overrides: soundscapeTestOverrides(FakeSoundscapeEngine()),

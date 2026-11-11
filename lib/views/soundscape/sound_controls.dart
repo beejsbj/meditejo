@@ -134,7 +134,12 @@ class SoundRanges extends SoundControl {
     required this.write,
     required this.partId,
     this.folds = false,
+    this.reset,
   });
+
+  /// Every range back where it starts (the noise's bands, flat). The view
+  /// offers it, beside the ranges, only while [params] differ from it.
+  final SoundParams Function(SoundParams params)? reset;
 
   /// The ranges start folded under their title, which opens them: for the
   /// few who want them, out of the way of everyone else.
@@ -476,7 +481,7 @@ class _RangesViewState extends State<_RangesView> {
               ),
             ),
           ),
-        if (!_folded)
+        if (!_folded) ...[
           SizedBox(
             height: 200,
             child: Row(
@@ -522,8 +527,32 @@ class _RangesViewState extends State<_RangesView> {
               ],
             ),
           ),
+          // Shown only once a range has moved, so a flat set has no button
+          // that would do nothing.
+          if (control.reset case final reset?)
+            if (!_sameRanges(params, reset(params)))
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: Padding(
+                  padding: const EdgeInsetsDirectional.only(end: padding8),
+                  child: TextButton(
+                    key: ValueKey('${control.id}_reset'),
+                    onPressed: () => onChanged(reset(params)),
+                    child: Text(l10n.noiseReset),
+                  ),
+                ),
+              ),
+        ],
       ],
     );
+  }
+
+  bool _sameRanges(SoundParams a, SoundParams b) {
+    final control = widget.control;
+    for (var i = 0; i < control.count; i++) {
+      if (control.read(a, i) != control.read(b, i)) return false;
+    }
+    return true;
   }
 }
 

@@ -893,6 +893,8 @@
   "pinnedUnavailable": "No disponible",
   "pinnedEmptyHint": "Fija un curso o una sesión en Explorar o en tu biblioteca para tenerlo en Inicio.",
   "statsFeedbackNote": "Estas cifras son una guía, no una puntuación.",
+  "homeSoundsPlaying": "Sonidos, suena {name}",
+  "noiseReset": "Restablecer",
   "soundsYourMix": "Tu mezcla",
   "soundsEmptyMix": "Toca un sonido para empezar una mezcla.",
   "soundsLayerCount": "{count, plural, =1{1 sonido} other{{count} sonidos}}",

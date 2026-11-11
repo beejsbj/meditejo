@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/l10n/app_localizations.dart';
@@ -8,9 +7,9 @@ import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/home/home_presets_provider.dart';
-import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/providers/timer/timer_settings_provider.dart';
 import 'package:medito/views/home/home_styles.dart';
+import 'package:medito/views/home/widgets/shortcuts/sounds_shortcut_tile.dart';
 import 'package:medito/views/timer/start_timer.dart';
 import 'package:medito/views/timer/timer_format.dart';
 import 'package:medito/views/timer/timer_sheet.dart';
@@ -49,16 +48,7 @@ class ShortcutsSection extends ConsumerWidget {
         caption: timerLength,
         onTap: () => showTimerSheet(context),
       ),
-      ShortcutTile(
-        key: const ValueKey('shortcut_sounds'),
-        color: scheme.surfaceContainerHigh,
-        onColor: scheme.onSurface,
-        // The Sounds tab's own symbol.
-        icon: (color) =>
-            Icon(Symbols.graphic_eq_rounded, color: color, size: 24),
-        label: l10n.backgroundSoundsSection,
-        onTap: () => ref.read(mainTabProvider.notifier).select(MainTab.sounds),
-      ),
+      const SoundsShortcutTile(key: ValueKey('shortcut_sounds')),
       for (final preset in presets)
         ShortcutTile(
           key: ValueKey('shortcut_preset_${preset.id}'),
