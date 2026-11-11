@@ -2340,7 +2340,7 @@
   "@binauralBeta": {
     "description": "Binaural beat band chip: 13 Hz and above"
   },
-  "droneRootHint": "Up to three notes",
+  "droneRootHint": "Up to five notes",
   "@droneRootHint": {
     "description": "Sounds screen, drone editor: caption under the Root chips, a chord can hold this many"
   },

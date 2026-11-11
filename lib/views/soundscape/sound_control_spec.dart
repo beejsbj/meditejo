@@ -92,7 +92,7 @@ final droneRoots = SoundChips<double>(
   ],
   read: (p) => DroneParams.fromJson(p).rootsHz.map(_snapToChip).toSet(),
   // A root saved off the chips (a stored mix) gets a chip of its own, so it
-  // can be seen and turned off; it counts toward the three.
+  // can be seen and turned off; it counts toward the five.
   extraChoices: (p) => [
     for (final hz in DroneParams.fromJson(p).rootsHz)
       if (_snapToChip(hz) == hz && !DroneParams.roots.containsValue(hz))

@@ -407,10 +407,12 @@ class SoLoudSoundscapeEngine implements SoundscapeEngine {
       );
     }
     // SoLoud refuses new voices past 16 by default, counting paused and
-    // fading ones too. A bright drone is 8 voices, a three-root chord at
-    // worst 24 (voices on one frequency are merged), with binaural beats and
-    // noise a few more: well inside 64.
-    _soloud.setMaxActiveVoiceCount(64);
+    // fading ones too. A bright drone is 8 voices, a five-root chord at
+    // worst 40 (voices on one frequency are merged). Changing a chord
+    // crossfades a new set in while the old fades out, and a quick second
+    // change holds a third set for a moment: 120, with binaural beats,
+    // noise and recordings a few more. (It was 64 for three roots.)
+    _soloud.setMaxActiveVoiceCount(192);
     _soloud.setGlobalVolume(_paused ? 0 : _master);
   }
 

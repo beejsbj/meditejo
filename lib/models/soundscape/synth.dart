@@ -218,8 +218,11 @@ class DroneParams {
     this.movement = 0.5,
   }) : _given = rootsHz;
 
-  /// Most roots a chord holds (#69).
-  static const maxRoots = 3;
+  /// Most roots a chord holds (#69): five, where it was three until
+  /// 2026-11-11. Each root is 4 voices pure, 6 warm, 8 bright, so a chord
+  /// is at most 40 (fewer when roots share a frequency); the engine's voice
+  /// limit and the swell periods below are sized for that.
+  static const maxRoots = 5;
 
   /// Roots offered by the editor: A1 to A3 by fifths and fourths.
   static const roots = <String, double>{
@@ -386,10 +389,14 @@ class DroneParams {
 }
 
 /// Swell periods (s), one per voice, all different: the first eight as the
-/// single root always had them; the rest for a chord's extra voices.
+/// single root always had them; the next sixteen as a chord of up to three
+/// always had them; the rest for a fourth and fifth root's voices
+/// (5 × 8 = 40 at most).
 const _swellSeconds = [
   29, 41, 53, 67, 37, 47, 59, 71, //
-  31, 43, 61, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137,
+  31, 43, 61, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, //
+  139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223,
+  227,
 ];
 
 /// The most one generated layer may reach in a channel at full volume, every
