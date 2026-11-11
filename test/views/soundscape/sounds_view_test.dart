@@ -489,6 +489,8 @@ void main() {
       find.byKey(const ValueKey('preset_name')),
       'Morning',
     );
+    // Save waits for a name.
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('preset_name_save')));
     await tester.pumpAndSettle();
     final preset = container.read(soundscapeProvider).userPresets.single;
@@ -512,11 +514,19 @@ void main() {
     await tester.tap(save);
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('preset_name')), 'Eve');
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('preset_name_save')));
     await tester.pumpAndSettle();
     final id = container.read(soundscapeProvider).userPresets.single.id;
-    // Built-in presets have no menu.
-    expect(find.byKey(ValueKey('preset_menu_${starter.id}')), findsNothing);
+    // A built-in preset's menu pins it; it cannot be deleted.
+    final builtIn = find.byKey(ValueKey('preset_menu_${starter.id}'));
+    await revealPreset(tester, builtIn);
+    await tester.tap(builtIn);
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('preset_pin_${starter.id}')), findsOneWidget);
+    expect(find.byKey(ValueKey('preset_delete_${starter.id}')), findsNothing);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
 
     final menu = find.byKey(ValueKey('preset_menu_$id'));
     await revealPreset(tester, menu);

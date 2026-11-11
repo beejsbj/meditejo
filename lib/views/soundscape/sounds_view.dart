@@ -8,11 +8,15 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/constants/theme/tokens.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/models/presets/preset.dart';
 import 'package:medito/models/soundscape/sound_library.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/synth.dart';
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
+import 'package:medito/providers/presets/preset_providers.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
+import 'package:medito/views/presets/preset_actions.dart';
+import 'package:medito/views/presets/preset_labels.dart';
 import 'package:medito/widgets/art/art_cover.dart';
 
 import 'sound_cards.dart';
@@ -297,6 +301,7 @@ class SoundsViewState extends ConsumerState<SoundsView>
                   ),
                   Expanded(
                     child: SoundsMixBody(
+                      chooser: _chooser,
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     ),
                   ),
@@ -425,6 +430,7 @@ class SoundsViewState extends ConsumerState<SoundsView>
                         );
                       },
                       child: SoundsMixBody(
+                        chooser: _chooser,
                         padding: EdgeInsets.fromLTRB(16, 0, 16, bottom + 16),
                       ),
                     ),
@@ -547,7 +553,11 @@ class _SoundsLibrary extends ConsumerWidget {
             first: true,
           ),
         ),
-        const SliverToBoxAdapter(child: _PresetRow()),
+        SliverToBoxAdapter(
+          child: _PresetRow(
+            place: PresetContext.sounds(chooserKind: session.kind),
+          ),
+        ),
         if (full)
           SliverToBoxAdapter(
             child: Padding(
@@ -596,21 +606,25 @@ class _SoundsLibrary extends ConsumerWidget {
   }
 }
 
-/// The presets as a row of large cards, the user's after the built-in
-/// ones, with Save mix at the end while the mix is not one of them.
+/// The presets with a sound, as a row of large cards, the user's after the
+/// built-in ones, with Save at the end while the mix is not one of them.
+/// A tap plays the preset's sound; the card says what else it holds.
 class _PresetRow extends ConsumerWidget {
-  const _PresetRow();
+  const _PresetRow({required this.place});
+
+  final PresetContext place;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(soundscapeProvider);
     final library = ref.watch(soundLibraryProvider).value ?? SoundLibrary.empty;
-    final mixer = ref.read(soundscapeProvider.notifier);
     final current = state.matchingPreset;
     final size = presetCardSize(context);
     final canSave = !state.mix.isEmpty && current == null;
-    List<String> titles(SoundPreset preset) {
+    final presets = state.soundPresets.toList();
+    final container = ProviderScope.containerOf(context, listen: false);
+    List<String> titles(Preset preset) {
       final layers = [...preset.mix.layers]
         ..sort((a, b) => b.volume.compareTo(a.volume));
       return [
@@ -618,8 +632,9 @@ class _PresetRow extends ConsumerWidget {
       ];
     }
 
+    const others = {PresetSlot.bells, PresetSlot.rhythm, PresetSlot.length};
     final cards = <Widget>[
-      for (final preset in state.presets)
+      for (final preset in presets)
         PresetCard(
           key: ValueKey('preset_${preset.id}'),
           presetId: preset.id,
@@ -628,17 +643,22 @@ class _PresetRow extends ConsumerWidget {
           layerTitles: titles(preset),
           builtIn: preset.builtIn,
           playing: state.playing && current?.id == preset.id,
-          onTap: () => mixer.applyPreset(preset.id),
-          onDelete: preset.builtIn
+          onTap: () => applyPreset(container, place, preset),
+          onMenu: () => showPresetActions(context, preset),
+          also: preset.slots.only(others).isEmpty
               ? null
-              : () => confirmDeletePreset(context, ref, preset),
+              : PresetSummary(
+                  preset.slots.only(others),
+                  key: ValueKey('preset_also_${preset.id}'),
+                  color: Colors.white.withValues(alpha: 0.85),
+                ),
         ),
       if (canSave)
         Padding(
           padding: const EdgeInsets.only(bottom: kPresetStackDepth),
           child: SavePresetCard(
             key: const ValueKey('preset_save'),
-            onTap: () => saveMixAsPreset(context, ref),
+            onTap: () => saveMixAsPreset(context, place),
           ),
         ),
     ];
@@ -651,8 +671,8 @@ class _PresetRow extends ConsumerWidget {
         itemCount: cards.length,
         separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (_, i) => SizedBox(
-          // Save mix is a square beside the wide prints.
-          width: i < state.presets.length ? size.width : size.height,
+          // Save is a square beside the wide prints.
+          width: i < presets.length ? size.width : size.height,
           child: cards[i],
         ),
       ),

@@ -2,6 +2,7 @@ import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/starter_presets.dart';
 import 'package:medito/models/timer/timer_session.dart';
+import 'package:medito/providers/presets/preset_providers.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'dart:async';
@@ -556,8 +557,9 @@ void main() {
       );
       expect(find.textContaining('Stopwatch'), findsNothing);
 
+      // A sound-only preset has no length of its own: the Timer's stands.
       final preset = kStarterPresets[1];
-      final tile = find.byKey(ValueKey('shortcut_preset_${preset.id}'));
+      final tile = find.byKey(ValueKey('pinned_preset_${preset.id}'));
       await tester.ensureVisible(tile);
       await tester.pump();
       await tester.tap(tile);
@@ -569,14 +571,12 @@ void main() {
       final request = container.read(playerProvider)!;
       expect(request.timerMode, TimerMode.stopwatch);
       expect(request.fileId, 'timer-stopwatch-0');
-      expect(request.soundscape, 'preset:${preset.id}');
       expect(tester.takeException(), isNull);
     });
   }, timeout: const Timeout(Duration(seconds: 45)));
 
-  testWidgets('a Home preset tile starts the timer with that preset under it', (
-    tester,
-  ) async {
+  testWidgets('a pinned sound-only preset starts the Timer at its current '
+      'length with that sound under it', (tester) async {
     await _withNativeAudio(tester, (native, directory) async {
       final sounds = FakeSoundscapeEngine();
       // Its own audio state: the global one belongs to the test above.
@@ -588,7 +588,7 @@ void main() {
       );
       // Not the first built-in: that is also Practice's default mix.
       final preset = kStarterPresets[1];
-      final tile = find.byKey(ValueKey('shortcut_preset_${preset.id}'));
+      final tile = find.byKey(ValueKey('pinned_preset_${preset.id}'));
       await tester.ensureVisible(tile);
       await tester.pump();
       await tester.tap(tile);
@@ -601,7 +601,6 @@ void main() {
       final request = container.read(playerProvider)!;
       expect(request.isTimer, isTrue);
       expect(request.trackId, 'timer-600');
-      expect(request.soundscape, 'preset:${preset.id}');
 
       await _pumpUntil(
         tester,
@@ -621,15 +620,22 @@ void main() {
         containsAll([for (final layer in preset.mix.layers) layer.soundId]),
       );
 
-      // For this session only: Practice's saved choices are untouched.
+      // A tile is the preset picked on the Timer, then Start: the Timer
+      // (and so practice, whose settings it shares) keeps the sound, and
+      // names the preset it came from.
       const practice = CueScope(CueKind.practice);
       expect(container.read(cueSettingsProvider(practice)).soundscape, '');
+      final kept = container
+          .read(soundscapeProvider.notifier)
+          .sessionDefault(SoundscapeSessionKind.practice);
+      expect(kept.enabled, isTrue);
+      expect(kept.selection, SoundscapeSelection.preset(preset.id));
       expect(
         container
-            .read(soundscapeProvider.notifier)
-            .sessionDefault(SoundscapeSessionKind.practice)
-            .selection,
-        isNot(SoundscapeSelection.preset(preset.id)),
+            .read(loadedPresetProvider(const PresetContext.timer()))
+            ?.preset
+            .id,
+        preset.id,
       );
       expect(tester.takeException(), isNull);
     });

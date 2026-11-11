@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/models/presets/preset.dart';
+import 'package:medito/providers/presets/preset_providers.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
@@ -88,4 +90,19 @@ Future<bool> _startTimerSession(
     }
     return false;
   }
+}
+
+/// Starts the sit [preset] holds: sets the Timer as the preset says (its
+/// slots, as picking it in the Timer's Customize does) and starts it. With
+/// a Length it runs that long, or open-ended; without one, as long as the
+/// Timer is set.
+Future<bool> startPresetSession(BuildContext context, Preset preset) async {
+  if (_starting) return false;
+  await applyPreset(
+    ProviderScope.containerOf(context, listen: false),
+    const PresetContext.timer(),
+    preset,
+  );
+  if (!context.mounted) return false;
+  return startTimerSession(context);
 }

@@ -3400,12 +3400,6 @@ abstract class AppLocalizations {
   /// **'{time} left'**
   String homeContinueTimeLeft(String time);
 
-  /// Screen-reader label of a Home tile that starts the timer with a saved background-sound preset.
-  ///
-  /// In en, this message translates to:
-  /// **'Start the timer with {preset}'**
-  String homeShortcutPresetTimer(String preset);
-
   /// No description provided for @pinCourse.
   ///
   /// In en, this message translates to:
@@ -3469,7 +3463,7 @@ abstract class AppLocalizations {
   /// Pinned list: how to pin something, under pinnedEmpty
   ///
   /// In en, this message translates to:
-  /// **'Pin a course or a session in Explore or your library to keep it on Home.'**
+  /// **'Pin a course, a session or a preset to keep it on Home.'**
   String get pinnedEmptyHint;
 
   /// A pinned course or session whose source no longer has it: its title (or the line under its saved title)
@@ -3565,7 +3559,7 @@ abstract class AppLocalizations {
   /// Sounds screen: soundsSavePreset
   ///
   /// In en, this message translates to:
-  /// **'Save mix'**
+  /// **'Save preset'**
   String get soundsSavePreset;
 
   /// Sounds screen: the overline on a preset that ships with the app
@@ -5943,6 +5937,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'My bell'**
   String get bellMakerDefaultName;
+
+  /// Screen-reader label of a pinned preset tile on Home, which starts that sit
+  ///
+  /// In en, this message translates to:
+  /// **'Start {name}'**
+  String presetStart(String name);
+
+  /// Screen-reader label of a preset in a picker, which sets what the preset holds
+  ///
+  /// In en, this message translates to:
+  /// **'Use {name}'**
+  String presetApply(String name);
+
+  /// Presets: the name of the Bells slot
+  ///
+  /// In en, this message translates to:
+  /// **'Bells'**
+  String get presetSlotBells;
+
+  /// Presets: the name of the Length slot
+  ///
+  /// In en, this message translates to:
+  /// **'Length'**
+  String get presetSlotLength;
+
+  /// Save preset sheet: writes the ticked slots into the loaded preset
+  ///
+  /// In en, this message translates to:
+  /// **'Update “{name}”'**
+  String presetUpdate(String name);
+
+  /// Save preset sheet: makes a new preset instead of updating the loaded one
+  ///
+  /// In en, this message translates to:
+  /// **'Save as new'**
+  String get presetSaveAsNew;
+
+  /// Shown after a preset was updated
+  ///
+  /// In en, this message translates to:
+  /// **'Updated “{name}”'**
+  String presetUpdated(String name);
+
+  /// Save preset sheet: a slot of the loaded preset that this save leaves as it is
+  ///
+  /// In en, this message translates to:
+  /// **'{value} · kept'**
+  String presetKept(String value);
+
+  /// Save preset sheet: a slot the preset does not hold
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get presetNotSet;
+
+  /// The preset that was loaded here
+  ///
+  /// In en, this message translates to:
+  /// **'From {name}'**
+  String presetFrom(String name);
+
+  /// The preset that was loaded here, changed since
+  ///
+  /// In en, this message translates to:
+  /// **'From {name} · edited'**
+  String presetFromEdited(String name);
+
+  /// Preset summary: its Sound slot is silence
+  ///
+  /// In en, this message translates to:
+  /// **'No sound'**
+  String get presetNoSound;
+
+  /// Preset summary: its Bells slot has every bell off
+  ///
+  /// In en, this message translates to:
+  /// **'No bells'**
+  String get presetNoBells;
+
+  /// Preset summary: its Rhythm slot is off
+  ///
+  /// In en, this message translates to:
+  /// **'No rhythm'**
+  String get presetNoRhythm;
 }
 
 class _AppLocalizationsDelegate

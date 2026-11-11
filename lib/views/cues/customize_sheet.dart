@@ -16,12 +16,14 @@ import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/cues/custom_bell_provider.dart';
 import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/player/playback_speed_provider.dart';
+import 'package:medito/providers/presets/preset_providers.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/providers/timer/timer_settings_provider.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
 import 'package:medito/services/bells/custom_bell.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/views/cues/bell_list.dart';
+import 'package:medito/views/presets/preset_picker.dart';
 import 'package:medito/views/soundscape/sounds_sheet.dart';
 import 'package:medito/widgets/art/art_cover.dart';
 import 'package:medito/widgets/inputs/wheel_picker.dart';
@@ -575,6 +577,17 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
   /// length (its dial is Extend), and a timer under way cannot change its.
   bool get _canSetDuration => widget.isTimer && widget.onStart != null;
 
+  /// Where presets are picked and saved from here: the Timer about to
+  /// start holds all four slots; a recording, or a timer under way, owns
+  /// its length.
+  PresetContext get _presetPlace => _canSetDuration
+      ? const PresetContext.timer()
+      : PresetContext.session(
+          _scope,
+          courseOverride: _courseOverride,
+          inSession: widget.isActive,
+        );
+
   AppLocalizations get _l10n =>
       AppLocalizations.of(context) ??
       lookupAppLocalizations(const Locale('en'));
@@ -609,6 +622,8 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                PresetRow(place: _presetPlace, onOpened: _dismissUndo),
+                const SizedBox(height: 4),
                 KeyedSubtree(
                   key: const ValueKey('customize_dial'),
                   child: _dial(s),

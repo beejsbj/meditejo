@@ -1937,11 +1937,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String homeShortcutPresetTimer(String preset) {
-    return 'Start the timer with $preset';
-  }
-
-  @override
   String get pinCourse => 'Pin to Home';
 
   @override
@@ -1976,7 +1971,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pinnedEmptyHint =>
-      'Pin a course or a session in Explore or your library to keep it on Home.';
+      'Pin a course, a session or a preset to keep it on Home.';
 
   @override
   String get pinnedUnavailable => 'Unavailable';
@@ -2036,7 +2031,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get soundsPresets => 'Presets';
 
   @override
-  String get soundsSavePreset => 'Save mix';
+  String get soundsSavePreset => 'Save preset';
 
   @override
   String get soundsPresetOurs => 'Meditejo';
@@ -3394,4 +3389,60 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bellMakerDefaultName => 'My bell';
+
+  @override
+  String presetStart(String name) {
+    return 'Start $name';
+  }
+
+  @override
+  String presetApply(String name) {
+    return 'Use $name';
+  }
+
+  @override
+  String get presetSlotBells => 'Bells';
+
+  @override
+  String get presetSlotLength => 'Length';
+
+  @override
+  String presetUpdate(String name) {
+    return 'Update “$name”';
+  }
+
+  @override
+  String get presetSaveAsNew => 'Save as new';
+
+  @override
+  String presetUpdated(String name) {
+    return 'Updated “$name”';
+  }
+
+  @override
+  String presetKept(String value) {
+    return '$value · kept';
+  }
+
+  @override
+  String get presetNotSet => 'Not set';
+
+  @override
+  String presetFrom(String name) {
+    return 'From $name';
+  }
+
+  @override
+  String presetFromEdited(String name) {
+    return 'From $name · edited';
+  }
+
+  @override
+  String get presetNoSound => 'No sound';
+
+  @override
+  String get presetNoBells => 'No bells';
+
+  @override
+  String get presetNoRhythm => 'No rhythm';
 }

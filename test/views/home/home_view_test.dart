@@ -20,6 +20,7 @@ import 'package:medito/views/cues/customize_sheet.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 
+import 'package:medito/models/presets/preset.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/starter_presets.dart';
 import 'package:medito/services/soundscape/soundscape_store.dart';
@@ -109,7 +110,9 @@ void main() {
     }
     expect(find.textContaining('Consistency'), findsNothing);
     expect(find.textContaining('streak'), findsNothing);
-    expect(sectionHeader('Pinned'), findsNothing);
+    // The two preset tiles Home always showed are pinned presets now.
+    expect(sectionHeader('Pinned'), findsOneWidget);
+    expect(find.byType(PinnedPresetTile), findsNWidgets(2));
   });
 
   testWidgets('draws no section headings, but announces them as headers', (
@@ -578,14 +581,15 @@ void main() {
       expect(mark(tester).isRunning, isTrue);
     });
 
-    testWidgets('preset tiles show the newest saved presets, then built-ins', (
+    testWidgets('the two preset tiles Home showed by itself (the newest saved '
+        'mix, then a built-in) are pinned presets after the update', (
       tester,
     ) async {
       final app = await LibraryTestApp.create(tester);
-      const mine = SoundPreset(
+      final mine = Preset.sound(
         id: 'user-1',
         name: 'My rain',
-        mix: SoundMix([SoundLayer(soundId: 'rain-terrace', volume: 0.5)]),
+        mix: const SoundMix([SoundLayer(soundId: 'rain-terrace', volume: 0.5)]),
       );
       SoundscapeStore(app.prefs).writePresets([mine]);
       await app.pump(
@@ -594,22 +598,23 @@ void main() {
         overrides: [continueItemsProvider.overrideWith((ref) async => [])],
       );
       expect(
-        find.byKey(const ValueKey('shortcut_preset_user-1')),
+        find.byKey(const ValueKey('pinned_preset_user-1')),
         findsOneWidget,
       );
       expect(
-        find.byKey(ValueKey('shortcut_preset_${kStarterPresets.first.id}')),
+        find.byKey(ValueKey('pinned_preset_${kStarterPresets.first.id}')),
         findsOneWidget,
       );
       expect(
-        find.byKey(ValueKey('shortcut_preset_${kStarterPresets[1].id}')),
+        find.byKey(ValueKey('pinned_preset_${kStarterPresets[1].id}')),
         findsNothing,
       );
       expect(find.text('My rain'), findsOneWidget);
-      expect(
-        find.bySemanticsLabel('Start the timer with My rain'),
-        findsOneWidget,
-      );
+      expect(find.bySemanticsLabel('Start My rain, 10 min'), findsOneWidget);
+      expect(app.prefs.getStringList(SoundscapeStore.pinnedPresetsKey), [
+        'user-1',
+        kStarterPresets.first.id,
+      ]);
     });
   });
 }

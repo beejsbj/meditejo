@@ -2010,15 +2010,6 @@
       }
     }
   },
-  "homeShortcutPresetTimer": "Start the timer with {preset}",
-  "@homeShortcutPresetTimer": {
-    "description": "Screen-reader label of a Home tile that starts the timer with a saved background-sound preset.",
-    "placeholders": {
-      "preset": {
-        "type": "String"
-      }
-    }
-  },
   "pinCourse": "Pin to Home",
   "unpinCourse": "Unpin from Home",
   "itemMarkPlayed": "Mark as played",
@@ -2043,7 +2034,7 @@
   "@pinnedEmpty": {
     "description": "Pinned list: title when nothing is pinned"
   },
-  "pinnedEmptyHint": "Pin a course or a session in Explore or your library to keep it on Home.",
+  "pinnedEmptyHint": "Pin a course, a session or a preset to keep it on Home.",
   "@pinnedEmptyHint": {
     "description": "Pinned list: how to pin something, under pinnedEmpty"
   },
@@ -2119,7 +2110,7 @@
   "@soundsPresets": {
     "description": "Sounds screen: soundsPresets"
   },
-  "soundsSavePreset": "Save mix",
+  "soundsSavePreset": "Save preset",
   "@soundsSavePreset": {
     "description": "Sounds screen: soundsSavePreset"
   },
@@ -3906,5 +3897,96 @@
   "bellMakerDefaultName": "My bell",
   "@bellMakerDefaultName": {
     "description": "Bell maker: the name suggested for a new bell"
+  },
+  "presetStart": "Start {name}",
+  "@presetStart": {
+    "description": "Screen-reader label of a pinned preset tile on Home, which starts that sit",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "presetApply": "Use {name}",
+  "@presetApply": {
+    "description": "Screen-reader label of a preset in a picker, which sets what the preset holds",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "presetSlotBells": "Bells",
+  "@presetSlotBells": {
+    "description": "Presets: the name of the Bells slot"
+  },
+  "presetSlotLength": "Length",
+  "@presetSlotLength": {
+    "description": "Presets: the name of the Length slot"
+  },
+  "presetUpdate": "Update “{name}”",
+  "@presetUpdate": {
+    "description": "Save preset sheet: writes the ticked slots into the loaded preset",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "presetSaveAsNew": "Save as new",
+  "@presetSaveAsNew": {
+    "description": "Save preset sheet: makes a new preset instead of updating the loaded one"
+  },
+  "presetUpdated": "Updated “{name}”",
+  "@presetUpdated": {
+    "description": "Shown after a preset was updated",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "presetKept": "{value} · kept",
+  "@presetKept": {
+    "description": "Save preset sheet: a slot of the loaded preset that this save leaves as it is",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "presetNotSet": "Not set",
+  "@presetNotSet": {
+    "description": "Save preset sheet: a slot the preset does not hold"
+  },
+  "presetFrom": "From {name}",
+  "@presetFrom": {
+    "description": "The preset that was loaded here",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "presetFromEdited": "From {name} · edited",
+  "@presetFromEdited": {
+    "description": "The preset that was loaded here, changed since",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "presetNoSound": "No sound",
+  "@presetNoSound": {
+    "description": "Preset summary: its Sound slot is silence"
+  },
+  "presetNoBells": "No bells",
+  "@presetNoBells": {
+    "description": "Preset summary: its Bells slot has every bell off"
+  },
+  "presetNoRhythm": "No rhythm",
+  "@presetNoRhythm": {
+    "description": "Preset summary: its Rhythm slot is off"
   }
 }

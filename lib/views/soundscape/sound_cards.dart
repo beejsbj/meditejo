@@ -328,7 +328,8 @@ class PresetCard extends StatelessWidget {
     required this.builtIn,
     required this.playing,
     required this.onTap,
-    this.onDelete,
+    required this.onMenu,
+    this.also,
   });
 
   final String presetId;
@@ -343,8 +344,12 @@ class PresetCard extends StatelessWidget {
   final bool playing;
   final VoidCallback onTap;
 
-  /// Null for a built-in preset, which can't be deleted.
-  final VoidCallback? onDelete;
+  /// Opens its actions (pin, delete): its ⋮ and a long press.
+  final VoidCallback onMenu;
+
+  /// What else it holds besides its sound ("Singing bowl · 20 min"), which
+  /// choosing it here does not set.
+  final Widget? also;
 
   @override
   Widget build(BuildContext context) {
@@ -373,20 +378,13 @@ class PresetCard extends StatelessWidget {
           : l10n.soundsPlayPreset(label),
       selected: playing,
       onTap: onTap,
-      onLongPress: onDelete,
-      action: onDelete == null
-          ? null
-          : PopupMenuButton<void>(
-              key: ValueKey('preset_menu_$presetId'),
-              icon: const Icon(Symbols.more_vert_rounded, color: _onArt),
-              itemBuilder: (_) => [
-                PopupMenuItem<void>(
-                  key: ValueKey('preset_delete_$presetId'),
-                  onTap: onDelete,
-                  child: Text(l10n.soundsDelete),
-                ),
-              ],
-            ),
+      onLongPress: onMenu,
+      action: IconButton(
+        key: ValueKey('preset_menu_$presetId'),
+        tooltip: l10n.homeCardMenu(label),
+        onPressed: onMenu,
+        icon: const Icon(Symbols.more_vert_rounded, color: _onArt),
+      ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
         child: Column(
@@ -408,6 +406,7 @@ class PresetCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: type.emphasized.titleMedium?.copyWith(color: _onArt),
             ),
+            ?also,
             const Spacer(),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -562,25 +561,31 @@ class SavePresetCard extends StatelessWidget {
       child: InkWell(
         customBorder: shape,
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Symbols.bookmark_add_rounded,
-                size: 32,
-                color: scheme.primary,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.soundsSavePreset,
-                textAlign: TextAlign.center,
-                style: context.typography.emphasized.titleSmall?.copyWith(
+        child: Semantics(
+          button: true,
+          label: l10n.soundsSavePreset,
+          excludeSemantics: true,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Symbols.bookmark_add_rounded,
+                  size: 32,
                   color: scheme.primary,
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                // The shelf is Presets, so the one word is enough.
+                Text(
+                  l10n.soundsSave,
+                  textAlign: TextAlign.center,
+                  style: context.typography.emphasized.titleSmall?.copyWith(
+                    color: scheme.primary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

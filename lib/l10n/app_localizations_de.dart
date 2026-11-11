@@ -1969,11 +1969,6 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String homeShortcutPresetTimer(String preset) {
-    return 'Timer mit $preset starten';
-  }
-
-  @override
   String get pinCourse => 'An Start anheften';
 
   @override
@@ -2008,7 +2003,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get pinnedEmptyHint =>
-      'Hefte in Entdecken oder deiner Bibliothek einen Kurs oder eine Sitzung an, um sie auf Start zu behalten.';
+      'Hefte einen Kurs, eine Sitzung oder eine Voreinstellung an, um sie auf Start zu behalten.';
 
   @override
   String get pinnedUnavailable => 'Nicht verfügbar';
@@ -2070,7 +2065,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get soundsPresets => 'Voreinstellungen';
 
   @override
-  String get soundsSavePreset => 'Mix speichern';
+  String get soundsSavePreset => 'Voreinstellung speichern';
 
   @override
   String get soundsPresetOurs => 'Meditejo';
@@ -3438,4 +3433,60 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get bellMakerDefaultName => 'Meine Glocke';
+
+  @override
+  String presetStart(String name) {
+    return '$name starten';
+  }
+
+  @override
+  String presetApply(String name) {
+    return '$name verwenden';
+  }
+
+  @override
+  String get presetSlotBells => 'Glocken';
+
+  @override
+  String get presetSlotLength => 'Länge';
+
+  @override
+  String presetUpdate(String name) {
+    return '„$name“ aktualisieren';
+  }
+
+  @override
+  String get presetSaveAsNew => 'Als neu speichern';
+
+  @override
+  String presetUpdated(String name) {
+    return '„$name“ aktualisiert';
+  }
+
+  @override
+  String presetKept(String value) {
+    return '$value · bleibt';
+  }
+
+  @override
+  String get presetNotSet => 'Nicht gesetzt';
+
+  @override
+  String presetFrom(String name) {
+    return 'Aus $name';
+  }
+
+  @override
+  String presetFromEdited(String name) {
+    return 'Aus $name · geändert';
+  }
+
+  @override
+  String get presetNoSound => 'Kein Klang';
+
+  @override
+  String get presetNoBells => 'Keine Glocken';
+
+  @override
+  String get presetNoRhythm => 'Kein Rhythmus';
 }

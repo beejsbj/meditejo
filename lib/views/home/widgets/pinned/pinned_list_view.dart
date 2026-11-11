@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
+import 'package:medito/providers/presets/preset_providers.dart';
+import 'package:medito/views/home/widgets/shortcuts/shortcuts_section.dart';
 import 'package:medito/views/home/home_styles.dart';
 import 'package:medito/views/home/widgets/pinned/pinned_section.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
@@ -11,9 +13,9 @@ void openPinnedList(BuildContext context) => Navigator.of(
   context,
 ).push<void>(MaterialPageRoute(builder: (_) => const PinnedListView()));
 
-/// Everything pinned, in Home's order and with Home's cards: Home shows the
-/// first three, this shows them all. Opened from Home's "See all" and the You
-/// page.
+/// Everything pinned, in Home's order and as Home shows it: every pinned
+/// preset as a tile, then every pinned course and session as a card. Opened
+/// from Home's "See all" and the You page.
 class PinnedListView extends ConsumerWidget {
   const PinnedListView({super.key});
 
@@ -21,12 +23,13 @@ class PinnedListView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final ids = ref.watch(pinnedCoursesProvider);
+    final presets = ref.watch(pinnedPresetsProvider);
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.homePinnedTitle)),
       body: AdaptivePageBody(
         maxWidth: 760,
-        child: ids.isEmpty
+        child: ids.isEmpty && presets.isEmpty
             ? Center(
                 child: Padding(
                   padding: const EdgeInsets.all(32),
@@ -57,7 +60,7 @@ class PinnedListView extends ConsumerWidget {
                   ),
                 ),
               )
-            : ListView.separated(
+            : ListView(
                 key: const ValueKey('pinned_list'),
                 padding: const EdgeInsets.fromLTRB(
                   kHomeGutter,
@@ -65,9 +68,26 @@ class PinnedListView extends ConsumerWidget {
                   kHomeGutter,
                   32,
                 ),
-                itemCount: ids.length,
-                separatorBuilder: (_, _) => const SizedBox(height: kHomeRowGap),
-                itemBuilder: (_, i) => PinnedTile(id: ids[i]),
+                children: [
+                  if (presets.isNotEmpty)
+                    ShortcutTileGrid(
+                      tiles: [
+                        for (final preset in presets)
+                          PinnedPresetTile(preset: preset),
+                      ],
+                    ),
+                  for (final (i, id) in ids.indexed)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        top: i > 0
+                            ? kHomeRowGap
+                            : presets.isEmpty
+                            ? 0
+                            : kHomeGap,
+                      ),
+                      child: PinnedTile(id: id),
+                    ),
+                ],
               ),
       ),
     );

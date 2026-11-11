@@ -178,12 +178,15 @@ Future<void> _openSound(WidgetTester tester) async {
 /// The scroll position of the dial-and-tiles list, or of the open card.
 ScrollPosition _scroll(WidgetTester tester, {bool card = false}) => tester
     .state<ScrollableState>(
-      find.descendant(
-        of: find.byKey(
-          ValueKey(card ? 'customize_card_list' : 'customize_list'),
-        ),
-        matching: find.byType(Scrollable),
-      ),
+      // The list's own: the presets row inside it scrolls sideways.
+      find
+          .descendant(
+            of: find.byKey(
+              ValueKey(card ? 'customize_card_list' : 'customize_list'),
+            ),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     )
     .position;
 

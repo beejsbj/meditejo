@@ -3,7 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/models/pack/pack_model.dart';
+import 'package:medito/models/presets/preset.dart';
+import 'package:medito/providers/presets/preset_providers.dart';
+import 'package:medito/views/home/widgets/shortcuts/shortcuts_section.dart';
+import 'package:medito/views/presets/preset_labels.dart';
+import 'package:medito/views/soundscape/sound_labels.dart';
+import 'package:medito/views/timer/start_timer.dart';
+import 'package:medito/widgets/art/art_cover.dart';
+import 'package:medito/widgets/medito_icon.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
@@ -18,33 +27,55 @@ import 'package:medito/widgets/snackbar_widget.dart';
 import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/network_image_widget.dart';
 
-/// The first three things the user pinned, courses with where they are in
-/// them and sessions with what they are, then "See all" when there are more.
-/// Hidden when nothing is pinned.
+/// Everything pinned to Home, the one way anything gets here: pinned
+/// presets as tiles that start their sit (up to
+/// [PinnedPresetsNotifier.homeLimit]), then the first three pinned courses
+/// and sessions as cards, then "See all" when either has more. Hidden when
+/// nothing is pinned.
 class PinnedSection extends ConsumerWidget {
   const PinnedSection({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ids = ref.watch(pinnedCoursesProvider);
-    if (ids.isEmpty) return const SizedBox.shrink();
+    final presets = ref.watch(pinnedPresetsProvider);
+    if (ids.isEmpty && presets.isEmpty) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context)!;
     final shown = ids.take(PinnedCoursesNotifier.homeLimit);
+    final more =
+        ids.length > PinnedCoursesNotifier.homeLimit ||
+        presets.length > PinnedPresetsNotifier.homeLimit;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         HomeSectionHeader(l10n.homePinnedTitle),
+        if (presets.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: kHomeGutter),
+            child: ShortcutTileGrid(
+              tiles: [
+                for (final preset in presets.take(
+                  PinnedPresetsNotifier.homeLimit,
+                ))
+                  PinnedPresetTile(preset: preset),
+              ],
+            ),
+          ),
         for (final (i, id) in shown.indexed)
           Padding(
             padding: EdgeInsets.fromLTRB(
               kHomeGutter,
-              i == 0 ? 0 : kHomeRowGap,
+              i > 0
+                  ? kHomeRowGap
+                  : presets.isEmpty
+                  ? 0
+                  : kHomeGap,
               kHomeGutter,
               0,
             ),
             child: PinnedTile(id: id),
           ),
-        if (ids.length > PinnedCoursesNotifier.homeLimit)
+        if (more)
           Padding(
             padding: const EdgeInsets.fromLTRB(
               kHomeGutter,
@@ -60,7 +91,7 @@ class PinnedSection extends ConsumerWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(l10n.pinnedSeeAll(ids.length)),
+                    Text(l10n.pinnedSeeAll(ids.length + presets.length)),
                     const SizedBox(width: 4),
                     const Icon(Icons.chevron_right_rounded, size: 20),
                   ],
@@ -69,6 +100,85 @@ class PinnedSection extends ConsumerWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// A pinned preset as a tile: a tap starts that sit. With a Length it runs
+/// that long (∞ counts up); without one, as long as the Timer is set. A
+/// long press offers Unpin, as a pinned card's menu does.
+class PinnedPresetTile extends ConsumerWidget {
+  const PinnedPresetTile({super.key, required this.preset});
+
+  final Preset preset;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final words = PresetWords.of(context, ref);
+    final name = soundPresetLabel(l10n, preset);
+    final slots = preset.slots;
+    // How long it will run, then its bell and rhythm; its sound is its art.
+    final caption = [
+      words.value(slots, PresetSlot.length, short: true) ??
+          timerLengthLabel(ref, l10n),
+      ?words.value(slots, PresetSlot.bells, short: true),
+      ?words.value(slots, PresetSlot.rhythm, short: true),
+    ].join(' · ');
+
+    void start() => startPresetSession(context, preset);
+
+    void unpin() {
+      // The tile goes as soon as the pin does: Undo is set up first.
+      final pins = ref.read(pinnedPresetIdsProvider.notifier);
+      final before = ref.read(pinnedPresetIdsProvider);
+      pins.unpin(preset.id);
+      showSnackBar(
+        context,
+        l10n.homeUnpinned,
+        actionLabel: l10n.undo,
+        onActionPressed: () => pins.pinBack(preset.id, before),
+      );
+    }
+
+    final actions = [
+      CardAction(
+        key: const ValueKey('pinned_menu_play'),
+        icon: Icons.play_arrow_rounded,
+        label: l10n.play,
+        onSelected: start,
+      ),
+      CardAction(
+        key: const ValueKey('pinned_menu_unpin'),
+        icon: Icons.push_pin_outlined,
+        label: l10n.unpinCourse,
+        onSelected: unpin,
+      ),
+    ];
+
+    return ShortcutTile(
+      key: ValueKey('pinned_preset_${preset.id}'),
+      color: scheme.tertiaryContainer,
+      onColor: scheme.onTertiaryContainer,
+      icon: (color) => preset.playsSound
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: SizedBox.square(
+                dimension: 28,
+                child: ArtCover(
+                  subject: ArtSubject.layers(preset.id, preset.mix.layers),
+                ),
+              ),
+            )
+          : MeditoIcon(assetName: MeditoIcons.timer, color: color, size: 24),
+      label: name,
+      caption: caption,
+      semanticsLabel: '${l10n.presetStart(name)}, $caption',
+      starts: true,
+      onTap: start,
+      onLongPress: () =>
+          showCardActions(context, title: name, actions: actions),
     );
   }
 }
