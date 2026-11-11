@@ -11,6 +11,7 @@ import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
+import 'package:medito/services/soundscape/soundscape_store.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/home/widgets/pinned/pinned_list_view.dart';
 import 'package:medito/views/home/widgets/pinned/pinned_section.dart';
@@ -76,6 +77,8 @@ Future<LibraryTestApp> _pumpHome(
   List<String> sessions = const [],
 }) async {
   final app = await LibraryTestApp.create(tester);
+  // No preset pinned: these are about pinned courses and sessions.
+  SoundscapeStore(app.prefs).writePinnedPresets(const []);
   await app.prefs.setStringList(
     SharedPreferenceConstants.pinnedCourseIds,
     pins,
@@ -227,6 +230,7 @@ void main() {
 
   testWidgets('the list says how to pin when nothing is', (tester) async {
     final app = await LibraryTestApp.create(tester);
+    SoundscapeStore(app.prefs).writePinnedPresets(const []);
     await app.pump(tester, const PinnedListView(), overrides: _overrides);
     expect(find.byKey(const ValueKey('pinned_list_empty')), findsOneWidget);
     expect(find.text('Nothing pinned yet'), findsOneWidget);
