@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/types/type_constants.dart';
+import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/providers/library/library_providers.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
@@ -33,6 +34,7 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
         ],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           home: Consumer(
             builder: (c, r, _) {
               context = c;
