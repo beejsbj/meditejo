@@ -8,7 +8,7 @@ import 'package:medito/services/youtube/youtube_source.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/dharma_seed/widgets/course_rows_sliver.dart';
 import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
-import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
+import 'package:medito/widgets/headers/page_back_button.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 import 'package:medito/widgets/attribution_notice.dart';
 import 'package:medito/widgets/cards/card_art.dart';
@@ -45,9 +45,9 @@ class _YoutubeChannelViewState extends ConsumerState<YoutubeChannelView> {
     final async = ref.watch(youtubeChannelPageProvider(widget.teacherId));
     final page = async.value;
     return Scaffold(
-      bottomNavigationBar: SingleBackButtonActionBar(
-        onBackPressed: () => Navigator.pop(context),
-      ),
+      // The page's header carries Back over its art; until there is one, a
+      // plain top bar does.
+      appBar: page != null ? null : AppBar(leading: const PageBackButton()),
       body: AdaptivePageBody(
         maxWidth: 960,
         child: page != null
@@ -94,8 +94,8 @@ class _YoutubeChannelViewState extends ConsumerState<YoutubeChannelView> {
         slivers: [
           MeditoAppBarLarge(
             scrollController: _scrollController,
+            hasLeading: true,
             title: channel.name,
-            hasLeading: false,
             coverUrl: channel.photoUrl,
             art: teacherArt(channel.id),
           ),

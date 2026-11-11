@@ -79,7 +79,9 @@ void main() {
       expect(find.byType(ChoiceChip), findsNothing);
       expect(find.byType(DropdownButton), findsNothing);
       expect(find.text('Ajahn Sucitto'), findsNothing);
-      expect(find.text('42 min'), findsNothing);
+      // The length is said once, on the Play bar, not as a choice.
+      expect(find.text('42 min'), findsOneWidget);
+      expect(find.byKey(const ValueKey('play_title')), findsOneWidget);
     });
 
     testWidgets('several guides and lengths are shown as chips', (
@@ -168,7 +170,8 @@ void main() {
       );
       expect(find.byKey(_guideChips), findsNothing);
       expect(find.byKey(_lengthChips), findsNothing);
-      expect(find.text('Play · 44 min'), findsOneWidget);
+      expect(find.byTooltip('Play · 44 min'), findsOneWidget);
+      expect(find.text('44 min'), findsOneWidget);
     });
 
     testWidgets('Play shows no length when it is unknown', (tester) async {

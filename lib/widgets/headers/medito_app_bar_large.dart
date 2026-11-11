@@ -3,6 +3,7 @@ import 'package:medito/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/widgets/art/art_subject.dart';
+import 'package:medito/widgets/headers/page_back_button.dart';
 
 class MeditoAppBarLarge extends StatefulWidget {
   const MeditoAppBarLarge({
@@ -22,6 +23,8 @@ class MeditoAppBarLarge extends StatefulWidget {
   /// What the header stands for (by id); shown when there is no picture.
   final ArtSubject? art;
   final Color bgColor;
+
+  /// Whether Back shows at the top-left, over the art: on a pushed page.
   final bool hasLeading;
 
   @override
@@ -30,8 +33,11 @@ class MeditoAppBarLarge extends StatefulWidget {
 
 class _MeditoAppBarLargeState extends State<MeditoAppBarLarge> {
   final topBarHeight = 300.0;
-  final collapsedPadding = 72.0;
-  final expandedPadding = 16.0;
+
+  /// The title's left edge: at the page's gutter while the header is open,
+  /// clear of Back once it has collapsed into the toolbar.
+  static const _expandedPadding = 16.0;
+  static const _collapsedPadding = 60.0;
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +45,7 @@ class _MeditoAppBarLargeState extends State<MeditoAppBarLarge> {
         ? widget.scrollController.offset
         : 0.0;
     final scrollFactor = (scrollPosition / 240).clamp(0.0, 1.0);
-    final titlePadding = (expandedPadding).toDouble();
+    final hasLeading = widget.hasLeading;
 
     return SliverAppBar.large(
       shadowColor: ColorConstants.ebony,
@@ -47,25 +53,37 @@ class _MeditoAppBarLargeState extends State<MeditoAppBarLarge> {
       expandedHeight: topBarHeight,
       backgroundColor: ColorConstants.onyx,
       automaticallyImplyLeading: false,
-      leading: widget.hasLeading ? const BackButton() : null,
-      flexibleSpace: _flexibleSpaceBar(
-        titlePadding,
-        widget.title,
-        scrollFactor,
+      leading: hasLeading ? const PageBackButton(onArt: true) : null,
+      flexibleSpace: Builder(
+        builder: (context) {
+          // How far the header has collapsed, from its own extent.
+          final settings = context
+              .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+          final range = settings == null
+              ? 0.0
+              : settings.maxExtent - settings.minExtent;
+          final collapsed = settings == null || range <= 0
+              ? 0.0
+              : (1 - (settings.currentExtent - settings.minExtent) / range)
+                    .clamp(0.0, 1.0);
+          // Only the last stretch moves the title aside, as it reaches the
+          // toolbar's row.
+          final aside = hasLeading
+              ? Curves.easeIn.transform(collapsed) *
+                    (_collapsedPadding - _expandedPadding)
+              : 0.0;
+          return FlexibleSpaceBar(
+            centerTitle: false,
+            titlePadding: EdgeInsetsDirectional.only(
+              start: _expandedPadding + aside,
+              end: 16,
+              bottom: 17.0,
+            ),
+            title: _topBarTitle(widget.title),
+            background: _topBarBackground(scrollFactor, widget.coverUrl),
+          );
+        },
       ),
-    );
-  }
-
-  FlexibleSpaceBar _flexibleSpaceBar(
-    double titlePadding,
-    String title,
-    double scrollFactor,
-  ) {
-    return FlexibleSpaceBar(
-      centerTitle: false,
-      titlePadding: EdgeInsets.only(left: titlePadding, bottom: 17.0),
-      title: _topBarTitle(title),
-      background: _topBarBackground(scrollFactor, widget.coverUrl),
     );
   }
 

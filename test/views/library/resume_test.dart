@@ -152,9 +152,10 @@ void main() {
       await app.pump(tester, TrackView(trackId: id));
       expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
       // A length the file does not know yet: Play alone (#84).
-      expect(find.text('Play'), findsOneWidget);
-      expect(find.textContaining('Resume at'), findsNothing);
-      expect(find.text('From the beginning'), findsNothing);
+      expect(find.byTooltip('Play'), findsOneWidget);
+      expect(find.byKey(const ValueKey('play_progress')), findsNothing);
+      expect(find.textContaining('from '), findsNothing);
+      expect(find.byTooltip('From the beginning'), findsNothing);
       // The page offers the library toggle too, already on.
       expect(find.byTooltip('In library'), findsOneWidget);
     });
@@ -171,8 +172,23 @@ void main() {
       );
       await app.pump(tester, TrackView(trackId: id));
 
-      expect(find.text('Resume at 12:34'), findsOneWidget);
-      expect(find.text('From the beginning'), findsOneWidget);
+      // The bar: the play disc in a ring of how far in, "from 12:34"
+      // beside it, and a small From the beginning at its end. "Resume at
+      // 12:34" is the tooltip and the screen reader's label.
+      final handle = tester.ensureSemantics();
+      expect(find.byKey(const ValueKey('play_progress')), findsOneWidget);
+      expect(find.text('from 12:34'), findsOneWidget);
+      expect(find.byTooltip('Resume at 12:34'), findsOneWidget);
+      expect(find.bySemanticsLabel('Resume at 12:34'), findsOneWidget);
+      expect(find.text('Resume at 12:34'), findsNothing);
+      final fromStart = find.byKey(const ValueKey('track_from_start'));
+      expect(fromStart, findsOneWidget);
+      expect(find.byTooltip('From the beginning'), findsOneWidget);
+      expect(
+        tester.getCenter(fromStart).dx,
+        greaterThan(tester.getCenter(find.text('from 12:34')).dx),
+      );
+      handle.dispose();
     });
   });
 

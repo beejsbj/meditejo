@@ -13,8 +13,8 @@ import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/views/library/item_actions.dart';
 import 'package:medito/views/pack/pack_view.dart';
-import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
 import 'package:medito/views/track/track_view.dart';
+import 'package:medito/widgets/play_bar.dart';
 
 import '../../helpers/dharma_seed_app.dart';
 import '../../helpers/fake_savable_source.dart';
@@ -164,7 +164,10 @@ void main() {
       );
       // Said once, as the teacher; the subtitle is not repeated.
       expect(find.text('John Vervaeke'), findsOneWidget);
-      expect(find.text('Play · 44 min'), findsOneWidget);
+      // Play is the bottom bar: a play disc and the length; the word is
+      // its tooltip and label.
+      expect(find.byTooltip('Play · 44 min'), findsOneWidget);
+      expect(find.text('44 min'), findsOneWidget);
       for (final key in const [
         'track_add_to_course',
         'course_pin',
@@ -217,13 +220,53 @@ void main() {
       expect(_saveToggle, findsOneWidget);
     });
 
-    testWidgets('the bottom bar is Back only', (tester) async {
+    testWidgets('the bottom bar is Play, the bottom-most thing; no Back '
+        'there', (tester) async {
       await _pump(tester, saved: {_courseId});
-      final bar = tester.widget<Scaffold>(find.byType(Scaffold).first);
-      expect(bar.bottomNavigationBar, isA<SingleBackButtonActionBar>());
+      final page = tester.widget<Scaffold>(find.byType(Scaffold).first);
+      expect(page.bottomNavigationBar, isA<PlayBar>());
+      final bar = find.byType(PlayBar);
+      expect(
+        find.descendant(
+          of: bar,
+          matching: find.byKey(const ValueKey('track_play')),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        tester.getRect(bar).bottom,
+        tester.getRect(find.byType(TrackView)).bottom,
+      );
+      expect(
+        find.descendant(of: bar, matching: find.byTooltip('Go Back')),
+        findsNothing,
+      );
+      // Nothing to resume: a plain play disc, no ring, no From the
+      // beginning.
+      expect(find.byKey(const ValueKey('play_progress')), findsNothing);
+      expect(find.byKey(const ValueKey('track_from_start')), findsNothing);
+      // The header's row sits above the bar, under the meta.
+      expect(
+        tester.getRect(find.byKey(const ValueKey('track_actions'))).bottom,
+        lessThan(tester.getRect(bar).top),
+      );
       // Share, Add to playlist and Pin are on the page, once each.
       expect(find.byIcon(Icons.playlist_add_rounded), findsOneWidget);
       expect(find.byIcon(Icons.push_pin_outlined), findsOneWidget);
+    });
+
+    testWidgets('Back is at the top-left and pops the page', (tester) async {
+      await _pump(tester, asRoute: true);
+      expect(find.byType(TrackView), findsOneWidget);
+      final back = find.byTooltip('Go Back');
+      expect(back, findsOneWidget);
+      expect(tester.getCenter(back).dx, lessThan(56));
+      expect(tester.getCenter(back).dy, lessThan(100));
+
+      await tester.tap(back);
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.byType(TrackView), findsNothing);
+      expect(find.text('root'), findsOneWidget);
     });
 
     testWidgets('its ⋮ leaves out what the page shows as buttons', (

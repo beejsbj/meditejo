@@ -85,11 +85,12 @@ void main() {
       );
 
       expect(find.text('3 of 12 played'), findsOneWidget);
-      // The one primary button names that next talk, and plays it.
+      // The one primary action, the bottom bar, names that next talk and
+      // plays it; "Resume" is its tooltip and label.
       expect(
         find.descendant(
           of: find.byType(PackPlayButton),
-          matching: find.text(l10n.packContinue),
+          matching: find.byTooltip('${l10n.packContinue}: Long talk 4'),
         ),
         findsOneWidget,
       );
@@ -121,7 +122,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(PackPlayButton),
-          matching: find.text(l10n.packStart),
+          matching: find.byTooltip('${l10n.packStart}: Long talk 1'),
         ),
         findsOneWidget,
       );
@@ -371,7 +372,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Talk · Mar 1, 2014'), findsOneWidget);
-      expect(find.text('Play · 60 min'), findsOneWidget);
+      expect(find.byTooltip('Play · 60 min'), findsOneWidget);
       expect(find.text('Rob Burbea · Dharma Seed'), findsOneWidget);
       expect(find.text('Licence: CC BY-NC-ND 4.0'), findsOneWidget);
       expect(find.text('Streamed as recorded, unmodified.'), findsOneWidget);

@@ -29,7 +29,8 @@ import 'package:medito/views/player/widgets/bottom_actions/pin_action.dart';
 import 'package:medito/widgets/save_button.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/player/player_view.dart';
-import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
+import 'package:medito/widgets/headers/page_back_button.dart';
+import 'package:medito/widgets/play_bar.dart';
 import 'package:medito/views/home/widgets/home_gradient_border.dart';
 import 'package:medito/views/categories/category_chips.dart';
 import 'package:medito/widgets/attribution_notice.dart';
@@ -41,9 +42,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// An episode's page (#84): its cover, its own title (without what every
 /// episode of its course repeats), the course it is part of, who leads it,
-/// a labelled Play over a row of toggles (Library, Add to playlist, Pin,
-/// Share, ⋮), its description, and the credit, small, at the end. Laid out
-/// as a course's header is (#81).
+/// a row of toggles (Library, Add to playlist, Pin, Share, ⋮), its
+/// description, and the credit, small, at the end. Laid out as a course's
+/// header is (#81). Back is at the top; Play is the bottom bar ([PlayBar]).
 class TrackView extends ConsumerStatefulWidget {
   const TrackView({
     super.key,
@@ -124,18 +125,35 @@ class _TrackViewState extends ConsumerState<TrackView>
     final guideName = ref.watch(guideNamePreferenceProvider);
     final lastSelectedDuration = ref.watch(durationPreferenceProvider);
 
-    void popContext() => Navigator.pop(context);
+    final shown = trackAsyncValue.hasValue && !trackAsyncValue.hasError
+        ? trackAsyncValue.value
+        : null;
 
     return Scaffold(
-      // Back only: the episode's actions sit with it, as a course's do
-      // (#81).
-      bottomNavigationBar: SingleBackButtonActionBar(onBackPressed: popContext),
+      appBar: AppBar(
+        toolbarHeight: 48,
+        leading: const PageBackButton(),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        surfaceTintColor: ColorConstants.transparent,
+        scrolledUnderElevation: 0,
+      ),
+      // Play is the bottom-most thing, always on screen.
+      bottomNavigationBar: shown == null
+          ? null
+          : _playBar(
+              shown,
+              TrackVariantSelector.resolve(
+                shown,
+                guideName: guideName,
+                durationMs: lastSelectedDuration,
+              ),
+            ),
       body: AdaptivePageBody(
         maxWidth: 600,
         child: SafeArea(
           child: SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
               child: trackAsyncValue.when(
                 data: (track) {
                   final selection = TrackVariantSelector.resolve(
@@ -274,13 +292,10 @@ class _TrackViewState extends ConsumerState<TrackView>
               style: theme.textTheme.bodyMedium?.copyWith(color: muted),
             ),
           ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         // A picker with one option is not a choice, so it is not shown
         // (playing still uses that option).
         ..._pickers(track, activeVoice, activeFile),
-        _playBtn(track, activeVoice, activeFile),
-        ..._fromStart(track, activeVoice, activeFile),
-        const SizedBox(height: 12),
         _actions(
           track,
           courseId: course?.id,
@@ -433,7 +448,7 @@ class _TrackViewState extends ConsumerState<TrackView>
     ].join(' · ');
   }
 
-  /// Under Play, as a course's header has them: Add to library (unless the
+  /// Under the title and meta, as a course's header has them: Add to library (unless the
   /// episode's course is already there), Add to playlist, Pin, Share and ⋮
   /// with the rest.
   Widget _actions(
@@ -503,28 +518,18 @@ class _TrackViewState extends ConsumerState<TrackView>
     return point != null && point.appliesTo(file.id) ? point : null;
   }
 
-  /// "From the beginning", offered only when there is a place to resume.
-  List<Widget> _fromStart(Track track, TrackVoice voice, TrackAudioFile file) {
-    final resume = _resumeIn(track, file);
-    if (resume == null) return const [];
-    return [
-      Align(
-        child: TextButton(
-          key: const ValueKey('track_from_start'),
-          onPressed: _isStarting
-              ? null
-              : () => _handlePlay(ref, track, voice, file, fromStart: true),
-          child: Text(AppLocalizations.of(context)!.libraryFromStart),
-        ),
-      ),
-    ];
-  }
-
-  /// "Play · 44 min" (or "Resume at 12:34"), full width and filled in the
-  /// accent, as a course's Play is: the action word bold, the rest lighter.
-  Widget _playBtn(Track track, TrackVoice voice, TrackAudioFile file) {
-    final theme = Theme.of(context);
+  /// The bottom bar. A play disc and the length ("44 min"); or, with a
+  /// place to resume, the disc in a ring of how far in that is and "from
+  /// 12:34", with a small "From the beginning" at the bar's end. The words
+  /// "Play" and "Resume at 12:34" are the screen reader's label and the
+  /// tooltip.
+  Widget _playBar(
+    Track track,
+    ({TrackVoice voice, TrackAudioFile file}) selection,
+  ) {
     final l10n = AppLocalizations.of(context)!;
+    final voice = selection.voice;
+    final file = selection.file;
     final resume = _resumeIn(track, file);
     final minutes = convertDurationToMinutes(milliseconds: file.duration);
     final label = resume != null
@@ -532,82 +537,39 @@ class _TrackViewState extends ConsumerState<TrackView>
         : minutes > 0
         ? l10n.playForMinutes(minutes)
         : l10n.play;
-    final foreground = context.onBrandAccent;
-    final strong = theme.textTheme.labelLarge?.copyWith(
-      color: foreground,
-      fontWeight: FontWeight.w700,
-      fontSize: 15,
-    );
-    final light = theme.textTheme.bodyMedium?.copyWith(
-      color: foreground.withValues(alpha: 0.85),
-      fontSize: 14,
-      fontWeight: FontWeight.w500,
-    );
-    final cut = label.indexOf(' · ');
-    final onTap = _isStarting
-        ? null
-        : () => _handlePlay(ref, track, voice, file);
-    return Semantics(
-      button: true,
-      enabled: onTap != null,
+    return PlayBar(
+      actionKey: const ValueKey('track_play'),
       label: label,
-      excludeSemantics: true,
-      child: Material(
-        shape: const StadiumBorder(),
-        clipBehavior: Clip.antiAlias,
-        color: context.brandAccent,
-        child: InkWell(
-          key: const ValueKey('track_play'),
-          // Guarded so a rapid second tap can't push a second player route
-          // before the first navigation covers this button.
-          onTap: onTap,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              minHeight: 56,
-              minWidth: double.infinity,
+      tooltip: label,
+      caption: resume != null
+          ? l10n.playFromPosition(formatClock(resume.positionMs))
+          : minutes > 0
+          ? '$minutes ${l10n.min}'
+          : null,
+      progress: resume == null ? null : _fraction(resume, file),
+      busy: _isStarting,
+      // Guarded so a rapid second tap can't push a second player route
+      // before the first navigation covers this button.
+      onTap: _isStarting ? null : () => _handlePlay(ref, track, voice, file),
+      trailing: resume == null
+          ? null
+          : IconButton(
+              key: const ValueKey('track_from_start'),
+              tooltip: l10n.libraryFromStart,
+              onPressed: _isStarting
+                  ? null
+                  : () => _handlePlay(ref, track, voice, file, fromStart: true),
+              icon: const Icon(Icons.restart_alt_rounded),
             ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 6, 20, 6),
-              child: Row(
-                children: [
-                  SizedBox.square(
-                    dimension: 28,
-                    child: Center(
-                      child: Icon(
-                        Icons.play_arrow_rounded,
-                        size: 28,
-                        color: foreground,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text.rich(
-                      TextSpan(
-                        children: cut < 0
-                            ? [TextSpan(text: label, style: strong)]
-                            : [
-                                TextSpan(
-                                  text: label.substring(0, cut),
-                                  style: strong,
-                                ),
-                                TextSpan(
-                                  text: label.substring(cut),
-                                  style: light,
-                                ),
-                              ],
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
     );
+  }
+
+  /// How far into [file] the saved place is, for the bar's ring. Never
+  /// empty: a place a few seconds in still reads as a resume.
+  static double _fraction(ResumePoint resume, TrackAudioFile file) {
+    final total = resume.durationMs > 0 ? resume.durationMs : file.duration;
+    if (total <= 0) return 0.06;
+    return (resume.positionMs / total).clamp(0.06, 1.0);
   }
 
   Text _title(BuildContext context, String title) {

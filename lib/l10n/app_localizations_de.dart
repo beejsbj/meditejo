@@ -1654,6 +1654,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get libraryInLibrary => 'In der Bibliothek';
 
   @override
+  String playFromPosition(String position) {
+    return 'ab $position';
+  }
+
+  @override
   String libraryResumeAt(String position) {
     return 'Fortsetzen bei $position';
   }

@@ -103,6 +103,10 @@ void main() {
   testWidgets('an untouched pack says Start', (tester) async {
     await pump(tester, _pack('fresh', 'Fresh', done: 0));
 
+    // A plain play disc: no ring, no word.
+    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+    expect(find.byKey(const ValueKey('play_progress')), findsNothing);
+    expect(find.text(l10n.packStart), findsNothing);
     final handle = tester.ensureSemantics();
     expect(
       find.bySemanticsLabel(RegExp('^${l10n.packStart}: Session 0')),
@@ -122,6 +126,15 @@ void main() {
         '${l10n.packContinue}: Session 3. ${l10n.upNextProgress(3, 7)}',
       ),
       findsOneWidget,
+    );
+    // Resume is said by the icon, a ring of the sessions played around the
+    // play disc, with the session's name beside it: the word is not shown.
+    expect(find.text(l10n.packContinue), findsNothing);
+    expect(find.byKey(const ValueKey('play_progress')), findsOneWidget);
+    expect(find.byTooltip('${l10n.packContinue}: Session 3'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('play_title'))).data,
+      'Session 3',
     );
     handle.dispose();
 
@@ -145,7 +158,10 @@ void main() {
   ) async {
     await pump(tester, _pack('done', 'Done', tracks: 2, done: 2));
 
-    expect(find.text(l10n.coursePlayAgain), findsOneWidget);
+    expect(
+      find.byTooltip('${l10n.coursePlayAgain}: Session 0'),
+      findsOneWidget,
+    );
     expect(find.text('Session 0'), findsOneWidget);
     await tester.tap(find.byIcon(Icons.replay_rounded));
     await tester.pumpAndSettle();
@@ -164,8 +180,8 @@ void main() {
       extra: [partialPlacesProvider.overrideWith((ref) => places.future)],
     );
     final handle = tester.ensureSemantics();
-    expect(find.text(l10n.play), findsOneWidget);
-    expect(find.text(l10n.packContinue), findsNothing);
+    expect(find.byTooltip(l10n.play), findsOneWidget);
+    expect(find.byKey(const ValueKey('play_progress')), findsNothing);
     expect(find.textContaining('Session'), findsNothing);
     expect(find.bySemanticsLabel(l10n.play), findsOneWidget);
     await tester.tap(find.byIcon(Icons.play_arrow_rounded));
@@ -174,7 +190,7 @@ void main() {
 
     places.complete({'sleep-5': DateTime(2026, 10, 25)});
     await tester.pumpAndSettle();
-    expect(find.text(l10n.packContinue), findsOneWidget);
+    expect(find.byTooltip('${l10n.packContinue}: Session 5'), findsOneWidget);
     expect(find.text('Session 5'), findsOneWidget);
     handle.dispose();
   });
@@ -192,7 +208,7 @@ void main() {
         ),
       ],
     );
-    // The header's action row leaves Play out for it.
+    // The page shows no Play bar for it.
     expect(PackPlayButton.isPlayable(nested), isFalse);
     expect(PackPlayButton.isPlayable(sleep), isTrue);
   });

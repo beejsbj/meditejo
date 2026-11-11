@@ -1308,7 +1308,7 @@ void main() {
       await _capture(tester, 'pinned-list-${brightness.name}');
     }, skip: !_enabled);
 
-    // A course page: its Pin control and its bottom bar (#79).
+    // A course page: its Pin control and its Play bar (#79).
     testWidgets('Course page pin, ${brightness.name}', (tester) async {
       WidgetsApp.debugAllowBannerOverride = false;
       addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
@@ -1433,8 +1433,8 @@ void main() {
       );
     }, skip: !_enabled);
 
-    // The header's Play and toggles in long languages, on the narrowest
-    // phones and at a larger text size (#81): no word may be cut.
+    // The header's toggles and the Play bar in long languages, on the
+    // narrowest phones and at a larger text size (#81).
     testWidgets('Course page fit, ${brightness.name}', (tester) async {
       WidgetsApp.debugAllowBannerOverride = false;
       addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
@@ -2039,6 +2039,53 @@ void main() {
             'episode-${episode.name}-end-${brightness.name}',
           );
         }
+      }
+    }, skip: !_enabled);
+
+    // An episode left partway: the bottom bar's resume ring, "from 1:10"
+    // and From the beginning; at 411 dp, and at 360 x 640 dp with text x2.
+    testWidgets('Episode page resume, ${brightness.name}', (tester) async {
+      WidgetsApp.debugAllowBannerOverride = false;
+      addTearDown(() => WidgetsApp.debugAllowBannerOverride = true);
+      final episode = _episodes[1];
+      for (final small in const [false, true]) {
+        final app = await LibraryTestApp.create(tester);
+        await app.pump(
+          tester,
+          _frame(
+            brightness,
+            Builder(
+              builder: (context) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(small ? 2 : 1)),
+                child: TrackView(
+                  key: ValueKey('resume-$small'),
+                  trackId: episode.track.id,
+                ),
+              ),
+            ),
+          ),
+          overrides: [
+            ..._episodeOverrides,
+            resumePointProvider(episode.track.id).overrideWith(
+              (ref) async =>
+                  const ResumePoint(positionMs: 70000, durationMs: 4080000),
+            ),
+          ],
+        );
+        if (small) {
+          tester.view.devicePixelRatio = 3;
+          tester.view.physicalSize = const Size(1080, 1920);
+        } else {
+          await _phone(tester);
+        }
+        await tester.pump(const Duration(seconds: 1));
+        expect(tester.takeException(), isNull);
+        await _captureView(
+          tester,
+          'episode-resume${small ? '-360x640-x2.0' : ''}-${brightness.name}',
+        );
       }
     }, skip: !_enabled);
 
