@@ -622,8 +622,6 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                PresetRow(place: _presetPlace, onOpened: _dismissUndo),
-                const SizedBox(height: 4),
                 KeyedSubtree(
                   key: const ValueKey('customize_dial'),
                   child: _dial(s),
@@ -634,6 +632,10 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
                     for (final card in _Card.values) _tile(card, s, reference),
                   ],
                 ),
+                // Under the tiles, so the dial stays on top: what all of
+                // this was loaded from, the list of presets, and Save.
+                const SizedBox(height: 8),
+                PresetRow(place: _presetPlace, onOpened: _dismissUndo),
                 if (_scope.courseId != null) ...[
                   const SizedBox(height: 16),
                   // Compact with large text, where its second line would

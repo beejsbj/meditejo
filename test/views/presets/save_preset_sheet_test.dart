@@ -189,7 +189,14 @@ void main() {
     await open(tester, const PresetContext.sounds());
     expect(_box(PresetSlot.sound), findsOneWidget);
     expect(_ticked(tester, PresetSlot.sound), isTrue);
-    expect(_says(PresetSlot.sound, 'River'), findsOne);
+    // The mix a new install starts with, and the river added to it.
+    expect(
+      find.descendant(
+        of: _slot(PresetSlot.sound),
+        matching: find.textContaining('River'),
+      ),
+      findsOne,
+    );
     for (final slot in [
       PresetSlot.bells,
       PresetSlot.rhythm,

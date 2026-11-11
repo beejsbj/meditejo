@@ -13,6 +13,7 @@ import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/providers/timer/timer_settings_provider.dart';
 import 'package:medito/services/soundscape/soundscape_store.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
+import 'package:medito/views/presets/preset_labels.dart';
 import 'package:medito/views/presets/save_preset_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -32,6 +33,9 @@ final _loaded = find.byKey(const ValueKey('preset_loaded'));
 
 /// Opens the list of presets from Customize's row.
 Future<void> _openList(WidgetTester tester) async {
+  // Under the tiles: on a small phone it is scrolled to.
+  await tester.ensureVisible(_row);
+  await tester.pumpAndSettle();
   await tester.tap(_row);
   await tester.pumpAndSettle();
 }
@@ -56,11 +60,12 @@ String _line(WidgetTester tester) => tester.widget<Text>(_loaded).data!;
 
 /// What an entry says it sets, with the muted parts marked.
 List<(String, bool muted)> _parts(WidgetTester tester, String id) {
-  final rich = tester
-      .widgetList<RichText>(
-        find.descendant(of: _entry(id), matching: find.byType(RichText)),
-      )
-      .last;
+  final rich = tester.widget<RichText>(
+    find.descendant(
+      of: find.descendant(of: _entry(id), matching: find.byType(PresetSummary)),
+      matching: find.byType(RichText),
+    ),
+  );
   final base = rich.text.style?.color;
   final parts = <(String, bool)>[];
   rich.text.visitChildren((span) {
@@ -108,7 +113,9 @@ void main() {
     addTearDown(tester.view.reset);
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
-    SoundscapeStore(prefs).writePresets(presets);
+    SoundscapeStore(prefs)
+      ..writePresets(presets)
+      ..writePinnedPresets(const []);
     container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
@@ -202,8 +209,8 @@ void main() {
     final semantics = tester.ensureSemantics();
     await _openList(tester);
     expect(
-      tester.getSemantics(find.bySemanticsLabel('Use Morning sit')),
-      isSemantics(isSelected: true, isButton: true, label: 'Use Morning sit'),
+      tester.getSemantics(find.bySemanticsLabel(RegExp('^Use Morning sit'))),
+      isSemantics(isSelected: true, isButton: true),
     );
     semantics.dispose();
     await tester.tapAt(const Offset(10, 10));
@@ -304,6 +311,8 @@ void main() {
     await container
         .read(cueSettingsProvider(_practice).notifier)
         .update(const CueSettings(durationMinutes: 30, startSound: _bowl));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(_saveButton);
     await tester.pumpAndSettle();
     await tester.tap(_saveButton);
     await tester.pumpAndSettle();

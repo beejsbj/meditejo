@@ -23,9 +23,10 @@ String presetFromLine(AppLocalizations l10n, LoadedPreset loaded) {
   return loaded.edited ? l10n.presetFromEdited(name) : l10n.presetFrom(name);
 }
 
-/// Presets, in Customize, as one line: it names the preset loaded ("From
-/// Morning sit · edited") and opens the list of them; Save beside it opens
-/// the save sheet. One line, so the dial and the tiles keep the sheet.
+/// Presets, in Customize, as one line under the tiles: it names the
+/// preset loaded ("From Morning sit · edited") and opens the list of them;
+/// Save beside it opens the save sheet. Under the tiles so the dial stays
+/// on top and the four tiles stay on the first screen.
 class PresetRow extends ConsumerWidget {
   const PresetRow({super.key, required this.place, this.onOpened});
 

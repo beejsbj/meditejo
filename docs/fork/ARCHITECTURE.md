@@ -666,8 +666,22 @@ follows `audioStateProvider.isPlaying`; Dart never holds both.
 **Controller.** `soundscapeProvider` (`SoundscapeController`,
 `lib/providers/soundscape/soundscape_provider.dart`) owns the state and
 reconciles it to the engine, one pass at a time. Persistence: shared
-preferences `soundscape_mix`, `soundscape_presets`, `soundscape_volume`,
+preferences `soundscape_mix`, `presets.v1` (the presets; `soundscape_presets`
+is the list from before #64, read once), `soundscape_volume`,
 `soundscape_session_defaults`.
+
+**Presets (#64).** A `Preset` (`lib/models/presets/preset.dart`) holds up to
+four slots: Sound (a `SoundMix`, stored as `layers`), Bells and Rhythm
+(`PresetCues`, slices of `CueSettings` read and written through it) and
+Length (minutes, or open-ended). It stores only the slots that were set.
+`lib/providers/presets/preset_providers.dart` has the rest: a `PresetContext`
+says which slots a place offers (the Timer all four; under a recording no
+Length; the Sounds sheet Sound only), `applyPreset`, `saveNewPreset` and
+`updatePreset` work through it, `loadedPresetProvider` names the preset
+loaded in a place and whether it was edited, and `pinnedPresetIdsProvider`
+(`presets.pinned`) is the presets pinned to Home. Views are in
+`lib/views/presets/`: the one save sheet, the list Customize opens, and the
+pin and delete actions.
 
 ### API for the player's Customize sheet
 
@@ -874,13 +888,13 @@ the You page), whose copy says the numbers are feedback, not a score.
   first item also feeds the Android Up Next widget. `inProgressItemsProvider`
   reads the same items with no limit and no fallback, for the Library's In
   progress; both start an item with `startContinueItem`.
-- **Shortcuts** (`lib/views/home/widgets/shortcuts/`): Timer (Medito's timer), Sounds (the background-sound
-  picker), up to two **sound presets** (`homeSoundPresetsProvider`: the
-  user's own, newest first, then the built-ins) and Add (import). A preset
-  tile starts the timer at once (`startTimerSession`,
-  `lib/views/timer/start_timer.dart`) with the preset as that session's
-  background: `PlaybackRequest.soundscape`, which the player prefers over the
-  scope's Customize choice, so the user's saved choices are untouched.
+- **Shortcuts** (`lib/views/home/widgets/shortcuts/`): the two fixed ways
+  in, Timer and Sounds. Nothing else: a preset is on Home because it is
+  pinned.
+- **Pinned presets** (`pinnedPresetsProvider`): tiles at the top of the
+  Pinned section, four before "See all". A tap is `startPresetSession`
+  (`lib/views/timer/start_timer.dart`): the preset is applied to the Timer,
+  as picking it in the Timer's Customize does, and the timer starts.
 - **Pinned courses** (`pinnedCoursesProvider`, `pinned_course_ids`): at most
   three, each with its progress, opening the course. Pinned from a library
   row's menu or a course page; a fourth is refused with a message. The course

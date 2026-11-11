@@ -181,6 +181,7 @@ void main() {
       greaterThan(third.bottom),
     );
     await tester.ensureVisible(_seeAll);
+    await settle(tester);
     expect(
       find.descendant(of: _seeAll, matching: find.text('See all 8')),
       findsOneWidget,
@@ -208,6 +209,7 @@ void main() {
       pinned: ['user-1', 'user-2', 'user-3'],
     );
     await tester.ensureVisible(_tile('user-2'));
+    await settle(tester);
     await tester.longPress(_tile('user-2'));
     await settle(tester);
     final unpin = find.byKey(const ValueKey('pinned_menu_unpin'));

@@ -1,4 +1,6 @@
 import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/models/presets/preset.dart';
+import 'package:medito/services/soundscape/soundscape_store.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/starter_presets.dart';
 import 'package:medito/models/timer/timer_session.dart';
@@ -637,6 +639,98 @@ void main() {
             .id,
         preset.id,
       );
+      expect(tester.takeException(), isNull);
+    });
+  }, timeout: const Timeout(Duration(seconds: 45)));
+
+  testWidgets('a pinned preset with a length starts a timer of that length, '
+      'with its bell and its sound', (tester) async {
+    await _withNativeAudio(tester, (native, directory) async {
+      const bowl = 'assets/audio/bell_bowl_medium.wav';
+      final sit = Preset(
+        id: 'user-sit',
+        name: 'Morning sit',
+        slots: PresetSlots(
+          sound: kStarterPresets[1].mix,
+          bells: PresetCues.bells(const CueSettings(startSound: bowl)),
+          length: const PresetLength.minutes(20),
+        ),
+      );
+      SoundscapeStore(prefs)
+        ..writePresets([sit])
+        ..writePinnedPresets([sit.id]);
+      final sounds = FakeSoundscapeEngine();
+      final container = await _home(
+        tester,
+        prefs,
+        sounds: sounds,
+        ownAudioState: true,
+      );
+      final tile = find.byKey(const ValueKey('pinned_preset_user-sit'));
+      expect(
+        find.descendant(of: tile, matching: find.text('20 min · Singing bowl')),
+        findsOneWidget,
+      );
+      await tester.ensureVisible(tile);
+      await tester.pump();
+      await tester.tap(tile);
+      await _pumpUntil(
+        tester,
+        () => find.byType(PlayerView).evaluate().isNotEmpty,
+        reason: 'The preset tile must open the player at once',
+      );
+      final request = container.read(playerProvider)!;
+      expect(request.isTimer, isTrue);
+      expect(request.timerMode, TimerMode.countdown);
+      expect(request.trackId, 'timer-1200');
+      const practice = CueScope(CueKind.practice);
+      expect(container.read(cueSettingsProvider(practice)).startSound, bowl);
+      expect(container.read(cueSettingsProvider(practice)).durationMinutes, 20);
+      await _pumpUntil(
+        tester,
+        () => container.read(soundscapeProvider).underSession,
+        reason: 'Its sound must play under the timer session',
+      );
+      expect(container.read(soundscapeProvider).mix, sit.mix);
+      expect(tester.takeException(), isNull);
+    });
+  }, timeout: const Timeout(Duration(seconds: 45)));
+
+  testWidgets('a pinned ∞ preset counts up, whatever length the Timer was '
+      'left on', (tester) async {
+    await _withNativeAudio(tester, (native, directory) async {
+      const open = Preset(
+        id: 'user-open',
+        name: 'Open sit',
+        slots: PresetSlots(length: PresetLength.openEnded()),
+      );
+      SoundscapeStore(prefs)
+        ..writePresets([open])
+        ..writePinnedPresets([open.id]);
+      final container = await _home(
+        tester,
+        prefs,
+        sounds: FakeSoundscapeEngine(),
+        ownAudioState: true,
+      );
+      expect(container.read(timerSettingsProvider).mode, TimerMode.countdown);
+      final tile = find.byKey(const ValueKey('pinned_preset_user-open'));
+      expect(
+        find.descendant(of: tile, matching: find.text('∞')),
+        findsOneWidget,
+      );
+      await tester.ensureVisible(tile);
+      await tester.pump();
+      await tester.tap(tile);
+      await _pumpUntil(
+        tester,
+        () => find.byType(PlayerView).evaluate().isNotEmpty,
+        reason: 'The preset tile must open the player at once',
+      );
+      final request = container.read(playerProvider)!;
+      expect(request.timerMode, TimerMode.stopwatch);
+      expect(request.fileId, 'timer-stopwatch-0');
+      expect(container.read(timerSettingsProvider).mode, TimerMode.stopwatch);
       expect(tester.takeException(), isNull);
     });
   }, timeout: const Timeout(Duration(seconds: 45)));

@@ -1,15 +1,21 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/models/cues/cue_settings.dart';
+import 'package:medito/models/presets/preset.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/starter_presets.dart';
 import 'package:medito/models/soundscape/synth.dart';
+import 'package:medito/providers/cues/cue_settings_provider.dart';
+import 'package:medito/providers/presets/preset_providers.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
+import 'package:medito/services/soundscape/soundscape_store.dart';
 import 'package:medito/views/soundscape/sound_credits_view.dart';
 import 'package:medito/views/soundscape/sound_cards.dart';
 import 'package:medito/views/soundscape/sounds_sheet.dart';
@@ -308,6 +314,140 @@ void main() {
     );
   });
 
+  group('a preset that is a whole sit', () {
+    const bowl = 'assets/audio/bell_bowl_medium.wav';
+    final sit = Preset(
+      id: 'user-sit',
+      name: 'Morning sit',
+      slots: PresetSlots(
+        sound: const SoundMix([SoundLayer(soundId: 'river', volume: 0.6)]),
+        bells: PresetCues.bells(const CueSettings(startSound: bowl)),
+        length: const PresetLength.minutes(20),
+      ),
+    );
+    final silent = Preset(
+      id: 'user-bells',
+      name: 'Bells only',
+      slots: PresetSlots(
+        bells: PresetCues.bells(const CueSettings(startSound: bowl)),
+      ),
+    );
+    final saved = {
+      SoundscapeStore.presetsKey: jsonEncode([sit.toJson(), silent.toJson()]),
+      SoundscapeStore.pinnedPresetsKey: <String>[],
+    };
+    final card = find.byKey(const ValueKey('preset_user-sit'));
+
+    testWidgets('its card plays its sound and says what else it holds; the '
+        'rest is not set from here', (tester) async {
+      phone(tester);
+      await pump(tester, prefsValues: saved);
+      await revealPreset(tester, card);
+      expect(
+        find.descendant(
+          of: card,
+          matching: find.byKey(const ValueKey('preset_also_user-sit')),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<RichText>(
+              find.descendant(
+                of: find.byKey(const ValueKey('preset_also_user-sit')),
+                matching: find.byType(RichText),
+              ),
+            )
+            .text
+            .toPlainText(),
+        'Singing bowl · 20 min',
+      );
+      // A preset that ships holds nothing else, and says nothing more.
+      expect(find.byKey(ValueKey('preset_also_${starter.id}')), findsNothing);
+      // One with no sound has nothing to play here.
+      expect(find.byKey(const ValueKey('preset_user-bells')), findsNothing);
+
+      final row = tester.getRect(
+        find.byKey(const PageStorageKey('sounds_presets')),
+      );
+      await tester.tapAt(tester.getRect(card).intersect(row).center);
+      await tester.pumpAndSettle();
+      final state = container.read(soundscapeProvider);
+      expect(state.playing, isTrue);
+      expect(state.owner, SoundscapeOwner.standalone);
+      expect(state.mix, sit.mix);
+      const practice = CueScope(CueKind.practice);
+      final cues = container.read(cueSettingsProvider(practice));
+      expect(cues.startSound, cueDefaultBell);
+      expect(cues.durationMinutes, 10);
+      expect(
+        container
+            .read(soundscapeProvider.notifier)
+            .sessionDefault(SoundscapeSessionKind.practice),
+        SoundscapeSessionDefault.initial(SoundscapeSessionKind.practice),
+      );
+      await tester.tap(find.byKey(const ValueKey('sounds_stop')));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('changed, the dock says where the mix came from, and saving '
+        'offers Update', (tester) async {
+      phone(tester);
+      await pump(tester, prefsValues: saved);
+      await applyPreset(container, const PresetContext.sounds(), sit);
+      await tester.pumpAndSettle();
+      expect(find.text('From Morning sit · edited'), findsNothing);
+      container.read(soundscapeProvider.notifier).toggleSound('cafe');
+      await tester.pumpAndSettle();
+      expect(find.text('From Morning sit · edited'), findsOneWidget);
+
+      final save = find.byKey(const ValueKey('preset_save'));
+      await revealPreset(tester, save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(find.text('Update “Morning sit”'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('preset_update')));
+      await tester.pumpAndSettle();
+      final updated = container
+          .read(soundscapeProvider)
+          .userPresets
+          .firstWhere((p) => p.id == 'user-sit');
+      expect(updated.mix.contains('cafe'), isTrue);
+      expect(updated.slots.bells, sit.slots.bells);
+      expect(updated.slots.length, sit.slots.length);
+      expect(find.text('Updated “Morning sit”'), findsOneWidget);
+      expect(find.text('From Morning sit · edited'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('sounds_stop')));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('its ⋮ pins it to Home and unpins it', (tester) async {
+      phone(tester);
+      await pump(tester, prefsValues: saved);
+      final menu = find.byKey(const ValueKey('preset_menu_user-sit'));
+      final pin = find.byKey(const ValueKey('preset_pin_user-sit'));
+      await revealPreset(tester, menu);
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: pin, matching: find.text('Pin to Home')),
+        findsOneWidget,
+      );
+      await tester.tap(pin);
+      await tester.pumpAndSettle();
+      expect(container.read(pinnedPresetIdsProvider), ['user-sit']);
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: pin, matching: find.text('Unpin from Home')),
+        findsOneWidget,
+      );
+      await tester.tap(pin);
+      await tester.pumpAndSettle();
+      expect(container.read(pinnedPresetIdsProvider), isEmpty);
+    });
+  });
+
   testWidgets('presets and sounds look different, and tap differently', (
     tester,
   ) async {
@@ -520,7 +660,18 @@ void main() {
     final id = container.read(soundscapeProvider).userPresets.single.id;
     // A built-in preset's menu pins it; it cannot be deleted.
     final builtIn = find.byKey(ValueKey('preset_menu_${starter.id}'));
-    await revealPreset(tester, builtIn);
+    // Back at the start of the row, which Save scrolled away from.
+    await tester.scrollUntilVisible(
+      builtIn,
+      -200,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const PageStorageKey('sounds_presets')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(builtIn);
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('preset_pin_${starter.id}')), findsOneWidget);
