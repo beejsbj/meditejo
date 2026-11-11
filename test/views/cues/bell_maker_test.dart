@@ -378,16 +378,14 @@ void main() {
     }
 
     Future<void> open(WidgetTester tester, String row) async {
-      // The bells are behind their tile (#72).
-      if (find.text(row).evaluate().isEmpty) {
-        final tile = find.byKey(const ValueKey('customize_slot_bells'));
-        await tester.ensureVisible(tile);
-        await tester.tap(tile);
-        await _settle(tester);
-      }
-      final finder = find.text(row).first;
-      await tester.ensureVisible(finder);
-      await tester.tap(finder);
+      // Each bell's picker is its tile's card.
+      final tile = find.byKey(
+        ValueKey(
+          'customize_tile_${row == 'Starting bell' ? 'startBell' : 'endBell'}',
+        ),
+      );
+      await tester.ensureVisible(tile);
+      await tester.tap(tile);
       await _settle(tester);
     }
 
@@ -415,13 +413,13 @@ void main() {
         kSessionBellAsset,
       );
       expect(_preview.played.last, bell.id);
-      // The row says which bell it rings, by name.
+      // The tile says which bell it rings, by name.
       expect(
         find.descendant(
-          of: find.byKey(const ValueKey('customize_endBell')),
+          of: find.byKey(const ValueKey('customize_tile_endBell')),
           matching: find.text('Evening'),
         ),
-        findsWidgets,
+        findsOneWidget,
       );
       await tester.pumpWidget(const SizedBox.shrink());
     });

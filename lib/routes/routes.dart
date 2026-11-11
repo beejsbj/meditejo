@@ -14,7 +14,7 @@ import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/settings/settings_screen.dart';
 import 'package:medito/views/stats/stats_screen.dart';
 import 'package:medito/views/teacher/teacher_view.dart';
-import 'package:medito/views/timer/timer_view.dart';
+import 'package:medito/views/timer/timer_sheet.dart';
 import 'package:medito/views/track/track_view.dart';
 import 'package:medito/views/you/you_view.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -81,6 +81,10 @@ Future<void> handleNavigation(
     return;
   }
   Widget? page;
+  // The Timer is not a page: it opens as the Customize sheet over wherever
+  // the user is.
+  var timer = false;
+  var timerOpenEnded = false;
   if (type == TypeConstants.tabYou) {
     // The old You tab's link: the You page, alone over the tabs.
     navigatorKey.currentState?.popUntil((route) => route.isFirst);
@@ -96,8 +100,9 @@ Future<void> handleNavigation(
       await noteSessionOrigin(store, values.first, courseId);
       if (!context.mounted) return;
     }
-    page = values.first == kLegacyTimerTrackId
-        ? const TimerView()
+    timer = values.first == kLegacyTimerTrackId;
+    page = timer
+        ? null
         : TrackView(
             trackId: values.first,
             fromStart: fromStart,
@@ -141,9 +146,20 @@ Future<void> handleNavigation(
       page = StatsScreen(
         initialTabIndex: values.any((id) => id.contains(':history')) ? 1 : 0,
       );
-    } else if (values.contains(RouteConstants.timer)) {
-      page = const TimerView();
+    } else if (values.contains(RouteConstants.timer) ||
+        values.contains(RouteConstants.stopwatch)) {
+      timer = true;
+      timerOpenEnded = values.contains(RouteConstants.stopwatch);
     }
+  }
+  if (timer) {
+    final host = navigatorKey.currentContext ?? context;
+    if (!host.mounted) return;
+    await showTimerSheet(host, openEnded: timerOpenEnded);
+    if (ref != null && context.mounted) {
+      ref.read(statsProvider.notifier).refresh();
+    }
+    return;
   }
   if (page == null) return;
   await navigatorKey.currentState?.push<void>(

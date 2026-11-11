@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/views/timer/timer_format.dart';
-import 'package:medito/views/timer/timer_view.dart';
+import 'package:medito/views/timer/timer_sheet.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
@@ -1210,11 +1210,14 @@ class _SessionItemWidget extends ConsumerWidget {
               ),
             );
           }
+          if (isTimer) {
+            unawaited(showTimerSheet(context));
+            return;
+          }
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  isTimer ? const TimerView() : TrackView(trackId: session.id),
+              builder: (context) => TrackView(trackId: session.id),
             ),
           );
         },

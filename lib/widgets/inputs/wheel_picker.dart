@@ -9,11 +9,19 @@ import 'package:medito/constants/theme/tokens.dart';
 /// One value a [WheelPicker] can land on, with the words it shows ("6 min",
 /// "Off", "Halfway") and, optionally, longer words for a screen reader.
 class WheelOption<T> {
-  const WheelOption(this.value, this.label, {this.semanticsLabel});
+  const WheelOption(
+    this.value,
+    this.label, {
+    this.semanticsLabel,
+    this.scale = 1,
+  });
 
   final T value;
   final String label;
   final String? semanticsLabel;
+
+  /// Draws [label] larger: a lone symbol (∞) that the font sets small.
+  final double scale;
 }
 
 /// Lets a parent wait for the wheels beneath it to come to rest. A wheel
@@ -79,6 +87,8 @@ class WheelPicker<T> extends StatefulWidget {
     this.visibleItems = 5,
     this.itemExtent = 40,
     this.enabled = true,
+    this.large = false,
+    this.followAnimated = false,
   }) : assert(visibleItems >= 3 && visibleItems % 2 == 1);
 
   /// What the wheel sets, for the screen reader and the typing dialog.
@@ -112,6 +122,13 @@ class WheelPicker<T> extends StatefulWidget {
   /// Off: the wheel shows its value, dimmed, and cannot be turned (a drag
   /// on it scrolls whatever is around it).
   final bool enabled;
+
+  /// A sheet's one main wheel: its values are set larger.
+  final bool large;
+
+  /// A value set from outside (a button beside the wheel) is turned to
+  /// rather than jumped to.
+  final bool followAnimated;
 
   @override
   State<WheelPicker<T>> createState() => WheelPickerState<T>();
@@ -168,7 +185,18 @@ class WheelPickerState<T> extends State<WheelPicker<T>> {
     // user is in the middle of turning the wheel.
     if (!_moving && target != _selected) {
       _selected = target;
-      if (_controller.hasClients) _controller.jumpToItem(target);
+      if (!_controller.hasClients) return;
+      if (widget.followAnimated && !MediaQuery.of(context).disableAnimations) {
+        unawaited(
+          _controller.animateToItem(
+            target,
+            duration: _settle,
+            curve: _settleCurve,
+          ),
+        );
+      } else {
+        _controller.jumpToItem(target);
+      }
     }
   }
 
@@ -264,12 +292,14 @@ class WheelPickerState<T> extends State<WheelPicker<T>> {
     final last = widget.options.length - 1;
     String spoken(int i) =>
         widget.options[i].semanticsLabel ?? widget.options[i].label;
-    final centre = type.emphasized.titleLarge!.copyWith(
-      color: scheme.onSecondaryContainer,
-    );
-    final neighbour = type.baseline.titleMedium!.copyWith(
-      color: scheme.onSurfaceVariant,
-    );
+    final centre =
+        (widget.large
+                ? type.emphasized.headlineLarge!
+                : type.emphasized.titleLarge!)
+            .copyWith(color: scheme.onSecondaryContainer);
+    final neighbour =
+        (widget.large ? type.baseline.titleLarge! : type.baseline.titleMedium!)
+            .copyWith(color: scheme.onSurfaceVariant);
 
     final wheel = SizedBox(
       height: extent * widget.visibleItems,
@@ -307,6 +337,7 @@ class WheelPickerState<T> extends State<WheelPicker<T>> {
                     index: i,
                     extent: extent,
                     label: widget.options[i].label,
+                    labelScale: widget.options[i].scale,
                     centre: centre,
                     neighbour: neighbour,
                   ),
@@ -357,10 +388,12 @@ class _WheelItem extends StatelessWidget {
     required this.index,
     required this.extent,
     required this.label,
+    this.labelScale = 1,
     required this.centre,
     required this.neighbour,
   });
 
+  final double labelScale;
   final FixedExtentScrollController controller;
   final int index;
   final double extent;
@@ -381,7 +414,7 @@ class _WheelItem extends StatelessWidget {
           child: Opacity(
             opacity: (1 - distance * 0.3).clamp(0.2, 1.0),
             child: Transform.scale(
-              scale: 1 - distance.clamp(0.0, 2.0) * 0.07,
+              scale: (1 - distance.clamp(0.0, 2.0) * 0.07) * labelScale,
               // A narrow wheel (three in a row) shrinks a long value to fit
               // rather than cutting it.
               child: Padding(

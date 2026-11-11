@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart' show SemanticsNode;
-import 'dart:ui' show Tristate;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/theme/app_theme.dart';
@@ -10,11 +9,14 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/background_sounds/background_sounds_model.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
+import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
+import 'package:medito/providers/timer/timer_settings_provider.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
 import 'package:medito/services/identity/palettes.dart';
+import 'package:medito/views/cues/bell_list.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:medito/widgets/inputs/wheel_picker.dart';
@@ -42,7 +44,8 @@ Future<ProviderContainer> _pump(
   VoidCallback? onStart,
   int positionMs = 0,
   int audioDurationMs = 20 * 60000,
-  int? timerMinutes,
+  bool openEnded = false,
+  bool isActive = false,
   Size? size,
   double textScale = 1,
   bool reduceMotion = false,
@@ -89,7 +92,8 @@ Future<ProviderContainer> _pump(
             audioDurationMs: audioDurationMs,
             positionMs: positionMs,
             onStart: onStart,
-            timerMinutes: timerMinutes,
+            openEnded: openEnded,
+            isActive: isActive,
             clock: () => DateTime(2026, 1, 1, 9, 0),
           ),
         ),
@@ -119,41 +123,69 @@ Future<void> _drag(WidgetTester tester, String label, double value) async {
   await tester.pumpAndSettle();
 }
 
-Finder _tile(String slot) => find.byKey(ValueKey('customize_slot_$slot'));
-Finder _section(String slot) => find.byKey(ValueKey('customize_section_$slot'));
+Finder _tile(String card) => find.byKey(ValueKey('customize_tile_$card'));
+Finder _card(String card) => find.byKey(ValueKey('customize_card_$card'));
+final _sound = find.byKey(const ValueKey('customize_sound'));
+final _dial = find.byKey(const ValueKey('customize_dial'));
+final _infinity = find.byKey(const ValueKey('customize_infinity'));
+final _back = find.byKey(const ValueKey('customize_card_back'));
 
-/// Opens (or folds) a slot's section by its tile: sound, bells, rhythm or
-/// length.
-Future<void> _slot(WidgetTester tester, String slot) async {
-  await tester.ensureVisible(_tile(slot));
-  await tester.tap(_tile(slot));
+/// Opens a tile's card: startBell, intervalBell, endBell or rhythm.
+Future<void> _open(WidgetTester tester, String card) async {
+  await tester.ensureVisible(_tile(card));
+  await tester.pumpAndSettle();
+  await tester.tap(_tile(card));
+  await tester.pumpAndSettle();
+}
+
+/// Back, from a card to the dial and the tiles.
+Future<void> _goBack(WidgetTester tester) async {
+  await tester.tap(_back);
   await tester.pumpAndSettle();
 }
 
 /// What a tile says: its name, its value and, when it has one, its second
 /// line.
-List<String> _says(WidgetTester tester, String slot) => tester
+List<String> _says(WidgetTester tester, String card) => tester
     .widgetList<Text>(
-      find.descendant(of: _tile(slot), matching: find.byType(Text)),
+      find.descendant(of: _tile(card), matching: find.byType(Text)),
     )
     .map((t) => t.data!)
     .toList();
 
-/// A tile is filled (changed from the defaults) rather than outlined.
-bool _filled(WidgetTester tester, String slot) {
+/// What the header's Sound button names.
+String _soundSays(WidgetTester tester) => tester
+    .widget<Text>(find.descendant(of: _sound, matching: find.byType(Text)))
+    .data!;
+
+bool _isFilled(WidgetTester tester, Finder of) {
   final material = tester.widget<Material>(
-    find.descendant(of: _tile(slot), matching: find.byType(Material)).first,
+    find.descendant(of: of, matching: find.byType(Material)).first,
   );
   return material.color != Colors.transparent;
 }
 
-/// Opens (or folds) a row of an open section by its title.
-Future<void> _row(WidgetTester tester, String title) async {
-  final row = find.text(title).first;
-  await tester.ensureVisible(row);
-  await tester.tap(row);
+/// A tile is filled (changed from the defaults) rather than outlined.
+bool _filled(WidgetTester tester, String card) =>
+    _isFilled(tester, _tile(card));
+
+/// Opens the mixer drawer from the header's Sound button.
+Future<void> _openSound(WidgetTester tester) async {
+  await tester.tap(_sound);
   await tester.pumpAndSettle();
 }
+
+/// The scroll position of the dial-and-tiles list, or of the open card.
+ScrollPosition _scroll(WidgetTester tester, {bool card = false}) => tester
+    .state<ScrollableState>(
+      find.descendant(
+        of: find.byKey(
+          ValueKey(card ? 'customize_card_list' : 'customize_list'),
+        ),
+        matching: find.byType(Scrollable),
+      ),
+    )
+    .position;
 
 /// The mixer drawer's library list.
 Finder get _drawerLibrary => find
@@ -237,25 +269,6 @@ Future<void> _type(WidgetTester tester, String label, String text) async {
   await tester.pumpAndSettle();
 }
 
-/// The value line of the row titled [title].
-String _value(WidgetTester tester, String title) {
-  final texts = tester
-      .widgetList<Text>(
-        find.descendant(
-          of: find
-              .ancestor(
-                of: find.text(title).first,
-                matching: find.byType(Column),
-              )
-              .first,
-          matching: find.byType(Text),
-        ),
-      )
-      .map((t) => t.data)
-      .toList();
-  return texts[texts.indexOf(title) + 1]!;
-}
-
 CueSettings _read(ProviderContainer c, [CueScope scope = _practice]) =>
     c.read(cueSettingsProvider(scope));
 
@@ -320,135 +333,268 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('opens on the four slot tiles, each with its value', (
+  testWidgets('opens on the dial and the four tiles, each with its value', (
     tester,
   ) async {
     await _pump(tester);
     expect(find.text('Customize'), findsOneWidget);
     expect(find.text('All practice'), findsOneWidget);
     expect(find.text('Finishes at 9:20 AM'), findsOneWidget);
-    // Sound and Bells, then Rhythm and Length: a 2×2 grid.
+    // The dial: Extend, outside any tile, with the recording's length.
+    expect(
+      find.descendant(of: _dial, matching: _wheel('Extend')),
+      findsOneWidget,
+    );
+    expect(find.byType(WheelPicker<int>), findsOneWidget);
+    expect(find.text('Adds silence to the session.'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('customize_total'))).data,
+      '20 min',
+    );
+    // Under it the bells, then the ending bell and the rhythm: a 2×2 grid.
     double x(String s) => tester.getTopLeft(_tile(s)).dx;
     double y(String s) => tester.getTopLeft(_tile(s)).dy;
-    expect(y('sound'), y('bells'));
-    expect(x('sound'), lessThan(x('bells')));
-    expect(y('rhythm'), y('length'));
-    expect(y('rhythm'), greaterThan(y('sound')));
-    expect(x('rhythm'), x('sound'));
-    expect(_says(tester, 'sound'), ['Sound', 'Off']);
-    expect(_says(tester, 'bells'), ['Bells', 'Session bell', 'Start · End']);
+    expect(y('startBell'), greaterThan(tester.getRect(_dial).bottom));
+    expect(y('startBell'), y('intervalBell'));
+    expect(x('startBell'), lessThan(x('intervalBell')));
+    expect(y('endBell'), y('rhythm'));
+    expect(y('endBell'), greaterThan(y('startBell')));
+    expect(x('endBell'), x('startBell'));
+    expect(_says(tester, 'startBell'), ['Starting bell', 'Session bell']);
+    expect(_says(tester, 'intervalBell'), ['Interval bell', 'Off']);
+    expect(_says(tester, 'endBell'), ['Ending bell', 'Session bell']);
     expect(_says(tester, 'rhythm'), ['Rhythm', 'Off']);
-    // A recording sets its own length: shown, not set.
-    expect(_says(tester, 'length'), ['Length', '20 min', 'Set by the session']);
-    // At the defaults every tile is outlined.
-    for (final slot in ['sound', 'bells', 'rhythm', 'length']) {
-      expect(_filled(tester, slot), isFalse, reason: slot);
+    // At the defaults every tile is outlined, and so is the Sound button.
+    for (final card in ['startBell', 'intervalBell', 'endBell', 'rhythm']) {
+      expect(_filled(tester, card), isFalse, reason: card);
+      expect(_card(card), findsNothing);
     }
-    // Folded: no section, no wheels, and none of the old sections.
-    for (final slot in ['sound', 'bells', 'rhythm', 'length']) {
-      expect(_section(slot), findsNothing);
-    }
-    expect(find.byType(WheelPicker<int>), findsNothing);
-    for (final gone in ['Flow', 'Time', 'Autoplay', 'Countdown', 'Pulse']) {
+    // Sound is the header's button, level with the title, not a tile.
+    expect(_soundSays(tester), 'Off');
+    expect(_isFilled(tester, _sound), isFalse);
+    expect(
+      tester.getRect(_sound).bottom,
+      lessThan(tester.getRect(_dial).top + 1),
+    );
+    for (final gone in [
+      'Sound',
+      'Bells',
+      'Length',
+      'Flow',
+      'Time',
+      'Autoplay',
+      'Countdown',
+      'Pulse',
+      'Stopwatch',
+      'Set by the session',
+    ]) {
       expect(find.text(gone), findsNothing, reason: gone);
     }
-    expect(find.text('Extend with silence'), findsNothing);
-    expect(find.text('Hide these settings before practice'), findsNothing);
     await _unmount(tester);
   });
 
-  testWidgets('a tile opens its section, one at a time', (tester) async {
-    await _pump(tester);
-    await _slot(tester, 'bells');
-    expect(_section('bells'), findsOneWidget);
-    for (final row in [
-      'Starting bell',
-      'Interval bell',
-      'Ending bell',
-      'Bell volume',
-    ]) {
-      expect(find.text(row), findsOneWidget, reason: row);
-    }
-    // The bells' own parts: the countdown with the starting bell, the
-    // silence with the ending bell.
-    await _row(tester, 'Starting bell');
-    expect(_wheel('Countdown'), findsOneWidget);
-    await _row(tester, 'Ending bell');
-    expect(_wheel('Countdown'), findsNothing);
-    expect(_wheel('Silence after the audio'), findsOneWidget);
+  testWidgets('a tile opens its card in place of the dial and the tiles, and '
+      'Back returns to them where they were', (tester) async {
+    // Short enough that the dial and the tiles scroll.
+    await _pump(
+      tester,
+      scope: const CueScope(CueKind.talks, courseId: 'c1'),
+      onStart: () {},
+      size: const Size(411, 640),
+    );
+    final list = _scroll(tester);
+    expect(list.maxScrollExtent, greaterThan(60));
+    list.jumpTo(list.maxScrollExtent - 20);
+    await tester.pumpAndSettle();
+    final left = list.pixels;
+    final tileAt = tester.getTopLeft(_tile('rhythm'));
 
-    await _slot(tester, 'rhythm');
-    expect(_section('bells'), findsNothing);
-    expect(_section('rhythm'), findsOneWidget);
+    await tester.tap(_tile('rhythm'));
+    await tester.pumpAndSettle();
+    expect(_card('rhythm'), findsOneWidget);
+    // Its own header: Back at the top left, then the tile's name.
+    final back = tester.getRect(_back);
+    final title = find.descendant(
+      of: _card('rhythm'),
+      matching: find.text('Rhythm'),
+    );
+    expect(back.left, lessThan(24));
+    expect(tester.getRect(title).left, greaterThan(back.right));
+    expect(tester.getRect(title).center.dy, closeTo(back.center.dy, 4));
     expect(find.widgetWithText(ChoiceChip, 'Heartbeat'), findsOneWidget);
+    // The dial, the tiles and the sheet's own header are out of the way.
+    expect(_tile('rhythm').hitTestable(), findsNothing);
+    expect(_sound.hitTestable(), findsNothing);
+    expect(find.text('Customize').hitTestable(), findsNothing);
+    // Start stays.
+    expect(find.text('Start').hitTestable(), findsOneWidget);
 
-    // Sound is the mixer itself, in its drawer (#66): no section here.
-    await _slot(tester, 'sound');
-    expect(_section('sound'), findsNothing);
+    await _goBack(tester);
+    expect(_card('rhythm'), findsNothing);
+    expect(_tile('rhythm').hitTestable(), findsOneWidget);
+    expect(list.pixels, left, reason: 'the same scroll position');
+    expect(tester.getTopLeft(_tile('rhythm')), tileAt);
+    await _unmount(tester);
+  });
+
+  testWidgets('each card holds what belongs to its tile', (tester) async {
+    await _pump(tester);
+    Finder inCard(String card, Finder what) =>
+        find.descendant(of: _card(card), matching: what);
+
+    // The starting bell: its countdown, the bells ("Make a bell" last), and
+    // the volume all bells share.
+    await _open(tester, 'startBell');
+    expect(inCard('startBell', find.text('Starting bell')), findsOneWidget);
+    expect(inCard('startBell', _wheel('Countdown')), findsOneWidget);
+    final bells = tester
+        .widgetList<Text>(
+          inCard(
+            'startBell',
+            find.descendant(
+              of: find.byType(BellList),
+              matching: find.byType(Text),
+            ),
+          ),
+        )
+        .map((t) => t.data)
+        .toList();
+    expect(bells.first, 'Off');
+    expect(bells.last, 'Make a bell');
+    expect(inCard('startBell', find.text('Bell volume')), findsOneWidget);
+    await _goBack(tester);
+
+    // The interval bell: how often, and the same list.
+    await _open(tester, 'intervalBell');
+    expect(_card('startBell'), findsNothing);
+    expect(inCard('intervalBell', _wheel('Every')), findsOneWidget);
+    expect(inCard('intervalBell', find.byType(BellList)), findsOneWidget);
+    expect(inCard('intervalBell', find.text('Bell volume')), findsOneWidget);
+    await _goBack(tester);
+
+    // The ending bell: the silence before it, shortly captioned.
+    await _open(tester, 'endBell');
+    expect(inCard('endBell', _wheel('Countdown')), findsNothing);
+    expect(
+      inCard('endBell', _wheel('Silence after the audio')),
+      findsOneWidget,
+    );
+    expect(find.text('Silence before the ending bell.'), findsOneWidget);
+    expect(inCard('endBell', find.byType(BellList)), findsOneWidget);
+    await _goBack(tester);
+
+    await _open(tester, 'rhythm');
+    expect(inCard('rhythm', find.byType(ChoiceChip)), findsWidgets);
+    expect(inCard('rhythm', find.byType(BellList)), findsNothing);
+    await _goBack(tester);
+
+    // Sound is the mixer itself, in its drawer (#66): no card here.
+    await _openSound(tester);
     expect(find.byType(SoundsView), findsOneWidget);
     await _closeDrawer(tester);
-    expect(_section('rhythm'), findsOneWidget, reason: 'rhythm stayed open');
-
-    // A recording's Length holds Extend: the recording sets the rest.
-    await _slot(tester, 'length');
-    expect(_section('rhythm'), findsNothing);
-    expect(_section('length'), findsOneWidget);
-    expect(_wheel('Extend'), findsOneWidget);
-    expect(_wheel('Duration'), findsNothing);
+    expect(_tile('rhythm').hitTestable(), findsOneWidget);
     await _unmount(tester);
+  });
+
+  testWidgets('system back closes an open card before it closes the sheet', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        ...soundscapeTestOverrides(FakeSoundscapeEngine()),
+      ],
+    );
+    addTearDown(container.dispose);
+    late BuildContext host;
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: Builder(
+              builder: (context) {
+                host = context;
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    unawaited(
+      showCustomizeModal<void>(
+        host,
+        (_) => CustomizeSheet(
+          scope: _practice,
+          clock: () => DateTime(2026, 1, 1, 9, 0),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _open(tester, 'endBell');
+    expect(_card('endBell'), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(_card('endBell'), findsNothing);
+    expect(find.byType(CustomizeSheet), findsOneWidget, reason: 'still open');
+    expect(_tile('endBell').hitTestable(), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(CustomizeSheet), findsNothing);
   });
 
   testWidgets('every control writes the same settings as before', (
     tester,
   ) async {
-    // Regression for the regroup: each wheel, list, switch and slider sets
-    // exactly the field it set before it moved. Autoplay is the player's now.
+    // Regression for the reshape: each wheel, list, switch and slider sets
+    // exactly the field it set before it moved. Autoplay is the player's.
     final preview = _FakePreview();
     final container = await _pump(tester, preview: preview);
     const bowl = 'assets/audio/bell_bowl_deep.wav';
     const chime = 'assets/audio/bell_chime.wav';
     const gong = 'assets/audio/bell_gong.wav';
 
-    Future<void> bell(String row, String name) async {
-      await _row(tester, row);
-      final pick = find.text(name).last;
-      await tester.ensureVisible(pick);
-      await tester.tap(pick);
+    Future<void> pick(String name) async {
+      final bell = find.text(name).last;
+      await tester.ensureVisible(bell);
+      await tester.tap(bell);
       await tester.pumpAndSettle();
-      await _row(tester, row);
     }
 
-    await _slot(tester, 'bells');
-    await bell('Starting bell', 'Singing bowl, deep');
-    await bell('Ending bell', 'Gong');
+    await _open(tester, 'startBell');
+    await pick('Singing bowl, deep');
+    await _turn(tester, 'Countdown', '10 sec');
+    await _goBack(tester);
 
-    await _row(tester, 'Interval bell');
+    await _open(tester, 'intervalBell');
     await _turn(tester, 'Every', '30 min');
     await _turn(tester, 'Random window', '± 20 min');
-    final pick = find.text('Chime').last;
-    await tester.ensureVisible(pick);
-    await tester.tap(pick);
-    await tester.pumpAndSettle();
-    await _row(tester, 'Interval bell');
-    await _drag(tester, 'Bell volume', 0.8);
+    await pick('Chime');
+    await _goBack(tester);
 
-    await _row(tester, 'Starting bell');
-    await _turn(tester, 'Countdown', '10 sec');
-    await _row(tester, 'Starting bell');
-    await _row(tester, 'Ending bell');
+    await _open(tester, 'endBell');
+    await pick('Gong');
     await _type(tester, 'Silence after the audio', '12');
-    await _row(tester, 'Ending bell');
-    await _slot(tester, 'length');
+    await _drag(tester, 'Bell volume', 0.8);
+    await _goBack(tester);
+
     await _type(tester, 'Extend', '3');
 
-    await _slot(tester, 'rhythm');
+    await _open(tester, 'rhythm');
     await tester.tap(find.widgetWithText(ChoiceChip, 'Heartbeat'));
     await tester.pumpAndSettle();
     await _turn(tester, 'Rate', '90 BPM');
     await _turn(tester, 'Slow down over', '10 min');
     await _turn(tester, 'Ends at', '30 BPM');
     await _drag(tester, 'Pulse volume', 0.6);
-    await _slot(tester, 'rhythm');
+    await _goBack(tester);
 
     await tester.tap(find.byKey(_showBefore));
     await tester.pumpAndSettle();
@@ -476,13 +622,19 @@ void main() {
           .toJson(),
     );
     // Each bell was heard once, at the bell volume of the moment.
-    expect(preview.played, [(bowl, 0.5), (gong, 0.5), (chime, 0.5)]);
-    // The tiles and the folded rows say it all.
-    expect(_says(tester, 'bells'), [
-      'Bells',
+    expect(preview.played, [(bowl, 0.5), (chime, 0.5), (gong, 0.5)]);
+    // The tiles say it all.
+    expect(_says(tester, 'startBell'), [
+      'Starting bell',
       'Singing bowl, deep',
-      'Start · Every 30 min · End',
+      '10 sec countdown',
     ]);
+    expect(_says(tester, 'intervalBell'), [
+      'Interval bell',
+      'Every 30 min ± 20',
+      'Chime',
+    ]);
+    expect(_says(tester, 'endBell'), ['Ending bell', 'Gong', '12 min silence']);
     expect(_says(tester, 'rhythm'), [
       'Rhythm',
       'Heartbeat',
@@ -490,21 +642,16 @@ void main() {
       'over 10 min',
       '30 BPM',
     ]);
-    // Extend and the ending bell's silence: the session is 15 min longer.
-    expect(_says(tester, 'length'), ['Length', '20 min', '+ 15 min silence']);
-    expect(_filled(tester, 'length'), isTrue);
-    expect(_filled(tester, 'bells'), isTrue);
-    expect(_filled(tester, 'rhythm'), isTrue);
-    expect(_filled(tester, 'sound'), isFalse);
-    await _slot(tester, 'bells');
+    for (final card in ['startBell', 'intervalBell', 'endBell', 'rhythm']) {
+      expect(_filled(tester, card), isTrue, reason: card);
+    }
+    expect(_isFilled(tester, _sound), isFalse);
+    // Under the dial: the recording, Extend and the ending bell's silence,
+    // and what they come to.
     expect(
-      _value(tester, 'Starting bell'),
-      '10 sec countdown · Singing bowl, deep',
+      tester.widget<Text>(find.byKey(const ValueKey('customize_total'))).data,
+      '20 min + 3 min + 12 min = 35 min',
     );
-    expect(_value(tester, 'Interval bell'), 'Every 30 min ± 20 · Chime');
-    expect(_value(tester, 'Ending bell'), '12 min silence · Gong');
-    // Its play button names the bell, not the silence before it.
-    expect(find.byTooltip('Play Gong'), findsOneWidget);
     // 9:00, a 10 s countdown, 20 min of audio, 3 min of Extend and 12 of
     // the Ending bell's silence.
     expect(find.text('Finishes at 9:35 AM'), findsOneWidget);
@@ -515,20 +662,26 @@ void main() {
     tester,
   ) async {
     final container = await _pump(tester);
-    await _slot(tester, 'rhythm');
+    await _open(tester, 'rhythm');
     await tapChip(tester, 'Soft click');
     expect(_filled(tester, 'rhythm'), isTrue);
     // Its rate kept, but off is the default again.
     await tapChip(tester, 'Off');
     expect(_read(container).pulseSound, '');
     expect(_filled(tester, 'rhythm'), isFalse);
+    await _goBack(tester);
 
-    await _slot(tester, 'bells');
-    await _row(tester, 'Interval bell');
+    await _open(tester, 'intervalBell');
     await _turn(tester, 'Every', '6 min');
-    expect(_filled(tester, 'bells'), isTrue);
+    expect(_filled(tester, 'intervalBell'), isTrue);
     await _turn(tester, 'Every', 'Off');
-    expect(_filled(tester, 'bells'), isFalse);
+    expect(_filled(tester, 'intervalBell'), isFalse);
+    // The volume all bells share marks no one tile.
+    await _drag(tester, 'Bell volume', 0.9);
+    expect(_read(container).bellVolume, 0.9);
+    for (final card in ['startBell', 'intervalBell', 'endBell']) {
+      expect(_filled(tester, card), isFalse, reason: card);
+    }
     await _unmount(tester);
   });
 
@@ -547,16 +700,18 @@ void main() {
           ).copyWith(startSound: 'assets/audio/bell_gong.wav'),
         );
     await tester.pumpAndSettle();
-    expect(_filled(tester, 'bells'), isTrue, reason: 'the gong is a change');
-    await tester.tap(
-      find.widgetWithText(SwitchListTile, 'Use these only for this course'),
+    expect(_filled(tester, 'startBell'), isTrue, reason: 'the gong is new');
+    final toggle = find.widgetWithText(
+      SwitchListTile,
+      'Use these only for this course',
     );
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
     await tester.pumpAndSettle();
-    expect(_filled(tester, 'bells'), isFalse, reason: 'same as its kind');
-    await _slot(tester, 'bells');
-    await _row(tester, 'Starting bell');
+    expect(_filled(tester, 'startBell'), isFalse, reason: 'same as its kind');
+    await _open(tester, 'startBell');
     await _turn(tester, 'Countdown', '5 sec');
-    expect(_filled(tester, 'bells'), isTrue);
+    expect(_filled(tester, 'startBell'), isTrue);
     expect(_read(container, kind).countdownSeconds, 0);
     await _unmount(tester);
   });
@@ -575,7 +730,7 @@ void main() {
       );
       expect(_shownBefore(tester), isTrue);
       // In the footer: under the list, just above Start, and still there
-      // with a section open.
+      // with a card open.
       expect(
         tester.getBottomLeft(toggle).dy,
         lessThanOrEqualTo(tester.getTopLeft(find.text('Start')).dy),
@@ -587,9 +742,10 @@ void main() {
         ),
         findsNothing,
       );
-      await _slot(tester, 'bells');
-      await _row(tester, 'Ending bell');
+      await _open(tester, 'endBell');
+      expect(toggle.hitTestable(), findsOneWidget);
       expect(tester.getRect(toggle).bottom, lessThanOrEqualTo(600));
+      await _goBack(tester);
 
       await tester.tap(toggle);
       await tester.pumpAndSettle();
@@ -613,7 +769,7 @@ void main() {
       await _unmount(tester);
     });
 
-    testWidgets('is not on the timer, whose screen is this sheet', (
+    testWidgets('is not on the timer, which always opens on this sheet', (
       tester,
     ) async {
       await _pump(tester, isTimer: true, onStart: () {});
@@ -626,9 +782,12 @@ void main() {
     ) async {
       const course = CueScope(CueKind.talks, courseId: 'c1');
       final container = await _pump(tester, scope: course);
-      await tester.tap(
-        find.widgetWithText(SwitchListTile, 'Use these only for this course'),
+      final toggle = find.widgetWithText(
+        SwitchListTile,
+        'Use these only for this course',
       );
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(_showBefore));
       await tester.pumpAndSettle();
@@ -643,25 +802,32 @@ void main() {
     tester,
   ) async {
     final container = await _pump(tester);
-    await _slot(tester, 'bells');
-    await _row(tester, 'Interval bell');
+    await _open(tester, 'intervalBell');
     expect(_wheel('Random window'), findsNothing);
     await _turn(tester, 'Every', '6 min');
     expect(_read(container).intervalMinutes, 6);
     expect(_wheel('Random window'), findsOneWidget);
+    expect(_says(tester, 'intervalBell'), [
+      'Interval bell',
+      'Every 6 min',
+      'Session bell',
+    ]);
     await _turn(tester, 'Every', 'Halfway');
     expect(_read(container).intervalHalfway, isTrue);
     expect(_read(container).intervalMinutes, 6, reason: 'kept for later');
     expect(_read(container).hasIntervalBell, isTrue);
     expect(_wheel('Random window'), findsNothing, reason: 'one bell');
-    expect(_value(tester, 'Interval bell'), 'Halfway · Session bell');
-    expect(_says(tester, 'bells').last, 'Start · Halfway · End');
+    expect(_says(tester, 'intervalBell'), [
+      'Interval bell',
+      'Halfway',
+      'Session bell',
+    ]);
     await _turn(tester, 'Every', '6 min');
     expect(_read(container).intervalHalfway, isFalse);
     await _turn(tester, 'Every', 'Off');
     expect(_read(container).intervalMinutes, 0);
     expect(_read(container).hasIntervalBell, isFalse);
-    expect(_value(tester, 'Interval bell'), 'Off');
+    expect(_says(tester, 'intervalBell'), ['Interval bell', 'Off']);
     await _unmount(tester);
   });
 
@@ -669,8 +835,7 @@ void main() {
     'the wheel turns the interval bell back on after the list said Off',
     (tester) async {
       final container = await _pump(tester);
-      await _slot(tester, 'bells');
-      await _row(tester, 'Interval bell');
+      await _open(tester, 'intervalBell');
       await container
           .read(cueSettingsProvider(_practice).notifier)
           .update(
@@ -679,10 +844,14 @@ void main() {
             ).copyWith(intervalSound: '', intervalMinutes: 10),
           );
       await tester.pumpAndSettle();
-      expect(_value(tester, 'Interval bell'), 'Off');
+      expect(_says(tester, 'intervalBell'), ['Interval bell', 'Off']);
       await _turn(tester, 'Every', 'Halfway');
       expect(_read(container).hasIntervalBell, isTrue);
-      expect(_value(tester, 'Interval bell'), 'Halfway · Session bell');
+      expect(_says(tester, 'intervalBell'), [
+        'Interval bell',
+        'Halfway',
+        'Session bell',
+      ]);
       await _unmount(tester);
     },
   );
@@ -691,8 +860,7 @@ void main() {
     tester,
   ) async {
     final container = await _pump(tester);
-    await _slot(tester, 'bells');
-    await _row(tester, 'Interval bell');
+    await _open(tester, 'intervalBell');
     await _turn(tester, 'Every', '30 min');
     await _turn(tester, 'Random window', '± 20 min');
     expect(_read(container).randomWindowMinutes, 20);
@@ -705,20 +873,13 @@ void main() {
     await _unmount(tester);
   });
 
-  testWidgets('a bell row plays its bell; the list previews and saves', (
+  testWidgets('a bell card lists the bells; a tap previews and saves', (
     tester,
   ) async {
     final preview = _FakePreview();
     final container = await _pump(tester, preview: preview);
-    await _slot(tester, 'bells');
-    // Folded, the row has its own play button.
-    await tester.tap(find.byKey(const ValueKey('customize_play_startBell')));
-    await tester.pumpAndSettle();
-    expect(preview.played.single, (kSessionBellAsset, 0.5));
-    expect(_read(container).startSound, kSessionBellAsset, reason: 'unchanged');
-
+    await _open(tester, 'endBell');
     // Every bell is listed, the chosen one marked.
-    await _row(tester, 'Ending bell');
     for (final name in cueBellSounds.keys) {
       await tester.ensureVisible(find.text(name).last);
     }
@@ -727,85 +888,210 @@ void main() {
     for (final asset in cueBellSounds.values.where((a) => a.isNotEmpty)) {
       expect(find.byKey(ValueKey('bell_icon_$asset')), findsOneWidget);
     }
-    // Off is silent: it stops the preview rather than playing anything. The
-    // list's Off is the last: the silence wheel above it has one too.
+    final gong = find.text('Gong').last;
+    await tester.ensureVisible(gong);
+    await tester.tap(gong);
+    await tester.pumpAndSettle();
+    expect(preview.played.single, ('assets/audio/bell_gong.wav', 0.5));
+    expect(_read(container).endSound, 'assets/audio/bell_gong.wav');
+    // Off is silent: it stops the preview rather than playing anything.
     final before = preview.played.length;
-    final off = find
-        .descendant(
-          of: find.byKey(const ValueKey('customize_endBell')),
-          // The bell list's Off, after the silence wheel's.
-          matching: find.text('Off'),
-        )
-        .last;
+    final off = find.descendant(
+      of: find.byType(BellList),
+      matching: find.text('Off'),
+    );
     await tester.ensureVisible(off);
     await tester.tap(off);
     await tester.pumpAndSettle();
     expect(_read(container).endSound, '');
     expect(preview.played.length, before);
-    expect(
-      find.byKey(const ValueKey('customize_play_endBell')),
-      findsNothing,
-      reason: 'nothing to play',
-    );
-    expect(_says(tester, 'bells').last, 'Start');
-    // Folding a bell list silences a bell still ringing; so does leaving
-    // the bells for another slot.
-    var stops = preview.stops;
-    await _row(tester, 'Ending bell');
-    expect(preview.stops, greaterThan(stops));
-    stops = preview.stops;
-    await _slot(tester, 'rhythm');
+    expect(_says(tester, 'endBell'), ['Ending bell', 'Off']);
+    // Leaving the card silences a bell still ringing.
+    final stops = preview.stops;
+    await _goBack(tester);
     expect(preview.stops, greaterThan(stops));
     await _unmount(tester);
   });
 
-  testWidgets('the timer sets its length on the Length tile, typed or turned', (
-    tester,
-  ) async {
-    final container = await _pump(tester, isTimer: true, onStart: () {});
-    expect(find.text('Timer · all practice'), findsOneWidget);
-    expect(_says(tester, 'length'), ['Length', '10 min']);
-    expect(_filled(tester, 'length'), isFalse);
-    await _slot(tester, 'length');
-    await _type(tester, 'Duration', '95');
-    expect(_read(container).durationMinutes, 95);
-    expect(_says(tester, 'length'), ['Length', '1 h 35 min']);
-    expect(_filled(tester, 'length'), isTrue);
-    expect(find.text('Finishes at 10:35 AM'), findsOneWidget);
-    await _turn(tester, 'Duration', '20 min');
-    expect(_read(container).durationMinutes, 20);
-    // Out of range is refused, with the range.
-    final wheel = tester.state<WheelPickerState<dynamic>>(_wheel('Duration'));
-    await tester.tap(
-      find.descendant(of: _wheel('Duration'), matching: find.text('20 min')),
-    );
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('wheel_picker_entry')),
-      '300',
-    );
-    await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
-    expect(find.text('1 to 299 minutes'), findsOneWidget);
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
-    expect(wheel.selectedIndex, 19);
-    expect(_read(container).durationMinutes, 20);
+  group('the timer', () {
+    bool openEnded(ProviderContainer c) =>
+        c.read(timerSettingsProvider).mode == TimerMode.stopwatch;
+    int selected(WidgetTester tester) => tester
+        .state<WheelPickerState<dynamic>>(_wheel('Duration'))
+        .selectedIndex;
 
-    // A timer's ending bell has no silence before it: its length is its own.
-    await _slot(tester, 'bells');
-    await _row(tester, 'Ending bell');
-    expect(_wheel('Silence after the audio'), findsNothing);
-    await _unmount(tester);
-  });
+    testWidgets('sets its length on the dial, typed or turned', (tester) async {
+      final container = await _pump(tester, isTimer: true, onStart: () {});
+      expect(find.text('Timer · all practice'), findsOneWidget);
+      // The dial is there as the sheet opens, outside any tile.
+      expect(
+        find.descendant(of: _dial, matching: _wheel('Duration')),
+        findsOneWidget,
+      );
+      expect(_wheel('Extend'), findsNothing);
+      expect(find.text('Finishes at 9:10 AM'), findsOneWidget);
+      await _type(tester, 'Duration', '95');
+      expect(_read(container).durationMinutes, 95);
+      expect(find.text('Finishes at 10:35 AM'), findsOneWidget);
+      await _turn(tester, 'Duration', '20 min');
+      expect(_read(container).durationMinutes, 20);
+      // Out of range is refused, with the range.
+      await tester.tap(
+        find.descendant(of: _wheel('Duration'), matching: find.text('20 min')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('wheel_picker_entry')),
+        '300',
+      );
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      expect(find.text('1 to 299 minutes'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      // ∞ is the wheel's first place, so 20 min is its twenty-first.
+      expect(selected(tester), 20);
+      expect(_read(container).durationMinutes, 20);
 
-  testWidgets('a stopwatch has no length to set', (tester) async {
-    await _pump(tester, isTimer: true, onStart: () {}, timerMinutes: 0);
-    expect(_says(tester, 'length'), ['Length', 'Counts up']);
-    await tester.tap(_tile('length'));
-    await tester.pumpAndSettle();
-    expect(_section('length'), findsNothing);
-    await _unmount(tester);
+      // A timer's ending bell has no silence before it: its length is its
+      // own.
+      await _open(tester, 'endBell');
+      expect(_wheel('Silence after the audio'), findsNothing);
+      await _unmount(tester);
+    });
+
+    testWidgets('the ∞ button turns the wheel to ∞, and back to the length '
+        'it left', (tester) async {
+      final container = await _pump(tester, isTimer: true, onStart: () {});
+      await _turn(tester, 'Duration', '25 min');
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pumpAndSettle();
+      // At the dial's top right.
+      final dial = tester.getRect(_dial);
+      final button = tester.getRect(_infinity);
+      expect(button.top, closeTo(dial.top, 1));
+      expect(button.right, closeTo(dial.right, 1));
+      expect(
+        button.left,
+        greaterThan(tester.getRect(_wheel('Duration')).right),
+      );
+      expect(openEnded(container), isFalse);
+
+      await tester.tap(_infinity);
+      await tester.pumpAndSettle();
+      expect(openEnded(container), isTrue);
+      expect(selected(tester), 0, reason: 'the wheel went there');
+      expect(
+        find.descendant(of: _wheel('Duration'), matching: find.text('∞')),
+        findsOneWidget,
+      );
+      // No end to show; the length it left is kept.
+      expect(find.textContaining('Finishes at'), findsNothing);
+      expect(find.text('Counts up'), findsOneWidget);
+      expect(_read(container).durationMinutes, 25);
+      expect(tester.widget<IconButton>(_infinity).isSelected, isTrue);
+
+      await tester.tap(_infinity);
+      await tester.pumpAndSettle();
+      expect(openEnded(container), isFalse);
+      expect(selected(tester), 25);
+      expect(find.text('Finishes at 9:25 AM'), findsOneWidget);
+      expect(_read(container).durationMinutes, 25);
+      // Its own way back: no Undo bar.
+      expect(find.byKey(const ValueKey('customize_undo')), findsNothing);
+      await _unmount(tester);
+    });
+
+    testWidgets('∞ is the wheel\'s first place, above 1 min; turning there '
+        'can be undone', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final container = await _pump(tester, isTimer: true, onStart: () {});
+      final wheel = tester.widget<WheelPicker<dynamic>>(_wheel('Duration'));
+      expect(wheel.options.first.label, '∞');
+      expect(wheel.options.first.semanticsLabel, 'Open-ended');
+      expect(wheel.options[1].label, '1 min');
+      await _turn(tester, 'Duration', '∞');
+      expect(openEnded(container), isTrue);
+      expect(_read(container).durationMinutes, 10, reason: 'kept');
+      expect(find.text('Duration: ∞'), findsOneWidget);
+      expect(find.semantics.byValue('Open-ended'), findsOne);
+      await tester.tap(find.byKey(const ValueKey('customize_undo_button')));
+      await tester.pumpAndSettle();
+      expect(openEnded(container), isFalse);
+      expect(selected(tester), 10);
+      // And from ∞ to a length, back to ∞.
+      await tester.tap(_infinity);
+      await tester.pumpAndSettle();
+      await _turn(tester, 'Duration', '3 min');
+      expect(openEnded(container), isFalse);
+      expect(_read(container).durationMinutes, 3);
+      await tester.tap(find.byKey(const ValueKey('customize_undo_button')));
+      await tester.pumpAndSettle();
+      expect(openEnded(container), isTrue);
+      expect(_read(container).durationMinutes, 10);
+      semantics.dispose();
+      await _unmount(tester);
+    });
+
+    testWidgets('the word Stopwatch is nowhere, in any language', (
+      tester,
+    ) async {
+      for (final (locale, word) in [
+        (const Locale('en'), 'Stopwatch'),
+        (const Locale('de'), 'Stoppuhr'),
+        (const Locale('es'), 'Cronómetro'),
+      ]) {
+        await _pump(
+          tester,
+          isTimer: true,
+          onStart: () {},
+          locale: locale,
+          prefsValues: {'timer_open_ended': true},
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('∞'), findsOneWidget, reason: '$locale');
+        expect(find.textContaining(word), findsNothing, reason: '$locale');
+        await _unmount(tester);
+      }
+    });
+
+    testWidgets('under way, its length is shown and not set', (tester) async {
+      await _pump(
+        tester,
+        isTimer: true,
+        isActive: true,
+        audioDurationMs: 25 * 60000,
+        positionMs: 5 * 60000,
+      );
+      expect(find.byType(WheelPicker<int>), findsNothing);
+      expect(_infinity, findsNothing);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('customize_length')))
+            .data,
+        '25 min',
+      );
+      expect(find.text('Finishes at 9:20 AM'), findsOneWidget);
+      await _unmount(tester);
+
+      // Open-ended: no length and no end to show.
+      await _pump(
+        tester,
+        isTimer: true,
+        isActive: true,
+        openEnded: true,
+        audioDurationMs: 5 * 60 * 60000,
+        positionMs: 5 * 60000,
+      );
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('customize_length')))
+            .data,
+        '∞',
+      );
+      expect(find.textContaining('Finishes at'), findsNothing);
+      await _unmount(tester);
+    });
   });
 
   testWidgets('typing starts from the value, not the label\'s digits', (
@@ -813,7 +1099,6 @@ void main() {
   ) async {
     // "1 h 35 min" must open as 95, not 135: pressing OK unchanged keeps it.
     final container = await _pump(tester, isTimer: true, onStart: () {});
-    await _slot(tester, 'length');
     await _type(tester, 'Duration', '95');
     await tester.tap(
       find.descendant(
@@ -829,8 +1114,7 @@ void main() {
     expect(_read(container).durationMinutes, 95);
 
     // Halfway has no number to start from.
-    await _slot(tester, 'bells');
-    await _row(tester, 'Interval bell');
+    await _open(tester, 'intervalBell');
     await _turn(tester, 'Every', 'Halfway');
     await tester.tap(
       find.descendant(of: _wheel('Every'), matching: find.text('Halfway')),
@@ -843,7 +1127,7 @@ void main() {
     await _unmount(tester);
   });
 
-  testWidgets('the Sound tile opens the mixer drawer, which chooses for the '
+  testWidgets('the Sound button opens the mixer drawer, which chooses for the '
       'kind', (tester) async {
     final container = await _pump(tester, size: const Size(412, 915));
     SoundscapeSessionDefault practice() => container
@@ -851,10 +1135,10 @@ void main() {
         .sessionDefault(SoundscapeSessionKind.practice);
     // Practice starts with nothing chosen (decision 17).
     expect(practice().enabled, isFalse);
-    expect(_says(tester, 'sound'), ['Sound', 'Off']);
+    expect(_soundSays(tester), 'Off');
     expect(find.byKey(const ValueKey('customize_sound_art')), findsNothing);
 
-    await _slot(tester, 'sound');
+    await _openSound(tester);
     // The mixer as a drawer, saying whose sound this is, and nothing in it.
     expect(find.byType(SoundsView), findsOneWidget);
     expect(find.text('Plays under practice'), findsOneWidget);
@@ -877,8 +1161,8 @@ void main() {
     );
     expect(_read(container).soundscape, '');
     final river = bundledSoundLibrary['river']!.title;
-    expect(_says(tester, 'sound'), ['Sound', '$river, Night insects']);
-    expect(_filled(tester, 'sound'), isTrue);
+    expect(_soundSays(tester), '$river, Night insects');
+    expect(_isFilled(tester, _sound), isTrue);
     expect(find.byKey(const ValueKey('customize_sound_art')), findsOneWidget);
     // Nothing plays on once the drawer is closed outside a session.
     expect(container.read(soundscapeProvider).playing, isFalse);
@@ -890,7 +1174,7 @@ void main() {
     tester,
   ) async {
     final container = await _pump(tester, size: const Size(412, 915));
-    await _slot(tester, 'sound');
+    await _openSound(tester);
     await _tapPreset(tester, 'starter-night');
     await _closeDrawer(tester);
     expect(
@@ -900,7 +1184,7 @@ void main() {
           .selection,
       const SoundscapeSelection.preset('starter-night'),
     );
-    expect(_says(tester, 'sound'), ['Sound', 'Night']);
+    expect(_soundSays(tester), 'Night');
     await _unmount(tester);
   });
 
@@ -919,10 +1203,10 @@ void main() {
     SoundscapeSessionDefault practice() => container
         .read(soundscapeProvider)
         .sessionDefault(SoundscapeSessionKind.practice);
-    expect(_says(tester, 'sound'), ['Sound', 'Night']);
+    expect(_soundSays(tester), 'Night');
 
     // Opened and closed again: the choice stands.
-    await _slot(tester, 'sound');
+    await _openSound(tester);
     await _closeDrawer(tester);
     expect(practice().enabled, isTrue);
     expect(
@@ -931,12 +1215,12 @@ void main() {
     );
 
     // Cleared: nothing plays under practice, and the kind is switched off.
-    await _slot(tester, 'sound');
+    await _openSound(tester);
     await tester.tap(find.byKey(const ValueKey('sounds_clear')));
     await tester.pumpAndSettle();
     await _closeDrawer(tester);
     expect(practice().enabled, isFalse);
-    expect(_says(tester, 'sound'), ['Sound', 'Off']);
+    expect(_soundSays(tester), 'Off');
     await _unmount(tester);
   });
 
@@ -950,7 +1234,7 @@ void main() {
     final tabMix = container.read(soundscapeProvider).mix;
     expect(container.read(soundscapeProvider).playing, isTrue);
 
-    await _slot(tester, 'sound');
+    await _openSound(tester);
     await _tapPreset(tester, 'starter-night');
     expect(container.read(soundscapeProvider).mix, isNot(tabMix));
     await _closeDrawer(tester);
@@ -977,13 +1261,14 @@ void main() {
     );
     expect(find.text('Changes apply to all talks'), findsOneWidget);
     expect(find.text('All talks'), findsOneWidget);
-    expect(_says(tester, 'sound'), ['Sound', 'Off']);
+    expect(_soundSays(tester), 'Off');
 
+    await tester.ensureVisible(toggle);
     await tester.tap(toggle);
     await tester.pumpAndSettle();
     expect(find.text('Changes apply to this course'), findsOneWidget);
     expect(find.text('For this course'), findsOneWidget);
-    await _slot(tester, 'sound');
+    await _openSound(tester);
     expect(find.text('Plays under talks'), findsOneWidget);
     await _tapPreset(tester, 'starter-shore');
     await _closeDrawer(tester);
@@ -997,8 +1282,8 @@ void main() {
       isFalse,
       reason: 'the talks default is untouched',
     );
-    expect(_says(tester, 'sound'), ['Sound', 'Shore']);
-    expect(_filled(tester, 'sound'), isTrue, reason: 'its kind plays nothing');
+    expect(_soundSays(tester), 'Shore');
+    expect(_isFilled(tester, _sound), isTrue, reason: 'its kind plays nothing');
 
     // Back to the kind's settings: the course inherits Off again.
     await tester.ensureVisible(toggle);
@@ -1026,11 +1311,14 @@ void main() {
     await tester.pumpAndSettle();
     final sitMix = container.read(soundscapeProvider).mix;
 
-    await tester.tap(
-      find.widgetWithText(SwitchListTile, 'Use these only for this course'),
+    final toggle = find.widgetWithText(
+      SwitchListTile,
+      'Use these only for this course',
     );
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
     await tester.pumpAndSettle();
-    await _slot(tester, 'sound');
+    await _openSound(tester);
     await _tapPreset(tester, 'starter-night');
     await _closeDrawer(tester);
 
@@ -1065,7 +1353,7 @@ void main() {
           courseOverride: true,
         );
     await tester.pumpAndSettle();
-    expect(_says(tester, 'sound'), ['Sound', 'Current mix']);
+    expect(_soundSays(tester), 'Current mix');
     await _unmount(tester);
   });
 
@@ -1082,7 +1370,6 @@ void main() {
         isTimer: true,
         onStart: () => onStart(_read(container).durationMinutes),
       );
-      await _slot(tester, 'length');
       await tester.fling(
         find.byType(ListWheelScrollView),
         const Offset(0, -300),
@@ -1105,9 +1392,10 @@ void main() {
       final landed = tester
           .state<WheelPickerState<dynamic>>(_wheel('Duration'))
           .selectedIndex;
-      expect(landed, greaterThan(9), reason: 'the fling moved the wheel');
-      expect(started, [landed + 1], reason: 'started on the landed minutes');
-      expect(_read(container).durationMinutes, landed + 1);
+      // ∞ is the wheel's first place: index N is N minutes.
+      expect(landed, greaterThan(10), reason: 'the fling moved the wheel');
+      expect(started, [landed], reason: 'started on the landed minutes');
+      expect(_read(container).durationMinutes, landed);
       await _unmount(tester);
     });
 
@@ -1129,7 +1417,6 @@ void main() {
     ) async {
       final started = <int>[];
       await _pump(tester, isTimer: true, onStart: () => started.add(1));
-      await _slot(tester, 'length');
       final hold = await tester.startGesture(
         tester.getCenter(find.byType(ListWheelScrollView)),
       );
@@ -1191,7 +1478,6 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await _slot(tester, 'length');
       await tester.fling(
         find.byType(ListWheelScrollView),
         const Offset(0, -300),
@@ -1237,11 +1523,10 @@ void main() {
       'Use these only for this course',
     );
 
-    await _slot(tester, 'bells');
     Future<void> setCountdown(String label) async {
-      await _row(tester, 'Starting bell');
+      await _open(tester, 'startBell');
       await _turn(tester, 'Countdown', label);
-      await _row(tester, 'Starting bell');
+      await _goBack(tester);
     }
 
     await setCountdown('5 sec');
@@ -1266,15 +1551,10 @@ void main() {
     await _unmount(tester);
   });
 
-  testWidgets('tiles and rows are buttons that say their value and state', (
-    tester,
-  ) async {
+  testWidgets('tiles, the Sound button and a card\'s header say what they '
+      'are to a screen reader', (tester) async {
     final semantics = tester.ensureSemantics();
     await _pump(tester);
-    expect(
-      find.semantics.byLabel('Bells, Session bell, Start · End, default'),
-      findsOne,
-    );
     SemanticsNode node(Finder of, String label) => tester.getSemantics(
       find.descendant(
         of: of,
@@ -1283,101 +1563,107 @@ void main() {
         ),
       ),
     );
-    final bells = node(
-      _tile('bells'),
-      'Bells, Session bell, Start · End, default',
+    final start = node(
+      _tile('startBell'),
+      'Starting bell, Session bell, default',
     );
-    expect(bells.flagsCollection.isExpanded, Tristate.isFalse);
-    expect(bells.flagsCollection.isButton, isTrue);
-    await _slot(tester, 'bells');
-    expect(
-      node(
-        _tile('bells'),
-        'Bells, Session bell, Start · End, default',
-      ).flagsCollection.isExpanded,
-      Tristate.isTrue,
-    );
-    // A recording's Length opens Extend: a button like the others.
-    expect(
-      node(
-        _tile('length'),
-        'Length, 20 min, Set by the session, default',
-      ).flagsCollection.isButton,
-      isTrue,
-    );
+    expect(start.flagsCollection.isButton, isTrue);
+    expect(find.semantics.byLabel('Interval bell, Off, default'), findsOne);
+    expect(find.semantics.byLabel('Rhythm, Off, default'), findsOne);
+    expect(node(_sound, 'Sound, Off').flagsCollection.isButton, isTrue);
+    // The dial is one adjustable control.
+    expect(find.semantics.byLabel('Extend'), findsOne);
+
     // A change is said as well as shown.
-    await _row(tester, 'Interval bell');
+    await _open(tester, 'intervalBell');
+    // On a card the tiles under it are not read; its header is, with Back.
+    expect(find.semantics.byLabel('Rhythm, Off, default'), findsNothing);
+    expect(find.byTooltip('Back'), findsOneWidget);
+    final title = tester.getSemantics(
+      find.descendant(
+        of: _card('intervalBell'),
+        matching: find.text('Interval bell'),
+      ),
+    );
+    expect(title.flagsCollection.isHeader, isTrue);
     await _turn(tester, 'Every', 'Halfway');
+    await _goBack(tester);
+    expect(
+      find.semantics.byLabel('Interval bell, Halfway, Session bell, changed'),
+      findsOne,
+    );
+    await _open(tester, 'startBell');
+    await _turn(tester, 'Countdown', '5 sec');
+    await _goBack(tester);
     expect(
       find.semantics.byLabel(
-        'Bells, Session bell, Start · Halfway · End, changed',
+        'Starting bell, Session bell, 5 sec countdown, changed',
       ),
       findsOne,
     );
-    await _row(tester, 'Interval bell');
-    // The rows inside open the same way.
-    expect(find.semantics.byLabel('Starting bell, Session bell'), findsOne);
-    await _row(tester, 'Starting bell');
-    expect(
-      node(
-        find.byKey(const ValueKey('customize_startBell')),
-        'Starting bell, Session bell',
-      ).flagsCollection.isExpanded,
-      Tristate.isTrue,
-    );
-    // The play buttons are their own controls, named by their tooltip: one
-    // for each bell that rings (the interval bell is on now).
-    expect(find.byTooltip('Play Session bell'), findsNWidgets(3));
     semantics.dispose();
     await _unmount(tester);
   });
 
-  testWidgets('with reduced motion a section and a row open in one step', (
+  testWidgets('with reduced motion a card opens and closes in one step', (
     tester,
   ) async {
     final container = await _pump(tester, reduceMotion: true);
-    await _slot(tester, 'bells');
-    await _row(tester, 'Starting bell');
-    expect(_wheel('Countdown'), findsOneWidget);
+    await tester.tap(_tile('startBell'));
+    await tester.pump();
+    expect(_card('startBell'), findsOneWidget);
+    expect(_tile('startBell').hitTestable(), findsNothing);
+    expect(_wheel('Countdown').hitTestable(), findsOneWidget);
     await _turn(tester, 'Countdown', '5 sec');
     expect(_read(container).countdownSeconds, 5);
-    await _row(tester, 'Starting bell');
-    expect(_wheel('Countdown'), findsNothing);
-    await _slot(tester, 'bells');
-    expect(_section('bells'), findsNothing);
+    await tester.tap(_back);
+    await tester.pump();
+    expect(_card('startBell'), findsNothing);
+    expect(_tile('startBell').hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _unmount(tester);
   });
 
-  testWidgets('an opened section is brought into view under its tile', (
-    tester,
-  ) async {
-    await _pump(
-      tester,
-      scope: const CueScope(CueKind.talks, courseId: 'c1'),
-      onStart: () {},
-      size: const Size(360, 640),
-    );
-    await _slot(tester, 'bells');
-    await _slot(tester, 'rhythm');
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Heartbeat'));
+  testWidgets('with motion a card comes in as the tiles go, and goes as '
+      'they return', (tester) async {
+    await _pump(tester);
+    await tester.tap(_tile('rhythm'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+    // Both on their way: neither is fully there.
+    double opacity(Finder of) => tester
+        .widget<Opacity>(
+          find.ancestor(of: of, matching: find.byType(Opacity)).first,
+        )
+        .opacity;
+    expect(opacity(_card('rhythm')), inExclusiveRange(0, 1));
+    expect(opacity(_dial), inExclusiveRange(0, 1));
     await tester.pumpAndSettle();
-    // The open tile at the top of the list, its section right under it.
-    final list = tester.getRect(find.byKey(const ValueKey('customize_list')));
-    expect(tester.getTopLeft(_tile('rhythm')).dy, lessThan(list.top + 40));
-    expect(
-      tester.getTopLeft(_section('rhythm')).dy,
-      lessThan(list.bottom),
-      reason: 'the section starts on screen',
-    );
+    expect(opacity(_card('rhythm')), 1);
+    expect(opacity(_dial), 0);
+    await tester.tap(_back);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(_card('rhythm'), findsOneWidget, reason: 'leaving');
+    await tester.pumpAndSettle();
+    expect(_card('rhythm'), findsNothing);
+    expect(opacity(_dial), 1);
     await _unmount(tester);
   });
 
   testWidgets('the tiles speak the app\'s language', (tester) async {
     await _pump(tester, locale: const Locale('de'));
-    expect(_says(tester, 'sound'), ['Klang', 'Aus']);
+    expect(_soundSays(tester), 'Aus');
+    expect(_says(tester, 'startBell').first, 'Anfangsglocke');
+    expect(_says(tester, 'intervalBell'), ['Intervallglocke', 'Aus']);
+    expect(_says(tester, 'endBell').first, 'Schlussglocke');
     expect(_says(tester, 'rhythm'), ['Rhythmus', 'Aus']);
-    expect(_says(tester, 'length').first, 'Dauer');
+    expect(find.text('Fügt der Sitzung Stille hinzu.'), findsOneWidget);
+    await _unmount(tester);
+    await _pump(tester, locale: const Locale('es'));
+    expect(_says(tester, 'startBell').first, 'Campana inicial');
+    expect(_says(tester, 'endBell').first, 'Campana final');
+    expect(find.text('Añade silencio a la sesión.'), findsOneWidget);
     await _unmount(tester);
   });
 
@@ -1394,13 +1680,13 @@ void main() {
         .read(cueSettingsProvider(course).notifier)
         .update(const CueSettings(soundscape: 'mix'), courseOverride: true);
     await tester.pumpAndSettle();
-    expect(_says(tester, 'sound'), ['Klang', 'Aktueller Mix']);
+    expect(_soundSays(tester), 'Aktueller Mix');
     await _unmount(tester);
   });
 
   for (final brightness in Brightness.values) {
-    testWidgets('a recording\'s Length tile keeps its text readable, '
-        '${brightness.name}', (tester) async {
+    testWidgets('an outlined tile and the dial\'s lines keep their text '
+        'readable, ${brightness.name}', (tester) async {
       final theme = meditejoTheme(brightness, IdentityPalettes.byId(null));
       await _pump(tester, theme: theme);
       final sheet = theme.colorScheme.surfaceContainerLow;
@@ -1411,35 +1697,61 @@ void main() {
         return (hi.computeLuminance() + 0.05) / (lo.computeLuminance() + 0.05);
       }
 
-      for (final text in ['Length', '20 min', 'Set by the session']) {
-        final shown = find.descendant(
-          of: _tile('length'),
-          matching: find.text(text),
-        );
-        final style = tester.widget<Text>(shown).style!;
+      for (final text in [
+        'Starting bell',
+        'Session bell',
+        'Adds silence to the session.',
+        '20 min',
+      ]) {
+        final style = tester.widget<Text>(find.text(text).first).style!;
         expect(
           ratio(style.color!, sheet),
-          greaterThanOrEqualTo(3),
+          greaterThanOrEqualTo(4.5),
           reason: text,
         );
       }
-      // Nothing fades it: no Opacity over the tile.
-      expect(
-        find.ancestor(of: find.text('20 min'), matching: find.byType(Opacity)),
-        findsNothing,
-      );
       await _unmount(tester);
     });
   }
 
-  for (final scale in [1.0, 2.0]) {
-    testWidgets('fits a 360 dp phone at ${scale}x text', (tester) async {
+  testWidgets('on the S23+ the dial and all four tiles are there at once, '
+      'before a course\'s session', (tester) async {
+    await _pump(
+      tester,
+      scope: const CueScope(CueKind.talks, courseId: 'c1'),
+      onStart: () {},
+      size: const Size(411, 890),
+    );
+    final list = tester.getRect(find.byKey(const ValueKey('customize_list')));
+    expect(tester.getRect(_dial).top, greaterThanOrEqualTo(list.top));
+    for (final card in ['startBell', 'intervalBell', 'endBell', 'rhythm']) {
+      expect(
+        tester.getRect(_tile(card)).bottom,
+        lessThan(list.bottom),
+        reason: card,
+      );
+    }
+    // The dial is the tallest thing on it.
+    expect(
+      tester.getRect(_wheel('Extend')).height,
+      greaterThan(tester.getRect(_tile('rhythm')).height),
+    );
+    await _unmount(tester);
+  });
+
+  for (final (size, scale) in [
+    (const Size(360, 640), 1.0),
+    (const Size(360, 640), 2.0),
+    (const Size(411, 890), 1.0),
+  ]) {
+    testWidgets('fits ${size.width.round()} × ${size.height.round()} at '
+        '${scale}x text', (tester) async {
       const scope = CueScope(CueKind.talks, courseId: 'c1');
       final container = await _pump(
         tester,
         scope: scope,
         onStart: () {},
-        size: const Size(360, 720),
+        size: size,
         textScale: scale,
       );
       await container
@@ -1459,25 +1771,16 @@ void main() {
           );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      // Start and the footer switch stay pinned on screen while the list
-      // scrolls under them.
+      // Start stays pinned on screen while the list scrolls under it.
       expect(
         tester.getBottomLeft(find.text('Start')).dy,
-        lessThanOrEqualTo(720),
+        lessThanOrEqualTo(size.height),
       );
-      // The course card gives the tiles room: at 2x it is one line, after
-      // them.
-      expect(
-        find.text('Changes apply to all talks'),
-        scale == 1 ? findsOneWidget : findsNothing,
-      );
+      // The dial is what the sheet opens on.
       final list = tester.getRect(find.byKey(const ValueKey('customize_list')));
-      expect(
-        tester.getTopLeft(_tile('sound')).dy,
-        lessThan(list.bottom - 48),
-        reason: 'the first tiles are on screen as the sheet opens',
-      );
-      // Pinned at 1x; several lines at 2x, it ends the list instead.
+      expect(tester.getRect(_wheel('Extend')).top, lessThan(list.bottom - 48));
+      // The footer switch is pinned at 1x; several lines at 2x, it ends the
+      // list instead, and the course switch is one line.
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('customize_list')),
@@ -1485,24 +1788,44 @@ void main() {
         ),
         scale == 1 ? findsNothing : findsOneWidget,
       );
-      for (final slot in ['sound', 'bells', 'rhythm', 'length']) {
-        await tester.ensureVisible(_tile(slot));
-        expect(tester.takeException(), isNull, reason: slot);
+      expect(
+        find.text('Changes apply to all talks'),
+        scale == 1 ? findsOneWidget : findsNothing,
+      );
+      // Everything can be reached.
+      for (final target in [
+        _wheel('Extend'),
+        for (final card in ['startBell', 'intervalBell', 'endBell', 'rhythm'])
+          _tile(card),
+        find.byKey(const ValueKey('customize_scope_card')),
+        find.byKey(_showBefore),
+      ]) {
+        await tester.ensureVisible(target);
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(target.hitTestable(), findsOneWidget, reason: '$target');
       }
 
-      // The open rows with the most wheels lay out too.
-      await _slot(tester, 'bells');
-      await _row(tester, 'Interval bell');
+      // The cards with the most wheels lay out too, and scroll to their
+      // ends.
+      await _open(tester, 'intervalBell');
       expect(_wheel('Every'), findsOneWidget);
       expect(_wheel('Random window'), findsOneWidget);
+      await tester.ensureVisible(_sliderFor('Bell volume'));
+      await tester.pumpAndSettle();
+      expect(_sliderFor('Bell volume').hitTestable(), findsOneWidget);
       expect(tester.takeException(), isNull);
-      await _row(tester, 'Ending bell');
+      await _goBack(tester);
+      await _open(tester, 'endBell');
       expect(_wheel('Silence after the audio'), findsOneWidget);
       expect(tester.takeException(), isNull);
-      await _slot(tester, 'rhythm');
+      await _goBack(tester);
+      await _open(tester, 'rhythm');
       await tester.ensureVisible(_wheel('Ends at'));
       expect(_wheel('Rate'), findsOneWidget);
       await tester.ensureVisible(_sliderFor('Pulse volume'));
+      await tester.pumpAndSettle();
+      expect(_sliderFor('Pulse volume').hitTestable(), findsOneWidget);
       expect(tester.takeException(), isNull);
       // Wheels sit side by side at 1x, stacked at 2x.
       // (Measured at the labels: the test font is wide enough to wrap one.)
@@ -1519,7 +1842,7 @@ void main() {
 
   // #73: Rate · over · Ends at as one row of wheels, the ramp on the tile
   // as an arrow. #91: the wheels stand between scroll gutters, and a wheel's
-  // change can be undone.
+  // change can be undone. On the Rhythm card, and on the dial.
   group('Rhythm wheels and scroll gutters', () {
     final ramp = CueSettings.defaults(CueKind.practice).copyWith(
       pulseSound: cuePulseSounds['Heartbeat'],
@@ -1547,7 +1870,7 @@ void main() {
     testWidgets('Rate, Over and Ends at sit in one row; Ends at waits, '
         'dimmed, while the ramp is off', (tester) async {
       final c = await pumpWith(tester, ramp.copyWith(pulseRampMinutes: 0));
-      await _slot(tester, 'rhythm');
+      await _open(tester, 'rhythm');
       await tester.ensureVisible(_wheel('Rate'));
       await tester.pumpAndSettle();
       final rate = tester.getRect(_wheel('Rate'));
@@ -1559,7 +1882,7 @@ void main() {
       expect(over.right, lessThan(ends.left));
       for (final label in ['Rate', 'Over', 'Ends at']) {
         expect(
-          find.descendant(of: _section('rhythm'), matching: find.text(label)),
+          find.descendant(of: _card('rhythm'), matching: find.text(label)),
           findsOneWidget,
           reason: label,
         );
@@ -1635,19 +1958,12 @@ void main() {
 
     testWidgets('a vertical drag in a gutter scrolls the sheet and turns '
         'no wheel', (tester) async {
-      final c = await pumpWith(tester, ramp, size: const Size(411, 640));
-      await _slot(tester, 'rhythm');
+      final c = await pumpWith(tester, ramp, size: const Size(411, 420));
+      await _open(tester, 'rhythm');
       final stored = _read(c).toJson();
-      final list = tester
-          .state<ScrollableState>(
-            find.descendant(
-              of: find.byKey(const ValueKey('customize_list')),
-              matching: find.byType(Scrollable),
-            ),
-          )
-          .position;
+      final list = _scroll(tester, card: true);
       expect(list.maxScrollExtent, greaterThan(100), reason: 'it scrolls');
-      final section = tester.getRect(_section('rhythm'));
+      final section = tester.getRect(_card('rhythm'));
       // Inside the section's inset, 28 dp at least each side of the row.
       final firstRate = tester.getRect(_wheel('Rate'));
       final firstEnds = tester.getRect(_wheel('Ends at'));
@@ -1687,7 +2003,7 @@ void main() {
     testWidgets('a drag on a wheel turns it and offers Undo, which puts it '
         'back', (tester) async {
       final c = await pumpWith(tester, ramp);
-      await _slot(tester, 'rhythm');
+      await _open(tester, 'rhythm');
       await tester.ensureVisible(_wheel('Slow down over'));
       await tester.pumpAndSettle();
       await tester.drag(_wheel('Slow down over'), const Offset(0, -80));
@@ -1715,7 +2031,7 @@ void main() {
 
     testWidgets('Undo leaves alone what has changed since', (tester) async {
       final c = await pumpWith(tester, ramp);
-      await _slot(tester, 'rhythm');
+      await _open(tester, 'rhythm');
       // Another control after the wheel: its change stays.
       await _turn(tester, 'Slow down over', '30 min');
       await _drag(tester, 'Pulse volume', 0.6);
@@ -1748,8 +2064,7 @@ void main() {
         ).copyWith(intervalSound: '', intervalMinutes: 10),
       );
       final before = _read(c).toJson();
-      await _slot(tester, 'bells');
-      await _row(tester, 'Interval bell');
+      await _open(tester, 'intervalBell');
       await _turn(tester, 'Every', 'Halfway');
       expect(_read(c).intervalHalfway, isTrue);
       expect(_read(c).intervalSound, isNotEmpty);
@@ -1760,11 +2075,11 @@ void main() {
       await _unmount(tester);
     });
 
-    testWidgets('the Undo bar goes by itself, and when a section folds', (
+    testWidgets('the Undo bar goes by itself, and when its card is left', (
       tester,
     ) async {
       await pumpWith(tester, ramp);
-      await _slot(tester, 'rhythm');
+      await _open(tester, 'rhythm');
       await _turn(tester, 'Slow down over', '30 min');
       expect(find.byKey(undoBar), findsOneWidget);
       await tester.pump(const Duration(seconds: 6));
@@ -1773,7 +2088,7 @@ void main() {
 
       await _turn(tester, 'Slow down over', '40 min');
       expect(find.byKey(undoBar), findsOneWidget);
-      await _slot(tester, 'rhythm');
+      await _goBack(tester);
       expect(find.byKey(undoBar), findsNothing);
       await _unmount(tester);
     });
@@ -1782,7 +2097,7 @@ void main() {
         'before the first', (tester) async {
       final semantics = tester.ensureSemantics();
       final c = await pumpWith(tester, ramp);
-      await _slot(tester, 'rhythm');
+      await _open(tester, 'rhythm');
       // Over 20 → 30 → 40, then Undo: 20, not 30.
       await _turn(tester, 'Slow down over', '30 min');
       await _turn(tester, 'Slow down over', '40 min');
@@ -1822,22 +2137,15 @@ void main() {
     testWidgets('with the bar up, the list scrolls what it covers clear', (
       tester,
     ) async {
-      await pumpWith(tester, ramp, size: const Size(411, 640));
-      await _slot(tester, 'rhythm');
+      await pumpWith(tester, ramp, size: const Size(411, 420));
+      await _open(tester, 'rhythm');
       await _turn(tester, 'Slow down over', '30 min');
       expect(find.byKey(undoBar), findsOneWidget);
-      final list = tester
-          .state<ScrollableState>(
-            find.descendant(
-              of: find.byKey(const ValueKey('customize_list')),
-              matching: find.byType(Scrollable),
-            ),
-          )
-          .position;
+      final list = _scroll(tester, card: true);
       list.jumpTo(list.maxScrollExtent);
       await tester.pumpAndSettle();
       final slider = find.descendant(
-        of: _section('rhythm'),
+        of: _card('rhythm'),
         matching: find.byType(Slider),
       );
       expect(
@@ -1858,12 +2166,11 @@ void main() {
           CueKind.practice,
         ).copyWith(intervalSound: '', intervalMinutes: 10),
       );
-      await _slot(tester, 'bells');
-      await _row(tester, 'Interval bell');
+      await _open(tester, 'intervalBell');
       // Off → 5 min also turns the bell on with the default sound.
       await _turn(tester, 'Every', '5 min');
       expect(_read(c).intervalSound, isNotEmpty);
-      final bowl = find.text('Singing bowl').first;
+      final bowl = find.text('Singing bowl').last;
       await tester.ensureVisible(bowl);
       await tester.tap(bowl);
       await tester.pumpAndSettle();
@@ -1878,17 +2185,10 @@ void main() {
     });
 
     testWidgets('the room under the list stays when the bar goes, until '
-        'the section folds', (tester) async {
-      await pumpWith(tester, ramp, size: const Size(411, 760));
-      await _slot(tester, 'rhythm');
-      final list = tester
-          .state<ScrollableState>(
-            find.descendant(
-              of: find.byKey(const ValueKey('customize_list')),
-              matching: find.byType(Scrollable),
-            ),
-          )
-          .position;
+        'the card is left', (tester) async {
+      await pumpWith(tester, ramp, size: const Size(411, 420));
+      await _open(tester, 'rhythm');
+      var list = _scroll(tester, card: true);
       final before = list.maxScrollExtent;
       await _turn(tester, 'Slow down over', '30 min');
       expect(list.maxScrollExtent, greaterThan(before));
@@ -1902,23 +2202,24 @@ void main() {
       // Nothing moved under the thumb.
       expect(list.pixels, pixels);
       expect(tester.getRect(_wheel('Rate')).top, top);
-      // Folding the section gives the room back.
-      await _slot(tester, 'rhythm');
-      await _slot(tester, 'rhythm');
+      // Leaving the card gives the room back.
+      await _goBack(tester);
+      await _open(tester, 'rhythm');
+      list = _scroll(tester, card: true);
       expect(list.maxScrollExtent, before);
       await _unmount(tester);
     });
 
-    testWidgets('a step that lands after its section folded brings no bar', (
+    testWidgets('a step that lands after its card was left brings no bar', (
       tester,
     ) async {
       final c = await pumpWith(tester, ramp);
-      await _slot(tester, 'rhythm');
+      await _open(tester, 'rhythm');
       final landing = tester
           .widget<WheelPicker<int>>(_wheel('Slow down over'))
           .onChanged;
-      await _slot(tester, 'rhythm');
-      await _slot(tester, 'bells');
+      await _goBack(tester);
+      await _open(tester, 'startBell');
       landing(30);
       await tester.pumpAndSettle();
       expect(_read(c).pulseRampMinutes, 30, reason: 'still saved');
@@ -1946,8 +2247,7 @@ void main() {
         await tester.pumpAndSettle();
       }
 
-      await _slot(tester, 'bells');
-      await _row(tester, 'Starting bell');
+      await _open(tester, 'startBell');
 
       // The kind's defaults: the wheel and its Undo write the kind's key.
       await _turn(tester, 'Countdown', '10 sec');
@@ -1960,7 +2260,9 @@ void main() {
 
       // The course's own: the wheel and its Undo write the course's key,
       // and the kind's is left alone.
+      await _goBack(tester);
       await flip();
+      await _open(tester, 'startBell');
       expect(prefs.containsKey(courseKey), isTrue);
       final kindSaved = prefs.getString(kindKey);
       await _turn(tester, 'Countdown', '5 sec');
@@ -1970,14 +2272,18 @@ void main() {
       expect(store.read(course).countdownSeconds, start);
       expect(prefs.getString(kindKey), kindSaved);
 
-      // A bar from the course's settings goes when the switch is flipped:
-      // its Undo no longer has anywhere to apply.
-      await _turn(tester, 'Countdown', '10 sec');
+      // A bar from the course's settings (the dial's, beside the switch)
+      // goes when the switch is flipped: its Undo no longer has anywhere to
+      // apply.
+      await _goBack(tester);
+      await _turn(tester, 'Extend', '+10 min');
       expect(find.byKey(undoBar), findsOneWidget);
+      expect(store.read(course).extendMinutes, 10);
       await flip();
       expect(find.byKey(undoBar), findsNothing);
       expect(store.hasOverride(course), isFalse);
       expect(store.read(kind).countdownSeconds, start);
+      expect(store.read(kind).extendMinutes, 0);
       // And on again: no bar was left behind to put anything back.
       await flip();
       expect(find.byKey(undoBar), findsNothing);
@@ -1988,21 +2294,20 @@ void main() {
       tester,
     ) async {
       await pumpWith(tester, ramp);
-      await _slot(tester, 'rhythm');
+      await _open(tester, 'rhythm');
       await _turn(tester, 'Slow down over', '20 min');
       expect(find.byKey(undoBar), findsNothing);
       await _unmount(tester);
     });
 
-    testWidgets('the timer\'s length wheel stands centred between gutters', (
-      tester,
-    ) async {
+    testWidgets('the dial stands centred between gutters', (tester) async {
       final c = await _pump(tester, isTimer: true, onStart: () {});
-      await _slot(tester, 'length');
       final wheel = tester.getRect(_wheel('Duration'));
-      final section = tester.getRect(_section('length'));
-      expect(wheel.left - section.left, greaterThanOrEqualTo(16 + 28));
-      expect(section.right - wheel.right, greaterThanOrEqualTo(16 + 28));
+      final section = tester.getRect(_dial);
+      expect(wheel.left - section.left, greaterThanOrEqualTo(28));
+      expect(section.right - wheel.right, greaterThanOrEqualTo(28));
+      // The largest thing on the sheet.
+      expect(wheel.height, greaterThan(tester.getRect(_tile('rhythm')).height));
       expect(wheel.center.dx, closeTo(section.center.dx, 0.5));
       // A drag beside it changes nothing; on it, it turns, with Undo.
       final minutes = _read(c).durationMinutes;
@@ -2058,30 +2363,40 @@ void main() {
   );
 
   group('Extend', () {
-    testWidgets('is one setting under Length, apart from the Ending bell\'s '
-        'silence', (tester) async {
+    testWidgets('is the dial of a recording, saved as before, apart from '
+        'the Ending bell\'s silence', (tester) async {
       final container = await _pump(tester);
-      expect(_says(tester, 'length'), [
-        'Length',
-        '20 min',
-        'Set by the session',
-      ]);
-      await _slot(tester, 'length');
-      // How it is spent is not shown: no choice between the end and the pauses.
+      // How it is spent is not shown: no choice between the end and the
+      // pauses, and one short line of caption.
       expect(find.byType(ChoiceChip), findsNothing);
+      expect(find.text('Adds silence to the session.'), findsOneWidget);
+      expect(find.textContaining('pauses'), findsNothing);
+      String total() => tester
+          .widget<Text>(find.byKey(const ValueKey('customize_total')))
+          .data!;
+      expect(total(), '20 min');
       await _turn(tester, 'Extend', '+10 min');
       expect(_read(container).extendMinutes, 10);
       expect(_read(container).endSilenceMinutes, 0);
-      expect(_says(tester, 'length'), ['Length', '20 min', '+ 10 min silence']);
-      expect(_filled(tester, 'length'), isTrue);
+      expect(
+        container.read(cueSettingsStoreProvider).read(_practice).extendMinutes,
+        10,
+        reason: 'saved for the kind',
+      );
+      // The recording, what is added, and what the session comes to.
+      expect(total(), '20 min + 10 min = 30 min');
+      expect(find.text('Finishes at 9:30 AM'), findsOneWidget);
+      // It can be undone like any wheel.
+      expect(find.text('Extend: +10 min'), findsOneWidget);
       // The Ending bell's silence is its own setting, and untouched.
-      expect(_filled(tester, 'bells'), isFalse);
-      await _slot(tester, 'bells');
-      expect(_value(tester, 'Ending bell'), 'Session bell');
-      await _row(tester, 'Ending bell');
+      expect(_filled(tester, 'endBell'), isFalse);
+      expect(_says(tester, 'endBell'), ['Ending bell', 'Session bell']);
+      await _open(tester, 'endBell');
       await _turn(tester, 'Silence after the audio', '+2 min');
       expect(_read(container).extendMinutes, 10);
       expect(_read(container).endSilenceMinutes, 2);
+      await _goBack(tester);
+      expect(total(), '20 min + 10 min + 2 min = 32 min');
       await _unmount(tester);
     }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
@@ -2094,11 +2409,27 @@ void main() {
             courseOverride: false,
           );
       await tester.pumpAndSettle();
-      expect(_says(tester, 'length'), ['Length', '20 min', '+ 10 min silence']);
-      await _slot(tester, 'bells');
-      expect(_value(tester, 'Ending bell'), '6 min silence · Session bell');
+      expect(
+        tester.state<WheelPickerState<dynamic>>(_wheel('Extend')).selectedIndex,
+        4,
+      );
+      expect(_says(tester, 'endBell'), [
+        'Ending bell',
+        'Session bell',
+        '6 min silence',
+      ]);
       await _unmount(tester);
     }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+
+    testWidgets('in Settings, with no session, the dial stands alone', (
+      tester,
+    ) async {
+      final container = await _pump(tester, audioDurationMs: 0);
+      expect(find.byKey(const ValueKey('customize_total')), findsNothing);
+      await _turn(tester, 'Extend', '+5 min');
+      expect(_read(container).extendMinutes, 5);
+      await _unmount(tester);
+    });
 
     test('finish time reads the session\'s own length and position', () {
       const s = CueSettings(extendMinutes: 4, endSilenceMinutes: 6);

@@ -1990,12 +1990,6 @@ abstract class AppLocalizations {
   /// **'Timer'**
   String get timerTitle;
 
-  /// Timer screen mode toggle: counts up until the user ends the session
-  ///
-  /// In en, this message translates to:
-  /// **'Stopwatch'**
-  String get timerModeStopwatch;
-
   /// Label under the hours wheel on the Timer screen
   ///
   /// In en, this message translates to:
@@ -2007,12 +2001,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Minutes'**
   String get timerMinutesLabel;
-
-  /// Body of the card explaining Stopwatch mode on the Timer screen
-  ///
-  /// In en, this message translates to:
-  /// **'The time counts up from zero. Tap stop when you\'re done and the session is saved.'**
-  String get timerStopwatchCaption;
 
   /// Timer screen primary button
   ///
@@ -2055,12 +2043,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not downloaded. Connect to play'**
   String get soundNeedsConnection;
-
-  /// Title of the card explaining Stopwatch mode on the Timer screen
-  ///
-  /// In en, this message translates to:
-  /// **'Sit for as long as you like'**
-  String get timerStopwatchTitle;
 
   /// Offline screen link that opens the Timer, which works without a connection
   ///
@@ -5026,23 +5008,11 @@ abstract class AppLocalizations {
   /// **'Sound'**
   String get customizeSlotSound;
 
-  /// Customize: name of the tile for the starting, interval and ending bells
-  ///
-  /// In en, this message translates to:
-  /// **'Bells'**
-  String get customizeSlotBells;
-
   /// Customize: name of the tile for the pulse
   ///
   /// In en, this message translates to:
   /// **'Rhythm'**
   String get customizeSlotRhythm;
-
-  /// Customize: name of the tile for how long the session runs
-  ///
-  /// In en, this message translates to:
-  /// **'Length'**
-  String get customizeSlotLength;
 
   /// Customize: a tile's value when it plays nothing
   ///
@@ -5050,65 +5020,59 @@ abstract class AppLocalizations {
   /// **'Off'**
   String get customizeOff;
 
-  /// Customize: Bells tile, a bell rings at the start
+  /// Customize: name of the tile and card for the bell that starts a session
   ///
   /// In en, this message translates to:
-  /// **'Start'**
-  String get customizeBellsAtStart;
+  /// **'Starting bell'**
+  String get customizeStartingBell;
 
-  /// Customize: Bells tile, one bell rings at the midpoint
+  /// Customize: name of the tile and card for the bell that rings during a session
+  ///
+  /// In en, this message translates to:
+  /// **'Interval bell'**
+  String get customizeIntervalBell;
+
+  /// Customize: name of the tile and card for the bell that ends a session
+  ///
+  /// In en, this message translates to:
+  /// **'Ending bell'**
+  String get customizeEndingBell;
+
+  /// Customize: Starting bell tile's second line, the countdown before the bell
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} sec countdown'**
+  String customizeCountdownDetail(int seconds);
+
+  /// Customize: Ending bell tile's second line, the silence before the bell
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min silence'**
+  String customizeSilenceDetail(int minutes);
+
+  /// A timer with no set length, which counts up until it is ended: the ∞ on the length wheel, its button, and the Home tile
+  ///
+  /// In en, this message translates to:
+  /// **'Open-ended'**
+  String get timerOpenEnded;
+
+  /// Customize: Interval bell tile, one bell rings at the midpoint
   ///
   /// In en, this message translates to:
   /// **'Halfway'**
   String get customizeBellsHalfway;
 
-  /// Customize: Bells tile, the interval bell's rhythm
+  /// Customize: Interval bell tile, how often the bell rings
   ///
   /// In en, this message translates to:
   /// **'Every {minutes} min'**
   String customizeBellsEvery(int minutes);
 
-  /// Customize: Bells tile, a bell rings at the end
-  ///
-  /// In en, this message translates to:
-  /// **'End'**
-  String get customizeBellsAtEnd;
-
-  /// Customize: the starting bell's value when a countdown comes first
-  ///
-  /// In en, this message translates to:
-  /// **'{seconds} sec countdown · {bell}'**
-  String customizeCountdownThenBell(int seconds, String bell);
-
-  /// Customize: the ending bell's value when silence comes first
-  ///
-  /// In en, this message translates to:
-  /// **'{minutes} min silence · {bell}'**
-  String customizeSilenceThenBell(int minutes, String bell);
-
-  /// Customize: Length tile for a stopwatch, which has no end
+  /// Customize: under the timer dial when it rests on ∞, where a countdown shows when it finishes
   ///
   /// In en, this message translates to:
   /// **'Counts up'**
   String get customizeLengthCountsUp;
-
-  /// Customize: Length tile, the recording decides the length
-  ///
-  /// In en, this message translates to:
-  /// **'Set by the session'**
-  String get customizeLengthSetBySession;
-
-  /// Customize: Length tile in Settings, where no session is chosen
-  ///
-  /// In en, this message translates to:
-  /// **'Set by each session'**
-  String get customizeLengthSetByEachSession;
-
-  /// Customize: Length tile, silence added after the recording
-  ///
-  /// In en, this message translates to:
-  /// **'+ {minutes} min silence'**
-  String customizeLengthPlusSilence(int minutes);
 
   /// Customize: footer switch; off starts sessions straight away
   ///
@@ -5314,10 +5278,10 @@ abstract class AppLocalizations {
   /// **'Silence after the audio'**
   String get extendEndLabel;
 
-  /// Caption above the Silence after the audio wheel
+  /// Caption of the Ending bell's silence wheel
   ///
   /// In en, this message translates to:
-  /// **'Adds this much silence after the audio ends, before the ending bell rings.'**
+  /// **'Silence before the ending bell.'**
   String get extendEndCaption;
 
   /// Customize row: minutes added to a guided session, as if the recording were longer
@@ -5326,10 +5290,10 @@ abstract class AppLocalizations {
   /// **'Extend'**
   String get extendTitle;
 
-  /// Caption under Extend: its silence goes into the guide's own pauses where it can, the rest after the recording
+  /// Caption of Extend, the dial of the Customize sheet for a recording
   ///
   /// In en, this message translates to:
-  /// **'Adds this much silence to the session, in the pauses between the guidance and at the end.'**
+  /// **'Adds silence to the session.'**
   String get extendCaption;
 
   /// Player, between the seek bar's two times: shown while the session is in silence it added (Extend or the ending bell's silence), not the recording

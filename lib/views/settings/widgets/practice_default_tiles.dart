@@ -73,13 +73,9 @@ class CueDefaultsTile extends StatelessWidget {
           ? l10n.settingsPracticeCuesCaption
           : l10n.settingsTalksCuesCaption,
       hasUnderline: hasUnderline,
-      onTap: () => showModalBottomSheet<void>(
-        context: context,
-        showDragHandle: true,
-        isScrollControlled: true,
-        useSafeArea: true,
-        backgroundColor: Theme.of(context).bottomSheetTheme.backgroundColor,
-        builder: (_) => CustomizeSheet(
+      onTap: () => showCustomizeModal<void>(
+        context,
+        (_) => CustomizeSheet(
           scope: CueScope(kind),
           // No session, so no "Finishes at" line.
           showFinishes: false,

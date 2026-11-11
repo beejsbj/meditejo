@@ -25,7 +25,7 @@ void main() {
     expect(settings.minutes, kDefaultTimerMinutes);
   });
 
-  test('remembers the length but always reopens on the countdown', () {
+  test('remembers the length, and ∞ like any place on its wheel', () {
     final first = newContainer();
     final sub = first.listen(timerSettingsProvider, (_, _) {});
     first.read(timerSettingsProvider.notifier)
@@ -38,7 +38,12 @@ void main() {
     final next = newContainer();
     addTearDown(next.dispose);
     final settings = next.read(timerSettingsProvider);
-    expect(settings.mode, TimerMode.countdown);
-    expect(settings.minutes, 20);
+    expect(settings.mode, TimerMode.stopwatch);
+    expect(settings.minutes, 20, reason: 'the length ∞ was turned from');
+    // And back to the countdown, which is kept too.
+    next.read(timerSettingsProvider.notifier).setMode(TimerMode.countdown);
+    final again = newContainer();
+    addTearDown(again.dispose);
+    expect(again.read(timerSettingsProvider).mode, TimerMode.countdown);
   });
 }

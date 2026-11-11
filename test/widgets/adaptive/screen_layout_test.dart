@@ -25,7 +25,7 @@ import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/src/audio_pigeon.g.dart';
 import 'package:medito/views/home/home_view.dart';
-import 'package:medito/views/timer/timer_view.dart';
+import 'package:medito/views/cues/customize_sheet.dart';
 import 'package:medito/views/home/previews/stats_fixtures.dart';
 import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/services/home/continue_rules.dart';
@@ -228,7 +228,7 @@ void main() {
       expect(timer.hitTestable(), findsOneWidget);
       await tester.tap(timer);
       await tester.pumpAndSettle();
-      expect(find.byType(TimerView), findsOneWidget);
+      expect(find.byType(CustomizeSheet), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     }

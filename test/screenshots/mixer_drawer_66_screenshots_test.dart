@@ -26,7 +26,6 @@ import 'package:medito/views/cues/customize_sheet.dart';
 import 'package:medito/views/player/widgets/bottom_actions/player_action_bar.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/bg_sound_widget.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
-import 'package:medito/views/timer/timer_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/soundscape_fakes.dart';
@@ -154,11 +153,12 @@ Future<void> _shoot(WidgetTester tester, String name) async {
   });
 }
 
-Future<void> _tapSlot(WidgetTester tester, String slot) async {
-  final tile = find.byKey(ValueKey('customize_slot_$slot'));
-  await tester.ensureVisible(tile);
+/// Opens the mixer drawer from the Customize sheet's Sound button.
+Future<void> _tapSound(WidgetTester tester) async {
+  final button = find.byKey(const ValueKey('customize_sound'));
+  await tester.ensureVisible(button);
   await tester.pump();
-  await tester.tap(tile);
+  await tester.tap(button);
   await _settle(tester);
 }
 
@@ -281,14 +281,26 @@ void main() {
           ),
         ),
       );
-      await _tapSlot(tester, 'sound');
+      await _tapSound(tester);
       expect(tester.takeException(), isNull);
       await _shoot(tester, 'customize-$name');
     }, skip: !_enabled);
 
     testWidgets('mixer 66 timer, $name', (tester) async {
-      await _pump(tester, v, const TimerView());
-      await _tapSlot(tester, 'sound');
+      await _pump(
+        tester,
+        v,
+        Scaffold(
+          body: SafeArea(
+            child: CustomizeSheet(
+              scope: const CueScope(CueKind.practice),
+              isTimer: true,
+              onStart: () {},
+            ),
+          ),
+        ),
+      );
+      await _tapSound(tester);
       expect(tester.takeException(), isNull);
       await _shoot(tester, 'timer-$name');
     }, skip: !_enabled);

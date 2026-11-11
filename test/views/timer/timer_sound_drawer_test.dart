@@ -6,16 +6,17 @@ import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
-import 'package:medito/views/timer/timer_view.dart';
+import 'package:medito/views/timer/timer_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/soundscape_fakes.dart';
 
-/// The Timer's Sound tile is the third way into the one mixer drawer (#66):
+/// The Timer sheet's Sound button is the third way into the one mixer drawer
+/// (#66):
 /// the same choice the Sounds tab's "Plays under practice" line and the
 /// player's Sounds button make.
 void main() {
-  testWidgets('the Timer\'s Sound tile opens the mixer drawer and keeps '
+  testWidgets('the Timer\'s Sound button opens the mixer drawer and keeps '
       'what is chosen for practice', (tester) async {
     tester.view
       ..physicalSize = const Size(412, 915)
@@ -36,13 +37,21 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const TimerView(),
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showTimerSheet(context),
+                child: const Text('Timer'),
+              ),
+            ),
+          ),
         ),
       ),
     );
+    await tester.tap(find.text('Timer'));
     await tester.pumpAndSettle();
 
-    final tile = find.byKey(const ValueKey('customize_slot_sound'));
+    final tile = find.byKey(const ValueKey('customize_sound'));
     expect(tile, findsOneWidget);
     await tester.tap(tile);
     await tester.pumpAndSettle();
@@ -74,7 +83,11 @@ void main() {
       practice.selection,
       const SoundscapeSelection.preset('starter-hearth'),
     );
-    expect(find.text('Hearth'), findsWidgets, reason: 'the tile says it');
+    expect(
+      find.descendant(of: tile, matching: find.text('Hearth')),
+      findsOneWidget,
+      reason: 'the button says it',
+    );
     // The drawer is closed and nothing auditions on.
     expect(find.byType(SoundsView), findsNothing);
     expect(container.read(soundscapeProvider).playing, isFalse);

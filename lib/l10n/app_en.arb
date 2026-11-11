@@ -965,10 +965,6 @@
   "@timerTitle": {
     "description": "Title of the home Timer screen and of a timer session in the player"
   },
-  "timerModeStopwatch": "Stopwatch",
-  "@timerModeStopwatch": {
-    "description": "Timer screen mode toggle: counts up until the user ends the session"
-  },
   "timerHoursLabel": "Hours",
   "@timerHoursLabel": {
     "description": "Label under the hours wheel on the Timer screen"
@@ -976,10 +972,6 @@
   "timerMinutesLabel": "Minutes",
   "@timerMinutesLabel": {
     "description": "Label under the minutes wheel on the Timer screen"
-  },
-  "timerStopwatchCaption": "The time counts up from zero. Tap stop when you're done and the session is saved.",
-  "@timerStopwatchCaption": {
-    "description": "Body of the card explaining Stopwatch mode on the Timer screen"
   },
   "timerStart": "Start",
   "@timerStart": {
@@ -1018,10 +1010,6 @@
   "soundNeedsConnection": "Not downloaded. Connect to play",
   "@soundNeedsConnection": {
     "description": "Background sound row offline when the sound was never downloaded, so it cannot play"
-  },
-  "timerStopwatchTitle": "Sit for as long as you like",
-  "@timerStopwatchTitle": {
-    "description": "Title of the card explaining Stopwatch mode on the Timer screen"
   },
   "openTimer": "Open timer",
   "@openTimer": {
@@ -3227,87 +3215,64 @@
   "@customizeSlotSound": {
     "description": "Customize: name of the tile for what plays under a session"
   },
-  "customizeSlotBells": "Bells",
-  "@customizeSlotBells": {
-    "description": "Customize: name of the tile for the starting, interval and ending bells"
-  },
   "customizeSlotRhythm": "Rhythm",
   "@customizeSlotRhythm": {
     "description": "Customize: name of the tile for the pulse"
-  },
-  "customizeSlotLength": "Length",
-  "@customizeSlotLength": {
-    "description": "Customize: name of the tile for how long the session runs"
   },
   "customizeOff": "Off",
   "@customizeOff": {
     "description": "Customize: a tile's value when it plays nothing"
   },
-  "customizeBellsAtStart": "Start",
-  "@customizeBellsAtStart": {
-    "description": "Customize: Bells tile, a bell rings at the start"
+  "customizeStartingBell": "Starting bell",
+  "@customizeStartingBell": {
+    "description": "Customize: name of the tile and card for the bell that starts a session"
   },
-  "customizeBellsHalfway": "Halfway",
-  "@customizeBellsHalfway": {
-    "description": "Customize: Bells tile, one bell rings at the midpoint"
+  "customizeIntervalBell": "Interval bell",
+  "@customizeIntervalBell": {
+    "description": "Customize: name of the tile and card for the bell that rings during a session"
   },
-  "customizeBellsEvery": "Every {minutes} min",
-  "@customizeBellsEvery": {
-    "description": "Customize: Bells tile, the interval bell's rhythm",
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      }
-    }
+  "customizeEndingBell": "Ending bell",
+  "@customizeEndingBell": {
+    "description": "Customize: name of the tile and card for the bell that ends a session"
   },
-  "customizeBellsAtEnd": "End",
-  "@customizeBellsAtEnd": {
-    "description": "Customize: Bells tile, a bell rings at the end"
-  },
-  "customizeCountdownThenBell": "{seconds} sec countdown · {bell}",
-  "@customizeCountdownThenBell": {
-    "description": "Customize: the starting bell's value when a countdown comes first",
+  "customizeCountdownDetail": "{seconds} sec countdown",
+  "@customizeCountdownDetail": {
+    "description": "Customize: Starting bell tile's second line, the countdown before the bell",
     "placeholders": {
       "seconds": {
         "type": "int"
-      },
-      "bell": {
-        "type": "String"
       }
     }
   },
-  "customizeSilenceThenBell": "{minutes} min silence · {bell}",
-  "@customizeSilenceThenBell": {
-    "description": "Customize: the ending bell's value when silence comes first",
+  "customizeSilenceDetail": "{minutes} min silence",
+  "@customizeSilenceDetail": {
+    "description": "Customize: Ending bell tile's second line, the silence before the bell",
     "placeholders": {
       "minutes": {
         "type": "int"
-      },
-      "bell": {
-        "type": "String"
+      }
+    }
+  },
+  "timerOpenEnded": "Open-ended",
+  "@timerOpenEnded": {
+    "description": "A timer with no set length, which counts up until it is ended: the ∞ on the length wheel, its button, and the Home tile"
+  },
+  "customizeBellsHalfway": "Halfway",
+  "@customizeBellsHalfway": {
+    "description": "Customize: Interval bell tile, one bell rings at the midpoint"
+  },
+  "customizeBellsEvery": "Every {minutes} min",
+  "@customizeBellsEvery": {
+    "description": "Customize: Interval bell tile, how often the bell rings",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
       }
     }
   },
   "customizeLengthCountsUp": "Counts up",
   "@customizeLengthCountsUp": {
-    "description": "Customize: Length tile for a stopwatch, which has no end"
-  },
-  "customizeLengthSetBySession": "Set by the session",
-  "@customizeLengthSetBySession": {
-    "description": "Customize: Length tile, the recording decides the length"
-  },
-  "customizeLengthSetByEachSession": "Set by each session",
-  "@customizeLengthSetByEachSession": {
-    "description": "Customize: Length tile in Settings, where no session is chosen"
-  },
-  "customizeLengthPlusSilence": "+ {minutes} min silence",
-  "@customizeLengthPlusSilence": {
-    "description": "Customize: Length tile, silence added after the recording",
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      }
-    }
+    "description": "Customize: under the timer dial when it rests on ∞, where a countdown shows when it finishes"
   },
   "customizeShowBeforeSession": "Show before each session",
   "@customizeShowBeforeSession": {
@@ -3499,17 +3464,17 @@
   "@extendEndLabel": {
     "description": "Ending bell: wheel for minutes of silence after the recording, before the bell"
   },
-  "extendEndCaption": "Adds this much silence after the audio ends, before the ending bell rings.",
+  "extendEndCaption": "Silence before the ending bell.",
   "@extendEndCaption": {
-    "description": "Caption above the Silence after the audio wheel"
+    "description": "Caption of the Ending bell's silence wheel"
   },
   "extendTitle": "Extend",
   "@extendTitle": {
     "description": "Customize row: minutes added to a guided session, as if the recording were longer"
   },
-  "extendCaption": "Adds this much silence to the session, in the pauses between the guidance and at the end.",
+  "extendCaption": "Adds silence to the session.",
   "@extendCaption": {
-    "description": "Caption under Extend: its silence goes into the guide's own pauses where it can, the rest after the recording"
+    "description": "Caption of Extend, the dial of the Customize sheet for a recording"
   },
   "playerSilence": "Silence",
   "@playerSilence": {

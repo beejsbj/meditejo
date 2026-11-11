@@ -1066,17 +1066,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get timerTitle => 'Timer';
 
   @override
-  String get timerModeStopwatch => 'Stopwatch';
-
-  @override
   String get timerHoursLabel => 'Hours';
 
   @override
   String get timerMinutesLabel => 'Minutes';
-
-  @override
-  String get timerStopwatchCaption =>
-      'The time counts up from zero. Tap stop when you\'re done and the session is saved.';
 
   @override
   String get timerStart => 'Start';
@@ -1108,9 +1101,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get soundNeedsConnection => 'Not downloaded. Connect to play';
-
-  @override
-  String get timerStopwatchTitle => 'Sit for as long as you like';
 
   @override
   String get openTimer => 'Open timer';
@@ -2857,19 +2847,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customizeSlotSound => 'Sound';
 
   @override
-  String get customizeSlotBells => 'Bells';
-
-  @override
   String get customizeSlotRhythm => 'Rhythm';
-
-  @override
-  String get customizeSlotLength => 'Length';
 
   @override
   String get customizeOff => 'Off';
 
   @override
-  String get customizeBellsAtStart => 'Start';
+  String get customizeStartingBell => 'Starting bell';
+
+  @override
+  String get customizeIntervalBell => 'Interval bell';
+
+  @override
+  String get customizeEndingBell => 'Ending bell';
+
+  @override
+  String customizeCountdownDetail(int seconds) {
+    return '$seconds sec countdown';
+  }
+
+  @override
+  String customizeSilenceDetail(int minutes) {
+    return '$minutes min silence';
+  }
+
+  @override
+  String get timerOpenEnded => 'Open-ended';
 
   @override
   String get customizeBellsHalfway => 'Halfway';
@@ -2880,31 +2883,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get customizeBellsAtEnd => 'End';
-
-  @override
-  String customizeCountdownThenBell(int seconds, String bell) {
-    return '$seconds sec countdown · $bell';
-  }
-
-  @override
-  String customizeSilenceThenBell(int minutes, String bell) {
-    return '$minutes min silence · $bell';
-  }
-
-  @override
   String get customizeLengthCountsUp => 'Counts up';
-
-  @override
-  String get customizeLengthSetBySession => 'Set by the session';
-
-  @override
-  String get customizeLengthSetByEachSession => 'Set by each session';
-
-  @override
-  String customizeLengthPlusSilence(int minutes) {
-    return '+ $minutes min silence';
-  }
 
   @override
   String get customizeShowBeforeSession => 'Show before each session';
@@ -3055,15 +3034,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get extendEndLabel => 'Silence after the audio';
 
   @override
-  String get extendEndCaption =>
-      'Adds this much silence after the audio ends, before the ending bell rings.';
+  String get extendEndCaption => 'Silence before the ending bell.';
 
   @override
   String get extendTitle => 'Extend';
 
   @override
-  String get extendCaption =>
-      'Adds this much silence to the session, in the pauses between the guidance and at the end.';
+  String get extendCaption => 'Adds silence to the session.';
 
   @override
   String get playerSilence => 'Silence';

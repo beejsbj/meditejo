@@ -75,6 +75,9 @@ class SharedPreferenceConstants {
   static const String introSeen = 'intro_seen_v1';
 
   static const String timerMinutes = 'timer_minutes';
+
+  /// The Timer's length wheel rests on ∞ (counts up until ended).
+  static const String timerOpenEnded = 'timer_open_ended';
   static const String sessionBellsEnabled = 'session_bells_enabled';
   static const String timerSessionBellsEnabled = 'timer_session_bells_enabled';
 

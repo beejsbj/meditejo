@@ -1086,17 +1086,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get timerTitle => 'Timer';
 
   @override
-  String get timerModeStopwatch => 'Stoppuhr';
-
-  @override
   String get timerHoursLabel => 'Stunden';
 
   @override
   String get timerMinutesLabel => 'Minuten';
-
-  @override
-  String get timerStopwatchCaption =>
-      'Die Zeit zählt von null aufwärts. Tippe auf Stopp, wenn du fertig bist, und die Sitzung wird gespeichert.';
 
   @override
   String get timerStart => 'Starten';
@@ -1130,9 +1123,6 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get soundNeedsConnection =>
       'Nicht heruntergeladen. Zum Abspielen verbinden';
-
-  @override
-  String get timerStopwatchTitle => 'Sitze, so lange du möchtest';
 
   @override
   String get openTimer => 'Timer öffnen';
@@ -2898,19 +2888,32 @@ class AppLocalizationsDe extends AppLocalizations {
   String get customizeSlotSound => 'Klang';
 
   @override
-  String get customizeSlotBells => 'Glocken';
-
-  @override
   String get customizeSlotRhythm => 'Rhythmus';
-
-  @override
-  String get customizeSlotLength => 'Dauer';
 
   @override
   String get customizeOff => 'Aus';
 
   @override
-  String get customizeBellsAtStart => 'Anfang';
+  String get customizeStartingBell => 'Anfangsglocke';
+
+  @override
+  String get customizeIntervalBell => 'Intervallglocke';
+
+  @override
+  String get customizeEndingBell => 'Schlussglocke';
+
+  @override
+  String customizeCountdownDetail(int seconds) {
+    return '$seconds s Countdown';
+  }
+
+  @override
+  String customizeSilenceDetail(int minutes) {
+    return '$minutes Min. Stille';
+  }
+
+  @override
+  String get timerOpenEnded => 'Ohne Ende';
 
   @override
   String get customizeBellsHalfway => 'Halbzeit';
@@ -2921,31 +2924,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get customizeBellsAtEnd => 'Ende';
-
-  @override
-  String customizeCountdownThenBell(int seconds, String bell) {
-    return '$seconds s Countdown · $bell';
-  }
-
-  @override
-  String customizeSilenceThenBell(int minutes, String bell) {
-    return '$minutes Min. Stille · $bell';
-  }
-
-  @override
   String get customizeLengthCountsUp => 'Zählt hoch';
-
-  @override
-  String get customizeLengthSetBySession => 'Von der Sitzung bestimmt';
-
-  @override
-  String get customizeLengthSetByEachSession => 'Von jeder Sitzung bestimmt';
-
-  @override
-  String customizeLengthPlusSilence(int minutes) {
-    return '+ $minutes Min. Stille';
-  }
 
   @override
   String get customizeShowBeforeSession => 'Vor jeder Sitzung anzeigen';
@@ -3096,15 +3075,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get extendEndLabel => 'Stille nach der Aufnahme';
 
   @override
-  String get extendEndCaption =>
-      'Fügt so viel Stille nach dem Ende der Aufnahme hinzu, bevor die Abschlussglocke läutet.';
+  String get extendEndCaption => 'Stille vor der Schlussglocke.';
 
   @override
   String get extendTitle => 'Verlängern';
 
   @override
-  String get extendCaption =>
-      'Fügt der Sitzung so viel Stille hinzu, in den Pausen der Anleitung und am Ende.';
+  String get extendCaption => 'Fügt der Sitzung Stille hinzu.';
 
   @override
   String get playerSilence => 'Stille';

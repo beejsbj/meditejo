@@ -13,7 +13,7 @@ import 'package:medito/providers/timer/timer_settings_provider.dart';
 import 'package:medito/views/home/home_styles.dart';
 import 'package:medito/views/timer/start_timer.dart';
 import 'package:medito/views/timer/timer_format.dart';
-import 'package:medito/views/timer/timer_view.dart';
+import 'package:medito/views/timer/timer_sheet.dart';
 import 'package:medito/widgets/medito_icon.dart';
 
 /// One-tap starts, as a grid of tiles: the Timer, Sounds, and a few sound
@@ -28,14 +28,14 @@ class ShortcutsSection extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final presets = ref.watch(homeSoundPresetsProvider);
-    final stopwatch =
+    final openEnded =
         ref.watch(timerSettingsProvider.select((s) => s.mode)) ==
         TimerMode.stopwatch;
     final minutes = ref.watch(
       cueSettingsProvider(timerCueScope).select((s) => s.durationMinutes),
     );
-    final timerLength = stopwatch
-        ? l10n.timerModeStopwatch
+    final timerLength = openEnded
+        ? l10n.timerOpenEnded
         : formatTimerLength(Duration(minutes: minutes), l10n);
 
     final tiles = <Widget>[
@@ -47,9 +47,7 @@ class ShortcutsSection extends ConsumerWidget {
             MeditoIcon(assetName: MeditoIcons.timer, color: color, size: 24),
         label: l10n.timerTitle,
         caption: timerLength,
-        onTap: () => Navigator.of(
-          context,
-        ).push<void>(MaterialPageRoute(builder: (_) => const TimerView())),
+        onTap: () => showTimerSheet(context),
       ),
       ShortcutTile(
         key: const ValueKey('shortcut_sounds'),
@@ -73,7 +71,6 @@ class ShortcutsSection extends ConsumerWidget {
           starts: true,
           onTap: () => startTimerSession(
             context,
-            ref,
             soundscape: SoundscapeSelection.preset(preset.id),
           ),
         ),

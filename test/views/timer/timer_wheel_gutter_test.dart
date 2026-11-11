@@ -5,14 +5,14 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/views/timer/start_timer.dart';
-import 'package:medito/views/timer/timer_view.dart';
+import 'package:medito/views/timer/timer_sheet.dart';
 import 'package:medito/widgets/inputs/wheel_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/soundscape_fakes.dart';
 
-/// #91 on the Timer page, whose screen is the Customize sheet: its length
-/// wheel stands between scroll gutters, and a turn of it can be undone.
+/// #91 on the Timer, which opens as the Customize sheet: its length dial
+/// stands between scroll gutters, and a turn of it can be undone.
 void main() {
   testWidgets('the length wheel: a drag beside it changes nothing, a turn '
       'of it offers Undo', (tester) async {
@@ -31,33 +31,38 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(
+        child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: TimerView(),
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showTimerSheet(context),
+                child: const Text('Timer'),
+              ),
+            ),
+          ),
         ),
       ),
     );
+    await tester.tap(find.text('Timer'));
     await tester.pumpAndSettle();
     int minutes() =>
         container.read(cueSettingsProvider(timerCueScope)).durationMinutes;
     final start = minutes();
 
-    final tile = find.byKey(const ValueKey('customize_slot_length'));
-    await tester.ensureVisible(tile);
-    await tester.tap(tile);
-    await tester.pumpAndSettle();
     final wheel = find.byKey(const ValueKey('wheel_Duration'));
     await tester.ensureVisible(wheel);
     await tester.pumpAndSettle();
     final rect = tester.getRect(wheel);
     final section = tester.getRect(
-      find.byKey(const ValueKey('customize_section_length')),
+      find.byKey(const ValueKey('customize_dial')),
     );
-    expect(rect.left - section.left, greaterThanOrEqualTo(16 + 28));
-    expect(section.right - rect.right, greaterThanOrEqualTo(16 + 28));
+    expect(rect.left - section.left, greaterThanOrEqualTo(28));
+    expect(section.right - rect.right, greaterThanOrEqualTo(28));
 
-    // Both gutters: the page scrolls (or stays), the length does not move.
+    // Both gutters: the sheet scrolls (or stays), the length does not move.
+    // (The right one below the ∞ button, which sits at its top.)
     for (final x in [
       (section.left + rect.left) / 2,
       (rect.right + section.right) / 2,
@@ -86,7 +91,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(minutes(), start);
 
-    // Drops the page so its 30 second refresh timer is cancelled.
+    // Drops the sheet so its 30 second refresh timer is cancelled.
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });

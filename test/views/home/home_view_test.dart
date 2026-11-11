@@ -16,7 +16,7 @@ import 'package:medito/views/home/home_styles.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/home/widgets/pinned/pinned_section.dart';
 import 'package:medito/views/library/import_view.dart';
-import 'package:medito/views/timer/timer_view.dart';
+import 'package:medito/views/cues/customize_sheet.dart';
 
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/starter_presets.dart';
@@ -271,11 +271,17 @@ void main() {
       return app;
     }
 
-    testWidgets('Timer opens the timer', (tester) async {
+    testWidgets('Timer opens the timer, as the Customize sheet', (
+      tester,
+    ) async {
       await home(tester);
       await tester.tap(find.byKey(const ValueKey('shortcut_timer')));
       await settle(tester);
-      expect(find.byType(TimerView), findsOneWidget);
+      expect(find.byType(CustomizeSheet), findsOneWidget);
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.byKey(const ValueKey('wheel_Duration')), findsOneWidget);
+      expect(find.text('Start'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
     });
 
     testWidgets('Sounds opens the Sounds tab', (tester) async {

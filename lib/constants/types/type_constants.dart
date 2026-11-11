@@ -55,8 +55,12 @@ class TypeConstants {
 class RouteConstants {
   static const String stats = 'stats';
 
-  /// Native home Timer (countdown / stopwatch).
+  /// The Timer, opened as the Customize sheet.
   static const String timer = 'timer';
+
+  /// The Timer with its length on ∞ (open-ended, counting up): what a link
+  /// to the stopwatch means.
+  static const String stopwatch = 'stopwatch';
 }
 
 class LocaleConstants {
