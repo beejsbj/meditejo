@@ -1652,6 +1652,16 @@
   "@libraryInLibrary": {
     "description": "Button state when the item is already in the library"
   },
+  "playFromPosition": "from {position}",
+  "@playFromPosition": {
+    "description": "Small text beside the Resume icon on an episode's bottom bar: where playback picks up",
+    "placeholders": {
+      "position": {
+        "type": "String",
+        "example": "12:34"
+      }
+    }
+  },
   "libraryResumeAt": "Resume at {position}",
   "@libraryResumeAt": {
     "description": "Row label for a session left partway, with the position",

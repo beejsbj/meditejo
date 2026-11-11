@@ -5,6 +5,9 @@ enum BottomActionBarLayout {
   evenlySpaced, //  4 all items evenly spaced
   edgeAligned, // For player view - outer items at edges, inner items evenly spaced
   compactRight, // For track view - items at edges with last two grouped
+  // For the player: five equal slots at a fixed height, filled or empty, so
+  // an item's place never depends on what its neighbours are or how big.
+  fixedSlots,
 }
 
 class BottomActionBarItem {
@@ -32,7 +35,8 @@ class BottomActionBar extends StatelessWidget {
   final BottomActionBarItem? leftItem;
   final BottomActionBarItem? leftCenterItem;
 
-  /// An optional fifth slot between the centre items ([edgeAligned] only).
+  /// An optional fifth slot between the centre items ([edgeAligned] and
+  /// [fixedSlots]).
   final BottomActionBarItem? centerItem;
   final BottomActionBarItem? rightCenterItem;
   final BottomActionBarItem? rightItem;
@@ -90,6 +94,18 @@ class BottomActionBar extends StatelessWidget {
           if (rightItem != null) _buildItem(rightItem),
         ];
 
+      case BottomActionBarLayout.fixedSlots:
+        return [
+          for (final item in [
+            leftItem,
+            leftCenterItem,
+            centerItem,
+            rightCenterItem,
+            rightItem,
+          ])
+            Expanded(child: Center(child: _buildItem(item))),
+        ];
+
       case BottomActionBarLayout.edgeAligned:
         return [
           _buildItem(leftItem),
@@ -107,17 +123,28 @@ class BottomActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Row(
-          mainAxisAlignment:
-              layout == BottomActionBarLayout.evenlySpaced ||
-                  layout == BottomActionBarLayout.homePage
-              ? MainAxisAlignment.spaceEvenly
-              : MainAxisAlignment.start,
-          children: _buildLayoutChildren(),
-        ),
-      ),
+      child: Padding(padding: const EdgeInsets.all(8), child: _row()),
+    );
+  }
+
+  Widget _row() {
+    final row = _plainRow();
+    return layout == BottomActionBarLayout.fixedSlots
+        ? SizedBox(height: slotHeight, child: row)
+        : row;
+  }
+
+  /// The height of a [BottomActionBarLayout.fixedSlots] bar's row.
+  static const slotHeight = 56.0;
+
+  Widget _plainRow() {
+    return Row(
+      mainAxisAlignment:
+          layout == BottomActionBarLayout.evenlySpaced ||
+              layout == BottomActionBarLayout.homePage
+          ? MainAxisAlignment.spaceEvenly
+          : MainAxisAlignment.start,
+      children: _buildLayoutChildren(),
     );
   }
 }

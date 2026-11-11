@@ -8,7 +8,7 @@ import 'package:medito/providers/home/pinned_courses_provider.dart';
 import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/views/pack/pack_view.dart';
-import 'package:medito/views/player/widgets/bottom_actions/pack_view_bottom_bar.dart';
+import 'package:medito/views/pack/widgets/pack_path_button.dart';
 import 'package:medito/views/track/track_view.dart';
 
 import '../../helpers/dharma_seed_app.dart';
@@ -145,7 +145,7 @@ void main() {
         expect(_pinOff, findsOneWidget);
         expect(
           find.descendant(
-            of: find.byType(PackViewBottomBar),
+            of: find.byType(PackPlayButton),
             matching: find.byIcon(Icons.push_pin_outlined),
           ),
           findsNothing,

@@ -2872,6 +2872,12 @@ abstract class AppLocalizations {
   /// **'In library'**
   String get libraryInLibrary;
 
+  /// Small text beside the Resume icon on an episode's bottom bar: where playback picks up
+  ///
+  /// In en, this message translates to:
+  /// **'from {position}'**
+  String playFromPosition(String position);
+
   /// Row label for a session left partway, with the position
   ///
   /// In en, this message translates to:

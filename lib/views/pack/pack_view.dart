@@ -27,8 +27,8 @@ import 'package:medito/views/my_courses/my_course_actions.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 import 'package:medito/views/pack/widgets/pack_item_widget.dart';
 import 'package:medito/views/pack/widgets/course_actions.dart';
-import 'package:medito/views/player/widgets/bottom_actions/pack_view_bottom_bar.dart';
-import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
+import 'package:medito/views/pack/widgets/pack_path_button.dart';
+import 'package:medito/widgets/headers/page_back_button.dart';
 import 'package:medito/views/categories/category_chips.dart';
 import 'package:medito/widgets/attribution_notice.dart';
 import 'package:medito/widgets/cover_art.dart';
@@ -51,13 +51,6 @@ class PackView extends ConsumerStatefulWidget {
 class _PackViewState extends ConsumerState<PackView>
     with AutomaticKeepAliveClientMixin<PackView> {
   final ScrollController _scrollController = ScrollController();
-
-  /// The header's Play, measured on scroll to know when it has gone.
-  final _playButtonKey = GlobalKey();
-
-  /// Whether the header's Play has scrolled under the app bar, so the bottom
-  /// bar shows its copy.
-  bool _barPlay = false;
 
   /// The pinned tab bar, to keep it in place when the tab changes.
   final _tabsKey = GlobalKey(debugLabel: 'course_tabs');
@@ -91,21 +84,23 @@ class _PackViewState extends ConsumerState<PackView>
     super.build(context);
     final packAsyncValue = ref.watch(packProvider(packId: widget.id));
 
-    void popContext() => Navigator.pop(context);
-
-    // Create a reusable back button widget
-    final backButton = SingleBackButtonActionBar(onBackPressed: popContext);
+    final pack = packAsyncValue.value;
+    // What is on screen: the course, or its loading or error state.
+    final shown =
+        packAsyncValue.hasValue &&
+        !packAsyncValue.isLoading &&
+        !packAsyncValue.hasError;
 
     return Scaffold(
-      bottomNavigationBar: packAsyncValue.when(
-        data: (pack) => PackViewBottomBar(
-          packId: widget.id,
-          onBackPressed: popContext,
-          showPlay: _barPlay,
-        ),
-        loading: () => backButton,
-        error: (_, _) => backButton,
-      ),
+      // The course's header carries Back over its art; while there is no
+      // header yet (loading, an error) a plain top bar does.
+      appBar: shown ? null : AppBar(leading: const PageBackButton()),
+      // Play is the bottom-most thing, always on screen: the next session a
+      // thumb's reach away however long the course.
+      bottomNavigationBar:
+          shown && pack != null && PackPlayButton.isPlayable(pack)
+          ? PackPlayButton(pack: pack, maxWidth: 960)
+          : null,
       body: AdaptivePageBody(
         maxWidth: 960,
         child: packAsyncValue.when(
@@ -136,21 +131,6 @@ class _PackViewState extends ConsumerState<PackView>
         _holdTabs = false;
       }
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _updateBarPlay());
-  }
-
-  /// Shows Play in the bottom bar once the header's own has scrolled under
-  /// the collapsed app bar, and takes it away when it comes back.
-  void _updateBarPlay() {
-    if (!mounted) return;
-    final box = _playButtonKey.currentContext?.findRenderObject();
-    var gone = false;
-    if (box is RenderBox && box.attached && box.hasSize) {
-      final bottom = box.localToGlobal(Offset(0, box.size.height)).dy;
-      gone =
-          bottom <= MediaQuery.paddingOf(context).top + _collapsedAppBarHeight;
-    }
-    if (gone != _barPlay) setState(() => _barPlay = gone);
   }
 
   RefreshIndicator _buildScaffoldWithData(PackModel pack, WidgetRef ref) {
@@ -188,8 +168,8 @@ class _PackViewState extends ConsumerState<PackView>
         slivers: [
           MeditoAppBarLarge(
             scrollController: _scrollController,
+            hasLeading: true,
             title: pack.title,
-            hasLeading: false,
             coverUrl: pack.coverUrl ?? '',
             art: courseArt(pack.id),
           ),
@@ -252,9 +232,9 @@ class _PackViewState extends ConsumerState<PackView>
       pack.items.any((item) => item.kind != null);
 
   /// The header (#81): who leads the course, what it holds, how far along
-  /// the user is, then its actions: a full-width Play / Resume over a row of
-  /// Library, Pin, Share and ⋮. A plain pack shows its description in place
-  /// of the first two.
+  /// the user is, then its actions: a row of Library, Pin, Share and ⋮.
+  /// (Play is the page's bottom bar.) A plain pack shows its description in
+  /// place of the first two.
   Widget _header(PackModel pack) {
     final course = _isCourse(pack);
     final who = course ? _who(pack) : null;
@@ -287,7 +267,7 @@ class _PackViewState extends ConsumerState<PackView>
                 _progress(pack),
               ],
               const SizedBox(height: 20),
-              CourseActionRow(pack: pack, playKey: _playButtonKey),
+              CourseActionRow(pack: pack),
               LibCourseSettings(courseId: pack.id),
             ],
           ),

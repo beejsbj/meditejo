@@ -13,7 +13,7 @@ import 'package:medito/models/catalogue/catalogue_models.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/dharma_seed/widgets/course_rows_sliver.dart';
 import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
-import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
+import 'package:medito/widgets/headers/page_back_button.dart';
 import 'package:medito/views/teacher/youtube_channel_view.dart';
 import 'package:medito/widgets/adaptive/adaptive_page_body.dart';
 import 'package:medito/widgets/attribution_notice.dart';
@@ -125,12 +125,11 @@ class _TeacherViewState extends ConsumerState<_CatalogueTeacherView> {
   Widget build(BuildContext context) {
     final async = ref.watch(catalogueTeacherProvider(widget.teacherId));
     final page = async.value;
-    final backBar = SingleBackButtonActionBar(
-      onBackPressed: () => Navigator.pop(context),
-    );
 
     return Scaffold(
-      bottomNavigationBar: backBar,
+      // The page's header carries Back over its art; until there is one, a
+      // plain top bar does.
+      appBar: page != null ? null : AppBar(leading: const PageBackButton()),
       body: AdaptivePageBody(
         maxWidth: 960,
         child: page != null
@@ -188,8 +187,8 @@ class _TeacherViewState extends ConsumerState<_CatalogueTeacherView> {
       slivers: [
         MeditoAppBarLarge(
           scrollController: _scrollController,
+          hasLeading: true,
           title: teacher.name,
-          hasLeading: false,
           coverUrl: teacher.photoUrl,
           art: teacherArt(teacher.id),
         ),

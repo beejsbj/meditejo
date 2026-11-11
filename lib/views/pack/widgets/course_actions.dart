@@ -8,29 +8,23 @@ import 'package:medito/models/models.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/views/library/item_actions.dart';
 import 'package:medito/views/my_courses/my_course_actions.dart';
-import 'package:medito/views/pack/widgets/pack_path_button.dart';
 import 'package:medito/views/player/widgets/bottom_actions/pin_action.dart';
 import 'package:medito/widgets/add_to_siri_util.dart';
 import 'package:medito/widgets/medito_icon.dart';
 import 'package:medito/widgets/save_button.dart';
 import 'package:share_plus/share_plus.dart';
 
-/// The course page's actions (#81): a full-width filled Play / Resume that
-/// names the next session, over a row of the toggles that keep the course
-/// (Library, Pin), Share and ⋮. What used to sit in the bottom bar lives
-/// here, with the course.
+/// The course header's actions (#81): a row of the toggles that keep the
+/// course (Library, Pin), Share and ⋮, directly under its title and meta.
+/// Play is the page's bottom bar ([PackPlayButton]).
 class CourseActionRow extends StatelessWidget {
-  const CourseActionRow({super.key, required this.pack, this.playKey});
+  const CourseActionRow({super.key, required this.pack});
 
   final PackModel pack;
-
-  /// Lets the page tell when the header's Play has scrolled away.
-  final GlobalKey? playKey;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final playable = PackPlayButton.isPlayable(pack);
     final toggles = [
       // A playlist the user made lives in the library; it is edited (and
       // deleted from its editor), not unsaved.
@@ -52,23 +46,12 @@ class CourseActionRow extends StatelessWidget {
       if (CourseMoreButton.hasActions(pack.id))
         CourseMoreButton(packId: pack.id, title: pack.title),
     ];
-    // Play gets the full width, so the session's name has room; the
-    // toggles sit in a row under it.
-    final icons = Row(
+    return Row(
       children: [
         for (final (i, toggle) in toggles.indexed) ...[
           if (i > 0) const SizedBox(width: 8),
           toggle,
         ],
-      ],
-    );
-    if (!playable) return icons;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        PackPlayButton(key: playKey, pack: pack),
-        const SizedBox(height: 12),
-        icons,
       ],
     );
   }

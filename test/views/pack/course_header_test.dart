@@ -9,7 +9,6 @@ import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/pack/widgets/pack_item_widget.dart';
 import 'package:medito/views/pack/widgets/pack_path_button.dart';
-import 'package:medito/views/player/widgets/bottom_actions/pack_view_bottom_bar.dart';
 import 'package:medito/views/teacher/teacher_view.dart';
 import 'package:medito/widgets/attribution_notice.dart';
 
@@ -61,11 +60,10 @@ void main() {
   });
 
   Finder inBar(Finder finder) =>
-      find.descendant(of: find.byType(PackViewBottomBar), matching: finder);
+      find.descendant(of: find.byType(PackPlayButton), matching: finder);
 
   Future<void> scrollBy(WidgetTester tester, double dy) async {
     await tester.drag(find.byType(CustomScrollView), Offset(0, -dy));
-    // The bar's Play follows a frame after the scroll, then fades.
     for (var i = 0; i < 4; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
@@ -93,6 +91,23 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('course_teacher')));
       await DharmaSeedTestApp.settle(tester);
       expect(find.byType(TeacherView), findsOneWidget);
+
+      // A pushed page: Back at its top-left, no bottom bar, and it pops.
+      final teacherPage = tester.widget<Scaffold>(
+        find.descendant(
+          of: find.byType(TeacherView),
+          matching: find.byType(Scaffold),
+        ),
+      );
+      expect(teacherPage.bottomNavigationBar, isNull);
+      final back = find.byTooltip(l10n.goBack);
+      expect(back, findsOneWidget);
+      expect(tester.getCenter(back).dx, lessThan(56));
+      expect(tester.getCenter(back).dy, lessThan(100));
+      await tester.tap(back);
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.byType(TeacherView), findsNothing);
+      expect(find.byType(PackView), findsOneWidget);
     });
 
     testWidgets('a series names its channel, not a teacher page', (
@@ -116,9 +131,8 @@ void main() {
       expect(find.byType(LinearProgressIndicator), findsNothing);
     });
 
-    testWidgets('Play across the width, then Library, Pin, Share, more', (
-      tester,
-    ) async {
+    testWidgets('Library, Pin, Share and more under the meta; Play is the '
+        'bottom-most thing', (tester) async {
       final app = await createApp(tester);
       await app.pump(tester, const PackView(id: 'ds-retreat-500'));
 
@@ -129,13 +143,24 @@ void main() {
         'course_share',
         'pack_actions',
       ];
+      // Play is the page's bottom bar, not a button in the header.
       expect(play, findsOneWidget);
-      // Play spans the header's content width (20 dp gutters).
-      final width = tester.getSize(find.byType(PackView)).width;
-      expect(tester.getSize(play).width, closeTo(width - 40, 1));
-      // The toggles share one line under it, in this order.
+      final scaffold = tester.widget<Scaffold>(
+        find.descendant(
+          of: find.byType(PackView),
+          matching: find.byType(Scaffold),
+        ),
+      );
+      expect(scaffold.bottomNavigationBar, isA<PackPlayButton>());
+      final page = tester.getRect(find.byType(PackView));
+      expect(tester.getRect(play).bottom, page.bottom);
+      expect(tester.getRect(play).width, page.width);
+      // The toggles share one line, directly under the meta, in this order.
       final row = tester.getCenter(find.byKey(ValueKey(keys.first))).dy;
-      expect(row, greaterThan(tester.getBottomLeft(play).dy));
+      final meta = tester.getRect(find.byKey(const ValueKey('course_meta')));
+      expect(row, greaterThan(meta.bottom));
+      expect(row - meta.bottom, lessThan(56));
+      expect(row, lessThan(tester.getRect(play).top));
       var left = 0.0;
       for (final key in keys) {
         final control = find.byKey(ValueKey(key));
@@ -201,7 +226,7 @@ void main() {
       expect(await sheet(), containsAll([l10n.play, l10n.share]));
     });
 
-    testWidgets('the bottom bar is Back, and Play once the header is gone', (
+    testWidgets('the bottom bar is Play, always, naming the next session', (
       tester,
     ) async {
       final app = await createApp(tester);
@@ -212,24 +237,73 @@ void main() {
       );
       final handle = tester.ensureSemantics();
 
-      // None of the course's actions sit in the bar.
-      expect(inBar(find.byTooltip(l10n.goBack)), findsOneWidget);
+      void expectResume() {
+        expect(find.byType(PackPlayButton), findsOneWidget);
+        // The icon says Resume (a ring of the sessions played); the word
+        // is the label and the tooltip, not text.
+        expect(inBar(find.byKey(const ValueKey('play_progress'))), findsOne);
+        expect(inBar(find.text(l10n.packContinue)), findsNothing);
+        expect(inBar(find.text('Long talk 2')), findsOneWidget);
+        expect(
+          find.bySemanticsLabel(RegExp('^${l10n.packContinue}: Long talk 2')),
+          findsOneWidget,
+        );
+      }
+
+      // None of the course's other actions sit in the bar, and no Back.
       for (final key in ['pack_actions', 'course_share', 'course_pin']) {
         expect(inBar(find.byKey(ValueKey(key))), findsNothing);
       }
-      expect(inBar(find.byType(PackPlayButton)), findsNothing);
+      expect(inBar(find.byTooltip(l10n.goBack)), findsNothing);
+      expectResume();
 
-      // Into the sessions: the header's Play is under the title bar, so the
-      // bar offers it, naming the session.
+      // Deep in the sessions and back at the top: it never leaves.
       await scrollBy(tester, 900);
-      expect(inBar(find.byType(PackPlayButton)), findsOneWidget);
-      expect(inBar(find.text(l10n.packContinue)), findsOneWidget);
-      expect(inBar(find.text('Long talk 2')), findsOneWidget);
-
-      // Back at the top, the header has it again.
+      expectResume();
       await scrollBy(tester, -2000);
-      expect(inBar(find.byType(PackPlayButton)), findsNothing);
+      expectResume();
       handle.dispose();
+    });
+
+    testWidgets('Back is at the top-left, over the art, and pops the page', (
+      tester,
+    ) async {
+      final app = await createApp(tester);
+      await app.pump(
+        tester,
+        Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const PackView(id: 'ds-retreat-500'),
+                  ),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.byType(PackView), findsOneWidget);
+
+      // One Back, at the top-left; none in a bottom bar.
+      final back = find.byTooltip(l10n.goBack);
+      expect(back, findsOneWidget);
+      expect(tester.getCenter(back).dx, lessThan(56));
+      expect(tester.getCenter(back).dy, lessThan(100));
+      expect(inBar(back), findsNothing);
+      // It stays there once the header has collapsed.
+      await scrollBy(tester, 900);
+      expect(tester.getCenter(back).dy, lessThan(100));
+
+      await tester.tap(back);
+      await DharmaSeedTestApp.settle(tester);
+      expect(find.byType(PackView), findsNothing);
+      expect(find.text('open'), findsOneWidget);
     });
 
     testWidgets('the tabs stay under the title, and a new tab opens at its '
@@ -295,8 +369,9 @@ void main() {
       expect(viewport - last, lessThan(48));
     });
 
-    // The bottom bar's copy shares its row with Back: a finished course's
-    // long "Volver a empezar" at a large text size must fit there too.
+    // A finished course's bar at a large text size on a narrow phone: the
+    // replay disc and the first session's name, on one line, inside the
+    // screen. "Play again" (es: "Volver a empezar") is the label only.
     for (final (width, scale) in const [(360.0, 2.0), (320.0, 1.3)]) {
       testWidgets('the bar\'s Play again fits: es, ${width.toInt()} dp, '
           'text x$scale', (tester) async {
@@ -323,28 +398,26 @@ void main() {
         expect(tester.takeException(), isNull);
 
         final es = await AppLocalizations.delegate.load(const Locale('es'));
-        final bar = inBar(find.byType(PackPlayButton));
+        final bar = find.byType(PackPlayButton);
         expect(bar, findsOneWidget);
-        final action = find.descendant(
-          of: bar,
-          matching: find.byKey(const ValueKey('play_action')),
-        );
-        expect(tester.widget<Text>(action).data, es.coursePlayAgain);
-        // Inside the screen, beside Back.
-        expect(tester.getTopRight(bar).dx, lessThanOrEqualTo(width));
+        expect(inBar(find.byIcon(Icons.replay_rounded)), findsOneWidget);
         expect(
-          tester.getTopLeft(bar).dx,
-          greaterThan(tester.getTopRight(inBar(find.byType(IconButton))).dx),
+          find.byTooltip('${es.coursePlayAgain}: Long talk 1'),
+          findsOneWidget,
         );
+        expect(inBar(find.text(es.coursePlayAgain)), findsNothing);
+        final title = inBar(find.byKey(const ValueKey('play_title')));
+        expect(tester.widget<Text>(title).data, 'Long talk 1');
+        expect(tester.getTopRight(title).dx, lessThanOrEqualTo(width));
       });
     }
 
-    // Words in de and es run long; the action word must never be cut, at
-    // the narrowest phones and at a larger text size.
+    // In every language, on the narrowest phones and at a larger text
+    // size: the bar stays one line, and the header's toggles fit their row.
     for (final locale in const ['en', 'de', 'es']) {
       for (final width in const [360.0, 411.0]) {
         for (final scale in const [1.0, 1.3]) {
-          testWidgets('Play keeps its action whole: $locale, ${width.toInt()} '
+          testWidgets('the bar and the toggles fit: $locale, ${width.toInt()} '
               'dp, text x$scale', (tester) async {
             final app = await createApp(tester);
             await app.pump(
@@ -369,15 +442,17 @@ void main() {
             expect(tester.takeException(), isNull);
 
             final words = await AppLocalizations.delegate.load(Locale(locale));
-            final action = find.descendant(
-              of: find.byType(PackPlayButton),
-              matching: find.byKey(const ValueKey('play_action')),
+            expect(
+              find.byTooltip('${words.packContinue}: Long talk 4'),
+              findsOneWidget,
             );
-            expect(tester.widget<Text>(action).data, words.packContinue);
+            final title = inBar(find.byKey(const ValueKey('play_title')));
+            expect(tester.widget<Text>(title).data, 'Long talk 4');
             final paragraph = tester.renderObject<RenderParagraph>(
-              find.descendant(of: action, matching: find.byType(RichText)),
+              find.descendant(of: title, matching: find.byType(RichText)),
             );
             expect(paragraph.didExceedMaxLines, isFalse);
+            expect(tester.getTopRight(title).dx, lessThanOrEqualTo(width));
             // The four toggles still fit their row.
             for (final key in const ['course_library', 'pack_actions']) {
               expect(

@@ -68,6 +68,12 @@ PackModel _course(Set<int> done, {int sessions = 18}) => PackModel(
   ],
 );
 
+/// The bar's tappable action, which carries its label.
+final _playAction = find.descendant(
+  of: find.byType(PackPlayButton),
+  matching: find.byType(InkWell),
+);
+
 void main() {
   late AppLocalizations l10n;
 
@@ -127,7 +133,7 @@ void main() {
         packDataProvider(packId: pack.id).overrideWith((ref) async => pack),
       ],
     );
-    final label = tester.getSemantics(find.byType(PackPlayButton)).label;
+    final label = tester.getSemantics(_playAction).label;
     return label;
   }
 
@@ -212,7 +218,7 @@ void main() {
         packDataProvider(packId: pack.id).overrideWith((ref) async => pack),
       ],
     );
-    String label() => tester.getSemantics(find.byType(PackPlayButton)).label;
+    String label() => tester.getSemantics(_playAction).label;
 
     expect(label(), contains('${l10n.packStart}: Lesson 1'));
 

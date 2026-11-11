@@ -786,6 +786,7 @@
   "libraryRemovedSnack": "Quitado de tu biblioteca",
   "libraryAddToLibrary": "Añadir a la biblioteca",
   "libraryInLibrary": "En la biblioteca",
+  "playFromPosition": "desde {position}",
   "libraryResumeAt": "Reanudar en {position}",
   "playForMinutes": "Reproducir · {minutes} min",
   "importTitle": "Añadir a tu biblioteca",
