@@ -2242,18 +2242,6 @@ abstract class AppLocalizations {
   /// **'Talks'**
   String get exploreKindTalks;
 
-  /// Explore section title
-  ///
-  /// In en, this message translates to:
-  /// **'Saved courses'**
-  String get exploreSavedCourses;
-
-  /// Explore section title
-  ///
-  /// In en, this message translates to:
-  /// **'Saved teachers'**
-  String get exploreSavedTeachers;
-
   /// Section title for retreats shown as courses
   ///
   /// In en, this message translates to:
@@ -4995,6 +4983,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'More options for {title}'**
   String homeCardMenu(String title);
+
+  /// Screen-reader hint for a long-press on a Home card, read after 'double-tap and hold to'; lower case, an action
+  ///
+  /// In en, this message translates to:
+  /// **'show more options'**
+  String get homeCardActionsHint;
 
   /// Settings row that opens the History tab of Stats: the calendar where past sessions are added or edited
   ///

@@ -10,7 +10,6 @@ import 'package:medito/services/identity/mark_moments.dart';
 import 'package:medito/services/identity/mark_spec.dart';
 import 'package:medito/services/identity/palettes.dart';
 import 'package:medito/widgets/branding/mark_painter.dart';
-import 'package:medito/widgets/branding/mark_textures.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
 
 final _mark = MarkGenerator.build('g-1kq');
@@ -319,60 +318,163 @@ void main() {
     });
   });
 
-  testWidgets("a scene's print finish grows with its deep breath", (
-    tester,
-  ) async {
-    // At the top of a breath a scene is larger than its tile. The finish
-    // (paper and speckle) must reach the grown edge, not stop at the tile's
-    // square and leave bare caps. Rendered with and without the textures:
-    // outside the tile's square they differ only where the finish reaches.
-    const px = 200, m = 24;
-    // Speckle is made on demand, so the finish shows without waiting for
-    // paper (whose loading an earlier test may have started).
-    final scene = MarkGenerator.build('a-1q');
+  group('the parts move, the mark does not', () {
+    // One of each family, and the house mark (a roof line over a pebble).
+    final marks = [
+      MarkGenerator.build('g-1kq'),
+      MarkGenerator.build('m-2026-10-26'),
+      MarkGenerator.build('m-7'),
+      MarkGenerator.build('a-1q'),
+    ];
     final colors = MarkColors.of(IdentityPalettes.byId('tide'));
-    Future<Uint8List> render({required bool finish}) async {
+    const px = 160, margin = 24, side = px + 2 * margin;
+
+    /// [mark] at [t] with [motion], on a clear ground with a margin all
+    /// round, as RGBA bytes.
+    Future<Uint8List> render(
+      WidgetTester tester,
+      MarkSpec mark,
+      double t,
+      MarkMotion motion,
+    ) async {
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder)
-        ..translate(m.toDouble(), m.toDouble())
+        ..translate(margin.toDouble(), margin.toDouble())
         ..scale(px.toDouble());
+      if (mark is AtmosMark) {
+        canvas.clipPath(
+          Path()..addOval(
+            Rect.fromCircle(center: const Offset(0.5, 0.5), radius: 0.5),
+          ),
+        );
+      }
       MarkRenderer(
         canvas,
         colors,
-        textures: finish ? MarkTextures.instance : null,
         texel: 1 / px,
-      ).draw(scene, 60, swell: 1);
-      final image = recorder.endRecording().toImageSync(px + 2 * m, px + 2 * m);
+      ).draw(mark, t, tile: false, motion: motion);
+      final image = recorder.endRecording().toImageSync(side, side);
       final bytes = await tester.runAsync(
         () => image.toByteData(format: ui.ImageByteFormat.rawStraightRgba),
       );
+      image.dispose();
       return bytes!.buffer.asUint8List();
     }
 
-    final a = await render(finish: true);
-    final b = await render(finish: false);
-    const w = px + 2 * m;
-    double band(int y0, int y1) {
-      var sum = 0, n = 0;
-      for (var y = y0; y < y1; y++) {
-        for (var x = w ~/ 2 - 20; x < w ~/ 2 + 20; x++) {
-          final i = (y * w + x) * 4;
-          for (var k = 0; k < 3; k++) {
-            sum += (a[i + k] - b[i + k]).abs();
-          }
-          n += 3;
+    /// How many pixels differ between two renders, in rows [y0, y1).
+    int differing(Uint8List a, Uint8List b, [int y0 = 0, int y1 = side]) {
+      var n = 0;
+      for (var i = y0 * side * 4; i < y1 * side * 4; i += 4) {
+        if ((a[i + 3] - b[i + 3]).abs() > 24 ||
+            (a[i] - b[i]).abs() > 24 ||
+            (a[i + 1] - b[i + 1]).abs() > 24 ||
+            (a[i + 2] - b[i + 2]).abs() > 24) {
+          n++;
         }
       }
-      return sum / n;
+      return n;
     }
 
-    // Just above the tile's top edge (inside the grown circle), and just
-    // inside it.
-    final outside = band(m - 6, m - 2);
-    final inside = band(m + 2, m + 6);
-    expect(inside, greaterThan(0));
-    // Bare caps would differ not at all.
-    expect(outside, greaterThan(inside * 0.25));
+    /// Whether anything is drawn outside the tile's square.
+    bool spills(Uint8List a) {
+      for (var y = 0; y < side; y++) {
+        for (var x = 0; x < side; x++) {
+          final inside =
+              x >= margin &&
+              x < side - margin &&
+              y >= margin &&
+              y < side - margin;
+          if (!inside && a[(y * side + x) * 4 + 3] > 8) return true;
+        }
+      }
+      return false;
+    }
+
+    const idle = MarkMotion(life: 1);
+    const top = MarkMotion(life: 1, deep: 1, follow: 1, run: 0.5);
+
+    testWidgets('without motion it is the page\'s own drawing', (tester) async {
+      for (final mark in marks) {
+        final plain = await render(tester, mark, 23, MarkMotion.none);
+        // Asking for no motion in so many words changes nothing.
+        final zero = await render(tester, mark, 23, const MarkMotion());
+        expect(differing(plain, zero), 0, reason: mark.seed);
+      }
+    });
+
+    testWidgets('at rest every mark keeps moving, a little', (tester) async {
+      for (final mark in marks) {
+        final a = await render(tester, mark, 21, idle);
+        final b = await render(tester, mark, 24, idle);
+        final still = await render(tester, mark, 21, MarkMotion.none);
+        // It moves from one moment to the next, and away from the page's
+        // own frame...
+        expect(differing(a, b), greaterThan(0), reason: mark.seed);
+        expect(differing(a, still), greaterThan(0), reason: mark.seed);
+        // ...but only at its edges: most of the picture is as it was.
+        expect(
+          differing(a, still),
+          lessThan(side * side * 0.12),
+          reason: mark.seed,
+        );
+      }
+    });
+
+    testWidgets('a deep breath moves its parts and never leaves the tile', (
+      tester,
+    ) async {
+      for (final mark in marks) {
+        final rest = await render(tester, mark, 23, idle);
+        final deep = await render(tester, mark, 23, top);
+        expect(differing(rest, deep), greaterThan(40), reason: mark.seed);
+        expect(spills(rest), isFalse, reason: mark.seed);
+        expect(spills(deep), isFalse, reason: mark.seed);
+      }
+    });
+
+    testWidgets('the line and the pebble take a breath apart', (tester) async {
+      // The house mark: the roof is in the upper half, the pebble below.
+      final mark = marks[1];
+      const half = side ~/ 2 + 8;
+      final rest = await render(tester, mark, 23, MarkMotion.none);
+      // The body alone: the pebble swells and the roof stays as it was.
+      final body = await render(tester, mark, 23, const MarkMotion(deep: 1));
+      expect(differing(rest, body, 0, half - 16), 0);
+      expect(differing(rest, body, half, side), greaterThan(40));
+      // The part that follows alone: the roof's wave rises, and the pebble
+      // stays.
+      final line = await render(tester, mark, 23, const MarkMotion(follow: 1));
+      expect(differing(rest, line, 0, half - 16), greaterThan(40));
+      expect(differing(rest, line, half, side), 0);
+    });
+
+    testWidgets('a wave travels along a line; it is not one bend held', (
+      tester,
+    ) async {
+      final mark = marks[0];
+      const m = MarkMotion(life: 1, follow: 1);
+      final a = await render(tester, mark, 23, m);
+      final b = await render(tester, mark, 25, m);
+      // A quarter of the wave's 8 s later the line is somewhere else.
+      expect(differing(a, b), greaterThan(40));
+      // And a breath that has run its whole wavelength is back in step.
+      final c = await render(
+        tester,
+        mark,
+        23,
+        const MarkMotion(life: 1, follow: 1, run: 1),
+      );
+      expect(differing(a, c), lessThan(4));
+    });
+
+    testWidgets('the idle motion waits until the mark has drawn itself in', (
+      tester,
+    ) async {
+      final mark = marks[1];
+      final drawing = await render(tester, mark, 1.2, idle);
+      final plain = await render(tester, mark, 1.2, MarkMotion.none);
+      expect(differing(drawing, plain), 0);
+    });
   });
 
   group('MarkMoments', () {
@@ -380,7 +482,9 @@ void main() {
       expect(MarkMoments.swellAt(0), 0);
       expect(MarkMoments.swellAt(MarkMoments.breathSeconds), 0);
       expect(MarkMoments.swellAt(-1), 0);
-      final top = MarkMoments.breathSeconds * 0.4;
+      // The body's own breath ends a part's lag before the whole does.
+      expect(MarkMoments.swellAt(MarkMoments.partSeconds), 0);
+      final top = MarkMoments.partSeconds * 0.4;
       expect(MarkMoments.swellAt(top), closeTo(1, 1e-9));
       // Rises, then falls: one breath, no bounce.
       var last = 0.0;
@@ -395,6 +499,27 @@ void main() {
         expect(v, lessThanOrEqualTo(last));
         last = v;
       }
+    });
+
+    test('the parts that follow take the same breath a moment later', () {
+      const lag = MarkMoments.partLag;
+      expect(lag, greaterThan(0.3));
+      for (var s = 0.0; s <= MarkMoments.breathSeconds; s += 0.1) {
+        expect(
+          MarkMoments.swellAt(s + lag, lag: lag),
+          closeTo(MarkMoments.swellAt(s), 1e-9),
+        );
+      }
+      // Still out when the body has settled, and at rest when the breath
+      // ends.
+      expect(
+        MarkMoments.swellAt(MarkMoments.partSeconds, lag: lag),
+        greaterThan(0),
+      );
+      expect(MarkMoments.swellAt(MarkMoments.breathSeconds, lag: lag), 0);
+      // The wave runs one whole wavelength over the breath.
+      expect(MarkMoments.runAt(0), 0);
+      expect(MarkMoments.runAt(MarkMoments.breathSeconds), 1);
     });
 
     test("yesterday's mark un-draws back to its first moment", () {
@@ -443,6 +568,34 @@ void main() {
         await tester.pump(const Duration(seconds: 4));
       }
       expect(_state(tester).cycle, closeTo(0, 0.05));
+    });
+
+    testWidgets('the parts that follow trail the body, and settle with it', (
+      tester,
+    ) async {
+      await tester.pumpWidget(breathing());
+      await tester.pump();
+      // Breathing in: the followers are behind.
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(_state(tester).cycle, closeTo(0.5, 0.05));
+      expect(_state(tester).follow, lessThan(_state(tester).cycle - 0.1));
+      expect(_state(tester).follow, greaterThan(0));
+      // Breathing out: they are still further in.
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(_state(tester).cycle, closeTo(0.5, 0.05));
+      expect(_state(tester).follow, greaterThan(_state(tester).cycle + 0.1));
+      // Paused, both come to rest together and the mark stops.
+      await tester.pumpWidget(breathing(paused: true));
+      for (var i = 0; i < 40; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(_state(tester).cycle, 0);
+      expect(_state(tester).follow, 0);
+      expect(_state(tester).isRunning, isFalse);
     });
 
     testWidgets('the resting mark (Home) has no continuous breath', (

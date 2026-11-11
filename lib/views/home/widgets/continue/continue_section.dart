@@ -47,7 +47,7 @@ class ContinueSection extends ConsumerWidget {
             Padding(
               padding: EdgeInsets.fromLTRB(
                 kHomeGutter,
-                i == 0 ? 0 : kHomeGap / 2,
+                i == 0 ? 0 : kHomeRowGap,
                 kHomeGutter,
                 0,
               ),
@@ -164,6 +164,8 @@ class ContinueTile extends ConsumerWidget {
     ].join(' · ');
     final actions = _actions(context, ref, l10n);
     Future<void> start() => startContinueItem(context, ref, item);
+    void showActions() =>
+        showCardActions(context, title: item.title, actions: actions);
 
     final scheme = theme.colorScheme;
     final type = context.typography;
@@ -177,8 +179,11 @@ class ContinueTile extends ConsumerWidget {
       label: '$label: ${item.title}. $subtitle',
       excludeSemantics: true,
       onTap: start,
-      // The card hides its children from screen readers, so its menu's
-      // actions are offered on the card itself.
+      // A long-press opens the card's actions (there is no ⋮ on Home's
+      // cards): said as a hint, and since the card hides its children from
+      // screen readers the actions are offered on the card itself too.
+      onLongPress: showActions,
+      onLongPressHint: l10n.homeCardActionsHint,
       customSemanticsActions: {
         for (final a in actions)
           CustomSemanticsAction(label: a.label): a.onSelected,
@@ -188,10 +193,9 @@ class ContinueTile extends ConsumerWidget {
         color: fill,
         radius: kHomeCardRadius,
         onTap: start,
-        onLongPress: () =>
-            showCardActions(context, title: item.title, actions: actions),
+        onLongPress: showActions,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
           child: Row(
             children: [
               ClipRRect(
@@ -225,7 +229,9 @@ class ContinueTile extends ConsumerWidget {
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
                           item.courseTitle,
-                          maxLines: 2,
+                          // One line: the text has the card's width now, and
+                          // three cards should leave room for the mark.
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: type.baseline.bodyMedium?.copyWith(
                             color: muted,
@@ -250,9 +256,10 @@ class ContinueTile extends ConsumerWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              // Play, then the menu, as one row centred on the card. A round
-              // button with no word: the card says what it is, and "Resume"
+              const SizedBox(width: 12),
+              // Play, alone at the right and centred on the card; the
+              // card's other actions are a long-press away. A round button
+              // with no word: the card says what it is, and "Resume"
               // (or "Start") is its tooltip and what a screen reader hears.
               // Every card has the same button; the first differs only by
               // the card's own colour.
@@ -266,7 +273,6 @@ class ContinueTile extends ConsumerWidget {
                 onPressed: start,
                 icon: const Icon(Icons.play_arrow_rounded),
               ),
-              CardMenuButton(title: item.title, actions: actions, color: muted),
             ],
           ),
         ),

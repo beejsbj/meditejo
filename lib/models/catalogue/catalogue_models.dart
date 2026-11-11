@@ -38,32 +38,27 @@ class CatalogueTeacher {
 }
 
 /// What the Explore tab shows for one content group (or both when null).
-/// Courses are retreats; talks are singles, as session rows. Courses the user
-/// has added to the library are left out: the library lists them itself.
+/// Courses are retreats; talks are singles, as session rows. What the user
+/// has added to the library keeps its place: Explore is not tied to the
+/// library, and a card shows its saved state.
 @immutable
 class CatalogueExplore {
   const CatalogueExplore({
     this.courses = const [],
     this.teachers = const [],
     this.talks = const [],
-    this.savedTeachers = const [],
     this.hasCatalogue = false,
   });
 
   final List<PackItemsModel> courses;
   final List<CatalogueTeacher> teachers;
-  final List<CatalogueTeacher> savedTeachers;
   final List<PackItemsModel> talks;
 
   /// Whether any retreat is stored yet. False on a first launch before the
   /// first sync pass has brought courses in.
   final bool hasCatalogue;
 
-  bool get isEmpty =>
-      courses.isEmpty &&
-      teachers.isEmpty &&
-      savedTeachers.isEmpty &&
-      talks.isEmpty;
+  bool get isEmpty => courses.isEmpty && teachers.isEmpty && talks.isEmpty;
 }
 
 /// Grouped search results: teachers first, then courses, then talks.

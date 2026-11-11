@@ -18,15 +18,13 @@ List<T> interleave<T>(Iterable<List<T>> lists, {Object? Function(T)? key}) {
 }
 
 /// Explore from several catalogues as one: courses and sessions alternate
-/// between sources, teachers rank by how much they have recorded, and the
-/// teachers the user follows stay in front.
+/// between sources, and teachers rank by how much they have recorded.
 CatalogueExplore mergeExplores(List<CatalogueExplore> parts) {
   if (parts.length == 1) return parts.single;
   final teachers = [for (final part in parts) ...part.teachers]
     ..sort((a, b) => b.talkCount.compareTo(a.talkCount));
   return CatalogueExplore(
     courses: interleave([for (final part in parts) part.courses]),
-    savedTeachers: [for (final part in parts) ...part.savedTeachers],
     teachers: teachers,
     talks: interleave([for (final part in parts) part.talks]),
     hasCatalogue: parts.any((part) => part.hasCatalogue),

@@ -340,21 +340,15 @@ class DharmaSeedSource
   // The reads the Explore, search and teacher screens make: the
   // [CatalogueSource] half of this class.
 
-  /// Explore for one content group, or both when [group] is null: saved
-  /// courses and teachers first (unfiltered view only), then the newest
-  /// courses of that group, the busiest teachers, and the latest single
-  /// sessions (guided practice when no group is chosen).
+  /// Explore for one content group, or both when [group] is null: the
+  /// newest courses of that group, the busiest teachers, and the latest
+  /// single sessions (guided practice when no group is chosen). What the
+  /// user has in the library keeps its place here like anything else; the
+  /// cards show that it is saved.
   @override
   Future<CatalogueExplore> explore({ContentGroup? group}) =>
       _quietly('explore', () async {
-        // Courses already in the library are left out: Explore is for
-        // finding something to add, and the Library tab has the rest.
-        final savedIds = {...await _savedIds(DsSavedKind.retreat)};
-        final recent = await db.recentRetreatsOf(group, limit: browseLimit);
-        final courses = [
-          for (final r in recent)
-            if (!savedIds.contains(r.id)) r,
-        ];
+        final courses = await db.recentRetreatsOf(group, limit: browseLimit);
         final leads = await db.leadTeacherOfRetreats([
           ...courses.map((r) => r.id),
         ]);
@@ -362,15 +356,7 @@ class DharmaSeedSource
         PackItemsModel course(DsRetreat r) =>
             retreatItem(r, leadTeachers[leads[r.id]]);
 
-        final savedTeacherIds = await _savedIds(DsSavedKind.teacher);
-        final savedTeachers =
-            (await db.teachersById(savedTeacherIds)).values.toList()..sort(
-              (a, b) => savedTeacherIds
-                  .indexOf(a.id)
-                  .compareTo(savedTeacherIds.indexOf(b.id)),
-            );
         final top = await db.topTeachers(group: group, limit: 20);
-        final savedSet = {for (final t in savedTeachers) t.id};
 
         // With no chip, the latest guided practice: practice leads where
         // nothing else decides (decision 11).
@@ -380,11 +366,9 @@ class DharmaSeedSource
 
         return CatalogueExplore(
           courses: [for (final r in courses) course(r)],
-          savedTeachers: [for (final t in savedTeachers) teacherItem(t)],
           teachers: [
             for (final summary in top)
-              if (!savedSet.contains(summary.teacher.id))
-                teacherItem(summary.teacher, talkCount: summary.talkCount),
+              teacherItem(summary.teacher, talkCount: summary.talkCount),
           ],
           talks: [for (final t in talks) talkItem(t)],
           // A chip classifies courses by their stored talks, so before any

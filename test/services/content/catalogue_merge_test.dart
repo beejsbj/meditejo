@@ -43,7 +43,6 @@ void main() {
           ],
           talks: [item('ds-t1')],
           teachers: [teacher('ds-a', 50), teacher('ds-b', 10)],
-          savedTeachers: [teacher('ds-s', 1)],
           hasCatalogue: false,
         ),
         CatalogueExplore(
@@ -56,7 +55,6 @@ void main() {
       expect(merged.courses.map((c) => c.id), ['ds-1', 'dt-1', 'ds-2']);
       expect(merged.talks.map((c) => c.id), ['ds-t1', 'dt-t1', 'dt-t2']);
       expect(merged.teachers.map((t) => t.id), ['dt-a', 'ds-a', 'ds-b']);
-      expect(merged.savedTeachers.map((t) => t.id), ['ds-s']);
       expect(
         merged.hasCatalogue,
         isTrue,

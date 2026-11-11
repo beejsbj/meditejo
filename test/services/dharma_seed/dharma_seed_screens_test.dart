@@ -100,27 +100,35 @@ void main() {
       expect(explore.talks.first.kind, 'Recording');
     });
 
-    test(
-      'what is in the library leaves the browse lists, under any chip',
-      () async {
-        await source.setSaved('ds-retreat-100', saved: true);
-        await source.setSaved('ds-teacher-2', saved: true);
+    test('what is in the library keeps its place in the browse lists, under '
+        'any chip', () async {
+      final before = await source.explore();
+      final practiceBefore = await source.explore(group: ContentGroup.practice);
+      expect(before.courses.map((c) => c.id), contains('ds-retreat-100'));
+      expect(before.teachers.map((t) => t.name), contains('Leigh Brasington'));
 
-        final all = await source.explore();
-        // The library lists its own courses; browse does not repeat them.
-        expect(all.courses.map((c) => c.id), [
-          'ds-retreat-300',
-          'ds-retreat-200',
-        ]);
-        expect(all.savedTeachers.map((t) => t.name), ['Leigh Brasington']);
-        expect(all.teachers.map((t) => t.name), ['Rob Burbea']);
+      await source.setSaved('ds-retreat-100', saved: true);
+      await source.setSaved('ds-teacher-2', saved: true);
 
-        // A chip never hides what the user kept.
-        final practice = await source.explore(group: ContentGroup.practice);
-        expect(practice.courses.map((c) => c.id), ['ds-retreat-300']);
-        expect(practice.savedTeachers.map((t) => t.name), ['Leigh Brasington']);
-      },
-    );
+      // Explore is not tied to the library: the same courses and
+      // teachers, in the same order, saved or not.
+      final all = await source.explore();
+      expect(all.courses.map((c) => c.id), before.courses.map((c) => c.id));
+      expect(
+        all.teachers.map((t) => t.name),
+        before.teachers.map((t) => t.name),
+      );
+
+      final practice = await source.explore(group: ContentGroup.practice);
+      expect(
+        practice.courses.map((c) => c.id),
+        practiceBefore.courses.map((c) => c.id),
+      );
+      expect(
+        practice.teachers.map((t) => t.name),
+        practiceBefore.teachers.map((t) => t.name),
+      );
+    });
 
     test('retreats whose talks have not synced yet wait for a chip', () async {
       await db.upsertRetreatRecords({

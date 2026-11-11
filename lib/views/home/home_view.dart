@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +15,7 @@ import 'package:medito/routes/routes.dart';
 import 'package:medito/services/home_widget_service.dart';
 import 'package:medito/views/home/home_styles.dart';
 import 'package:medito/views/home/widgets/continue/continue_section.dart';
+import 'package:medito/views/home/widgets/home_mark_layout.dart';
 import 'package:medito/views/home/widgets/pinned/pinned_section.dart';
 import 'package:medito/views/home/widgets/shortcuts/shortcuts_section.dart';
 import 'package:medito/views/home/widgets/update_notice.dart';
@@ -27,11 +30,13 @@ import 'package:medito/services/identity/mark_spec.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Home is a launchpad: the Meditejo mark, then what is in progress, a few
-/// one-tap starts, and the courses the user pinned. Browsing lives in
+/// Home is a launchpad: the Meditejo mark, large and with air around it (up
+/// to about the top half of the screen, less when what is below needs the
+/// room; see `HomeMarkLayout`), then what is in progress, a few one-tap
+/// starts, and the courses the user pinned. Browsing lives in
 /// Explore and everything added in Library. The user chooses which sections
 /// show and in what order; the mark always leads. The mark is today's (a
-/// new one each day), and a tap sends a breath through it.
+/// new one each day), and a tap sends a breath through its parts.
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({super.key});
 
@@ -43,6 +48,7 @@ class _HomeViewState extends ConsumerState<HomeView>
     with AutomaticKeepAliveClientMixin {
   String? _lastWidgetSignature;
   bool _markInView = true;
+  final _fold = HomeFold();
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +57,21 @@ class _HomeViewState extends ConsumerState<HomeView>
     final order = ref.watch(homeWidgetOrderProvider);
     final hidden = ref.watch(homeHiddenWidgetsProvider);
     ref.listen(continueItemsProvider, (_, next) => _updateWidget(next.value));
+
+    final shown = [
+      for (final type in order)
+        if (!hidden.contains(type)) type,
+    ];
+    // The fold is the first row of tiles; with those hidden, the first
+    // section.
+    final foldOnFirst = !shown.contains(HomeWidgetType.homeShortcuts);
+    final screen = MediaQuery.sizeOf(context);
+    // No taller than the mark can fill: it is never wider than the screen.
+    final maxHeader = math.min(
+      screen.height * kHomeMarkMaxShare,
+      screen.width + kHomeMarkTop,
+    );
+    final animate = !MediaQuery.disableAnimationsOf(context);
 
     return Scaffold(
       body: SafeArea(
@@ -62,56 +83,64 @@ class _HomeViewState extends ConsumerState<HomeView>
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-                SliverToBoxAdapter(
-                  child: Stack(
-                    children: [
-                      // The mark's day name, under it, takes the place of a
-                      // bottom margin.
-                      Padding(
-                        padding: const EdgeInsets.only(top: 28),
-                        child: _HomeMark(animate: _markInView),
-                      ),
-                      // Where an app bar's actions sit on Library and
-                      // Settings, so the You button is in the same place.
-                      Positioned(
-                        top: YouButton.inset,
-                        right: YouButton.inset,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              key: const ValueKey('home_customize'),
-                              tooltip: l10n.homeCustomize,
-                              icon: const Icon(Icons.tune_rounded),
-                              onPressed: () => handleNavigation(
-                                TypeConstants.route,
-                                [TypeConstants.customiseHomeLayout],
-                                context,
-                                ref: ref,
+                HomeFoldScope(
+                  fold: _fold,
+                  child: HomeMarkLayout(
+                    fold: _fold,
+                    minHeader: screen.height * kHomeMarkMinShare,
+                    maxHeader: maxHeader,
+                    animate: animate,
+                    header: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _HomeMark(animate: _markInView),
+                        // Where an app bar's actions sit on Library and
+                        // Settings, so the You button is in the same place.
+                        Positioned(
+                          top: YouButton.inset,
+                          right: YouButton.inset,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                key: const ValueKey('home_customize'),
+                                tooltip: l10n.homeCustomize,
+                                icon: const Icon(Icons.tune_rounded),
+                                onPressed: () => handleNavigation(
+                                  TypeConstants.route,
+                                  [TypeConstants.customiseHomeLayout],
+                                  context,
+                                  ref: ref,
+                                ),
                               ),
-                            ),
-                            const YouButton(),
+                              const YouButton(),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    rest: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const UpdateNotice(),
+                        AdaptiveHomeSections(
+                          children: [
+                            for (final (i, type) in shown.indexed)
+                              Padding(
+                                key: ValueKey(type),
+                                padding: const EdgeInsets.only(
+                                  top: kHomeSectionGap / 2,
+                                  bottom: kHomeSectionGap / 2,
+                                ),
+                                child: foldOnFirst && i == 0
+                                    ? HomeFoldMarker(child: _buildSection(type))
+                                    : _buildSection(type),
+                              ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SliverToBoxAdapter(child: UpdateNotice()),
-                SliverToBoxAdapter(
-                  child: AdaptiveHomeSections(
-                    children: [
-                      for (final type in order)
-                        if (!hidden.contains(type))
-                          Padding(
-                            key: ValueKey(type),
-                            padding: const EdgeInsets.only(
-                              top: kHomeSectionGap / 2,
-                              bottom: kHomeSectionGap / 2,
-                            ),
-                            child: _buildSection(type),
-                          ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 SliverPadding(
@@ -130,7 +159,7 @@ class _HomeViewState extends ConsumerState<HomeView>
   /// The mark rests once Home is scrolled past it.
   bool _onScroll(ScrollUpdateNotification notification) {
     if (notification.depth != 0) return false;
-    final inView = notification.metrics.pixels < kHomeMarkSize + 40;
+    final inView = notification.metrics.pixels < _fold.headerHeight;
     if (inView != _markInView) setState(() => _markInView = inView);
     return false;
   }
@@ -174,8 +203,8 @@ class _HomeViewState extends ConsumerState<HomeView>
 /// Today's (or the pinned) mark. A long-press opens the pin sheet; a pinned
 /// mark carries a small pin, the one hint on Home that it won't change.
 ///
-/// Quiet at rest; alive in two moments. A tap sends one deep breath through
-/// it. And the first time Home is seen on a new day, the last daily mark
+/// At rest its parts keep a slow motion of their own; it is most alive in
+/// two moments. A tap sends one deep breath through its parts. And the first time Home is seen on a new day, the last daily mark
 /// seen (usually yesterday's) un-draws as today's draws itself in, and
 /// today's name shows for a few seconds (once a day, and never for a pinned
 /// mark). The day it was last seen is kept in preferences.
@@ -293,7 +322,8 @@ class _HomeMarkState extends ConsumerState<_HomeMark> {
         child: MeditejoMark(
           key: _mark,
           mark: ref.watch(homeMarkProvider),
-          size: kHomeMarkSize,
+          // As large as the square it is given.
+          size: null,
           animate: widget.animate,
           from: _arrivingFrom(),
           onSeen: _onSeen,
@@ -333,6 +363,31 @@ class _HomeMarkState extends ConsumerState<_HomeMark> {
         ),
       ),
     );
-    return Column(mainAxisSize: MainAxisSize.min, children: [mark, name]);
+    // The mark is as large as its block lets it be: a square in the
+    // block's height (which gives way to what is below), less the top
+    // margin and the name's line, and never wider than the screen less its
+    // gutters.
+    return Padding(
+      padding: const EdgeInsets.only(top: kHomeMarkTop),
+      child: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: kHomeGutter),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: kHomeMarkMaxSize,
+                    maxHeight: kHomeMarkMaxSize,
+                  ),
+                  child: AspectRatio(aspectRatio: 1, child: mark),
+                ),
+              ),
+            ),
+          ),
+          name,
+        ],
+      ),
+    );
   }
 }

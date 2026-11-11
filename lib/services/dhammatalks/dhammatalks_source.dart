@@ -350,22 +350,15 @@ class DhammatalksSource
   @override
   Future<CatalogueExplore> explore({ContentGroup? group}) async {
     final cat = await catalogue();
-    final saved = {
-      for (final e in await library?.entries() ?? const <LibraryEntry>[])
-        e.sourceId,
-    };
-    final teacher = _teacher(cat);
-    final following = saved.contains(dtTeacherId);
     final held = cat.talkCount > 0;
+    // A course in the library, and the teacher when followed, keep their
+    // places: the cards show what is saved.
     return CatalogueExplore(
       courses: [
         for (final course in cat.courses)
-          if ((group == null || course.group == group) &&
-              !saved.contains(course.appId))
-            _courseItem(course),
+          if (group == null || course.group == group) _courseItem(course),
       ],
-      savedTeachers: held && following ? [teacher] : const [],
-      teachers: held && !following ? [teacher] : const [],
+      teachers: held ? [_teacher(cat)] : const [],
       // With no chip, guided practice leads (BRIEF decision 11); Talks shows
       // the latest given.
       talks: [

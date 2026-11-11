@@ -59,6 +59,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medito/constants/theme/palette_theme.dart';
 import 'package:medito/services/identity/daily_mark.dart';
 import 'package:medito/services/identity/mark_generator.dart';
+import 'package:medito/services/identity/mark_spec.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
 import 'package:medito/providers/dharma_seed/dharma_seed_providers.dart';
 import 'package:medito/services/library/import_models.dart';
@@ -1263,6 +1264,73 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       await _capture(tester, 'home-full-${brightness.name}');
     }, skip: !_enabled);
+
+    // The mark's block and Home's spacing (2026-11-10): nothing to continue
+    // and no pins, three Continue cards with a pin, a small phone, and 2×
+    // text.
+    for (final (name, cards, pinned, size, scale) in [
+      ('empty', 0, false, const Size(1080, 2340), 1.0),
+      ('one', 1, false, const Size(1080, 2340), 1.0),
+      ('three', 3, true, const Size(1080, 2340), 1.0),
+      ('360x640', 2, true, const Size(945, 1680), 1.0),
+      ('360x640-empty', 0, false, const Size(945, 1680), 1.0),
+      ('text-2x', 2, true, const Size(1080, 2340), 2.0),
+    ]) {
+      testWidgets('Home mark and space, $name, ${brightness.name}', (
+        tester,
+      ) async {
+        final app = await LibraryTestApp.create(tester);
+        if (pinned) {
+          await app.prefs.setStringList('pinned_course_ids', [_pack.id]);
+        }
+        final items = [
+          ..._items,
+          ContinueItem(
+            trackId: 't3',
+            path: '/tracks/t3',
+            title: 'Chanting / Guided Meditation',
+            group: LibraryGroup.practice,
+            lastPlayed: DateTime(2026, 10, 23),
+            courseId: 'lib-course-d',
+            courseTitle: 'Sunday International Sangha: Immersion in the Dhamma',
+            resume: const ResumePoint(positionMs: 600000, durationMs: 2715000),
+            sessionNumber: 8,
+            sessionTotal: 14,
+          ),
+        ].take(cards).toList();
+        await app.pump(
+          tester,
+          _frame(
+            brightness,
+            Builder(
+              builder: (context) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(scale)),
+                child: Scaffold(
+                  body: const HomeView(),
+                  bottomNavigationBar: MeditoNavBar(
+                    items: nav,
+                    selectedIndex: 0,
+                    onSelected: (_) {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+          overrides: [
+            continueItemsProvider.overrideWith((ref) async => items),
+            packProvider(packId: _pack.id).overrideWith(_FakePack.new),
+          ],
+        );
+        tester.view.devicePixelRatio = 2.625;
+        tester.view.physicalSize = size;
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        expect(tester.takeException(), isNull);
+        await _capture(tester, 'home-mark-$name-${brightness.name}');
+      }, skip: !_enabled);
+    }
 
     // Two pinned courses and four favourites from before #79, one of them a
     // pinned course too: moved into pins, Home shows three and See all.
@@ -2973,6 +3041,101 @@ void main() {
           tester,
           'mark-frames/${brightness.name}-${i.toString().padLeft(3, '0')}',
         );
+      }
+    }
+
+    // The parts' own motion (2026-11-10), for four marks: the house mark
+    // (Clear V: a roof line over a pebble) and the first gesture, minimal
+    // and atmospheric marks of November's days. Per mark one sheet: a row
+    // of the idle motion two seconds apart, a row of one tapped breath, and
+    // at the end of each row every frame of it laid over the others, so
+    // what moved shows as a soft edge and what stayed as a hard one.
+    final days = <MarkFamily, MarkSpec>{};
+    for (var d = 1; d <= 30 && days.length < 3; d++) {
+      final m = MarkGenerator.build(
+        DailyMark.forDay(DateTime(2026, 11, d)).seed,
+      );
+      if (m is MinimalMark && m.type == 'shelter') continue;
+      days.putIfAbsent(m.family, () => m);
+    }
+    final subjects = {
+      'house': MarkSpec.decode(
+        File('assets/branding/house_mark.json').readAsStringSync(),
+      ),
+      for (final e in days.entries) '${e.key.name}-${e.value.type}': e.value,
+    };
+    const cell = 220.0;
+    const idleAt = <double>[20, 22, 24, 26, 28, 30];
+    const breathAt = <double>[0, 0.9, 1.8, 2.7, 3.6, 4.5, 5.4];
+    const life = AlwaysStoppedAnimation(1.0);
+    for (final brightness in Brightness.values) {
+      final theme = meditejoTheme(brightness, _palette);
+      final scheme = theme.colorScheme;
+      final colors = theme.extension<MeditejoPalette>()!.markColors(scheme);
+      for (final MapEntry(key: name, value: mark) in subjects.entries) {
+        Widget frame(double t, {double? breathStart, double opacity = 1}) =>
+            Opacity(
+              opacity: opacity,
+              child: CustomPaint(
+                size: const Size.square(cell),
+                painter: MarkPainter(
+                  mark: mark,
+                  colors: colors,
+                  time: ValueNotifier(t),
+                  life: life,
+                  breathStart: breathStart,
+                ),
+              ),
+            );
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = const Size(cell * 8, cell * 2);
+        await tester.pump();
+        Widget row(List<Widget> frames, List<Widget> overlaid) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ...frames,
+            SizedBox.square(
+              dimension: cell,
+              child: Stack(children: overlaid),
+            ),
+          ],
+        );
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: _boundary,
+            child: ColoredBox(
+              color: scheme.surface,
+              child: Directionality(
+                textDirection: TextDirection.ltr,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    row(
+                      [for (final t in idleAt) frame(t)],
+                      [
+                        for (final t in idleAt)
+                          frame(t, opacity: mark is AtmosMark ? 0.3 : 0.35),
+                      ],
+                    ),
+                    row(
+                      [
+                        for (final s in breathAt)
+                          frame(40 + s, breathStart: 40),
+                      ],
+                      [
+                        for (final s in breathAt)
+                          frame(40 + s, breathStart: 40, opacity: 0.35),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        await _capture(tester, 'mark-motion/$name-${brightness.name}');
       }
     }
   }, skip: !_enabled);

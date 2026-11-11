@@ -47,13 +47,23 @@ void main() {
         reason: '${order[i - 1]} before ${order[i]}',
       );
     }
-    // What the library already holds is not repeated here (the Library tab
-    // has it); the course cards offer Add.
+    // Explore is not tied to the library: there is no section for what it
+    // holds, the user's own playlist is not here, and a catalogue course
+    // that was added keeps its card, ticked, among the ones that offer Add.
     expect(find.text('In your library'), findsNothing);
+    expect(find.text('Saved teachers'), findsNothing);
     expect(find.text('Morning sits'), findsNothing);
-    expect(find.text('Dharma Talks Winter'), findsNothing);
+    expect(find.text('Dharma Talks Winter'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('add_to_library_ds-retreat-100')),
+      tester
+          .widget<IconButton>(
+            find.byKey(const ValueKey('add_to_library_ds-retreat-200')),
+          )
+          .tooltip,
+      'In library',
+    );
+    expect(
+      find.byKey(const ValueKey('add_to_library_ds-retreat-300')),
       findsOneWidget,
     );
     // With no chip, the latest sessions are guided practice.

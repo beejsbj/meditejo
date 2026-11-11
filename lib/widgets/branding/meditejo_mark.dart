@@ -10,10 +10,13 @@ import 'package:medito/services/identity/seeded_random.dart';
 import 'package:medito/widgets/branding/mark_painter.dart';
 import 'package:medito/widgets/branding/mark_textures.dart';
 
-/// A Meditejo mark, alive: it appears, draws its line, then breathes, its
-/// round shapes easing between a true circle and their organic form once
-/// every 10 s. Drawn straight on the app's background in the active
-/// palette's colours (an atmospheric scene sits in a circle).
+/// A Meditejo mark, alive: it appears, draws its line, then lives in its
+/// parts. Its round shapes ease between a true circle and their organic
+/// form once every 10 s, as on the page, and each part keeps a slow motion
+/// of its own besides (a wave along a line, a pebble breathing and shifting
+/// its shape; see `MarkMotion`). Nothing is ever scaled as a whole. Drawn
+/// straight on the app's background in the active palette's colours (an
+/// atmospheric scene sits in a circle).
 ///
 /// It runs only while it can be seen: it stops when [animate] is false (Home
 /// scrolled it away), when its tab is hidden (`Visibility.of`, which
@@ -22,7 +25,8 @@ import 'package:medito/widgets/branding/mark_textures.dart';
 /// on from there. With reduced motion it shows its settled frame.
 ///
 /// Two one-shot moments ride on the same clock (timings in [MarkMoments]):
-/// [MeditejoMarkState.breathe] sends one deep breath through it, and [from]
+/// [MeditejoMarkState.breathe] sends one deep breath through its parts (the
+/// body swells and settles, the rest follow a moment later), and [from]
 /// makes it arrive from another mark (yesterday's) the first time it is
 /// seen, the old one un-drawing as this one draws itself in. Neither adds a
 /// clock of its own, so neither runs while the mark can't be seen.
@@ -42,7 +46,10 @@ class MeditejoMark extends StatefulWidget {
   });
 
   final MarkSpec mark;
-  final double size;
+
+  /// The square's side; null fills the box it is given (the mark is drawn
+  /// in the largest square that fits, centred).
+  final double? size;
   final bool animate;
 
   /// Always the settled frame, never moving (previews, small sizes).
@@ -71,8 +78,8 @@ class MeditejoMark extends StatefulWidget {
   final ValueNotifier<double>? turnClock;
 
   /// Seconds per breath for a mark that breathes on and on (the player's):
-  /// it swells and settles as a deep breath does, over and over, instead of
-  /// only when touched. Null (Home) is the resting mark. Changing it carries
+  /// its parts swell and settle as in a deep breath, over and over, instead
+  /// of only when touched. Null (Home) is the resting mark. Changing it carries
   /// on from the same point in the breath. Reduced motion ignores it.
   final double? breathSeconds;
 
@@ -128,6 +135,43 @@ class MeditejoMarkState extends State<MeditejoMark>
   /// 0 out, 1 in: the continuous breath, drawn as a deep breath's swell.
   final ValueNotifier<double> _cycle = ValueNotifier(0);
 
+  /// The same breath as the parts that follow the body feel it: [_cycle],
+  /// trailing by about [_followSeconds].
+  double _followNow = 0;
+  final ValueNotifier<double> _follow = ValueNotifier(0);
+  double? _settleFollowFrom;
+
+  /// The idle motion's strength: 1, but a paused player's mark eases to 0
+  /// as its breath settles, and back when it plays again.
+  final ValueNotifier<double> _life = ValueNotifier(1);
+
+  /// How far the following parts trail a continuous breath.
+  static const _followSeconds = 0.45;
+
+  /// With reduced motion a touch is answered by a brief dip in opacity
+  /// instead of a breath.
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+    animationBehavior: AnimationBehavior.preserve,
+  );
+  late final Animation<double> _pulseOpacity = TweenSequence<double>([
+    TweenSequenceItem(
+      tween: Tween(
+        begin: 1.0,
+        end: 0.55,
+      ).chain(CurveTween(curve: Curves.easeOut)),
+      weight: 3,
+    ),
+    TweenSequenceItem(
+      tween: Tween(
+        begin: 0.55,
+        end: 1.0,
+      ).chain(CurveTween(curve: Curves.easeInOut)),
+      weight: 4,
+    ),
+  ]).animate(_pulse);
+
   /// While paused, when the settle to rest began and from where.
   double? _settleStart, _settleFrom;
 
@@ -163,8 +207,16 @@ class MeditejoMarkState extends State<MeditejoMark>
   @visibleForTesting
   double get cycle => _cycle.value;
 
+  /// The continuous breath as the following parts feel it.
+  @visibleForTesting
+  double get follow => _follow.value;
+
   /// Whether a deep breath is under way.
   bool get isBreathing => _breathStart != null;
+
+  /// Whether a touch's opacity pulse (reduced motion) is under way.
+  @visibleForTesting
+  bool get isPulsing => _pulse.isAnimating;
 
   /// Whether the mark is still arriving from [MeditejoMark.from].
   bool get isArriving => _from != null;
@@ -184,11 +236,16 @@ class MeditejoMarkState extends State<MeditejoMark>
     );
   }
 
-  /// Sends one deep breath through the mark: it swells and settles over
-  /// [MarkMoments.breathSeconds], then rests. Ignored while one is already
-  /// under way (taps don't stack), while it arrives from another mark, while
-  /// it can't be seen, and with reduced motion. Says whether a breath began.
+  /// Sends one deep breath through the mark's parts: the body swells and
+  /// settles, the parts that follow it a moment later, all within
+  /// [MarkMoments.breathSeconds]; then it rests. Ignored while one is
+  /// already under way (taps don't stack), while it arrives from another
+  /// mark and while it can't be seen. With reduced motion nothing moves:
+  /// the mark's opacity dips once, briefly. Says whether a breath began.
   bool breathe() {
+    if (_still && !widget.still && !isArriving && !_pulse.isAnimating) {
+      _pulse.forward(from: 0);
+    }
     if (_still || isBreathing || isArriving || !_ticker.isActive) {
       return false;
     }
@@ -226,6 +283,10 @@ class MeditejoMarkState extends State<MeditejoMark>
       _settleStart = _settleFrom = null;
       _cycleNow = 0;
       _cycle.value = 0;
+      _followNow = 0;
+      _follow.value = 0;
+      _settleFollowFrom = null;
+      _life.value = 1;
       _from = null;
       _turning = false;
       _turn
@@ -307,31 +368,47 @@ class MeditejoMarkState extends State<MeditejoMark>
     final t = _base + elapsed.inMicroseconds / 1e6;
     final period = widget.breathSeconds;
     var cycle = _cycleNow;
+    var follow = _followNow;
     if (period != null) {
       // The clock carries on from where it stopped, so a restart cannot
       // jump the breath; it only ever moves forward.
       final dt = math.max(0.0, t - _phaseAt);
       _phaseAt = t;
+      final step = dt / _settleSeconds;
+      _life.value = widget.paused
+          ? math.max(0, _life.value - step)
+          : math.min(1, _life.value + step);
       if (!widget.paused) {
         if (_settleStart != null) {
           // Resumed part-way through settling: breathe in from where it is.
           _phase = math.acos((1 - 2 * cycle).clamp(-1.0, 1.0)) / (2 * math.pi);
-          _settleStart = _settleFrom = null;
+          _settleStart = _settleFrom = _settleFollowFrom = null;
         }
         _phase = (_phase + dt / period) % 1;
         cycle = 0.5 - 0.5 * math.cos(2 * math.pi * _phase);
-      } else if (cycle > 0) {
-        // Paused: the breath settles to rest rather than freezing half-way.
+        // The following parts trail the body: never a jump, whatever the
+        // rate, a pause or a resume does to the breath.
+        follow += (cycle - follow) * (1 - math.exp(-dt / _followSeconds));
+      } else if (cycle > 0 || follow > 0) {
+        // Paused: the breath settles to rest rather than freezing half-way,
+        // its parts together.
         _settleStart ??= t;
         _settleFrom ??= cycle;
+        _settleFollowFrom ??= follow;
         final u = (t - _settleStart!) / _settleSeconds;
-        cycle = u >= 1 ? 0 : _settleFrom! * (1 - easeInOut(u));
+        final left = u >= 1 ? 0.0 : 1 - easeInOut(u);
+        cycle = _settleFrom! * left;
+        follow = _settleFollowFrom! * left;
         if (cycle == 0) _phase = 0;
       }
-      if (cycle == 0) _settleStart = _settleFrom = null;
+      if (cycle == 0 && follow == 0) {
+        _settleStart = _settleFrom = _settleFollowFrom = null;
+      }
       _cycleNow = cycle;
+      _followNow = follow;
       // Coming to rest is written at once, not left to the throttle.
       if (cycle == 0 && _cycle.value != 0) _cycle.value = 0;
+      if (follow == 0 && _follow.value != 0) _follow.value = 0;
     }
     if (_turning) _turnAt(t + MarkMoments.morphLead);
     // A turn or a deep breath ends: back to resting.
@@ -345,16 +422,19 @@ class MeditejoMarkState extends State<MeditejoMark>
     }
     // Once it has drawn in, resting breath is slow: 30 frames a second is
     // plenty. (Just under 1/30 s, so every other 60 Hz frame is drawn.) A
-    // deep breath swells the whole mark, so it gets every frame.
+    // deep breath moves every part at once, so it gets every frame.
     if (t > 5 && _breathStart == null && t - _lastFrame < 0.03) return;
     _lastFrame = t;
     _time.value = t;
     // Written with the frame, not every tick, so the throttle holds.
     if (_cycle.value != cycle) _cycle.value = cycle;
+    if (_follow.value != follow) _follow.value = follow;
     // Paused, settled and drawn in: nothing is left to move, so stop.
     if (_continuous &&
         widget.paused &&
         cycle == 0 &&
+        follow == 0 &&
+        _life.value == 0 &&
         t > MarkMoments.drawnBy(widget.mark)) {
       _stop();
     }
@@ -366,8 +446,11 @@ class MeditejoMarkState extends State<MeditejoMark>
     _ticker.dispose();
     _crossfade.dispose();
     _turn.dispose();
+    _pulse.dispose();
     _time.dispose();
     _cycle.dispose();
+    _follow.dispose();
+    _life.dispose();
     super.dispose();
   }
 
@@ -377,19 +460,29 @@ class MeditejoMarkState extends State<MeditejoMark>
     final colors =
         widget.colors ?? MeditejoPalette.of(context).markColors(scheme);
     return ExcludeSemantics(
-      child: RepaintBoundary(
-        child: CustomPaint(
-          key: const ValueKey('meditejo_mark'),
-          size: Size.square(widget.size),
-          painter: MarkPainter(
-            mark: widget.mark,
-            colors: colors,
-            time: _time,
-            still: _still,
-            breathStart: _breathStart,
-            cycle: _continuous ? _cycle : null,
-            from: _from,
-            fade: _still && _from != null ? _crossfade : null,
+      child: FadeTransition(
+        opacity: _pulseOpacity,
+        child: RepaintBoundary(
+          child: CustomPaint(
+            key: const ValueKey('meditejo_mark'),
+            size: switch (widget.size) {
+              final side? => Size.square(side),
+              null => Size.infinite,
+            },
+            painter: MarkPainter(
+              mark: widget.mark,
+              colors: colors,
+              time: _time,
+              still: _still,
+              // A paused player's mark comes to rest; Home's keeps its idle
+              // motion for as long as it is seen.
+              life: _life,
+              breathStart: _breathStart,
+              cycle: _continuous ? _cycle : null,
+              follow: _continuous ? _follow : null,
+              from: _from,
+              fade: _still && _from != null ? _crossfade : null,
+            ),
           ),
         ),
       ),
@@ -399,8 +492,10 @@ class MeditejoMarkState extends State<MeditejoMark>
 
 /// Paints [mark] at [time]'s moment, without a tile, so it sits on whatever
 /// is below. [still] paints the settled frame. An atmospheric scene is
-/// clipped to its circle here, so a deep breath swells the circle too.
+/// clipped to its circle here; the circle never moves.
 ///
+/// [life] is the strength of the parts' idle motion (see `MarkMotion`);
+/// without it they have none.
 /// [breathStart] is the clock time a deep breath began. [from] is a mark
 /// being left: drawn un-drawing over the turn's first seconds (the clock
 /// starts at `-MarkMoments.morphLead`), or, with [fade] (reduced motion),
@@ -412,8 +507,10 @@ class MarkPainter extends CustomPainter {
     required this.time,
     this.still = false,
     this.tile = false,
+    this.life,
     this.breathStart,
     this.cycle,
+    this.follow,
     this.from,
     this.fade,
   }) : super(
@@ -430,11 +527,14 @@ class MarkPainter extends CustomPainter {
   final ValueListenable<double> time;
   final bool still;
   final bool tile;
+  final ValueListenable<double>? life;
   final double? breathStart;
 
-  /// A continuous breath, 0 out to 1 in, swelling the mark as a deep breath
-  /// does; null when the mark only rests.
+  /// A continuous breath, 0 out to 1 in, moving the mark's parts as a deep
+  /// breath does; null when the mark only rests. [follow] is the same
+  /// breath as the parts that trail the body feel it ([cycle] if null).
   final ValueListenable<double>? cycle;
+  final ValueListenable<double>? follow;
   final MarkSpec? from;
   final Animation<double>? fade;
 
@@ -473,37 +573,46 @@ class MarkPainter extends CustomPainter {
           );
         });
       }
-      final start = breathStart;
-      final swell = still
-          ? 0.0
-          : start != null
-          ? MarkMoments.swellAt(t - start)
-          : cycle?.value ?? 0.0;
-      _layer(canvas, mark, 1, swell: swell, () {
-        renderer.draw(mark, t, still: still, tile: tile, swell: swell);
+      _layer(canvas, mark, 1, () {
+        renderer.draw(mark, t, still: still, tile: tile, motion: motionAt(t));
       });
     }
     canvas.restore();
   }
 
-  /// Draws one mark at [opacity]: a scene inside its circle, grown by
-  /// [swell] as the renderer grows the scene.
+  /// How the mark's parts move at clock time [t]: the idle motion, and a
+  /// deep breath (one from a touch, or the continuous one) on top of it.
+  @visibleForTesting
+  MarkMotion motionAt(double t) {
+    if (still) return MarkMotion.none;
+    final life = this.life?.value ?? 0.0;
+    final start = breathStart;
+    if (start != null) {
+      final s = t - start;
+      return MarkMotion(
+        life: life,
+        deep: MarkMoments.swellAt(s),
+        follow: MarkMoments.swellAt(s, lag: MarkMoments.partLag),
+        run: MarkMoments.runAt(s),
+      );
+    }
+    final deep = cycle?.value ?? 0.0;
+    return MarkMotion(life: life, deep: deep, follow: follow?.value ?? deep);
+  }
+
+  static final _circle = Path()
+    ..addOval(Rect.fromCircle(center: const Offset(0.5, 0.5), radius: 0.5));
+
+  /// Draws one mark at [opacity]: a scene inside its circle.
   static void _layer(
     Canvas canvas,
     MarkSpec m,
     double opacity,
-    void Function() draw, {
-    double swell = 0,
-  }) {
+    void Function() draw,
+  ) {
     if (opacity <= 0) return;
     canvas.save();
-    if (m.family == MarkFamily.atmos) {
-      final r = 0.5 * (1 + MarkMoments.swellScale * swell);
-      canvas.clipPath(
-        Path()
-          ..addOval(Rect.fromCircle(center: const Offset(0.5, 0.5), radius: r)),
-      );
-    }
+    if (m.family == MarkFamily.atmos) canvas.clipPath(_circle);
     if (opacity < 1) {
       canvas.saveLayer(
         const Rect.fromLTWH(-0.5, -0.5, 2, 2),
@@ -522,8 +631,10 @@ class MarkPainter extends CustomPainter {
       old.time != time ||
       old.still != still ||
       old.tile != tile ||
+      old.life != life ||
       old.breathStart != breathStart ||
       old.cycle != cycle ||
+      old.follow != follow ||
       !identical(old.from, from) ||
       old.fade != fade;
 }
