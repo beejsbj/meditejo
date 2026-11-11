@@ -326,12 +326,6 @@ class ExploreViewState extends ConsumerState<ExploreView> {
         _title(l10n.exploreCourses),
         SliverToBoxAdapter(child: _CourseStrip(courses: explore.courses)),
       ],
-      if (explore.savedTeachers.isNotEmpty) ...[
-        _title(l10n.exploreSavedTeachers),
-        SliverToBoxAdapter(
-          child: TeacherStrip(teachers: explore.savedTeachers),
-        ),
-      ],
       if (explore.teachers.isNotEmpty) ...[
         _title(l10n.exploreTeachers),
         SliverToBoxAdapter(child: TeacherStrip(teachers: explore.teachers)),
@@ -350,7 +344,8 @@ class ExploreViewState extends ConsumerState<ExploreView> {
 
 /// Dharma Seed's courses as a strip of large cards: their art with the
 /// teacher's photo as a small avatar, the name, "teacher · year · N talks",
-/// and a quiet Add to library on the art.
+/// and a quiet Add to library on the art. A course in the library keeps its
+/// place in the strip, its "+" a tick; adding one moves nothing.
 class _CourseStrip extends ConsumerWidget {
   const _CourseStrip({required this.courses});
 

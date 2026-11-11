@@ -195,15 +195,19 @@ void main() {
     });
 
     test(
-      'a course in the library is left out; a followed teacher moves',
+      'a course in the library and a followed teacher keep their places',
       () async {
         final s = source();
+        final before = await s.explore();
+        expect(before.courses.map((c) => c.id), contains('dt-course-basics'));
         await s.setSaved('dt-course-basics', saved: true);
         await s.setSaved(dtTeacherId, saved: true);
         final explore = await s.explore();
-        expect(explore.courses.map((c) => c.id), ['dt-course-guided']);
-        expect(explore.teachers, isEmpty);
-        expect(explore.savedTeachers.single.id, dtTeacherId);
+        expect(
+          explore.courses.map((c) => c.id),
+          before.courses.map((c) => c.id),
+        );
+        expect(explore.teachers.single.id, dtTeacherId);
       },
     );
 

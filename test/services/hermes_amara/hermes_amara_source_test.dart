@@ -406,10 +406,12 @@ void main() {
       await s.catchUp();
       const id = 'ha-retreat-november-solitary-2005';
       expect(await s.isSaved(id), isFalse);
+      final before = (await s.explore()).courses.map((c) => c.id).toList();
+      expect(before, contains(id));
       await s.setSaved(id, saved: true);
       expect(await s.isSaved(id), isTrue);
-      // A saved course leaves Explore and heads packTrackIds.
-      expect((await s.explore()).courses.map((c) => c.id), isNot(contains(id)));
+      // A saved course keeps its place in Explore and heads packTrackIds.
+      expect((await s.explore()).courses.map((c) => c.id), before);
       expect((await s.packTrackIds()).keys, [id]);
       await s.setSaved(id, saved: false);
       expect(await s.isSaved(id), isFalse);

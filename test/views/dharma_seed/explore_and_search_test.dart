@@ -75,9 +75,8 @@ void main() {
       expect(find.text('Settling'), findsNothing);
     });
 
-    testWidgets('saved teachers lead; library courses are not repeated', (
-      tester,
-    ) async {
+    testWidgets('what is saved keeps its place: a course shows a tick, and '
+        'there is no Saved teachers strip', (tester) async {
       final app = await DharmaSeedTestApp.create(tester);
       await tester.runAsync(() async {
         await app.source.setSaved('ds-retreat-200', saved: true);
@@ -85,13 +84,101 @@ void main() {
       });
       await app.pump(tester, const ExploreView());
 
-      expect(find.text('Saved teachers'), findsOneWidget);
-      final saved = tester.getTopLeft(find.text('Saved teachers')).dy;
-      final teachers = tester.getTopLeft(find.text('Teachers')).dy;
-      expect(saved, lessThan(teachers));
-      // No "In your library" on Explore: the Library tab has what is kept.
+      // Saved teachers live in Library › Teachers; here the teacher stays
+      // among the others.
+      expect(find.text('Saved teachers'), findsNothing);
       expect(find.text('In your library'), findsNothing);
-      expect(find.text('Dharma Talks Winter'), findsNothing);
+      expect(find.text('Teachers'), findsOneWidget);
+      expect(find.text('Leigh Brasington', skipOffstage: false), findsWidgets);
+      expect(
+        tester.getTopLeft(find.text('Teachers')).dy,
+        lessThan(
+          tester
+              .getTopLeft(
+                find.text('Leigh Brasington', skipOffstage: false).first,
+              )
+              .dy,
+        ),
+      );
+      // The saved course is in the strip in its own place, by date like the
+      // rest (newest first), with a tick for "+".
+      final strip = [
+        for (final id in [300, 200, 100])
+          tester
+              .getTopLeft(
+                find.byKey(
+                  ValueKey('pack_ds-retreat-$id'),
+                  skipOffstage: false,
+                ),
+              )
+              .dx,
+      ];
+      expect(strip[0], lessThan(strip[1]));
+      expect(strip[1], lessThan(strip[2]));
+      final saved = find.byKey(
+        const ValueKey('add_to_library_ds-retreat-200'),
+        skipOffstage: false,
+      );
+      expect(tester.widget<IconButton>(saved).tooltip, 'In library');
+      expect(
+        find.descendant(
+          of: saved,
+          matching: find.byIcon(
+            Icons.check_circle_rounded,
+            skipOffstage: false,
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byKey(
+                const ValueKey('add_to_library_ds-retreat-300'),
+                skipOffstage: false,
+              ),
+            )
+            .tooltip,
+        'Add to library',
+      );
+    });
+
+    testWidgets('adding a course flips its "+" to a tick and moves nothing', (
+      tester,
+    ) async {
+      final app = await DharmaSeedTestApp.create(tester);
+      await app.pump(tester, const ExploreView());
+      List<Offset> strip() => [
+        for (final id in [300, 200, 100])
+          tester.getTopLeft(
+            find.byKey(ValueKey('pack_ds-retreat-$id'), skipOffstage: false),
+          ),
+      ];
+      final before = strip();
+      final add = find.byKey(const ValueKey('add_to_library_ds-retreat-300'));
+      expect(tester.widget<IconButton>(add).tooltip, 'Add to library');
+
+      await tester.tap(add);
+      await DharmaSeedTestApp.settle(tester);
+
+      expect(
+        await tester.runAsync(() => app.source.isSaved('ds-retreat-300')),
+        isTrue,
+      );
+      expect(tester.widget<IconButton>(add).tooltip, 'In library');
+      expect(
+        find.descendant(
+          of: add,
+          matching: find.byIcon(Icons.check_circle_rounded),
+        ),
+        findsOneWidget,
+      );
+      // Every card is where it was, the added one included.
+      expect(strip(), before);
+      expect(find.text('Saved teachers'), findsNothing);
+      // Let the "Added" snackbar go.
+      await tester.pump(const Duration(seconds: 6));
+      await DharmaSeedTestApp.settle(tester);
     });
 
     testWidgets('before the first sync, a calm card explains', (tester) async {

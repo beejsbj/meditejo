@@ -290,14 +290,12 @@ class HermesAmaraSource implements CatalogueSource, SavableContentSource {
   @override
   Future<CatalogueExplore> explore({ContentGroup? group}) async {
     final all = await listing();
-    final saved = await _savedIds();
     bool inGroup(bool practice) =>
         group == null || practice == (group == ContentGroup.practice);
     return CatalogueExplore(
       courses: [
         for (final event in all.events)
-          if (inGroup(event.practice) && !saved.contains(event.id))
-            _courseItem(event),
+          if (inGroup(event.practice)) _courseItem(event),
       ],
       // With no chip, guided practice leads (decision 11), as in the other
       // catalogues; Talks shows the latest talks.
