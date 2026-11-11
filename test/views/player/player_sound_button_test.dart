@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/player/playback_request.dart';
+import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/player/widgets/bottom_actions/player_action_bar.dart';
+import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_download_widget.dart';
+import 'package:medito/views/player/widgets/bottom_actions/widgets/audio_speed_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/bg_sound_widget.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/cues/cue_settings.dart';
@@ -166,5 +169,75 @@ void main() {
     // Nothing is left playing: no session is running in this test.
     expect(container.read(soundscapeProvider).playing, isFalse);
     await tester.pumpWidget(const SizedBox());
+  });
+
+  // One bar (owner, 2026-11-10): Close, Sound and Customize hold the same
+  // places whatever is playing; Download and Speed only join a recording,
+  // in the slots to their right.
+  testWidgets('Sound and Customize sit at the same offsets for a timer and a '
+      'recording', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    tester.view
+      ..physicalSize = const Size(411, 890)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    Future<Map<String, Offset>> slots(PlaybackRequest request) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          key: ValueKey(request.trackId),
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            audioStateProvider.overrideWith(AudioStateNotifier.new),
+            ...soundscapeTestOverrides(FakeSoundscapeEngine()),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              bottomNavigationBar: PlayerActionBar(
+                request: request,
+                isBackgroundSoundSelected: false,
+                onSpeedChanged: (_) {},
+                onClosePressed: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      return {
+        'close': tester.getCenter(find.byTooltip('Close')),
+        'sound': tester.getCenter(find.byType(BgSoundWidget)),
+        'customize': tester.getCenter(find.byTooltip('Customize')),
+      };
+    }
+
+    final timer = await slots(
+      timerPlaybackRequest(
+        mode: TimerMode.countdown,
+        duration: const Duration(minutes: 20),
+        filePath: '/tmp/silence.mp3',
+        title: 'Timer',
+      ),
+    );
+    // A timer has nothing to download and no speed.
+    expect(find.byType(AudioSpeedWidget), findsNothing);
+    expect(find.byType(AudioDownloadWidget), findsNothing);
+
+    final recording = await slots(
+      _talk.copyWith(remoteUrl: 'https://example.org/talk.mp3'),
+    );
+    expect(recording, timer);
+
+    // Left to right: Close, Sound, Customize, then the recording's own.
+    final download = tester.getCenter(find.byType(AudioDownloadWidget)).dx;
+    final speed = tester.getCenter(find.byType(AudioSpeedWidget)).dx;
+    expect(timer['close']!.dx, lessThan(timer['sound']!.dx));
+    expect(timer['sound']!.dx, lessThan(timer['customize']!.dx));
+    expect(timer['customize']!.dx, lessThan(download));
+    expect(download, lessThan(speed));
   });
 }

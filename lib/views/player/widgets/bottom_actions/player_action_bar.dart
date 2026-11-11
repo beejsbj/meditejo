@@ -36,61 +36,48 @@ class PlayerActionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    // A timer is local silence: nothing to download, and speed would only
-    // change how long the session takes. Keep close, Sounds and Customize.
-    if (request.isTimer) {
-      return BottomActionBar(
-        leftItem: BottomActionBarItem(
-          child: const Icon(Icons.close, color: ColorConstants.white),
-          onTap: onClosePressed,
-          semanticLabel: l10n.close,
-        ),
-        rightCenterItem: BottomActionBarItem(
-          child: _buildBackgroundSoundWidget(),
-          onTap: () => unawaited(openSessionSounds(context, request)),
-          semanticLabel: l10n.backgroundSounds,
-        ),
-        rightItem: BottomActionBarItem(
-          child: _customizeIcon,
-          onTap: () => _customize(context),
-          semanticLabel: _customizeLabel,
-        ),
-      );
-    }
-
+    // One bar for every session, in five fixed slots: Close, Sound, Customize,
+    // then what only a recording has. A timer is local silence (nothing to
+    // download, and speed would only change how long it takes), so its last
+    // two slots stay empty and Sound and Customize never move.
+    final recording = !request.isTimer;
     return BottomActionBar(
-      layout: BottomActionBarLayout.edgeAligned,
+      layout: BottomActionBarLayout.fixedSlots,
       leftItem: BottomActionBarItem(
         child: const Icon(Icons.close, color: ColorConstants.white),
         onTap: onClosePressed,
         semanticLabel: l10n.close,
       ),
-      leftCenterItem: BottomActionBarItem.custom(
-        // A file imported into the app is already on the device; there is
-        // nothing to download.
-        child: request.remoteUrl.startsWith('http')
-            ? AudioDownloadWidget(request: request)
-            : const SizedBox(width: 48, height: 48),
-      ),
       // Open for every session: the Sounds mixer can play under a talk too
       // (its Talks default or a Customize choice), so it must be reachable
       // here to adjust or stop it. The mixer drawer, the same choice as
       // Customize › Sound (#66).
-      centerItem: BottomActionBarItem(
+      leftCenterItem: BottomActionBarItem(
         child: _buildBackgroundSoundWidget(),
         onTap: () => unawaited(openSessionSounds(context, request)),
         semanticLabel: l10n.backgroundSounds,
       ),
-      rightCenterItem: BottomActionBarItem(
+      centerItem: BottomActionBarItem(
         child: _customizeIcon,
         onTap: () => _customize(context),
         semanticLabel: _customizeLabel,
       ),
-      rightItem: BottomActionBarItem(
-        child: const AudioSpeedWidget(),
-        onTap: () => unawaited(_speed(context)),
-        semanticLabel: l10n.playbackSpeed,
+      rightCenterItem: BottomActionBarItem.custom(
+        // A file imported into the app is already on the device; there is
+        // nothing to download.
+        child: recording && request.remoteUrl.startsWith('http')
+            ? AudioDownloadWidget(request: request)
+            : const SizedBox(width: 48, height: 48),
       ),
+      rightItem: recording
+          ? BottomActionBarItem(
+              child: const AudioSpeedWidget(),
+              onTap: () => unawaited(_speed(context)),
+              semanticLabel: l10n.playbackSpeed,
+            )
+          : const BottomActionBarItem.custom(
+              child: SizedBox(width: 48, height: 48),
+            ),
     );
   }
 
