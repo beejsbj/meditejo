@@ -329,7 +329,7 @@ void main() {
         },
       );
       await open(tester, kSynthDroneId);
-      expect(find.text('Up to three notes'), findsOneWidget);
+      expect(find.text('Up to five notes'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('drone_root_A3')));
       await tester.pumpAndSettle();
       expect(DroneParams.fromJson(params(kSynthDroneId)).rootsHz, [100, 220]);
@@ -357,7 +357,7 @@ void main() {
       handle.dispose();
     });
 
-    testWidgets('roots make a chord of up to three', (tester) async {
+    testWidgets('roots make a chord of up to five', (tester) async {
       await pump(tester, layers: {kSynthDroneId: const {}});
       await open(tester, kSynthDroneId);
       for (final r in ['E2', 'A3']) {
@@ -369,22 +369,57 @@ void main() {
         110,
         220,
       ]);
-      // Full: a fourth root does nothing until one comes off.
+      // A fourth and a fifth join (three was the cap before #69's raise).
+      for (final r in ['D2', 'C3']) {
+        await tester.tap(find.byKey(ValueKey('drone_root_$r')));
+        await tester.pumpAndSettle();
+      }
+      expect(DroneParams.fromJson(params(kSynthDroneId)).rootsHz, [
+        73.42,
+        82.41,
+        110,
+        130.81,
+        220,
+      ]);
+      // Full: a sixth root does nothing until one comes off.
       await tester.tap(
         find.byKey(const ValueKey('drone_root_G2')),
         warnIfMissed: false,
       );
       await tester.pumpAndSettle();
-      expect(DroneParams.fromJson(params(kSynthDroneId)).rootsHz.length, 3);
+      expect(DroneParams.fromJson(params(kSynthDroneId)).rootsHz.length, 5);
+      expect(chipSelected(tester, 'drone_root_G2'), isFalse);
       await tester.tap(find.byKey(const ValueKey('drone_root_A3')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('drone_root_G2')));
       await tester.pumpAndSettle();
       expect(DroneParams.fromJson(params(kSynthDroneId)).rootsHz, [
+        73.42,
         82.41,
         98,
         110,
+        130.81,
       ]);
+    });
+
+    testWidgets('a stored chord of three opens as it was saved', (
+      tester,
+    ) async {
+      const saved = {
+        'rootHz': 73.42,
+        'rootsHz': [73.42, 110.0, 164.81],
+        'timbre': 'warm',
+        'movement': 0.5,
+      };
+      await pump(tester, layers: {kSynthDroneId: saved});
+      await open(tester, kSynthDroneId);
+      expect(params(kSynthDroneId), saved);
+      for (final r in ['D2', 'A2', 'E3']) {
+        expect(chipSelected(tester, 'drone_root_$r'), isTrue, reason: r);
+      }
+      for (final r in ['A1', 'E2', 'G2', 'C3', 'D3', 'A3']) {
+        expect(chipSelected(tester, 'drone_root_$r'), isFalse, reason: r);
+      }
     });
   });
 

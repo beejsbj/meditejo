@@ -9,7 +9,8 @@ enum CueKind { practice, talks }
 
 /// The bells each cue can ring, in the order the pickers list them. The value
 /// is the stored id: a bundled asset path, kept stable for every existing
-/// setting (`session_bell_v2.wav` is the original bell).
+/// setting (`session_bell_v2.wav` is the original bell). Which files are
+/// samples and not synthesis: `tools/meditejo/cue_samples.json`.
 const cueBellSounds = <String, String>{
   'Off': '',
   'Session bell': 'assets/audio/session_bell_v2.wav',
@@ -18,7 +19,8 @@ const cueBellSounds = <String, String>{
   'Singing bowl, deep': 'assets/audio/bell_bowl_deep.wav',
   'Temple bell': 'assets/audio/bell_temple.wav',
   'Hand bell': 'assets/audio/bell_handbell.wav',
-  'Chime': 'assets/audio/bell_chime.wav',
+  // A sample since #76; the id is the struck bar's it replaced ("Chime").
+  'Wind chimes': 'assets/audio/bell_chime.wav',
   'Tingsha': 'assets/audio/bell_tingsha.wav',
   'Wood block': 'assets/audio/bell_wood_block.wav',
   'Wooden fish': 'assets/audio/bell_wooden_fish.wav',

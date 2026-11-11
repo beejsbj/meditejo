@@ -1098,7 +1098,7 @@
   "binauralTheta": "Theta",
   "binauralAlpha": "Alpha",
   "binauralBeta": "Beta",
-  "droneRootHint": "Bis zu drei Töne",
+  "droneRootHint": "Bis zu fünf Töne",
   "soundChipsKeepOne": "Mindestens einer bleibt ausgewählt",
   "droneRoot": "Grundton",
   "droneTimbre": "Klangfarbe",

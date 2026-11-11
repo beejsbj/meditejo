@@ -8,7 +8,9 @@ import 'package:medito/services/bells/bell_recipes.dart';
 import 'package:medito/services/bells/bell_synth.dart';
 import 'package:medito/widgets/art/engine/bell.dart';
 
-/// The shipped files behind each preset.
+/// The shipped files behind each preset. `chime` has none: the file that
+/// was its render is the wind-chime sample now (#76), and the struck bar
+/// lives on as a recipe only ("Bar chime" in the maker).
 const _shipped = {
   'swell': 'session_bell_v2',
   'bowl_small': 'bell_bowl_small',
@@ -16,7 +18,6 @@ const _shipped = {
   'bowl_deep': 'bell_bowl_deep',
   'temple': 'bell_temple',
   'handbell': 'bell_handbell',
-  'chime': 'bell_chime',
   'tingsha': 'bell_tingsha',
   'wood_block': 'bell_wood_block',
   'wooden_fish': 'bell_wooden_fish',
@@ -233,6 +234,35 @@ void main() {
           reason: e.key,
         );
       }
+    });
+  });
+
+  group('the bar chime, whose file is a sample now', () {
+    test('every recipe but the chime has a shipped file behind it', () {
+      expect(bellRecipes.keys.toSet().difference(_shipped.keys.toSet()), {
+        'chime',
+      });
+      final chimes = BellFigure.byId('bell-chime')!;
+      expect(chimes.title, 'Wind chimes');
+      expect(chimes.recipeTitle, 'Bar chime');
+      expect(chimes.preset, 'chime');
+      for (final b in BellFigure.shipped.where((b) => b.id != 'bell-chime')) {
+        expect(b.recipeTitle, b.title, reason: b.id);
+      }
+    });
+
+    test('still renders as the file it shipped as did', () {
+      // tools/meditejo/generate_bells.py's chime, as bells_report.py measured
+      // the shipped bell_chime.wav before the sample: 5.00 s, -9.8 LUFS.
+      final (x, rate) = BellSynth.samplesOf(
+        BellSynth.render(BellSpec.preset('chime')),
+      );
+      expect(BellSynth.maxMomentaryLufs(x, rate), closeTo(-9.84, 0.6));
+      expect(x.length / rate, closeTo(5.0, 2.5));
+      // The struck bar's modes: 1568 Hz and the free-free bar's ratios.
+      final modes = bellRecipes['chime']!.modes;
+      expect(modes.first.f, 1568);
+      expect(modes[1].f / modes.first.f, closeTo(2.757, 1e-9));
     });
   });
 

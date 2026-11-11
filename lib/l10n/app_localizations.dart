@@ -3841,7 +3841,7 @@ abstract class AppLocalizations {
   /// Sounds screen, drone editor: caption under the Root chips, a chord can hold this many
   ///
   /// In en, this message translates to:
-  /// **'Up to three notes'**
+  /// **'Up to five notes'**
   String get droneRootHint;
 
   /// Screen-reader hint on the last chosen chip of a multiple-choice chip row: it cannot be turned off

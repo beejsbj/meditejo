@@ -273,7 +273,7 @@ class _BellMakerViewState extends ConsumerState<BellMakerView> {
                 for (final b in BellFigure.shipped)
                   ChoiceChip(
                     key: ValueKey('bell_maker_start_${b.preset}'),
-                    label: Text(b.title),
+                    label: Text(b.recipeTitle),
                     selected: b.preset == _preset,
                     onSelected: (_) => _startFrom(b.preset),
                   ),
