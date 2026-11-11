@@ -9,25 +9,38 @@ import 'package:medito/services/identity/seeded_random.dart';
 /// next. Pure timing, in seconds, so the player (#86) and tests can share
 /// it. Nothing here runs on its own: the mark's own clock drives it.
 abstract final class MarkMoments {
-  /// One deep breath: a slow swell and a longer settle.
+  /// One deep breath, from the first part's swell to the last part's
+  /// settling.
   static const breathSeconds = 5.5;
 
-  /// The part of [breathSeconds] spent breathing in.
+  /// How long after the mark's body the parts that follow it take the same
+  /// breath: a pebble swells, and the line's wave rises this much later.
+  static const partLag = 0.6;
+
+  /// The part of a breath spent breathing in.
   static const _inhale = 0.4;
 
-  /// How much larger the mark is at the top of a deep breath.
-  static const swellScale = 0.08;
+  /// How long one part's own breath lasts: the body's ends [partLag] before
+  /// the whole does, the last part's starts [partLag] in.
+  static const partSeconds = breathSeconds - partLag;
 
-  /// How far into a deep breath [s] seconds is: 0 at rest, 1 at the top of
-  /// the in-breath, then back to 0 by [breathSeconds]. Eased at both ends,
-  /// so it swells and settles rather than bounces.
-  static double swellAt(double s) {
-    if (s <= 0 || s >= breathSeconds) return 0;
-    final u = s / breathSeconds;
+  /// How far into a deep breath a part is, [s] seconds after the mark was
+  /// touched: 0 at rest, 1 at the top of its in-breath, then back to 0.
+  /// The body takes it at once; a part that follows takes it [lag] seconds
+  /// later (up to [partLag]). Eased at both ends, so it swells and settles
+  /// rather than bounces.
+  static double swellAt(double s, {double lag = 0}) {
+    final u = (s - lag) / partSeconds;
+    if (u <= 0 || u >= 1) return 0;
     return u < _inhale
         ? easeInOut(u / _inhale)
         : 1 - easeInOut((u - _inhale) / (1 - _inhale));
   }
+
+  /// How far a deep breath has pushed a line's wave along by [s] seconds,
+  /// in wavelengths: one whole wave over the breath, quickest at its
+  /// middle, so the line is back in step when the breath ends.
+  static double runAt(double s) => easeInOut(s / breathSeconds);
 
   /// The day's turn: yesterday's mark un-draws over [undrawSeconds] (its own
   /// draw-in, played backwards) while today's starts drawing itself in
