@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Write the bells' synthesis recipes as Dart, for the in-app bell maker.
 
-The ten synthesised bells come from tools/meditejo/generate_bells.py. The app
+The ten synthesised recipes come from tools/meditejo/generate_bells.py (nine
+shipped bells and `chime`, the struck bar that shipped as "Chime" until the
+wind-chime sample replaced its file; the maker offers it as "Bar chime"). The app
 can make a bell of its own (BJS-587) by running the same modal synthesis in
 Dart, starting from one of them, so Dart needs each bell's modes: frequency,
 amplitude, decay, beat, swell-in, phase and pitch glide, and its strike. This

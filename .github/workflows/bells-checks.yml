@@ -4,6 +4,8 @@ on:
     paths:
       - 'assets/audio/**'
       - 'tools/meditejo/generate_bells.py'
+      - 'tools/meditejo/generate_pulse_sounds.py'
+      - 'tools/meditejo/cue_samples.json'
       - 'tools/meditejo/bells_report.py'
       - 'tools/meditejo/bell_recipes.py'
       - 'lib/services/bells/bell_recipes.dart'
@@ -18,8 +20,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: The generator reproduces every bell byte-for-byte
+      - name: The generator reproduces every synthesised bell byte-for-byte, and the sampled one matches its record
         run: python3 -I tools/meditejo/generate_bells.py --check
+      - name: The pulse generator reproduces the click, and the sampled pulses match their record
+        run: python3 -I tools/meditejo/generate_pulse_sounds.py --check
       - name: The app's Dart recipes are the generator's modes
         run: python3 -I tools/meditejo/bell_recipes.py --check
       - name: Per-file numbers (fails on a click, DC offset, hard onset or loud tail)

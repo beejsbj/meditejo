@@ -233,6 +233,29 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('the wind chimes, a sample, start from the bar chime recipe', (
+    tester,
+  ) async {
+    await _setUp(tester);
+    await tester.pumpWidget(
+      _app(const BellMakerView(from: 'assets/audio/bell_chime.wav')),
+    );
+    await tester.pump();
+    final chip = find.byKey(const ValueKey('bell_maker_start_chime'));
+    expect(tester.widget<ChoiceChip>(chip).selected, isTrue);
+    // Named for what the recipe is: the struck bar, not the sampled chimes.
+    expect(
+      find.descendant(of: chip, matching: find.text('Bar chime')),
+      findsOneWidget,
+    );
+    expect(find.text('Wind chimes'), findsNothing);
+    expect(find.text('Chime'), findsNothing);
+    expect(find.text('1568 Hz'), findsOneWidget);
+    // Every other choice keeps its shipped name.
+    expect(find.text('Temple bell'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('choosing a bell to start from sets its controls and rings it', (
     tester,
   ) async {

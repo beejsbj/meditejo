@@ -576,7 +576,7 @@ void main() {
     await _open(tester, 'intervalBell');
     await _turn(tester, 'Every', '30 min');
     await _turn(tester, 'Random window', '± 20 min');
-    await pick('Chime');
+    await pick('Wind chimes');
     await _goBack(tester);
 
     await _open(tester, 'endBell');
@@ -632,7 +632,7 @@ void main() {
     expect(_says(tester, 'intervalBell'), [
       'Interval bell',
       'Every 30 min ± 20',
-      'Chime',
+      'Wind chimes',
     ]);
     expect(_says(tester, 'endBell'), ['Ending bell', 'Gong', '12 min silence']);
     expect(_says(tester, 'rhythm'), [
