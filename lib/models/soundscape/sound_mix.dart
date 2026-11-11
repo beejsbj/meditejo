@@ -175,40 +175,6 @@ class SoundMix {
   int get hashCode => Object.hashAll(layers);
 }
 
-/// A named mix. Built-in presets ship with the app and can't be deleted.
-@immutable
-class SoundPreset {
-  const SoundPreset({
-    required this.id,
-    required this.name,
-    required this.mix,
-    this.builtIn = false,
-  });
-
-  final String id;
-  final String name;
-  final SoundMix mix;
-  final bool builtIn;
-
-  Map<String, Object?> toJson() => {
-    'id': id,
-    'name': name,
-    'layers': mix.toJson(),
-  };
-
-  static SoundPreset? tryFromJson(Object? json) {
-    if (json is! Map) return null;
-    final id = json['id'];
-    final name = json['name'];
-    if (id is! String || name is! String || id.isEmpty) return null;
-    return SoundPreset(
-      id: id,
-      name: name,
-      mix: SoundMix.fromJson(json['layers']),
-    );
-  }
-}
-
 /// What to play: the grammar shared with the player's Customize sheet.
 ///
 /// * `mix` (or the empty string): the current mix, as last left on the

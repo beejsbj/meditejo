@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
+import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/services/bells/bell_synth.dart';
 import 'package:medito/services/bells/custom_bell.dart';
 import 'package:medito/services/bells/custom_bell_store.dart';
@@ -60,6 +61,11 @@ class CustomBellsNotifier extends Notifier<List<CustomBell>> {
     await _store.delete(id);
     await ref.read(cueSettingsStoreProvider).replaceSound(id, cueDefaultBell);
     ref.invalidate(cueSettingsProvider);
+    // A preset that rang it was rewritten in the store too; a mixer not yet
+    // built reads the store when it is.
+    if (ref.exists(soundscapeProvider)) {
+      ref.read(soundscapeProvider.notifier).reloadPresets();
+    }
     state = _store.all();
   }
 }

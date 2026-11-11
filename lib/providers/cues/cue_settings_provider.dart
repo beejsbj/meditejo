@@ -41,9 +41,10 @@ class CueSettingsStore {
 
   /// The stores that hold a bell's id, as the start of their preference keys.
   /// Deleting a bell moves every id it finds under these (see
-  /// [replaceSound]), so anything new that keeps a cue's bell, such as a
-  /// preset that saves its bells with it (UX issue #64), adds its key here.
-  static const bellReferenceKeyPrefixes = ['cues.v1.'];
+  /// [replaceSound]), so anything new that keeps a cue's bell adds its key
+  /// here. `presets.v1` is the presets, whose Bells slot holds bell ids
+  /// (#64).
+  static const bellReferenceKeyPrefixes = ['cues.v1.', 'presets.v1'];
 
   /// Moves every stored bell id [from] to [to] in the stores that hold one:
   /// what happens to the cues of a bell when it is deleted. It reads each

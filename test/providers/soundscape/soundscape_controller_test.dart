@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:medito/models/presets/preset.dart';
 import 'package:medito/models/soundscape/sound_library.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/starter_presets.dart';
@@ -1058,7 +1059,7 @@ void main() {
 
     test('a preset whose sounds the library dropped plays the current mix, '
         'not silence', () async {
-      final gone = SoundPreset(
+      final gone = Preset.sound(
         id: 'user-gone-sounds',
         name: 'Gone',
         mix: SoundMix([SoundLayer(soundId: 'gone-sound')]),
@@ -1083,7 +1084,7 @@ void main() {
       container.dispose();
       container = await make({
         SoundscapeStore.presetsKey: jsonEncode([
-          const SoundPreset(
+          Preset.sound(
             id: 'user-empty',
             name: 'Empty',
             mix: SoundMix.empty,

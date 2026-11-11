@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../models/presets/preset.dart';
 import '../../models/soundscape/sound_library.dart';
 import '../../models/soundscape/sound_mix.dart';
 import '../../models/soundscape/starter_presets.dart';
@@ -85,7 +86,7 @@ class SoundscapeState {
   final bool playing;
   final SoundscapeOwner owner;
   final SoundscapeSessionKind? sessionKind;
-  final List<SoundPreset> userPresets;
+  final List<Preset> userPresets;
 
   /// Sounds that failed to load this run; skipped until picked again.
   final Set<String> failed;
@@ -100,11 +101,18 @@ class SoundscapeState {
   /// plays under it. Sounds added meanwhile join the session.
   bool get inSession => sessionKind != null;
 
-  List<SoundPreset> get presets => [...kStarterPresets, ...userPresets];
+  /// Every preset: the built-in ones, then the user's.
+  List<Preset> get presets => [...kStarterPresets, ...userPresets];
 
-  /// The preset the current mix still matches, if any.
-  SoundPreset? get matchingPreset {
-    for (final p in presets) {
+  /// The presets with sound layers to play: what the Sounds sheet offers.
+  Iterable<Preset> get soundPresets => presets.where((p) => p.playsSound);
+
+  Preset? preset(String id) => presets.where((p) => p.id == id).firstOrNull;
+
+  /// The preset whose sound the current mix still is, if any.
+  Preset? get matchingPreset {
+    if (mix.isEmpty) return null;
+    for (final p in soundPresets) {
       if (p.mix == mix) return p;
     }
     return null;
@@ -117,7 +125,7 @@ class SoundscapeState {
   /// still matches, or the layers themselves.
   SoundscapeSelection selectionFor(SoundMix mix) {
     if (mix.isEmpty) return SoundscapeSelection.none;
-    for (final p in presets) {
+    for (final p in soundPresets) {
       if (p.mix == mix) return SoundscapeSelection.preset(p.id);
     }
     return SoundscapeSelection.layers(mix);
@@ -154,8 +162,8 @@ class SoundscapeState {
   /// no sounds left, or none to begin with, does not). [library] null (still
   /// loading) takes its sounds on trust.
   bool _presetPlays(String id, SoundLibrary? library) {
-    final preset = presets.where((p) => p.id == id).firstOrNull;
-    if (preset == null) return false;
+    final preset = this.preset(id);
+    if (preset == null || !preset.playsSound) return false;
     if (library == null) return true;
     return preset.mix.layers.any(
       (l) => library.contains(l.soundId) || isSynthId(l.soundId),
@@ -168,7 +176,7 @@ class SoundscapeState {
     bool? playing,
     SoundscapeOwner? owner,
     Object? sessionKind = _keep,
-    List<SoundPreset>? userPresets,
+    List<Preset>? userPresets,
     Set<String>? failed,
     Map<SoundscapeSessionKind, SoundscapeSessionDefault>? sessionDefaults,
   }) => SoundscapeState(
@@ -494,20 +502,56 @@ class SoundscapeController extends Notifier<SoundscapeState> {
   void applyPreset(String presetId) =>
       unawaited(play(SoundscapeSelection.preset(presetId)));
 
-  /// Saves the current mix as a preset named [name] and returns it.
-  SoundPreset? savePreset(String name) {
+  /// A fresh id for a preset the user saves.
+  static String newPresetId() =>
+      'user-${DateTime.now().microsecondsSinceEpoch}';
+
+  /// Saves the current mix as a preset named [name], holding only its
+  /// Sound slot, and returns it.
+  Preset? savePreset(String name) {
     final trimmed = name.trim();
     if (trimmed.isEmpty || state.mix.isEmpty) return null;
-    final preset = SoundPreset(
-      id: 'user-${DateTime.now().microsecondsSinceEpoch}',
+    final preset = Preset.sound(
+      id: newPresetId(),
       name: trimmed,
       mix: state.mix,
     );
-    final presets = [...state.userPresets, preset];
-    _store.writePresets(presets);
-    _update(state.copyWith(userPresets: presets));
+    putPreset(preset);
     return preset;
   }
+
+  /// Keeps [preset]: in place of the one with its id, or as a new one, last.
+  void putPreset(Preset preset) {
+    if (preset.builtIn) return;
+    final at = state.userPresets.indexWhere((p) => p.id == preset.id);
+    final presets = [...state.userPresets];
+    if (at < 0) {
+      presets.add(preset);
+    } else {
+      presets[at] = preset;
+    }
+    _store.writePresets(presets);
+    _update(state.copyWith(userPresets: presets));
+  }
+
+  /// Reads the presets again, after something else rewrote the store (a
+  /// deleted bell is swapped for the default one in every preset).
+  void reloadPresets() =>
+      _update(state.copyWith(userPresets: _store.readPresets()));
+
+  /// [selection] as layers, without waiting for the library: what a preset
+  /// saved now would hold as its sound.
+  SoundMix selectionMix(SoundscapeSelection selection) =>
+      switch (selection.kind) {
+        SoundscapeSelectionKind.none => SoundMix.empty,
+        SoundscapeSelectionKind.mix => _currentMix(),
+        SoundscapeSelectionKind.preset =>
+          state.preset(selection.id)?.mix ?? SoundMix.empty,
+        SoundscapeSelectionKind.sound => SoundMix([
+          SoundLayer(soundId: selection.id, volume: 0.8),
+        ]),
+        SoundscapeSelectionKind.layers => selection.mix ?? SoundMix.empty,
+      };
 
   void deletePreset(String presetId) {
     final presets = [
