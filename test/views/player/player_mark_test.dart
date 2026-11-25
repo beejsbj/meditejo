@@ -12,6 +12,7 @@ import 'package:medito/views/player/widgets/bottom_actions/player_action_bar.dar
 import 'package:medito/views/player/widgets/player_mark.dart';
 import 'package:medito/views/player/widgets/sleep_timer_control.dart';
 import 'package:medito/providers/player/sleep_timer_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/player/playback_request.dart';
@@ -306,7 +307,9 @@ void main() {
       tester,
       _timer(),
       textScale: 2.0,
-      size: const Size(360, 560),
+      // Shorter than before pass 4: the title and controls under the mark
+      // take less room now (no empty artist line, a tighter gap).
+      size: const Size(360, 460),
     );
     tester.takeException();
     expect(find.byType(PlayerMark), findsNothing);
@@ -376,6 +379,12 @@ void main() {
       _request(),
       extra: [sleepTimerEngineProvider.overrideWithValue(engine)],
     );
+    // The button reads the notifier's clock: give it the test's.
+    var clock = DateTime(2026, 11, 25, 23);
+    ProviderScope.containerOf(
+      tester.element(find.byType(PlayerView)),
+    ).read(sleepTimerProvider.notifier).now = () =>
+        clock;
     await tester.tap(find.byKey(const ValueKey('player_sleep')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
@@ -395,6 +404,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     expect(engine.armed, [const Duration(minutes: 10)]);
     expect(find.text('10:00'), findsOneWidget);
+    clock = clock.add(const Duration(seconds: 2));
     await tester.pump(const Duration(seconds: 2));
     expect(find.text('9:58'), findsOneWidget);
 
