@@ -35,7 +35,7 @@ final libraryDatabaseProvider = Provider<LibraryDatabase>((ref) {
 
 /// The library itself. The first use carries over saves made before it
 /// existed, files Dharma Seed retreats under Practice, and, on a first run,
-/// adds the starter set.
+/// adds the starter set (after an update, the items it gained since).
 final libraryStoreProvider = Provider<LibraryStore>((ref) {
   final store = LibraryStore(
     ref.watch(libraryDatabaseProvider),
@@ -43,11 +43,9 @@ final libraryStoreProvider = Provider<LibraryStore>((ref) {
       final dharmaSeed = ref.read(dharmaSeedDatabaseProvider);
       await migrateDharmaSeedSaves(db, dharmaSeed);
       await reclassifyLibraryDefaults(db);
-      await seedStarterSet(
-        db,
-        dharmaSeed,
-        includeYoutube: ref.read(youtubeAvailableProvider),
-      );
+      final includeYoutube = ref.read(youtubeAvailableProvider);
+      await seedStarterSet(db, dharmaSeed, includeYoutube: includeYoutube);
+      await addNewStarterItems(db, dharmaSeed, includeYoutube: includeYoutube);
     },
   );
   ref.onDispose(store.dispose);

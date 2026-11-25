@@ -20,6 +20,7 @@ import 'package:medito/services/library/library_store.dart';
 import 'package:medito/services/local_catalogue.dart';
 import 'package:medito/services/youtube/youtube_ids.dart';
 import 'package:medito/src/youtube_api.g.dart';
+import 'package:medito/utils/episode_title.dart';
 import 'package:medito/utils/logger.dart';
 
 /// Conservative title-only detection. Whole words avoid "talking meditation";
@@ -167,7 +168,7 @@ class YoutubeSource
             ? const YoutubeUnavailableError()
             : failures.first;
       }
-      final title = playlist?.title ?? video!.title;
+      final title = withoutSchedule(playlist?.title ?? video!.title);
       final uploader = playlist?.uploader ?? video!.uploader;
       final id = playlist == null
           ? ytVideoId(video!.videoId)
@@ -196,7 +197,7 @@ class YoutubeSource
                   else
                     ImportEpisode(
                       id: item.videoId,
-                      title: item.title,
+                      title: withoutSchedule(item.title),
                       durationMs: item.durationSeconds > 0
                           ? item.durationSeconds * 1000
                           : null,
@@ -234,7 +235,7 @@ class YoutubeSource
           if (playlist != null)
             for (final item in playlist.items.take(5))
               PreviewItem(
-                title: item.title,
+                title: withoutSchedule(item.title),
                 durationMs: item.durationSeconds > 0
                     ? item.durationSeconds * 1000
                     : null,
@@ -269,7 +270,7 @@ class YoutubeSource
 
   static ImportEpisode _episodeOfVideo(YoutubeVideo video) => ImportEpisode(
     id: video.videoId,
-    title: video.title,
+    title: withoutSchedule(video.title),
     durationMs: video.durationSeconds > 0 ? video.durationSeconds * 1000 : null,
     subtitle: video.uploader,
     artworkUrl: video.thumbnail,
@@ -333,7 +334,7 @@ class YoutubeSource
         alreadyPresent: true,
       );
     }
-    final title = asCourse ? preview.title : single.title;
+    final title = asCourse ? preview.title : withoutSchedule(single.title);
     final uploader = asCourse ? preview.subtitle : single.uploader;
     final artwork = asCourse ? preview.artworkUrl : single.thumbnail;
     final duration = asCourse
@@ -466,7 +467,7 @@ class YoutubeSource
         .insertOnConflictUpdate(
           YoutubeVideosCompanion.insert(
             videoId: video.videoId,
-            title: video.title,
+            title: withoutSchedule(video.title),
             uploader: video.uploader,
             thumbnail: video.thumbnail,
             description: Value(video.description),
@@ -540,7 +541,7 @@ class YoutubeSource
             .insertOnConflictUpdate(
               YoutubePlaylistsCompanion.insert(
                 playlistId: id,
-                title: playlist.title,
+                title: withoutSchedule(playlist.title),
                 uploader: playlist.uploader,
                 thumbnail: playlist.thumbnail,
                 videoIds: jsonEncode(
@@ -703,6 +704,17 @@ class YoutubeSource
       fresh.uploader,
       fresh.channelAvatar,
     );
+    // A starter single is seeded with no picture or length (`seedStarterSet`):
+    // this first look fills them in. What a list already stored stays.
+    final stored = await db.youtubeVideo(videoId);
+    final thumbnail =
+        (stored?.thumbnail.isEmpty ?? false) && fresh.thumbnail.isNotEmpty
+        ? fresh.thumbnail
+        : null;
+    final seconds =
+        (stored?.durationSeconds ?? 1) <= 0 && fresh.durationSeconds > 0
+        ? fresh.durationSeconds
+        : null;
     await (db.update(
       db.youtubeVideos,
     )..where((v) => v.videoId.equals(videoId))).write(
@@ -712,10 +724,20 @@ class YoutubeSource
             ? const Value.absent()
             : Value(fresh.description),
         channelId: channel == null ? const Value.absent() : Value(channel),
+        thumbnail: Value.absentIfNull(thumbnail),
+        durationSeconds: Value.absentIfNull(seconds),
         resolvedAt: Value(_clock()),
         retryAt: const Value(null),
       ),
     );
+    if ((thumbnail != null || seconds != null) &&
+        await library.contains(ytVideoId(videoId))) {
+      await library.updateSnapshot(
+        ytVideoId(videoId),
+        coverUrl: thumbnail,
+        durationMs: seconds == null ? null : seconds * 1000,
+      );
+    }
     return true;
   }
 
@@ -892,7 +914,7 @@ class YoutubeSource
     }
     return PackModel(
       id: ytPlaylistId(row.playlistId),
-      title: row.title,
+      title: withoutSchedule(row.title),
       subtitle: row.uploader,
       coverUrl: row.thumbnail,
       path: '/packs/${ytPlaylistId(row.playlistId)}',
@@ -1014,7 +1036,7 @@ class YoutubeSource
           PackItemsModel(
             type: TypeConstants.track,
             id: ytVideoId(item.videoId),
-            title: item.title,
+            title: withoutSchedule(item.title),
             subtitle: item.uploader,
             teacher: item.uploader,
             teacherId: item.channelId.isEmpty
@@ -1101,7 +1123,7 @@ class YoutubeSource
     final url = 'https://www.youtube.com/watch?v=$videoId';
     return Track(
       id: id,
-      title: video.title,
+      title: withoutSchedule(video.title),
       subtitle: video.uploader,
       description: video.description,
       coverUrl: video.thumbnail,
@@ -1174,7 +1196,7 @@ class YoutubeSource
             ('${row.title} ${row.uploader}'.toLowerCase().contains(needle)))
           TrackSearchModel(
             id: ytVideoId(row.videoId),
-            title: row.title,
+            title: withoutSchedule(row.title),
             subtitle: row.uploader,
             description: row.description,
             coverUrl: row.thumbnail,
@@ -1260,7 +1282,7 @@ class YoutubeSource
         LibraryDraft(
           sourceId: id,
           kind: LibraryKind.course,
-          title: row.title,
+          title: withoutSchedule(row.title),
           subtitle: row.uploader,
           coverUrl: row.thumbnail,
           group: youtubeGroup(row.title),
@@ -1279,7 +1301,7 @@ class YoutubeSource
         LibraryDraft(
           sourceId: id,
           kind: LibraryKind.single,
-          title: row.title,
+          title: withoutSchedule(row.title),
           subtitle: row.uploader,
           coverUrl: row.thumbnail,
           group: youtubeGroup(row.title),

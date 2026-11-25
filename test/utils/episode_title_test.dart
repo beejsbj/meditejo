@@ -295,4 +295,67 @@ void main() {
       expect(clean(times[0], times, course: 'Sits'), times[0]);
     });
   });
+
+  group('withoutSchedule (pass 4)', () {
+    // Real: the Vervaeke titles YouTube gives, as categories.json holds them.
+    const real = {
+      'Meditating with John Vervaeke - Lesson 1: Finding your centre - Day 1 '
+              '-Livestream Mon-Fri 09:30 EST':
+          'Meditating with John Vervaeke - Lesson 1: Finding your centre - '
+          'Day 1',
+      'Meditating with John Vervaeke - Lesson 2: Finding your root - Day 3 '
+              '-Livestream Mon-Fri at 09:30 EST':
+          'Meditating with John Vervaeke - Lesson 2: Finding your root - Day 3',
+      'Meditating with John Vervaeke - Lesson 6: Inquiring Mindfulness 1 - '
+              'Day 16 - Live Mon-Fri 09:30 EST':
+          'Meditating with John Vervaeke - Lesson 6: Inquiring Mindfulness 1 - '
+          'Day 16',
+      'Meditating with John Vervaeke - Lesson 8: Integration - Day 26 - '
+              'Live Stream Mon-Fri 09:30 EST':
+          'Meditating with John Vervaeke - Lesson 8: Integration - Day 26',
+      'Meditating with John Vervaeke - Lesson 15: Walking Meditation 1 - '
+              'Day 82 - Stream Mon-Fri 9:30 EST':
+          'Meditating with John Vervaeke - Lesson 15: Walking Meditation 1 - '
+          'Day 82',
+      'Meditating with John Vervaeke | Day 4 | Livestream Mon-Fri 09:30 EST':
+          'Meditating with John Vervaeke | Day 4',
+    };
+
+    test('drops the livestream schedule from the end', () {
+      real.forEach((title, clean) {
+        expect(withoutSchedule(title), clean, reason: title);
+      });
+      expect(
+        withoutSchedule('Morning sit | Streams Sundays at 7pm ET'),
+        'Morning sit',
+      );
+    });
+
+    test('leaves everything else alone', () {
+      for (final title in const [
+        'Mindfulness Meditation - Find Your Center',
+        'After Socrates | The Practices',
+        'Walking Meditation | Plum Village',
+        'Live Q&A with Ajahn Sona',
+        'Stream of Consciousness',
+        'Morning sit 09:30 Mon-Fri',
+        'Livestream Mon-Fri 09:30 EST',
+        'Live from the Monastery: Day 3',
+      ]) {
+        expect(withoutSchedule(title), title, reason: title);
+      }
+    });
+
+    test('an episode page drops it whatever the spelling', () {
+      final titles = real.keys.toList();
+      expect(
+        clean(titles[0], titles, course: vervaekeCourse),
+        'Lesson 1: Finding your centre - Day 1',
+      );
+      expect(
+        clean(titles[3], titles, course: vervaekeCourse),
+        'Lesson 8: Integration - Day 26',
+      );
+    });
+  });
 }
