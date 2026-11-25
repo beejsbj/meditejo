@@ -1630,3 +1630,275 @@ Issue #64 (decided 2026-10-28) and #68, and Burooj on the staging build: "what i
 - **Loudness and the peak guard.** The chord is still scaled so its K-weighted sum is the single root's −27 LUFS, then held under the −12 dBFS in-phase bound. With five roots the bound decides more often: low roots weigh little in K-weighting and ask for more gain. From the chips, three roots never reach it; five warm roots can play up to 0.8 dB under the target and five bright up to 1.5 dB under (the five lowest); the lowest five a stored mix could hold (40–42 Hz, bright) play 4.4 dB under. Never over the bound, never louder than one root. Tested for every chord of three, four and five from the chips and the range's ends.
 - **Engine.** `setMaxActiveVoiceCount` goes from 64 to 192: changing a chord crossfades a new set of voices in while the old fades, and a quick second change holds a third set briefly, so 40 voices can be 120 for a moment. SoLoud's own ceiling is 1023.
 - **CPU, estimated, not measured on the phone.** Each voice is one `sin()` per sample at 48 kHz plus the mix: 40 voices are 1.92 million voice-samples a second against 1.15 million for the old worst case, 1.67 times as much. A stand-in loop on the build host (a 2015 laptop core) costs about 40 ns a voice-sample: about 8% of one core for 40 voices, 4.6% for 24. **Needs the phone:** a five-note bright drone for a long screen-off sit, for dropouts and battery.
+
+## 2026-11-25 (staging pass 4: Burooj's 14 Nov walkthrough and listening notes)
+
+From #139 (the walkthrough checklist, with the correction in the listening notes). Built as six slices (`p4-*` branches) merged into `staging`. The bigger designs were the orchestrator's recommendations; the design thread had recorded nothing newer. Merging Metro and Yamanote into one Train was a recommendation, not confirmed by Burooj. All reversible.
+
+### Customize
+
+From Burooj's 14 Nov walkthrough (issue comment 6882875033) and his listening notes. Branch `p4-customize`, off `staging`.
+
+#### What changed and why
+
+- **The summary line under Extend keeps one height.** "The whole sheet jumps when the summary line changes ("43 min" → "43 min + 2 min = 45 min")." The sum and the Finishes pill now share one line of fixed height (40 dp, scaled with the text). A longer line shrinks to fit; it never wraps. The sum is shorter and smaller: "43 + 2 = 45 min", in body-medium instead of body-large. It keeps "min" on each part only when a part is an hour or more ("1 h 5 min + 2 min = …").
+- **No Undo toast for Customize changes.** "An Undo toast ("Duration: ∞ · Undo") pushes the sheet up." The bar, its timer, the room kept under the list, and the `customizeUndoChange` string (en/de/es) are gone. Wheels, ∞, bells and the rhythm save at once, as they did, with nothing shown after.
+- **∞ has a clear on state.** "You can't tell whether it's on." On, it is a filled button in the primary colour; off, an outlined one. Before, it was tonal both ways and differed only slightly.
+- **Bells and Rhythm open as sheets over Customize.** Before, a tile swapped the sheet's content for a card with a back arrow. Now each tile opens a modal bottom sheet over Customize, titled with the tile's name. The drag handle, a tap above, or system back closes it, and Customize is where it was left. Its wheels are the main dial's size: large rows, and as many rows as the main dial shows (five on a tall screen for the Timer, three for Extend).
+- **Bell sheets: wheels left, volume right, in one row.** "Put the countdown on the left and the bell volume on the right, in one row." The Starting bell's countdown, the Interval bell's Every and Random window, and the Ending bell's silence each stand in one row with the bell volume as a vertical slider on their right. The list of bells is under that row. The Timer's Ending bell has no wheel, so its volume stays a horizontal slider.
+- **Rhythm: centred, with volume as a fourth column.** "The three wheels sit left of centre. Centre them, and make pulse volume a vertical fourth column." Rate, Over and Ends at now centre with the pulse volume as a vertical slider beside them. Every wheel row is now centred. The 1:4 split of spare room that pushed rows left (#91, room for a right thumb) is gone. Both gutters stay at least 28 dp.
+- **Rhythm plays the pulse while it is set.** "So you can hear how it feels." While the Rhythm sheet is open and a pulse is chosen, it beats at the chosen rate and level. This is a true live preview, not a short audition loop. A new rate restarts the beat; a new level or sound is heard from the next beat. It stops when Off is chosen and when the sheet closes. It does not play if a session is already playing, so it never doubles a session's own pulse. It is `PulsePreview` in `lib/views/cues/pulse_preview.dart`: a Dart timer re-sounding one just_audio player. It uses the bell preview's player, which on Android takes no audio focus. The session's native pulse (CueEngine.kt) is untouched.
+- **The Sound button is gone from Customize's header.** The Sounds slice builds the floating Sounds button that replaces it. The header is now the title and whose settings these are. `customizeSlotSound` stays because presets use it.
+
+#### My calls (overrule freely)
+
+- **The preview beats at the starting rate only.** A ramp ("slow down over 20 min to 40 BPM") is heard only in a session. Previewing the ramp would mean either waiting minutes or squeezing it, and neither tells you how it feels.
+- **"A session is playing" means the player reports playing.** A paused session gets the preview. A playing session gets nothing, even if it has no pulse of its own.
+- **A tile's sheet has no Back or close button.** It has a title and a drag handle, as Customize itself has. Tapping above it or system back closes it too.
+- **Extend's dial keeps three rows.** "The same size as the main dial" is read as matching whichever dial the sheet has. The Timer's length dial is five rows on a tall screen, and the bell and rhythm sheets follow it. On a recording, everything is three rows.
+- **The summary line shrinks rather than wraps.** On a narrow screen with large text, the sum and Finishes pill get smaller instead of taking two lines.
+
+#### Tests
+
+- `test/views/cues/customize_sheet_test.dart` covers:
+  - a tile opens a bottom sheet over Customize and closing it keeps Customize's scroll position;
+  - the countdown and volume share one row above the bells;
+  - the Rhythm row is centred with volume as a fourth column;
+  - the summary line keeps its rect when the sum grows, and the tiles under it do not move;
+  - ∞ is filled in the primary colour only when on;
+  - no Undo toast appears after a wheel or ∞ change;
+  - the pulse plays, follows the rate and level, stops on Off and on close, and is not added over a playing session.
+- Removed tests, with reasons:
+  - all Undo-bar tests, because the bar is gone by request;
+  - the in-place card motion tests, because the cards are now standard modal sheets;
+  - the header Sound-button and drawer tests in the Customize test and `test/views/timer/timer_sound_drawer_test.dart`, because the button moved to the Sounds slice's floating button, which gets its own tests.
+
+#### Known limits
+
+- The vertical sliders sit inside a scrolling sheet. A vertical drag on one moves the slider; a drag in the gutters scrolls. This needs a feel check on the phone.
+- The just_audio preview re-sounds the sample with a seek on each beat. Its timing is good enough to judge a rate, not sample-accurate.
+- Screenshot tests still look for the old header button: `test/screenshots/design_screenshots_test.dart` ("Customize sound open") and `sounds_sheet_screenshots_test.dart` (`_tapSound`). They run only with `MEDITEJO_SCREENSHOTS=1`. These files are shared with the Sounds slice, so I left them for the orchestrator.
+
+#### Needs the phone
+
+- Does the pulse preview sound right, and does it stay in time at 120 BPM?
+- Does it duck or pause a soundscape playing in the background? It takes no audio focus on Android, as the bell preview doesn't.
+- How do the vertical volume sliders feel next to the wheels?
+- Does the ∞ on state now read at a glance?
+- Do the bell and rhythm sheets slide over Customize cleanly?
+
+### The players
+
+From Burooj's 14 Nov walkthrough of the staging build and his listening notes. All reversible.
+
+#### What changed
+
+- **One look for every player.** He said: "The guided player should look like the timer player: controls at the bottom, no wallpaper." The recording player no longer has a blurred cover or moving art filling the screen. Every session uses the same dark backdrop. The figure sits at the top, the title under it, and the controls at the bottom.
+  - A timer's figure is the day's mark, as before. A recording's figure is its cover, sharp and with rounded corners. With no cover, or when the cover fails to load, it is the session's art (or the course's), moving.
+  - The figure takes whatever height the title and controls leave, up to 320 dp. On a short screen it shrinks, and it is dropped below 96 dp. The landscape-phone layout still has no figure.
+- **The bar spreads across.** The five slots are now Close · Download · Sound · Speed · Customize. A timer fills Close, Sound and Customize, so they sit at the left edge, the middle and the right edge instead of bunching at the left. Close, Sound and Customize are in the same places for every session, as decided on 2026-11-10. Download and Speed now sit between them instead of at the right.
+- **Less space between the mark and the title.** The title now sits 8 dp under the figure, with less padding above it. A timer has no artist, so the empty artist line under its title is gone.
+- **The spinning disc in the timer.** The Sound button already showed the spinning disc for the Sounds mixer in every player. It now also spins while a **Rhythm pulse** plays and the session is running.
+  - **My call:** the mixer path was already the same in both players, so the one sound a timer had that left the disc still was most likely its rhythm. If what he heard was a mixer sound, this is the wrong fix and needs the phone.
+- **Start goes straight to the countdown.** He said: "Starting a timer sit shows the player, then jumps to the skip-countdown screen, then starts. It should go straight from one to the other." The countdown screen now covers the player from its first frame. Until the native countdown begins, it shows the full length. For a guided session it covers the player as soon as the pre-start Customize sheet closes with Start.
+  - Tapping Skip before the native countdown has begun shows the player at once. The countdown is skipped as soon as it begins.
+  - If the cue state cannot be read, the cover is lifted, so it can never hide the player for good.
+- **Sleep timer in every recording player.** He gave the example of "falling asleep five minutes into a talk". A **Sleep** button sits under the transport, beside Autoplay. It opens a sheet with 5, 10, 15 or 30 min and End of track. While a sleep timer is set, the button shows the time left (for example 9:58) or "End of track" in Autoplay's highlight. The sheet then also offers Turn off. Timer and ∞ sits have no sleep timer.
+  - **It runs in the Android audio service, not in the widget.** The cue channel has three new calls: `sleep(ms)`, `cancelSleep` and `sleepRemainingMs`. `AudioPlayerService` keeps the time with a `Handler`, on `SystemClock.elapsedRealtime`. Over the last 10 s it lowers the voice's volume, then pauses the session as the pause button would, and puts the volume back. It keeps working with the screen off and with Flutter not drawing. The Dart side (`sleepTimerProvider`) keeps its own timer only to clear the button.
+  - **A pause, not an ending (my call).** When a sleep timer runs out, the session pauses on the player, and he can resume it in the morning. It is not recorded as a completed sit. The existing 90%-heard rule still counts the session if he heard that much.
+  - **End of track** lets the recording finish normally, which is a real completion. It turns repeat off and stops Autoplay from starting the next session. No fade: the recording's own ending and the end bell stay as they are.
+  - **Wall clock (my call).** A 10-minute sleep timer ends 10 minutes after it was set, even if he pauses in between. This matches common players. It carries over into an Autoplay next session. Closing the player, the end screen, or opening a new player cancels it.
+
+#### Known limits
+
+- The day's mark leaves room inside its own square: the house mark is drawn in about the middle half of it. That margin still reads as space between the mark and the title (about 70 dp on a large phone). A tighter fit would need each mark's drawn bounds.
+- Only the voice fades. The Sounds mixer fades on its own as it pauses with the session. During Extend's silence there is no voice to fade, so the mixer just pauses with its own fade.
+- iOS (shelved) and desktop pause from a Dart timer, without a fade (`shortcut:` noted in `sleep_timer_provider.dart`).
+- The new Kotlin (`AudioPlayerService` sleep timer, `CueChannel`) is not compiled by the `checks` CI. It compiles only in the APK build.
+- The countdown screen's "Skip countdown" text is still English, as before.
+
+#### Needs the phone
+
+- A sleep timer with the screen off: whether it fades over about 10 s and pauses, and whether the notification shows paused.
+- Whether the timer's disc now spins for the sound he meant.
+- Starting a timer from Home and from a pinned preset: no flash of the player before the countdown.
+- How a cover photo (YouTube, a channel) looks as the figure, and how the moving art looks at figure size.
+
+### Home, Library and Settings
+
+From Burooj's 14 Nov walkthrough of `b491c0a1` (issue comment 6882875033).
+
+#### Home: one section
+
+- **Why:** "Shortcuts (Timer, Sounds) and Pinned (presets, courses) read as two systems. Make them one."
+- **Pinned is the one section.** The Timer is its fixed first tile, then pinned presets, then pinned courses and sessions as cards. The Shortcuts section and its heading are gone. Pinned now always shows, because the Timer is always there.
+- **Sounds left Home.** The Sounds slice puts a floating Sounds button over every tab (`lib/views/root`, not built here).
+- **Tiles and See all.** Home shows the Timer and up to three presets: two rows of two (`PinnedPresetsNotifier.homeLimit` 4 → 3). See all shows when there are more than three presets or more than three courses, and counts pins only; the Timer is not a pin and is not in the See all list. **My call.**
+- **Organize Home layout** lists Continue and Pinned only. Hiding Pinned hides the Timer too. **My call**: the Timer belongs to the section it sits in.
+- **Stored layouts migrate on read.** A saved order naming `homeShortcuts` (or the older `quickLinks`) puts Pinned where Shortcuts was, since the Timer led Shortcuts. A saved "hidden" on Shortcuts is dropped, so it never hides the pins. Nothing is rewritten until the user reorders.
+
+#### Home spacing
+
+- **Why:** "a large gap between the mark and Continue, and the Timer/Sounds row is cut off above the nav bar."
+- **The gap.** The first section has no top padding of its own; the mark's name line is the air above it (about 20 dp less). Spare height in the mark's block now goes above the mark, not between it and Continue.
+- **The cut-off row.** The mark gives way until the first row of tiles ends 80 dp above the nav bar, which clears the floating Sounds button at the bottom right (it was 16 dp). The mark's floor is lower, 22% of the screen (was 28%), so the row fits even with three Continue cards. The cost: with three cards the mark is about 190 dp wide on the S23+ (it was 220 to 300). **My call.**
+- Home's scroll ends 80 dp above the nav bar, so the last card scrolls clear of the button.
+
+#### + in the Home and Explore headers
+
+- **Why:** "Add a + (add to library) to the Home and Explore headers, as Library has. The Settings → Add to your library row is pointless."
+- One `LibraryAddButton` (in `library_add_sheet.dart`) in all three headers, opening the same sheet: Import, New playlist. On Home it sits left of Customize and You. Settings' "Add to your library" row is gone.
+
+#### Library: Practices and Talks
+
+- **Why:** "Split 'Sessions' into Practices and Talks."
+- Sections are now Practices, Talks, Playlists, Courses, Teachers. Courses still mix both kinds.
+- **A session's kind** is what the Library filter already uses (`libraryEntryKinds`): the user's choice first; else its one known kind (Dharma Seed's recording type); else, with both or none, the kind it was filed as. Under the Practice or Talks chip, everything shown sits under that chip's section.
+
+#### Settings
+
+- **Why:** "'Practice sounds & cues' and 'Talks sounds & cues' should say they are defaults." The rows are now **Practice defaults** and **Talk defaults**, with the same subtitle (Bells, cues and background sound). **My call** on the wording.
+- **Why:** "Sources lists only Dharma Seed. dhammatalks.org is built in too but isn't shown." A **dhammatalks.org** row under Sources: "Thanissaro Bhikkhu's talks, built in". It has nothing to sync or set, so a tap opens his teacher page, where the talks are. **My call.**
+
+#### Known limits
+
+- `SoundsShortcutTile` is no longer on Home but the file stays: the Sounds sheet screenshot test uses it, and the floating button may want its "what plays" label. Delete it once the button lands without it.
+- The old strings (`homeShortcutsTitle`, `librarySectionSessions`, `settingsPracticeCues`, `settingsTalksCues`) are unused now. They stay in the ARBs, to keep this slice's ARB edit to one block at the end.
+- `docs/fork/design/home-*.png` still show the old Home; not regenerated.
+
+#### Needs the phone
+
+- Whether the first row of tiles clears the floating Sounds button with one, two and three Continue cards.
+- Whether the mark at about 190 dp (three Continue cards) is too small.
+- The + on Home next to Customize and You: three buttons in the corner over the mark.
+
+### Sounds
+
+From Burooj's 14 Nov walkthrough (issue comment 6882875033) and his listening notes (6883089013). Branch `p4-sounds`, off `staging` e738fa20.
+
+#### One floating Sounds button
+
+- **Why:** "The Sound button in the header is hard to read. Sounds should be one **floating button reachable from anywhere**."
+- **Where.** Bottom right, above the nav bar, on Home, Explore, Library and Settings (`SoundsButton`, `lib/views/bottom_navigation/widgets/sounds_button.dart`, the main screen's floating action button). A tap opens the Sounds sheet on his own mix, as Home's Sounds tile did.
+- **Idle and playing.** Idle, it is a quiet surface-coloured button with the sound-wave icon. While his own mix plays on its own, it is filled in the primary colour and shows a turning record (33⅓ rpm, as the player's sound button turns). A screen reader hears "Sounds, playing Night" (the preset, or the sounds of the mix). A session's sound does not light it: the player shows that. **My call.**
+- **Hidden.** It hides while the keyboard is up. A page or sheet pushed over the tabs (a player, the Sounds sheet itself, Customize) covers it, so it needs no hiding of its own there.
+- **Room for it.** Library and Settings now end 80 dp lower, so the last row's action scrolls clear of the button. Explore already kept 96 dp. Home did its own 80 dp in the Home slice.
+- **Gone:** `SoundsShortcutTile` (Home's old tile; nothing used it), and `showSoundsSheetFor`, whose last caller was Customize's header Sound button. The player's Sounds button still opens the same sheet on the running session.
+
+#### Search in the Sounds sheet
+
+- **Why:** "Sounds has no search. Add one."
+- A search field sits at the top of the sheet. It matches a sound's name in the app's language, its shelf's name, and for Train its variants and the recordings' own titles. A shelf whose name matches shows whole ("rain" shows the Rain shelf).
+- While it holds text, only matching shelves show; Presets, "Plays under" and Credits step aside. A clear button empties it. With nothing found it says "No sounds match".
+- New strings, in en/de/es: "Search sounds", "No sounds match", "Train", "Metro", "Yamanote".
+
+#### Metro carriage and Yamanote Line train are one "Train"
+
+- **Why:** "Metro carriage and Yamanote Line train should be one sound with knobs for their properties."
+- **This is the orchestrator's recommendation, not something Burooj confirmed.** He asked for one sound with knobs; the knobs are #101 and out of scope here. What he gets now is one card and a choice of recording.
+- **One card, "Train".** Its row in the mix has two chips, **Metro** and **Yamanote**; a chip swaps the recording in place and keeps the level and Swell. **My call** on the names: "Metro" (German "U-Bahn") and "Yamanote".
+- **Nothing stored changes.** Both recordings keep their ids (`train`, `train-yamanote`) as sounds of their own; `kSoundVariants` in `sound_library.dart` only groups them under one card. A saved mix or preset that names either plays exactly what it did. Nothing is migrated or rewritten.
+- **A mix that already holds both** keeps both: two Train rows, each with the other chip greyed out. A tap on the card then takes both out. **My call.**
+- Everywhere a mix is named (the mix bar, presets, "Plays under"), either recording reads "Train". Sound credits still list both recordings with their authors, as their licences need.
+- The art already draws both as the metro scene (`compose.dart`).
+
+#### Known limits
+
+- The button turns its record whenever his mix plays; with "Remove animations" on it stays still, filled.
+- Search does not look inside presets.
+- Two Train rows with neither chip usable is a little odd; it only happens to a mix saved before the merge with both trains in it.
+- `docs/fork/design` PNGs of the Sounds sheet are not regenerated (the screenshot tests now render the button; run them with `MEDITEJO_SCREENSHOTS=1`).
+
+#### Needs the phone
+
+- Whether the button covers anything on Explore, Library or Settings at the end of a scroll, and on Home with one to three Continue cards.
+- Whether the filled, turning button reads as "something is playing" at a glance.
+- The search field in the sheet with the keyboard up: the mix bar rides up above the keyboard.
+- Metro and Yamanote swap without a gap you notice.
+
+### Wind chimes and Chirp regenerated (#76)
+
+
+- **Why:** Burooj, listening on the phone (14 Nov): "Wind chimes sounds like one high note, not chimes. Regenerate it." and "Chirp is still a little fake; regenerate it." Heartbeat and Footstep stay as they are (byte-identical; `process.py` rebuilds them to the recorded hashes).
+- **Same paths, same ids.** `assets/audio/bell_chime.wav` and `assets/audio/pulse_chirp.wav` are replaced in place, so every stored setting plays the new sound with nothing migrated. Names are unchanged ("Wind chimes", "Chirp").
+- **Source and licence: as on 2026-11-11.** ElevenLabs text-to-sound-effects, `eleven_text_to_sound_v3`, loop off, on Burooj's paid Creator plan, dedicated CC0-1.0. `tools/meditejo/cue_samples.json` (model, prompt, take, date, plan, cut, measurements, sha256) and `assets/audio/NOTICE` carry the new records. `generate_bells.py --check` and `generate_pulse_sounds.py --check` pass against the new hashes; `test/models/cues/cue_samples_test.dart` passes.
+- **Credits.** 13 takes, 45.1 s requested (7 chime takes of 6 s, 6 chirp takes of 0.5 or 0.7 s). The account's usage counter moved by 504 credits (14,150 to 14,654). At the 66-a-second rate last time's notes used as an estimate it would be about 2,980. Either way it is inside the 3,000 budget.
+- **Nobody has listened to these.** I cannot hear. Takes were chosen by measurement alone, and whether they sound right is Burooj's to say on the phone. Either file goes back to its old version by reverting that WAV and its record.
+- Raw takes, `records.jsonl`, the cut script (`process.py`; the 2026-11-11 run is kept as `process_2026-11-11.py`) and the two new measuring scripts (`pitches.py`, `chirp.py`) are in `Projects/sfx-pilot/cues` on bjslab, as before.
+
+#### Wind chimes (take 4 of 10)
+
+- **What was wrong, measured.** The old take (chime-1) has two strong pitches, about 991 and 1179 Hz, 5 dB apart; every other partial is 22 dB or more below. That is "one high note" with a second one under it.
+- **Prompts.** Two prompts asked for a set of five or six aluminium tubes, low to high, struck at random over the first few seconds, overlapping, then ringing out; no wind noise, no rumble. The chosen take's prompt is in the record.
+- **Measure used.** `pitches.py` finds the spectral peaks within 30 dB of the loudest (250 Hz to 6 kHz, 3% apart), folds a struck tube's overtones (about 2.76 and 5.40 times a lower peak) into their tube, and counts the pitches within 15 dB of the loudest. For each pitch it also finds when it is first struck and how often.
+- **Chosen: take 4.** Five pitches within 15 dB of each other: 614, 818, 1055, 1190 and 1626 Hz (the old take reached 991/1179). The lowest note is now 614 Hz instead of 991. Six strikes, at 0.10, 0.44, 0.70, 0.80, 1.35 and 3.19 s, so they are spread over the first three seconds and do not repeat a pattern. Then it rings out: about 40 dB under its loudest by 5 s and 60 dB under by 5.6 s. Its quiet floor is 66 dB under the peak, with take 6 the cleanest of the takes, and only 1% of its energy is under 200 Hz.
+- **The losing takes** (pitches within 15 dB, strike times, why not):
+  - take 5: 3 (662, 872, 1174 Hz); strikes 0.19 to 1.95 s; fewer pitches.
+  - take 6: 3 (624, 937, 1055 Hz); strikes 0.22, 0.35, 0.54, 2.31 s; fewer pitches, the strikes bunched at the start.
+  - take 7: 5 (657, 738, 834, 980, 1098 Hz), but one onset only (a swell, not separate strikes), and 25% of its energy under 200 Hz (rumble).
+  - take 8: 3 (781, 974, 1179 Hz); 19% under 200 Hz; a late strike at 4.2 s.
+  - take 9: 5 (619, 931, 1034, 1174, 1610 Hz), but its strikes are all in the first 0.3 s and one at 4.4 s.
+  - take 10: 5 (614, 775, 1050, 1174, 1572 Hz) and seven strikes, the runner-up; but one strike falls at 4.8 s, leaving under a second of ring-out, and 12% of its energy was under 200 Hz.
+- **Cut and level.** Cut 0.07 to 5.8 s, high-passed at 300 Hz, faded out over the last 1.4 s, mono 16-bit, 22.05 kHz (5.73 s, 247 KiB), levelled like every bell to −9.84 LUFS momentary (the session bell's loudest 400 ms K-weighted block), peak −1.0 dBFS.
+- **Peak limiting: my call.** Separate strikes of several tubes have sharp peaks: this take's peaks sit about 15 dB over its loudness, where the old take's sat 8.5 dB over. The −1 dBFS ceiling alone would have left the new chime about 6 dB quieter than the other bells (−15.9 LUFS). So `process.py` runs a lookahead peak limiter on this file only (5 ms lookahead, 20 ms release). It turns down 19 of the 445 audible 10 ms blocks by more than 1 dB and 10 by more than 3 dB (the deepest by 9.6 dB): only the first moments of the strikes. A slower release (120 ms) would have ducked 88 blocks and dulled the strikes, so I did not use it. If the strikes sound squashed, the other way is to leave it 6 dB quieter than the other bells; that is a one-line change in `process.py`.
+
+#### Chirp (take 11 of 14)
+
+- **What was wrong, measured.** `chirp.py` measures each 5 ms frame of the call. The old chirp (take 7 of 2026-11-11) is close to a pure whistle: its second harmonic is 51 dB under the fundamental, its spectral spread is 232 Hz, its flatness is 0.000, and its pitch moves over only 360 Hz. That fits "a little fake".
+- **Prompts.** One asked for a real wild house sparrow's single, slightly raspy call, recorded outdoors, "not electronic, not a whistle" (0.5 s, three takes). The other asked for a finch- or sparrow-like "chip" with a little rasp and pitch bend (0.7 s, three takes).
+- **Chosen: take 11.** One call, 0.21 s of it within 30 dB of its loudest point. Its pitch falls from about 5.5 to 3.5 kHz with an irregular wobble: the frame-to-frame jitter is 129 Hz, against 22 Hz (the analysis resolution, so a smooth glide) in the old chirp. Its second harmonic is 20 dB under the fundamental (the old one's was 51 dB under). Spread 810 Hz, flatness 0.028 (a little rasp). Its quiet floor is 49 to 51 dB under the peak, the lowest of the six.
+- **The losing takes:**
+  - take 9 (same prompt): pitch range 1751 Hz, jitter 86 Hz, spread 730 Hz, flatness 0.011, harmonic −21 dB, floor −46 dB. Close, but smoother and noisier.
+  - take 10 (same prompt): range 1593 Hz, jitter 22 Hz (a smooth glide), spread 951 Hz, flatness 0.029, harmonic −22 dB, floor −45 dB. The runner-up.
+  - takes 12, 13, 14 (the "chip" prompt): second harmonic only 39 to 48 dB under, spread 213 to 316 Hz, flatness 0.000 to 0.002. They are whistles like the old one, so they lost.
+- **Cut and level.** Cut 0 to 0.4 s, high-passed at 1500 Hz, faded in over 4 ms and out over the last 0.12 s, mono 16-bit, 44.1 kHz. Levelled to −25.71 LUFS on the loudest 400 ms K-weighted block, as the old chirp was, so it plays at the same loudness; peak −10.8 dBFS.
+- **Known limit.** The take begins only about 25 dB under its loudest point at its first sample, so the attack may be slightly clipped by the generator. The 4 ms fade-in removes any click, and the file starts and ends on zero (tested), but the onset may sound abrupt.
+- **The tail.** After the call the take decays from −20 to −60 dB over about 0.3 s. That may be room sound in the generated take, though the prompt asked for none. The cut keeps 0.19 s of it under the fade.
+
+#### Needs the phone
+
+- Do Wind chimes now sound like several tubes, and do the strikes sound natural after the limiting?
+- Is Chirp now a bird and not a notification? Is its start abrupt?
+- Is Wind chimes as loud as the other bells, and Chirp as loud as Heartbeat and Footstep?
+
+### Starter set and Vervaeke titles
+
+
+#### The starter set gains three items
+
+- **Why:** the curation pass (`Projects/tmi-guided/practices/curation-youtube.md`) recommended QRI's second course and Vervaeke's short practice set, the only other guided practice on either channel.
+- **QRI, "Qualia Mastery II - Further Develop Your Toolkit for Navigating the State-Space of Consciousness"** (playlist `PLbmYHvGI-YStGL1bzkuxj_xqFvHzvjxEY`, 9 sessions). Practice. It is last in the set, after Qualia Mastery.
+- **Vervaeke, "After Socrates | The Practices"** (playlist `PLND1JCRq8VuhiAkaZ4UfmMwDq0c3a_cDn`, practices #2 to #4). Practice, after *Meditating with John Vervaeke*.
+- **Vervaeke, "Mindfulness Meditation - Find Your Center"** (video `9c736DThL_M`, practice #1, about 32 minutes). The playlist leaves it out, so it is seeded as a single, just before the course.
+- **Licence:** none was found for either channel, so both stream from YouTube like the two YouTube starter courses already there. Nothing is cached or downloaded.
+
+#### Single-video seeding (#152, part 1)
+
+- Issue #152 was right: the seed only wrote playlist rows, and a `yt-video-` single with no `youtube_videos` row cannot open (`YoutubeSource.track` throws).
+- **Smallest clean fix:** the seed now writes a placeholder video row for a single (title and channel from `starter_set.dart`, no picture, length 0, never looked up). That is the same idea as the empty, already-due playlist row a starter course gets. Seeding it as an extra episode of the After Socrates course does not work, because a playlist refresh rewrites the course's video list from YouTube.
+- **The first look fills in the gaps.** `_describeVideoNow` (which runs when the single's page opens, or during the background detail fill) already read the description and channel. It now also sets the picture and the length, but only where the stored row has none. It then updates the library card. A row a playlist already filled keeps its values.
+- **Known limit:** until that first look, the single shows no length and no thumbnail. It plays as soon as it is opened, because the audio stream is looked up at play time.
+- #152's Wim Hof video is not added here; it needs its safety note first. The seeding it needed now works.
+
+#### Existing installs get the additions (my call on the mechanism)
+
+- **There was no mechanism.** The starter set was seeded once, behind `starter_seeded`, and an install that already had a library got nothing. The YouTube courses joined the set before any phone had seeded, so nothing had to be added afterwards.
+- **Now:** each `StarterItem` has `since` (the set's version that brought it), and `starterSetVersion` is 2. `addNewStarterItems` runs after `seedStarterSet` at every library open. An install that holds an older version (an install with no recorded version counts as 1) gets each newer item once. Then the version is recorded, so anything the user removes stays removed. A fresh install is seeded with everything and recorded as version 2, so nothing is added twice.
+- **No duplicates.** An item already in the library (for example, if Burooj imported Qualia Mastery II by hand) is skipped, and its stored playlist or video row is left alone. Placeholder rows are inserted only where none exists. Before, the seed's playlist row overwrote one.
+- **Who gets them:** installs seeded with the first set, and also installs whose library predates the starter set (Burooj's phone: it was flagged without seeding then). The first set itself is still never added to those. *My call:* the additions are new content Burooj asked for, and his own phone is such an install.
+- **Where they land:** at the top of the library (added "now", in the set's order). *My call:* new things lead, as they would after an import.
+- **Without YouTube (iOS):** nothing is added, and the version is still recorded, the same as the first seed.
+- The seed and the additions each write their rows and the version in one transaction, so an interrupted launch tries again next time.
+- To add starter items later: give them `since: 3` and raise `starterSetVersion` to 3.
+
+#### Livestream schedule trimmed
+
+- **Why:** Burooj still saw "| Livestream Mon-Fri 09:30 EST" and its variants on Vervaeke's sessions. `episodeTitle` (#84) cuts only what all of a course's titles share at a separator, but YouTube spells the schedule five ways: "-Livestream Mon-Fri 09:30 EST", "-Livestream Mon-Fri at 09:30 EST", "- Live Mon-Fri …", "- Live Stream Mon-Fri …" and "- Stream Mon-Fri 9:30 EST". So the shared tail was only ":30 EST", with no separator before it, and nothing was cut. `episodeTitle` was also used only on the episode page and the course page's path button. Lists, the player, Continue and search showed the raw title.
+- **Fix:** `withoutSchedule` (`lib/utils/episode_title.dart`) removes a trailing "Live/Livestream/Live stream/Stream + days + time (+ zone)", with an optional separator before it. It only does this when the schedule ends the title and words remain before it. `episodeTitle` applies it first, so the course-name cut now works on all 18 lessons. `YoutubeSource` applies it wherever a title leaves it or is stored: course lists, the player (`track`), search, the import preview, saved singles, and new or refreshed rows. Continue and the player screen read those, so they follow; the media notification should too (not checked). Rows stored before the fix read clean too, and they are rewritten clean at the course's next refresh (every 12 hours).
+- **Kept:** "Day 1", "Lesson 1:" and the course name in front (that one is cut only on the episode page, as before). The schedule is cut only from YouTube titles. Dharma Seed and other sources are untouched.
+- **Tests:** `test/utils/episode_title_test.dart` (each real spelling, and titles that must stay whole, such as "Live Q&A …" or "Stream of Consciousness"), `test/services/youtube/youtube_source_test.dart` (lists, player, search, rows stored before), `test/services/library/library_defaults_test.dart` (fresh seed, additions once, removal sticks, no duplicate, iOS, a single opening and filling in).
+
+#### Not done, flagged
+
+- **Art and categories for the new items.** The four Dharma Seed starters and the two first YouTube courses have frozen curated art (`assets/art/curated_art.json`) and hand-picked categories. The three new items show their YouTube thumbnail (the single shows one after its first look) and no category. Curating them needs the art tool and a read of their contents. That is a follow-up if Burooj wants them to match.
+- **Needs the phone:** on Burooj's installed build, updating should put the three items at the top of the library once, with nothing doubled. Opening the single should play practice #1 and fill in its length and picture. Vervaeke's lessons should show no schedule in the course list, the player, Continue or search.
