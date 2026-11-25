@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:medito/views/bottom_navigation/widgets/sounds_button.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/views/debug/debug_info_screen.dart';
 import 'package:medito/views/settings/settings_sections.dart';
@@ -36,7 +37,8 @@ class SettingsScreen extends StatelessWidget {
       body: AdaptivePageBody(
         maxWidth: 760,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          // Clear of the floating Sounds button.
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, kSoundsButtonClearance),
           children: const [SettingsSections()],
         ),
       ),

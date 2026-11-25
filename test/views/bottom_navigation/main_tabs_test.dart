@@ -8,7 +8,8 @@ import 'package:medito/views/bottom_navigation/bottom_navigation_bar_view.dart';
 import 'package:medito/views/library/library_view.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/settings/settings_screen.dart';
-import 'package:medito/views/soundscape/sounds_sheet.dart';
+import 'package:medito/models/soundscape/synth.dart';
+import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 
 import '../../helpers/dharma_seed_app.dart';
@@ -126,24 +127,88 @@ void main() {
     expect(find.byType(BottomNavigationBarView), findsOneWidget);
   });
 
-  // Pass 4: the Sounds tile left Home (a floating Sounds button over every
-  // tab replaces it), so the sheet is opened from Home directly here.
-  testWidgets('the Sounds sheet opens from Home over the tabs; back '
-      'closes it and stays on Home', (tester) async {
+  Finder button() => find.byKey(const ValueKey('sounds_button'));
+
+  testWidgets('the Sounds sheet opens from the floating button over the '
+      'tabs; back closes it and stays on Home', (tester) async {
     final container = await pump(tester);
     await settle(tester);
-    showSoundsSheet(tester.element(find.byType(HomeView))).ignore();
+    await tester.tap(button());
     await settle(tester);
     expect(find.byType(BottomSheet), findsOneWidget);
     expect(onScreen(tester, SoundsView), isTrue);
     expect(container.read(mainTabProvider), MainTab.home);
     // The tabs are still there, under it.
     expect(find.byType(NavigationBar), findsOneWidget);
+    // The sheet covers the button.
+    expect(button().hitTestable(), findsNothing);
 
     await tester.binding.handlePopRoute();
     await settle(tester);
     expect(find.byType(SoundsView), findsNothing);
     expect(container.read(mainTabProvider), MainTab.home);
     expect(find.byType(BottomNavigationBarView), findsOneWidget);
+  });
+
+  testWidgets('the Sounds button is on every tab, bottom right above the '
+      'bar', (tester) async {
+    final container = await pump(tester);
+    await settle(tester);
+    for (final tab in MainTab.values) {
+      container.read(mainTabProvider.notifier).select(tab);
+      await settle(tester);
+      expect(button().hitTestable(), findsOneWidget, reason: tab.name);
+      final rect = tester.getRect(button());
+      final bar = tester.getRect(find.byType(NavigationBar));
+      final screen = tester.getRect(find.byType(BottomNavigationBarView));
+      expect(rect.bottom, lessThanOrEqualTo(bar.top), reason: tab.name);
+      expect(rect.right, greaterThan(screen.width - 100), reason: tab.name);
+    }
+  });
+
+  testWidgets('the Sounds button hides while the keyboard is up and under a '
+      'page pushed over the tabs', (tester) async {
+    await pump(tester);
+    await settle(tester);
+    expect(button(), findsOneWidget);
+
+    tester.view.viewInsets = const FakeViewPadding(bottom: 800);
+    addTearDown(tester.view.resetViewInsets);
+    await settle(tester);
+    expect(button(), findsNothing);
+    tester.view.resetViewInsets();
+    await settle(tester);
+    expect(button(), findsOneWidget);
+
+    // A player (any page) pushed over the tabs covers it.
+    Navigator.of(
+      tester.element(find.byType(HomeView)),
+    ).push(MaterialPageRoute<void>(builder: (_) => const Scaffold())).ignore();
+    await settle(tester);
+    expect(button().hitTestable(), findsNothing);
+  });
+
+  testWidgets('while the mix plays on its own the button shows it', (
+    tester,
+  ) async {
+    final container = await pump(tester);
+    await settle(tester);
+    final playing = find.byKey(const ValueKey('sounds_button_playing'));
+    expect(playing, findsNothing);
+    expect(tester.widget<FloatingActionButton>(button()).tooltip, 'Sounds');
+
+    container.read(soundscapeProvider.notifier)
+      ..clearMix()
+      ..toggleSound(kSynthNoiseId);
+    await settle(tester);
+    expect(playing, findsOneWidget);
+    expect(
+      tester.widget<FloatingActionButton>(button()).tooltip,
+      'Sounds, playing Noise',
+    );
+
+    container.read(soundscapeProvider.notifier).pause();
+    await settle(tester);
+    expect(playing, findsNothing);
   });
 }

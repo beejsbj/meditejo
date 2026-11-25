@@ -1,5 +1,6 @@
 import 'package:medito/widgets/adaptive/adaptive_content.dart';
 import 'package:medito/views/bottom_navigation/widgets/medito_sidebar.dart';
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -21,6 +22,7 @@ import 'package:medito/utils/logger.dart';
 import 'package:medito/utils/pending_end_screen.dart';
 import 'package:medito/views/end_screen/end_screen_view.dart';
 import 'package:medito/views/bottom_navigation/widgets/medito_nav_bar.dart';
+import 'package:medito/views/bottom_navigation/widgets/sounds_button.dart';
 import 'package:medito/views/explore/widgets/explore_view.dart';
 import 'package:medito/views/library/share_intake_host.dart';
 import 'package:medito/views/home/home_view.dart';
@@ -41,7 +43,7 @@ class _BottomNavigationBarViewState
   // Nav destination index == MainTab index == page index in _pages: Home,
   // Explore, Library, Settings. Search lives inside Explore; You (stats and
   // history) is a page opened from Home, Library and Settings; Sounds is a
-  // sheet over any of them.
+  // sheet over any of them, opened from the floating SoundsButton.
   final _exploreViewKey = GlobalKey<ExploreViewState>();
   late final List<Widget> _pages;
   bool _restoringEndScreen = false;
@@ -183,6 +185,10 @@ class _BottomNavigationBarViewState
             // doesn't also inset the body — padding the bar already reserves the
             // keyboard's height, shrinking the body to sit above it.
             resizeToAvoidBottomInset: false,
+            // Sounds, over every tab (pass 4). Not while typing: the
+            // keyboard is up and the field wants the room. A page or sheet
+            // pushed over the tabs (a player, the Sounds sheet) covers it.
+            floatingActionButton: keyboardOpen ? null : const SoundsButton(),
             bottomNavigationBar: wide
                 ? null
                 : Padding(
