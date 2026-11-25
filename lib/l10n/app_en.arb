@@ -3382,18 +3382,6 @@
       }
     }
   },
-  "customizeUndoChange": "{setting}: {value}",
-  "@customizeUndoChange": {
-    "description": "Customize: the bar shown after a wheel changes a setting, with an Undo button, e.g. 'Slow down over: 9 min'",
-    "placeholders": {
-      "setting": {
-        "type": "String"
-      },
-      "value": {
-        "type": "String"
-      }
-    }
-  },
   "playerAutoplayForPractice": "For all practice",
   "@playerAutoplayForPractice": {
     "description": "Player: the autoplay setting applies to every practice course"

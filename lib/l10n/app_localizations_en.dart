@@ -2953,11 +2953,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String customizeUndoChange(String setting, String value) {
-    return '$setting: $value';
-  }
-
-  @override
   String get playerAutoplayForPractice => 'For all practice';
 
   @override

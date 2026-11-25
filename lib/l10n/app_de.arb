@@ -1323,7 +1323,6 @@
   "customizeRhythmEndsAt": "Endet bei",
   "customizeRhythmOverMinutes": "über {minutes} Min.",
   "customizeRhythmRampSpoken": "{from} bis {to} BPM über {minutes} Min.",
-  "customizeUndoChange": "{setting}: {value}",
   "playerAutoplayForPractice": "Für alle Praxis-Sitzungen",
   "playerAutoplayForTalks": "Für alle Vorträge",
   "playerAutoplayForCourse": "Für diesen Kurs",

@@ -75,7 +75,6 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(minutes(), start);
-      expect(find.byKey(const ValueKey('customize_undo')), findsNothing);
     }
 
     await tester.ensureVisible(wheel);
@@ -84,12 +83,11 @@ void main() {
     await tester.pumpAndSettle();
     final turned = minutes();
     expect(turned, greaterThan(start));
+    // Saved as it lands, with no Undo toast pushing the sheet up.
     final picker = tester.widget<WheelPicker<dynamic>>(wheel);
     final shown = picker.options.firstWhere((o) => o.value == turned).label;
-    expect(find.text('Duration: $shown'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('customize_undo_button')));
-    await tester.pumpAndSettle();
-    expect(minutes(), start);
+    expect(find.text('Duration: $shown'), findsNothing);
+    expect(find.text('Undo'), findsNothing);
 
     // Drops the sheet so its 30 second refresh timer is cancelled.
     await tester.pumpWidget(const SizedBox.shrink());
