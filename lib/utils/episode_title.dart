@@ -1,3 +1,33 @@
+/// [title] without a livestream's schedule at its end (pass 4): John
+/// Vervaeke's titles end "-Livestream Mon-Fri 09:30 EST", "- Live Stream
+/// Mon-Fri at 09:30 EST", "- Stream Mon-Fri 9:30 EST" and the like. Burooj
+/// saw it in lists, the player, Continue and search, where [episodeTitle]
+/// (which needs the course's other titles, all spelled alike) does not
+/// reach. The schedule goes only when it ends the title and something is
+/// left before it.
+String withoutSchedule(String title) {
+  final match = _schedule.firstMatch(title);
+  if (match == null || match.start == 0) return title;
+  final rest = title.substring(0, match.start).trimRight();
+  return rest.replaceAll(RegExp(r'[\p{L}\p{N}]', unicode: true), '').length ==
+          rest.length
+      ? title
+      : rest;
+}
+
+/// "Live", "Livestream", "Live stream" or "Stream", then days ("Mon-Fri",
+/// "Mondays", "Mon & Wed"), then a time ("09:30", "9.30am") and an
+/// optional zone, at the end, after an optional separator.
+final _schedule = RegExp(
+  r'\s*(?:[-–—|｜:·•]\s*)?\b(?:live\s*-?\s*stream(?:ed|ing|s)?|live|streams?)'
+  r'\s+(?:on\s+|every\s+)?'
+  r'(?:mon|tue|wed|thu|fri|sat|sun|week)[a-z]*\.?'
+  r'(?:\s*(?:[-–/&,]|to|and)\s*(?:mon|tue|wed|thu|fri|sat|sun)[a-z]*\.?)*'
+  r'\s*(?:at\s+|@\s*)?\d{1,2}(?:[:.]\d{2})?\s*(?:[ap]\.?m\.?)?'
+  r'(?:\s*[a-z]{2,4})?\s*$',
+  caseSensitive: false,
+);
+
 /// An episode's title as its own page shows it (#84): without the words
 /// every episode of its course repeats ("Meditating with John Vervaeke:",
 /// "| Livestream Mon-Fri 09:30 EST"), which the page already says once in
@@ -24,10 +54,10 @@ String episodeTitle(
   String? teacher,
   Iterable<String> siblings = const [],
 }) {
-  final whole = title.trim();
+  final whole = withoutSchedule(title.trim());
   final others = [
     for (final s in siblings)
-      if (s.trim().isNotEmpty) s.trim(),
+      if (s.trim().isNotEmpty) withoutSchedule(s.trim()),
   ];
   final names = [
     for (final n in [courseTitle, teacher])

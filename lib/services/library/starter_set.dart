@@ -9,6 +9,7 @@ class StarterItem {
     this.itemCount = 1,
     this.group,
     this.uploader = '',
+    this.since = 1,
   });
 
   /// The content ID, for the source that owns it (`ds-retreat-4496`).
@@ -22,13 +23,25 @@ class StarterItem {
   /// Practice or Talks. Null follows the source's own label for the item.
   final LibraryGroup? group;
 
-  /// The channel of a YouTube playlist, shown until its first refresh.
+  /// The channel of a YouTube playlist or video, shown until its first
+  /// refresh.
   final String uploader;
+
+  /// The [starterSetVersion] that brought this item. An install seeded
+  /// before it gets it once, on the first launch of the update that added
+  /// it; see `addNewStarterItems`.
+  final int since;
 }
+
+/// Raised whenever items join [starterSet], with their `since` set to it.
+/// 1: the set as first shipped. 2: pass 4 (Qualia Mastery II, Vervaeke's
+/// After Socrates practices and its missing practice #1).
+const starterSetVersion = 2;
 
 /// Burooj's built-in starter set (docs/fork/BRIEF.md, decision 13), in the
 /// order it should lead the library. Seeded once, on the first run with an
-/// empty library; see `seedStarterSet`.
+/// empty library; see `seedStarterSet`. Items added later carry `since`, so
+/// existing installs get them once too; see `addNewStarterItems`.
 const starterSet = <StarterItem>[
   StarterItem(
     id: 'ds-retreat-4496',
@@ -64,9 +77,9 @@ const starterSet = <StarterItem>[
     kind: LibraryKind.single,
     title: 'Developing Piti, Developing Focus, Developing Wellbeing',
   ),
-  // YouTube playlists, as courses (docs/fork/BRIEF.md, decision 13). The
-  // sessions arrive when the course is first opened online; see
-  // `seedStarterSet`.
+  // YouTube playlists, as courses (docs/fork/BRIEF.md, decision 13), and
+  // one single video. The sessions arrive when the course is first opened
+  // online, the video's details when it is; see `seedStarterSet`.
   StarterItem(
     id: 'yt-playlist-PLND1JCRq8VujAHvDA482SXF1cJTQrwlx3',
     kind: LibraryKind.course,
@@ -74,6 +87,25 @@ const starterSet = <StarterItem>[
     itemCount: 18,
     group: LibraryGroup.practice,
     uploader: "John Vervaeke's Lectern",
+  ),
+  // Pass 4: Vervaeke's short practice set. Its playlist lacks practice #1,
+  // so that one comes first as a single video.
+  StarterItem(
+    id: 'yt-video-9c736DThL_M',
+    kind: LibraryKind.single,
+    title: 'Mindfulness Meditation - Find Your Center',
+    group: LibraryGroup.practice,
+    uploader: "John Vervaeke's Lectern",
+    since: 2,
+  ),
+  StarterItem(
+    id: 'yt-playlist-PLND1JCRq8VuhiAkaZ4UfmMwDq0c3a_cDn',
+    kind: LibraryKind.course,
+    title: 'After Socrates | The Practices',
+    itemCount: 3,
+    group: LibraryGroup.practice,
+    uploader: "John Vervaeke's Lectern",
+    since: 2,
   ),
   StarterItem(
     id: 'yt-playlist-PLbmYHvGI-YSvnpbh3ppQqcG72lpw4aQdE',
@@ -84,5 +116,16 @@ const starterSet = <StarterItem>[
     itemCount: 9,
     group: LibraryGroup.practice,
     uploader: 'Qualia Research Institute',
+  ),
+  StarterItem(
+    id: 'yt-playlist-PLbmYHvGI-YStGL1bzkuxj_xqFvHzvjxEY',
+    kind: LibraryKind.course,
+    title:
+        'Qualia Mastery II - Further Develop Your Toolkit for Navigating the '
+        'State-Space of Consciousness',
+    itemCount: 9,
+    group: LibraryGroup.practice,
+    uploader: 'Qualia Research Institute',
+    since: 2,
   ),
 ];
