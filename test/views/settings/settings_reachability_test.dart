@@ -27,13 +27,15 @@ const _everywhere = {
   'When my day starts',
   'Zen mode',
   // Sounds & cues: the Customize defaults
-  'Practice sounds & cues',
-  'Talks sounds & cues',
-  // Library & downloads: from Help and Customisation
-  'Add to your library',
+  // (pass 4: named as defaults)
+  'Practice defaults',
+  'Talk defaults',
+  // Library & downloads: from Help and Customisation. Pass 4: "Add to your
+  // library" moved to the "+" in the Home, Explore and Library headers.
   'Downloads',
-  // Sources
+  // Sources (pass 4: dhammatalks.org shown too)
   'Dharma Seed',
+  'dhammatalks.org',
   // Appearance
   'Theme',
   'Organize Home layout',

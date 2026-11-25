@@ -68,7 +68,9 @@ class CueDefaultsTile extends StatelessWidget {
             : Icons.record_voice_over_outlined,
         color: Theme.of(context).colorScheme.onSurface,
       ),
-      title: practice ? l10n.settingsPracticeCues : l10n.settingsTalksCues,
+      title: practice
+          ? l10n.settingsPracticeDefaults
+          : l10n.settingsTalkDefaults,
       subTitle: practice
           ? l10n.settingsPracticeCuesCaption
           : l10n.settingsTalksCuesCaption,
