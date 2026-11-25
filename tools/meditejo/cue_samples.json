@@ -1,42 +1,56 @@
 {
-  "_doc": "The cue sounds that are generated samples, not synthesis (meditejo#76, licence route meditejo#101). Generated on Burooj's paid ElevenLabs Creator plan and dedicated to the public domain under CC0-1.0. generate_bells.py and generate_pulse_sounds.py never write these files; their --check (the bells workflow) and test/models/cues/cue_samples_test.dart compare each file with sha256. Takes were chosen by measurement (onsets, envelope, spectrum, noise floor), not by ear. The raw takes and the scripts that cut them are kept outside the repository (Projects/sfx-pilot/cues on bjslab).",
+  "_doc": "The cue sounds that are generated samples, not synthesis (meditejo#76, licence route meditejo#101). Generated on Burooj's paid ElevenLabs Creator plan and dedicated to the public domain under CC0-1.0. generate_bells.py and generate_pulse_sounds.py never write these files; their --check (the bells workflow) and test/models/cues/cue_samples_test.dart compare each file with sha256. Takes were chosen by measurement (onsets, envelope, spectrum, noise floor; for the 2026-11-25 chimes the number of distinct struck pitches, for the chirp its frequency modulation, spread and harmonics against a pure tone), not by ear. Wind chimes and Chirp were regenerated on 2026-11-25 (pass 4); their take numbers count every take of that sound, 2026-11-11's included. The raw takes and the scripts that cut them are kept outside the repository (Projects/sfx-pilot/cues on bjslab).",
   "samples": [
     {
       "file": "bell_chime.wav",
       "name": "Wind chimes",
-      "sha256": "fb6e0f11c28877e50eaa3333ef1031bfffda584193c1013b48bc89800b9a356a",
+      "sha256": "80f06ea14addc7aa3548f981a507d03ee5da66f3b74a2d0335c22d4f0b13d23b",
       "license": "CC0-1.0",
       "source": "ElevenLabs text-to-sound-effects",
       "model": "eleven_text_to_sound_v3",
       "plan": "ElevenLabs Creator (paid)",
-      "date": "2026-11-11",
-      "prompt": "Metal wind chimes in a light breeze: a few aluminium tubes gently struck one after another, then ringing out and fading naturally to silence. Calm, sparse, close and dry. No wind noise, no background, no music.",
+      "date": "2026-11-25",
+      "prompt": "A set of six aluminium wind chimes of different lengths and pitches, from low to high, struck irregularly by a gentle breeze: several tubes ring at once and overlap in a random, sparse pattern over the first few seconds, then all ring out and fade naturally to silence. Clear metallic tones, many distinct notes. Close, dry, no wind noise, no rumble, no background, no music.",
       "requestedSeconds": 6.0,
       "loop": false,
-      "promptInfluence": 0.5,
-      "take": 1,
-      "takesGenerated": 3,
+      "promptInfluence": 0.6,
+      "take": 4,
+      "takesGenerated": 10,
       "changes": {
         "cutSeconds": [
-          0.015,
+          0.07,
           5.8
         ],
         "highPassHz": 300,
         "fadeInSeconds": 0.001,
         "fadeOutSeconds": 1.4,
+        "peakLimited": {
+          "lookaheadMs": 5,
+          "releaseMs": 20
+        },
         "levelledToMomentaryLufs": -9.84,
         "format": "mono 16-bit PCM WAV, 22050 Hz"
       },
       "measured": {
-        "seconds": 5.785,
-        "peak_dbfs": -1.35,
+        "seconds": 5.73,
+        "peak_dbfs": -1.01,
         "momentary_max_lufs": -9.84,
-        "centroid_hz": 1395,
+        "centroid_hz": 1267,
         "onsets_s": [
-          0.02,
-          0.81,
-          1.94,
-          2.79
+          0.03,
+          0.37,
+          0.75,
+          1.28,
+          3.02,
+          3.13,
+          3.39
+        ],
+        "pitches_hz": [
+          614,
+          818,
+          1055,
+          1190,
+          1626
         ]
       }
     },
@@ -80,38 +94,36 @@
     {
       "file": "pulse_chirp.wav",
       "name": "Chirp",
-      "sha256": "c8173306a295d21bf3d8bacd2e5994c6f9ddf72060fb36c105e336842ec1cc25",
+      "sha256": "a8cc36a0e4ae0fd4e048d4a7ddbefb5736a56bc8ce211f4f3a4339e54c23b054",
       "license": "CC0-1.0",
       "source": "ElevenLabs text-to-sound-effects",
       "model": "eleven_text_to_sound_v3",
       "plan": "ElevenLabs Creator (paid)",
-      "date": "2026-11-11",
-      "prompt": "One single short tweet from a small songbird, a sparrow, just one note, close and clean. Field recording, no background noise, no other birds, no echo.",
+      "date": "2026-11-25",
+      "prompt": "One single chirp from a real wild house sparrow, recorded outdoors with a field microphone: a short, slightly raspy, natural call, one syllable, then silence. Not electronic, not a whistle, no other birds, no echo.",
       "requestedSeconds": 0.5,
       "loop": false,
       "promptInfluence": 0.5,
-      "take": 7,
-      "takesGenerated": 8,
+      "take": 11,
+      "takesGenerated": 14,
       "changes": {
         "cutSeconds": [
-          0.078,
-          0.478
+          0.0,
+          0.4
         ],
         "highPassHz": 1500,
         "fadeInSeconds": 0.004,
-        "fadeOutSeconds": 0.07,
+        "fadeOutSeconds": 0.12,
         "levelledToMomentaryLufs": -25.71,
         "format": "mono 16-bit PCM WAV, 44100 Hz"
       },
       "measured": {
         "seconds": 0.4,
-        "peak_dbfs": -13.24,
+        "peak_dbfs": -10.82,
         "momentary_max_lufs": -25.71,
-        "centroid_hz": 3862,
+        "centroid_hz": 3674,
         "onsets_s": [
-          0.01,
-          0.08,
-          0.21
+          0.02
         ]
       }
     },
