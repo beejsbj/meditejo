@@ -3,6 +3,8 @@ import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/services/audio/native_cue_controller.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
+import 'package:medito/providers/player/sleep_timer_provider.dart';
+import 'package:medito/views/timer/start_timer.dart' show timerCueScope;
 import 'package:medito/providers/meditation/track_provider.dart';
 import 'package:medito/models/pack/pack_model.dart';
 import 'package:medito/providers/library/library_providers.dart';
@@ -15,7 +17,6 @@ import 'dart:async';
 import 'package:medito/widgets/adaptive/adaptive_player_layout.dart';
 import 'package:medito/models/player/playback_request.dart';
 
-import 'dart:ui';
 import 'dart:io';
 
 import 'package:medito/constants/constants.dart';
@@ -43,6 +44,7 @@ import 'package:medito/views/player/widgets/stopwatch_elapsed_widget.dart';
 import 'package:medito/views/player/widgets/player_buttons/player_buttons_widget.dart';
 import 'package:medito/views/player/widgets/mark_above.dart';
 import 'package:medito/views/player/widgets/player_mark.dart';
+import 'package:medito/views/player/widgets/sleep_timer_control.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -53,14 +55,34 @@ import '../../providers/background_sounds/background_sounds_notifier.dart';
 import '../../providers/soundscape/soundscape_provider.dart';
 import '../../widgets/errors/medito_error_widget.dart';
 
-/// Whether the player's sound button shows sound playing: the Sounds mixer
-/// (which follows the session's play/pause itself), or the legacy ambient
-/// layer while the session plays.
+/// Whether the player's sound button shows sound playing (its spinning
+/// disc): the Sounds mixer (which follows the session's play/pause itself),
+/// or, while the session plays, the legacy ambient layer or a Rhythm pulse.
+/// The pulse counts so a timer whose only sound is its rhythm spins too
+/// (owner, 14 Nov: "show the spinning-disc sound icon inside the timer
+/// player too").
 bool isPlayerSoundActive({
   required bool sessionPlaying,
   required bool legacyAmbient,
   required bool mixerPlaying,
-}) => mixerPlaying || (sessionPlaying && legacyAmbient);
+  bool rhythm = false,
+}) => mixerPlaying || (sessionPlaying && (legacyAmbient || rhythm));
+
+/// Whether the countdown screen covers the player. It shows from the moment
+/// a countdown is expected (owner, 14 Nov: "It should go straight from one
+/// to the other"), before the native side has started counting, so the
+/// player never flashes between Start and the countdown.
+bool showCountdownCover({
+  required int countdownMs,
+  required bool countdownExpected,
+}) => countdownMs > 0 || countdownExpected;
+
+/// The seconds the countdown screen shows: the native countdown's, or the
+/// whole of it while that has not begun.
+int countdownCoverSeconds({
+  required int countdownMs,
+  required int configuredSeconds,
+}) => countdownMs > 0 ? (countdownMs / 1000).ceil() : configuredSeconds;
 
 class PlayerView extends ConsumerStatefulWidget {
   const PlayerView({super.key, this.skipCustomize = false});
@@ -93,6 +115,8 @@ class _PlayerViewState extends ConsumerState<PlayerView>
   bool _foreground = true;
   bool _cueStateFailed = false;
   bool _countdownExpected = false;
+  int _countdownSeconds = 0;
+  bool _skipCountdownPending = false;
   CueScope? _cueScope;
   ProviderSubscription<CueSettings>? _cueSubscription;
   bool _customized = false;
@@ -145,9 +169,24 @@ class _PlayerViewState extends ConsumerState<PlayerView>
       ),
       (_, _) => _syncCuePoll(),
     );
+    // A timer goes straight to its countdown: no first frame of the player.
+    final request = ref.read(playerProvider);
+    if (request != null && request.isTimer) {
+      _expectCountdown(ref.read(cueSettingsProvider(timerCueScope)));
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // A new player is a new listen: no sleep timer carried over.
+      unawaited(ref.read(sleepTimerProvider.notifier).cancel());
       _startPlayback();
     });
+  }
+
+  /// Covers the player with the countdown before the native side starts it,
+  /// where it will (Android and iOS run the countdown natively).
+  void _expectCountdown(CueSettings settings) {
+    _countdownSeconds = settings.countdownSeconds;
+    _countdownExpected =
+        settings.countdownSeconds > 0 && (Platform.isAndroid || Platform.isIOS);
   }
 
   @override
@@ -223,20 +262,34 @@ class _PlayerViewState extends ConsumerState<PlayerView>
       // Seen, or the voice is already playing (no countdown after all): the
       // phase itself decides from here, however long the source buffered.
       final phase = cueState['phase'];
-      if (phase == 'countdown' ||
-          (phase == 'playing' && ref.read(audioStateProvider).isPlaying)) {
+      var changed = false;
+      if (phase == 'countdown' && _skipCountdownPending) {
+        _skipCountdownPending = false;
+        unawaited(NativeCueController.skipCountdown());
+      }
+      if (_countdownExpected &&
+          (phase == 'countdown' ||
+              (phase == 'playing' && ref.read(audioStateProvider).isPlaying))) {
         _countdownExpected = false;
+        changed = true;
       }
       final remaining =
           (cueState['countdownRemainingMs'] as num?)?.toInt() ?? 0;
-      if (remaining != _countdownMs) {
+      if (remaining != _countdownMs || changed) {
         setState(() => _countdownMs = remaining);
       }
       _syncCuePoll();
     } catch (e) {
       AppLogger.e('CUES', 'Countdown state unavailable: $e');
       _cueStateFailed = true;
-      if (mounted) _syncCuePoll();
+      if (mounted) {
+        // Nothing will say when the countdown ends: show the player.
+        setState(() {
+          _countdownExpected = false;
+          _countdownMs = 0;
+        });
+        _syncCuePoll();
+      }
     }
   }
 
@@ -276,6 +329,11 @@ class _PlayerViewState extends ConsumerState<PlayerView>
           });
           return;
         }
+      }
+      if (mounted) {
+        setState(
+          () => _expectCountdown(ref.read(cueSettingsProvider(_cueScope!))),
+        );
       }
     } catch (e, st) {
       AppLogger.e('CUES', 'Could not load customization', e, st);
@@ -331,18 +389,31 @@ class _PlayerViewState extends ConsumerState<PlayerView>
       _cueStateFailed = false;
       // The countdown starts once the voice is ready, however long that takes:
       // keep looking until it is seen.
-      _countdownExpected =
-          ref.read(cueSettingsProvider(_cueScope!)).countdownSeconds > 0;
+      _expectCountdown(ref.read(cueSettingsProvider(_cueScope!)));
       _syncCuePoll();
       // The native service must be ready before restoring background audio.
       if (mounted && !_isClosing) unawaited(_initializePlayer());
     } catch (e, st) {
       AppLogger.e('PLAYER', 'Failed to start playback', e, st);
       _countdownExpected = false;
+      _skipCountdownPending = false;
       if (mounted) {
         setState(() => _startError = e is AppError ? e : const UnknownError());
       }
     }
+  }
+
+  void _skipCountdown() {
+    if (_countdownMs > 0) {
+      unawaited(NativeCueController.skipCountdown());
+      return;
+    }
+    // Not begun natively yet: skip it as soon as it does, and show the
+    // player now.
+    setState(() {
+      _skipCountdownPending = true;
+      _countdownExpected = false;
+    });
   }
 
   void _retryPlayback() {
@@ -511,7 +582,10 @@ class _PlayerViewState extends ConsumerState<PlayerView>
                 : null,
             extraMs: _extraMs(currentlyPlayingTrack),
           ),
-          if (_countdownMs > 0)
+          if (showCountdownCover(
+            countdownMs: _countdownMs,
+            countdownExpected: _countdownExpected,
+          ))
             Positioned.fill(
               child: Material(
                 color: Theme.of(context).scaffoldBackgroundColor,
@@ -521,13 +595,12 @@ class _PlayerViewState extends ConsumerState<PlayerView>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          '${(_countdownMs / 1000).ceil()}',
+                          '${countdownCoverSeconds(countdownMs: _countdownMs, configuredSeconds: _countdownSeconds)}',
                           style: Theme.of(context).textTheme.displayLarge,
                         ),
                         const SizedBox(height: 24),
                         TextButton(
-                          onPressed: () =>
-                              unawaited(NativeCueController.skipCountdown()),
+                          onPressed: _skipCountdown,
                           child: const Text('Skip countdown'),
                         ),
                       ],
@@ -571,8 +644,11 @@ class _PlayerViewState extends ConsumerState<PlayerView>
     final settings = scope == null
         ? null
         : ref.read(cueSettingsProvider(scope));
+    // A sleep timer set to the end of the track ends here.
+    final sleepAtEnd = ref.read(sleepTimerProvider).endOfTrack;
     if (request == null ||
         request.isTimer ||
+        sleepAtEnd ||
         settings?.autoplay != true ||
         scope?.courseId == null) {
       _releaseInterlude();
@@ -749,10 +825,21 @@ class _PlayerViewState extends ConsumerState<PlayerView>
       soundscapeProvider.select((s) => s.active && s.playing),
     );
 
+    final scope =
+        _cueScope ??
+        (ref.read(playerProvider)?.isTimer ?? false ? timerCueScope : null);
+    final rhythm =
+        scope != null &&
+        ref.watch(
+          cueSettingsProvider(
+            scope,
+          ).select((c) => c.pulseSound.isNotEmpty && c.pulseVolume > 0),
+        );
     return isPlayerSoundActive(
       sessionPlaying: isPlaying,
       legacyAmbient: bgSoundNotifier.hasAnySound,
       mixerPlaying: mixerPlaying,
+      rhythm: rhythm,
     );
   }
 
@@ -788,6 +875,7 @@ class _PlayerViewState extends ConsumerState<PlayerView>
       _releaseInterlude();
     }
     ref.read(playerProvider.notifier).stop();
+    unawaited(ref.read(sleepTimerProvider.notifier).cancel());
     ref.read(backgroundSoundsNotifierProvider.notifier).stopBackgroundSound();
   }
 
@@ -810,6 +898,7 @@ class _PlayerViewState extends ConsumerState<PlayerView>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_endScreenOpened && mounted) {
         final endedNatively = ref.read(audioStateProvider).isCompleted;
+        unawaited(ref.read(sleepTimerProvider.notifier).cancel());
         _resetState();
         // Native teardown owns the end bell tail; stopping here cuts it off.
         // The soundscape is not part of that teardown. It began fading out
@@ -924,6 +1013,23 @@ class PlayerScreenLayout extends StatelessWidget {
             scope: autoplayScope!,
             trackId: currentlyPlayingTrack.trackId,
           );
+    // Under the transport: a course session's Autoplay, and every
+    // recording's sleep timer. A timer has its own length, so no sleep timer.
+    final extras = isTimer
+        ? null
+        : Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
+            children: [?autoplay, const SleepTimerButton()],
+          );
+    // One look for every session (owner, 14 Nov): "The guided player
+    // should look like the timer player: controls at the bottom, no
+    // wallpaper." A timer's figure is the day's mark; a recording's is its
+    // cover, or its art.
+    Widget figure(double side) => isTimer
+        ? PlayerMark(isPlaying: isPlaying, size: side)
+        : _PlayerFigure(imageUrl: imageUrl, art: art, size: side);
     return Scaffold(
       extendBody: true,
       extendBodyBehindAppBar: true,
@@ -934,37 +1040,20 @@ class PlayerScreenLayout extends StatelessWidget {
           return Stack(
             fit: StackFit.expand,
             children: [
-              RepaintBoundary(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // No cover (a timer): a dark backdrop so the white
-                    // controls read the same as over a blurred cover.
-                    if (imageUrl.isEmpty && isTimer)
-                      const DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              ColorConstants.onyx,
-                              ColorConstants.greyIsTheNewBlack,
-                            ],
-                          ),
-                        ),
-                      ),
-                    // A session's cover, blurred; with none (or when it
-                    // fails to load) its art, sharp and moving.
-                    if (!isTimer || imageUrl.isNotEmpty)
-                      _PlayerBackdrop(imageUrl: imageUrl, art: art),
-                    // Sharp art needs more shade than a blurred cover for
-                    // the controls to read over it.
-                    Container(
-                      color: ColorConstants.black.withOpacityValue(
-                        !isTimer && imageUrl.isEmpty ? 0.5 : 0.3,
-                      ),
+              // A dark backdrop, whatever the theme, so the white controls
+              // read the same for every session.
+              const RepaintBoundary(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        ColorConstants.onyx,
+                        ColorConstants.greyIsTheNewBlack,
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
               RepaintBoundary(
@@ -993,10 +1082,9 @@ class PlayerScreenLayout extends StatelessWidget {
                                       onPlayPause: onPlayPausePressed,
                                       isStopwatch: isStopwatch,
                                       onStop: onStop,
-                                      autoplay: autoplay,
-                                      markMinHeight: isTimer
-                                          ? safe.maxHeight
-                                          : null,
+                                      extras: extras,
+                                      markMinHeight: safe.maxHeight,
+                                      figure: figure,
                                     )
                                   : ConstrainedBox(
                                       constraints: const BoxConstraints(
@@ -1015,7 +1103,7 @@ class PlayerScreenLayout extends StatelessWidget {
                                         onPlayPause: onPlayPausePressed,
                                         isStopwatch: isStopwatch,
                                         onStop: onStop,
-                                        autoplay: autoplay,
+                                        extras: extras,
                                       ),
                                     ),
                             ),
@@ -1054,14 +1142,17 @@ class _PortraitPlayerLayout extends ConsumerWidget {
     required this.onPlayPause,
     this.isStopwatch = false,
     this.onStop,
-    this.autoplay,
-    this.markMinHeight,
+    this.extras,
+    required this.markMinHeight,
+    required this.figure,
   });
 
-  /// A timer session shows its mark above the title, in whatever height of
-  /// this (the room inside the safe area) the rest leaves; a recording, with
-  /// none, keeps its cover.
-  final double? markMinHeight;
+  /// The room inside the safe area. The title and controls sit at its
+  /// bottom; the figure takes what height they leave, just above the title.
+  final double markMinHeight;
+
+  /// The session's figure, built into a square of the given side.
+  final Widget Function(double side) figure;
 
   final bool expanded;
   final String title;
@@ -1075,8 +1166,8 @@ class _PortraitPlayerLayout extends ConsumerWidget {
   final bool isStopwatch;
   final VoidCallback? onStop;
 
-  /// Autoplay for a course's session, under the transport.
-  final Widget? autoplay;
+  /// Autoplay and the sleep timer, under the transport.
+  final Widget? extras;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1117,42 +1208,38 @@ class _PortraitPlayerLayout extends ConsumerWidget {
           showSkipButtons: !isStopwatch,
           onStop: onStop,
         ),
-        if (autoplay != null) ...[const SizedBox(height: 16), autoplay!],
+        if (extras != null) ...[const SizedBox(height: 16), extras!],
       ],
     );
-    final minHeight = markMinHeight;
-    if (minHeight == null) {
-      return AdaptivePlayerLayout(
-        expanded: expanded,
-        heading: heading,
-        controls: controls,
-      );
-    }
-    // The mark takes the height the rest leaves. Side by side, that is the
+    // The figure takes the height the rest leaves. Side by side, that is the
     // heading's own column; stacked, it is the whole of the title and
-    // controls.
+    // controls, which sit at the bottom.
     Widget mark() => LayoutBuilder(
-      builder: (context, box) => box.maxWidth <= 0
-          ? const SizedBox.shrink()
-          : PlayerMark(isPlaying: isPlaying, size: box.maxWidth),
+      builder: (context, box) =>
+          box.maxWidth <= 0 ? const SizedBox.shrink() : figure(box.maxWidth),
     );
     return expanded
         ? AdaptivePlayerLayout(
             expanded: true,
             heading: MarkAbove(
-              minHeight: minHeight,
+              minHeight: markMinHeight,
               mark: mark(),
               child: heading,
             ),
             controls: controls,
           )
         : MarkAbove(
-            minHeight: minHeight,
+            minHeight: markMinHeight,
             mark: mark(),
-            child: AdaptivePlayerLayout(
-              expanded: false,
-              heading: heading,
-              controls: controls,
+            alignBottom: true,
+            gap: 8,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: AdaptivePlayerLayout(
+                expanded: false,
+                heading: heading,
+                controls: controls,
+              ),
             ),
           );
   }
@@ -1170,7 +1257,7 @@ class _LandscapePlayerLayout extends ConsumerWidget {
     required this.onPlayPause,
     this.isStopwatch = false,
     this.onStop,
-    this.autoplay,
+    this.extras,
   });
 
   final String title;
@@ -1184,8 +1271,8 @@ class _LandscapePlayerLayout extends ConsumerWidget {
   final bool isStopwatch;
   final VoidCallback? onStop;
 
-  /// Autoplay for a course's session, under the transport.
-  final Widget? autoplay;
+  /// Autoplay and the sleep timer, under the transport.
+  final Widget? extras;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1221,7 +1308,7 @@ class _LandscapePlayerLayout extends ConsumerWidget {
           showSkipButtons: !isStopwatch,
           onStop: onStop,
         ),
-        if (autoplay != null) ...[const SizedBox(height: 8), autoplay!],
+        if (extras != null) ...[const SizedBox(height: 8), extras!],
       ],
     );
   }
@@ -1246,37 +1333,45 @@ class _PlayerAttribution extends StatelessWidget {
   }
 }
 
-/// The player's picture behind the controls: the cover, blurred, or the
-/// session's live art when it has no cover or the cover fails to load.
-class _PlayerBackdrop extends StatefulWidget {
-  const _PlayerBackdrop({required this.imageUrl, required this.art});
+/// A recording's figure above its title: its cover, sharp, or its live art
+/// when it has no cover or the cover fails to load.
+class _PlayerFigure extends StatefulWidget {
+  const _PlayerFigure({
+    required this.imageUrl,
+    required this.art,
+    required this.size,
+  });
 
   final String imageUrl;
   final ArtSubject art;
+  final double size;
 
   @override
-  State<_PlayerBackdrop> createState() => _PlayerBackdropState();
+  State<_PlayerFigure> createState() => _PlayerFigureState();
 }
 
-class _PlayerBackdropState extends State<_PlayerBackdrop> {
+class _PlayerFigureState extends State<_PlayerFigure> {
   String? _failedUrl;
 
   @override
   Widget build(BuildContext context) {
-    if (widget.imageUrl.isEmpty || _failedUrl == widget.imageUrl) {
-      return ArtCover(subject: widget.art, live: true);
-    }
-    // ImageFiltered (not BackdropFilter) — blurs only the cover image
-    // itself, never the screen behind. Using BackdropFilter here leaks the
-    // underlying route during pop animations, blurring the previous screen
-    // for a frame.
-    return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-      child: _FadingNetworkImage(
-        imageUrl: widget.imageUrl,
-        onError: () {
-          if (mounted) setState(() => _failedUrl = widget.imageUrl);
-        },
+    final showArt = widget.imageUrl.isEmpty || _failedUrl == widget.imageUrl;
+    return ExcludeSemantics(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: SizedBox.square(
+          dimension: widget.size,
+          child: showArt
+              ? ArtCover(subject: widget.art, live: true)
+              : _FadingNetworkImage(
+                  imageUrl: widget.imageUrl,
+                  onError: () {
+                    if (mounted) {
+                      setState(() => _failedUrl = widget.imageUrl);
+                    }
+                  },
+                ),
+        ),
       ),
     );
   }
@@ -1297,32 +1392,28 @@ class _FadingNetworkImageState extends State<_FadingNetworkImage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark
-        ? ColorConstants.greyIsTheNewGrey
-        : ColorConstants.lightBackground;
-
+    const backgroundColor = ColorConstants.greyIsTheNewGrey;
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Grey background while loading
-        Container(color: backgroundColor),
-
-        // Network image with fade-in effect
+        // Grey while loading
+        const ColoredBox(color: backgroundColor),
         AnimatedOpacity(
           opacity: _imageLoaded ? 1.0 : 0.0,
-          duration: const Duration(seconds: 2),
+          duration: const Duration(milliseconds: 600),
           child: Image.network(
             widget.imageUrl,
             fit: BoxFit.cover,
-            // Blurred backdrop: decorative.
             excludeFromSemantics: true,
-            cacheWidth: MediaQuery.of(context).size.width.toInt(),
+            cacheWidth:
+                (MediaQuery.of(context).size.width *
+                        MediaQuery.devicePixelRatioOf(context))
+                    .toInt(),
             errorBuilder: (context, error, stackTrace) {
               WidgetsBinding.instance.addPostFrameCallback(
                 (_) => widget.onError?.call(),
               );
-              return Container(color: backgroundColor);
+              return const ColoredBox(color: backgroundColor);
             },
             frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
               if (frame != null && !_imageLoaded) {

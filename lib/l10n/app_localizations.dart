@@ -6021,6 +6021,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No rhythm'**
   String get presetNoRhythm;
+
+  /// Player: the sleep timer button when no sleep timer is set
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep'**
+  String get playerSleep;
+
+  /// Player: title of the sleep timer sheet; the button's tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep timer'**
+  String get playerSleepTimer;
+
+  /// Player: a sleep timer choice, pause in {minutes} minutes
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String playerSleepMinutes(int minutes);
+
+  /// Player: sleep timer choice that stops when the recording ends; also the button's label while it is set
+  ///
+  /// In en, this message translates to:
+  /// **'End of track'**
+  String get playerSleepEndOfTrack;
+
+  /// Player: sleep timer sheet action that cancels the sleep timer
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off'**
+  String get playerSleepOff;
 }
 
 class _AppLocalizationsDelegate

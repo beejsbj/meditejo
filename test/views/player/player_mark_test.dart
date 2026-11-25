@@ -10,6 +10,9 @@ import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
 import 'package:medito/views/player/widgets/bottom_actions/player_action_bar.dart';
 import 'package:medito/views/player/widgets/player_mark.dart';
+import 'package:medito/views/player/widgets/sleep_timer_control.dart';
+import 'package:medito/providers/player/sleep_timer_provider.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/models/track/track.dart' as model;
@@ -127,6 +130,20 @@ class _PlayingAudio extends _IdleAudio {
   }
 }
 
+class _SleepEngine implements SleepTimerEngine {
+  final armed = <Duration>[];
+  var cancels = 0;
+
+  @override
+  Future<void> arm(Duration after) async => armed.add(after);
+
+  @override
+  Future<void> cancel() async => cancels++;
+
+  @override
+  Future<void> expired() async {}
+}
+
 MeditejoMarkState _mark(WidgetTester tester) =>
     tester.state<MeditejoMarkState>(find.byType(MeditejoMark));
 
@@ -151,6 +168,7 @@ void main() {
     double textScale = 1.0,
     Size size = const Size(411, 891),
     bool insets = false,
+    List<Override> extra = const [],
   }) async {
     SharedPreferences.setMockInitialValues(prefs);
     tester.view.physicalSize = size;
@@ -177,6 +195,7 @@ void main() {
           ),
           statsProvider.overrideWith(_Stats.new),
           reviewServiceProvider.overrideWithValue(_Review()),
+          ...extra,
         ],
         child: Builder(
           builder: (context) => MediaQuery(
@@ -294,13 +313,145 @@ void main() {
     await close(tester);
   });
 
-  testWidgets('a recording keeps its cover and shows no mark', (tester) async {
+  testWidgets('a recording shows its art as its figure, and no mark', (
+    tester,
+  ) async {
     final request = _request();
     await pumpPlayer(tester, request);
     expect(find.byType(PlayerMark), findsNothing);
     expect(find.byType(MeditejoMark), findsNothing);
     expect(findArt(singleArt(request.trackId)), findsOneWidget);
     await close(tester);
+  });
+
+  // One look for every player (owner, 14 Nov): the figure at the top, the
+  // title under it, the controls at the bottom, over the same dark backdrop.
+  for (final (name, request) in [
+    ('timer', _timer()),
+    ('recording', _request()),
+  ]) {
+    testWidgets('the $name player: figure, then title, then controls at the '
+        'bottom', (tester) async {
+      await pumpPlayer(tester, request, insets: true);
+      final figure = request.isTimer
+          ? tester.getRect(find.byType(PlayerMark))
+          : tester.getRect(findArt(singleArt(request.trackId)));
+      final title = tester.getRect(find.text(request.title));
+      final slider = tester.getRect(find.byType(Slider));
+      final bar = tester.getRect(find.byType(PlayerActionBar));
+      expect(figure.shortestSide, greaterThan(150));
+      // The title sits just under the figure: no large gap between them.
+      expect(title.top - figure.bottom, inInclusiveRange(0, 24));
+      expect(slider.top, greaterThan(title.bottom));
+      // The controls end near the bar, not in the middle of the screen.
+      final lowest = request.isTimer
+          ? tester.getRect(find.byIcon(Icons.stop_rounded)).bottom
+          : tester.getRect(find.byKey(const ValueKey('player_sleep'))).bottom;
+      expect(bar.top - lowest, inInclusiveRange(0, 48));
+      // No wallpaper: neither the cover nor the art fills the screen.
+      expect(figure.width, lessThan(411));
+      expect(tester.takeException(), isNull);
+      await close(tester);
+    });
+  }
+
+  testWidgets('a recording has a sleep timer; a timer has none', (
+    tester,
+  ) async {
+    await pumpPlayer(tester, _timer());
+    expect(find.byType(SleepTimerButton), findsNothing);
+    await close(tester);
+    await pumpPlayer(tester, _request());
+    expect(find.byType(SleepTimerButton), findsOneWidget);
+    expect(find.text('Sleep'), findsOneWidget);
+    await close(tester);
+  });
+
+  testWidgets('the sleep timer: choose, see it count down, turn it off', (
+    tester,
+  ) async {
+    final engine = _SleepEngine();
+    await pumpPlayer(
+      tester,
+      _request(),
+      extra: [sleepTimerEngineProvider.overrideWithValue(engine)],
+    );
+    await tester.tap(find.byKey(const ValueKey('player_sleep')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    for (final label in [
+      '5 min',
+      '10 min',
+      '15 min',
+      '30 min',
+      'End of track',
+    ]) {
+      expect(find.text(label), findsOneWidget);
+    }
+    // Nothing set yet: no way to turn it off.
+    expect(find.byKey(const ValueKey('sleep_off')), findsNothing);
+    await tester.tap(find.text('10 min'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(engine.armed, [const Duration(minutes: 10)]);
+    expect(find.text('10:00'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.text('9:58'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('player_sleep')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.byKey(const ValueKey('sleep_off')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(engine.cancels, 1);
+    expect(find.text('Sleep'), findsOneWidget);
+    await close(tester);
+  });
+
+  testWidgets('end of track shows on the button', (tester) async {
+    await pumpPlayer(
+      tester,
+      _request(),
+      extra: [sleepTimerEngineProvider.overrideWithValue(_SleepEngine())],
+    );
+    await tester.tap(find.byKey(const ValueKey('player_sleep')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.text('End of track'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('player_sleep')),
+        matching: find.text('End of track'),
+      ),
+      findsOneWidget,
+    );
+    await close(tester);
+  });
+
+  test('the countdown covers the player from the start', () {
+    // Expected, not yet begun natively: covered, showing the whole of it.
+    expect(showCountdownCover(countdownMs: 0, countdownExpected: true), isTrue);
+    expect(countdownCoverSeconds(countdownMs: 0, configuredSeconds: 10), 10);
+    // Counting: the native seconds.
+    expect(
+      showCountdownCover(countdownMs: 4200, countdownExpected: false),
+      isTrue,
+    );
+    expect(countdownCoverSeconds(countdownMs: 4200, configuredSeconds: 10), 5);
+    // Done.
+    expect(
+      showCountdownCover(countdownMs: 0, countdownExpected: false),
+      isFalse,
+    );
+  });
+
+  test('sleep time left reads m:ss', () {
+    expect(formatSleepRemaining(const Duration(minutes: 30)), '30:00');
+    expect(formatSleepRemaining(const Duration(seconds: 61)), '1:01');
+    expect(formatSleepRemaining(const Duration(milliseconds: 400)), '0:01');
   });
 
   testWidgets('it breathes at six a minute while playing', (tester) async {

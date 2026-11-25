@@ -1386,5 +1386,10 @@
   "presetFromEdited": "Aus {name} · geändert",
   "presetNoSound": "Kein Klang",
   "presetNoBells": "Keine Glocken",
-  "presetNoRhythm": "Kein Rhythmus"
+  "presetNoRhythm": "Kein Rhythmus",
+  "playerSleep": "Schlaf",
+  "playerSleepTimer": "Schlaftimer",
+  "playerSleepMinutes": "{minutes} Min.",
+  "playerSleepEndOfTrack": "Ende der Aufnahme",
+  "playerSleepOff": "Ausschalten"
 }

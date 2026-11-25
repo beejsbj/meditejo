@@ -13,6 +13,9 @@ import 'package:flutter/widgets.dart';
 /// size, a stopwatch's larger readout) takes room from the mark and never
 /// from the transport. [mark] is built into the square it is given: it is
 /// laid out tight, so a `LayoutBuilder` reads its side from `maxWidth`.
+///
+/// With [alignBottom], [child] sits at the bottom of [minHeight] and the mark
+/// just above it, [gap] apart; what room is left over is above the mark.
 class MarkAbove extends MultiChildRenderObjectWidget {
   MarkAbove({
     super.key,
@@ -22,10 +25,12 @@ class MarkAbove extends MultiChildRenderObjectWidget {
     this.gap = 24,
     this.minMark = 96,
     this.maxMark = 320,
+    this.alignBottom = false,
   }) : super(children: [child, mark]);
 
   final double minHeight;
   final double gap, minMark, maxMark;
+  final bool alignBottom;
 
   @override
   RenderObject createRenderObject(BuildContext context) => RenderMarkAbove(
@@ -33,6 +38,7 @@ class MarkAbove extends MultiChildRenderObjectWidget {
     gap: gap,
     minMark: minMark,
     maxMark: maxMark,
+    alignBottom: alignBottom,
   );
 
   @override
@@ -41,7 +47,8 @@ class MarkAbove extends MultiChildRenderObjectWidget {
       ..minHeight = minHeight
       ..gap = gap
       ..minMark = minMark
-      ..maxMark = maxMark;
+      ..maxMark = maxMark
+      ..alignBottom = alignBottom;
   }
 }
 
@@ -56,12 +63,21 @@ class RenderMarkAbove extends RenderBox
     required double gap,
     required double minMark,
     required double maxMark,
+    bool alignBottom = false,
   }) : _minHeight = minHeight,
        _gap = gap,
        _minMark = minMark,
-       _maxMark = maxMark;
+       _maxMark = maxMark,
+       _alignBottom = alignBottom;
 
   double _minHeight, _gap, _minMark, _maxMark;
+  bool _alignBottom;
+
+  set alignBottom(bool v) {
+    if (_alignBottom == v) return;
+    _alignBottom = v;
+    markNeedsLayout();
+  }
 
   set minHeight(double v) => _set(_minHeight, v, (x) => _minHeight = x);
   set gap(double v) => _set(_gap, v, (x) => _gap = x);
@@ -121,7 +137,7 @@ class RenderMarkAbove extends RenderBox
     final height = _height(restHeight, side);
     size = constraints.constrain(Size(width, height));
     final content = restHeight + (side > 0 ? side + _gap : 0);
-    var y = (size.height - content) / 2;
+    var y = _alignBottom ? size.height - content : (size.height - content) / 2;
     if (side > 0) {
       (_mark.parentData! as _MarkAboveParentData).offset = Offset(
         (size.width - side) / 2,

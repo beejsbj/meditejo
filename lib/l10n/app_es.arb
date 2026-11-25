@@ -1257,5 +1257,10 @@
   "presetFromEdited": "De {name} · editado",
   "presetNoSound": "Sin sonido",
   "presetNoBells": "Sin campanas",
-  "presetNoRhythm": "Sin ritmo"
+  "presetNoRhythm": "Sin ritmo",
+  "playerSleep": "Dormir",
+  "playerSleepTimer": "Temporizador de sueño",
+  "playerSleepMinutes": "{minutes} min",
+  "playerSleepEndOfTrack": "Al final de la pista",
+  "playerSleepOff": "Desactivar"
 }

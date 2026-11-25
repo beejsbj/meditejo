@@ -60,6 +60,26 @@ void main() {
       ),
       isTrue,
     );
+    // A Rhythm pulse is sound too (a timer whose only sound is its
+    // rhythm), while the session plays.
+    expect(
+      isPlayerSoundActive(
+        sessionPlaying: true,
+        legacyAmbient: false,
+        mixerPlaying: false,
+        rhythm: true,
+      ),
+      isTrue,
+    );
+    expect(
+      isPlayerSoundActive(
+        sessionPlaying: false,
+        legacyAmbient: false,
+        mixerPlaying: false,
+        rhythm: true,
+      ),
+      isFalse,
+    );
   });
 
   testWidgets('a talk keeps the sound button; it opens the Sounds sheet for '
@@ -262,7 +282,8 @@ void main() {
 
   // One bar (owner, 2026-11-10): Close, Sound and Customize hold the same
   // places whatever is playing; Download and Speed only join a recording,
-  // in the slots to their right.
+  // in the slots between them, so a timer's three spread across the bar
+  // (owner, 14 Nov).
   testWidgets('Sound and Customize sit at the same offsets for a timer and a '
       'recording', (tester) async {
     SharedPreferences.setMockInitialValues({});
@@ -321,12 +342,17 @@ void main() {
     );
     expect(recording, timer);
 
-    // Left to right: Close, Sound, Customize, then the recording's own.
+    // Left to right: Close, Download, Sound, Speed, Customize.
     final download = tester.getCenter(find.byType(AudioDownloadWidget)).dx;
     final speed = tester.getCenter(find.byType(AudioSpeedWidget)).dx;
-    expect(timer['close']!.dx, lessThan(timer['sound']!.dx));
-    expect(timer['sound']!.dx, lessThan(timer['customize']!.dx));
-    expect(timer['customize']!.dx, lessThan(download));
-    expect(download, lessThan(speed));
+    expect(timer['close']!.dx, lessThan(download));
+    expect(download, lessThan(timer['sound']!.dx));
+    expect(timer['sound']!.dx, lessThan(speed));
+    expect(speed, lessThan(timer['customize']!.dx));
+    // Spread: Close at the left edge, Sound in the middle, Customize at the
+    // right edge.
+    expect(timer['close']!.dx, lessThan(411 / 5));
+    expect(timer['sound']!.dx, closeTo(411 / 2, 1));
+    expect(timer['customize']!.dx, greaterThan(411 * 4 / 5));
   });
 }

@@ -220,7 +220,7 @@ void main() {
     await close(tester);
   });
 
-  testWidgets('a real cover is the backdrop, not the art', (tester) async {
+  testWidgets('a real cover is the figure, not the art', (tester) async {
     final request = PlaybackRequest(
       trackId: 'yt-video-abc',
       fileId: 'yt-video-abc',
@@ -232,12 +232,12 @@ void main() {
       hasBackgroundSound: false,
     );
     await pumpPlayer(tester, request, const Size(430, 900));
-    // The backdrop is given the real cover; the art only stands in if it
+    // The figure is given the real cover; the art only stands in if it
     // fails to load (as a network image does in a test).
     expect(
       find.byWidgetPredicate(
         (w) =>
-            w.runtimeType.toString() == '_PlayerBackdrop' &&
+            w.runtimeType.toString() == '_PlayerFigure' &&
             (w as dynamic).imageUrl == request.coverUrl,
       ),
       findsOneWidget,

@@ -3445,4 +3445,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get presetNoRhythm => 'No rhythm';
+
+  @override
+  String get playerSleep => 'Sleep';
+
+  @override
+  String get playerSleepTimer => 'Sleep timer';
+
+  @override
+  String playerSleepMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get playerSleepEndOfTrack => 'End of track';
+
+  @override
+  String get playerSleepOff => 'Turn off';
 }

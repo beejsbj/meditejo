@@ -3988,5 +3988,15 @@
   "presetNoRhythm": "No rhythm",
   "@presetNoRhythm": {
     "description": "Preset summary: its Rhythm slot is off"
-  }
+  },
+  "playerSleep": "Sleep",
+  "@playerSleep": {"description": "Player: the sleep timer button when no sleep timer is set"},
+  "playerSleepTimer": "Sleep timer",
+  "@playerSleepTimer": {"description": "Player: title of the sleep timer sheet; the button's tooltip"},
+  "playerSleepMinutes": "{minutes} min",
+  "@playerSleepMinutes": {"description": "Player: a sleep timer choice, pause in {minutes} minutes", "placeholders": {"minutes": {"type": "int"}}},
+  "playerSleepEndOfTrack": "End of track",
+  "@playerSleepEndOfTrack": {"description": "Player: sleep timer choice that stops when the recording ends; also the button's label while it is set"},
+  "playerSleepOff": "Turn off",
+  "@playerSleepOff": {"description": "Player: sleep timer sheet action that cancels the sleep timer"}
 }
