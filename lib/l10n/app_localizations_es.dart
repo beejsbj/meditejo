@@ -3484,4 +3484,21 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get presetNoRhythm => 'Sin ritmo';
+
+  @override
+  String get playerSleep => 'Dormir';
+
+  @override
+  String get playerSleepTimer => 'Temporizador de sueño';
+
+  @override
+  String playerSleepMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get playerSleepEndOfTrack => 'Al final de la pista';
+
+  @override
+  String get playerSleepOff => 'Desactivar';
 }

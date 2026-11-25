@@ -26,12 +26,19 @@ class ArtistTitleWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Column(children: [_title(context), _subtitle(context)]);
+    // A timer has no artist: no empty line between its title and controls.
+    final noArtist = isPlayerScreen && (artistName ?? '').isEmpty;
+    return Column(
+      children: [_title(context), if (!noArtist) _subtitle(context)],
+    );
   }
 
   Widget _title(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      // In the player the figure sits just above the title.
+      padding: isPlayerScreen
+          ? const EdgeInsets.fromLTRB(16, 4, 16, 12)
+          : const EdgeInsets.all(16.0),
       child: Center(
         child: Text(
           trackTitle ?? '',

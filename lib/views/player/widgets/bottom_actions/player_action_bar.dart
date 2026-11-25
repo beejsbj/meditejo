@@ -36,11 +36,17 @@ class PlayerActionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    // One bar for every session, in five fixed slots: Close, Sound, Customize,
-    // then what only a recording has. A timer is local silence (nothing to
-    // download, and speed would only change how long it takes), so its last
-    // two slots stay empty and Sound and Customize never move.
+    // One bar for every session, in five fixed slots: Close at the left,
+    // Sound in the middle, Customize at the right, the same for every
+    // session (2026-11-10). What only a recording has (Download, Speed) sits
+    // between them, so a timer, which has neither, leaves gaps rather than
+    // bunching its three at the left (owner, 14 Nov: "spread them across
+    // the bar"). A timer is local silence: nothing to download, and speed
+    // would only change how long it takes.
     final recording = !request.isTimer;
+    const empty = BottomActionBarItem.custom(
+      child: SizedBox(width: 48, height: 48),
+    );
     return BottomActionBar(
       layout: BottomActionBarLayout.fixedSlots,
       leftItem: BottomActionBarItem(
@@ -48,36 +54,34 @@ class PlayerActionBar extends StatelessWidget {
         onTap: onClosePressed,
         semanticLabel: l10n.close,
       ),
+      // A file imported into the app is already on the device; there is
+      // nothing to download.
+      leftCenterItem: recording && request.remoteUrl.startsWith('http')
+          ? BottomActionBarItem.custom(
+              child: AudioDownloadWidget(request: request),
+            )
+          : empty,
       // Open for every session: the Sounds mixer can play under a talk too
       // (its Talks default or a Customize choice), so it must be reachable
       // here to adjust or stop it. The Sounds sheet, the same choice as
       // Customize › Sound (#66).
-      leftCenterItem: BottomActionBarItem(
+      centerItem: BottomActionBarItem(
         child: _buildBackgroundSoundWidget(),
         onTap: () => unawaited(openSessionSounds(context, request)),
         semanticLabel: l10n.backgroundSounds,
       ),
-      centerItem: BottomActionBarItem(
-        child: _customizeIcon,
-        onTap: () => _customize(context),
-        semanticLabel: _customizeLabel,
-      ),
-      rightCenterItem: BottomActionBarItem.custom(
-        // A file imported into the app is already on the device; there is
-        // nothing to download.
-        child: recording && request.remoteUrl.startsWith('http')
-            ? AudioDownloadWidget(request: request)
-            : const SizedBox(width: 48, height: 48),
-      ),
-      rightItem: recording
+      rightCenterItem: recording
           ? BottomActionBarItem(
               child: const AudioSpeedWidget(),
               onTap: () => unawaited(_speed(context)),
               semanticLabel: l10n.playbackSpeed,
             )
-          : const BottomActionBarItem.custom(
-              child: SizedBox(width: 48, height: 48),
-            ),
+          : empty,
+      rightItem: BottomActionBarItem(
+        child: _customizeIcon,
+        onTap: () => _customize(context),
+        semanticLabel: _customizeLabel,
+      ),
     );
   }
 
