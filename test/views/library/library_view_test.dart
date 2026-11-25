@@ -82,15 +82,16 @@ void main() {
       );
       await app.pump(tester, const LibraryView());
 
-      final sessions = tester.getTopLeft(heading('Sessions')).dy;
+      // Pass 4: single sessions are under Practices or Talks; courses of
+      // either kind sit together, under Courses.
+      final sessions = tester.getTopLeft(heading('Talks')).dy;
       final courses = tester.getTopLeft(heading('Courses')).dy;
       final teachers = tester.getTopLeft(heading('Teachers')).dy;
       expect(sessions, lessThan(courses));
       expect(courses, lessThan(teachers));
-      // No Practice or Talks sections: a talk course and a practice course
-      // sit together, under Courses.
-      expect(heading('Practice'), findsNothing);
-      expect(heading('Talks'), findsNothing);
+      expect(heading('Sessions'), findsNothing);
+      // No practice session here, so no Practices.
+      expect(heading('Practices'), findsNothing);
       for (final title in ['Body scan course', 'A winter talk series']) {
         final y = tester.getTopLeft(find.text(title)).dy;
         expect(y, greaterThan(courses), reason: title);

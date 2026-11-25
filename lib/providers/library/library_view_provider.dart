@@ -32,11 +32,15 @@ enum LibraryFilter {
   };
 }
 
-/// How the Library is divided: by form, in this order (#80). Saved teachers
-/// follow, apart.
+/// How the Library is divided: by form, in this order (#80), single
+/// sessions split by kind (pass 4: "Split Sessions into Practices and
+/// Talks"). Saved teachers follow, apart.
 enum LibraryForm {
-  /// Single sessions.
-  sessions,
+  /// Single sessions that are practice.
+  practices,
+
+  /// Single sessions that are talks.
+  talks,
 
   /// What the user made.
   playlists,
@@ -325,13 +329,27 @@ Set<LibraryGroup> _kindsOf(
   Map<String, Set<LibraryGroup>> kinds,
 ) => kinds[entry.sourceId] ?? {entry.group};
 
-LibraryForm _formOf(LibraryEntry e) => !e.isCourse
-    ? LibraryForm.sessions
-    : isMyCourseId(e.sourceId)
-    ? LibraryForm.playlists
-    : LibraryForm.courses;
+/// A session's shelf goes by its kind: the one [kinds] gives it, or its own
+/// (the user's choice, else as filed) when it has both or none. Under the
+/// Practice or Talks filter ([only]) everything shown is that kind.
+LibraryForm _formOf(
+  LibraryEntry e,
+  Map<String, Set<LibraryGroup>> kinds, [
+  LibraryGroup? only,
+]) {
+  if (e.isCourse) {
+    return isMyCourseId(e.sourceId)
+        ? LibraryForm.playlists
+        : LibraryForm.courses;
+  }
+  final own = _kindsOf(e, kinds);
+  final kind =
+      only ?? e.groupOverride ?? (own.length == 1 ? own.single : e.group);
+  return kind == LibraryGroup.talks ? LibraryForm.talks : LibraryForm.practices;
+}
 
-/// One section of the library: its playlists, its courses or its sessions.
+/// One section of the library: its playlists, its courses, or its practice
+/// or talk sessions.
 @immutable
 class LibraryShelf {
   const LibraryShelf(this.form, {this.entries = const []});
@@ -340,13 +358,14 @@ class LibraryShelf {
   final List<LibraryEntry> entries;
 
   /// Playlists and courses are cards (rows or a grid); sessions are rows.
-  bool get isCards => form != LibraryForm.sessions;
+  bool get isCards =>
+      form == LibraryForm.playlists || form == LibraryForm.courses;
 
   bool get isEmpty => entries.isEmpty;
 }
 
-/// The library as the tab shows it under its current options: Sessions,
-/// Playlists, Courses (#80), each sorted, then saved teachers. A section
+/// The library as the tab shows it under its current options: Practices
+/// and Talks (single sessions), Playlists, Courses (#80), each sorted, then saved teachers. A section
 /// with nothing in it is left out.
 @immutable
 class LibraryArrangement {
@@ -389,7 +408,7 @@ LibraryArrangement arrangeLibrary(
           form,
           entries: [
             for (final e in shown)
-              if (_formOf(e) == form) e,
+              if (_formOf(e, kinds, options.filter.group) == form) e,
           ],
         ),
     ],
