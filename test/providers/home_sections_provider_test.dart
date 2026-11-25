@@ -119,7 +119,6 @@ void main() {
         final c = open();
         expect(c.read(homeWidgetOrderProvider), [
           HomeWidgetType.upNext,
-          HomeWidgetType.homeShortcuts,
           HomeWidgetType.pinned,
         ]);
         expect(c.read(homeHiddenWidgetsProvider), isEmpty);
@@ -132,35 +131,35 @@ void main() {
       await first.read(homeWidgetOrderProvider.notifier).updateOrder([
         HomeWidgetType.pinned,
         HomeWidgetType.upNext,
-        HomeWidgetType.homeShortcuts,
       ]);
       await first
           .read(homeHiddenWidgetsProvider.notifier)
-          .setVisible(HomeWidgetType.homeShortcuts, false);
+          .setVisible(HomeWidgetType.upNext, false);
 
       final second = open();
       expect(second.read(homeWidgetOrderProvider), [
         HomeWidgetType.pinned,
         HomeWidgetType.upNext,
-        HomeWidgetType.homeShortcuts,
       ]);
-      expect(second.read(homeHiddenWidgetsProvider), {
-        HomeWidgetType.homeShortcuts,
-      });
+      expect(second.read(homeHiddenWidgetsProvider), {HomeWidgetType.upNext});
 
       await second
           .read(homeHiddenWidgetsProvider.notifier)
-          .setVisible(HomeWidgetType.homeShortcuts, true);
+          .setVisible(HomeWidgetType.upNext, true);
       expect(open().read(homeHiddenWidgetsProvider), isEmpty);
     });
 
-    test('a hidden Shortcuts saved before the rename stays hidden', () async {
+    // Pass 4: Shortcuts is Pinned's Timer tile now; hiding the old section
+    // must not hide the pins.
+    test('a hidden Shortcuts is dropped, and hides nothing', () async {
       final (_, open) = await _prefs({
-        SharedPreferenceConstants.homeWidgetHidden: ['quickLinks', 'quote'],
+        SharedPreferenceConstants.homeWidgetHidden: [
+          'homeShortcuts',
+          'quickLinks',
+          'quote',
+        ],
       });
-      expect(open().read(homeHiddenWidgetsProvider), {
-        HomeWidgetType.homeShortcuts,
-      });
+      expect(open().read(homeHiddenWidgetsProvider), isEmpty);
     });
 
     test('a layout saved by the Medito home keeps what still exists', () async {
@@ -174,7 +173,6 @@ void main() {
       });
       expect(open().read(homeWidgetOrderProvider), [
         HomeWidgetType.upNext,
-        HomeWidgetType.homeShortcuts,
         HomeWidgetType.pinned,
       ]);
     });

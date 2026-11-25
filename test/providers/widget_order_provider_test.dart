@@ -9,11 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   late SharedPreferences prefs;
   late ProviderContainer container;
-  const defaults = [
-    HomeWidgetType.upNext,
-    HomeWidgetType.homeShortcuts,
-    HomeWidgetType.pinned,
-  ];
+  const defaults = [HomeWidgetType.upNext, HomeWidgetType.pinned];
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -32,38 +28,37 @@ void main() {
   test('preserves the relative order of saved sections', () async {
     await prefs.setStringList(SharedPreferenceConstants.homeWidgetOrder, [
       'pinned',
-      'homeShortcuts',
       'upNext',
     ]);
     expect(container.read(homeWidgetOrderProvider), [
       HomeWidgetType.pinned,
-      HomeWidgetType.homeShortcuts,
       HomeWidgetType.upNext,
     ]);
   });
 
-  test('a layout saved before the rename keeps its Shortcuts place', () async {
-    await prefs.setStringList(SharedPreferenceConstants.homeWidgetOrder, [
-      'pinned',
-      'quickLinks',
-      'upNext',
-    ]);
-    expect(container.read(homeWidgetOrderProvider), [
-      HomeWidgetType.pinned,
-      HomeWidgetType.homeShortcuts,
-      HomeWidgetType.upNext,
-    ]);
-    expect(HomeWidgetType.tryParse('quickLinks'), HomeWidgetType.homeShortcuts);
-    // Saving writes the new name.
-    await container
-        .read(homeWidgetOrderProvider.notifier)
-        .updateOrder(container.read(homeWidgetOrderProvider));
-    expect(prefs.getStringList(SharedPreferenceConstants.homeWidgetOrder), [
-      'pinned',
-      'homeShortcuts',
-      'upNext',
-    ]);
-  });
+  // Pass 4: Shortcuts became Pinned's first tile (the Timer).
+  for (final legacy in ['homeShortcuts', 'quickLinks']) {
+    test('a saved "$legacy" gives Pinned its place, without crashing', () async {
+      await prefs.setStringList(SharedPreferenceConstants.homeWidgetOrder, [
+        legacy,
+        'upNext',
+        'pinned',
+      ]);
+      expect(container.read(homeWidgetOrderProvider), [
+        HomeWidgetType.pinned,
+        HomeWidgetType.upNext,
+      ]);
+      expect(HomeWidgetType.tryParse(legacy), isNull);
+      // Saving writes only the sections there are.
+      await container
+          .read(homeWidgetOrderProvider.notifier)
+          .updateOrder(container.read(homeWidgetOrderProvider));
+      expect(prefs.getStringList(SharedPreferenceConstants.homeWidgetOrder), [
+        'pinned',
+        'upNext',
+      ]);
+    });
+  }
 
   test(
     'ignores retired sections and a section the layout predates joins last',
@@ -72,15 +67,11 @@ void main() {
         'products',
         'unknown',
         'quote',
-        'homeShortcuts',
-        'homeShortcuts',
+        'upNext',
+        'upNext',
         'carousel',
       ]);
-      expect(container.read(homeWidgetOrderProvider), [
-        HomeWidgetType.upNext,
-        HomeWidgetType.homeShortcuts,
-        HomeWidgetType.pinned,
-      ]);
+      expect(container.read(homeWidgetOrderProvider), defaults);
     },
   );
 
@@ -108,10 +99,6 @@ void main() {
       'pinned',
     ]);
     notifier.refreshOrder();
-    expect(container.read(homeWidgetOrderProvider), [
-      HomeWidgetType.upNext,
-      HomeWidgetType.pinned,
-      HomeWidgetType.homeShortcuts,
-    ]);
+    expect(container.read(homeWidgetOrderProvider), defaults);
   });
 }

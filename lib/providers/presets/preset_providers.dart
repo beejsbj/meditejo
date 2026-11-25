@@ -259,8 +259,9 @@ final pinnedPresetIdsProvider =
     );
 
 class PinnedPresetsNotifier extends Notifier<List<String>> {
-  /// How many preset tiles Home shows before "See all": two rows of two.
-  static const homeLimit = 4;
+  /// How many preset tiles Home shows before "See all": with the Timer
+  /// tile first, two rows of two.
+  static const homeLimit = 3;
 
   SoundscapeStore get _store =>
       SoundscapeStore(ref.read(sharedPreferencesProvider));

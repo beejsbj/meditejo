@@ -21,7 +21,12 @@ const kHomeSectionGap = 40.0;
 /// up to [kHomeMarkMaxShare] when little is below it, and never under
 /// [kHomeMarkMinShare]. Within it the mark is a square, as large as fits.
 const kHomeMarkMaxShare = 0.46;
-const kHomeMarkMinShare = 0.28;
+const kHomeMarkMinShare = 0.22;
+
+/// Room kept clear at the foot of Home for the floating Sounds button
+/// (bottom right, over every tab): below the first row of tiles while the
+/// mark has room to give, and below the last thing on Home when scrolled.
+const kHomeFloatClearance = 80.0;
 
 /// Above the mark, and the largest the mark is drawn (a tablet).
 const kHomeMarkTop = 12.0;

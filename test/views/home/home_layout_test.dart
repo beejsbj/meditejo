@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/services/home/continue_rules.dart';
 import 'package:medito/services/library/library_models.dart';
+import 'package:medito/views/home/home_styles.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/widgets/branding/meditejo_mark.dart';
 import 'package:medito/widgets/branding/mark_painter.dart';
@@ -171,17 +172,16 @@ void main() {
         'of tiles stays on screen', (tester) async {
       await _pumpHome(tester, items: _three);
       final mark = tester.getSize(_mark);
-      // Smaller than with nothing below, larger than it used to be (168).
-      expect(mark.width, lessThan(300));
-      expect(mark.width, greaterThan(220));
-      for (final key in ['shortcut_timer', 'shortcut_sounds']) {
-        final tile = tester.getRect(find.byKey(ValueKey(key)));
-        expect(
-          tile.bottom,
-          lessThanOrEqualTo(_phone.height - _navBar),
-          reason: key,
-        );
-      }
+      // Smaller than with nothing below. Pass 4 keeps the row clear of the
+      // floating Sounds button, so it gives up more than it did (220 to 300).
+      expect(mark.width, lessThan(260));
+      expect(mark.width, greaterThan(170));
+      // Pass 4: the whole row clears the floating Sounds button too.
+      final tile = tester.getRect(_timer);
+      expect(
+        tile.bottom,
+        lessThanOrEqualTo(_phone.height - _navBar - kHomeFloatClearance),
+      );
       expect(tester.takeException(), isNull);
     });
 
@@ -194,7 +194,9 @@ void main() {
         textScale: 2,
       );
       final mark = tester.getSize(_mark);
-      expect(mark.width, greaterThan(120));
+      // Pass 4 lowered the floor (22% of the screen), so the first row
+      // fits more often.
+      expect(mark.width, greaterThan(80));
       expect(mark.width, lessThan(200));
       expect(tester.takeException(), isNull);
       await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));

@@ -17,8 +17,8 @@ import 'package:medito/views/home/home_styles.dart';
 import 'package:medito/views/home/widgets/continue/continue_section.dart';
 import 'package:medito/views/home/widgets/home_mark_layout.dart';
 import 'package:medito/views/home/widgets/pinned/pinned_section.dart';
-import 'package:medito/views/home/widgets/shortcuts/shortcuts_section.dart';
 import 'package:medito/views/home/widgets/update_notice.dart';
+import 'package:medito/views/library/library_add_sheet.dart';
 import 'package:medito/views/you/you_button.dart';
 import 'package:medito/widgets/adaptive/adaptive_home_sections.dart';
 import 'package:medito/providers/identity/identity_providers.dart';
@@ -62,9 +62,9 @@ class _HomeViewState extends ConsumerState<HomeView>
       for (final type in order)
         if (!hidden.contains(type)) type,
     ];
-    // The fold is the first row of tiles; with those hidden, the first
-    // section.
-    final foldOnFirst = !shown.contains(HomeWidgetType.homeShortcuts);
+    // The fold is the first row of tiles (Pinned's, the Timer's row); with
+    // Pinned hidden, the first section.
+    final foldOnFirst = !shown.contains(HomeWidgetType.pinned);
     final screen = MediaQuery.sizeOf(context);
     // No taller than the mark can fill: it is never wider than the screen.
     final maxHeader = math.min(
@@ -89,6 +89,7 @@ class _HomeViewState extends ConsumerState<HomeView>
                     fold: _fold,
                     minHeader: screen.height * kHomeMarkMinShare,
                     maxHeader: maxHeader,
+                    foldMargin: kHomeFloatClearance,
                     animate: animate,
                     header: Stack(
                       fit: StackFit.expand,
@@ -102,6 +103,9 @@ class _HomeViewState extends ConsumerState<HomeView>
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // "+" as Library's header has it.
+                              const LibraryAddButton(key: ValueKey('home_add')),
+                              const SizedBox(width: 4),
                               IconButton(
                                 key: const ValueKey('home_customize'),
                                 tooltip: l10n.homeCustomize,
@@ -129,8 +133,10 @@ class _HomeViewState extends ConsumerState<HomeView>
                             for (final (i, type) in shown.indexed)
                               Padding(
                                 key: ValueKey(type),
-                                padding: const EdgeInsets.only(
-                                  top: kHomeSectionGap / 2,
+                                // The mark's name line is the air above
+                                // the first section.
+                                padding: EdgeInsets.only(
+                                  top: i == 0 ? 0 : kHomeSectionGap / 2,
                                   bottom: kHomeSectionGap / 2,
                                 ),
                                 child: foldOnFirst && i == 0
@@ -145,7 +151,9 @@ class _HomeViewState extends ConsumerState<HomeView>
                 ),
                 SliverPadding(
                   padding: EdgeInsets.only(
-                    bottom: MediaQuery.paddingOf(context).bottom + padding16,
+                    bottom:
+                        MediaQuery.paddingOf(context).bottom +
+                        kHomeFloatClearance,
                   ),
                 ),
               ],
@@ -166,7 +174,6 @@ class _HomeViewState extends ConsumerState<HomeView>
 
   Widget _buildSection(HomeWidgetType type) => switch (type) {
     HomeWidgetType.upNext => const ContinueSection(),
-    HomeWidgetType.homeShortcuts => const ShortcutsSection(),
     HomeWidgetType.pinned => const PinnedSection(),
   };
 
@@ -374,7 +381,10 @@ class _HomeMarkState extends ConsumerState<_HomeMark> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: kHomeGutter),
-              child: Center(
+              // Any spare height goes above the mark, not between it and
+              // what follows.
+              child: Align(
+                alignment: Alignment.bottomCenter,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(
                     maxWidth: kHomeMarkMaxSize,

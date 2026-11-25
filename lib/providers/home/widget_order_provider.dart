@@ -23,8 +23,14 @@ class HomeWidgetOrderNotifier extends Notifier<List<HomeWidgetType>> {
     // Ignore retired sections and unknown names. Preserve the relative order
     // of the remaining sections; a section the saved layout predates joins
     // at its default place (Continue first, the rest last).
+    // Shortcuts became Pinned's first tile (the Timer), so Pinned takes the
+    // place Shortcuts had; its first mention wins.
     final order = <HomeWidgetType>{
-      for (final name in saved) ?HomeWidgetType.tryParse(name),
+      for (final name in saved)
+        if (HomeWidgetType.legacyShortcuts.contains(name))
+          HomeWidgetType.pinned
+        else
+          ?HomeWidgetType.tryParse(name),
     }.toList();
     for (final type in _defaultOrder) {
       if (order.contains(type)) continue;
@@ -70,10 +76,9 @@ class HomeHiddenWidgetsNotifier extends Notifier<Set<HomeWidgetType>> {
 
   Future<void> setVisible(HomeWidgetType type, bool visible) async {
     state = visible ? ({...state}..remove(type)) : {...state, type};
-    await ref
-        .read(sharedPreferencesProvider)
-        .setStringList(SharedPreferenceConstants.homeWidgetHidden, [
-          for (final t in state) t.name,
-        ]);
+    await ref.read(sharedPreferencesProvider).setStringList(
+      SharedPreferenceConstants.homeWidgetHidden,
+      [for (final t in state) t.name],
+    );
   }
 }

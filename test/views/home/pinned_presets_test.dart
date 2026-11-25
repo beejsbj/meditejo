@@ -104,11 +104,12 @@ ProviderContainer _container(WidgetTester tester) =>
     ProviderScope.containerOf(tester.element(find.byType(HomeView)));
 
 void main() {
-  testWidgets('with nothing pinned Home has the Timer and Sounds, and no '
+  testWidgets('with nothing pinned Home has the Timer, no Sounds tile and no '
       'preset tile by itself', (tester) async {
     await _pumpHome(tester, presets: _six());
     expect(find.byKey(const ValueKey('shortcut_timer')), findsOneWidget);
-    expect(find.byKey(const ValueKey('shortcut_sounds')), findsOneWidget);
+    // Pass 4: Sounds is a floating button over every tab.
+    expect(find.byKey(const ValueKey('shortcut_sounds')), findsNothing);
     expect(find.byType(PinnedPresetTile), findsNothing);
     expect(find.byType(PinnedSection), findsOneWidget);
     expect(_seeAll, findsNothing);
@@ -152,8 +153,11 @@ void main() {
     );
   });
 
-  testWidgets('Home shows four preset tiles and the pinned courses under '
-      'them; the rest are behind See all, which counts everything', (
+  // Pass 4: one section. The Timer is the fixed first tile, then three
+  // presets (two rows of two), then the pinned courses and sessions.
+  testWidgets('Home shows the Timer, three preset tiles and the pinned '
+      'courses under them; the rest are behind See all, which counts every '
+      'pin', (
     tester,
   ) async {
     final pinned = [for (final p in _six()) p.id];
@@ -163,19 +167,22 @@ void main() {
       pinned: pinned,
       courses: ['c1', 'c2'],
     );
-    expect(find.byType(PinnedPresetTile), findsNWidgets(4));
-    for (final id in pinned.take(4)) {
+    expect(find.byType(PinnedPresetTile), findsNWidgets(3));
+    for (final id in pinned.take(3)) {
       expect(_tile(id), findsOneWidget);
     }
-    expect(_tile('user-5'), findsNothing);
+    expect(_tile('user-4'), findsNothing);
     expect(find.byType(PinnedCourseTile), findsNWidgets(2));
-    // Presets first, in two columns, then the cards.
+    // The Timer first, then the presets, in two columns, then the cards.
+    final timer = tester.getRect(find.byKey(const ValueKey('shortcut_timer')));
     final first = tester.getRect(_tile('user-1'));
     final second = tester.getRect(_tile('user-2'));
     final third = tester.getRect(_tile('user-3'));
-    expect(second.top, first.top);
-    expect(second.left, greaterThan(first.right));
-    expect(third.top, greaterThan(first.bottom));
+    expect(first.top, timer.top);
+    expect(first.left, greaterThan(timer.right));
+    expect(second.top, greaterThan(timer.bottom));
+    expect(second.left, timer.left);
+    expect(third.top, second.top);
     expect(
       tester.getRect(find.byType(PinnedCourseTile).first).top,
       greaterThan(third.bottom),
