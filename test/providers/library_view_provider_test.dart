@@ -49,33 +49,75 @@ void main() {
   ];
 
   group('arrangeLibrary', () {
-    test('All: Sessions, Playlists, Courses by form, then teachers', () {
+    // Pass 4: single sessions split into Practices and Talks.
+    test('All: Practices, Talks, Playlists, Courses by form, then '
+        'teachers', () {
       final a = arrangeLibrary(entries, const LibraryViewOptions());
       expect(a.shelves.map((s) => s.form), [
-        LibraryForm.sessions,
+        LibraryForm.practices,
+        LibraryForm.talks,
         LibraryForm.playlists,
         LibraryForm.courses,
       ]);
-      expect(_titles(a.shelves[0].entries), [
-        'A talk on metta',
-        'Evening recording',
-      ]);
-      expect(_titles(a.shelves[1].entries), ['Morning sits']);
-      // Practice and talks side by side: no kind sections any more.
-      expect(_titles(a.shelves[2].entries), [
+      expect(_titles(a.shelves[0].entries), ['Evening recording']);
+      expect(_titles(a.shelves[1].entries), ['A talk on metta']);
+      expect(_titles(a.shelves[2].entries), ['Morning sits']);
+      // Courses keep practice and talks side by side.
+      expect(_titles(a.shelves[3].entries), [
         'Jhāna retreat',
         'Body and breath',
         'Winter talks',
       ]);
-      expect(a.shelves.map((s) => s.isCards), [false, true, true]);
+      expect(a.shelves.map((s) => s.isCards), [false, false, true, true]);
       expect(_titles(a.teachers), ['Rob Burbea']);
     });
 
-    test('no In progress section: only the three forms', () {
+    test('no In progress section: only the forms', () {
       expect(LibraryForm.values, [
-        LibraryForm.sessions,
+        LibraryForm.practices,
+        LibraryForm.talks,
         LibraryForm.playlists,
         LibraryForm.courses,
+      ]);
+    });
+
+    test('a session goes under the kind its sessions are, or its own when '
+        'it has both; the user\'s choice wins', () {
+      final singles = [
+        _entry('a', 'Filed practice, a talk', kind: LibraryKind.single),
+        _entry('b', 'Both kinds', kind: LibraryKind.single),
+        _entry(
+          'c',
+          'Chosen practice',
+          kind: LibraryKind.single,
+          group: LibraryGroup.talks,
+          override: LibraryGroup.practice,
+        ),
+      ];
+      final a = arrangeLibrary(
+        singles,
+        const LibraryViewOptions(),
+        kinds: {
+          'a': {LibraryGroup.talks},
+          'b': {LibraryGroup.practice, LibraryGroup.talks},
+          'c': {LibraryGroup.practice},
+        },
+      );
+      expect(_titles(a.shelves[0].entries), ['Both kinds', 'Chosen practice']);
+      expect(_titles(a.shelves[1].entries), ['Filed practice, a talk']);
+      // Under the Talks chip a session of both kinds is a talk.
+      final talks = arrangeLibrary(
+        singles,
+        const LibraryViewOptions(filter: LibraryFilter.talks),
+        kinds: {
+          'a': {LibraryGroup.talks},
+          'b': {LibraryGroup.practice, LibraryGroup.talks},
+        },
+      );
+      expect(_titles(talks.shelves[0].entries), isEmpty);
+      expect(_titles(talks.shelves[1].entries), [
+        'Filed practice, a talk',
+        'Both kinds',
       ]);
     });
 
@@ -149,7 +191,7 @@ void main() {
         renamed,
         const LibraryViewOptions(sort: LibrarySort.title),
       );
-      expect(_titles(a.shelves[2].entries), [
+      expect(_titles(a.shelves[3].entries), [
         'alpha course',
         'Body and breath',
         'Jhāna retreat',
@@ -167,7 +209,7 @@ void main() {
           'yt-playlist-a': (done: 3, total: 4),
         },
       );
-      expect(_titles(a.shelves[2].entries), [
+      expect(_titles(a.shelves[3].entries), [
         'Body and breath',
         'Winter talks',
         'Jhāna retreat',

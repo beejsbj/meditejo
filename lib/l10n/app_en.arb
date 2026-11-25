@@ -3986,5 +3986,26 @@
   "playerSleepEndOfTrack": "End of track",
   "@playerSleepEndOfTrack": {"description": "Player: sleep timer choice that stops when the recording ends; also the button's label while it is set"},
   "playerSleepOff": "Turn off",
-  "@playerSleepOff": {"description": "Player: sleep timer sheet action that cancels the sleep timer"}
+  "@playerSleepOff": {"description": "Player: sleep timer sheet action that cancels the sleep timer"},
+  "librarySectionPractices": "Practices",
+  "@librarySectionPractices": {
+    "description": "Library section heading: single practice sessions (the talks have their own section)"
+  },
+  "settingsPracticeDefaults": "Practice defaults",
+  "@settingsPracticeDefaults": {
+    "description": "Settings row: the bells, cues and background sound a practice session starts with"
+  },
+  "settingsTalkDefaults": "Talk defaults",
+  "@settingsTalkDefaults": {
+    "description": "Settings row: the bells, cues and background sound a talk starts with"
+  },
+  "settingsDhammatalksCaption": "{teacher}'s talks, built in",
+  "@settingsDhammatalksCaption": {
+    "description": "Settings > Sources: subtitle of the built-in dhammatalks.org source row",
+    "placeholders": {
+      "teacher": {
+        "type": "String"
+      }
+    }
+  }
 }

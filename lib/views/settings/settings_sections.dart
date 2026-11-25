@@ -17,10 +17,10 @@ import 'package:medito/views/downloads/downloads_view.dart';
 import 'package:medito/views/home/customise_home_layout_screen.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
 import 'package:medito/views/intro/intro_view.dart';
-import 'package:medito/views/library/import_view.dart';
 import 'package:medito/views/settings/battery_optimization_screen.dart';
 import 'package:medito/views/settings/health_sync_tile.dart';
 import 'package:medito/views/settings/widgets/add_widget_sheet.dart';
+import 'package:medito/views/settings/widgets/dhammatalks_source_tile.dart';
 import 'package:medito/views/settings/widgets/dharma_seed_sync_tile.dart';
 import 'package:medito/views/settings/widgets/dnd_setting_tile.dart';
 import 'package:medito/views/settings/widgets/identity_tiles.dart';
@@ -130,13 +130,6 @@ class SettingsSections extends ConsumerWidget {
         title: l10n.settingsSectionLibrary,
         rows: [
           (last) => RowItemWidget(
-            key: const ValueKey('settings_import'),
-            icon: Icon(Icons.add_link_rounded, color: onSurface),
-            title: l10n.importTitle,
-            hasUnderline: !last,
-            onTap: () => _push(context, const ImportView()),
-          ),
-          (last) => RowItemWidget(
             icon: MeditoIcon(
               assetName: MeditoIcons.downloadCircle,
               color: onSurface,
@@ -147,13 +140,16 @@ class SettingsSections extends ConsumerWidget {
           ),
         ],
       ),
-      // The built-in catalogues, each with its own status. Only Dharma Seed
-      // has one: dhammatalks.org ships as a snapshot and reads its feeds
-      // quietly, with nothing to show or set.
+      // The built-in catalogues. Dharma Seed has a sync to show and run;
+      // dhammatalks.org ships as a snapshot and reads its feeds quietly, so
+      // its row only says what it is.
       SettingsGroup.rows(
         key: const ValueKey('settings_sources'),
         title: l10n.settingsSectionSources,
-        rows: [(last) => DharmaSeedSyncTile(hasUnderline: !last)],
+        rows: [
+          (last) => DharmaSeedSyncTile(hasUnderline: !last),
+          (last) => DhammatalksSourceTile(hasUnderline: !last),
+        ],
       ),
       SettingsGroup.rows(
         key: const ValueKey('settings_appearance'),

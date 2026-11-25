@@ -143,7 +143,13 @@ void main() {
 
       double top(Finder f) => tester.getTopLeft(f).dy;
       final sections = [
-        for (final name in ['sessions', 'playlists', 'courses', 'teachers'])
+        for (final name in [
+          'practices',
+          'talks',
+          'playlists',
+          'courses',
+          'teachers',
+        ])
           find.byKey(ValueKey('library_section_$name'), skipOffstage: false),
       ];
       for (final section in sections) {
@@ -154,7 +160,8 @@ void main() {
       }
       expect(find.text('Playlists', skipOffstage: false), findsOneWidget);
       expect(find.text('Courses', skipOffstage: false), findsOneWidget);
-      expect(find.text('Sessions', skipOffstage: false), findsOneWidget);
+      expect(find.text('Practices', skipOffstage: false), findsOneWidget);
+      expect(find.text('Sessions', skipOffstage: false), findsNothing);
 
       // Each entry under its form, practice and talks together.
       void under(String title, int section) {
@@ -165,15 +172,16 @@ void main() {
         }
       }
 
+      // Pass 4: single sessions by kind, Practices then Talks.
       under('Developing Piti', 0);
-      under('On emptiness', 0);
       under('Body scan', 0);
-      under('Morning sits', 1);
-      under('Evening wind-down', 1);
-      under('Practising the Jhānas', 2);
-      under('Qualia Mastery', 2);
-      under('Rob Burbea', 3);
-      // No kind sections and no In progress.
+      under('On emptiness', 1);
+      under('Morning sits', 2);
+      under('Evening wind-down', 2);
+      under('Practising the Jhānas', 3);
+      under('Qualia Mastery', 3);
+      under('Rob Burbea', 4);
+      // No In progress.
       expect(find.text('Practice', skipOffstage: false), findsNothing);
       expect(find.text('In progress', skipOffstage: false), findsNothing);
 
@@ -223,8 +231,12 @@ void main() {
       expect(_visibleText('Rob Burbea'), findsNothing);
       // Only the sections with something in them.
       expect(
-        find.byKey(const ValueKey('library_section_sessions')),
+        find.byKey(const ValueKey('library_section_talks')),
         findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('library_section_practices')),
+        findsNothing,
       );
       expect(
         find.byKey(const ValueKey('library_section_courses')),

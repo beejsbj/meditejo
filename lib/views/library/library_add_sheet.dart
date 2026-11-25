@@ -6,10 +6,10 @@ import 'package:medito/views/my_courses/my_course_actions.dart';
 
 enum _LibraryAdd { import, newPlaylist }
 
-/// Library's "+": everything that adds to the library or makes something
-/// new in it, in one short sheet (#62). Import (a link, a feed, a YouTube
-/// playlist or files) and New playlist. Home has no Add of its own; it gains
-/// things by pinning them. The sheet closes before the choice runs, so the
+/// The "+" in the Home, Explore and Library headers: everything that adds
+/// to the library or makes something new in it, in one short sheet (#62).
+/// Import (a link, a feed, a YouTube playlist or files) and New playlist.
+/// Home gains tiles and cards only by pinning. The sheet closes before the choice runs, so the
 /// choice can open a screen or a dialog.
 Future<void> showLibraryAddSheet(BuildContext context, WidgetRef ref) async {
   final l10n = AppLocalizations.of(context)!;
@@ -61,4 +61,17 @@ Future<void> showLibraryAddSheet(BuildContext context, WidgetRef ref) async {
     case _LibraryAdd.newPlaylist:
       await newMyCourse(context, ref);
   }
+}
+
+/// The headers' "+", opening [showLibraryAddSheet]. [key] tells them apart
+/// (`home_add`, `explore_add`, `library_add`).
+class LibraryAddButton extends ConsumerWidget {
+  const LibraryAddButton({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => IconButton.filledTonal(
+    tooltip: AppLocalizations.of(context)!.importTitle,
+    onPressed: () => showLibraryAddSheet(context, ref),
+    icon: const Icon(Icons.add_rounded),
+  );
 }

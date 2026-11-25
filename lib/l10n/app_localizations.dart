@@ -6045,6 +6045,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Turn off'**
   String get playerSleepOff;
+
+  /// Library section heading: single practice sessions (the talks have their own section)
+  ///
+  /// In en, this message translates to:
+  /// **'Practices'**
+  String get librarySectionPractices;
+
+  /// Settings row: the bells, cues and background sound a practice session starts with
+  ///
+  /// In en, this message translates to:
+  /// **'Practice defaults'**
+  String get settingsPracticeDefaults;
+
+  /// Settings row: the bells, cues and background sound a talk starts with
+  ///
+  /// In en, this message translates to:
+  /// **'Talk defaults'**
+  String get settingsTalkDefaults;
+
+  /// Settings > Sources: subtitle of the built-in dhammatalks.org source row
+  ///
+  /// In en, this message translates to:
+  /// **'{teacher}\'s talks, built in'**
+  String settingsDhammatalksCaption(String teacher);
 }
 
 class _AppLocalizationsDelegate

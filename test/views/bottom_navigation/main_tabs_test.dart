@@ -6,7 +6,9 @@ import 'package:medito/providers/home/continue_provider.dart';
 import 'package:medito/providers/main_tab_provider.dart';
 import 'package:medito/views/bottom_navigation/bottom_navigation_bar_view.dart';
 import 'package:medito/views/library/library_view.dart';
+import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/settings/settings_screen.dart';
+import 'package:medito/views/soundscape/sounds_sheet.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 
 import '../../helpers/dharma_seed_app.dart';
@@ -124,14 +126,13 @@ void main() {
     expect(find.byType(BottomNavigationBarView), findsOneWidget);
   });
 
-  testWidgets('Home\'s Sounds tile opens the Sounds sheet over the tabs; back '
+  // Pass 4: the Sounds tile left Home (a floating Sounds button over every
+  // tab replaces it), so the sheet is opened from Home directly here.
+  testWidgets('the Sounds sheet opens from Home over the tabs; back '
       'closes it and stays on Home', (tester) async {
     final container = await pump(tester);
     await settle(tester);
-    final tile = find.byKey(const ValueKey('shortcut_sounds'));
-    await tester.ensureVisible(tile);
-    await settle(tester);
-    await tester.tap(tile);
+    showSoundsSheet(tester.element(find.byType(HomeView))).ignore();
     await settle(tester);
     expect(find.byType(BottomSheet), findsOneWidget);
     expect(onScreen(tester, SoundsView), isTrue);

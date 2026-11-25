@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/timer/timer_session.dart';
@@ -8,54 +7,12 @@ import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/providers/timer/timer_settings_provider.dart';
 import 'package:medito/views/home/home_styles.dart';
 import 'package:medito/views/home/widgets/home_mark_layout.dart';
-import 'package:medito/views/home/widgets/shortcuts/sounds_shortcut_tile.dart';
 import 'package:medito/views/timer/start_timer.dart';
 import 'package:medito/views/timer/timer_format.dart';
-import 'package:medito/views/timer/timer_sheet.dart';
-import 'package:medito/widgets/medito_icon.dart';
 
-/// The two fixed ways in, as tiles: the Timer and Sounds. Nothing else
-/// lives here: a preset is on Home because it is pinned, like a course
-/// (see `PinnedSection`), and there is no Add (#62).
-class ShortcutsSection extends ConsumerWidget {
-  const ShortcutsSection({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        HomeSectionHeader(l10n.homeShortcutsTitle),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: kHomeGutter),
-          child: ShortcutTileGrid(
-            // The first row is what Home's mark gives way to.
-            foldOnFirst: true,
-            tiles: [
-              ShortcutTile(
-                key: const ValueKey('shortcut_timer'),
-                color: scheme.secondaryContainer,
-                onColor: scheme.onSecondaryContainer,
-                icon: (color) => MeditoIcon(
-                  assetName: MeditoIcons.timer,
-                  color: color,
-                  size: 24,
-                ),
-                label: l10n.timerTitle,
-                caption: timerLengthLabel(ref, l10n),
-                onTap: () => showTimerSheet(context),
-              ),
-              const SoundsShortcutTile(key: ValueKey('shortcut_sounds')),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
+// Home's tiles: the grid and the tile Pinned's Timer and presets share.
+// There is no Shortcuts section any more (pass 4): the Timer leads Pinned,
+// and Sounds is a floating button over every tab.
 
 /// The Timer's length as it is set now: "20 min", or "Open-ended".
 String timerLengthLabel(WidgetRef ref, AppLocalizations l10n) {

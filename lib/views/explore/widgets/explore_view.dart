@@ -30,6 +30,7 @@ import 'package:medito/widgets/cards/card_tokens.dart';
 import 'package:medito/widgets/cards/course_card.dart';
 import 'package:medito/widgets/cards/section_title.dart';
 import 'package:medito/widgets/widgets.dart';
+import 'package:medito/views/library/library_add_sheet.dart';
 
 /// A few starting points shown beside the empty search field. They are
 /// Burooj's own material (see docs/fork/BRIEF.md), not a ranking of Dharma
@@ -159,15 +160,20 @@ class ExploreViewState extends ConsumerState<ExploreView> {
                   kCardGutter,
                   0,
                 ),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Semantics(
-                    header: true,
-                    child: Text(
-                      AppLocalizations.of(context)!.explore,
-                      style: context.typography.emphasized.headlineMedium,
+                // The title, and the "+" Library's header has.
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Semantics(
+                        header: true,
+                        child: Text(
+                          AppLocalizations.of(context)!.explore,
+                          style: context.typography.emphasized.headlineMedium,
+                        ),
+                      ),
                     ),
-                  ),
+                    const LibraryAddButton(key: ValueKey('explore_add')),
+                  ],
                 ),
               ),
               _searchField(context),

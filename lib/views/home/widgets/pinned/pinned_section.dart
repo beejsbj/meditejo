@@ -11,6 +11,7 @@ import 'package:medito/views/home/widgets/shortcuts/shortcuts_section.dart';
 import 'package:medito/views/presets/preset_labels.dart';
 import 'package:medito/views/soundscape/sound_labels.dart';
 import 'package:medito/views/timer/start_timer.dart';
+import 'package:medito/views/timer/timer_sheet.dart';
 import 'package:medito/widgets/art/art_cover.dart';
 import 'package:medito/widgets/medito_icon.dart';
 import 'package:medito/providers/home/pinned_courses_provider.dart';
@@ -27,11 +28,12 @@ import 'package:medito/widgets/snackbar_widget.dart';
 import 'package:medito/widgets/cover_art.dart';
 import 'package:medito/widgets/network_image_widget.dart';
 
-/// Everything pinned to Home, the one way anything gets here: pinned
+/// Home's one section of ways in: the Timer as the first tile, then pinned
 /// presets as tiles that start their sit (up to
-/// [PinnedPresetsNotifier.homeLimit]), then the first three pinned courses
-/// and sessions as cards, then "See all" when either has more. Hidden when
-/// nothing is pinned.
+/// [PinnedPresetsNotifier.homeLimit], so two rows of two with the Timer),
+/// then the first three pinned courses and sessions as cards, then "See
+/// all" when either has more. The Timer is always there, so the section
+/// always is; its first row is what Home's mark gives way to.
 class PinnedSection extends ConsumerWidget {
   const PinnedSection({super.key});
 
@@ -39,7 +41,6 @@ class PinnedSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ids = ref.watch(pinnedCoursesProvider);
     final presets = ref.watch(pinnedPresetsProvider);
-    if (ids.isEmpty && presets.isEmpty) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context)!;
     final shown = ids.take(PinnedCoursesNotifier.homeLimit);
     final more =
@@ -49,27 +50,24 @@ class PinnedSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         HomeSectionHeader(l10n.homePinnedTitle),
-        if (presets.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: kHomeGutter),
-            child: ShortcutTileGrid(
-              tiles: [
-                for (final preset in presets.take(
-                  PinnedPresetsNotifier.homeLimit,
-                ))
-                  PinnedPresetTile(preset: preset),
-              ],
-            ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: kHomeGutter),
+          child: ShortcutTileGrid(
+            foldOnFirst: true,
+            tiles: [
+              const HomeTimerTile(key: ValueKey('shortcut_timer')),
+              for (final preset in presets.take(
+                PinnedPresetsNotifier.homeLimit,
+              ))
+                PinnedPresetTile(preset: preset),
+            ],
           ),
+        ),
         for (final (i, id) in shown.indexed)
           Padding(
             padding: EdgeInsets.fromLTRB(
               kHomeGutter,
-              i > 0
-                  ? kHomeRowGap
-                  : presets.isEmpty
-                  ? 0
-                  : kHomeGap,
+              i > 0 ? kHomeRowGap : kHomeGap,
               kHomeGutter,
               0,
             ),
@@ -100,6 +98,26 @@ class PinnedSection extends ConsumerWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// The Timer as Home's first tile: its length as set, and a tap opens it.
+class HomeTimerTile extends ConsumerWidget {
+  const HomeTimerTile({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    return ShortcutTile(
+      color: scheme.secondaryContainer,
+      onColor: scheme.onSecondaryContainer,
+      icon: (color) =>
+          MeditoIcon(assetName: MeditoIcons.timer, color: color, size: 24),
+      label: l10n.timerTitle,
+      caption: timerLengthLabel(ref, l10n),
+      onTap: () => showTimerSheet(context),
     );
   }
 }

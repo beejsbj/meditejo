@@ -8,9 +8,12 @@ import 'package:medito/views/home/widgets/shortcuts/shortcuts_section.dart';
 import 'package:medito/views/soundscape/sounds_sheet.dart';
 import 'package:medito/views/soundscape/sound_mix_panel.dart';
 
-/// Home's Sounds tile: opens the Sounds sheet. While sounds play on their
+/// Home's former Sounds tile: opens the Sounds sheet. While sounds play on their
 /// own it names them (the preset, or the sounds of the mix) and takes the
 /// accent, so Home shows what is in the air; a tap still opens the sheet.
+// shortcut: no longer on Home (pass 4: Sounds is a floating button over
+// every tab); kept for the Sounds sheet screenshot test and the floating
+// button's "what plays" label. Delete once the button lands without it.
 class SoundsShortcutTile extends ConsumerWidget {
   const SoundsShortcutTile({super.key});
 

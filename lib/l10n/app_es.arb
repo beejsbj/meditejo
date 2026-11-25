@@ -1261,5 +1261,9 @@
   "playerSleepTimer": "Temporizador de sueño",
   "playerSleepMinutes": "{minutes} min",
   "playerSleepEndOfTrack": "Al final de la pista",
-  "playerSleepOff": "Desactivar"
+  "playerSleepOff": "Desactivar",
+  "librarySectionPractices": "Prácticas",
+  "settingsPracticeDefaults": "Predeterminados de práctica",
+  "settingsTalkDefaults": "Predeterminados de charlas",
+  "settingsDhammatalksCaption": "Charlas de {teacher}, incluidas"
 }

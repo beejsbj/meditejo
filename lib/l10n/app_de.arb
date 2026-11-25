@@ -1390,5 +1390,9 @@
   "playerSleepTimer": "Schlaftimer",
   "playerSleepMinutes": "{minutes} Min.",
   "playerSleepEndOfTrack": "Ende der Aufnahme",
-  "playerSleepOff": "Ausschalten"
+  "playerSleepOff": "Ausschalten",
+  "librarySectionPractices": "Übungen",
+  "settingsPracticeDefaults": "Standards für Meditation",
+  "settingsTalkDefaults": "Standards für Vorträge",
+  "settingsDhammatalksCaption": "Vorträge von {teacher}, eingebaut"
 }

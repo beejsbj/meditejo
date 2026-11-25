@@ -24,6 +24,24 @@ Future<DharmaSeedTestApp> _withLibrary(WidgetTester tester) async {
 double _top(WidgetTester tester, Finder finder) => tester.getTopLeft(finder).dy;
 
 void main() {
+  // Pass 4: Explore's header has Library's "+", opening the same sheet.
+  testWidgets("the header has Library's +", (tester) async {
+    final app = await _withLibrary(tester);
+    await app.pump(tester, const ExploreView());
+    await DharmaSeedTestApp.settle(tester);
+    final add = find.byKey(const ValueKey('explore_add'));
+    expect(add, findsOneWidget);
+    expect(
+      _top(tester, add),
+      lessThan(
+        _top(tester, find.byKey(const ValueKey('explore_search_field'))),
+      ),
+    );
+    await tester.tap(add);
+    await DharmaSeedTestApp.settle(tester);
+    expect(find.byKey(const ValueKey('library_add_sheet')), findsOneWidget);
+  });
+
   testWidgets('browse shows its sections in order', (tester) async {
     final app = await _withLibrary(tester);
     await app.pump(tester, const ExploreView());

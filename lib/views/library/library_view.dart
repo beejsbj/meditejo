@@ -21,14 +21,14 @@ import 'package:medito/widgets/cards/section_title.dart';
 
 /// Everything the user keeps and is working through. It is the Library tab.
 ///
-/// Its header has a "+" ([showLibraryAddSheet]: Import, New playlist) and
-/// the You button; Home has no Add of its own (#62).
+/// Its header has a "+" ([showLibraryAddSheet]: Import, New playlist), as
+/// Home's and Explore's do, and the You button.
 ///
 /// From the top: the filter chips (All, Practice, Talks, and Downloads once
 /// something is downloaded), the user's labels (a practice's chip leads with
 /// its picture), the sort and the grid or
-/// list switch; then the library by form (#80): Sessions, Playlists and
-/// Courses, sessions as rows, playlists and courses as cards, and saved
+/// list switch; then the library by form (#80): Practices and Talks (single
+/// sessions, by kind), Playlists and Courses, sessions as rows, playlists and courses as cards, and saved
 /// teachers last. Practice and Talks go by what a course's sessions are, so a
 /// course with both shows under either ([libraryEntryKinds]). There is no In
 /// progress here: Home's Continue has it.
@@ -47,14 +47,9 @@ class LibraryView extends ConsumerWidget {
         titleTextStyle: titleStyle,
         actions: [
           // "+" then You: what the library can take in, then the user.
-          Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: IconButton.filledTonal(
-              key: const ValueKey('library_add'),
-              tooltip: l10n.importTitle,
-              onPressed: () => showLibraryAddSheet(context, ref),
-              icon: const Icon(Icons.add_rounded),
-            ),
+          const Padding(
+            padding: EdgeInsets.only(right: 4),
+            child: LibraryAddButton(key: ValueKey('library_add')),
           ),
           const Padding(
             padding: EdgeInsets.only(right: YouButton.inset),
@@ -182,7 +177,8 @@ class _LibraryBody extends ConsumerWidget {
 String _formName(AppLocalizations l10n, LibraryForm form) => switch (form) {
   LibraryForm.playlists => l10n.librarySectionPlaylists,
   LibraryForm.courses => l10n.librarySectionCourses,
-  LibraryForm.sessions => l10n.librarySectionSessions,
+  LibraryForm.practices => l10n.librarySectionPractices,
+  LibraryForm.talks => l10n.libraryTalks,
 };
 
 /// Courses and playlists as a grid of cards, two or more across.

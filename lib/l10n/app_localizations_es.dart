@@ -3501,4 +3501,18 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get playerSleepOff => 'Desactivar';
+
+  @override
+  String get librarySectionPractices => 'Prácticas';
+
+  @override
+  String get settingsPracticeDefaults => 'Predeterminados de práctica';
+
+  @override
+  String get settingsTalkDefaults => 'Predeterminados de charlas';
+
+  @override
+  String settingsDhammatalksCaption(String teacher) {
+    return 'Charlas de $teacher, incluidas';
+  }
 }
