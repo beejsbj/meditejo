@@ -1593,4 +1593,139 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(SoundsView), findsOneWidget);
   });
+
+  group('search', () {
+    final search = find.byKey(const ValueKey('sounds_search'));
+    final empty = find.byKey(const ValueKey('sounds_search_empty'));
+
+    testWidgets('narrows the shelves to matching sounds; clear brings all '
+        'back', (tester) async {
+      phone(tester);
+      await pump(tester);
+      expect(find.byKey(const PageStorageKey('sounds_presets')), findsOneWidget);
+
+      await tester.enterText(search, 'rain');
+      await tester.pumpAndSettle();
+      // The rain shelf matches by its name: all of it shows, nothing else.
+      expect(find.byKey(const ValueKey('shelf_rain')), findsOneWidget);
+      expect(find.byKey(const ValueKey('shelf_generated')), findsNothing);
+      expect(find.byKey(const PageStorageKey('sounds_presets')), findsNothing);
+      expect(find.byKey(const ValueKey('sound_rain-terrace')), findsOneWidget);
+
+      // A sound by its own name, on its shelf.
+      await tester.enterText(search, 'noise');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('shelf_generated')), findsOneWidget);
+      expect(find.byKey(ValueKey('sound_$kSynthNoiseId')), findsOneWidget);
+      expect(find.byKey(ValueKey('sound_$kSynthDroneId')), findsNothing);
+      expect(find.byKey(const ValueKey('shelf_rain')), findsNothing);
+
+      await tester.enterText(search, 'zzzz');
+      await tester.pumpAndSettle();
+      expect(empty, findsOneWidget);
+      expect(find.text('No sounds match'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('sounds_search_clear')));
+      await tester.pumpAndSettle();
+      expect(empty, findsNothing);
+      expect(find.byKey(const PageStorageKey('sounds_presets')), findsOneWidget);
+      expect(find.byKey(const ValueKey('sounds_search_clear')), findsNothing);
+    });
+
+    testWidgets('matches localised names and a card\'s variants', (
+      tester,
+    ) async {
+      phone(tester);
+      await pump(tester, locale: const Locale('de'));
+      await tester.enterText(search, 'zug');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('sound_train')), findsOneWidget);
+      expect(find.text('Zug'), findsOneWidget);
+
+      await tester.enterText(search, 'Yamanote');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('sound_train')), findsOneWidget);
+    });
+  });
+
+  group('Train: one card, two recordings', () {
+    String stored(List<SoundLayer> layers) =>
+        jsonEncode(SoundMix(layers).toJson());
+
+    testWidgets('one card; a stored Yamanote layer is on it, and switching '
+        'keeps its level and Swell', (tester) async {
+      phone(tester);
+      await pump(
+        tester,
+        prefsValues: {
+          SoundscapeStore.mixKey: stored(const [
+            SoundLayer(soundId: 'train-yamanote', volume: 0.3, animate: true),
+          ]),
+        },
+      );
+      // Nothing was rewritten or dropped.
+      expect(mix().layers.single.soundId, 'train-yamanote');
+      await reveal(tester, find.byKey(const ValueKey('sound_train')));
+      expect(find.byKey(const ValueKey('sound_train-yamanote')), findsNothing);
+      expect(
+        tester.widget<SoundCard>(find.byKey(const ValueKey('sound_train'))),
+        isA<SoundCard>()
+            .having((c) => c.selected, 'selected', isTrue)
+            .having((c) => c.soundId, 'soundId', 'train-yamanote')
+            .having((c) => c.title, 'title', 'Train'),
+      );
+
+      await openMix(tester);
+      final yamanote = find.byKey(const ValueKey('variant_train-yamanote'));
+      final metro = find.byKey(const ValueKey('variant_train'));
+      expect(tester.widget<ChoiceChip>(yamanote).selected, isTrue);
+      expect(find.text('Metro'), findsOneWidget);
+      await tester.tap(metro);
+      await tester.pumpAndSettle();
+      final layer = mix().layers.single;
+      expect(layer.soundId, 'train');
+      expect(layer.volume, 0.3);
+      expect(layer.animate, isTrue);
+      expect(tester.widget<ChoiceChip>(metro).selected, isTrue);
+    });
+
+    testWidgets('a stored mix with both keeps both; the card takes both out', (
+      tester,
+    ) async {
+      phone(tester);
+      await pump(
+        tester,
+        prefsValues: {
+          SoundscapeStore.mixKey: stored(const [
+            SoundLayer(soundId: 'train'),
+            SoundLayer(soundId: 'train-yamanote'),
+          ]),
+        },
+      );
+      expect(mix().layers.map((l) => l.soundId), ['train', 'train-yamanote']);
+      await openMix(tester);
+      // Each row can't take the recording the other already plays.
+      for (final chip in tester.widgetList<ChoiceChip>(
+        find.byType(ChoiceChip),
+      )) {
+        expect(chip.onSelected, isNull);
+      }
+      await openMix(tester);
+      await reveal(tester, find.byKey(const ValueKey('sound_train')));
+      await tester.tap(find.byKey(const ValueKey('sound_train')));
+      await tester.pumpAndSettle();
+      expect(mix().isEmpty, isTrue);
+    });
+
+    testWidgets('a tap on the card adds the metro', (tester) async {
+      phone(tester);
+      await pump(tester);
+      await reveal(tester, find.byKey(const ValueKey('sound_train')));
+      expect(mix().contains('train'), isFalse);
+      await tester.tap(find.byKey(const ValueKey('sound_train')));
+      await tester.pumpAndSettle();
+      expect(mix().contains('train'), isTrue);
+      expect(mix().contains('train-yamanote'), isFalse);
+    });
+  });
 }

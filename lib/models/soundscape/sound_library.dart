@@ -7,6 +7,29 @@ library;
 
 const kSoundLibraryAsset = 'assets/sounds/sounds.json';
 
+/// Recordings shown as one card, with a choice of which one plays (pass 4:
+/// "Metro carriage and Yamanote Line train should be one sound"). The key
+/// is the card's own sound; the list is every variant, in chip order.
+///
+/// Each variant stays a sound of its own, in the library, in mixes and in
+/// presets: a stored mix that names either id plays what it always did, and
+/// nothing stored is rewritten.
+const kSoundVariants = <String, List<String>>{
+  'train': ['train', 'train-yamanote'],
+};
+
+/// The card [soundId] is shown under: its family's, or its own.
+String soundCardId(String soundId) {
+  for (final MapEntry(:key, :value) in kSoundVariants.entries) {
+    if (value.contains(soundId)) return key;
+  }
+  return soundId;
+}
+
+/// Every variant of [soundId]'s card; just [soundId] when it has none.
+List<String> soundVariants(String soundId) =>
+    kSoundVariants[soundCardId(soundId)] ?? [soundId];
+
 /// Shelves of the Sounds screen, in display order.
 enum SoundCategory {
   rain,
@@ -156,6 +179,15 @@ class SoundLibrary {
   List<SoundEntry> inCategory(SoundCategory category) => [
     for (final s in sounds)
       if (s.category == category) s,
+  ];
+
+  /// The sounds of [category] that get a card: a variant other than its
+  /// card's own is chosen on that card (unless this library lacks it).
+  List<SoundEntry> cardsIn(SoundCategory category) => [
+    for (final s in sounds)
+      if (s.category == category &&
+          (soundCardId(s.id) == s.id || !contains(soundCardId(s.id))))
+        s,
   ];
 
   /// Categories that hold at least one sound, in display order.

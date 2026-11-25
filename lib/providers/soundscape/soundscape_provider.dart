@@ -350,6 +350,29 @@ class SoundscapeController extends Notifier<SoundscapeState> {
     _editMix(state.mix.put(layer.copyWith(animate: animate)));
   }
 
+  /// Plays [to] in [from]'s place, at its level and with its Swell: a card's
+  /// other recording (`kSoundVariants`). Nothing when [to] is already in
+  /// the mix.
+  void setLayerVariant(String from, String to) {
+    final mix = state.mix;
+    if (from == to || !mix.contains(from) || mix.contains(to)) return;
+    final failed = {...state.failed}..remove(to);
+    _editMix(
+      SoundMix([
+        for (final l in mix.layers)
+          l.soundId == from
+              ? SoundLayer(
+                  soundId: to,
+                  volume: l.volume,
+                  animate: l.animate,
+                  params: l.params,
+                )
+              : l,
+      ]),
+      failed: failed,
+    );
+  }
+
   /// A generated layer's settings (noise bands, drone root, beat …), as
   /// JSON (see `synth.dart`). The engine retunes it without a gap.
   void setLayerParams(String soundId, Map<String, Object?> params) {
