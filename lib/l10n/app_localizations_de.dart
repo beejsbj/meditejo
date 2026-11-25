@@ -3489,4 +3489,18 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get presetNoRhythm => 'Kein Rhythmus';
+
+  @override
+  String get librarySectionPractices => 'Übungen';
+
+  @override
+  String get settingsPracticeDefaults => 'Standards für Meditation';
+
+  @override
+  String get settingsTalkDefaults => 'Standards für Vorträge';
+
+  @override
+  String settingsDhammatalksCaption(String teacher) {
+    return 'Vorträge von $teacher, eingebaut';
+  }
 }

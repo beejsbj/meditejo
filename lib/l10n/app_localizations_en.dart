@@ -3445,4 +3445,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get presetNoRhythm => 'No rhythm';
+
+  @override
+  String get librarySectionPractices => 'Practices';
+
+  @override
+  String get settingsPracticeDefaults => 'Practice defaults';
+
+  @override
+  String get settingsTalkDefaults => 'Talk defaults';
+
+  @override
+  String settingsDhammatalksCaption(String teacher) {
+    return '$teacher\'s talks, built in';
+  }
 }

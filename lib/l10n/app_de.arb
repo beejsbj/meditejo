@@ -1386,5 +1386,9 @@
   "presetFromEdited": "Aus {name} · geändert",
   "presetNoSound": "Kein Klang",
   "presetNoBells": "Keine Glocken",
-  "presetNoRhythm": "Kein Rhythmus"
+  "presetNoRhythm": "Kein Rhythmus",
+  "librarySectionPractices": "Übungen",
+  "settingsPracticeDefaults": "Standards für Meditation",
+  "settingsTalkDefaults": "Standards für Vorträge",
+  "settingsDhammatalksCaption": "Vorträge von {teacher}, eingebaut"
 }

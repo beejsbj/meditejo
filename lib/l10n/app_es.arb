@@ -1257,5 +1257,9 @@
   "presetFromEdited": "De {name} · editado",
   "presetNoSound": "Sin sonido",
   "presetNoBells": "Sin campanas",
-  "presetNoRhythm": "Sin ritmo"
+  "presetNoRhythm": "Sin ritmo",
+  "librarySectionPractices": "Prácticas",
+  "settingsPracticeDefaults": "Predeterminados de práctica",
+  "settingsTalkDefaults": "Predeterminados de charlas",
+  "settingsDhammatalksCaption": "Charlas de {teacher}, incluidas"
 }
