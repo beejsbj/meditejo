@@ -77,4 +77,12 @@ class NativeCueController {
   static Future<int> countdownRemainingMs() async =>
       await channel.invokeMethod<int>('countdownRemainingMs') ?? 0;
   static Future<void> stop() => channel.invokeMethod<void>('stop');
+
+  /// Pauses the session in [after], fading the voice out over its last 10 s,
+  /// on the audio service's own clock (it keeps time with the screen off).
+  static Future<void> sleep(Duration after) =>
+      channel.invokeMethod<void>('sleep', {'ms': after.inMilliseconds});
+
+  static Future<void> cancelSleep() => channel.invokeMethod<void>('cancelSleep');
+
 }

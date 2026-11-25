@@ -1538,6 +1538,7 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
     }
 
     override fun stopAudio() {
+        cancelSleepTimer()
         sampleListeningFromPlayer()
         persistListening(force = true)
         sessionBells.disable()
@@ -1835,7 +1836,63 @@ class AudioPlayerService : MediaSessionService(), Player.Listener, MeditoAudioSe
         completionSent = false
     }
 
+    // ---- Sleep timer (meditejo/cues channel) ---------------------------------
+    //
+    // Runs here, on the service's own clock, so it pauses the session with the
+    // screen off. Wall-clock: a pause by hand does not hold it. The voice fades
+    // over the last SLEEP_FADE_MS, then the session pauses as the pause button
+    // would (a pause, not an ending) and the volume is put back.
+
+    private var sleepAtMs = 0L
+    private var sleepFromVolume = -1f
+
+    private val sleepTick = object : Runnable {
+        override fun run() {
+            val left = sleepRemainingMs()
+            if (sleepAtMs == 0L) return
+            if (left <= 0L) {
+                sleepAtMs = 0L
+                if (::primaryPlayer.isInitialized && sessionRunning()) playPauseAudio()
+                restoreSleepVolume()
+                sessionPlayer?.invalidate()
+                return
+            }
+            if (left <= SLEEP_FADE_MS && ::primaryPlayer.isInitialized) {
+                if (sleepFromVolume < 0f) sleepFromVolume = primaryPlayer.volume
+                primaryPlayer.volume = sleepFromVolume * (left.toFloat() / SLEEP_FADE_MS)
+            }
+            handler.postDelayed(this, if (left > SLEEP_FADE_MS) left - SLEEP_FADE_MS else SLEEP_STEP_MS)
+        }
+    }
+
+    /** Pauses the session in [delayMs], fading the voice out over its last seconds. */
+    fun setSleepTimer(delayMs: Long) {
+        cancelSleepTimer()
+        if (delayMs <= 0L) return
+        sleepAtMs = SystemClock.elapsedRealtime() + delayMs
+        handler.postDelayed(sleepTick, (delayMs - SLEEP_FADE_MS).coerceAtLeast(0L))
+    }
+
+    fun cancelSleepTimer() {
+        handler.removeCallbacks(sleepTick)
+        sleepAtMs = 0L
+        restoreSleepVolume()
+    }
+
+    fun sleepRemainingMs(): Long =
+        if (sleepAtMs == 0L) 0L else (sleepAtMs - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
+
+    private fun restoreSleepVolume() {
+        if (sleepFromVolume >= 0f && ::primaryPlayer.isInitialized) {
+            primaryPlayer.volume = sleepFromVolume
+        }
+        sleepFromVolume = -1f
+    }
+
     companion object {
+        private const val SLEEP_FADE_MS = 10_000L
+        private const val SLEEP_STEP_MS = 200L
+
         /** The live service, for the cue channel. Main thread only. */
         @Volatile var instance: AudioPlayerService? = null
             private set
