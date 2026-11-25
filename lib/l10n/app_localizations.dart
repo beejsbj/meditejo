@@ -5188,12 +5188,6 @@ abstract class AppLocalizations {
   /// **'{from} to {to} BPM over {minutes} min'**
   String customizeRhythmRampSpoken(int from, int to, int minutes);
 
-  /// Customize: the bar shown after a wheel changes a setting, with an Undo button, e.g. 'Slow down over: 9 min'
-  ///
-  /// In en, this message translates to:
-  /// **'{setting}: {value}'**
-  String customizeUndoChange(String setting, String value);
-
   /// Player: the autoplay setting applies to every practice course
   ///
   /// In en, this message translates to:

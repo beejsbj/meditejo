@@ -8,17 +8,16 @@ import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/background_sounds/background_sounds_model.dart';
 import 'package:medito/models/cues/cue_settings.dart';
-import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
+import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
-import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/providers/timer/timer_settings_provider.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
 import 'package:medito/services/identity/palettes.dart';
 import 'package:medito/views/cues/bell_list.dart';
 import 'package:medito/views/cues/customize_sheet.dart';
-import 'package:medito/views/soundscape/sounds_view.dart';
+import 'package:medito/views/cues/pulse_preview.dart';
 import 'package:medito/widgets/inputs/wheel_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -37,6 +36,33 @@ class _FakePreview extends SessionBellPreview {
   Future<void> stop() async => stops++;
 }
 
+/// Records what the Rhythm sheet plays, without a platform player.
+class _FakePulse extends PulsePreview {
+  /// The beat as it is now: (sound, rate, level), or null when stopped.
+  (String, double, double)? playing;
+  final changes = <(String, double, double)?>[];
+
+  @override
+  Future<void> set({
+    required String asset,
+    required double bpm,
+    required double volume,
+  }) async {
+    if (asset.isEmpty) return stop();
+    playing = (asset, bpm, volume);
+    changes.add(playing);
+  }
+
+  @override
+  Future<void> stop() async {
+    if (playing != null) changes.add(null);
+    playing = null;
+  }
+
+  @override
+  Future<void> dispose() async {}
+}
+
 Future<ProviderContainer> _pump(
   WidgetTester tester, {
   CueScope scope = const CueScope(CueKind.practice),
@@ -50,6 +76,7 @@ Future<ProviderContainer> _pump(
   double textScale = 1,
   bool reduceMotion = false,
   SessionBellPreview? preview,
+  PulsePreview? pulse,
   Map<String, Object> prefsValues = const {},
   Locale? locale,
   ThemeData? theme,
@@ -67,6 +94,9 @@ Future<ProviderContainer> _pump(
       ...soundscapeTestOverrides(FakeSoundscapeEngine()),
       if (preview != null)
         sessionBellPreviewProvider.overrideWithValue(preview),
+      // Never a platform player in a test.
+      pulsePreviewProvider.overrideWithValue(pulse ?? _FakePulse()),
+      audioStateProvider.overrideWith(AudioStateNotifier.new),
     ],
   );
   addTearDown(container.dispose);
@@ -111,11 +141,24 @@ Future<void> _unmount(WidgetTester tester) async {
 
 const _practice = CueScope(CueKind.practice);
 
-/// The slider in the row labelled [label].
-Finder _sliderFor(String label) => find.descendant(
-  of: find.ancestor(of: find.text(label), matching: find.byType(Row)).last,
-  matching: find.byType(Slider),
-);
+/// The slider for [label]: a volume standing beside its wheels, or the row
+/// labelled [label].
+Finder _sliderFor(String label) {
+  final column = find.byKey(
+    ValueKey(
+      label == 'Pulse volume'
+          ? 'customize_volume_pulse'
+          : 'customize_volume_bell',
+    ),
+  );
+  if (column.evaluate().isNotEmpty) {
+    return find.descendant(of: column, matching: find.byType(Slider));
+  }
+  return find.descendant(
+    of: find.ancestor(of: find.text(label), matching: find.byType(Row)).last,
+    matching: find.byType(Slider),
+  );
+}
 
 Future<void> _drag(WidgetTester tester, String label, double value) async {
   await tester.ensureVisible(_sliderFor(label));
@@ -125,10 +168,11 @@ Future<void> _drag(WidgetTester tester, String label, double value) async {
 
 Finder _tile(String card) => find.byKey(ValueKey('customize_tile_$card'));
 Finder _card(String card) => find.byKey(ValueKey('customize_card_$card'));
+
+/// The header's old Sound button, gone for a floating one.
 final _sound = find.byKey(const ValueKey('customize_sound'));
 final _dial = find.byKey(const ValueKey('customize_dial'));
 final _infinity = find.byKey(const ValueKey('customize_infinity'));
-final _back = find.byKey(const ValueKey('customize_card_back'));
 
 /// Opens a tile's card: startBell, intervalBell, endBell or rhythm.
 Future<void> _open(WidgetTester tester, String card) async {
@@ -138,9 +182,9 @@ Future<void> _open(WidgetTester tester, String card) async {
   await tester.pumpAndSettle();
 }
 
-/// Back, from a card to the dial and the tiles.
+/// Back, from a tile's sheet to Customize under it.
 Future<void> _goBack(WidgetTester tester) async {
-  await tester.tap(_back);
+  await tester.binding.handlePopRoute();
   await tester.pumpAndSettle();
 }
 
@@ -153,11 +197,6 @@ List<String> _says(WidgetTester tester, String card) => tester
     .map((t) => t.data!)
     .toList();
 
-/// What the header's Sound button names.
-String _soundSays(WidgetTester tester) => tester
-    .widget<Text>(find.descendant(of: _sound, matching: find.byType(Text)))
-    .data!;
-
 bool _isFilled(WidgetTester tester, Finder of) {
   final material = tester.widget<Material>(
     find.descendant(of: of, matching: find.byType(Material)).first,
@@ -168,12 +207,6 @@ bool _isFilled(WidgetTester tester, Finder of) {
 /// A tile is filled (changed from the defaults) rather than outlined.
 bool _filled(WidgetTester tester, String card) =>
     _isFilled(tester, _tile(card));
-
-/// Opens the mixer drawer from the header's Sound button.
-Future<void> _openSound(WidgetTester tester) async {
-  await tester.tap(_sound);
-  await tester.pumpAndSettle();
-}
 
 /// The scroll position of the dial-and-tiles list, or of the open card.
 ScrollPosition _scroll(WidgetTester tester, {bool card = false}) => tester
@@ -189,55 +222,6 @@ ScrollPosition _scroll(WidgetTester tester, {bool card = false}) => tester
           .first,
     )
     .position;
-
-/// The mixer drawer's library list.
-Finder get _drawerLibrary => find
-    .descendant(
-      of: find.byKey(const PageStorageKey('sounds_library')),
-      matching: find.byType(Scrollable),
-    )
-    .first;
-
-/// Scrolls [card] into the open drawer, clear of the mix docked at its
-/// foot, and taps it.
-Future<void> _tapInDrawer(WidgetTester tester, Finder card) async {
-  await tester.scrollUntilVisible(card, 200, scrollable: _drawerLibrary);
-  await tester.pumpAndSettle();
-  for (var i = 0; i < 8 && card.hitTestable().evaluate().isEmpty; i++) {
-    await tester.drag(_drawerLibrary, const Offset(0, -80));
-    await tester.pumpAndSettle();
-  }
-  await tester.tap(card.hitTestable());
-  await tester.pumpAndSettle();
-}
-
-/// Taps the library card for [soundId] in the open mixer drawer.
-Future<void> _tapCard(WidgetTester tester, String soundId) =>
-    _tapInDrawer(tester, find.byKey(ValueKey('sound_$soundId')));
-
-/// Taps the preset card [presetId] in the open mixer drawer.
-Future<void> _tapPreset(WidgetTester tester, String presetId) async {
-  final card = find.byKey(ValueKey('preset_$presetId'));
-  await tester.scrollUntilVisible(
-    card,
-    200,
-    scrollable: find
-        .descendant(
-          of: find.byKey(const PageStorageKey('sounds_presets')),
-          matching: find.byType(Scrollable),
-        )
-        .first,
-  );
-  await tester.pumpAndSettle();
-  await tester.tap(card);
-  await tester.pumpAndSettle();
-}
-
-/// Done in the mixer drawer.
-Future<void> _closeDrawer(WidgetTester tester) async {
-  await tester.tap(find.byKey(const ValueKey('sounds_chooser_done')));
-  await tester.pumpAndSettle();
-}
 
 Finder _wheel(String label) => find.byKey(ValueKey('wheel_$label'));
 
@@ -367,18 +351,14 @@ void main() {
     expect(_says(tester, 'intervalBell'), ['Interval bell', 'Off']);
     expect(_says(tester, 'endBell'), ['Ending bell', 'Session bell']);
     expect(_says(tester, 'rhythm'), ['Rhythm', 'Off']);
-    // At the defaults every tile is outlined, and so is the Sound button.
+    // At the defaults every tile is outlined.
     for (final card in ['startBell', 'intervalBell', 'endBell', 'rhythm']) {
       expect(_filled(tester, card), isFalse, reason: card);
       expect(_card(card), findsNothing);
     }
-    // Sound is the header's button, level with the title, not a tile.
-    expect(_soundSays(tester), 'Off');
-    expect(_isFilled(tester, _sound), isFalse);
-    expect(
-      tester.getRect(_sound).bottom,
-      lessThan(tester.getRect(_dial).top + 1),
-    );
+    // Sound has its own floating button, reachable from everywhere: none in
+    // the header.
+    expect(_sound, findsNothing);
     for (final gone in [
       'Sound',
       'Bells',
@@ -396,8 +376,8 @@ void main() {
     await _unmount(tester);
   });
 
-  testWidgets('a tile opens its card in place of the dial and the tiles, and '
-      'Back returns to them where they were', (tester) async {
+  testWidgets('a tile opens its sheet over Customize, and closing it returns '
+      'to Customize where it was', (tester) async {
     // Short enough that the dial and the tiles scroll.
     await _pump(
       tester,
@@ -415,22 +395,18 @@ void main() {
     await tester.tap(_tile('rhythm'));
     await tester.pumpAndSettle();
     expect(_card('rhythm'), findsOneWidget);
-    // Its own header: Back at the top left, then the tile's name.
-    final back = tester.getRect(_back);
-    final title = find.descendant(
-      of: _card('rhythm'),
-      matching: find.text('Rhythm'),
+    // A sheet of its own, risen from the foot of the screen, over Customize
+    // (still there under it): no pushed page, no Back arrow.
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(tester.getRect(_card('rhythm')).bottom, closeTo(640, 1));
+    expect(find.byTooltip('Back'), findsNothing);
+    expect(
+      find.descendant(of: _card('rhythm'), matching: find.text('Rhythm')),
+      findsOneWidget,
     );
-    expect(back.left, lessThan(24));
-    expect(tester.getRect(title).left, greaterThan(back.right));
-    expect(tester.getRect(title).center.dy, closeTo(back.center.dy, 4));
     expect(find.widgetWithText(ChoiceChip, 'Heartbeat'), findsOneWidget);
-    // The dial, the tiles and the sheet's own header are out of the way.
+    expect(find.text('Customize'), findsOneWidget);
     expect(_tile('rhythm').hitTestable(), findsNothing);
-    expect(_sound.hitTestable(), findsNothing);
-    expect(find.text('Customize').hitTestable(), findsNothing);
-    // Start stays.
-    expect(find.text('Start').hitTestable(), findsOneWidget);
 
     await _goBack(tester);
     expect(_card('rhythm'), findsNothing);
@@ -464,7 +440,17 @@ void main() {
         .toList();
     expect(bells.first, 'Off');
     expect(bells.last, 'Make a bell');
-    expect(inCard('startBell', find.text('Bell volume')), findsOneWidget);
+    // The countdown on the left and the bell volume on the right, in one
+    // row, over the bells.
+    final volume = find.byKey(const ValueKey('customize_volume_bell'));
+    expect(inCard('startBell', volume), findsOneWidget);
+    final countdown = tester.getRect(_wheel('Countdown'));
+    expect(tester.getRect(volume).left, greaterThan(countdown.right));
+    expect(tester.getRect(volume).center.dy, closeTo(countdown.center.dy, 16));
+    expect(
+      tester.getRect(find.byType(BellList)).top,
+      greaterThan(countdown.bottom),
+    );
     await _goBack(tester);
 
     // The interval bell: how often, and the same list.
@@ -472,7 +458,13 @@ void main() {
     expect(_card('startBell'), findsNothing);
     expect(inCard('intervalBell', _wheel('Every')), findsOneWidget);
     expect(inCard('intervalBell', find.byType(BellList)), findsOneWidget);
-    expect(inCard('intervalBell', find.text('Bell volume')), findsOneWidget);
+    expect(
+      inCard(
+        'intervalBell',
+        find.byKey(const ValueKey('customize_volume_bell')),
+      ),
+      findsOneWidget,
+    );
     await _goBack(tester);
 
     // The ending bell: the silence before it, shortly captioned.
@@ -490,11 +482,6 @@ void main() {
     expect(inCard('rhythm', find.byType(ChoiceChip)), findsWidgets);
     expect(inCard('rhythm', find.byType(BellList)), findsNothing);
     await _goBack(tester);
-
-    // Sound is the mixer itself, in its drawer (#66): no card here.
-    await _openSound(tester);
-    expect(find.byType(SoundsView), findsOneWidget);
-    await _closeDrawer(tester);
     expect(_tile('rhythm').hitTestable(), findsOneWidget);
     await _unmount(tester);
   });
@@ -648,12 +635,11 @@ void main() {
     for (final card in ['startBell', 'intervalBell', 'endBell', 'rhythm']) {
       expect(_filled(tester, card), isTrue, reason: card);
     }
-    expect(_isFilled(tester, _sound), isFalse);
     // Under the dial: the recording, Extend and the ending bell's silence,
     // and what they come to.
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('customize_total'))).data,
-      '20 min + 3 min + 12 min = 35 min',
+      '20 + 3 + 12 = 35 min',
     );
     // 9:00, a 10 s countdown, 20 min of audio, 3 min of Extend and 12 of
     // the Ending bell's silence.
@@ -732,8 +718,7 @@ void main() {
         findsOneWidget,
       );
       expect(_shownBefore(tester), isTrue);
-      // In the footer: under the list, just above Start, and still there
-      // with a card open.
+      // In the footer: under the list, just above Start.
       expect(
         tester.getBottomLeft(toggle).dy,
         lessThanOrEqualTo(tester.getTopLeft(find.text('Start')).dy),
@@ -745,10 +730,6 @@ void main() {
         ),
         findsNothing,
       );
-      await _open(tester, 'endBell');
-      expect(toggle.hitTestable(), findsOneWidget);
-      expect(tester.getRect(toggle).bottom, lessThanOrEqualTo(600));
-      await _goBack(tester);
 
       await tester.tap(toggle);
       await tester.pumpAndSettle();
@@ -993,6 +974,14 @@ void main() {
       expect(find.text('Counts up'), findsOneWidget);
       expect(_read(container).durationMinutes, 25);
       expect(tester.widget<IconButton>(_infinity).isSelected, isTrue);
+      // On, it is filled in the primary colour; off, it is not filled.
+      Color? fill() => tester
+          .widget<Material>(
+            find.descendant(of: _infinity, matching: find.byType(Material)),
+          )
+          .color;
+      final scheme = Theme.of(tester.element(_infinity)).colorScheme;
+      expect(fill(), scheme.primary);
 
       await tester.tap(_infinity);
       await tester.pumpAndSettle();
@@ -1000,38 +989,35 @@ void main() {
       expect(selected(tester), 25);
       expect(find.text('Finishes at 9:25 AM'), findsOneWidget);
       expect(_read(container).durationMinutes, 25);
-      // Its own way back: no Undo bar.
-      expect(find.byKey(const ValueKey('customize_undo')), findsNothing);
+      expect(tester.widget<IconButton>(_infinity).isSelected, isFalse);
+      expect(fill(), isNot(scheme.primary));
+      // No Undo toast for it either.
+      expect(find.textContaining('Undo'), findsNothing);
       await _unmount(tester);
     });
 
     testWidgets('∞ is the wheel\'s first place, above 1 min; turning there '
-        'can be undone', (tester) async {
+        'brings up no Undo toast', (tester) async {
       final semantics = tester.ensureSemantics();
       final container = await _pump(tester, isTimer: true, onStart: () {});
       final wheel = tester.widget<WheelPicker<dynamic>>(_wheel('Duration'));
       expect(wheel.options.first.label, '∞');
       expect(wheel.options.first.semanticsLabel, 'Open-ended');
       expect(wheel.options[1].label, '1 min');
+      final sheetTop = tester.getTopLeft(find.text('Customize'));
       await _turn(tester, 'Duration', '∞');
       expect(openEnded(container), isTrue);
       expect(_read(container).durationMinutes, 10, reason: 'kept');
-      expect(find.text('Duration: ∞'), findsOneWidget);
       expect(find.semantics.byValue('Open-ended'), findsOne);
-      await tester.tap(find.byKey(const ValueKey('customize_undo_button')));
-      await tester.pumpAndSettle();
-      expect(openEnded(container), isFalse);
-      expect(selected(tester), 10);
-      // And from ∞ to a length, back to ∞.
-      await tester.tap(_infinity);
-      await tester.pumpAndSettle();
+      // "Duration: ∞ · Undo" pushed the sheet up: it is gone.
+      expect(find.text('Duration: ∞'), findsNothing);
+      expect(find.text('Undo'), findsNothing);
+      expect(tester.getTopLeft(find.text('Customize')), sheetTop);
+      // And from ∞ to a length.
       await _turn(tester, 'Duration', '3 min');
       expect(openEnded(container), isFalse);
       expect(_read(container).durationMinutes, 3);
-      await tester.tap(find.byKey(const ValueKey('customize_undo_button')));
-      await tester.pumpAndSettle();
-      expect(openEnded(container), isTrue);
-      expect(_read(container).durationMinutes, 10);
+      expect(find.text('Undo'), findsNothing);
       semantics.dispose();
       await _unmount(tester);
     });
@@ -1130,233 +1116,12 @@ void main() {
     await _unmount(tester);
   });
 
-  testWidgets('the Sound button opens the mixer drawer, which chooses for the '
-      'kind', (tester) async {
-    final container = await _pump(tester, size: const Size(412, 915));
-    SoundscapeSessionDefault practice() => container
-        .read(soundscapeProvider)
-        .sessionDefault(SoundscapeSessionKind.practice);
-    // Practice starts with nothing chosen (decision 17).
-    expect(practice().enabled, isFalse);
-    expect(_soundSays(tester), 'Off');
-    expect(find.byKey(const ValueKey('customize_sound_art')), findsNothing);
-
-    await _openSound(tester);
-    // The mixer as a drawer, saying whose sound this is, and nothing in it.
-    expect(find.byType(SoundsView), findsOneWidget);
-    expect(find.text('Plays under practice'), findsOneWidget);
-    expect(container.read(soundscapeProvider).mix.isEmpty, isTrue);
-
-    // Choosing is editing the mix: two sounds layer up, and are heard.
-    await _tapCard(tester, 'river');
-    await _tapCard(tester, 'night-insects');
-    final mixer = container.read(soundscapeProvider);
-    expect(mixer.mix.layers.map((l) => l.soundId), ['river', 'night-insects']);
-    expect(mixer.playing, isTrue, reason: 'auditioned as it is made');
-
-    await _closeDrawer(tester);
-    // Kept for the kind, in the mixer, not as a second copy here.
-    expect(practice().enabled, isTrue);
-    expect(
-      practice().selection,
-      SoundscapeSelection.layers(mixer.mix),
-      reason: 'the layers themselves',
-    );
-    expect(_read(container).soundscape, '');
-    final river = bundledSoundLibrary['river']!.title;
-    expect(_soundSays(tester), '$river, Night insects');
-    expect(_isFilled(tester, _sound), isTrue);
-    expect(find.byKey(const ValueKey('customize_sound_art')), findsOneWidget);
-    // Nothing plays on once the drawer is closed outside a session.
-    expect(container.read(soundscapeProvider).playing, isFalse);
-    expect(container.read(soundscapeProvider).active, isFalse);
-    await _unmount(tester);
-  });
-
-  testWidgets('a preset chosen in the drawer is kept as that preset', (
-    tester,
-  ) async {
-    final container = await _pump(tester, size: const Size(412, 915));
-    await _openSound(tester);
-    await _tapPreset(tester, 'starter-night');
-    await _closeDrawer(tester);
-    expect(
-      container
-          .read(soundscapeProvider)
-          .sessionDefault(SoundscapeSessionKind.practice)
-          .selection,
-      const SoundscapeSelection.preset('starter-night'),
-    );
-    expect(_soundSays(tester), 'Night');
-    await _unmount(tester);
-  });
-
-  testWidgets('an emptied drawer is Off, and leaving it alone changes '
-      'nothing', (tester) async {
-    final container = await _pump(
-      tester,
-      size: const Size(412, 915),
-      prefsValues: {
-        'soundscape_session_defaults':
-            '{"practice":{"enabled":true,"selection":"preset:starter-night",'
-            '"volume":0.5}}',
-        'soundscape_session_defaults_version': 2,
-      },
-    );
-    SoundscapeSessionDefault practice() => container
-        .read(soundscapeProvider)
-        .sessionDefault(SoundscapeSessionKind.practice);
-    expect(_soundSays(tester), 'Night');
-
-    // Opened and closed again: the choice stands.
-    await _openSound(tester);
-    await _closeDrawer(tester);
-    expect(practice().enabled, isTrue);
-    expect(
-      practice().selection,
-      const SoundscapeSelection.preset('starter-night'),
-    );
-
-    // Cleared: nothing plays under practice, and the kind is switched off.
-    await _openSound(tester);
-    await tester.tap(find.byKey(const ValueKey('sounds_clear')));
-    await tester.pumpAndSettle();
-    await _closeDrawer(tester);
-    expect(practice().enabled, isFalse);
-    expect(_soundSays(tester), 'Off');
-    await _unmount(tester);
-  });
-
-  testWidgets('the drawer never changes the Sounds tab\'s own mix', (
-    tester,
-  ) async {
-    final container = await _pump(tester, size: const Size(412, 915));
-    final mixer = container.read(soundscapeProvider.notifier);
-    mixer.toggleSound('river');
-    await tester.pumpAndSettle();
-    final tabMix = container.read(soundscapeProvider).mix;
-    expect(container.read(soundscapeProvider).playing, isTrue);
-
-    await _openSound(tester);
-    await _tapPreset(tester, 'starter-night');
-    expect(container.read(soundscapeProvider).mix, isNot(tabMix));
-    await _closeDrawer(tester);
-    // Back to the mix the Sounds tab had, playing as it was.
-    expect(container.read(soundscapeProvider).mix, tabMix);
-    expect(container.read(soundscapeProvider).playing, isTrue);
-    await _unmount(tester);
-  });
-
-  testWidgets('talks are off, and a course keeps its own choice', (
-    tester,
-  ) async {
-    const course = CueScope(CueKind.talks, courseId: 'c1');
-    const kind = CueScope(CueKind.talks);
-    final container = await _pump(
-      tester,
-      scope: course,
-      size: const Size(412, 915),
-    );
-    final store = container.read(cueSettingsStoreProvider);
-    final toggle = find.widgetWithText(
-      SwitchListTile,
-      'Use these only for this course',
-    );
-    expect(find.text('Changes apply to all talks'), findsOneWidget);
-    expect(find.text('All talks'), findsOneWidget);
-    expect(_soundSays(tester), 'Off');
-
-    await tester.ensureVisible(toggle);
-    await tester.tap(toggle);
-    await tester.pumpAndSettle();
-    expect(find.text('Changes apply to this course'), findsOneWidget);
-    expect(find.text('For this course'), findsOneWidget);
-    await _openSound(tester);
-    expect(find.text('Plays under talks'), findsOneWidget);
-    await _tapPreset(tester, 'starter-shore');
-    await _closeDrawer(tester);
-    expect(store.read(course).soundscape, 'preset:starter-shore');
-    expect(store.read(kind).soundscape, '');
-    expect(
-      container
-          .read(soundscapeProvider)
-          .sessionDefault(SoundscapeSessionKind.talks)
-          .enabled,
-      isFalse,
-      reason: 'the talks default is untouched',
-    );
-    expect(_soundSays(tester), 'Shore');
-    expect(_isFilled(tester, _sound), isTrue, reason: 'its kind plays nothing');
-
-    // Back to the kind's settings: the course inherits Off again.
-    await tester.ensureVisible(toggle);
-    await tester.tap(toggle);
-    await tester.pumpAndSettle();
-    expect(_read(container, course).soundscape, '');
-    await _unmount(tester);
-  });
-
-  testWidgets('a course\'s own choice, made during an unrelated sit, '
-      'leaves the sit\'s sound playing', (tester) async {
-    const course = CueScope(CueKind.practice, courseId: 'c1');
-    final container = await _pump(
-      tester,
-      scope: course,
-      size: const Size(412, 915),
-    );
-    // A practice sit runs elsewhere, playing the kind's default.
-    final mixer = container.read(soundscapeProvider.notifier);
-    mixer.setSessionDefault(
-      SoundscapeSessionKind.practice,
-      const SoundscapeSessionDefault(enabled: true),
-    );
-    await mixer.startSession(SoundscapeSessionKind.practice);
-    await tester.pumpAndSettle();
-    final sitMix = container.read(soundscapeProvider).mix;
-
-    final toggle = find.widgetWithText(
-      SwitchListTile,
-      'Use these only for this course',
-    );
-    await tester.ensureVisible(toggle);
-    await tester.tap(toggle);
-    await tester.pumpAndSettle();
-    await _openSound(tester);
-    await _tapPreset(tester, 'starter-night');
-    await _closeDrawer(tester);
-
-    expect(
-      container.read(cueSettingsStoreProvider).read(course).soundscape,
-      'preset:starter-night',
-    );
-    final state = container.read(soundscapeProvider);
-    expect(state.owner, SoundscapeOwner.session);
-    expect(state.mix, sitMix, reason: 'the sit plays what it played');
-    await _unmount(tester);
-  });
-
   testWidgets('a playlist says playlist', (tester) async {
     await _pump(
       tester,
       scope: const CueScope(CueKind.practice, courseId: 'my-course-abc'),
     );
     expect(find.text('Use these only for this playlist'), findsOneWidget);
-    await _unmount(tester);
-  });
-
-  testWidgets('a deleted preset shows as the current mix it plays', (
-    tester,
-  ) async {
-    const course = CueScope(CueKind.talks, courseId: 'c1');
-    final container = await _pump(tester, scope: course);
-    await container
-        .read(cueSettingsProvider(course).notifier)
-        .update(
-          const CueSettings(soundscape: 'preset:user-deleted'),
-          courseOverride: true,
-        );
-    await tester.pumpAndSettle();
-    expect(_soundSays(tester), 'Current mix');
     await _unmount(tester);
   });
 
@@ -1554,7 +1319,7 @@ void main() {
     await _unmount(tester);
   });
 
-  testWidgets('tiles, the Sound button and a card\'s header say what they '
+  testWidgets('tiles and a tile\'s sheet say what they '
       'are to a screen reader', (tester) async {
     final semantics = tester.ensureSemantics();
     await _pump(tester);
@@ -1573,15 +1338,14 @@ void main() {
     expect(start.flagsCollection.isButton, isTrue);
     expect(find.semantics.byLabel('Interval bell, Off, default'), findsOne);
     expect(find.semantics.byLabel('Rhythm, Off, default'), findsOne);
-    expect(node(_sound, 'Sound, Off').flagsCollection.isButton, isTrue);
     // The dial is one adjustable control.
     expect(find.semantics.byLabel('Extend'), findsOne);
 
     // A change is said as well as shown.
     await _open(tester, 'intervalBell');
-    // On a card the tiles under it are not read; its header is, with Back.
+    // Over Customize, the tiles under the sheet are not read; its header
+    // is.
     expect(find.semantics.byLabel('Rhythm, Off, default'), findsNothing);
-    expect(find.byTooltip('Back'), findsOneWidget);
     final title = tester.getSemantics(
       find.descendant(
         of: _card('intervalBell'),
@@ -1608,55 +1372,8 @@ void main() {
     await _unmount(tester);
   });
 
-  testWidgets('with reduced motion a card opens and closes in one step', (
-    tester,
-  ) async {
-    final container = await _pump(tester, reduceMotion: true);
-    await tester.tap(_tile('startBell'));
-    await tester.pump();
-    expect(_card('startBell'), findsOneWidget);
-    expect(_tile('startBell').hitTestable(), findsNothing);
-    expect(_wheel('Countdown').hitTestable(), findsOneWidget);
-    await _turn(tester, 'Countdown', '5 sec');
-    expect(_read(container).countdownSeconds, 5);
-    await tester.tap(_back);
-    await tester.pump();
-    expect(_card('startBell'), findsNothing);
-    expect(_tile('startBell').hitTestable(), findsOneWidget);
-    expect(tester.takeException(), isNull);
-    await _unmount(tester);
-  });
-
-  testWidgets('with motion a card comes in as the tiles go, and goes as '
-      'they return', (tester) async {
-    await _pump(tester);
-    await tester.tap(_tile('rhythm'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 60));
-    // Both on their way: neither is fully there.
-    double opacity(Finder of) => tester
-        .widget<Opacity>(
-          find.ancestor(of: of, matching: find.byType(Opacity)).first,
-        )
-        .opacity;
-    expect(opacity(_card('rhythm')), inExclusiveRange(0, 1));
-    expect(opacity(_dial), inExclusiveRange(0, 1));
-    await tester.pumpAndSettle();
-    expect(opacity(_card('rhythm')), 1);
-    expect(opacity(_dial), 0);
-    await tester.tap(_back);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 60));
-    expect(_card('rhythm'), findsOneWidget, reason: 'leaving');
-    await tester.pumpAndSettle();
-    expect(_card('rhythm'), findsNothing);
-    expect(opacity(_dial), 1);
-    await _unmount(tester);
-  });
-
   testWidgets('the tiles speak the app\'s language', (tester) async {
     await _pump(tester, locale: const Locale('de'));
-    expect(_soundSays(tester), 'Aus');
     expect(_says(tester, 'startBell').first, 'Anfangsglocke');
     expect(_says(tester, 'intervalBell'), ['Intervallglocke', 'Aus']);
     expect(_says(tester, 'endBell').first, 'Schlussglocke');
@@ -1667,23 +1384,6 @@ void main() {
     expect(_says(tester, 'startBell').first, 'Campana inicial');
     expect(_says(tester, 'endBell').first, 'Campana final');
     expect(find.text('Añade silencio a la sesión.'), findsOneWidget);
-    await _unmount(tester);
-  });
-
-  testWidgets('the current mix is named in the app\'s language', (
-    tester,
-  ) async {
-    const course = CueScope(CueKind.talks, courseId: 'c1');
-    final container = await _pump(
-      tester,
-      scope: course,
-      locale: const Locale('de'),
-    );
-    await container
-        .read(cueSettingsProvider(course).notifier)
-        .update(const CueSettings(soundscape: 'mix'), courseOverride: true);
-    await tester.pumpAndSettle();
-    expect(_soundSays(tester), 'Aktueller Mix');
     await _unmount(tester);
   });
 
@@ -1853,15 +1553,14 @@ void main() {
       pulseEndBpm: 40,
       pulseRampMinutes: 20,
     );
-    const undoBar = ValueKey('customize_undo');
-    const undoButton = ValueKey('customize_undo_button');
 
     Future<ProviderContainer> pumpWith(
       WidgetTester tester,
       CueSettings settings, {
       Size? size,
+      PulsePreview? pulse,
     }) async {
-      final c = await _pump(tester, size: size);
+      final c = await _pump(tester, size: size, pulse: pulse);
       await c.read(cueSettingsProvider(_practice).notifier).update(settings);
       await tester.pumpAndSettle();
       return c;
@@ -1965,21 +1664,35 @@ void main() {
       await _open(tester, 'rhythm');
       final stored = _read(c).toJson();
       final list = _scroll(tester, card: true);
-      expect(list.maxScrollExtent, greaterThan(100), reason: 'it scrolls');
+      expect(list.maxScrollExtent, greaterThan(40), reason: 'it scrolls');
       final section = tester.getRect(_card('rhythm'));
       // Inside the section's inset, 28 dp at least each side of the row.
+      final volume = find.byKey(const ValueKey('customize_volume_pulse'));
       final firstRate = tester.getRect(_wheel('Rate'));
       final firstEnds = tester.getRect(_wheel('Ends at'));
+      final firstVolume = tester.getRect(volume);
       expect(firstRate.left - section.left, greaterThanOrEqualTo(16 + 28));
-      // The spare room goes mostly right, where a right thumb scrolls.
-      expect(section.right - firstEnds.right, greaterThanOrEqualTo(16 + 48));
+      expect(section.right - firstVolume.right, greaterThanOrEqualTo(16 + 28));
+      // Centred, with the volume a fourth column on the right, level with
+      // the wheels.
+      expect(
+        firstRate.left - section.left,
+        closeTo(section.right - firstVolume.right, 1),
+      );
+      expect(firstVolume.left, greaterThan(firstEnds.right));
+      // Its slider stands where the wheels do, under a title like theirs.
+      final slider = tester.getRect(
+        find.descendant(of: volume, matching: find.byType(RotatedBox)),
+      );
+      expect(slider.top, closeTo(firstRate.top, 1));
       // The left gutter, the gaps between the wheels, the right gutter
       // (where a right thumb lands).
       for (final x in <double Function(Rect, Rect, Rect)>[
         (rate, over, ends) => (section.left + rate.left) / 2,
         (rate, over, ends) => (rate.right + over.left) / 2,
         (rate, over, ends) => (over.right + ends.left) / 2,
-        (rate, over, ends) => (ends.right + section.right) / 2,
+        (rate, over, ends) =>
+            (tester.getRect(volume).right + section.right) / 2,
       ]) {
         await tester.ensureVisible(_wheel('Rate'));
         await tester.pumpAndSettle();
@@ -1998,308 +1711,66 @@ void main() {
         await tester.pumpAndSettle();
         expect(list.pixels, isNot(from), reason: 'the sheet scrolled at $at');
         expect(_read(c).toJson(), stored, reason: 'no wheel turned at $at');
-        expect(find.byKey(undoBar), findsNothing);
       }
       await _unmount(tester);
     });
 
-    testWidgets('a drag on a wheel turns it and offers Undo, which puts it '
-        'back', (tester) async {
+    testWidgets('a drag on a wheel turns it, and no Undo toast comes up', (
+      tester,
+    ) async {
       final c = await pumpWith(tester, ramp);
       await _open(tester, 'rhythm');
       await tester.ensureVisible(_wheel('Slow down over'));
       await tester.pumpAndSettle();
+      final top = tester.getTopLeft(_card('rhythm'));
       await tester.drag(_wheel('Slow down over'), const Offset(0, -80));
       await tester.pumpAndSettle();
-      final turned = _read(c).pulseRampMinutes;
-      expect(turned, greaterThan(20));
+      expect(_read(c).pulseRampMinutes, greaterThan(20));
       expect(_read(c).pulseBpm, 60, reason: 'only that wheel');
-      expect(find.byKey(undoBar), findsOneWidget);
-      expect(find.text('Slow down over: $turned min'), findsOneWidget);
-      await tester.tap(find.byKey(undoButton));
-      await tester.pumpAndSettle();
-      expect(_read(c).pulseRampMinutes, 20);
-      expect(find.byKey(undoBar), findsNothing);
-      // The wheel follows the value put back, and saving it is not a new
-      // change to undo.
-      expect(
-        tester
-            .state<WheelPickerState<dynamic>>(_wheel('Slow down over'))
-            .selectedIndex,
-        20,
-      );
-      expect(find.byKey(undoBar), findsNothing);
+      expect(find.text('Undo'), findsNothing);
+      expect(tester.getTopLeft(_card('rhythm')), top, reason: 'no jump');
       await _unmount(tester);
     });
 
-    testWidgets('Undo leaves alone what has changed since', (tester) async {
-      final c = await pumpWith(tester, ramp);
+    testWidgets('the Rhythm sheet plays the chosen pulse while it is set, '
+        'and stops when it closes', (tester) async {
+      final pulse = _FakePulse();
+      await _pump(tester, pulse: pulse);
+      const heartbeat = 'assets/audio/pulse_heartbeat.wav';
       await _open(tester, 'rhythm');
-      // Another control after the wheel: its change stays.
-      await _turn(tester, 'Slow down over', '30 min');
-      await _drag(tester, 'Pulse volume', 0.6);
-      expect(find.text('Slow down over: 30 min'), findsOneWidget);
-      await tester.tap(find.byKey(undoButton));
+      expect(pulse.playing, isNull, reason: 'Off plays nothing');
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Heartbeat'));
       await tester.pumpAndSettle();
-      expect(_read(c).pulseRampMinutes, 20);
-      expect(_read(c).pulseVolume, 0.6);
-
-      // The same setting changed again elsewhere before Undo: kept.
+      expect(pulse.playing, (heartbeat, 60.0, 0.25));
+      // Live as the wheels and the level change.
       await _turn(tester, 'Rate', '90 BPM');
-      await c
-          .read(cueSettingsProvider(_practice).notifier)
-          .update(_read(c).copyWith(pulseBpm: 70));
+      expect(pulse.playing, (heartbeat, 90.0, 0.25));
+      await _drag(tester, 'Pulse volume', 0.6);
+      expect(pulse.playing, (heartbeat, 90.0, 0.6));
+      // Off stops it; another sound starts again.
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Off'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(undoButton));
+      expect(pulse.playing, isNull);
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Soft click'));
       await tester.pumpAndSettle();
-      expect(_read(c).pulseBpm, 70);
-      expect(find.byKey(undoBar), findsNothing);
-      await _unmount(tester);
-    });
-
-    testWidgets('Undo puts back every field a wheel set', (tester) async {
-      // The interval's wheel also turns the bell on and pulls the random
-      // window in: Undo puts all of it back.
-      final c = await pumpWith(
-        tester,
-        CueSettings.defaults(
-          CueKind.practice,
-        ).copyWith(intervalSound: '', intervalMinutes: 10),
-      );
-      final before = _read(c).toJson();
-      await _open(tester, 'intervalBell');
-      await _turn(tester, 'Every', 'Halfway');
-      expect(_read(c).intervalHalfway, isTrue);
-      expect(_read(c).intervalSound, isNotEmpty);
-      expect(find.text('Every: Halfway'), findsOneWidget);
-      await tester.tap(find.byKey(undoButton));
-      await tester.pumpAndSettle();
-      expect(_read(c).toJson(), before);
-      await _unmount(tester);
-    });
-
-    testWidgets('the Undo bar goes by itself, and when its card is left', (
-      tester,
-    ) async {
-      await pumpWith(tester, ramp);
-      await _open(tester, 'rhythm');
-      await _turn(tester, 'Slow down over', '30 min');
-      expect(find.byKey(undoBar), findsOneWidget);
-      await tester.pump(const Duration(seconds: 6));
-      await tester.pumpAndSettle();
-      expect(find.byKey(undoBar), findsNothing);
-
-      await _turn(tester, 'Slow down over', '40 min');
-      expect(find.byKey(undoBar), findsOneWidget);
+      expect(pulse.playing?.$1, 'assets/audio/pulse_click.wav');
+      // Closing the sheet stops it.
       await _goBack(tester);
-      expect(find.byKey(undoBar), findsNothing);
+      expect(pulse.playing, isNull);
       await _unmount(tester);
     });
 
-    testWidgets('steps of one wheel are one change: Undo goes back to '
-        'before the first', (tester) async {
-      final semantics = tester.ensureSemantics();
-      final c = await pumpWith(tester, ramp);
+    testWidgets('a session already playing keeps its own pulse: nothing is '
+        'added over it', (tester) async {
+      final pulse = _FakePulse();
+      final c = await pumpWith(tester, ramp, pulse: pulse);
+      final notifier = c.read(audioStateProvider.notifier);
+      notifier.updatePlaybackState(
+        c.read(audioStateProvider).copyWith(isPlaying: true),
+      );
       await _open(tester, 'rhythm');
-      // Over 20 → 30 → 40, then Undo: 20, not 30.
-      await _turn(tester, 'Slow down over', '30 min');
-      await _turn(tester, 'Slow down over', '40 min');
-      expect(find.text('Slow down over: 40 min'), findsOneWidget);
-      await tester.tap(find.byKey(undoButton));
-      await tester.pumpAndSettle();
-      expect(_read(c).pulseRampMinutes, 20);
-
-      // A screen reader's three steps up the Rate, then Undo: 60, not 62.
-      for (var i = 0; i < 3; i++) {
-        tester.semantics.increase(find.semantics.byLabel('Rate'));
-        await tester.pumpAndSettle();
-      }
-      expect(_read(c).pulseBpm, 63);
-      expect(find.text('Rate: 63 BPM'), findsOneWidget);
-      await tester.tap(find.byKey(undoButton));
-      await tester.pumpAndSettle();
-      expect(_read(c).pulseBpm, 60);
-
-      // Another wheel starts a change of its own.
       await _turn(tester, 'Rate', '70 BPM');
-      await _turn(tester, 'Slow down over', '25 min');
-      await tester.tap(find.byKey(undoButton));
-      await tester.pumpAndSettle();
-      expect(_read(c).pulseRampMinutes, 20);
-      expect(_read(c).pulseBpm, 70);
-
-      // Turned back to where it started: the bar goes.
-      await _turn(tester, 'Slow down over', '30 min');
-      expect(find.byKey(undoBar), findsOneWidget);
-      await _turn(tester, 'Slow down over', '20 min');
-      expect(find.byKey(undoBar), findsNothing);
-      semantics.dispose();
-      await _unmount(tester);
-    });
-
-    testWidgets('with the bar up, the list scrolls what it covers clear', (
-      tester,
-    ) async {
-      await pumpWith(tester, ramp, size: const Size(411, 420));
-      await _open(tester, 'rhythm');
-      await _turn(tester, 'Slow down over', '30 min');
-      expect(find.byKey(undoBar), findsOneWidget);
-      final list = _scroll(tester, card: true);
-      list.jumpTo(list.maxScrollExtent);
-      await tester.pumpAndSettle();
-      final slider = find.descendant(
-        of: _card('rhythm'),
-        matching: find.byType(Slider),
-      );
-      expect(
-        tester.getRect(find.byKey(undoBar)).overlaps(tester.getRect(slider)),
-        isFalse,
-      );
-      final hit = tester.hitTestOnBinding(tester.getCenter(slider));
-      final target = tester.renderObject(slider);
-      expect(hit.path.any((entry) => entry.target == target), isTrue);
-      await _unmount(tester);
-    });
-
-    testWidgets('a step adds only what it changed: a bell chosen between '
-        'two turns of Every is kept by Undo', (tester) async {
-      final c = await pumpWith(
-        tester,
-        CueSettings.defaults(
-          CueKind.practice,
-        ).copyWith(intervalSound: '', intervalMinutes: 10),
-      );
-      await _open(tester, 'intervalBell');
-      // Off → 5 min also turns the bell on with the default sound.
-      await _turn(tester, 'Every', '5 min');
-      expect(_read(c).intervalSound, isNotEmpty);
-      final bowl = find.text('Singing bowl').last;
-      await tester.ensureVisible(bowl);
-      await tester.tap(bowl);
-      await tester.pumpAndSettle();
-      final chosen = _read(c).intervalSound;
-      await _turn(tester, 'Every', '7 min');
-      await tester.tap(find.byKey(undoButton));
-      await tester.pumpAndSettle();
-      // The interval goes back; the bell chosen by hand stays.
-      expect(_read(c).intervalMinutes, 10);
-      expect(_read(c).intervalSound, chosen);
-      await _unmount(tester);
-    });
-
-    testWidgets('the room under the list stays when the bar goes, until '
-        'the card is left', (tester) async {
-      await pumpWith(tester, ramp, size: const Size(411, 420));
-      await _open(tester, 'rhythm');
-      var list = _scroll(tester, card: true);
-      final before = list.maxScrollExtent;
-      await _turn(tester, 'Slow down over', '30 min');
-      expect(list.maxScrollExtent, greaterThan(before));
-      list.jumpTo(list.maxScrollExtent);
-      await tester.pumpAndSettle();
-      final top = tester.getRect(_wheel('Rate')).top;
-      final pixels = list.pixels;
-      await tester.pump(const Duration(seconds: 6));
-      await tester.pumpAndSettle();
-      expect(find.byKey(undoBar), findsNothing);
-      // Nothing moved under the thumb.
-      expect(list.pixels, pixels);
-      expect(tester.getRect(_wheel('Rate')).top, top);
-      // Leaving the card gives the room back.
-      await _goBack(tester);
-      await _open(tester, 'rhythm');
-      list = _scroll(tester, card: true);
-      expect(list.maxScrollExtent, before);
-      await _unmount(tester);
-    });
-
-    testWidgets('a step that lands after its card was left brings no bar', (
-      tester,
-    ) async {
-      final c = await pumpWith(tester, ramp);
-      await _open(tester, 'rhythm');
-      final landing = tester
-          .widget<WheelPicker<int>>(_wheel('Slow down over'))
-          .onChanged;
-      await _goBack(tester);
-      await _open(tester, 'startBell');
-      landing(30);
-      await tester.pumpAndSettle();
-      expect(_read(c).pulseRampMinutes, 30, reason: 'still saved');
-      expect(find.byKey(undoBar), findsNothing);
-      await _unmount(tester);
-    });
-
-    testWidgets('Undo saves where the wheel saved, and flipping "only for '
-        'this course" takes the bar away', (tester) async {
-      const course = CueScope(CueKind.talks, courseId: 'c1');
-      const kind = CueScope(CueKind.talks);
-      const courseKey = 'cues.v1.talks.course.c1';
-      const kindKey = 'cues.v1.talks';
-      final c = await _pump(tester, scope: course);
-      final prefs = c.read(sharedPreferencesProvider);
-      final store = c.read(cueSettingsStoreProvider);
-      final start = store.read(kind).countdownSeconds;
-      final toggle = find.widgetWithText(
-        SwitchListTile,
-        'Use these only for this course',
-      );
-      Future<void> flip() async {
-        await tester.ensureVisible(toggle);
-        await tester.tap(toggle);
-        await tester.pumpAndSettle();
-      }
-
-      await _open(tester, 'startBell');
-
-      // The kind's defaults: the wheel and its Undo write the kind's key.
-      await _turn(tester, 'Countdown', '10 sec');
-      expect(prefs.containsKey(courseKey), isFalse);
-      expect(store.read(kind).countdownSeconds, 10);
-      await tester.tap(find.byKey(undoButton));
-      await tester.pumpAndSettle();
-      expect(store.read(kind).countdownSeconds, start);
-      expect(prefs.containsKey(courseKey), isFalse);
-
-      // The course's own: the wheel and its Undo write the course's key,
-      // and the kind's is left alone.
-      await _goBack(tester);
-      await flip();
-      await _open(tester, 'startBell');
-      expect(prefs.containsKey(courseKey), isTrue);
-      final kindSaved = prefs.getString(kindKey);
-      await _turn(tester, 'Countdown', '5 sec');
-      expect(store.read(course).countdownSeconds, 5);
-      await tester.tap(find.byKey(undoButton));
-      await tester.pumpAndSettle();
-      expect(store.read(course).countdownSeconds, start);
-      expect(prefs.getString(kindKey), kindSaved);
-
-      // A bar from the course's settings (the dial's, beside the switch)
-      // goes when the switch is flipped: its Undo no longer has anywhere to
-      // apply.
-      await _goBack(tester);
-      await _turn(tester, 'Extend', '+10 min');
-      expect(find.byKey(undoBar), findsOneWidget);
-      expect(store.read(course).extendMinutes, 10);
-      await flip();
-      expect(find.byKey(undoBar), findsNothing);
-      expect(store.hasOverride(course), isFalse);
-      expect(store.read(kind).countdownSeconds, start);
-      expect(store.read(kind).extendMinutes, 0);
-      // And on again: no bar was left behind to put anything back.
-      await flip();
-      expect(find.byKey(undoBar), findsNothing);
-      await _unmount(tester);
-    });
-
-    testWidgets('a wheel that lands where it was offers nothing to undo', (
-      tester,
-    ) async {
-      await pumpWith(tester, ramp);
-      await _open(tester, 'rhythm');
-      await _turn(tester, 'Slow down over', '20 min');
-      expect(find.byKey(undoBar), findsNothing);
+      expect(pulse.changes, isEmpty);
       await _unmount(tester);
     });
 
@@ -2312,7 +1783,7 @@ void main() {
       // The largest thing on the sheet.
       expect(wheel.height, greaterThan(tester.getRect(_tile('rhythm')).height));
       expect(wheel.center.dx, closeTo(section.center.dx, 0.5));
-      // A drag beside it changes nothing; on it, it turns, with Undo.
+      // A drag beside it changes nothing; on it, it turns.
       final minutes = _read(c).durationMinutes;
       await tester.dragFrom(
         Offset((section.left + wheel.left) / 2, wheel.center.dy),
@@ -2325,10 +1796,7 @@ void main() {
       await tester.drag(_wheel('Duration'), const Offset(0, -80));
       await tester.pumpAndSettle();
       expect(_read(c).durationMinutes, greaterThan(minutes));
-      expect(find.textContaining('Duration: '), findsOneWidget);
-      await tester.tap(find.byKey(undoButton));
-      await tester.pumpAndSettle();
-      expect(_read(c).durationMinutes, minutes);
+      expect(find.textContaining('Duration: '), findsNothing);
       await _unmount(tester);
     });
   });
@@ -2378,6 +1846,12 @@ void main() {
           .widget<Text>(find.byKey(const ValueKey('customize_total')))
           .data!;
       expect(total(), '20 min');
+      // The line under the dial keeps one height, whatever it says.
+      final summary = find.byKey(const ValueKey('customize_summary'));
+      // Measured from the dial (the list may scroll to show a wheel).
+      Rect at(Finder f) => tester.getRect(f).shift(-tester.getTopLeft(_dial));
+      final line = at(summary);
+      final tilesAt = at(_tile('startBell')).topLeft;
       await _turn(tester, 'Extend', '+10 min');
       expect(_read(container).extendMinutes, 10);
       expect(_read(container).endSilenceMinutes, 0);
@@ -2386,11 +1860,16 @@ void main() {
         10,
         reason: 'saved for the kind',
       );
-      // The recording, what is added, and what the session comes to.
-      expect(total(), '20 min + 10 min = 30 min');
+      // The recording, what is added, and what the session comes to,
+      // short.
+      expect(total(), '20 + 10 = 30 min');
       expect(find.text('Finishes at 9:30 AM'), findsOneWidget);
-      // It can be undone like any wheel.
-      expect(find.text('Extend: +10 min'), findsOneWidget);
+      // Nothing moved: not the line, not the tiles under it ("the whole
+      // sheet jumps"), and no Undo toast came up.
+      expect(at(summary), line);
+      expect(at(_tile('startBell')).topLeft, tilesAt);
+      expect(find.text('Extend: +10 min'), findsNothing);
+      expect(find.text('Undo'), findsNothing);
       // The Ending bell's silence is its own setting, and untouched.
       expect(_filled(tester, 'endBell'), isFalse);
       expect(_says(tester, 'endBell'), ['Ending bell', 'Session bell']);
@@ -2399,7 +1878,8 @@ void main() {
       expect(_read(container).extendMinutes, 10);
       expect(_read(container).endSilenceMinutes, 2);
       await _goBack(tester);
-      expect(total(), '20 min + 10 min + 2 min = 32 min');
+      expect(total(), '20 + 10 + 2 = 32 min');
+      expect(at(summary), line);
       await _unmount(tester);
     }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 

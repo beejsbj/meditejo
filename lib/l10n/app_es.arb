@@ -1194,7 +1194,6 @@
   "customizeRhythmEndsAt": "Termina en",
   "customizeRhythmOverMinutes": "durante {minutes} min",
   "customizeRhythmRampSpoken": "De {from} a {to} BPM durante {minutes} min",
-  "customizeUndoChange": "{setting}: {value}",
   "playerAutoplayForPractice": "Para toda la práctica",
   "playerAutoplayForTalks": "Para todas las charlas",
   "playerAutoplayForCourse": "Para este curso",

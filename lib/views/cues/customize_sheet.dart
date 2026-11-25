@@ -8,8 +8,6 @@ import 'package:medito/constants/theme/tokens.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/player/playback_request.dart';
-import 'package:medito/models/soundscape/sound_library.dart';
-import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/providers/cues/cue_runtime_provider.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
@@ -17,15 +15,13 @@ import 'package:medito/providers/cues/custom_bell_provider.dart';
 import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/player/playback_speed_provider.dart';
 import 'package:medito/providers/presets/preset_providers.dart';
-import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/providers/timer/timer_settings_provider.dart';
 import 'package:medito/services/audio/session_bell_preview.dart';
 import 'package:medito/services/bells/custom_bell.dart';
 import 'package:medito/services/my_courses/my_course_models.dart';
 import 'package:medito/views/cues/bell_list.dart';
+import 'package:medito/views/cues/pulse_preview.dart';
 import 'package:medito/views/presets/preset_picker.dart';
-import 'package:medito/views/soundscape/sounds_sheet.dart';
-import 'package:medito/widgets/art/art_cover.dart';
 import 'package:medito/widgets/inputs/wheel_picker.dart';
 
 /// When a session started or running now will end. While playing
@@ -162,106 +158,18 @@ Future<bool> showCustomizeSheet(
 /// The longest timer [CueSettings] stores.
 const _maxDurationMinutes = 299;
 
-/// The Timer's ∞ among the fields an Undo compares, where the dial sets it.
-const _openEndedField = 'timer.openEnded';
-
-/// What a wheel changed, kept so the Undo bar can put it back. Steps of the
-/// same wheel while its bar is up (a turn, then another; a screen reader's
-/// three swipes) are one change: Undo goes back to before the first.
-class _WheelUndo {
-  const _WheelUndo({
-    required this.label,
-    required this.message,
-    required this.was,
-    required this.set,
-    required this.courseOverride,
-  });
-
-  /// The step from [before] to [after] of the wheel [label]; null when it
-  /// changed nothing.
-  static _WheelUndo? of(
-    String label,
-    String message,
-    Map<String, Object?> before,
-    Map<String, Object?> after, {
-    required bool courseOverride,
-  }) => const _WheelUndo(
-    label: '',
-    message: '',
-    was: {},
-    set: {},
-    courseOverride: false,
-  )._then(label, message, before, after, courseOverride: courseOverride);
-
-  /// The wheel this is for, and where its change was saved (a course's own
-  /// settings or its kind's).
-  final String label;
-  final bool courseOverride;
-  final String message;
-
-  /// The fields the wheel touched: as they were before its first step, and
-  /// as its last step set them.
-  final Map<String, Object?> was, set;
-
-  /// Whether a step of [label] continues this change.
-  bool continuedBy(String label, {required bool courseOverride}) =>
-      label == this.label && courseOverride == this.courseOverride;
-
-  /// This change followed by the step [from] to [to] of [label]; null when,
-  /// all told, nothing is changed (the wheel went back).
-  _WheelUndo? _then(
-    String label,
-    String message,
-    Map<String, Object?> from,
-    Map<String, Object?> to, {
-    required bool courseOverride,
-  }) {
-    final was = {...this.was}, set = {...this.set};
-    for (final key in to.keys) {
-      if (to[key] == from[key]) continue;
-      was.putIfAbsent(key, () => from[key]);
-      set[key] = to[key];
-    }
-    was.removeWhere((key, value) => set[key] == value);
-    set.removeWhere((key, _) => !was.containsKey(key));
-    if (set.isEmpty) return null;
-    return _WheelUndo(
-      label: label,
-      message: message,
-      was: was,
-      set: set,
-      courseOverride: courseOverride,
-    );
-  }
-
-  /// [now] with each field put back that still holds what the wheel set;
-  /// null when nothing is left to put back.
-  Map<String, Object?>? revert(Map<String, Object?> now) {
-    final restored = {...now};
-    var reverted = false;
-    for (final MapEntry(:key, :value) in set.entries) {
-      if (restored[key] != value) continue;
-      restored[key] = was[key];
-      reverted = true;
-    }
-    return reverted ? restored : null;
-  }
-}
-
 /// The settings behind the tiles, in the order they show: the three bells
-/// and the rhythm. Each opens as a card of its own, in place of the dial
-/// and the tiles.
+/// and the rhythm. Each opens as a sheet of its own over Customize.
 enum _Card { startBell, intervalBell, endBell, rhythm }
 
 /// Cue settings in one place, the same sheet wherever it opens. On top, one
 /// large wheel: a timer's length (∞ at its top: open-ended, counting up), or
 /// the silence a recording is extended by. Under it a 2×2 grid of tiles,
 /// each showing its value (filled when it differs from the defaults,
-/// outlined when it does not); tapping one swaps the sheet's content for
-/// that setting's card, with a back arrow. Sound is the header's button,
-/// which opens the Sounds sheet. Edits are saved as the defaults for the
-/// scope's kind (or as a per-course override) and picked up by the player
-/// through the provider.
+/// outlined when it does not); tapping one opens that setting as a sheet
+/// over this one. (Sounds has its own floating button.) Edits are saved as
+/// the defaults for the scope's kind (or as a per-course override) and
+/// picked up by the player through the provider.
 class CustomizeSheet extends ConsumerStatefulWidget {
   const CustomizeSheet({
     super.key,
@@ -312,38 +220,15 @@ class CustomizeSheet extends ConsumerStatefulWidget {
   ConsumerState<CustomizeSheet> createState() => _CustomizeSheetState();
 }
 
-class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
-    with SingleTickerProviderStateMixin {
+class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   Timer? _tick;
   late bool _courseOverride;
   late final SessionBellPreview _preview;
 
-  /// The card open in place of the dial and the tiles; null on them.
+  /// The tile whose sheet is open over this one; null when none is.
   _Card? _card;
-
-  /// The card on screen: [_card], and for a moment after Back the one that
-  /// is leaving.
-  _Card? _shown;
-
-  /// 0 on the dial and the tiles, 1 on a card.
-  late final AnimationController _cardMotion;
   final _wheels = WheelSettleGroup();
   bool _startPending = false;
-
-  /// The last change a wheel made, offered back for a moment (#91): a thumb
-  /// scrolling the sheet can land on a wheel and turn it.
-  _WheelUndo? _undo;
-  Timer? _undoTimer;
-
-  /// Room under the list for the bar, kept from its first showing until a
-  /// card opens or closes: taking it away when the bar goes would move the
-  /// list under the thumb.
-  bool _undoRoom = false;
-
-  /// How long the Undo bar stays: a little longer than a snackbar, and
-  /// longer again for a screen reader, which has to find the button.
-  static const _undoFor = Duration(seconds: 5);
-  static const _undoForScreenReader = Duration(seconds: 10);
 
   CueScope get _scope => widget.scope;
   bool get _practice => _scope.kind == CueKind.practice;
@@ -358,17 +243,6 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
     super.initState();
     _courseOverride = ref.read(cueSettingsStoreProvider).hasOverride(_scope);
     _preview = ref.read(sessionBellPreviewProvider);
-    _cardMotion =
-        AnimationController(
-          vsync: this,
-          duration: MeditejoMotion.medium,
-          reverseDuration: MeditejoMotion.short,
-        )..addStatusListener((status) {
-          // The card that was left has gone: drop it.
-          if (status == AnimationStatus.dismissed && mounted && _card == null) {
-            setState(() => _shown = null);
-          }
-        });
     _tick = Timer.periodic(
       const Duration(seconds: 30),
       (_) => mounted ? setState(() {}) : null,
@@ -378,8 +252,6 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
   @override
   void dispose() {
     _tick?.cancel();
-    _undoTimer?.cancel();
-    _cardMotion.dispose();
     // A bell auditioned here never rings on after the sheet closes.
     _silence();
     super.dispose();
@@ -391,12 +263,11 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
         .update(value, courseOverride: _courseOverride),
   );
 
-  /// A wheel for [label] on [card] (null: the dial); what it lands on is
-  /// saved through [apply], with an Undo bar ("Slow down over: 9 min ·
-  /// Undo"). [title] is the shorter word shown above it, where the row
-  /// already says the rest.
+  /// A wheel for [label]; what it lands on is saved through [apply]. No
+  /// Undo bar: it pushed the sheet about, and a wheel turned by mistake is
+  /// turned back as easily. [title] is the shorter word shown above it,
+  /// where the row already says the rest.
   Widget _wheel<T>({
-    required _Card? card,
     required String label,
     String? title,
     required List<WheelOption<T>> options,
@@ -404,10 +275,9 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
     required CueSettings Function(T value) apply,
     T? Function(String)? parse,
     String? hint,
-    int visibleItems = 5,
     bool showLabel = true,
     bool enabled = true,
-    bool large = false,
+    int? rows,
   }) => _WheelField<T>(
     label: label,
     title: title,
@@ -415,79 +285,15 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
     value: value,
     parse: parse,
     hint: hint,
-    visibleItems: visibleItems,
+    // Every wheel here is the main dial's size (Burooj, 14 Nov).
+    visibleItems: rows ?? _mainDialRows,
+    large: _largeDial,
     showLabel: showLabel,
     enabled: enabled,
-    large: large,
     onChanged: (v) {
-      final shown = options.firstWhere((o) => o.value == v).label;
-      // A step that lands after its card has closed is saved, but brings
-      // no bar up over what is shown instead.
-      _turned(label, shown, apply(v), offerUndo: mounted && _card == card);
+      if (mounted) _save(apply(v));
     },
   );
-
-  /// Whether the Timer about to start is open-ended, as its dial is set.
-  bool get _openEndedNow =>
-      ref.read(timerSettingsProvider).mode == TimerMode.stopwatch;
-
-  /// The settings as an Undo compares them: with the Timer's ∞, where the
-  /// dial sets it.
-  Map<String, Object?> _snapshot(CueSettings s, {bool? openEnded}) => {
-    ...s.toJson(),
-    if (_canSetDuration) _openEndedField: openEnded ?? _openEndedNow,
-  };
-
-  /// Saves what a wheel landed on and offers it back. Further steps of the
-  /// same wheel while its bar is up join its change. [openEnded] is the
-  /// dial's ∞, kept with the Timer rather than in [next].
-  void _turned(
-    String label,
-    String shown,
-    CueSettings next, {
-    bool? openEnded,
-    bool offerUndo = true,
-  }) {
-    if (!mounted) return;
-    final before = _snapshot(ref.read(cueSettingsProvider(_scope)));
-    final after = _snapshot(next, openEnded: openEnded);
-    _save(next, openEnded: openEnded);
-    if (!offerUndo) return _dismissUndo();
-    final message = _l10n.customizeUndoChange(label, shown);
-    final open = _undo;
-    final undo =
-        open != null && open.continuedBy(label, courseOverride: _courseOverride)
-        ? open._then(
-            label,
-            message,
-            before,
-            after,
-            courseOverride: _courseOverride,
-          )
-        : _WheelUndo.of(
-            label,
-            message,
-            before,
-            after,
-            courseOverride: _courseOverride,
-          );
-    // Back where it started: nothing to undo.
-    if (undo == null) {
-      if (open != null) _dismissUndo();
-      return;
-    }
-    _undoTimer?.cancel();
-    _undoTimer = Timer(
-      MediaQuery.of(context).accessibleNavigation
-          ? _undoForScreenReader
-          : _undoFor,
-      _dismissUndo,
-    );
-    setState(() {
-      _undo = undo;
-      _undoRoom = true;
-    });
-  }
 
   void _save(CueSettings value, {bool? openEnded}) {
     if (openEnded != null) {
@@ -498,69 +304,37 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
     _edit(value);
   }
 
-  /// The bar's height and the space around it, at the current text size.
-  static double _undoBarRoom(BuildContext context) =>
-      MediaQuery.textScalerOf(context).scale(48) + 16;
-
-  /// The bar goes when it has been read, and as soon as a card opens or
-  /// closes: the person has moved on, and it would sit over what they see
-  /// next.
-  void _dismissUndo() {
-    _undoTimer?.cancel();
-    _undoTimer = null;
-    if (mounted && _undo != null) setState(() => _undo = null);
-  }
-
-  /// Puts back what the wheel changed, unless it has been changed again
-  /// since (by another control, or with the "only for this course" switch
-  /// flipped): those are left as they are.
-  void _undoTurn() {
-    final undo = _undo;
-    _dismissUndo();
-    if (undo == null || undo.courseOverride != _courseOverride) return;
-    final restored = undo.revert(
-      _snapshot(ref.read(cueSettingsProvider(_scope))),
+  /// Opens [card] as a sheet over this one; closing it comes back here,
+  /// where it was left.
+  Future<void> _openCard(_Card card) async {
+    if (_card != null) return;
+    setState(() => _card = card);
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Theme.of(context).bottomSheetTheme.backgroundColor,
+      builder: (sheetContext) => WheelSettleScope(
+        group: _wheels,
+        child: Consumer(
+          builder: (context, ref, _) {
+            final s = ref.watch(cueSettingsProvider(_scope));
+            final body = _cardBody(card, s);
+            return _CardSheet(
+              key: ValueKey('customize_card_${card.name}'),
+              title: _cardTitle(card),
+              child: card == _Card.rhythm
+                  ? PulseAudition(settings: s, child: body)
+                  : body,
+            );
+          },
+        ),
+      ),
     );
-    if (restored == null) return;
-    final openEnded = restored.remove(_openEndedField);
-    _save(
-      CueSettings.fromJson(restored, kind: _scope.kind),
-      openEnded: openEnded is bool ? openEnded : null,
-    );
-  }
-
-  /// Swaps the dial and the tiles for [card].
-  void _openCard(_Card card) {
-    _dismissUndo();
-    setState(() {
-      _card = card;
-      _shown = card;
-      _undoRoom = false;
-    });
-    if (MediaQuery.of(context).disableAnimations) {
-      _cardMotion.value = 1;
-    } else {
-      unawaited(_cardMotion.forward());
-    }
-  }
-
-  /// Back to the dial and the tiles, where they were left.
-  void _closeCard() {
-    if (_card == null) return;
-    _dismissUndo();
-    // Leaving a bell's card silences what it was auditioning.
+    // Leaving a bell's sheet silences what it was auditioning.
     _silence();
-    final reduce = MediaQuery.of(context).disableAnimations;
-    setState(() {
-      _card = null;
-      _undoRoom = false;
-      if (reduce) _shown = null;
-    });
-    if (reduce) {
-      _cardMotion.value = 0;
-    } else {
-      unawaited(_cardMotion.reverse());
-    }
+    if (mounted) setState(() => _card = null);
   }
 
   void _silence() => unawaited(_preview.stop().catchError((Object _) {}));
@@ -596,29 +370,20 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
   Widget build(BuildContext context) {
     final s = ref.watch(cueSettingsProvider(_scope));
     final reference = _reference;
-    final reduce = MediaQuery.of(context).disableAnimations;
     // Large text makes the switch several lines tall: pinned, it would leave
     // the list no room, so it ends the list instead.
     final pinSwitch = MediaQuery.textScalerOf(context).scale(10) <= 13;
     final showBefore = widget.isTimer ? null : _showBeforeSwitch(s);
-    // Once the Undo bar has shown, the list ends below it (until a card
-    // opens or closes), so whatever it covers can be scrolled clear.
-    final listPadding = EdgeInsets.fromLTRB(
-      16,
-      4,
-      16,
-      16 + (_undoRoom ? _undoBarRoom(context) : 0),
-    );
 
     final main = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Header(subtitle: _scopeLine, sound: _soundButton(s, reference)),
+        _Header(subtitle: _scopeLine),
         Flexible(
           child: SingleChildScrollView(
             key: const ValueKey('customize_list'),
-            padding: listPadding,
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -635,7 +400,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
                 // Under the tiles, so the dial stays on top: what all of
                 // this was loaded from, the list of presets, and Save.
                 const SizedBox(height: 8),
-                PresetRow(place: _presetPlace, onOpened: _dismissUndo),
+                PresetRow(place: _presetPlace),
                 if (_scope.courseId != null) ...[
                   const SizedBox(height: 16),
                   // Compact with large text, where its second line would
@@ -653,126 +418,32 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
       ],
     );
 
-    final shown = _shown;
-    final card = shown == null
-        ? null
-        : KeyedSubtree(
-            key: ValueKey('customize_card_${shown.name}'),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _CardHeader(title: _cardTitle(shown), onBack: _closeCard),
-                Flexible(
-                  child: SingleChildScrollView(
-                    key: const ValueKey('customize_card_list'),
-                    padding: listPadding,
-                    child: _cardBody(shown, s),
-                  ),
-                ),
-              ],
+    return WheelSettleScope(
+      group: _wheels,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final media = MediaQuery.of(context);
+          // As tall as what it shows, up to most of the screen.
+          final height = math.min(
+            constraints.maxHeight,
+            media.size.height * 0.92,
+          );
+          return SafeArea(
+            top: false,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: height),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Flexible(child: main),
+                  if (pinSwitch) ?showBefore,
+                  ?_startButton,
+                ],
+              ),
             ),
           );
-
-    // The dial and the tiles stay laid out under an open card: Back finds
-    // them where they were left, and the sheet is never shorter for a card.
-    final onCard = _card != null;
-    final panes = AnimatedBuilder(
-      animation: _cardMotion,
-      builder: (context, _) {
-        final t = MeditejoMotion.emphasizedDecelerate.transform(
-          _cardMotion.value,
-        );
-        return Stack(
-          children: [
-            ExcludeSemantics(
-              excluding: onCard,
-              child: IgnorePointer(
-                ignoring: onCard,
-                child: _Pane(at: -t, child: main),
-              ),
-            ),
-            if (card != null)
-              IgnorePointer(
-                ignoring: !onCard,
-                child: _Pane(at: 1 - t, child: card),
-              ),
-          ],
-        );
-      },
-    );
-
-    return PopScope(
-      // Back closes an open card before it closes the sheet.
-      canPop: !onCard,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _closeCard();
-      },
-      child: WheelSettleScope(
-        group: _wheels,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final media = MediaQuery.of(context);
-            // As tall as what it shows, up to most of the screen.
-            final height = math.min(
-              constraints.maxHeight,
-              media.size.height * 0.92,
-            );
-            // The Undo bar floats over the foot of the list, as a snackbar
-            // would: one on the page's Scaffold would sit behind this sheet.
-            final undo = _undo;
-            final bar = undo == null
-                ? const SizedBox.shrink()
-                : _UndoBar(
-                    key: ObjectKey(undo),
-                    message: undo.message,
-                    onUndo: _undoTurn,
-                  );
-            final area = Stack(
-              fit: StackFit.passthrough,
-              children: [
-                // Reduced motion resizes in one step. (A zero-length
-                // AnimatedSize restarts inside its own layout and asserts,
-                // so it is left out.)
-                if (reduce)
-                  panes
-                else
-                  AnimatedSize(
-                    duration: MeditejoMotion.medium,
-                    curve: MeditejoMotion.emphasizedDecelerate,
-                    alignment: Alignment.topCenter,
-                    child: panes,
-                  ),
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 8,
-                  child: reduce
-                      ? bar
-                      : AnimatedSwitcher(
-                          duration: MeditejoMotion.short,
-                          child: bar,
-                        ),
-                ),
-              ],
-            );
-            return SafeArea(
-              top: false,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: height),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Flexible(child: area),
-                    if (pinSwitch) ?showBefore,
-                    ?_startButton,
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
+        },
       ),
     );
   }
@@ -872,29 +543,24 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
       s,
       selected: s.startSound,
       apply: (v) => s.copyWith(startSound: v),
-      above: Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: _WheelRow([
-          _wheel<int>(
-            card: card,
-            label: 'Countdown',
-            options: const [
-              WheelOption(0, 'Off'),
-              WheelOption(5, '5 sec', semanticsLabel: '5 seconds'),
-              WheelOption(10, '10 sec', semanticsLabel: '10 seconds'),
-            ],
-            value: s.countdownSeconds,
-            visibleItems: 3,
-            apply: (v) => s.copyWith(countdownSeconds: v),
-          ),
-        ]),
-      ),
+      wheels: [
+        _wheel<int>(
+          label: 'Countdown',
+          options: const [
+            WheelOption(0, 'Off'),
+            WheelOption(5, '5 sec', semanticsLabel: '5 seconds'),
+            WheelOption(10, '10 sec', semanticsLabel: '10 seconds'),
+          ],
+          value: s.countdownSeconds,
+          apply: (v) => s.copyWith(countdownSeconds: v),
+        ),
+      ],
     ),
     _Card.intervalBell => _bellCard(
       s,
       selected: s.intervalSound,
       apply: (v) => s.copyWith(intervalSound: v),
-      above: _intervalWheels(s),
+      wheels: _intervalWheels(s),
     ),
     _Card.endBell => _bellCard(
       s,
@@ -902,40 +568,61 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
       apply: (v) => s.copyWith(endSound: v),
       // A timer's length is its own: silence after it is just a longer
       // timer.
-      above: widget.isTimer ? null : _endSilence(s),
+      // The caption is the wheel's title.
+      caption: widget.isTimer ? null : _l10n.extendEndCaption,
+      labelled: false,
+      wheels: widget.isTimer ? const [] : [_endSilence(s)],
     ),
     _Card.rhythm => _pulseEditor(s),
   };
 
-  /// A bell's card: what is its own ([above]), the list of bells (tap to
-  /// choose and hear, "Make a bell" last), and the volume all bells share.
+  /// A bell's sheet: its own wheels with the volume all bells share on
+  /// their right, in one row; under them the list of bells (tap to choose
+  /// and hear, "Make a bell" last).
   Widget _bellCard(
     CueSettings s, {
     required String selected,
     required CueSettings Function(String) apply,
-    Widget? above,
-  }) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      ?above,
-      BellList(
-        selected: selected,
-        volume: s.bellVolume,
-        onSelected: (v) {
-          _edit(apply(v));
-          _audition(v, s.bellVolume);
-        },
-      ),
-      const SizedBox(height: 8),
-      _SliderRow(
-        icon: Icons.volume_up_outlined,
-        label: 'Bell volume',
-        value: s.bellVolume,
-        format: _percent,
-        onChanged: (v) => _edit(s.copyWith(bellVolume: v)),
-      ),
-    ],
-  );
+    required List<Widget> wheels,
+    String? caption,
+    bool labelled = true,
+  }) {
+    final volume = _VolumeColumn(
+      key: const ValueKey('customize_volume_bell'),
+      label: 'Bell volume',
+      // Level with the wheels' own titles, or with none.
+      title: labelled ? 'Volume' : null,
+      value: s.bellVolume,
+      height: _wheelHeight,
+      format: _percent,
+      onChanged: (v) => _edit(s.copyWith(bellVolume: v)),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (caption != null) _Caption(caption, centred: true),
+        if (wheels.isEmpty)
+          _SliderRow(
+            icon: Icons.volume_up_outlined,
+            label: 'Bell volume',
+            value: s.bellVolume,
+            format: _percent,
+            onChanged: (v) => _edit(s.copyWith(bellVolume: v)),
+          )
+        else
+          _WheelRow(wheels, trailing: volume),
+        const SizedBox(height: 8),
+        BellList(
+          selected: selected,
+          volume: s.bellVolume,
+          onSelected: (v) {
+            _edit(apply(v));
+            _audition(v, s.bellVolume);
+          },
+        ),
+      ],
+    );
+  }
 
   /// The sheet's one large control: a timer's length, set before it starts
   /// and shown once it runs; for a recording, Extend.
@@ -950,6 +637,20 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
   bool get _largeDial => MediaQuery.textScalerOf(context).scale(10) <= 13;
   int get _dialRows =>
       _largeDial && MediaQuery.sizeOf(context).height >= 780 ? 5 : 3;
+
+  /// How many rows the sheet's main dial shows: a timer's length stands
+  /// taller on a tall screen; Extend keeps to three.
+  int get _mainDialRows => _canSetDuration ? _dialRows : 3;
+
+  /// How tall a wheel of [_mainDialRows] stands, as [WheelPicker] lays it
+  /// out: what a volume beside it is drawn to.
+  double get _wheelHeight {
+    final extent = _largeDial ? 56.0 : 40.0;
+    return MediaQuery.textScalerOf(
+          context,
+        ).scale(extent).clamp(extent, double.infinity) *
+        _mainDialRows;
+  }
 
   /// A timer's length. ∞ is the wheel's first place, above 1 min: open-ended,
   /// counting up until it is ended (the stopwatch engine underneath). The
@@ -991,13 +692,11 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
                 hint: '1 to $_maxDurationMinutes minutes',
                 // The length it leaves for ∞ is kept, to come back to.
                 onChanged: (v) {
+                  if (!mounted) return;
                   final now = ref.read(cueSettingsProvider(_scope));
-                  _turned(
-                    'Duration',
-                    v == 0 ? '∞' : _minutes(v),
+                  _save(
                     v == 0 ? now : now.copyWith(durationMinutes: v),
                     openEnded: v == 0,
-                    offerUndo: mounted && _card == null,
                   );
                 },
               ),
@@ -1018,15 +717,12 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
         PositionedDirectional(
           top: 0,
           end: 0,
-          child: IconButton.filledTonal(
-            key: const ValueKey('customize_infinity'),
-            isSelected: openEnded,
+          // Filled in the primary colour while on, outlined while off:
+          // "you can't tell whether it's on" (Burooj, 14 Nov).
+          child: _InfinityToggle(
+            on: openEnded,
             tooltip: l10n.timerOpenEnded,
-            icon: const Icon(Icons.all_inclusive_rounded),
-            onPressed: () {
-              _dismissUndo();
-              _save(s, openEnded: !openEnded);
-            },
+            onPressed: () => _save(s, openEnded: !openEnded),
           ),
         ),
       ],
@@ -1104,8 +800,6 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
               ),
         value: _courseOverride,
         onChanged: (v) async {
-          // Where changes go moves: the bar's Undo no longer applies.
-          _dismissUndo();
           setState(() => _courseOverride = v);
           if (!v) {
             await ref
@@ -1127,29 +821,16 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
   ];
 
   /// The silence after the recording, before the ending bell: part of the
-  /// Ending bell, as #72 groups it. Its own setting, apart from Extend.
-  Widget _endSilence(CueSettings s) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // The caption is the wheel's title.
-        _Caption(_l10n.extendEndCaption, centred: true),
-        _WheelRow([
-          _wheel<int>(
-            card: _Card.endBell,
-            label: _l10n.extendEndLabel,
-            showLabel: false,
-            options: _extraMinuteOptions,
-            value: s.endSilenceMinutes,
-            parse: _range(0, 60),
-            hint: '0 to 60 minutes',
-            visibleItems: 3,
-            apply: (v) => s.copyWith(endSilenceMinutes: v),
-          ),
-        ]),
-      ],
-    ),
+  /// Ending bell, as #72 groups it. Its own setting, apart from Extend. The
+  /// caption over its sheet is its title.
+  Widget _endSilence(CueSettings s) => _wheel<int>(
+    label: _l10n.extendEndLabel,
+    showLabel: false,
+    options: _extraMinuteOptions,
+    value: s.endSilenceMinutes,
+    parse: _range(0, 60),
+    hint: '0 to 60 minutes',
+    apply: (v) => s.copyWith(endSilenceMinutes: v),
   );
 
   /// Extend: silence added to a recording's session. Under the wheel, the
@@ -1161,11 +842,18 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
     final recording = widget.audioDurationMs <= 0
         ? null
         : math.max(1, (widget.audioDurationMs / 60000).round());
+    // Short, as plain numbers when they are all under an hour: "43 + 2 =
+    // 45 min".
+    final parts = [
+      ?recording,
+      if (s.extendMinutes > 0) s.extendMinutes,
+      if (s.endSilenceMinutes > 0) s.endSilenceMinutes,
+    ];
     final sum = recording == null
         ? null
         : s.extraMinutes == 0
         ? _minutes(recording)
-        : '${[recording, if (s.extendMinutes > 0) s.extendMinutes, if (s.endSilenceMinutes > 0) s.endSilenceMinutes].map(_minutes).join(' + ')}'
+        : '${parts.map((m) => parts.every((p) => p < 60) ? '$m' : _minutes(m)).join(' + ')}'
               ' = ${_minutes(recording + s.extraMinutes)}';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1183,11 +871,8 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
         _Caption(_l10n.extendCaption, centred: true),
         _WheelRow([
           _wheel<int>(
-            card: null,
             label: _l10n.extendTitle,
             showLabel: false,
-            large: _largeDial,
-            visibleItems: 3,
             options: _extraMinuteOptions,
             value: s.extendMinutes,
             parse: _range(0, 60),
@@ -1197,22 +882,31 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
         ], hero: _largeDial),
         if (sum != null || widget.showFinishes) ...[
           const SizedBox(height: 12),
-          Wrap(
-            alignment: WrapAlignment.center,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 12,
-            runSpacing: 8,
-            children: [
-              if (sum != null)
-                Text(
-                  sum,
-                  key: const ValueKey('customize_total'),
-                  style: type.baseline.bodyLarge?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              if (widget.showFinishes) _finishes(context, s),
-            ],
+          // One line of a fixed height, shrunk rather than wrapped: a longer
+          // sum never moves the sheet ("the whole sheet jumps", 14 Nov).
+          SizedBox(
+            key: const ValueKey('customize_summary'),
+            height: MediaQuery.textScalerOf(context).scale(40),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (sum != null)
+                    Text(
+                      sum,
+                      key: const ValueKey('customize_total'),
+                      maxLines: 1,
+                      style: type.baseline.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  if (sum != null && widget.showFinishes)
+                    const SizedBox(width: 12),
+                  if (widget.showFinishes) _finishes(context, s),
+                ],
+              ),
+            ),
           ),
         ],
       ],
@@ -1221,7 +915,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
 
   /// How often the interval bell rings: off, halfway, or every N minutes
   /// (with an optional random window).
-  Widget _intervalWheels(CueSettings s) {
+  List<Widget> _intervalWheels(CueSettings s) {
     // 0 is Off and -1 Halfway; the rest are minutes.
     const halfway = -1;
     final every = !s.hasIntervalBell
@@ -1230,61 +924,56 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
         ? halfway
         : s.intervalMinutes;
     final minutes = !s.intervalHalfway && s.intervalMinutes > 0;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: _WheelRow([
-        _wheel<int>(
-          card: _Card.intervalBell,
-          label: 'Every',
-          options: [
-            const WheelOption(0, 'Off'),
-            const WheelOption(
-              halfway,
-              'Halfway',
-              semanticsLabel: 'Halfway, one bell at the midpoint',
-            ),
-            for (var m = 1; m <= 60; m++)
-              WheelOption(m, '$m min', semanticsLabel: _spokenMinutes(m)),
-          ],
-          value: every,
-          parse: _range(1, 60),
-          hint: '1 to 60 minutes',
-          apply: (v) {
-            // The bell list's Off leaves no sound; choosing a rhythm turns
-            // the bell back on with the default one, so the wheel and the
-            // row never disagree.
-            final sound = v != 0 && s.intervalSound.isEmpty
-                ? cueDefaultBell
-                : s.intervalSound;
-            if (v == halfway) {
-              return s.copyWith(intervalHalfway: true, intervalSound: sound);
-            }
-            // A shorter interval pulls the random window in with it, so the
-            // saved value never exceeds what the wheel can show.
-            return s.copyWith(
-              intervalHalfway: false,
-              intervalMinutes: v,
-              intervalSound: sound,
-              randomWindowMinutes: s.randomWindowMinutes.clamp(0, v),
-            );
-          },
-        ),
-        if (minutes)
-          _wheel<int>(
-            card: _Card.intervalBell,
-            label: 'Random window',
-            options: [
-              const WheelOption(0, 'Exact'),
-              for (var m = 1; m <= s.intervalMinutes; m++)
-                WheelOption(m, '± $m min', semanticsLabel: _spokenMinutes(m)),
-            ],
-            value: s.randomWindowMinutes.clamp(0, s.intervalMinutes),
-            parse: _range(0, s.intervalMinutes),
-            hint: '0 to ${s.intervalMinutes} minutes',
-            apply: (v) => s.copyWith(randomWindowMinutes: v),
+    return [
+      _wheel<int>(
+        label: 'Every',
+        options: [
+          const WheelOption(0, 'Off'),
+          const WheelOption(
+            halfway,
+            'Halfway',
+            semanticsLabel: 'Halfway, one bell at the midpoint',
           ),
-      ]),
-    );
+          for (var m = 1; m <= 60; m++)
+            WheelOption(m, '$m min', semanticsLabel: _spokenMinutes(m)),
+        ],
+        value: every,
+        parse: _range(1, 60),
+        hint: '1 to 60 minutes',
+        apply: (v) {
+          // The bell list's Off leaves no sound; choosing a rhythm turns
+          // the bell back on with the default one, so the wheel and the
+          // row never disagree.
+          final sound = v != 0 && s.intervalSound.isEmpty
+              ? cueDefaultBell
+              : s.intervalSound;
+          if (v == halfway) {
+            return s.copyWith(intervalHalfway: true, intervalSound: sound);
+          }
+          // A shorter interval pulls the random window in with it, so the
+          // saved value never exceeds what the wheel can show.
+          return s.copyWith(
+            intervalHalfway: false,
+            intervalMinutes: v,
+            intervalSound: sound,
+            randomWindowMinutes: s.randomWindowMinutes.clamp(0, v),
+          );
+        },
+      ),
+      if (minutes)
+        _wheel<int>(
+          label: 'Random window',
+          options: [
+            const WheelOption(0, 'Exact'),
+            for (var m = 1; m <= s.intervalMinutes; m++)
+              WheelOption(m, '± $m min', semanticsLabel: _spokenMinutes(m)),
+          ],
+          value: s.randomWindowMinutes.clamp(0, s.intervalMinutes),
+          parse: _range(0, s.intervalMinutes),
+          hint: '0 to ${s.intervalMinutes} minutes',
+          apply: (v) => s.copyWith(randomWindowMinutes: v),
+        ),
+    ];
   }
 
   Widget _pulseEditor(CueSettings s) {
@@ -1313,47 +1002,50 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
         if (s.pulseSound.isNotEmpty) ...[
           const SizedBox(height: 12),
           // Rate · over · Ends at, read as one line like a date's wheels
-          // (#73). Ends at waits, dimmed, until there is a ramp to end.
-          _WheelRow([
-            _wheel<double>(
-              card: _Card.rhythm,
-              label: l10n.customizeRhythmRate,
-              options: bpm,
-              value: s.pulseBpm.roundToDouble(),
-              parse: parseBpm,
-              hint: '20 to 120 BPM',
-              apply: (v) => s.copyWith(pulseBpm: v),
+          // (#73), and the pulse's volume as a fourth column. Ends at
+          // waits, dimmed, until there is a ramp to end.
+          _WheelRow(
+            [
+              _wheel<double>(
+                label: l10n.customizeRhythmRate,
+                options: bpm,
+                value: s.pulseBpm.roundToDouble(),
+                parse: parseBpm,
+                hint: '20 to 120 BPM',
+                apply: (v) => s.copyWith(pulseBpm: v),
+              ),
+              _wheel<int>(
+                label: l10n.customizeRhythmSlowDownOver,
+                title: l10n.customizeRhythmOver,
+                options: [
+                  const WheelOption(0, 'Off'),
+                  for (var m = 1; m <= 60; m++)
+                    WheelOption(m, '$m min', semanticsLabel: _spokenMinutes(m)),
+                ],
+                value: s.pulseRampMinutes,
+                parse: _range(0, 60),
+                hint: '0 to 60 minutes',
+                apply: (v) => s.copyWith(pulseRampMinutes: v),
+              ),
+              _wheel<double>(
+                label: l10n.customizeRhythmEndsAt,
+                options: bpm,
+                value: s.pulseEndBpm.roundToDouble(),
+                parse: parseBpm,
+                hint: '20 to 120 BPM',
+                enabled: s.pulseRampMinutes > 0,
+                apply: (v) => s.copyWith(pulseEndBpm: v),
+              ),
+            ],
+            trailing: _VolumeColumn(
+              key: const ValueKey('customize_volume_pulse'),
+              label: 'Pulse volume',
+              title: 'Volume',
+              value: s.pulseVolume,
+              height: _wheelHeight,
+              format: _percent,
+              onChanged: (v) => _edit(s.copyWith(pulseVolume: v)),
             ),
-            _wheel<int>(
-              card: _Card.rhythm,
-              label: l10n.customizeRhythmSlowDownOver,
-              title: l10n.customizeRhythmOver,
-              options: [
-                const WheelOption(0, 'Off'),
-                for (var m = 1; m <= 60; m++)
-                  WheelOption(m, '$m min', semanticsLabel: _spokenMinutes(m)),
-              ],
-              value: s.pulseRampMinutes,
-              parse: _range(0, 60),
-              hint: '0 to 60 minutes',
-              apply: (v) => s.copyWith(pulseRampMinutes: v),
-            ),
-            _wheel<double>(
-              card: _Card.rhythm,
-              label: l10n.customizeRhythmEndsAt,
-              options: bpm,
-              value: s.pulseEndBpm.roundToDouble(),
-              parse: parseBpm,
-              hint: '20 to 120 BPM',
-              enabled: s.pulseRampMinutes > 0,
-              apply: (v) => s.copyWith(pulseEndBpm: v),
-            ),
-          ]),
-          _SliderRow(
-            label: 'Pulse volume',
-            value: s.pulseVolume,
-            format: _percent,
-            onChanged: (v) => _edit(s.copyWith(pulseVolume: v)),
           ),
         ],
       ],
@@ -1380,66 +1072,6 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
     return _Pill(
       'Finishes at $time',
       key: const ValueKey('customize_finishes'),
-    );
-  }
-
-  SoundscapeSessionKind get _soundscapeKind => soundscapeKindFor(_scope.kind);
-
-  /// What plays under this scope's sessions: its own choice, or the mixer's
-  /// default for the kind (Off while that is switched off).
-  SoundscapeSelection _soundscapeChoice(CueSettings s, SoundscapeState mixer) {
-    final setting = SoundscapeController.sessionSetting(
-      mixer.sessionDefault(_soundscapeKind),
-      s.soundscapeSelection,
-    );
-    if (!setting.enabled) return SoundscapeSelection.none;
-    // Shown as it will play: a deleted preset or a dropped sound is the
-    // current mix.
-    final selection = setting.selection;
-    return mixer.playable(
-      selection,
-      // Only a single sound, or a mix of its own, needs the library
-      // (loaded on demand).
-      selection.kind == SoundscapeSelectionKind.sound ||
-              selection.kind == SoundscapeSelectionKind.layers
-          ? ref.read(soundLibraryProvider).value
-          : null,
-    );
-  }
-
-  /// Opens the Sounds sheet on what plays under these sessions; what is
-  /// left in it is kept: for the course when it has its own settings,
-  /// otherwise for the kind (the Sounds sheet's "Plays under" line shows the
-  /// same). During a session it plays at once.
-  Future<void> _chooseSound() async {
-    _dismissUndo();
-    _silence();
-    // Taken now: the sheet may be gone by the time the Sounds sheet closes.
-    final container = ProviderScope.containerOf(context);
-    final scope = _scope;
-    final courseOverride = _courseOverride;
-    final inSession = widget.isActive;
-    final choice = await showSoundsSheetFor(
-      context,
-      kind: _soundscapeKind,
-      current: _soundscapeChoice(
-        ref.read(cueSettingsProvider(scope)),
-        ref.read(soundscapeProvider),
-      ),
-      inSession: inSession,
-      // A course's own choice, made away from its session, is not what a
-      // running sit of the kind plays.
-      playsNow: inSession || !courseOverride,
-      // Its messenger's snackbars would sit under this sheet.
-      announce: false,
-    );
-    if (choice == null) return;
-    chooseScopeSound(
-      container,
-      scope,
-      choice,
-      courseOverride: courseOverride,
-      inSession: inSession,
     );
   }
 
@@ -1546,82 +1178,14 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet>
           to: '${s.pulseEndBpm.round()} BPM',
           over: _l10n.customizeRhythmOverMinutes(s.pulseRampMinutes),
         );
-
-  /// Whether what plays under these sessions differs from the defaults:
-  /// for a course, from its kind's choice; for a kind, from nothing.
-  bool _soundDiffers(CueSettings s, CueSettings reference) {
-    final mixer = ref.watch(soundscapeProvider);
-    final choice = _soundscapeChoice(s, mixer).encode();
-    if (_courseOverride) {
-      return choice != _soundscapeChoice(reference, mixer).encode();
-    }
-    return choice != SoundscapeSelection.none.encode();
-  }
-
-  /// The header's Sound button: what plays under these sessions, by name,
-  /// with the chosen sound's art as on the Sounds screen. Filled when it
-  /// differs from the defaults. It opens the Sounds sheet (#66).
-  Widget _soundButton(CueSettings s, CueSettings reference) {
-    final mixer = ref.watch(soundscapeProvider);
-    final subject = soundChoiceArt(mixer, _soundscapeChoice(s, mixer));
-    return _SoundButton(
-      key: const ValueKey('customize_sound'),
-      art: subject == null
-          ? null
-          : ClipRRect(
-              key: const ValueKey('customize_sound_art'),
-              borderRadius: BorderRadius.circular(MeditejoShapes.small),
-              child: SizedBox.square(
-                dimension: 28,
-                child: ArtCover(subject: subject),
-              ),
-            ),
-      label: _l10n.customizeSlotSound,
-      value: _backgroundValue(s),
-      changed: _soundDiffers(s, reference),
-      onTap: _chooseSound,
-    );
-  }
-
-  String _backgroundValue(CueSettings s) {
-    final mixer = ref.watch(soundscapeProvider);
-    return soundChoiceLabel(
-      _l10n,
-      mixer,
-      ref.watch(soundLibraryProvider).value ?? SoundLibrary.empty,
-      _soundscapeChoice(s, mixer),
-    );
-  }
 }
 
-/// The dial and the tiles, or a card: faded and slid a little aside by how
-/// far it is from being the one shown ([at]: 0 shown, -1 gone to the left,
-/// 1 waiting on the right).
-class _Pane extends StatelessWidget {
-  const _Pane({required this.at, required this.child});
-
-  final double at;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Opacity(
-    opacity: (1 - at.abs()).clamp(0.0, 1.0),
-    child: Transform.translate(
-      offset: Directionality.of(context) == TextDirection.rtl
-          ? Offset(-at * 40, 0)
-          : Offset(at * 40, 0),
-      child: child,
-    ),
-  );
-}
-
-/// The sheet's title and whose settings these are, with the Sound button
-/// at the end of the row: the same place wherever the sheet opens.
+/// The sheet's title and whose settings these are. (Sounds has its own
+/// floating button, reachable from everywhere.)
 class _Header extends StatelessWidget {
-  const _Header({required this.subtitle, required this.sound});
+  const _Header({required this.subtitle});
 
   final String subtitle;
-  final Widget sound;
 
   @override
   Widget build(BuildContext context) {
@@ -1629,55 +1193,41 @@ class _Header extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 16, 8),
-      child: Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 12,
-        runSpacing: 8,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Semantics(
-                header: true,
-                child: Text('Customize', style: type.emphasized.headlineSmall),
-              ),
-              Text(
-                subtitle,
-                style: type.baseline.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+          Semantics(
+            header: true,
+            child: Text('Customize', style: type.emphasized.headlineSmall),
           ),
-          sound,
+          Text(
+            subtitle,
+            style: type.baseline.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-/// A card's own header: Back, and the name of the tile that opened it.
-class _CardHeader extends StatelessWidget {
-  const _CardHeader({required this.title, required this.onBack});
+/// A tile's sheet over Customize: its name, and what it sets.
+class _CardSheet extends StatelessWidget {
+  const _CardSheet({super.key, required this.title, required this.child});
 
   final String title;
-  final VoidCallback onBack;
+  final Widget child;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(8, 0, 16, 8),
-    child: Row(
+  Widget build(BuildContext context) => SafeArea(
+    top: false,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        IconButton(
-          key: const ValueKey('customize_card_back'),
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: onBack,
-        ),
-        const SizedBox(width: 4),
-        Expanded(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 16, 8),
           child: Semantics(
             header: true,
             child: Text(
@@ -1686,89 +1236,49 @@ class _CardHeader extends StatelessWidget {
             ),
           ),
         ),
+        Flexible(
+          child: SingleChildScrollView(
+            key: const ValueKey('customize_card_list'),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+            child: child,
+          ),
+        ),
       ],
     ),
   );
 }
 
-/// What plays under the session, as a button: its art (or the Sounds
-/// symbol) and its name. Filled when a sound is chosen that the defaults
-/// do not have, outlined otherwise.
-class _SoundButton extends StatelessWidget {
-  const _SoundButton({
-    super.key,
-    required this.art,
-    required this.label,
-    required this.value,
-    required this.changed,
-    required this.onTap,
+/// The Timer's ∞: filled in the primary colour while the timer is
+/// open-ended, outlined while it is not, so either state reads at a glance.
+class _InfinityToggle extends StatelessWidget {
+  const _InfinityToggle({
+    required this.on,
+    required this.tooltip,
+    required this.onPressed,
   });
 
-  final Widget? art;
-  final String label, value;
-  final bool changed;
-  final VoidCallback onTap;
+  final bool on;
+  final String tooltip;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final onColor = changed ? scheme.onSecondaryContainer : scheme.onSurface;
-    return Semantics(
-      button: true,
-      label: '$label, $value',
-      excludeSemantics: true,
-      onTap: onTap,
-      child: Material(
-        color: changed ? scheme.secondaryContainer : Colors.transparent,
-        clipBehavior: Clip.antiAlias,
-        shape: StadiumBorder(
-          side: changed
-              ? BorderSide.none
-              : BorderSide(color: scheme.outlineVariant),
-        ),
-        child: InkWell(
-          onTap: onTap,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 48),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(10, 6, 16, 6),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox.square(
-                    dimension: 28,
-                    child: Center(
-                      child:
-                          art ??
-                          Icon(
-                            Icons.graphic_eq_rounded,
-                            size: 22,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: MediaQuery.textScalerOf(context).scale(132),
-                      ),
-                      child: Text(
-                        value,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.typography.emphasized.labelLarge
-                            ?.copyWith(color: onColor),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    const icon = Icon(Icons.all_inclusive_rounded);
+    return on
+        ? IconButton.filled(
+            key: const ValueKey('customize_infinity'),
+            isSelected: true,
+            tooltip: tooltip,
+            icon: icon,
+            onPressed: onPressed,
+          )
+        : IconButton.outlined(
+            key: const ValueKey('customize_infinity'),
+            isSelected: false,
+            tooltip: tooltip,
+            icon: icon,
+            onPressed: onPressed,
+          );
   }
 }
 
@@ -2158,12 +1668,14 @@ class _WheelField<T> extends StatelessWidget {
 
 /// Wheels side by side (one to three), narrow and centred, with a gutter
 /// each side and a gap between them (#91): a thumb scrolling the sheet lands
-/// there and scrolls it, rather than turning a wheel. When large text needs
-/// the width they stack, each still centred between gutters.
+/// there and scrolls it, rather than turning a wheel. [trailing], a narrow
+/// column (a volume), ends the row. When large text needs the width they
+/// stack, each still centred between gutters.
 class _WheelRow extends StatelessWidget {
-  const _WheelRow(this.wheels, {this.hero = false});
+  const _WheelRow(this.wheels, {this.hero = false, this.trailing});
 
   final List<Widget> wheels;
+  final Widget? trailing;
 
   /// The sheet's dial: one wheel, wider.
   final bool hero;
@@ -2174,6 +1686,9 @@ class _WheelRow extends StatelessWidget {
   static const narrowWheelWidth = 80.0;
   static const heroWheelWidth = 208.0;
 
+  /// The width of [trailing].
+  static const trailingWidth = 56.0;
+
   /// The least room left free each side of the wheels.
   static const gutter = 28.0;
   static const gap = 12.0;
@@ -2181,7 +1696,9 @@ class _WheelRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scaler = MediaQuery.textScalerOf(context);
-    final stacked = wheels.length > 1 && scaler.scale(10) > 13;
+    final trailing = this.trailing;
+    final columns = wheels.length + (trailing == null ? 0 : 1);
+    final stacked = columns > 1 && scaler.scale(10) > 13;
     return LayoutBuilder(
       builder: (context, constraints) {
         final room = math.max(0.0, constraints.maxWidth - 2 * gutter);
@@ -2198,35 +1715,121 @@ class _WheelRow extends StatelessWidget {
                 Center(
                   child: SizedBox(width: widest, child: wheel),
                 ),
+              if (trailing != null)
+                Center(
+                  child: SizedBox(width: trailingWidth, child: trailing),
+                ),
             ],
           );
         }
-        final each = math.min(
-          widest,
-          (room - gap * (wheels.length - 1)) / wheels.length,
-        );
-        final row = Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (final (i, wheel) in wheels.indexed) ...[
-              if (i > 0) const SizedBox(width: gap),
-              SizedBox(width: each, child: wheel),
+        final forWheels =
+            room - gap * (columns - 1) - (trailing == null ? 0 : trailingWidth);
+        final each = math.min(widest, forWheels / wheels.length);
+        // Centred: the spare room goes evenly to both sides (Burooj, 14 Nov:
+        // "the three wheels sit left of centre").
+        return Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final (i, wheel) in wheels.indexed) ...[
+                if (i > 0) const SizedBox(width: gap),
+                SizedBox(width: each, child: wheel),
+              ],
+              if (trailing != null) ...[
+                const SizedBox(width: gap),
+                SizedBox(width: trailingWidth, child: trailing),
+              ],
             ],
-          ],
-        );
-        if (wheels.length == 1) return Center(child: row);
-        // Spare room beyond the 28 dp gutters goes 1 : 4, the larger share
-        // on the right, where a right thumb scrolls: about 50 dp there for
-        // three wheels at 411 dp. Where there is no spare room (360 dp),
-        // both gutters stay at 28 dp.
-        final used = each * wheels.length + gap * (wheels.length - 1);
-        final spare = math.max(0.0, constraints.maxWidth - used - 2 * gutter);
-        return Padding(
-          padding: EdgeInsetsDirectional.only(start: gutter + spare * 0.2),
-          child: Align(alignment: AlignmentDirectional.centerStart, child: row),
+          ),
         );
       },
+    );
+  }
+}
+
+/// A volume (0 to 1) standing as a column beside wheels: its title level
+/// with theirs, a vertical slider as tall as they are, and the level under
+/// it.
+class _VolumeColumn extends StatelessWidget {
+  const _VolumeColumn({
+    super.key,
+    required this.label,
+    this.title,
+    required this.value,
+    required this.height,
+    required this.format,
+    required this.onChanged,
+  });
+
+  /// What a screen reader calls it.
+  final String label;
+
+  /// The word above it; none where the wheels beside it show none.
+  final String? title;
+  final double value;
+
+  /// The wheels' height.
+  final double height;
+  final String Function(double) format;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final type = context.typography;
+    final labelStyle = type.baseline.labelLarge?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+    final title = this.title;
+    return Semantics(
+      label: label,
+      child: Column(
+        children: [
+          if (title != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4, top: 4),
+              child: ExcludeSemantics(
+                child: SizedBox(
+                  height: MediaQuery.textScalerOf(context).scale(
+                    (labelStyle?.fontSize ?? 14) * (labelStyle?.height ?? 1.43),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(title, maxLines: 1, style: labelStyle),
+                  ),
+                ),
+              ),
+            ),
+          SizedBox(
+            height: math.max(0, height - 24),
+            child: RotatedBox(
+              quarterTurns: 3,
+              child: Slider(
+                value: value.clamp(0, 1),
+                divisions: 20,
+                label: format(value),
+                semanticFormatterCallback: format,
+                onChanged: onChanged,
+              ),
+            ),
+          ),
+          SizedBox(
+            height: 24,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: ExcludeSemantics(
+                child: Text(
+                  format(value),
+                  style: type.emphasized.bodyMedium?.copyWith(
+                    color: scheme.primary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -2311,58 +1914,6 @@ class _ArrowPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ArrowPainter oldDelegate) => oldDelegate.color != color;
-}
-
-/// The bar a wheel's change brings up: what it set, and Undo. Styled as
-/// the app's snackbars; announced to a screen reader as it appears.
-class _UndoBar extends StatelessWidget {
-  const _UndoBar({super.key, required this.message, required this.onUndo});
-
-  final String message;
-  final VoidCallback onUndo;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final l10n =
-        AppLocalizations.of(context) ??
-        lookupAppLocalizations(const Locale('en'));
-    return Semantics(
-      container: true,
-      liveRegion: true,
-      child: Material(
-        key: const ValueKey('customize_undo'),
-        color: scheme.inverseSurface,
-        shape: MeditejoShapes.rounded(MeditejoShapes.medium),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 48),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 2, 4, 2),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    message,
-                    style: context.typography.baseline.bodyMedium?.copyWith(
-                      color: scheme.onInverseSurface,
-                    ),
-                  ),
-                ),
-                TextButton(
-                  key: const ValueKey('customize_undo_button'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: scheme.inversePrimary,
-                  ),
-                  onPressed: onUndo,
-                  child: Text(l10n.undo),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _Caption extends StatelessWidget {
