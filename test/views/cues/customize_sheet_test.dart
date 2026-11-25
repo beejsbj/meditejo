@@ -1680,7 +1680,11 @@ void main() {
         closeTo(section.right - firstVolume.right, 1),
       );
       expect(firstVolume.left, greaterThan(firstEnds.right));
-      expect(firstVolume.top, closeTo(firstRate.top, 1));
+      // Its slider stands where the wheels do, under a title like theirs.
+      final slider = tester.getRect(
+        find.descendant(of: volume, matching: find.byType(RotatedBox)),
+      );
+      expect(slider.top, closeTo(firstRate.top, 1));
       // The left gutter, the gaps between the wheels, the right gutter
       // (where a right thumb lands).
       for (final x in <double Function(Rect, Rect, Rect)>[
