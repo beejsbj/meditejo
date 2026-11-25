@@ -44,11 +44,11 @@ void main() {
     final container = await _open({});
     final tabs = container.read(mainTabProvider.notifier);
 
-    tabs.select(MainTab.sounds);
-    expect(container.read(mainTabProvider), MainTab.sounds);
+    tabs.select(MainTab.library);
+    expect(container.read(mainTabProvider), MainTab.library);
 
-    tabs.select(MainTab.you);
-    expect(container.read(mainTabProvider), MainTab.you);
+    tabs.select(MainTab.settings);
+    expect(container.read(mainTabProvider), MainTab.settings);
   });
 
   group('links that open a tab', () {
@@ -56,11 +56,15 @@ void main() {
       expect(tabForLink('home'), MainTab.home);
       expect(tabForLink('explore'), MainTab.explore);
       expect(tabForLink('search'), MainTab.explore);
-      expect(tabForLink('sounds'), MainTab.sounds);
       expect(tabForLink('library'), MainTab.library);
-      expect(tabForLink('you'), MainTab.you);
-      // Settings lives under You.
-      expect(tabForLink('settings'), MainTab.you);
+      expect(tabForLink('settings'), MainTab.settings);
+      // You is a page over the tabs, and Sounds a sheet: not tabs.
+      expect(tabForLink('you'), isNull);
+      expect(tabForLink('sounds'), isNull);
+      expect(opensSoundsSheet('sounds', const []), isTrue);
+      expect(opensSoundsSheet('route', const ['sounds']), isTrue);
+      expect(opensSoundsSheet('route', const ['timer']), isFalse);
+      expect(opensSoundsSheet('library', const []), isFalse);
       expect(tabForLink('tracks'), isNull);
     });
 
@@ -68,9 +72,8 @@ void main() {
       expect(MainTab.values.map((t) => t.name), [
         'home',
         'explore',
-        'sounds',
         'library',
-        'you',
+        'settings',
       ]);
     });
   });

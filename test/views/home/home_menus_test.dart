@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
@@ -18,6 +19,7 @@ import 'package:medito/services/library/library_models.dart';
 import 'package:medito/views/home/home_view.dart';
 import 'package:medito/views/pack/pack_view.dart';
 import 'package:medito/views/track/track_view.dart';
+import 'package:medito/widgets/cards/card_actions.dart';
 
 import '../../helpers/dharma_seed_app.dart';
 import '../../helpers/library_app.dart';
@@ -161,22 +163,38 @@ void main() {
   setUp(_prepared.clear);
 
   group('Continue card menu', () {
-    for (final how in ['long-press', 'the more button']) {
-      testWidgets('opens with $how and offers all three actions', (
-        tester,
-      ) async {
-        await _pumpHome(tester);
-        if (how == 'long-press') {
-          await tester.longPress(find.byKey(const ValueKey('continue_t1')));
-        } else {
-          await tester.tap(find.byTooltip('More options for Title t1'));
-        }
-        await settle(tester);
-        expect(find.text('Open course'), findsOneWidget);
-        expect(find.text('Restart'), findsOneWidget);
-        expect(find.text('Remove from Continue'), findsOneWidget);
-      });
-    }
+    testWidgets('has no ⋮: a long-press opens it, with all three actions', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await _pumpHome(tester);
+      final card = find.byKey(const ValueKey('continue_t1'));
+      // The play button is the one control on the card.
+      expect(find.byTooltip('More options for Title t1'), findsNothing);
+      expect(
+        find.descendant(of: card, matching: find.byType(CardMenuButton)),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: card, matching: find.byType(IconButton)),
+        findsOneWidget,
+      );
+      // A screen reader hears that holding it does something, and what.
+      final data = tester.getSemantics(card).getSemanticsData();
+      expect(data.hasAction(SemanticsAction.longPress), isTrue);
+      expect(
+        tester.getSemantics(card).hintOverrides?.onLongPressHint,
+        'show more options',
+      );
+
+      await tester.longPress(card);
+      await settle(tester);
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.text('Open course'), findsOneWidget);
+      expect(find.text('Restart'), findsOneWidget);
+      expect(find.text('Remove from Continue'), findsOneWidget);
+      semantics.dispose();
+    });
 
     testWidgets('a course start has nothing to restart', (tester) async {
       await _pumpHome(tester, resume: false);
@@ -281,7 +299,7 @@ void main() {
       final page = tester.widget<TrackView>(find.byType(TrackView));
       expect(page.fromStart, isTrue);
       expect(_prepared, isEmpty);
-      await tester.tap(find.byType(ElevatedButton).first);
+      await tester.tap(find.byKey(const ValueKey('track_play')));
       for (var i = 0; i < 10; i++) {
         await tester.runAsync(
           () => Future.delayed(const Duration(milliseconds: 20)),

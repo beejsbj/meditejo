@@ -8,29 +8,22 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/constants/theme/tokens.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/models/presets/preset.dart';
 import 'package:medito/models/soundscape/sound_library.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/synth.dart';
 import 'package:medito/providers/background_sounds/background_sounds_notifier.dart';
+import 'package:medito/providers/presets/preset_providers.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
+import 'package:medito/views/presets/preset_actions.dart';
+import 'package:medito/views/presets/preset_labels.dart';
+import 'package:medito/widgets/art/art_cover.dart';
 
 import 'sound_cards.dart';
 import 'sound_credits_view.dart';
+import 'sounds_sheet.dart';
 import 'sound_labels.dart';
 import 'sound_mix_panel.dart';
-
-/// Opens the Sounds screen as a page of its own, over whatever is open (the
-/// player, its Customize sheet), so a session stays where it was. Home opens
-/// the Sounds tab instead.
-Future<void> openSoundsPage(BuildContext context) {
-  retryLegacySounds(ProviderScope.containerOf(context));
-  return Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      fullscreenDialog: true,
-      builder: (_) => const SoundsView(standalone: true),
-    ),
-  );
-}
 
 /// A failed fetch of the legacy background sounds is kept (keepAlive); retry
 /// it whenever Sounds opens, so coming back online brings them back.
@@ -44,18 +37,23 @@ void retryLegacySounds(ProviderContainer container) {
 /// docked under it.
 const kSoundsTwoPaneWidth = 840.0;
 
-/// The Sounds tab: presets to start in one tap, the library shelf by shelf
-/// as cards, whether the mix plays under sessions, and the credits. The
-/// current mix is docked at the foot (a bar with play/pause that opens into
-/// a panel) or, on a wide window, a panel beside the library.
+/// The mixer (#66, a sheet since 2026-11-10): presets to start in one tap,
+/// the library shelf by shelf as cards, what plays under sessions, and the
+/// credits. The current mix is docked at the foot (a bar with play/pause
+/// that opens into a panel) or, on a wide window, a panel beside the
+/// library.
+///
+/// It is the body of the one Sounds sheet (see [SoundsSheetSession]): on
+/// the user's own mix, or on what plays under a session or a kind of
+/// session, which its dock then says. Without a [session] it makes its own
+/// (tests, previews).
 ///
 /// Bells are not here: the cue scheduler owns them, set in Customize.
 class SoundsView extends ConsumerStatefulWidget {
-  const SoundsView({super.key, this.standalone = false});
+  const SoundsView({super.key, this.session});
 
-  /// Pushed as a page of its own (from the player or Customize): it closes
-  /// with a button, and back folds an open mix first.
-  final bool standalone;
+  /// What the sheet is editing; whoever opened the sheet ends it.
+  final SoundsSheetSession? session;
 
   @override
   ConsumerState<SoundsView> createState() => SoundsViewState();
@@ -68,6 +66,35 @@ class SoundsViewState extends ConsumerState<SoundsView>
     vsync: this,
   );
   bool _open = false;
+
+  SoundsSheetSession? _ownSession;
+  late final SoundsSheetSession _session =
+      widget.session ??
+      (_ownSession = SoundsSheetSession(
+        ProviderScope.containerOf(context, listen: false),
+      ));
+
+  final _libraryScroll = ScrollController();
+
+  /// Whether a session ran when the sheet opened: one that starts or ends
+  /// under the user's own mix closes the sheet too.
+  late final bool _openedInSession;
+
+  @override
+  void initState() {
+    super.initState();
+    _openedInSession = ref.read(soundscapeProvider).inSession;
+    _session.addListener(_onSessionChanged);
+  }
+
+  /// The sheet turned to a kind's default, or back: the same sheet, from
+  /// its top, with the mix folded.
+  void _onSessionChanged() {
+    if (!mounted) return;
+    setState(() {});
+    if (_open) _settle(false);
+    if (_libraryScroll.hasClients) _libraryScroll.jumpTo(0);
+  }
 
   @override
   void didChangeDependencies() {
@@ -86,8 +113,44 @@ class SoundsViewState extends ConsumerState<SoundsView>
 
   @override
   void dispose() {
+    _session.removeListener(_onSessionChanged);
+    _ownSession?.dispose();
+    _libraryScroll.dispose();
     _dock.dispose();
     super.dispose();
+  }
+
+  /// Set once the sheet has started to leave because a session overtook it.
+  bool _leaving = false;
+
+  /// A session that started or ended under the sheet (the sit ended,
+  /// autoplay moved on) owns the mixer, and what the sheet would edit is no
+  /// longer what it opened on. It leaves; whoever opened it says so.
+  void _leaveIfOvertaken() {
+    final mixer = ref.read(soundscapeProvider.notifier);
+    final overtaken = mixer.auditioning
+        ? !mixer.auditionIntact
+        : ref.read(soundscapeProvider).inSession != _openedInSession;
+    if (_leaving || !overtaken) return;
+    _leaving = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      final navigator = Navigator.of(context);
+      if (route == null || !route.isActive) return;
+      // Not a route of its own (a test, a preview): nothing to close.
+      if (route is! PopupRoute) return;
+      // What the sheet opened over itself (a synth editor, the preset
+      // name) goes with it; a page pushed over it (a deep link, the player
+      // the new session opened) stays, and the sheet is taken out from
+      // under it.
+      navigator.popUntil((r) => r == route || r is PageRoute);
+      if (route.isCurrent) {
+        navigator.pop();
+      } else {
+        navigator.removeRoute(route);
+      }
+    });
   }
 
   /// Folds an open mix panel. True when there was one to fold, so Android's
@@ -143,39 +206,69 @@ class SoundsViewState extends ConsumerState<SoundsView>
   /// the user's text size) and the safe area beneath.
   double _barHeight(BuildContext context) =>
       20 +
-      math.max(56, MediaQuery.textScalerOf(context).scale(44)) +
+      math.max(
+        56,
+        // A session's title ("Plays under practice") may take two lines.
+        MediaQuery.textScalerOf(context).scale(_chooser == null ? 44 : 72),
+      ) +
       16 +
       MediaQuery.paddingOf(context).bottom;
+
+  SoundChooser? get _chooser => switch (_session.kind) {
+    final kind? => SoundChooser(kind),
+    null => null,
+  };
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final page = Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.backgroundSoundsSection),
-        actions: [
-          IconButton(
-            key: const ValueKey('sound_credits'),
-            tooltip: l10n.soundsCredits,
-            onPressed: () => _openCredits(context),
-            icon: const Icon(Symbols.info_rounded),
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
-      body: LayoutBuilder(
-        builder: (context, box) => box.maxWidth >= kSoundsTwoPaneWidth
-            ? _twoPane(context)
-            : _docked(context, box),
-      ),
-    );
-    if (!widget.standalone) return page;
+    ref.listen(soundscapeProvider, (_, _) => _leaveIfOvertaken());
+    final back = _session.canGoBack;
     return PopScope(
-      canPop: !_open,
+      canPop: !_open && !back,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) collapseMix();
+        if (didPop || collapseMix()) return;
+        _session.back();
       },
-      child: page,
+      child: Scaffold(
+        // The sheet's own colour.
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: Colors.transparent,
+          scrolledUnderElevation: 0,
+          toolbarHeight: 48,
+          titleSpacing: back ? 0 : 20,
+          // Turned to a kind's default: back to the user's own mix.
+          leading: back
+              ? IconButton(
+                  key: const ValueKey('sounds_back'),
+                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                  onPressed: _session.back,
+                  icon: const Icon(Symbols.arrow_back_rounded),
+                )
+              : null,
+          title: Text(
+            l10n.backgroundSoundsSection,
+            style: context.typography.emphasized.titleLarge,
+          ),
+          actions: [
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 16),
+              child: FilledButton.tonal(
+                key: const ValueKey('sounds_chooser_done'),
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(l10n.soundsDone),
+              ),
+            ),
+          ],
+        ),
+        body: LayoutBuilder(
+          builder: (context, box) => box.maxWidth >= kSoundsTwoPaneWidth
+              ? _twoPane(context)
+              : _docked(context, box),
+        ),
+      ),
     );
   }
 
@@ -185,7 +278,13 @@ class SoundsViewState extends ConsumerState<SoundsView>
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(child: _SoundsLibrary(bottomPadding: bottom + 24)),
+        Expanded(
+          child: _SoundsLibrary(
+            bottomPadding: bottom + 24,
+            session: _session,
+            controller: _libraryScroll,
+          ),
+        ),
         SizedBox(
           width: 400,
           child: Padding(
@@ -196,12 +295,13 @@ class SoundsViewState extends ConsumerState<SoundsView>
               clipBehavior: Clip.antiAlias,
               child: Column(
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 16, 8, 8),
-                    child: SoundsMixHeader(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+                    child: SoundsMixHeader(chooser: _chooser),
                   ),
                   Expanded(
                     child: SoundsMixBody(
+                      chooser: _chooser,
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     ),
                   ),
@@ -220,9 +320,30 @@ class SoundsViewState extends ConsumerState<SoundsView>
     final full = math.max(bar, box.maxHeight - 32);
     final travel = math.max(1.0, full - bar);
     final bottom = MediaQuery.paddingOf(context).bottom;
+    return SoundsDockBar(
+      height: bar,
+      child: _dockedStack(context, box, scheme, bar, full, travel, bottom),
+    );
+  }
+
+  Widget _dockedStack(
+    BuildContext context,
+    BoxConstraints box,
+    ColorScheme scheme,
+    double bar,
+    double full,
+    double travel,
+    double bottom,
+  ) {
     return Stack(
       children: [
-        Positioned.fill(child: _SoundsLibrary(bottomPadding: bar + 24)),
+        Positioned.fill(
+          child: _SoundsLibrary(
+            bottomPadding: bar + 24,
+            session: _session,
+            controller: _libraryScroll,
+          ),
+        ),
         // A scrim over the library while the mix is open; tap it to fold.
         Positioned.fill(
           child: AnimatedBuilder(
@@ -250,15 +371,20 @@ class SoundsViewState extends ConsumerState<SoundsView>
             builder: (context, child) {
               final t = _dock.value;
               return SizedBox(
-                height: lerpDouble(bar, full, t)!.clamp(bar, box.maxHeight),
+                // The keyboard on another tab can leave less than the bar's
+                // height here, and clamp throws when its bounds cross.
+                height: math.min(
+                  math.max(lerpDouble(bar, full, t)!, bar),
+                  box.maxHeight,
+                ),
                 child: child,
               );
             },
             child: Material(
               key: const ValueKey('sounds_dock'),
+              // One step up from the sheet and no shadow: the dock is part
+              // of the sheet, not a card over it.
               color: scheme.surfaceContainerHigh,
-              elevation: 3,
-              shadowColor: scheme.shadow.withValues(alpha: 0.4),
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.vertical(
                   top: Radius.circular(MeditejoShapes.extraLarge),
@@ -282,6 +408,7 @@ class SoundsViewState extends ConsumerState<SoundsView>
                             child: SoundsMixHeader(
                               expanded: _open,
                               onToggle: _toggle,
+                              chooser: _chooser,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -303,6 +430,7 @@ class SoundsViewState extends ConsumerState<SoundsView>
                         );
                       },
                       child: SoundsMixBody(
+                        chooser: _chooser,
                         padding: EdgeInsets.fromLTRB(16, 0, 16, bottom + 16),
                       ),
                     ),
@@ -315,10 +443,6 @@ class SoundsViewState extends ConsumerState<SoundsView>
       ],
     );
   }
-
-  void _openCredits(BuildContext context) => Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const SoundCreditsView()));
 }
 
 class _DragHandle extends StatelessWidget {
@@ -342,35 +466,99 @@ class _DragHandle extends StatelessWidget {
   );
 }
 
-/// Presets, then the library shelf by shelf, then sessions and credits.
-class _SoundsLibrary extends ConsumerWidget {
-  const _SoundsLibrary({required this.bottomPadding});
+/// Presets, then the library shelf by shelf, then (on the user's own mix)
+/// what plays under sessions, and the credits. A search field on top
+/// narrows the shelves to the sounds whose name, shelf or recording
+/// matches; while it holds text, only those show.
+class _SoundsLibrary extends ConsumerStatefulWidget {
+  const _SoundsLibrary({
+    required this.bottomPadding,
+    required this.session,
+    required this.controller,
+  });
 
   final double bottomPadding;
+  final SoundsSheetSession session;
+  final ScrollController controller;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_SoundsLibrary> createState() => _SoundsLibraryState();
+}
+
+class _SoundsLibraryState extends ConsumerState<_SoundsLibrary> {
+  final _search = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  void _setQuery(String value) {
+    final query = value.trim().toLowerCase();
+    if (query != _query) setState(() => _query = query);
+  }
+
+  void _clear() {
+    _search.clear();
+    _setQuery('');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final library = ref.watch(soundLibraryProvider).value;
     final state = ref.watch(soundscapeProvider);
     final mixer = ref.read(soundscapeProvider.notifier);
     final full = !mixer.canAddLayer;
     final grid = SoundGridMetrics.of(context);
+    final searching = _query.isNotEmpty;
 
+    /// The card for [id]: its family's when it has variants (Train), on
+    /// whichever of them is in the mix.
     Widget card(String id, String title) {
-      final layer = state.mix.layers.where((l) => l.soundId == id).firstOrNull;
+      final variants = soundVariants(id);
+      final layer = state.mix.layers
+          .where((l) => variants.contains(l.soundId))
+          .firstOrNull;
       final inMix = layer != null;
+      final shown = layer?.soundId ?? id;
       return SoundCard(
         key: ValueKey('sound_$id'),
-        soundId: id,
+        soundId: shown,
         title: title,
-        params: layer?.params ?? defaultSynthParams(id),
+        params: layer?.params ?? defaultSynthParams(shown),
         selected: inMix,
         sounding: inMix && state.playing && layer.volume > 0,
         enabled: inMix || !full,
-        onTap: () => mixer.toggleSound(id),
+        onTap: () {
+          if (!inMix) return mixer.toggleSound(id);
+          // Every variant of the card in the mix goes with it.
+          for (final v in variants) {
+            if (ref.read(soundscapeProvider).mix.contains(v)) {
+              mixer.toggleSound(v);
+            }
+          }
+        },
       );
     }
+
+    bool matches(Iterable<String> words) =>
+        words.any((w) => w.toLowerCase().contains(_query));
+
+    /// Whether the card [id] (named [title], on the shelf [shelf]) is shown
+    /// for the query: by its name, its shelf's, or any of its recordings'.
+    bool wanted(String id, String title, String shelf) =>
+        !searching ||
+        matches([
+          title,
+          shelf,
+          for (final v in soundVariants(id)) ...[
+            if (library != null) soundVariantLabel(l10n, v, library),
+            ?library?[v]?.title,
+          ],
+        ]);
 
     List<Widget> shelf(
       String key,
@@ -378,42 +566,112 @@ class _SoundsLibrary extends ConsumerWidget {
       IconData icon,
       List<Widget> cards,
     ) => [
-      SliverToBoxAdapter(
-        child: _ShelfTitle(key: ValueKey('shelf_$key'), title, icon: icon),
-      ),
-      SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        // Square tiles, as many across as fit at up to [maxCardWidth]
-        // each: three on a phone, fewer once large text needs the room,
-        // and never shorter than the title needs.
-        sliver: SliverLayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.crossAxisExtent;
-            final columns = math.max(
-              1,
-              ((width + kSoundGridGap) / (grid.maxCardWidth + kSoundGridGap))
-                  .ceil(),
-            );
-            final cell = (width - kSoundGridGap * (columns - 1)) / columns;
-            return SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: columns,
-                mainAxisExtent: math.max(cell, grid.cardHeight),
-                mainAxisSpacing: kSoundGridGap,
-                crossAxisSpacing: kSoundGridGap,
-              ),
-              delegate: SliverChildListDelegate(cards),
-            );
-          },
+      if (cards.isNotEmpty) ...[
+        SliverToBoxAdapter(
+          child: _ShelfTitle(key: ValueKey('shelf_$key'), title, icon: icon),
         ),
-      ),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          // Square tiles, as many across as fit at up to [maxCardWidth]
+          // each: three on a phone, fewer once large text needs the room,
+          // and never shorter than the title needs.
+          sliver: SliverLayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.crossAxisExtent;
+              final columns = math.max(
+                1,
+                ((width + kSoundGridGap) / (grid.maxCardWidth + kSoundGridGap))
+                    .ceil(),
+              );
+              final cell = (width - kSoundGridGap * (columns - 1)) / columns;
+              return SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  mainAxisExtent: math.max(cell, grid.cardHeight),
+                  mainAxisSpacing: kSoundGridGap,
+                  crossAxisSpacing: kSoundGridGap,
+                ),
+                delegate: SliverChildListDelegate(cards),
+              );
+            },
+          ),
+        ),
+      ],
     ];
 
+    final shelves = <Widget>[];
+    if (library != null) {
+      final generated = l10n.soundCategoryGenerated;
+      shelves.addAll(
+        shelf('generated', generated, SoundLook.forCategory(null).icon, [
+          for (final id in kSynthIds)
+            if (wanted(id, synthTitle(l10n, id), generated))
+              card(id, synthTitle(l10n, id)),
+        ]),
+      );
+      for (final category in library.categories) {
+        final label = soundCategoryLabel(l10n, category);
+        shelves.addAll(
+          shelf(category.name, label, SoundLook.forCategory(category).icon, [
+            for (final sound in library.cardsIn(category))
+              if (soundTitle(l10n, sound.id, library) case final title?
+                  when wanted(sound.id, title, label))
+                card(sound.id, title),
+          ]),
+        );
+      }
+    }
+
+    // On what plays under sessions, the sheet is itself that choice.
+    final chooser = widget.session.kind != null;
     return CustomScrollView(
       key: const PageStorageKey('sounds_library'),
+      controller: widget.controller,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       slivers: [
-        SliverToBoxAdapter(child: _SectionTitle(l10n.soundsPresets)),
-        const SliverToBoxAdapter(child: _PresetRow()),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            child: TextField(
+              key: const ValueKey('sounds_search'),
+              controller: _search,
+              onChanged: _setQuery,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: l10n.soundsSearchHint,
+                prefixIcon: const Icon(Symbols.search_rounded),
+                suffixIcon: searching
+                    ? IconButton(
+                        key: const ValueKey('sounds_search_clear'),
+                        tooltip: l10n.clearSearch,
+                        onPressed: _clear,
+                        icon: const Icon(Symbols.close_rounded),
+                      )
+                    : null,
+                filled: true,
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(MeditejoShapes.full),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (!searching) ...[
+          SliverToBoxAdapter(
+            child: _ShelfTitle(
+              l10n.soundsPresets,
+              icon: Symbols.bookmarks_rounded,
+              first: true,
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: _PresetRow(
+              place: PresetContext.sounds(chooserKind: widget.session.kind),
+            ),
+          ),
+        ],
         if (full)
           SliverToBoxAdapter(
             child: Padding(
@@ -433,48 +691,64 @@ class _SoundsLibrary extends ConsumerWidget {
               child: Center(child: CircularProgressIndicator()),
             ),
           )
-        else ...[
-          ...shelf(
-            'generated',
-            l10n.soundCategoryGenerated,
-            SoundLook.forCategory(null).icon,
-            [for (final id in kSynthIds) card(id, synthTitle(l10n, id))],
-          ),
-          for (final category in library.categories)
-            ...shelf(
-              category.name,
-              soundCategoryLabel(l10n, category),
-              SoundLook.forCategory(category).icon,
-              [
-                for (final sound in library.inCategory(category))
-                  card(sound.id, sound.title),
-              ],
+        else if (shelves.isEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              key: const ValueKey('sounds_search_empty'),
+              padding: const EdgeInsets.fromLTRB(20, 48, 20, 0),
+              child: Column(
+                children: [
+                  Icon(
+                    Symbols.search_off_rounded,
+                    size: 32,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.soundsSearchEmpty,
+                    textAlign: TextAlign.center,
+                    style: context.typography.baseline.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
+          )
+        else
+          ...shelves,
+        if (!chooser && !searching) ...[
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          SliverToBoxAdapter(
+            child: SoundsSessionDefaults(session: widget.session),
+          ),
+          const SliverToBoxAdapter(child: _CreditsLink()),
         ],
-        SliverToBoxAdapter(child: _SectionTitle(l10n.soundsUnderSessions)),
-        const SliverToBoxAdapter(child: SoundsSessionDefaults()),
-        const SliverToBoxAdapter(child: _CreditsLink()),
-        SliverPadding(padding: EdgeInsets.only(bottom: bottomPadding)),
+        SliverPadding(padding: EdgeInsets.only(bottom: widget.bottomPadding)),
       ],
     );
   }
 }
 
-/// The presets as a row of large cards, the user's after the built-in
-/// ones, with Save mix at the end while the mix is not one of them.
+/// The presets with a sound, as a row of large cards, the user's after the
+/// built-in ones, with Save at the end while the mix is not one of them.
+/// A tap plays the preset's sound; the card says what else it holds.
 class _PresetRow extends ConsumerWidget {
-  const _PresetRow();
+  const _PresetRow({required this.place});
+
+  final PresetContext place;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(soundscapeProvider);
     final library = ref.watch(soundLibraryProvider).value ?? SoundLibrary.empty;
-    final mixer = ref.read(soundscapeProvider.notifier);
     final current = state.matchingPreset;
     final size = presetCardSize(context);
     final canSave = !state.mix.isEmpty && current == null;
-    List<String> titles(SoundPreset preset) {
+    final presets = state.soundPresets.toList();
+    final container = ProviderScope.containerOf(context, listen: false);
+    List<String> titles(Preset preset) {
       final layers = [...preset.mix.layers]
         ..sort((a, b) => b.volume.compareTo(a.volume));
       return [
@@ -482,8 +756,9 @@ class _PresetRow extends ConsumerWidget {
       ];
     }
 
+    const others = {PresetSlot.bells, PresetSlot.rhythm, PresetSlot.length};
     final cards = <Widget>[
-      for (final preset in state.presets)
+      for (final preset in presets)
         PresetCard(
           key: ValueKey('preset_${preset.id}'),
           presetId: preset.id,
@@ -492,17 +767,22 @@ class _PresetRow extends ConsumerWidget {
           layerTitles: titles(preset),
           builtIn: preset.builtIn,
           playing: state.playing && current?.id == preset.id,
-          onTap: () => mixer.applyPreset(preset.id),
-          onDelete: preset.builtIn
+          onTap: () => applyPreset(container, place, preset),
+          onMenu: () => showPresetActions(context, preset),
+          also: preset.slots.only(others).isEmpty
               ? null
-              : () => confirmDeletePreset(context, ref, preset),
+              : PresetSummary(
+                  preset.slots.only(others),
+                  key: ValueKey('preset_also_${preset.id}'),
+                  color: Colors.white.withValues(alpha: 0.85),
+                ),
         ),
       if (canSave)
         Padding(
           padding: const EdgeInsets.only(bottom: kPresetStackDepth),
           child: SavePresetCard(
             key: const ValueKey('preset_save'),
-            onTap: () => saveMixAsPreset(context, ref),
+            onTap: () => saveMixAsPreset(context, place),
           ),
         ),
     ];
@@ -515,8 +795,8 @@ class _PresetRow extends ConsumerWidget {
         itemCount: cards.length,
         separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (_, i) => SizedBox(
-          // Save mix is a square beside the wide prints.
-          width: i < state.presets.length ? size.width : size.height,
+          // Save is a square beside the wide prints.
+          width: i < presets.length ? size.width : size.height,
           child: cards[i],
         ),
       ),
@@ -524,32 +804,25 @@ class _PresetRow extends ConsumerWidget {
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.title);
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    header: true,
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 16, 12),
-      child: Text(title, style: context.typography.emphasized.titleLarge),
-    ),
-  );
-}
-
 class _ShelfTitle extends StatelessWidget {
-  const _ShelfTitle(this.title, {super.key, required this.icon});
+  const _ShelfTitle(
+    this.title, {
+    super.key,
+    required this.icon,
+    this.first = false,
+  });
 
   final String title;
   final IconData icon;
 
+  /// Directly under the sheet's header, which has its own space.
+  final bool first;
+
   @override
   Widget build(BuildContext context) => Semantics(
     header: true,
     child: Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 16, 12),
+      padding: EdgeInsets.fromLTRB(20, first ? 12 : 24, 16, 12),
       child: Row(
         children: [
           Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
@@ -566,26 +839,45 @@ class _ShelfTitle extends StatelessWidget {
   );
 }
 
-/// Whether the mix plays under Practice and under Talks (decisions 8 and
-/// 17). The player's Customize sheet offers the full per-kind choice.
+/// What plays under practice and under talks (decisions 8 and 17, kept
+/// apart since #75 was reversed), one line each: "Plays under practice:
+/// Night". A tap turns the sheet to that choice (#66), the same one as
+/// Customize › Sound for that kind.
 class SoundsSessionDefaults extends ConsumerWidget {
-  const SoundsSessionDefaults({super.key});
+  const SoundsSessionDefaults({super.key, required this.session});
+
+  final SoundsSheetSession session;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(soundscapeProvider);
-    final controller = ref.read(soundscapeProvider.notifier);
+    final library = ref.watch(soundLibraryProvider).value;
     Widget row(SoundscapeSessionKind kind, String label) {
-      final value = state.sessionDefault(kind);
-      return SwitchListTile(
+      final mixer = ref.read(soundscapeProvider.notifier);
+      final choice = mixer.sessionChoice(kind, null, library: library);
+      final art = soundChoiceArt(state, choice);
+      return ListTile(
         key: ValueKey('under_${kind.name}'),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        leading: SizedBox.square(
+          dimension: 40,
+          child: art == null
+              ? Icon(Symbols.graphic_eq_rounded, color: scheme.onSurfaceVariant)
+              : ClipRRect(
+                  borderRadius: BorderRadius.circular(MeditejoShapes.medium),
+                  child: ArtCover(subject: art),
+                ),
+        ),
         title: Text(label),
-        value: value.enabled,
-        onChanged: (on) =>
-            controller.setSessionDefault(kind, value.copyWith(enabled: on)),
+        subtitle: Text(
+          soundChoiceLabel(l10n, state, library ?? SoundLibrary.empty, choice),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: const Icon(Symbols.chevron_right_rounded),
+        onTap: () => session.chooseDefault(kind),
       );
     }
 
@@ -600,17 +892,11 @@ class SoundsSessionDefaults extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              row(SoundscapeSessionKind.practice, l10n.soundsUnderPractice),
-              row(SoundscapeSessionKind.talks, l10n.soundsUnderTalks),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                child: Text(
-                  l10n.soundsUnderSessionsHint,
-                  style: context.typography.baseline.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
+              row(
+                SoundscapeSessionKind.practice,
+                l10n.soundsPlaysUnderPractice,
               ),
+              row(SoundscapeSessionKind.talks, l10n.soundsPlaysUnderTalks),
             ],
           ),
         ),

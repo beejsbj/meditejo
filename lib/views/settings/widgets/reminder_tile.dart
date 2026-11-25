@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,8 +35,8 @@ class ReminderChoiceOff extends ReminderChoice {
 
 /// Settings card for the daily reminder. Shows the current time (or "Off") and
 /// opens [ReminderOptionsSheet] on tap. Replaced the old Daily reminders
-/// switch, which silently picked "same time tomorrow"; this offers the same
-/// Morning / Evening / Night / custom choice as the onboarding chips.
+/// switch, which silently picked "same time tomorrow"; this offers a
+/// Morning / Evening / Night / custom choice, as the end-screen card does.
 class ReminderTile extends ConsumerStatefulWidget {
   const ReminderTile({super.key, this.hasUnderline = false});
 

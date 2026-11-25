@@ -10,6 +10,7 @@ class NewPipeYoutubeBackendTest {
     private fun row(url: String, uploader: String?): StreamInfoItem {
         val item = StreamInfoItem(0, url, "A talk", StreamType.VIDEO_STREAM)
         item.uploaderName = uploader
+        item.uploaderUrl = "https://www.youtube.com/channel/UCguest"
         item.duration = 90L
         return item
     }
@@ -20,6 +21,7 @@ class NewPipeYoutubeBackendTest {
         assertEquals("aaaaaaaaaaa", item?.videoId)
         assertEquals("Guest Channel", item?.uploader)
         assertEquals(90L, item?.durationSeconds)
+        assertEquals("https://www.youtube.com/channel/UCguest", item?.channelUrl)
     }
 
     @Test

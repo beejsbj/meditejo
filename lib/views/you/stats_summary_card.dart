@@ -10,7 +10,12 @@ import 'package:medito/views/stats/stats_format.dart';
 import 'package:medito/views/stats/stats_screen.dart';
 
 /// Three numbers from the stats page (this week, all time, the streak) on the
-/// You tab. Tapping opens the full page.
+/// You page. Tapping opens the full page.
+///
+/// Times are real time spent. When sessions were played faster or slower than
+/// recorded, enough to matter ([PracticeSummary.audioDiffers]), one quiet line
+/// beneath says how much audio that covered: "4 h of audio · 3 h 10 min of
+/// your time".
 class StatsSummaryCard extends ConsumerWidget {
   const StatsSummaryCard({super.key});
 
@@ -39,6 +44,13 @@ class StatsSummaryCard extends ConsumerWidget {
       ),
     ];
 
+    final audioLine = summary != null && summary.audioDiffers
+        ? l10n.statsAudioVersusRealTime(
+            formatPractice(summary.allTimeAudio, l10n),
+            formatPractice(summary.allTime, l10n),
+          )
+        : null;
+
     void open() => Navigator.of(
       context,
     ).push<void>(MaterialPageRoute(builder: (_) => const StatsScreen()));
@@ -49,6 +61,7 @@ class StatsSummaryCard extends ConsumerWidget {
       label: [
         l10n.stats,
         for (final (value, label) in figures) '$label: $value',
+        ?audioLine,
       ].join(', '),
       child: ExcludeSemantics(
         child: HomePressable(
@@ -112,6 +125,16 @@ class StatsSummaryCard extends ConsumerWidget {
                         ),
                     ],
                   ),
+                  if (audioLine != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      audioLine,
+                      key: const ValueKey('you_stats_audio_line'),
+                      style: type.baseline.bodySmall?.copyWith(
+                        color: scheme.onPrimaryContainer.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

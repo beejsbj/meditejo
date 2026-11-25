@@ -3,10 +3,6 @@ class AssetConstants {
   static const String icSparks = 'assets/images/sparks.svg';
   static const String icLink = 'assets/images/ic_link.svg';
   static const String placeholder = 'assets/images/placeholder.jpg';
-  static const String onboardingImage1 = 'assets/images/open_awareness.png';
-  static const String onboardingImage2 = 'assets/images/relationships.png';
-  static const String onboardingImage3 =
-      'assets/images/palouse_mindfulness_small.png';
   static const String splashBackground = 'assets/images/splashbg.svg';
 
   static const String iconAlert = 'assets/images/warning-triangle.svg';
@@ -38,7 +34,6 @@ class AssetConstants {
   static const String iconFire = 'assets/images/fire-flame.svg';
   static const String iconForward15 = 'assets/images/forward15-seconds.svg';
   static const String iconGraphUp = 'assets/images/graph-up.svg';
-  static const String iconHeart = 'assets/images/heart-solid.svg';
   static const String iconHelpCircle = 'assets/images/help-circle.svg';
   static const String iconHome = 'assets/images/home-simple-door.svg';
   static const String iconHourglass = 'assets/images/hourglass.svg';

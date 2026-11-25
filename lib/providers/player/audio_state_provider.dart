@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:medito/providers/player/player_provider.dart';
+import 'package:medito/services/audio/extended_playback.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 
@@ -44,6 +45,7 @@ class AudioStateProvider implements MeditoAudioServiceCallbackApi {
         TypeConstants.fileIdKey: completionData.fileId,
         TypeConstants.guideIdKey: completionData.guideId,
         TypeConstants.timestampIdKey: completionData.timestamp,
+        TypeConstants.realDurationIdKey: completionData.realDuration,
       });
     } on Exception catch (_) {
       return false;
@@ -59,6 +61,7 @@ class AudioStateProvider implements MeditoAudioServiceCallbackApi {
       TypeConstants.fileIdKey: completionData.fileId,
       TypeConstants.guideIdKey: completionData.guideId,
       TypeConstants.timestampIdKey: completionData.timestamp,
+      TypeConstants.realDurationIdKey: completionData.realDuration,
     });
   }
 }
@@ -86,10 +89,29 @@ class AudioStateNotifier extends Notifier<PlaybackState> {
     );
 
     if (Platform.isIOS) {
+      var mediaPositionMs = 0;
+      var mediaDurationMs = 0;
+      // As on Android, a guided session reads as if the recording were longer
+      // by its Extend; on iOS all of it comes after the recording.
+      void extend() {
+        final extended = extendedIosPlayback(
+          positionMs: mediaPositionMs,
+          mediaDurationMs: mediaDurationMs,
+          extensionMs: iosAudioHandler.extensionMs,
+          extensionRemainingMs: iosAudioHandler.extensionRemainingMs,
+        );
+        state = state.copyWith(
+          position: extended.positionMs,
+          duration: extended.durationMs,
+        );
+      }
+
       iosAudioHandler.iosStateStream.listen((event) {
         var playerState = event.playerState;
         final isCompleted =
             playerState.processingState == ProcessingState.completed;
+        mediaPositionMs = event.position.inMilliseconds;
+        mediaDurationMs = event.duration.inMilliseconds;
         state = state.copyWith(
           speed: Speed(speed: event.speed),
           track: iosAudioHandler.trackState,
@@ -97,10 +119,10 @@ class AudioStateNotifier extends Notifier<PlaybackState> {
           isBuffering: playerState.processingState == ProcessingState.buffering,
           isSeeking: false,
           isCompleted: isCompleted,
-          position: event.position.inMilliseconds,
-          duration: event.duration.inMilliseconds,
         );
+        extend();
       });
+      iosAudioHandler.extensionRemainingStream.listen((_) => extend());
     }
 
     return initialState;

@@ -26,7 +26,6 @@ class MeditoIcons {
   static const fire = AssetConstants.iconFire;
   static const forward15 = AssetConstants.iconForward15;
   static const graphUp = AssetConstants.iconGraphUp;
-  static const heart = AssetConstants.iconHeart;
   static const help = AssetConstants.iconHelpCircle;
   static const home = AssetConstants.iconHome;
   static const hourglass = AssetConstants.iconHourglass;

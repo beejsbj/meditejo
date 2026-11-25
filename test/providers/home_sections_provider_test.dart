@@ -25,27 +25,69 @@ Future<(SharedPreferences, ProviderContainer Function())> _prefs(
 
 void main() {
   group('pinned courses', () {
-    test('hold at most three; a fourth is refused, not swapped in', () async {
+    test('have no limit, keep their order and never repeat', () async {
       final (prefs, open) = await _prefs({});
       final c = open();
       final pins = c.read(pinnedCoursesProvider.notifier);
 
-      expect(await pins.pin('a'), isTrue);
-      expect(await pins.pin('b'), isTrue);
-      expect(await pins.pin('c'), isTrue);
-      expect(await pins.pin('d'), isFalse);
-      expect(c.read(pinnedCoursesProvider), ['a', 'b', 'c']);
+      for (final id in ['a', 'b', 'c', 'd', 'b']) {
+        await pins.pin(id);
+      }
+      expect(c.read(pinnedCoursesProvider), ['a', 'b', 'c', 'd']);
       expect(prefs.getStringList(SharedPreferenceConstants.pinnedCourseIds), [
         'a',
         'b',
         'c',
+        'd',
       ]);
 
-      // Pinning one already pinned is fine, and unpinning frees a place.
-      expect(await pins.pin('b'), isTrue);
       await pins.unpin('a');
-      expect(await pins.pin('d'), isTrue);
-      expect(c.read(pinnedCoursesProvider), ['b', 'c', 'd']);
+      await pins.pin('e');
+      expect(c.read(pinnedCoursesProvider), ['b', 'c', 'd', 'e']);
+    });
+
+    test('remember which pins are sessions, across a restart', () async {
+      final (prefs, open) = await _prefs({});
+      final pins = open().read(pinnedCoursesProvider.notifier);
+      await pins.pin('course');
+      await pins.pin('talk', session: true);
+      expect(pins.isSession('talk'), isTrue);
+      expect(pins.isSession('course'), isFalse);
+
+      final again = open().read(pinnedCoursesProvider.notifier);
+      expect(again.isSession('talk'), isTrue);
+      expect(again.isSession('course'), isFalse);
+
+      // Unpinned, it is forgotten; Undo brings it back as a session.
+      final before = open().read(pinnedCoursesProvider);
+      await again.unpin('talk');
+      expect(
+        prefs.getStringList(SharedPreferenceConstants.pinnedSessionIds),
+        isEmpty,
+      );
+      await again.pinBack('talk', before, session: true);
+      expect(again.isSession('talk'), isTrue);
+    });
+
+    test('an unpinned pin leaves no saved title behind', () async {
+      final (prefs, open) = await _prefs({
+        SharedPreferenceConstants.pinnedCourseIds: ['a', 'b'],
+        SharedPreferenceConstants.pinnedTitles: '{"a": "Title a", "b": "B"}',
+      });
+      final pins = open().read(pinnedCoursesProvider.notifier);
+      expect(pins.savedTitle('a'), 'Title a');
+
+      await pins.unpin('a');
+      expect(pins.savedTitle('a'), isNull);
+      expect(pins.savedTitle('b'), 'B');
+      expect(
+        prefs.getString(SharedPreferenceConstants.pinnedTitles),
+        '{"b":"B"}',
+      );
+      expect(
+        open().read(pinnedCoursesProvider.notifier).savedTitle('a'),
+        isNull,
+      );
     });
 
     test('survive a restart', () async {
@@ -61,11 +103,11 @@ void main() {
       expect(open().read(pinnedCoursesProvider), ['lib-course-old']);
     });
 
-    test('a stored list longer than three is cut to three', () async {
+    test('a stored list longer than three is kept whole', () async {
       final (_, open) = await _prefs({
-        SharedPreferenceConstants.pinnedCourseIds: ['a', 'b', 'c', 'd'],
+        SharedPreferenceConstants.pinnedCourseIds: ['a', 'b', 'c', 'd', 'a'],
       });
-      expect(open().read(pinnedCoursesProvider), ['a', 'b', 'c']);
+      expect(open().read(pinnedCoursesProvider), ['a', 'b', 'c', 'd']);
     });
   });
 
@@ -77,7 +119,6 @@ void main() {
         final c = open();
         expect(c.read(homeWidgetOrderProvider), [
           HomeWidgetType.upNext,
-          HomeWidgetType.homeShortcuts,
           HomeWidgetType.pinned,
         ]);
         expect(c.read(homeHiddenWidgetsProvider), isEmpty);
@@ -90,35 +131,35 @@ void main() {
       await first.read(homeWidgetOrderProvider.notifier).updateOrder([
         HomeWidgetType.pinned,
         HomeWidgetType.upNext,
-        HomeWidgetType.homeShortcuts,
       ]);
       await first
           .read(homeHiddenWidgetsProvider.notifier)
-          .setVisible(HomeWidgetType.homeShortcuts, false);
+          .setVisible(HomeWidgetType.upNext, false);
 
       final second = open();
       expect(second.read(homeWidgetOrderProvider), [
         HomeWidgetType.pinned,
         HomeWidgetType.upNext,
-        HomeWidgetType.homeShortcuts,
       ]);
-      expect(second.read(homeHiddenWidgetsProvider), {
-        HomeWidgetType.homeShortcuts,
-      });
+      expect(second.read(homeHiddenWidgetsProvider), {HomeWidgetType.upNext});
 
       await second
           .read(homeHiddenWidgetsProvider.notifier)
-          .setVisible(HomeWidgetType.homeShortcuts, true);
+          .setVisible(HomeWidgetType.upNext, true);
       expect(open().read(homeHiddenWidgetsProvider), isEmpty);
     });
 
-    test('a hidden Shortcuts saved before the rename stays hidden', () async {
+    // Pass 4: Shortcuts is Pinned's Timer tile now; hiding the old section
+    // must not hide the pins.
+    test('a hidden Shortcuts is dropped, and hides nothing', () async {
       final (_, open) = await _prefs({
-        SharedPreferenceConstants.homeWidgetHidden: ['quickLinks', 'quote'],
+        SharedPreferenceConstants.homeWidgetHidden: [
+          'homeShortcuts',
+          'quickLinks',
+          'quote',
+        ],
       });
-      expect(open().read(homeHiddenWidgetsProvider), {
-        HomeWidgetType.homeShortcuts,
-      });
+      expect(open().read(homeHiddenWidgetsProvider), isEmpty);
     });
 
     test('a layout saved by the Medito home keeps what still exists', () async {
@@ -132,7 +173,6 @@ void main() {
       });
       expect(open().read(homeWidgetOrderProvider), [
         HomeWidgetType.upNext,
-        HomeWidgetType.homeShortcuts,
         HomeWidgetType.pinned,
       ]);
     });

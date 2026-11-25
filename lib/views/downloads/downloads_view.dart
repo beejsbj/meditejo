@@ -15,7 +15,6 @@ import 'package:medito/utils/resume_request.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/scaffold_messenger_key.dart';
 import 'package:medito/views/downloads/widgets/download_list_item.dart';
-import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
 import 'package:medito/widgets/headers/medito_app_bar_small.dart';
 import 'package:medito/widgets/widgets.dart';
 import 'package:flutter/material.dart';
@@ -48,13 +47,6 @@ class _DownloadsViewState extends ConsumerState<DownloadsView>
     final downloadedTracks = ref.watch(downloadedTracksProvider);
 
     return Scaffold(
-      bottomNavigationBar: widget.isRoot
-          ? null
-          : SingleBackButtonActionBar(
-              onBackPressed: () {
-                Navigator.pop(context);
-              },
-            ),
       appBar: MeditoAppBarSmall(
         title: AppLocalizations.of(context)!.downloads,
         closePressed: () {
@@ -70,7 +62,7 @@ class _DownloadsViewState extends ConsumerState<DownloadsView>
           }
         },
         isTransparent: true,
-        hasCloseButton: !widget.isRoot,
+        hasBackButton: !widget.isRoot,
       ),
       key: scaffoldKey,
       body: AdaptivePageBody(

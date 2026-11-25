@@ -160,6 +160,17 @@ class YoutubeVideos extends Table {
   TextColumn get description => text().withDefault(const Constant(''))();
   IntColumn get durationSeconds => integer()();
 
+  /// The uploader's channel (`youtubeChannelKey`), empty when unknown.
+  TextColumn get channelId => text().withDefault(const Constant(''))();
+
+  /// When the video itself was last resolved, so its description is what
+  /// YouTube says rather than a playlist's summary; null when it never was.
+  DateTimeColumn get resolvedAt => dateTime().nullable()();
+
+  /// Not to be looked up again before this, after a lookup that failed in
+  /// a way that may pass (the extractor could not read it); null otherwise.
+  DateTimeColumn get retryAt => dateTime().nullable()();
+
   @override
   Set<Column> get primaryKey => {videoId};
 }
@@ -175,8 +186,35 @@ class YoutubePlaylists extends Table {
   TextColumn get videoIds => text()();
   DateTimeColumn get lastCheckedAt => dateTime()();
 
+  /// The playlist's own description, empty when it has none.
+  TextColumn get description => text().withDefault(const Constant(''))();
+
+  /// The owner's channel (`youtubeChannelKey`), empty when unknown.
+  TextColumn get channelId => text().withDefault(const Constant(''))();
+
   @override
   Set<Column> get primaryKey => {playlistId};
+}
+
+/// A YouTube channel, shown as the teacher of its videos and playlists.
+/// [channelId] is the channel's stable key (`UC…`, or an `@handle` when the
+/// extractor gives only that); [avatar] and [description] fill in once the
+/// channel's own page has been read ([checkedAt]).
+@DataClassName('YoutubeChannelRow')
+class YoutubeChannels extends Table {
+  TextColumn get channelId => text()();
+  TextColumn get url => text()();
+  TextColumn get name => text().withDefault(const Constant(''))();
+  TextColumn get avatar => text().withDefault(const Constant(''))();
+  TextColumn get description => text().withDefault(const Constant(''))();
+  DateTimeColumn get checkedAt => dateTime().nullable()();
+
+  /// As for a video: not to be read again before this, after a failure that
+  /// may pass.
+  DateTimeColumn get retryAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {channelId};
 }
 
 /// A course the user made: an ordered list of sessions from any source
@@ -275,6 +313,7 @@ class LibraryLabels extends Table {
     LibraryMeta,
     YoutubeVideos,
     YoutubePlaylists,
+    YoutubeChannels,
     MyCourses,
     MyCourseItems,
     SessionContexts,
@@ -291,7 +330,7 @@ class LibraryDatabase extends _$LibraryDatabase {
   );
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -317,8 +356,43 @@ class LibraryDatabase extends _$LibraryDatabase {
         await m.createTable(libraryLabels);
         await m.createIndex(libraryLabelsLabel);
       }
+      if (from < 6) {
+        // YouTube channels as teachers, and the descriptions a playlist's
+        // rows leave out. A table created above, in this same upgrade,
+        // already has these columns.
+        for (final (table, column) in <(TableInfo, GeneratedColumn)>[
+          (youtubeVideos, youtubeVideos.channelId),
+          (youtubeVideos, youtubeVideos.resolvedAt),
+          (youtubeVideos, youtubeVideos.retryAt),
+          (youtubePlaylists, youtubePlaylists.description),
+          (youtubePlaylists, youtubePlaylists.channelId),
+        ]) {
+          if (await _hasTable(table.actualTableName) &&
+              !await _hasColumn(table.actualTableName, column.name)) {
+            await m.addColumn(table, column);
+          }
+        }
+        await m.createTable(youtubeChannels);
+        // A video that already has a description was resolved by an
+        // earlier version: it is not looked up again, so the first launch
+        // after the upgrade does not re-read the whole library.
+        if (await _hasTable(youtubeVideos.actualTableName)) {
+          await customUpdate(
+            "UPDATE youtube_videos SET resolved_at = ? "
+            "WHERE description <> '' AND resolved_at IS NULL",
+            variables: [Variable<DateTime>(DateTime.now())],
+            updates: {youtubeVideos},
+          );
+        }
+      }
     },
   );
+
+  Future<bool> _hasColumn(String table, String column) async =>
+      (await customSelect(
+        'SELECT 1 FROM pragma_table_info(?) WHERE name = ?',
+        variables: [Variable.withString(table), Variable.withString(column)],
+      ).get()).isNotEmpty;
 
   Future<bool> _hasTable(String name) async => (await customSelect(
     "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
@@ -338,6 +412,10 @@ class LibraryDatabase extends _$LibraryDatabase {
 
   Future<List<YoutubeVideoRow>> youtubeSessions() =>
       select(youtubeVideos).get();
+
+  Future<YoutubeChannelRow?> youtubeChannel(String id) => (select(
+    youtubeChannels,
+  )..where((c) => c.channelId.equals(id))).getSingleOrNull();
 
   // ---------------------------------------------------------------- meta
 

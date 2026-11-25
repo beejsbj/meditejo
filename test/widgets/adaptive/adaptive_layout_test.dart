@@ -9,9 +9,8 @@ import 'package:medito/widgets/adaptive/adaptive_home_sections.dart';
 const destinations = [
   MeditoNavItem(icon: Symbols.home_rounded, label: 'Home'),
   MeditoNavItem(icon: Symbols.search_rounded, label: 'Explore'),
-  MeditoNavItem(icon: Symbols.graphic_eq_rounded, label: 'Sounds'),
   MeditoNavItem(icon: Symbols.library_books_rounded, label: 'Library'),
-  MeditoNavItem(icon: Symbols.person_rounded, label: 'You'),
+  MeditoNavItem(icon: Symbols.settings_rounded, label: 'Settings'),
 ];
 
 Widget app(Widget child) => MaterialApp(
@@ -50,9 +49,9 @@ void main() {
           ),
         ),
       );
-      await tester.ensureVisible(find.text('You'));
-      await tester.tap(find.text('You'));
-      expect(selected, 4);
+      await tester.ensureVisible(find.text('Settings'));
+      await tester.tap(find.text('Settings'));
+      expect(selected, 3);
       expect(tester.takeException(), isNull);
     },
   );

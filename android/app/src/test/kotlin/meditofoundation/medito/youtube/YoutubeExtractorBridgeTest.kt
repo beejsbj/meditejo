@@ -1,6 +1,7 @@
 package meditofoundation.medito.youtube
 
 import meditofoundation.medito.pigeon.YoutubeAudioStream
+import meditofoundation.medito.pigeon.YoutubeChannel
 import meditofoundation.medito.pigeon.YoutubeFlutterError
 import meditofoundation.medito.pigeon.YoutubePlaylist
 import meditofoundation.medito.pigeon.YoutubeVideo
@@ -24,11 +25,13 @@ class YoutubeExtractorBridgeTest {
         val onPlaylist: (String) -> YoutubePlaylist = { error("unexpected") },
         val onVideo: (String) -> YoutubeVideo = { error("unexpected") },
         val onStream: (String) -> YoutubeAudioStream = { error("unexpected") },
+        val onChannel: (String) -> YoutubeChannel = { error("unexpected") },
     ) : YoutubeBackend {
         val seen = mutableListOf<String>()
         override fun playlist(url: String) = onPlaylist(url).also { seen += url }
         override fun video(url: String) = onVideo(url).also { seen += url }
         override fun audioStream(url: String) = onStream(url).also { seen += url }
+        override fun channel(url: String) = onChannel(url).also { seen += url }
     }
 
     private fun <T> await(call: ((Result<T>) -> Unit) -> Unit): Result<T> {
@@ -59,6 +62,16 @@ class YoutubeExtractorBridgeTest {
             listOf("https://www.youtube.com/playlist?list=PLND1JCRq8VujAHvDA482SXF1cJTQrwlx3", "https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
             backend.seen,
         )
+    }
+
+    @Test
+    fun resolvesAChannelFromItsPage() {
+        val channel = YoutubeChannel("https://www.youtube.com/channel/UCabc", "Someone", "https://i.example/a.jpg", "About us")
+        val backend = FakeBackend(onChannel = { channel })
+        val bridge = YoutubeExtractorBridge(backend, runner)
+        assertEquals(channel, await<YoutubeChannel> { bridge.resolveChannel("https://www.youtube.com/channel/UCabc", it) }.getOrThrow())
+        assertEquals(listOf("https://www.youtube.com/channel/UCabc"), backend.seen)
+        assertEquals("unavailable", errorOf(await<YoutubeChannel> { bridge.resolveChannel("https://vimeo.com/1", it) }).code)
     }
 
     private fun errorOf(result: Result<*>): YoutubeFlutterError = result.exceptionOrNull() as YoutubeFlutterError

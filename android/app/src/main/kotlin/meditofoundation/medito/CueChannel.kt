@@ -12,10 +12,14 @@ import io.flutter.plugin.common.MethodChannel
  *  - `holdInterlude`   wait out the autoplay interlude (the rest of it, when it began at the end)
  *  - `endInterlude`    no autoplay after all: finish once the end bell has rung out
  *  - `stop`            cancel every timer, sound and the configuration
- *  - `state`           map: phase, countdownRemainingMs, extensionRemainingMs, sessionMs, paused, heardMs
+ *  - `state`           map: phase (idle, countdown, playing, hold, extension, ended), countdownRemainingMs,
+ *                      extensionRemainingMs, holdRemainingMs, extensionLeftMs, sessionMs, paused, heardMs
  *  - `countdownRemainingMs`  int
  *  - `sampleListening` bool: 90% really heard (the service samples the player itself)
  *  - `resetListening`  start a fresh listening record
+ *  - `sleep(ms)`       pause the session in ms, fading out over its last 10 s
+ *  - `cancelSleep`     no sleep timer
+ *  - `sleepRemainingMs` int, 0 when none is set
  */
 internal object CueChannel {
     const val NAME = "meditejo/cues"
@@ -26,7 +30,8 @@ internal object CueChannel {
             if (service == null) {
                 when (call.method) {
                     // Nothing is playing, so there is nothing to cancel or report.
-                    "stop", "skipCountdown", "resetListening", "endInterlude" -> result.success(null)
+                    "stop", "skipCountdown", "resetListening", "endInterlude", "cancelSleep" -> result.success(null)
+                    "sleepRemainingMs" -> result.success(0L)
                     "state" -> result.success(mapOf("phase" to "idle"))
                     "countdownRemainingMs" -> result.success(0L)
                     "sampleListening" -> result.success(false)
@@ -51,6 +56,13 @@ internal object CueChannel {
                     "countdownRemainingMs" -> result.success(service.cueState()["countdownRemainingMs"] ?: 0L)
                     "sampleListening" -> result.success(service.sampleListening())
                     "resetListening" -> { service.resetListening(); result.success(null) }
+                    "sleep" -> {
+                        val args = call.arguments as? Map<*, *>
+                        service.setSleepTimer((args?.get("ms") as? Number)?.toLong() ?: 0L)
+                        result.success(null)
+                    }
+                    "cancelSleep" -> { service.cancelSleepTimer(); result.success(null) }
+                    "sleepRemainingMs" -> result.success(service.sleepRemainingMs())
                     else -> result.notImplemented()
                 }
             } catch (e: Exception) {

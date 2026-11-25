@@ -3,6 +3,7 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/utils/duration_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:medito/providers/cues/cue_runtime_provider.dart';
 import 'package:medito/providers/providers.dart';
 
 class DurationIndicatorWidget extends ConsumerStatefulWidget {
@@ -132,21 +133,41 @@ class _DurationIndicatorWidgetState
     widget.onSeekEnd((val * 100).toInt());
   }
 
-  Row _durationLabels(
+  Widget _durationLabels(
     BuildContext context,
     int totalDuration,
     int currentPosition,
   ) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    // Extend's silence sits inside the session, so the position keeps
+    // climbing through it: this says the quiet is meant.
+    final inSilence = ref.watch(cueRuntimeProvider.select((s) => s.inSilence));
+    return Stack(
+      alignment: Alignment.center,
       children: [
-        _durationLabel(
-          context,
-          Duration(milliseconds: currentPosition.round()).toMinutesSeconds(),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _durationLabel(
+              context,
+              Duration(
+                milliseconds: currentPosition.round(),
+              ).toMinutesSeconds(),
+            ),
+            _durationLabel(
+              context,
+              Duration(milliseconds: totalDuration.round()).toMinutesSeconds(),
+            ),
+          ],
         ),
-        _durationLabel(
-          context,
-          Duration(milliseconds: totalDuration.round()).toMinutesSeconds(),
+        AnimatedOpacity(
+          key: const ValueKey('player_silence'),
+          opacity: inSilence ? 0.7 : 0,
+          duration: const Duration(milliseconds: 900),
+          curve: Curves.easeInOut,
+          child: _durationLabel(
+            context,
+            AppLocalizations.of(context)!.playerSilence,
+          ),
         ),
       ],
     );

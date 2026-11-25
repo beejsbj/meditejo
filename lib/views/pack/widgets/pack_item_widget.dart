@@ -9,7 +9,16 @@ import 'package:flutter_svg/svg.dart';
 import 'package:medito/views/pack/widgets/pack_complete_badge.dart';
 
 class PackItemWidget extends ConsumerWidget {
-  const PackItemWidget({super.key, required this.item, this.onSetComplete});
+  const PackItemWidget({
+    super.key,
+    required this.item,
+    this.onSetComplete,
+    this.badge,
+    this.courseTeacher,
+    this.courseTeacherId,
+    this.courseByline,
+    this.date,
+  });
 
   final PackItemsModel item;
 
@@ -19,10 +28,41 @@ class PackItemWidget extends ConsumerWidget {
   /// control is shown; a finished session still shows its tick.
   final Future<bool> Function(bool complete)? onSetComplete;
 
+  /// A small chip at the start of the meta line: the session's kind in a
+  /// course that mixes kinds, or that its source lost it. Null for none.
+  final String? badge;
+
+  /// Who leads the course. The row leaves out a teacher who is the same, so
+  /// a one-teacher retreat does not repeat the name on every session.
+  final String? courseTeacher;
+
+  /// The app ID of the course's teacher (`ds-teacher-96`,
+  /// `yt-channel-…`). A session by the same ID is theirs even when its
+  /// name is written differently (a channel's uploader string).
+  final String? courseTeacherId;
+
+  /// The name under the course's title, where it is a name (a podcast's
+  /// author, a channel's uploader string); rows by it leave it out too.
+  final String? courseByline;
+
+  /// When the session was recorded, as the course page shows it ("Mar 5"),
+  /// or null where the row does not say it (a retreat's day already does).
+  final String? date;
+
+  /// Whether the row has a meta line ("Ajahn Sucitto · Mar 5 · 42 min")
+  /// rather than the plain subtitle of a pack without session details.
+  bool get _detailed =>
+      item.type == TypeConstants.track &&
+      (item.kind != null ||
+          item.teacher != null ||
+          item.durationMs != null ||
+          date != null ||
+          badge != null);
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var hasSubtitle = item.subtitle.isNotNullAndNotEmpty();
-    final detailed = item.kind != null && item.type == TypeConstants.track;
+    final detailed = _detailed;
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
@@ -31,10 +71,9 @@ class PackItemWidget extends ConsumerWidget {
         children: [
           Container(
             width: MediaQuery.of(context).size.width,
-            padding: EdgeInsets.only(
-              top: hasSubtitle || detailed ? 24 : 20,
-              bottom: 20,
-            ),
+            padding: detailed
+                ? const EdgeInsets.symmetric(vertical: 16)
+                : EdgeInsets.only(top: hasSubtitle ? 24 : 20, bottom: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -44,7 +83,6 @@ class PackItemWidget extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (detailed) _kindLabel(context),
                       if (item.title.isNotNullAndNotEmpty())
                         Text(item.title, style: textTheme.headlineMedium),
                       if (detailed)
@@ -73,37 +111,53 @@ class PackItemWidget extends ConsumerWidget {
     );
   }
 
-  /// "GUIDED MEDITATION": what the session is, before its title.
-  Widget _kindLabel(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Text(
-        item.kind!.toUpperCase(),
-        style: theme.textTheme.labelSmall?.copyWith(
-          letterSpacing: 0.8,
-          fontWeight: FontWeight.w600,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-        ),
-      ),
-    );
-  }
-
-  /// "Rob Burbea · 42 min"
+  /// The teacher when not the course's own, then the date and the length
+  /// ("Sharon Salzberg · Apr 15 · 42 min"), after the [badge] if any.
   Widget _details(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final minutes = ((item.durationMs ?? 0) / Duration.millisecondsPerMinute)
         .round();
+    final teacher = (item.teacher ?? '').trim();
+    // A narrow row breaks the line between parts, never inside a name or
+    // "42 min".
     final text = [
-      if (item.teacher.isNotNullAndNotEmpty()) item.teacher!,
+      if (teacher.isNotEmpty && !_byCourseTeacher(teacher)) teacher,
+      ?date,
       if (minutes > 0) l10n.courseSessionLength(minutes),
-    ].join(' · ');
-    if (text.isEmpty) return const SizedBox.shrink();
+    ].map((part) => part.replaceAll(' ', ' ')).join(' · ');
+    final badge = this.badge;
+    if (text.isEmpty && badge == null) return const SizedBox.shrink();
+    final meta = Text(
+      text,
+      key: const ValueKey('session_meta'),
+      style: Theme.of(context).textTheme.titleMedium,
+    );
     return Padding(
       padding: const EdgeInsets.only(top: 4),
-      child: Text(text, style: Theme.of(context).textTheme.titleMedium),
+      child: badge == null
+          ? meta
+          // The chip, then the line beside it, or under it when both do not
+          // fit.
+          : Wrap(
+              spacing: 8,
+              runSpacing: 2,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [_Badge(badge), if (text.isNotEmpty) meta],
+            ),
     );
   }
+
+  /// Whether the session's [teacher] leads the course: the same teacher ID
+  /// first, else the same name as the course's teacher or byline.
+  bool _byCourseTeacher(String teacher) {
+    final id = item.teacherId;
+    if (id != null && id.isNotEmpty && id == courseTeacherId) return true;
+    return _sameName(teacher, courseTeacher) ||
+        _sameName(teacher, courseByline);
+  }
+
+  static bool _sameName(String name, String? other) =>
+      other != null && name.trim().toLowerCase() == other.trim().toLowerCase();
 
   Widget _downloadedMark(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -155,6 +209,35 @@ class PackItemWidget extends ConsumerWidget {
     }
 
     return const SizedBox();
+  }
+}
+
+/// A session's kind, or that it is unavailable, as a small quiet chip.
+class _Badge extends StatelessWidget {
+  const _Badge(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: onSurface.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.bodySmall?.copyWith(
+          letterSpacing: 0.2,
+          color: onSurface.withValues(alpha: 0.75),
+        ),
+      ),
+    );
   }
 }
 

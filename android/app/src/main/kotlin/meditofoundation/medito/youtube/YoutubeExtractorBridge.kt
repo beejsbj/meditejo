@@ -4,6 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import io.flutter.plugin.common.BinaryMessenger
 import meditofoundation.medito.pigeon.YoutubeAudioStream
+import meditofoundation.medito.pigeon.YoutubeChannel
 import meditofoundation.medito.pigeon.YoutubeExtractorApi
 import meditofoundation.medito.pigeon.YoutubeFlutterError
 import meditofoundation.medito.pigeon.YoutubePlaylist
@@ -56,6 +57,13 @@ class YoutubeExtractorBridge(
         }
     }
 
+    override fun resolveChannel(url: String, callback: (Result<YoutubeChannel>) -> Unit) {
+        val link = YoutubeSelection.channelUrl(url)
+        run(CHANNEL_TIMEOUT_MS, callback) {
+            backend.channel(link ?: throw YoutubeFailure.invalidLink())
+        }
+    }
+
     private fun <T> run(timeoutMs: Long, callback: (Result<T>) -> Unit, work: () -> T) {
         runner.run(timeoutMs, work) { result ->
             callback(result.fold({ Result.success(it) }, { Result.failure<T>(toFlutterError(it)) }))
@@ -68,6 +76,7 @@ class YoutubeExtractorBridge(
         const val PLAYLIST_TIMEOUT_MS = 120_000L
         const val VIDEO_TIMEOUT_MS = 45_000L
         const val STREAM_TIMEOUT_MS = 60_000L
+        const val CHANNEL_TIMEOUT_MS = 45_000L
 
         /** The bridge as the app runs it: real extractor, replies on the platform thread. */
         fun create(): YoutubeExtractorBridge {

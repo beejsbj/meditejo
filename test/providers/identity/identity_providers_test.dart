@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
@@ -90,8 +88,6 @@ void main() {
       now = DateTime(2026, 10, 27, 8);
       c.read(identityDayProvider.notifier).refresh();
       expect(c.read(activePaletteProvider).id, 'riso');
-      // Pinning a mark does not fix the palette.
-      await c.read(pinnedMarkProvider.notifier).pin(c.read(dailyMarkProvider));
       now = DateTime(2026, 10, 28, 8);
       c.read(identityDayProvider.notifier).refresh();
       expect(c.read(activePaletteProvider).id, 'dusk');
@@ -105,60 +101,38 @@ void main() {
     });
   });
 
-  group('pinning', () {
-    test("keeps today's mark on Home after the day changes", () async {
-      final c = await _container();
-      final today = c.read(homeMarkProvider);
-      await c.read(pinnedMarkProvider.notifier).pin(today);
-      now = DateTime(2026, 10, 30, 8);
-      c.read(identityDayProvider.notifier).refresh();
-      expect(c.read(dailyMarkProvider).seed, isNot(today.seed));
-      expect(c.read(homeMarkProvider).seed, today.seed);
+  group('no pinning', () {
+    test(
+      "Home's mark is the day's, whatever an earlier build pinned",
+      () async {
+        final c = await _container({
+          SharedPreferenceConstants.identityPinnedMark: MarkGenerator.build(
+            'g-1kq',
+          ).encode(),
+        });
+        expect(c.read(homeMarkProvider).seed, 'm-2026-10-26');
+        now = DateTime(2026, 10, 30, 8);
+        c.read(identityDayProvider.notifier).refresh();
+        expect(c.read(homeMarkProvider).seed, c.read(dailyMarkProvider).seed);
+        expect(c.read(homeMarkProvider).seed, isNot('m-2026-10-26'));
+      },
+    );
 
-      await c.read(pinnedMarkProvider.notifier).unpin();
-      expect(c.read(homeMarkProvider).seed, c.read(dailyMarkProvider).seed);
-    });
-
-    test('stores frozen geometry, so a generator change never redraws '
-        'a kept mark', () async {
-      final c = await _container();
-      await c
-          .read(pinnedMarkProvider.notifier)
-          .pin(MarkGenerator.build('g-1kq'));
-      final prefs = await SharedPreferences.getInstance();
-      final stored =
-          jsonDecode(
-                prefs.getString(SharedPreferenceConstants.identityPinnedMark)!,
-              )
-              as Map<String, Object?>;
-      // The pin holds the drawn geometry, not just a seed.
-      expect(stored['seed'], 'g-1kq');
-      expect((stored['stroke'] as Map)['x'], hasLength(420));
-
-      // A later generator draws g-1kq differently: simulate that by
-      // changing what is stored under the same seed, then relaunch.
-      final stroke = stored['stroke'] as Map<String, Object?>;
-      final shifted = [for (final x in stroke['x'] as List) (x as num) + 0.05];
-      stroke['x'] = shifted;
-      final relaunched = await _container({
-        SharedPreferenceConstants.identityPinnedMark: jsonEncode(stored),
-      });
-      final kept = relaunched.read(homeMarkProvider) as GestureMark;
-      final regenerated = MarkGenerator.build('g-1kq') as GestureMark;
-      expect(kept.seed, 'g-1kq');
-      expect(kept.stroke.x.first, closeTo(shifted.first.toDouble(), 1e-9));
-      expect(
-        kept.stroke.x.first,
-        isNot(closeTo(regenerated.stroke.x.first, 0.01)),
-      );
-    });
-
-    test('an unreadable pin falls back to the daily mark', () async {
-      final c = await _container({
+    test('a stored pin is dropped at launch', () async {
+      SharedPreferences.setMockInitialValues({
         SharedPreferenceConstants.identityPinnedMark: '{"v": 99}',
+        SharedPreferenceConstants.identityPalette: 'dusk',
       });
-      expect(c.read(pinnedMarkProvider), isNull);
-      expect(c.read(homeMarkProvider).seed, 'm-2026-10-26');
+      final prefs = await SharedPreferences.getInstance();
+      await forgetPinnedMark(prefs);
+      expect(
+        prefs.containsKey(SharedPreferenceConstants.identityPinnedMark),
+        isFalse,
+      );
+      expect(
+        prefs.getString(SharedPreferenceConstants.identityPalette),
+        'dusk',
+      );
     });
   });
 

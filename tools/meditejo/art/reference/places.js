@@ -635,7 +635,7 @@
   // The bells that ship (cueBellSounds in lib/models/cues/cue_settings.dart),
   // each a preset of the five controls.
   P.bell.SHIPPED = [
-    ['bell-swell', 'Swell bell', 'session_bell_v2', 'swell'], ['bell-bowl-small', 'Singing bowl, small', 'bell_bowl_small', 'bowl_small'],
+    ['bell-swell', 'Session bell', 'session_bell_v2', 'swell'], ['bell-bowl-small', 'Singing bowl, small', 'bell_bowl_small', 'bowl_small'],
     ['bell-bowl-medium', 'Singing bowl', 'bell_bowl_medium', 'bowl_medium'], ['bell-bowl-deep', 'Singing bowl, deep', 'bell_bowl_deep', 'bowl_deep'],
     ['bell-temple', 'Temple bell', 'bell_temple', 'temple'], ['bell-handbell', 'Hand bell', 'bell_handbell', 'handbell'],
     ['bell-chime', 'Chime', 'bell_chime', 'chime'], ['bell-tingsha', 'Tingsha', 'bell_tingsha', 'tingsha'],

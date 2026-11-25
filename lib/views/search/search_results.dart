@@ -6,7 +6,7 @@ import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/explore/session_length.dart';
 import 'package:medito/providers/explore/explore_search_provider.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_models.dart';
+import 'package:medito/models/catalogue/catalogue_models.dart';
 import 'package:medito/views/dharma_seed/widgets/course_rows_sliver.dart';
 import 'package:medito/views/dharma_seed/widgets/session_rows_sliver.dart';
 import 'package:medito/views/dharma_seed/widgets/teacher_widgets.dart';
@@ -45,7 +45,7 @@ class _SearchResultsState extends ConsumerState<SearchResults> {
 
   /// The last results shown, kept on screen while the next query or filter
   /// loads so the page does not blink.
-  DsSearchResults? _shown;
+  CatalogueSearchResults? _shown;
 
   @override
   void didUpdateWidget(covariant SearchResults oldWidget) {

@@ -7,8 +7,8 @@ import 'package:medito/services/dharma_seed/dharma_seed_client.dart';
 import 'package:medito/services/dharma_seed/dharma_seed_sync.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
 
-/// Dharma Seed catalogue sync: progress, last sync or failure, and a manual
-/// refresh on tap.
+/// Dharma Seed under Settings' Sources: its catalogue sync (progress, last
+/// sync or failure) and a manual refresh on tap.
 class DharmaSeedSyncTile extends ConsumerWidget {
   const DharmaSeedSyncTile({super.key, this.hasUnderline = true});
 
@@ -22,7 +22,8 @@ class DharmaSeedSyncTile extends ConsumerWidget {
 
     return RowItemWidget(
       icon: Icon(Icons.library_music_outlined, color: onSurface),
-      title: l10n.dharmaSeedLibrary,
+      // The source's own name, as the Library's cards give it.
+      title: 'Dharma Seed',
       subTitle: _subtitle(context, l10n, status),
       hasUnderline: hasUnderline,
       trailingIcon: Icons.refresh_rounded,

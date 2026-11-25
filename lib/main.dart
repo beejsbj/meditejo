@@ -28,6 +28,8 @@ import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/utils/notification_permission_flow.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:medito/services/history/app_history_service.dart';
+import 'package:medito/services/home/favourites_migration.dart';
+import 'package:medito/services/intro/first_run_intro.dart';
 import 'package:medito/services/home_widget_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:medito/src/audio_pigeon.g.dart';
@@ -97,6 +99,10 @@ void main() async {
 
   var prefs = await initializeSharedPreferences();
 
+  // Before this launch records its version: an install already in use skips
+  // the first-launch intro (#87).
+  await FirstRunIntro.settleForExistingInstall(prefs);
+
   try {
     final packageInfo = await PackageInfo.fromPlatform();
     await AppHistoryService.recordCurrentVersion(
@@ -135,9 +141,29 @@ void main() async {
     isGranted: () async => (await Permission.notification.status).isGranted,
   );
 
+  // Favourites became pins (#79); move any left from before.
+  try {
+    await migrateFavouritesToPins(prefs);
+  } catch (e) {
+    AppLogger.w('MAIN', 'Failed to move favourites into pins: $e');
+  }
+
+  // Home's mark is no longer pinnable; drop a pin an earlier build kept.
+  try {
+    await forgetPinnedMark(prefs);
+  } catch (e) {
+    AppLogger.w('MAIN', 'Failed to drop the pinned Home mark: $e');
+  }
+
   await initializeAudioService();
 
   usePathUrlStrategy();
+
+  // Covers of practice-labelled library items, as last seen: no flicker
+  // while the labels load (bottom_navigation_bar_view.dart keeps it).
+  artPractices.value = readArtPractices(
+    prefs.getString(SharedPreferenceConstants.artPractices),
+  );
 
   _initCompleter?.complete();
 

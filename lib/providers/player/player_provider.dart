@@ -1,9 +1,12 @@
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
 import 'package:medito/services/audio/native_cue_controller.dart';
+import 'package:medito/models/pauses/pause_hold.dart';
+import 'package:medito/services/pauses/pause_map_service.dart';
 import 'package:medito/services/stats/session_label.dart';
 import 'package:medito/providers/library/library_providers.dart';
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +18,7 @@ import '../../src/audio_pigeon.g.dart' as pigeon;
 import '../../utils/utils.dart';
 import 'audio_state_provider.dart';
 import 'playback_source.dart';
+import 'playback_speed_provider.dart';
 import 'download/audio_downloader_provider.dart';
 import 'ios_audio_handler.dart';
 import 'repeat_state_provider.dart';
@@ -76,13 +80,92 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
 
   CueSettings? _cues;
 
+  /// Where the current recording can be read for pauses: a path on the phone,
+  /// or a URL (fetched only on an unmetered connection). Set by [_playTrack].
+  String? _analysisSource;
+
+  /// The recording whose pause map a configure is waiting for.
+  String? _waitingForMap;
+
   Future<void> updateCueSettings(CueSettings settings) async {
     _cues = settings;
     final request = state;
     if (request == null) return;
     if (Platform.isAndroid || Platform.isIOS) {
-      await NativeCueController.configure(settings, request, update: true);
+      final generation = _generation;
+      final holds = await _holdsFor(settings, request);
+      // Edits that came while the holds were worked out are newer: theirs
+      // win, and a session that began meanwhile is not configured by this one.
+      if (!identical(_cues, settings) ||
+          generation != _generation ||
+          !identical(state, request)) {
+        return;
+      }
+      await NativeCueController.configure(
+        settings,
+        request,
+        update: true,
+        holds: holds,
+      );
+      // iOS shows the session's length from Dart: it follows the edit too.
+      if (Platform.isIOS) iosAudioHandler.updateExtension(settings, request);
     }
+  }
+
+  /// Where Extend goes in [request]: into the guide's pauses, once the
+  /// recording has been read. Without a pause map it all goes after the
+  /// recording, and the reading starts in the background; when it lands the
+  /// native cues are configured again, and only what is still ahead of the
+  /// playhead changes (the session's length does not).
+  Future<List<PauseHold>> _holdsFor(
+    CueSettings settings,
+    PlaybackRequest request,
+  ) async {
+    final source = _analysisSource;
+    if (!Platform.isAndroid ||
+        settings.extendMinutes <= 0 ||
+        request.isTimer ||
+        source == null ||
+        !PauseMapService.canAnalyse(request.trackId, source)) {
+      return const [];
+    }
+    final service = ref.read(pauseMapServiceProvider);
+    final key = PauseMapService.keyFor(request.trackId, request.fileId);
+    final map = await service.cached(key, durationMs: request.duration);
+    if (map != null) {
+      return PauseMapService.holdsFor(map, settings.extendMinutes);
+    }
+    // One waiter per recording, however many settings edits ask meanwhile.
+    if (_waitingForMap == key) return const [];
+    _waitingForMap = key;
+    unawaited(
+      service.analyse(key, source).then((found) async {
+        if (_waitingForMap == key) _waitingForMap = null;
+        if (found == null) return;
+        // The session may have moved on, or the setting been turned off. A
+        // restart of the same recording is still the one waiting for it.
+        final current = _cues;
+        final live = state;
+        if (current == null ||
+            live == null ||
+            live.trackId != request.trackId ||
+            live.fileId != request.fileId ||
+            current.extendMinutes <= 0) {
+          return;
+        }
+        try {
+          await NativeCueController.configure(
+            current,
+            live,
+            update: true,
+            holds: PauseMapService.holdsFor(found, current.extendMinutes),
+          );
+        } catch (e) {
+          AppLogger.w('PLAYER', 'Could not apply the pause map: $e');
+        }
+      }),
+    );
+    return const [];
   }
 
   Future<void> _playTrack(PlaybackRequest request, int generation) async {
@@ -96,6 +179,15 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
       courseId: scope.courseId,
     );
     _cues = ref.read(cueSettingsProvider(scope));
+    // Each kind keeps its own speed: a talk starts at the talks speed, a sit
+    // at the practice speed, a timer at 1×. Read just before it is applied,
+    // after the last wait, so a speed chosen while the session loads wins.
+    final isTimer = request.isTimer;
+    double startSpeed() => sessionPlaybackSpeed(
+      (kind) => ref.read(playbackSpeedProvider(kind)),
+      kind: scope.kind,
+      isTimer: isTimer,
+    );
     AppLogger.d(
       'PLAYER',
       '_playTrack called for track: ${request.trackId}, file: ${request.fileId}',
@@ -116,12 +208,14 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     if (downloadPath == null) request = request.copyWith(remoteUrl: url);
     if (generation != _generation) return;
     AppLogger.d('PLAYER', 'Will use path: $url');
+    _analysisSource = url;
 
     // Both engines outlive the player screen and keep their last repeat mode
-    // and speed across tracks, while each player screen starts at repeat off /
-    // 1.0x. Reset them so a leftover "repeat forever" can't loop a session
-    // (and block the end screen) and a slowed-down speed doesn't carry over.
-    // A timer has no repeat control; its length is the session.
+    // and speed across tracks, while each player screen starts at repeat off
+    // and at its kind's speed. Set both so a leftover "repeat forever" can't
+    // loop a session (and block the end screen) and a talk's 1.5× doesn't
+    // carry over into a sit. A timer has no repeat control; its length is the
+    // session.
     final repeatMode = request.isTimer
         ? app_repeat.RepeatMode.none
         : ref.read(repeatStateProvider);
@@ -165,8 +259,11 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
       }
       if (generation != _generation) return;
       setRepeatMode(repeatMode);
-      setSpeed(1.0);
-      await NativeCueController.configure(_cues!, request);
+      await _applySpeed(startSpeed());
+      if (generation != _generation) return;
+      final holds = await _holdsFor(_cues!, request);
+      if (generation != _generation) return;
+      await NativeCueController.configure(_cues!, request, holds: holds);
       if (generation != _generation) return;
       await _playAudioWithRetry(url, trackData, generation);
     } else {
@@ -176,7 +273,7 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
       // its retry budget — iOS has no such retry layer, so a single failure
       // here propagates immediately. That's intentional: callers need to know.
       setRepeatMode(repeatMode);
-      setSpeed(1.0);
+      await _applySpeed(startSpeed());
       if (generation != _generation) return;
       await iosAudioHandler.setUrl(downloadPath, request, trackData);
       if (generation != _generation) return;
@@ -269,9 +366,16 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
 
   Future<void> seekToPosition(int position) async {
     if (Platform.isAndroid) {
+      // A position on the session's timeline: the recording and its Extend.
       await _api.seekToPosition(position);
     } else {
-      await iosAudioHandler.seek(Duration(milliseconds: position));
+      // iOS holds Extend after the recording, which a seek cannot enter: a
+      // position in it goes to the voice's end, and the silence begins.
+      final media = iosAudioHandler.duration?.inMilliseconds;
+      final target = media != null && media > 0 && position > media
+          ? media
+          : position;
+      await iosAudioHandler.seek(Duration(milliseconds: target));
     }
   }
 
@@ -287,11 +391,24 @@ class PlayerProvider extends Notifier<PlaybackRequest?> {
     }
   }
 
-  void setSpeed(double speed) {
-    if (Platform.isAndroid) {
-      _api.setSpeed(speed);
-    } else {
-      iosAudioHandler.setSpeed(speed);
+  void setSpeed(double speed) => unawaited(_applySpeed(speed));
+
+  /// Sets the engine's speed. A failure is logged, not thrown: the session
+  /// still plays, and the log says it kept another speed.
+  Future<void> _applySpeed(double speed) async {
+    try {
+      if (Platform.isAndroid) {
+        await _api.setSpeed(speed);
+      } else {
+        await iosAudioHandler.setSpeed(speed);
+      }
+    } catch (e, st) {
+      AppLogger.e(
+        'PLAYER',
+        'Could not set the speed to $speed; the engine keeps its last speed',
+        e,
+        st,
+      );
     }
   }
 

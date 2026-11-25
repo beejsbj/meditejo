@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meditejo · Ways to practise: names and identities</title>
+<style>
+/*@FONTS@*/
+:root { --bg: #F2F5F6; --surface: #E4EAEC; --raised: #D7E0E3; --text: #18242F; --muted: #5E6F7B; --accent: #DE8A62; --form: #86A9B1; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #E9EEF0; color: var(--text); font-family: 'Google Sans', 'Noto Sans Devanagari', 'Noto Serif Tibetan', 'Noto Sans JP', 'Noto Sans SC', system-ui, sans-serif; line-height: 1.45; }
+.script { font-family: 'Noto Sans Devanagari', 'Noto Serif Tibetan', 'Noto Sans JP', 'Noto Sans SC', 'Google Sans', serif; }
+main { max-width: 1240px; margin: 0 auto; padding: 40px 28px 80px; }
+h1 { font-weight: 500; font-size: 34px; margin: 0 0 6px; letter-spacing: -0.01em; }
+h2 { font-weight: 500; font-size: 24px; margin: 56px 0 8px; }
+h3 { font-weight: 500; font-size: 19px; margin: 36px 0 4px; }
+.lede { color: var(--muted); max-width: 780px; margin: 0 0 18px; }
+.lede b { color: var(--text); font-weight: 500; }
+.rec { background: #fff; border-left: 4px solid var(--accent); padding: 14px 18px; border-radius: 6px; max-width: 900px; }
+code { font-size: 0.92em; }
+/* gallery */
+.gallery { padding: 22px; border-radius: 18px; margin-bottom: 18px; }
+.gallery.light { background: #F2F5F6; color: #18242F; } .gallery.dark { background: #0E151C; color: #E6EDF0; }
+.gallery .ghead { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.6; margin: 14px 0 8px; }
+.grid6 { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px 14px; }
+.fig .art { border-radius: 14px; display: block; }
+.fig .cap { font-size: 12px; margin-top: 6px; display: flex; flex-direction: column; gap: 1px; }
+.fig .cap b { font-weight: 500; font-size: 13px; } .fig .cap span { opacity: 0.65; } .fig .cap i { opacity: 0.8; font-style: normal; font-size: 11.5px; line-height: 1.35; }
+/* table */
+table { border-collapse: collapse; width: 100%; font-size: 13px; background: #fff; border-radius: 12px; overflow: hidden; }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid #E2E8EA; }
+th { font-weight: 500; background: #DCE4E7; position: sticky; top: 0; }
+td b { font-weight: 500; font-size: 14px; } td .script { color: #5E6F7B; }
+td.tg, td.en { color: #5E6F7B; white-space: nowrap; } td.note { color: #5E6F7B; font-size: 12px; max-width: 380px; }
+/* phones */
+.pair { display: flex; gap: 36px; flex-wrap: wrap; }
+.phone { width: 404px; padding: 10px; border-radius: 44px; background: #0B1015; box-shadow: 0 18px 40px rgba(14,21,28,.25); }
+.screen { width: 384px; height: 832px; border-radius: 34px; overflow: hidden auto; position: relative; scrollbar-width: none; }
+.screen::-webkit-scrollbar { display: none; }
+.phone.light .screen { background: #F2F5F6; color: #18242F; --muted: #5E6F7B; --card: #E4EAEC; --raised: #D7E0E3; }
+.phone.dark .screen { background: #0E151C; color: #E6EDF0; --muted: #8DA0AC; --card: #162029; --raised: #1F2B36; }
+.status { display: flex; justify-content: space-between; padding: 12px 26px 4px; font-size: 13px; font-weight: 500; }
+.apptitle { font-size: 26px; font-weight: 500; padding: 10px 20px 8px; }
+.search { margin: 0 16px 14px; padding: 12px 16px; border-radius: 28px; background: var(--card); color: var(--muted); font-size: 14px; }
+.section { padding: 6px 20px 2px; font-size: 18px; font-weight: 500; }
+.ghead { padding: 14px 20px 8px; font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.ghead .count { opacity: 0.7; margin-left: 4px; letter-spacing: 0; }
+.navbar { position: sticky; bottom: 0; display: flex; justify-content: space-around; padding: 14px 6px 22px; font-size: 12px; background: var(--card); color: var(--muted); margin-top: 20px; }
+.navbar .on { color: inherit; font-weight: 500; }
+.name { font-weight: 500; font-size: 16px; line-height: 1.2; letter-spacing: -0.005em; }
+.meta { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; margin-top: 3px; }
+.lang { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.meta .script { font-size: 12.5px; color: var(--muted); }
+.desc { font-size: 12.5px; line-height: 1.35; color: var(--muted); margin-top: 6px; }
+.grid2 { display: grid; grid-template-columns: 170px 170px; gap: 12px; padding: 0 16px; }
+.art { display: block; }
+.tileA { background: var(--card); border-radius: 18px; overflow: hidden; }
+.tileA .txt { padding: 10px 12px 14px; }
+.carB .row { display: flex; gap: 12px; overflow-x: auto; padding: 0 16px 4px; scrollbar-width: none; }
+.carB .row::-webkit-scrollbar { display: none; }
+.tileB { flex: 0 0 148px; background: var(--card); border-radius: 16px; overflow: hidden; }
+.tileB .txt { padding: 9px 10px 12px; }
+.tileB .name { font-size: 15px; }
+.tileB .desc { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.tileC { position: relative; border-radius: 16px; overflow: hidden; height: 112px; }
+.tileC .over { position: absolute; left: 12px; right: 10px; bottom: 10px; color: #F2F5F6; }
+.tileC .over .name { font-size: 15px; text-shadow: 0 1px 6px rgba(0,0,0,.25); }
+.tileC .over .lang, .tileC .over .script { color: rgba(242,245,246,.82); }
+/* shot mode: one frame, nothing else */
+body.shotmode { background: transparent; } body.shotmode main { display: none; }
+body.shotmode .phone { padding: 0; border-radius: 0; box-shadow: none; background: none; width: 384px; }
+body.shotmode .screen { border-radius: 0; }
+body.shotmode .gallery.shot { border-radius: 0; margin: 0; width: 1100px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Ways to practise: names and identities</h1>
+  <p class="lede">Phase 1 of Burooj's note on the pills (2026-11-02): <i>“Cards/tiles could allow us the og language with a small description. Each meditation technique could be given identity.”</i> Nothing in the app has changed yet. This page shows <b>each of the 36 practices with its name in its own language</b>, a <b>figure</b> drawn by Meditejo's art engine that says something true about the practice, and <b>three ways to lay out the tiles</b>, in Tidewater light and dark at the S23+'s width (384 dp). Everything animates; the clock is the breath (10 s).</p>
+  <div class="rec">/*@RECOMMEND@*/</div>
+
+  <h2>All 36 figures</h2>
+  <p class="lede">Each figure is curated, not random (decision 22): one figure and one ground per practice, in the engine's own contract (<code>build</code> / <code>draw</code>, a calm still frame, seamless loops), so Phase 2 ports them beside the Dart figures. Breath, grass and the lotus are round 4's primitives as they are; the other 33 are new.</p>
+  <div id="gallery"></div>
+
+  <h2>Names</h2>
+  <p class="lede">The tile shows the name in the practice's own language, its tradition, and its script where the tradition writes it (Pāli has no single script, so it stays romanised). Practices born in English keep their English names. The English name stays as an alias, so typing “loving-kindness” still finds Mettā. <b>Contested or ambiguous ones say so</b> in the last column.</p>
+  <table><thead><tr><th>Group</th><th>Name</th><th>Tradition</th><th>One line</th><th>English alias</th><th>Notes</th></tr></thead><tbody id="names"></tbody></table>
+
+  <h2>Three tile layouts</h2>
+  <p class="lede">Each frame scrolls. Light on the left, dark on the right.</p>
+  <div id="layouts"></div>
+</main>
+<script>/*@CORE@*/</script>
+<script>/*@GROUNDS@*/</script>
+<script>/*@PRIMS@*/</script>
+<script>/*@FIGURES@*/</script>
+<script>/*@APP@*/</script>
+</body>
+</html>

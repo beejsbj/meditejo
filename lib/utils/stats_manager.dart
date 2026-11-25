@@ -6,6 +6,7 @@ import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/services/stats_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medito/models/local_audio_completed.dart';
+import 'package:medito/models/timer/timer_session.dart';
 import 'package:medito/utils/audio_completion_tracker.dart';
 import 'package:medito/services/home_widget_service.dart';
 import 'package:medito/utils/consistency_score_history.dart';
@@ -182,9 +183,16 @@ class StatsManager {
     _allStats ??= storedStats;
   }
 
+  /// [duration] is the recording's length (audio covered); [realDuration]
+  /// the real time it took at the speed it was played at, when the player
+  /// measured it, with the session's silence (Extend, the ending bell's) and
+  /// countdown. A timer is never sped up: it keeps a real time only when
+  /// that is longer than its length (a countdown before it), and otherwise
+  /// none, as a manual entry and older payloads have none.
   Future<void> addAudioCompleted(
     LocalAudioCompleted audioCompleted,
     int duration, {
+    int? realDuration,
     bool updateWidget = true,
     String? completionId,
     String? kind,
@@ -193,18 +201,25 @@ class StatsManager {
   }) => _mutate(() async {
     // The history keeps how long each session ran, and what it was (Practice
     // or Talks, and which course), for the stats page. Recorded from here on.
+    final realMs = isTimerSessionId(audioCompleted.id)
+        ? _timerRealMs(duration, realDuration)
+        : realDuration;
     audioCompleted = audioCompleted.copyWith(
       durationMs: duration,
+      realMs: realMs,
       kind: kind,
       courseId: courseId,
       courseTitle: courseTitle,
     );
+    // The session started about this long before it ended: its recording
+    // length at the speeds it was heard at.
+    final elapsed = realMs ?? duration;
     if (AudioCompletionTracker.checkTrackCrossedMidnight(
       endTimestamp: audioCompleted.timestamp,
-      duration: duration,
+      duration: elapsed,
     )) {
       audioCompleted = audioCompleted.copyWith(
-        timestamp: audioCompleted.timestamp - duration,
+        timestamp: audioCompleted.timestamp - elapsed,
       );
     }
 
@@ -258,6 +273,7 @@ class StatsManager {
   /// recent session, so the day it was sat shows them in the stats page.
   Future<void> addRepeatListeningTime(
     int duration, {
+    int? realDuration,
     String? completionId,
     String? trackId,
   }) => _mutate(() async {
@@ -271,6 +287,9 @@ class StatsManager {
     _allStats = AudioCompletionTracker.addRepeatListeningTime(
       stats: _allStats,
       duration: duration,
+      realDuration: trackId != null && isTimerSessionId(trackId)
+          ? _timerRealMs(duration, realDuration)
+          : realDuration,
       trackId: trackId,
     );
     await _saveLocalAllStatsToSharedPrefs();
@@ -607,3 +626,8 @@ class StatsManager {
   @visibleForTesting
   Future<void> initializeForTesting() => initialize();
 }
+
+/// A timer runs at 1x, so a real time shorter than its length is a speed
+/// left over from a talk and is dropped. A longer one is its countdown.
+int? _timerRealMs(int duration, int? realDuration) =>
+    realDuration != null && realDuration > duration ? realDuration : null;

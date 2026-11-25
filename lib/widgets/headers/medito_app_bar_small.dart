@@ -1,5 +1,6 @@
 import 'package:medito/constants/constants.dart';
 import 'package:flutter/material.dart';
+import 'package:medito/widgets/headers/page_back_button.dart';
 
 class MeditoAppBarSmall extends StatelessWidget implements PreferredSizeWidget {
   const MeditoAppBarSmall({
@@ -8,16 +9,17 @@ class MeditoAppBarSmall extends StatelessWidget implements PreferredSizeWidget {
     this.titleWidget,
     this.isTransparent = false,
     this.hasBackButton = true,
-    this.hasCloseButton = false,
     this.actions,
     this.closePressed,
     this.bottom,
   });
 
+  /// What Back does, in place of popping the page.
   final void Function()? closePressed;
   final Widget? titleWidget;
-  final bool hasCloseButton;
   final bool isTransparent;
+
+  /// Back at the top-left, on a page that was pushed.
   final bool hasBackButton;
   final List<Widget>? actions;
   final String? title;
@@ -28,7 +30,7 @@ class MeditoAppBarSmall extends StatelessWidget implements PreferredSizeWidget {
     final hasBottom = bottom != null;
     final hasActions = actions != null && actions!.isNotEmpty;
     return AppBar(
-      leading: null,
+      leading: hasBackButton ? PageBackButton(onPressed: closePressed) : null,
       automaticallyImplyLeading: false,
       centerTitle: true,
       actions: actions,
@@ -37,7 +39,7 @@ class MeditoAppBarSmall extends StatelessWidget implements PreferredSizeWidget {
           ? ColorConstants.transparent
           : Theme.of(context).colorScheme.surface,
       title: hasBottom ? null : getTitleWidget(context),
-      toolbarHeight: hasBottom && !hasActions ? 0 : null,
+      toolbarHeight: hasBottom && !hasActions && !hasBackButton ? 0 : null,
       bottom: bottom,
     );
   }

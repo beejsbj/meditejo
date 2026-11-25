@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:medito/models/local_all_stats.dart';
 import 'package:medito/models/local_audio_completed.dart';
 import 'package:medito/models/timer/timer_session.dart';
+import 'package:medito/services/stats/real_time.dart';
 import 'package:medito/utils/day_boundary.dart';
 
 /// Where a ranked slice of practice time came from, when it has no course.
@@ -52,17 +53,21 @@ class DayTotal {
 /// give it the history, the time and the user's day boundary, and it gives the
 /// same answer, so it can be tested on fixed fixtures.
 ///
-/// Minutes come from each entry's recorded length (`durationMs`, or a timer's
-/// own length in its id). Entries from before lengths were recorded have none:
+/// Minutes are real time: what each session took at the speed it was played
+/// at (`realMs`), else its recorded length (`durationMs`, or a timer's own
+/// length in its id) for timers, manual entries and sessions from before real
+/// time was recorded. Entries from before lengths were recorded have none:
 /// they count as days practised and towards the streak, never as minutes, and
-/// [untimedSessions] says how many. [allTime] is the running total the history
-/// has always kept, which does include them.
+/// [untimedSessions] says how many. [allTimeAudio] is the running total of
+/// recording lengths the history has always kept, which does include them;
+/// [allTime] is the same total in real time.
 class PracticeSummary {
   PracticeSummary._({
     required this.today,
     required this.thisWeek,
     required this.thisMonth,
     required this.allTime,
+    required this.allTimeAudio,
     required this.days,
     required this.daysPractised,
     required this.timeByDay,
@@ -89,7 +94,18 @@ class PracticeSummary {
 
   /// The first of the month to today.
   final Duration thisMonth;
+
+  /// Real time spent, all time.
   final Duration allTime;
+
+  /// Audio covered (recording lengths), all time. Above [allTime] when talks
+  /// were sped up, below it when practice was slowed down.
+  final Duration allTimeAudio;
+
+  /// Whether the audio covered differs enough from the time spent to say so.
+  /// See [audioDiffersFromRealTime].
+  bool get audioDiffers =>
+      audioDiffersFromRealTime(audio: allTimeAudio, real: allTime);
 
   /// The last [chartDays] days, oldest first, ending today.
   final List<DayTotal> days;
@@ -131,11 +147,19 @@ class PracticeSummary {
       .where((d) => d.year == month.year && d.month == month.month)
       .length;
 
+  /// The recording's length (audio covered).
   static Duration? lengthOf(LocalAudioCompleted entry) {
     final recorded = entry.durationMs;
     if (recorded != null) return Duration(milliseconds: recorded);
     // A timer sat before lengths were recorded kept its length in its id.
     return timerSessionDuration(entry.id);
+  }
+
+  /// The real time the session took; its length when none was recorded.
+  static Duration? realTimeOf(LocalAudioCompleted entry) {
+    final real = entry.realMs;
+    if (real != null) return Duration(milliseconds: real);
+    return lengthOf(entry);
   }
 
   static String? kindOf(LocalAudioCompleted entry) {
@@ -180,7 +204,16 @@ class PracticeSummary {
     var todayMs = 0, weekMs = 0, monthMs = 0;
     var practiceMs = 0, talksMs = 0, otherMs = 0;
     var untimed = 0, sessions = 0;
+    // Recording length minus real time over every entry that has both, so
+    // the all-time total (kept in recording lengths) reads in real time.
+    var speedSavedMs = 0;
     final groups = <String, _Group>{};
+
+    for (final entry in stats.audioCompleted ?? const <LocalAudioCompleted>[]) {
+      final real = entry.realMs;
+      final audio = entry.durationMs;
+      if (real != null && audio != null) speedSavedMs += audio - real;
+    }
 
     for (final entry in stats.audioCompleted ?? const <LocalAudioCompleted>[]) {
       final day = dayOf(
@@ -191,7 +224,7 @@ class PracticeSummary {
       practised.add(day);
       sessions++;
 
-      final length = lengthOf(entry);
+      final length = realTimeOf(entry);
       if (length == null) {
         untimed++;
         continue;
@@ -260,7 +293,13 @@ class PracticeSummary {
       today: Duration(milliseconds: todayMs),
       thisWeek: Duration(milliseconds: weekMs),
       thisMonth: Duration(milliseconds: monthMs),
-      allTime: Duration(milliseconds: stats.totalTimeListened),
+      allTime: Duration(
+        milliseconds: (stats.totalTimeListened - speedSavedMs).clamp(
+          0,
+          _maxSafeMs,
+        ),
+      ),
+      allTimeAudio: Duration(milliseconds: stats.totalTimeListened),
       days: chart,
       daysPractised: practised,
       timeByDay: {
@@ -280,6 +319,9 @@ class PracticeSummary {
     );
   }
 }
+
+/// An upper bound for the clamp: the largest integer a double holds exactly.
+const _maxSafeMs = 9007199254740991;
 
 class _Group {
   _Group(this.source, this.courseId);

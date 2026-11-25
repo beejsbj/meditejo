@@ -464,7 +464,8 @@ data class CompletionData (
   val fileId: String,
   val guideId: String? = null,
   val timestamp: Long,
-  val userToken: String? = null
+  val userToken: String? = null,
+  val realDuration: Long? = null
 )
  {
   companion object {
@@ -475,7 +476,8 @@ data class CompletionData (
       val guideId = pigeonVar_list[3] as String?
       val timestamp = pigeonVar_list[4] as Long
       val userToken = pigeonVar_list[5] as String?
-      return CompletionData(trackId, duration, fileId, guideId, timestamp, userToken)
+      val realDuration = pigeonVar_list[6] as Long?
+      return CompletionData(trackId, duration, fileId, guideId, timestamp, userToken, realDuration)
     }
   }
   fun toList(): List<Any?> {
@@ -486,6 +488,7 @@ data class CompletionData (
       guideId,
       timestamp,
       userToken,
+      realDuration,
     )
   }
   override fun equals(other: Any?): Boolean {
@@ -496,7 +499,7 @@ data class CompletionData (
       return true
     }
     val other = other as CompletionData
-    return AudioPigeonPigeonUtils.deepEquals(this.trackId, other.trackId) && AudioPigeonPigeonUtils.deepEquals(this.duration, other.duration) && AudioPigeonPigeonUtils.deepEquals(this.fileId, other.fileId) && AudioPigeonPigeonUtils.deepEquals(this.guideId, other.guideId) && AudioPigeonPigeonUtils.deepEquals(this.timestamp, other.timestamp) && AudioPigeonPigeonUtils.deepEquals(this.userToken, other.userToken)
+    return AudioPigeonPigeonUtils.deepEquals(this.trackId, other.trackId) && AudioPigeonPigeonUtils.deepEquals(this.duration, other.duration) && AudioPigeonPigeonUtils.deepEquals(this.fileId, other.fileId) && AudioPigeonPigeonUtils.deepEquals(this.guideId, other.guideId) && AudioPigeonPigeonUtils.deepEquals(this.timestamp, other.timestamp) && AudioPigeonPigeonUtils.deepEquals(this.userToken, other.userToken) && AudioPigeonPigeonUtils.deepEquals(this.realDuration, other.realDuration)
   }
 
   override fun hashCode(): Int {
@@ -507,6 +510,7 @@ data class CompletionData (
     result = 31 * result + AudioPigeonPigeonUtils.deepHash(this.guideId)
     result = 31 * result + AudioPigeonPigeonUtils.deepHash(this.timestamp)
     result = 31 * result + AudioPigeonPigeonUtils.deepHash(this.userToken)
+    result = 31 * result + AudioPigeonPigeonUtils.deepHash(this.realDuration)
     return result
   }
 }

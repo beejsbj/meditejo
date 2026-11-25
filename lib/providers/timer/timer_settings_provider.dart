@@ -24,12 +24,10 @@ class TimerSettings {
       TimerSettings(mode: mode ?? this.mode, minutes: minutes ?? this.minutes);
 }
 
-/// The Timer screen's mode and countdown length. The length is persisted so
-/// the next visit opens on it (70% of timer sessions repeat the previous
-/// length, Sep 2026); the screen always opens on the countdown.
-// autoDispose: dropped when the Timer screen closes, so each visit starts on
-// the countdown again (the player route sits above it, so it survives the
-// session itself).
+/// Whether the Timer is open-ended (∞ on its length wheel: the stopwatch
+/// engine, counting up until ended) or counts down. Kept, like the length
+/// (70% of timer sessions repeat the previous length, Sep 2026): ∞ is one
+/// more place the wheel can rest, so the next visit finds it there.
 final timerSettingsProvider =
     NotifierProvider.autoDispose<TimerSettingsNotifier, TimerSettings>(
       TimerSettingsNotifier.new,
@@ -42,8 +40,10 @@ class TimerSettingsNotifier extends Notifier<TimerSettings> {
   TimerSettings build() {
     final prefs = ref.watch(sharedPreferencesProvider);
     final minutes = prefs.getInt(SharedPreferenceConstants.timerMinutes);
+    final openEnded =
+        prefs.getBool(SharedPreferenceConstants.timerOpenEnded) ?? false;
     return TimerSettings(
-      mode: TimerMode.countdown,
+      mode: openEnded ? TimerMode.stopwatch : TimerMode.countdown,
       minutes: (minutes ?? kDefaultTimerMinutes).clamp(0, _maxMinutes),
     );
   }
@@ -51,6 +51,12 @@ class TimerSettingsNotifier extends Notifier<TimerSettings> {
   void setMode(TimerMode mode) {
     if (mode == state.mode) return;
     state = state.copyWith(mode: mode);
+    ref
+        .read(sharedPreferencesProvider)
+        .setBool(
+          SharedPreferenceConstants.timerOpenEnded,
+          mode == TimerMode.stopwatch,
+        );
   }
 
   void setMinutes(int minutes) {

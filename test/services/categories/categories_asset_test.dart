@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/services/categories/category_catalogue.dart';
 import 'package:medito/services/library/starter_set.dart';
+import 'package:medito/views/categories/practice_tile.dart';
+import 'package:medito/widgets/art/engine/registry.dart';
 import 'package:sqlite3/open.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -25,6 +27,7 @@ void main() {
     });
     catalogue = CategoryCatalogue.parse(
       File(categoriesAsset).readAsStringSync(),
+      modelPass: File(categoriesPassAsset).readAsStringSync(),
     );
     final gz = File('assets/dharma_seed/catalogue.sqlite.gz');
     if (!gz.existsSync()) {
@@ -66,16 +69,48 @@ void main() {
   });
 
   test(
+    'each practice has its tile: group, origin, a line in en/de/es, art',
+    () {
+      const langs = {'pi', 'sa', 'bo', 'ja'};
+      for (final c in catalogue.categories) {
+        expect(practiceGroups, contains(c.group), reason: c.id);
+        // Where the name comes from: its languages, or its originals/founder.
+        expect(c.langs.isNotEmpty || c.label.isNotEmpty, isTrue, reason: c.id);
+        expect(langs, containsAll(c.langs), reason: c.id);
+        for (final code in ['en', 'de', 'es']) {
+          expect(c.blurbs[code], isNotEmpty, reason: '${c.id} $code');
+        }
+        expect(ArtRegistry.grounds, contains(c.ground), reason: c.id);
+        final figure = c.figure?.split(':').first;
+        if (figure != null) {
+          expect(ArtRegistry.figures, contains(figure), reason: c.id);
+        }
+      }
+    },
+  );
+
+  test('the split practices are four, and English names still find them', () {
+    for (final id in ['dzogchen', 'mahamudra', 'trataka', 'kasina']) {
+      expect(catalogue.category(id), isNotNull, reason: id);
+    }
+    expect(catalogue.categoryNamed('Gazing')?.id, 'trataka');
+    expect(catalogue.categoryNamed('Kasina')?.id, 'kasina');
+    expect(catalogue.categoryNamed('Mahamudra')?.id, 'mahamudra');
+    expect(catalogue.categoryNamed('loving-kindness')?.id, 'metta');
+    expect(catalogue.categoryNamed('Zen')?.id, 'zen');
+    expect(catalogue.categoryNamed('emptiness')?.id, 'emptiness');
+  });
+
+  test(
     'every category has a rule or a curated item, or says it has none yet',
     () {
-      // Sankalpa and TMI have nothing on Dharma Seed (checked 2026-10-27); they
-      // are filled by the user's labels and imports. Anything else must have
-      // something, or the page would be empty for no reason.
-      const knownEmpty = {'tmi', 'sankalpa'};
+      // Several have nothing on Dharma Seed (TMI, Sankalpa, Kundalini, the
+      // Headless Way, …); browsing hides them until the user's labels or
+      // another source fill them. Each still needs a way in for when they do.
       for (final c in catalogue.categories) {
-        if (knownEmpty.contains(c.id)) continue;
         final reachable =
             catalogue.curatedIn(c.id).isNotEmpty ||
+            catalogue.modelIn(c.id).isNotEmpty ||
             catalogue.rulesFor(c.id).isNotEmpty;
         expect(reachable, isTrue, reason: '${c.id} is unreachable');
       }
@@ -133,6 +168,64 @@ void main() {
     expect(catalogue.curatedFor('ds-talk-60864'), ['jhana']);
   });
 
+  group('the model pass', () {
+    test('no category holds more than a quarter of it', () {
+      // Dharma Seed is largely the Insight Meditation movement's archive, so
+      // a faithful reading put Vipassanā on 38% of it. Narrowed to retreats
+      // whose practice is insight (DECISIONS.md, 2026-11-03), it filters:
+      // about a fifth. A quarter is the bound for every category, Vipassanā
+      // included; Vipassanā also stays above a tenth, so the narrowing has
+      // not emptied it.
+      final total =
+          snapshot
+                  .select(
+                    "SELECT COUNT(*) AS n FROM ds_retreats WHERE talk_ids != '[]'",
+                  )
+                  .first['n']
+              as int;
+      for (final c in catalogue.categories) {
+        final share = catalogue.modelIn(c.id).length / total;
+        if (c.id == 'vipassana') {
+          expect(share, greaterThan(0.1), reason: 'vipassana: $share');
+        }
+        expect(share, lessThan(0.25), reason: '${c.id}: $share');
+      }
+    });
+
+    test('read every retreat with talks in the bundled snapshot', () {
+      final withTalks = {
+        for (final row in snapshot.select(
+          "SELECT id FROM ds_retreats WHERE talk_ids != '[]'",
+        ))
+          row['id'] as int,
+      };
+      final read = {
+        for (final id in withTalks)
+          if (catalogue.modelFor('ds-retreat-$id') != null) id,
+      };
+      expect(read, withTalks);
+    });
+
+    test('names only retreats that exist', () {
+      final ids = {
+        for (final row in snapshot.select('SELECT id FROM ds_retreats'))
+          'ds-retreat-${row['id']}',
+      };
+      for (final c in catalogue.categories) {
+        for (final id in catalogue.modelIn(c.id)) {
+          expect(ids, contains(id));
+        }
+      }
+    });
+
+    test('is outranked by the hand-picked entries', () {
+      // Retreat 4496 is hand-picked as Jhāna, whatever the pass read.
+      expect(catalogue.classify('ds-retreat-4496'), [
+        const CategoryAssignment('jhana', CategorySource.curated),
+      ]);
+    });
+  });
+
   group('the rules, over real titles', () {
     List<String> ofRetreat(int id) {
       final row = snapshot.select(
@@ -161,7 +254,22 @@ void main() {
       expect(ofTitle('The Art Of Concentration (Samatha Meditation)'), [
         'samatha',
       ]);
-      expect(ofTitle('Dzogchen Retreat'), ['open-awareness']);
+      expect(ofTitle('Dzogchen Retreat'), ['dzogchen']);
+      expect(ofTitle('Mahamudra Retreat'), ['mahamudra']);
+      expect(ofTitle('Fire Kasina'), ['kasina']);
+      expect(ofTitle('Candle Gazing Meditation'), ['trataka']);
+      expect(ofTitle('Open Awareness Practice'), ['open-awareness']);
+      expect(ofTitle('Walking Meditation Instructions'), ['walking']);
+      expect(ofTitle('Tonglen Practice'), ['compassion']);
+      expect(ofTitle('Maranasati: Contemplating Death'), ['death']);
+      expect(ofTitle('Insight Dialogue Retreat'), ['relational']);
+      expect(ofTitle('Morning Chanting'), ['chanting']);
+      expect(ofTitle('Guided Qigong'), ['movement']);
+      expect(ofTitle('Breathing with the Energy Body'), [
+        'breath',
+        'body',
+        'energy',
+      ]);
       expect(ofTitle('Mindfulness of the Body'), ['body']);
       expect(ofTitle('Maximize your Meditation with Culadasa'), ['tmi']);
       expect(ofTitle('Sankalpa and the Heart'), ['sankalpa']);
@@ -170,6 +278,10 @@ void main() {
     test('do not fire on look-alikes', () {
       expect(ofTitle('Nobody home'), isEmpty);
       expect(ofTitle('A walk with John'), isEmpty);
+      expect(ofTitle('Walking Each Other Home'), isEmpty);
+      expect(ofTitle('A Glimpse of Connection'), isEmpty);
+      expect(ofTitle('Mindfulness Based on Right View'), isEmpty);
+      expect(ofTitle('The Five Spiritual Faculties: Energy'), isEmpty);
       expect(ofTitle('Dependent Origination'), isEmpty);
     });
 
@@ -179,15 +291,19 @@ void main() {
     });
 
     test('stay a fallback: no category swallows the catalogue', () {
+      // The rules alone, as for a retreat newer than the model pass.
+      final rulesOnly = CategoryCatalogue.parse(
+        File(categoriesAsset).readAsStringSync(),
+      );
       final total =
           snapshot.select('SELECT COUNT(*) AS n FROM ds_retreats').first['n']
               as int;
-      for (final c in catalogue.categories) {
+      for (final c in rulesOnly.categories) {
         var hits = 0;
         for (final row in snapshot.select(
           'SELECT id, name, description FROM ds_retreats',
         )) {
-          final result = catalogue.classify(
+          final result = rulesOnly.classify(
             'ds-retreat-${row['id']}',
             title: row['name'] as String,
             description: row['description'] as String,

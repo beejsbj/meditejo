@@ -177,6 +177,7 @@ Future<bool> _handleStats(
     await statsManager.addAudioCompleted(
       newAudioCompleted,
       duration,
+      realDuration: _realDurationOf(payload),
       completionId: completionId,
       kind: label.kind,
       courseId: label.courseId,
@@ -220,7 +221,7 @@ Future<bool> _handleStats(
 
     await _rescheduleReminders(
       endMs: payload[TypeConstants.timestampIdKey] as int,
-      durationMs: payload[TypeConstants.durationIdKey] as int,
+      durationMs: _elapsedOf(payload),
     );
 
     // Optional Health writes follow local recording and never request permission.
@@ -260,6 +261,7 @@ Future<bool> _handleRepeatPlaythrough(
     await statsManager.initialize();
     await statsManager.addRepeatListeningTime(
       payload[TypeConstants.durationIdKey] as int,
+      realDuration: _realDurationOf(payload),
       completionId: completionId,
       trackId: payload[TypeConstants.trackIdKey] as String?,
     );
@@ -377,15 +379,38 @@ Future<void> _syncHealthKit(Map<String, dynamic> payload) async {
   }
 }
 
-Future<bool> _updateHealthKit(Map<String, dynamic> payload) async {
+/// The real time a completion payload took, when the player measured it.
+/// Payloads saved before it was recorded have none.
+int? _realDurationOf(Map<String, dynamic> payload) =>
+    (payload[TypeConstants.realDurationIdKey] as num?)?.toInt();
+
+/// How long the session ran: its recording length at the speeds it was heard
+/// at, else (no real time recorded) its length.
+int _elapsedOf(Map<String, dynamic> payload) =>
+    _realDurationOf(payload) ?? payload[TypeConstants.durationIdKey] as int;
+
+/// Health gets the real time spent, not the recording's length: mindful
+/// minutes are time sat, and a 60-minute talk heard at 2x took 30. The
+/// interval ends when the completion was recorded.
+@visibleForTesting
+({DateTime start, DateTime end}) healthIntervalOf(
+  Map<String, dynamic> payload,
+) {
   final end = DateTime.fromMillisecondsSinceEpoch(
     payload[TypeConstants.timestampIdKey],
   );
-  final start = end.subtract(
-    Duration(milliseconds: payload[TypeConstants.durationIdKey]),
+  return (
+    start: end.subtract(Duration(milliseconds: _elapsedOf(payload))),
+    end: end,
   );
+}
 
-  return await HealthKitManager().writeMindfulnessData(start, end);
+Future<bool> _updateHealthKit(Map<String, dynamic> payload) async {
+  final interval = healthIntervalOf(payload);
+  return await HealthKitManager().writeMindfulnessData(
+    interval.start,
+    interval.end,
+  );
 }
 
 /// Checks if a session was manually added (not from a track)

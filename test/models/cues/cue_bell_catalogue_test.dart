@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/models/background_sounds/background_sounds_model.dart';
 import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/providers/cues/cue_settings_provider.dart';
+import 'package:medito/widgets/art/engine/bell.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// The first fields of a WAV: PCM, mono, 16-bit, with its rate and length.
@@ -84,6 +85,32 @@ void main() {
     expect(onDisk, listed);
   });
 
+  test('the wind chimes keep the id of the chime they replaced', () {
+    // #76: a sample under the struck bar's asset path, so a cue that rang
+    // "Chime" rings "Wind chimes" with nothing migrated.
+    expect(bells['Wind chimes'], 'assets/audio/bell_chime.wav');
+    expect(bells.containsKey('Chime'), isFalse);
+    final s = CueSettings.decode(
+      '{"version":1,"intervalSound":"assets/audio/bell_chime.wav"}',
+      CueKind.practice,
+    );
+    expect(s.intervalSound, 'assets/audio/bell_chime.wav');
+    expect(BellFigure.byAsset(s.intervalSound)!.title, 'Wind chimes');
+    for (final b in BellFigure.shipped) {
+      expect(bells[b.title], b.asset, reason: b.id);
+    }
+  });
+
+  test('the pulse sounds keep their names and ids', () {
+    expect(cuePulseSounds, {
+      'Off': '',
+      'Soft click': 'assets/audio/pulse_click.wav',
+      'Heartbeat': 'assets/audio/pulse_heartbeat.wav',
+      'Chirp': 'assets/audio/pulse_chirp.wav',
+      'Footstep': 'assets/audio/pulse_footstep.wav',
+    });
+  });
+
   test('the original bell keeps its id, and stays the default', () {
     expect(bells.values, contains('assets/audio/session_bell_v2.wav'));
     expect(kSessionBellAsset, 'assets/audio/session_bell_v2.wav');
@@ -139,7 +166,7 @@ void main() {
     final store = CueSettingsStore(prefs);
     const scope = CueScope(CueKind.practice);
     final start = bells['Singing bowl, deep']!;
-    final interval = bells['Chime']!;
+    final interval = bells['Wind chimes']!;
     final end = bells['Gong']!;
     await store.save(scope, const CueSettings().copyWith(startSound: start));
     var read = CueSettingsStore(prefs).read(scope);

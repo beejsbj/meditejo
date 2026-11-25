@@ -3,11 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/routes/routes.dart';
-import 'package:medito/services/dharma_seed/dharma_seed_models.dart';
+import 'package:medito/models/catalogue/catalogue_models.dart';
 import 'package:medito/widgets/cards/card_tokens.dart';
 import 'package:medito/widgets/cards/teacher_tiles.dart';
 
-void openTeacher(BuildContext context, WidgetRef ref, DsTeacherItem teacher) {
+void openTeacher(
+  BuildContext context,
+  WidgetRef ref,
+  CatalogueTeacher teacher,
+) {
   handleNavigation(TypeConstants.teacher, [teacher.id], context, ref: ref);
 }
 
@@ -15,7 +19,7 @@ void openTeacher(BuildContext context, WidgetRef ref, DsTeacherItem teacher) {
 class TeacherStrip extends ConsumerWidget {
   const TeacherStrip({super.key, required this.teachers});
 
-  final List<DsTeacherItem> teachers;
+  final List<CatalogueTeacher> teachers;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -45,7 +49,7 @@ class TeacherStrip extends ConsumerWidget {
 class TeacherRows extends ConsumerWidget {
   const TeacherRows({super.key, required this.teachers, this.onBeforeNavigate});
 
-  final List<DsTeacherItem> teachers;
+  final List<CatalogueTeacher> teachers;
   final VoidCallback? onBeforeNavigate;
 
   @override

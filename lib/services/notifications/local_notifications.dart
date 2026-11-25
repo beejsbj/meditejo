@@ -29,8 +29,8 @@ class LocalNotifications {
     tz.initializeTimeZones();
     const settings = InitializationSettings(
       android: AndroidInitializationSettings('logo'),
-      // Permission is requested explicitly where we want it (onboarding, end
-      // screen, settings), never as a side effect of initialising.
+      // Permission is requested explicitly where we want it (end screen,
+      // settings), never as a side effect of initialising.
       iOS: DarwinInitializationSettings(
         requestAlertPermission: false,
         requestBadgePermission: false,

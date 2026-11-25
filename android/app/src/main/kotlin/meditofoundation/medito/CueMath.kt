@@ -23,6 +23,10 @@ internal data class CueConfig(
     val pulseRampMinutes: Int = 0,
     val pulseVolume: Double = 1.0,
     val bellVolume: Double = 1.0,
+    /**
+     * All the silence a guided session adds: after the recording and in its
+     * pauses (each up to 60 minutes in the app, so up to 120 here).
+     */
     val extendMinutes: Int = 0,
     val isTimer: Boolean = false,
     val durationMs: Long = 0,
@@ -32,16 +36,25 @@ internal data class CueConfig(
     val interludeSeconds: Int = 0,
     /** The interval bell is "Halfway": one bell at the midpoint, not every N minutes. */
     val intervalHalfway: Boolean = false,
+    /**
+     * Where Extend takes its silence mid-recording: the voice pauses at each
+     * position for its length. What these do not use of [extendMinutes] is
+     * held after the recording, as ever.
+     */
+    val holds: List<PauseHold> = emptyList(),
 ) {
     val countdownMs: Long get() = countdownSeconds.coerceIn(0, 10) * 1000L
     val interludeMs: Long get() = interludeSeconds.coerceIn(0, 30) * 1000L
-    val extensionMs: Long get() = extendMinutes.coerceIn(0, 60) * 60_000L
+    val extensionMs: Long get() = extendMinutes.coerceIn(0, MAX_EXTEND_MINUTES) * 60_000L
     /** Every-N-minutes bells; never alongside the halfway bell. */
     val hasInterval: Boolean get() = !intervalHalfway && intervalMinutes > 0 && intervalSound != null
     val hasHalfway: Boolean get() = intervalHalfway && intervalSound != null
     val hasPulse: Boolean get() = pulseSound != null
 
     companion object {
+        /** Silence after the recording plus rest in its pauses, 60 minutes each. */
+        const val MAX_EXTEND_MINUTES = 120
+
         private fun str(v: Any?): String? = (v as? String)?.takeIf { it.isNotBlank() }
         private fun int(v: Any?): Int = (v as? Number)?.toInt() ?: 0
         private fun long(v: Any?): Long = (v as? Number)?.toLong() ?: 0L
@@ -60,14 +73,27 @@ internal data class CueConfig(
             pulseRampMinutes = int(m["pulseRampMinutes"]).coerceIn(0, 60),
             pulseVolume = dbl(m["pulseVolume"], 1.0).coerceIn(0.0, 1.0),
             bellVolume = dbl(m["bellVolume"], 1.0).coerceIn(0.0, 1.0),
-            extendMinutes = int(m["extendMinutes"]).coerceIn(0, 60),
+            extendMinutes = int(m["extendMinutes"]).coerceIn(0, MAX_EXTEND_MINUTES),
             isTimer = m["isTimer"] as? Boolean ?: false,
             durationMs = long(m["durationMs"]),
             randomSeed = long(m["randomSeed"]),
             autoplay = m["autoplay"] as? Boolean ?: false,
             interludeSeconds = int(m["interludeSeconds"]).coerceIn(0, 30),
             intervalHalfway = m["intervalHalfway"] as? Boolean ?: false,
+            holds = PauseHold.listFrom(m["holds"]),
         )
+    }
+}
+
+/** A hold the voice takes when playback reaches [atMs] of the recording. */
+internal data class PauseHold(val atMs: Long, val holdMs: Long) {
+    companion object {
+        fun listFrom(v: Any?): List<PauseHold> = (v as? List<*>).orEmpty().mapNotNull { item ->
+            val m = item as? Map<*, *> ?: return@mapNotNull null
+            val at = (m["atMs"] as? Number)?.toLong() ?: return@mapNotNull null
+            val hold = (m["holdMs"] as? Number)?.toLong() ?: return@mapNotNull null
+            if (at < 0 || hold <= 0) null else PauseHold(at, hold.coerceAtMost(ExtendedTimeline.MAX_HOLD_MS))
+        }
     }
 }
 
@@ -249,6 +275,37 @@ internal object CueMath {
      */
     fun earnsRepeat(isTimer: Boolean, heardPassEnough: Boolean): Boolean =
         isTimer || heardPassEnough
+
+    /**
+     * Real time for the stats: the recording length at the speeds it was
+     * heard at. Not a clock reading: the [durationMs] length is scaled by the
+     * mix of speeds playback used ([playedRealMs] over [playedMediaMs]), so a
+     * 60-minute talk heard at 2x is 30 minutes. Pauses and seeks are not
+     * playback and do not change the mix. Nothing played yet (a completion
+     * straight after a resume) takes the [speed] in force. A timer is never
+     * sped up: its real time is its length.
+     */
+    fun realDurationMs(
+        durationMs: Long,
+        playedMediaMs: Double,
+        playedRealMs: Double,
+        speed: Double,
+        isTimer: Boolean = false,
+    ): Long {
+        if (durationMs <= 0 || isTimer) return max(0L, durationMs)
+        val ratio = if (playedMediaMs > 0.0 && playedRealMs > 0.0) playedRealMs / playedMediaMs
+        else 1.0 / max(speed, 0.05)
+        return Math.round(durationMs * ratio)
+    }
+
+    /**
+     * Real time a whole session took, for "your time": the recording at the
+     * speeds it was heard at ([recordingRealMs], see [realDurationMs]), plus
+     * what no speed shortens: the silence sat in ([silenceMs]: Extend and
+     * the ending bell's own) and the countdown before the start.
+     */
+    fun sessionRealMs(recordingRealMs: Long, silenceMs: Long, countdownMs: Long): Long =
+        max(0L, recordingRealMs) + max(0L, silenceMs) + max(0L, countdownMs)
 }
 
 /**
@@ -326,13 +383,27 @@ internal class ListeningTracker(private val maxStepMs: Long = CueMath.LISTENING_
     private val ranges = ArrayList<LongArray>() // merged, sorted [start, end)
     private var last = -1L
 
-    fun reset() { ranges.clear(); last = -1L }
+    // The mix of speeds this pass was heard at: media walked through by
+    // playback, and that media over the speed each step played at. Only their
+    // ratio is used, to give the recording length at the speeds it was heard
+    // at; a stretch heard again just weighs its speed in again.
+    var playedMediaMs = 0.0
+        private set
+    var playedRealMs = 0.0
+        private set
+
+    fun reset() { ranges.clear(); last = -1L; playedMediaMs = 0.0; playedRealMs = 0.0 }
 
     fun snapshot(): List<List<Long>> = ranges.map { listOf(it[0], it[1]) }
 
-    fun restore(saved: List<List<Long>>) {
+    fun restore(saved: List<List<Long>>, playedMediaMs: Double = 0.0, playedRealMs: Double = 0.0) {
         reset()
         saved.forEach { if (it.size == 2 && it[0] >= 0 && it[1] > it[0]) add(it[0], it[1]) }
+        // Both or neither: a ratio from one alone would be nonsense.
+        if (playedMediaMs > 0.0 && playedRealMs > 0.0 && playedMediaMs.isFinite() && playedRealMs.isFinite()) {
+            this.playedMediaMs = playedMediaMs
+            this.playedRealMs = playedRealMs
+        }
     }
 
     /** Rebase after a seek or a pause: the next step starts here. */
@@ -341,17 +412,33 @@ internal class ListeningTracker(private val maxStepMs: Long = CueMath.LISTENING_
     fun markNotPlaying() { last = -1L }
 
     /** A new pass of a looped recording: nothing heard yet, playback at the start. */
-    fun startPass() { ranges.clear(); last = 0L }
+    fun startPass() { ranges.clear(); last = 0L; playedMediaMs = 0.0; playedRealMs = 0.0 }
 
-    fun sample(positionMs: Long, playing: Boolean) {
+    /**
+     * [speed] widens the largest step in proportion, so a sped-up talk keeps
+     * the same margin for a late or skipped sample as one at 1x. Slower
+     * playback keeps the 1x limit.
+     *
+     * A step through silence (an Extend hold or the tail, [voice] false)
+     * counts as heard but stays out of the speed mix, which is the voice's:
+     * silence is added to the real time whole, see [CueMath.sessionRealMs].
+     */
+    fun sample(positionMs: Long, playing: Boolean, speed: Double = 1.0, voice: Boolean = true) {
         if (!playing || positionMs < 0) { last = -1L; return }
         val from = last
         last = positionMs
         if (from < 0) return
         val step = positionMs - from
-        if (step <= 0 || step > maxStepMs) return
+        if (step <= 0 || step > (maxStepMs * max(speed, 1.0)).toLong()) return
         add(from, positionMs)
+        if (!voice) return
+        playedMediaMs += step
+        playedRealMs += step / max(speed, 0.05)
     }
+
+    /** Real time a [durationMs] play-through takes at the speeds heard so far. See [CueMath.realDurationMs]. */
+    fun realMs(durationMs: Long, speed: Double, isTimer: Boolean = false): Long =
+        CueMath.realDurationMs(durationMs, playedMediaMs, playedRealMs, speed, isTimer)
 
     private fun add(start: Long, end: Long) {
         var s = start

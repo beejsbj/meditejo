@@ -1,3 +1,4 @@
+import 'package:medito/models/catalogue/catalogue_models.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -106,8 +107,8 @@ class DsSyncQueue extends Table {
   Set<Column> get primaryKey => {kind, itemId};
 }
 
-/// Retreats and teachers the user saved. Talk favourites use the app's
-/// existing favourites.
+/// Retreats and teachers the user saved. A talk is kept by pinning it, like
+/// any other session.
 @DataClassName('DsSavedItem')
 class DsSaved extends Table {
   TextColumn get kind => text()(); // 'retreat' | 'teacher'
@@ -146,7 +147,7 @@ class DsTalkFilter {
   final Set<String>? recordingTypes;
 
   /// Practice or Talks, as the Explore chips choose; null for both.
-  final DsContentGroup? group;
+  final ContentGroup? group;
 
   /// SQL conditions on a `ds_talks` row aliased [alias], with their values.
   /// Null when the filter can match nothing.
@@ -175,6 +176,7 @@ class DsTalkFilter {
     if (group case final group?) {
       where.add(DharmaSeedDatabase.groupCondition(group, alias));
     }
+    where.add(DharmaSeedDatabase.notHiddenTalk(alias));
     return (where: where, variables: variables);
   }
 }
@@ -597,7 +599,10 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
   /// Retreats with talks, newest first.
   Future<List<DsRetreat>> recentRetreats({int limit = 40}) =>
       (select(dsRetreats)
-            ..where((r) => r.talkIds.equals('[]').not())
+            ..where(
+              (r) =>
+                  r.talkIds.equals('[]').not() & r.id.isNotIn(hiddenRetreatIds),
+            )
             ..orderBy([
               (r) => OrderingTerm.desc(r.startDate),
               (r) => OrderingTerm.desc(r.id),
@@ -617,6 +622,21 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
       found.addAll([
         for (final row in await query.get()) row.read(dsTalks.id)!,
       ]);
+    }
+    return found;
+  }
+
+  /// Each stored talk's raw `recording_type` (possibly empty), by talk ID.
+  /// Talks not stored are left out.
+  Future<Map<int, String>> recordingTypesOf(Iterable<int> ids) async {
+    final found = <int, String>{};
+    for (final chunk in _chunks(ids.toSet())) {
+      final query = selectOnly(dsTalks)
+        ..addColumns([dsTalks.id, dsTalks.recordingType])
+        ..where(dsTalks.id.isIn(chunk));
+      for (final row in await query.get()) {
+        found[row.read(dsTalks.id)!] = row.read(dsTalks.recordingType) ?? '';
+      }
     }
     return found;
   }
@@ -664,24 +684,47 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
     return found;
   }
 
+  /// Retreats Dharma Seed serves whose teachers asked that they not be
+  /// shared: 5371 ("ORIGINAL RECORDINGS, TO BE EDITED", Ajahn Sucitto),
+  /// whose description says "Not for public distribution". They and their
+  /// talks are left out of browsing, search and categories; opening one by
+  /// id still works, so a library that already holds it keeps it
+  /// (DECISIONS.md, 2026-11-03).
+  static const hiddenRetreatIds = {5371};
+
+  static final _hiddenList = hiddenRetreatIds.join(',');
+
+  /// SQL: the retreat row aliased [alias] is not hidden.
+  static String notHiddenRetreat(String alias) =>
+      '$alias.id NOT IN ($_hiddenList)';
+
+  /// SQL: the talk row aliased [alias] is not in a hidden retreat.
+  static String notHiddenTalk(String alias) =>
+      '($alias.retreat_id IS NULL OR $alias.retreat_id NOT IN ($_hiddenList))';
+
+  /// Whether [talk] belongs to a hidden retreat: for talks fetched by id
+  /// into a listing (curated ones), which no SQL filter sees.
+  static bool isHiddenTalk(DsTalk talk) =>
+      talk.retreatId != null && hiddenRetreatIds.contains(talk.retreatId);
+
   /// SQL for "this talk is in [group]" on a `ds_talks` row aliased [alias].
   /// Untyped and unknown recordings are Talks.
-  static String groupCondition(DsContentGroup group, String alias) {
+  static String groupCondition(ContentGroup group, String alias) {
     final types = dsPracticeRecordingTypes.map((t) => "'$t'").join(',');
     final practice = "lower(trim($alias.recording_type)) IN ($types)";
-    return group == DsContentGroup.practice ? practice : 'NOT ($practice)';
+    return group == ContentGroup.practice ? practice : 'NOT ($practice)';
   }
 
   /// Retreats with talks, newest first, optionally only those that are mostly
   /// [group] (at least half of their stored talks). Retreats whose talks have
   /// not synced yet cannot be classified and only appear without a group.
   Future<List<DsRetreat>> recentRetreatsOf(
-    DsContentGroup? group, {
+    ContentGroup? group, {
     int limit = 40,
   }) async {
     if (group == null) return recentRetreats(limit: limit);
     final practiceShare = dsPracticeRecordingTypes.map((t) => "'$t'").join(',');
-    final comparison = group == DsContentGroup.practice ? '>=' : '<';
+    final comparison = group == ContentGroup.practice ? '>=' : '<';
     final rows = await customSelect(
       'SELECT r.* FROM ds_retreats r JOIN ('
       'SELECT retreat_id, COUNT(*) AS n, SUM('
@@ -689,7 +732,8 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
       'THEN 1 ELSE 0 END) AS p FROM ds_talks '
       'WHERE retreat_id IS NOT NULL GROUP BY retreat_id) k '
       'ON k.retreat_id = r.id '
-      'WHERE r.talk_ids != \'[]\' AND k.p * 2 $comparison k.n '
+      'WHERE r.talk_ids != \'[]\' AND ${notHiddenRetreat('r')} '
+      'AND k.p * 2 $comparison k.n '
       'ORDER BY r.start_date DESC, r.id DESC LIMIT ?',
       variables: [Variable.withInt(limit)],
       readsFrom: {dsRetreats, dsTalks},
@@ -726,14 +770,15 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
   /// Co-teaching counts for every teacher of a talk, as on a teacher's page;
   /// teachers marked non-public are left out.
   Future<List<DsTeacherSummary>> topTeachers({
-    DsContentGroup? group,
+    ContentGroup? group,
     int limit = 20,
   }) async {
     final rows = await customSelect(
       'SELECT tt.teacher_id AS id, COUNT(*) AS n FROM ds_talk_teachers tt '
       'JOIN ds_talks t ON t.id = tt.talk_id '
       'JOIN ds_teachers k ON k.id = tt.teacher_id AND k.is_public = 1 '
-      '${group == null ? '' : 'WHERE ${groupCondition(group, 't')} '}'
+      'WHERE ${notHiddenTalk('t')} '
+      '${group == null ? '' : 'AND ${groupCondition(group, 't')} '}'
       'GROUP BY tt.teacher_id ORDER BY n DESC, tt.teacher_id LIMIT ?',
       variables: [Variable.withInt(limit)],
       readsFrom: {dsTalks, dsTalkTeachers, dsTeachers},
@@ -753,11 +798,13 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
     final list = teacherIds.toList();
     if (list.isEmpty) return const {};
     final rows = await customSelect(
-      'SELECT teacher_id AS id, COUNT(*) AS n FROM ds_talk_teachers '
-      'WHERE teacher_id IN (${List.filled(list.length, '?').join(',')}) '
-      'GROUP BY teacher_id',
+      'SELECT tt.teacher_id AS id, COUNT(*) AS n FROM ds_talk_teachers tt '
+      'JOIN ds_talks t ON t.id = tt.talk_id '
+      'WHERE tt.teacher_id IN (${List.filled(list.length, '?').join(',')}) '
+      'AND ${notHiddenTalk('t')} '
+      'GROUP BY tt.teacher_id',
       variables: [for (final id in list) Variable.withInt(id)],
-      readsFrom: {dsTalkTeachers},
+      readsFrom: {dsTalkTeachers, dsTalks},
     ).get();
     return {for (final row in rows) row.read<int>('id'): row.read<int>('n')};
   }
@@ -771,7 +818,7 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
       'SELECT r.* FROM ds_retreats r WHERE r.id IN ('
       'SELECT t.retreat_id FROM ds_talks t '
       'JOIN ds_talk_teachers tt ON tt.talk_id = t.id AND tt.teacher_id = ? '
-      'WHERE t.retreat_id IS NOT NULL) '
+      'WHERE t.retreat_id IS NOT NULL) AND ${notHiddenRetreat('r')} '
       'ORDER BY r.start_date DESC, r.id DESC LIMIT ?',
       variables: [Variable.withInt(teacherId), Variable.withInt(limit)],
       readsFrom: {dsRetreats, dsTalks, dsTalkTeachers},
@@ -859,7 +906,7 @@ class DharmaSeedDatabase extends _$DharmaSeedDatabase {
     if (match == null) return const [];
     final rows = await customSelect(
       'SELECT r.* FROM ds_retreats_fts f JOIN ds_retreats r ON r.id = f.rowid '
-      'WHERE ds_retreats_fts MATCH ? '
+      'WHERE ds_retreats_fts MATCH ? AND ${notHiddenRetreat('r')} '
       'ORDER BY bm25(ds_retreats_fts, 10.0, 1.0), r.start_date DESC LIMIT ?',
       variables: [Variable.withString(match), Variable.withInt(limit)],
       readsFrom: {dsRetreats},

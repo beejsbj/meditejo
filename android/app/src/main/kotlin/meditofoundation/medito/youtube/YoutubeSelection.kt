@@ -101,6 +101,9 @@ object YoutubeSelection {
         return youtubeUrl(text)
     }
 
+    /** A channel page's URL, or null if [url] is not a YouTube link. */
+    fun channelUrl(url: String): String? = youtubeUrl(url.trim())
+
     /** The video id a stream item's URL points at. */
     fun videoIdOf(url: String): String? = videoIdInUrl.find(url)?.groupValues?.get(1)
 

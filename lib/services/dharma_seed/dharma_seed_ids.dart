@@ -4,10 +4,17 @@
 /// the record kind: `ds-talk-99944`, `ds-retreat-6689`, `ds-teacher-210`.
 library;
 
+import 'package:medito/models/catalogue/catalogue_models.dart';
+
 const dharmaSeedPrefix = 'ds-';
 const _talkPrefix = 'ds-talk-';
 const _retreatPrefix = 'ds-retreat-';
 const _teacherPrefix = 'ds-teacher-';
+
+/// Dharma Seed's catch-all retreat, "Unknown": about a quarter of all talks
+/// (12,000 and more) that were given at no retreat. A talk in it belongs to
+/// no course.
+const dsUnknownRetreat = 1;
 
 String dsTalkId(int id) => '$_talkPrefix$id';
 String dsRetreatId(int id) => '$_retreatPrefix$id';
@@ -44,7 +51,8 @@ String dsTalkPageUrl(int talkId) => '$dharmaSeedSite/talks/$talkId/';
 
 String dsTeacherPageUrl(int teacherId) => '$dharmaSeedSite/teacher/$teacherId/';
 
-String dsRetreatPageUrl(int retreatId) => '$dharmaSeedSite/retreats/$retreatId/';
+String dsRetreatPageUrl(int retreatId) =>
+    '$dharmaSeedSite/retreats/$retreatId/';
 
 /// Teacher artwork, resized by Dharma Seed. Empty when the teacher has none.
 String dsTeacherPhotoUrl(int teacherId, String photo, {int maxWidth = 400}) {
@@ -61,17 +69,15 @@ bool dsHasPortraitCover(String id) =>
 
 /// The cover URL to draw for [id]: none for a retreat or talk, whose
 /// `coverUrl` is the lead teacher's photo (see [dsHasPortraitCover]).
-String dsCoverUrl(String id, String url) =>
-    dsHasPortraitCover(id) ? '' : url;
-
-/// The two content groups of the Explore chips. Practice is what you do along
-/// with the audio; Talks is everything you listen to, including `Other` and
-/// recordings with no type.
-enum DsContentGroup { practice, talks }
+String dsCoverUrl(String id, String url) => dsHasPortraitCover(id) ? '' : url;
 
 /// `recording_type` values (lower-cased) that count as practice. Keep in step
 /// with [DharmaSeedKind.isPractice]; the database filters on this list.
-const dsPracticeRecordingTypes = ['meditation', 'guided meditation', 'chanting'];
+const dsPracticeRecordingTypes = [
+  'meditation',
+  'guided meditation',
+  'chanting',
+];
 
 /// What a recording is, from Dharma Seed's `recording_type`.
 ///
@@ -97,8 +103,8 @@ enum DharmaSeedKind {
         _ => other,
       };
 
-  DsContentGroup get group =>
-      isPractice ? DsContentGroup.practice : DsContentGroup.talks;
+  ContentGroup get group =>
+      isPractice ? ContentGroup.practice : ContentGroup.talks;
 
   /// Practice is something you do along with the audio (the Explore
   /// "Practice" chip); everything else is listened to ("Talks").

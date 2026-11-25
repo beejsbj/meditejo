@@ -4,8 +4,9 @@ import 'package:medito/models/attribution/source_attribution.dart';
 import 'package:medito/services/library/feed_parser.dart';
 import 'package:medito/services/library/library_models.dart';
 
-/// Where an import came from.
-enum ImportOrigin { dharmaSeed, feed, audioUrl, localFiles, youtube }
+/// Where a preview came from. [catalogue] is a built-in catalogue (Dharma
+/// Seed, dhammatalks.org): the item is already known to the app.
+enum ImportOrigin { catalogue, feed, audioUrl, localFiles, youtube }
 
 /// Why an import did not work. The screen turns each into a plain sentence;
 /// nothing here is shown to the user as it stands.

@@ -47,6 +47,7 @@ void main() {
       });
       expect(container.read(contentSourcesProvider).map((s) => s.prefix), [
         'ds-',
+        'dt-',
         'lib-',
         // Personal courses: present on every platform, no YouTube needed.
         'my-',

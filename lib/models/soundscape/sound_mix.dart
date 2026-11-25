@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 
 /// One layer of a mix: a sound from the library at its own volume.
@@ -173,50 +175,18 @@ class SoundMix {
   int get hashCode => Object.hashAll(layers);
 }
 
-/// A named mix. Built-in presets ship with the app and can't be deleted.
-@immutable
-class SoundPreset {
-  const SoundPreset({
-    required this.id,
-    required this.name,
-    required this.mix,
-    this.builtIn = false,
-  });
-
-  final String id;
-  final String name;
-  final SoundMix mix;
-  final bool builtIn;
-
-  Map<String, Object?> toJson() => {
-    'id': id,
-    'name': name,
-    'layers': mix.toJson(),
-  };
-
-  static SoundPreset? tryFromJson(Object? json) {
-    if (json is! Map) return null;
-    final id = json['id'];
-    final name = json['name'];
-    if (id is! String || name is! String || id.isEmpty) return null;
-    return SoundPreset(
-      id: id,
-      name: name,
-      mix: SoundMix.fromJson(json['layers']),
-    );
-  }
-}
-
 /// What to play: the grammar shared with the player's Customize sheet.
 ///
 /// * `mix` (or the empty string): the current mix, as last left on the
 ///   Sounds screen;
 /// * `preset:<id>`: a preset;
 /// * `sound:<id>`: one sound on its own;
+/// * `layers:<json>`: a mix of its own, chosen in the Sounds sheet (#66):
+///   the layers as [SoundMix.toJson] writes them;
 /// * `none`: silence.
 @immutable
 class SoundscapeSelection {
-  const SoundscapeSelection._(this.kind, [this.id = '']);
+  const SoundscapeSelection._(this.kind, [this.id = '', this.mix]);
 
   static const currentMix = SoundscapeSelection._(SoundscapeSelectionKind.mix);
   static const none = SoundscapeSelection._(SoundscapeSelectionKind.none);
@@ -227,8 +197,16 @@ class SoundscapeSelection {
   const SoundscapeSelection.sound(String id)
     : this._(SoundscapeSelectionKind.sound, id);
 
+  /// Layers chosen together, kept as they are: a later change to the
+  /// user's own mix or to a preset does not change them.
+  const SoundscapeSelection.layers(SoundMix mix)
+    : this._(SoundscapeSelectionKind.layers, '', mix);
+
   final SoundscapeSelectionKind kind;
   final String id;
+
+  /// The layers of a [SoundscapeSelectionKind.layers] selection.
+  final SoundMix? mix;
 
   static SoundscapeSelection parse(String? value) =>
       tryParse(value) ?? currentMix;
@@ -246,6 +224,16 @@ class SoundscapeSelection {
     if (v.startsWith('sound:') && v.length > 6) {
       return SoundscapeSelection.sound(v.substring(6));
     }
+    // A damaged mix of its own is silence: falling back to the current mix
+    // would play something that was never chosen.
+    if (v.startsWith('layers:')) {
+      try {
+        final mix = SoundMix.fromJson(jsonDecode(v.substring(7)));
+        return mix.isEmpty ? none : SoundscapeSelection.layers(mix);
+      } on FormatException {
+        return none;
+      }
+    }
     return null;
   }
 
@@ -254,20 +242,25 @@ class SoundscapeSelection {
     SoundscapeSelectionKind.none => 'none',
     SoundscapeSelectionKind.preset => 'preset:$id',
     SoundscapeSelectionKind.sound => 'sound:$id',
+    SoundscapeSelectionKind.layers =>
+      'layers:${jsonEncode((mix ?? SoundMix.empty).toJson())}',
   };
 
   @override
   bool operator ==(Object other) =>
-      other is SoundscapeSelection && other.kind == kind && other.id == id;
+      other is SoundscapeSelection &&
+      other.kind == kind &&
+      other.id == id &&
+      other.mix == mix;
 
   @override
-  int get hashCode => Object.hash(kind, id);
+  int get hashCode => Object.hash(kind, id, mix);
 
   @override
   String toString() => encode();
 }
 
-enum SoundscapeSelectionKind { mix, preset, sound, none }
+enum SoundscapeSelectionKind { mix, preset, sound, layers, none }
 
 /// Which kind of session a soundscape plays under (decision 8).
 enum SoundscapeSessionKind { practice, talks }

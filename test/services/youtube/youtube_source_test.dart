@@ -43,8 +43,13 @@ void main() {
   late TestClock clock;
   late YoutubeSource source;
 
-  YoutubeSource newSource() =>
-      YoutubeSource(db: db, library: store, api: api, clock: clock.call);
+  YoutubeSource newSource() => YoutubeSource(
+    db: db,
+    library: store,
+    api: api,
+    clock: clock.call,
+    detailsPause: () => Duration.zero,
+  );
 
   setUp(() {
     db = memoryLibraryDb();
@@ -1225,7 +1230,12 @@ void main() {
       await source.refreshAll();
 
       expect(calls(), before + 2, reason: 'both playlists, nothing else');
-      expect(api.videoCalls, hasLength(videosBefore));
+      // Then each video never resolved, once, for its description (#85):
+      // not the single, which was resolved when it was added.
+      expect(
+        api.videoCalls.skip(videosBefore),
+        unorderedEquals([videoB, videoC]),
+      );
       expect((await store.entry(ytPlaylistId(playlistTwo)))!.itemCount, 1);
     });
 
@@ -1453,6 +1463,42 @@ void main() {
       await store.noteSessionContext(shared, saved);
       await store.setGroup(shared, LibraryGroup.practice);
       expect((await source.track(shared)).hasBackgroundSound, isFalse);
+    });
+  });
+
+  group('livestream schedule (pass 4)', () {
+    const schedule = ' -Livestream Mon-Fri 09:30 EST';
+
+    test('is gone from lists, the player and search', () async {
+      api.playlists[playlistOne] = playlist([
+        item(videoA, title: 'Lesson 1: Finding your centre - Day 1$schedule'),
+        item(videoB, title: 'Lesson 2: Finding your root - Day 3$schedule'),
+      ]);
+      await addCourse(listOne);
+
+      final pack = await source.pack(ytPlaylistId(playlistOne));
+      expect(pack.items.map((i) => i.title), [
+        'Lesson 1: Finding your centre - Day 1',
+        'Lesson 2: Finding your root - Day 3',
+      ]);
+      final track = await source.track(ytVideoId(videoB));
+      expect(track.title, 'Lesson 2: Finding your root - Day 3');
+      final found = await source.searchTracks('finding');
+      expect(found.map((t) => t.title), [
+        'Lesson 1: Finding your centre - Day 1',
+        'Lesson 2: Finding your root - Day 3',
+      ]);
+    });
+
+    test('rows stored before the fix read without it too', () async {
+      await addCourse(listOne);
+      await (db.update(db.youtubeVideos)
+            ..where((v) => v.videoId.equals(videoA)))
+          .write(YoutubeVideosCompanion(title: Value('First sit$schedule')));
+
+      expect((await source.track(ytVideoId(videoA))).title, 'First sit');
+      final pack = await source.pack(ytPlaylistId(playlistOne));
+      expect(pack.items.first.title, 'First sit');
     });
   });
 }

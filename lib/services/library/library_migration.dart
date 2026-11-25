@@ -5,7 +5,7 @@ import 'package:medito/services/library/library_database.dart';
 import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/starter_set.dart';
 import 'package:medito/utils/logger.dart';
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show InsertMode, Value;
 
 const _migratedKey = 'ds_saves_migrated';
 
@@ -77,13 +77,16 @@ Future<void> reclassifyLibraryDefaults(LibraryDatabase library) async {
 }
 
 const _starterSeededKey = 'starter_seeded';
+const _starterVersionKey = 'starter_version';
 
 /// Puts the [starterSet] in the library on the first run, once.
 ///
 /// "First run" means no `starter_seeded` flag and an empty library. A library
 /// that already holds things (an install from before the starter set, or a
 /// carried-over save) is left alone, and either way the flag is set, so
-/// anything the user later removes stays removed.
+/// anything the user later removes stays removed. A seeded library is also
+/// marked as holding [starterSetVersion], so [addNewStarterItems] has
+/// nothing to add to it.
 ///
 /// Items are described from the on-device catalogue, with no network. One the
 /// catalogue lacks is added under the title in the data file, which the course
@@ -93,37 +96,29 @@ Future<void> seedStarterSet(
   DharmaSeedDatabase dharmaSeed, {
   List<StarterItem> items = starterSet,
   bool includeYoutube = true,
+  int version = starterSetVersion,
   DateTime Function()? clock,
 }) async {
   if (await library.metaValue(_starterSeededKey) != null) return;
   try {
     final drafts = <LibraryEntriesCompanion>[];
+    final seeded = <StarterItem>[];
     if ((await library.allEntries()).isEmpty) {
       final now = (clock ?? DateTime.now)();
       final describe = DharmaSeedSource(db: dharmaSeed);
       for (var i = 0; i < items.length; i++) {
         final item = items[i];
         if (!includeYoutube && item.id.startsWith('yt-')) continue;
-        final draft = item.id.startsWith(dharmaSeedPrefix)
-            ? await describe.libraryDraft(item.id)
-            : null;
+        // The first item leads the library; a second apart keeps the
+        // order stable, since lists sort by time.
         drafts.add(
-          LibraryEntriesCompanion.insert(
-            sourceId: item.id,
-            kind: item.kind.name,
-            detectedGroup: Value(
-              (item.group ?? draft?.group ?? LibraryGroup.practice).name,
-            ),
-            title: draft?.title ?? item.title,
-            subtitle: Value(draft?.subtitle ?? item.uploader),
-            coverUrl: Value(draft?.coverUrl ?? ''),
-            itemCount: Value(draft?.itemCount ?? item.itemCount),
-            durationMs: Value(draft?.durationMs ?? 0),
-            // The first item leads the library; a second apart keeps the
-            // order stable, since lists sort by time.
-            addedAt: now.subtract(Duration(seconds: i)),
+          await _starterDraft(
+            item,
+            describe,
+            now.subtract(Duration(seconds: i)),
           ),
         );
+        seeded.add(item);
       }
     }
     // The entries and the flag go in together, so an interruption leaves
@@ -134,23 +129,10 @@ Future<void> seedStarterSet(
         for (final draft in drafts) {
           await library.insertEntry(draft);
         }
-        // A YouTube course needs its playlist row to open at all. Seed it
-        // empty and already due, so the first open fetches the sessions.
-        for (final item in items) {
-          if (!includeYoutube || !item.id.startsWith('yt-playlist-')) continue;
-          await library
-              .into(library.youtubePlaylists)
-              .insertOnConflictUpdate(
-                YoutubePlaylistsCompanion.insert(
-                  playlistId: item.id.substring('yt-playlist-'.length),
-                  title: item.title,
-                  uploader: item.uploader,
-                  thumbnail: '',
-                  videoIds: '[]',
-                  lastCheckedAt: DateTime.fromMillisecondsSinceEpoch(0),
-                ),
-              );
+        for (final item in seeded) {
+          await _seedYoutubeRow(library, item);
         }
+        await library.setMeta(_starterVersionKey, '$version');
       }
       await library.setMeta(
         _starterSeededKey,
@@ -160,5 +142,124 @@ Future<void> seedStarterSet(
   } catch (e, st) {
     // Try again next launch rather than mark a half-done seed finished.
     AppLogger.e('LIBRARY', 'Could not add the starter set', e, st);
+  }
+}
+
+/// Adds, once, the starter items that joined the set after this install was
+/// seeded (their `since` is above the version it holds), so an update brings
+/// them as a fresh install would. Runs after [seedStarterSet].
+///
+/// An install with no recorded version holds version 1: it was seeded with
+/// the first set, or it predates the starter set and was left alone. An item
+/// already in the library is not added again, and the new version is
+/// recorded either way, so anything the user then removes stays removed.
+/// New items lead the library, in the set's order. Without YouTube (iOS) its
+/// items are skipped, as the first seed skips them.
+Future<void> addNewStarterItems(
+  LibraryDatabase library,
+  DharmaSeedDatabase dharmaSeed, {
+  List<StarterItem> items = starterSet,
+  bool includeYoutube = true,
+  int version = starterSetVersion,
+  DateTime Function()? clock,
+}) async {
+  // Only once the first seed has run (or decided to leave the library be).
+  if (await library.metaValue(_starterSeededKey) == null) return;
+  final held = int.tryParse(await library.metaValue(_starterVersionKey) ?? '');
+  final from = held ?? 1;
+  if (from >= version) return;
+  try {
+    final now = (clock ?? DateTime.now)();
+    final describe = DharmaSeedSource(db: dharmaSeed);
+    final fresh = [
+      for (final item in items)
+        if (item.since > from &&
+            item.since <= version &&
+            (includeYoutube || !item.id.startsWith('yt-')))
+          item,
+    ];
+    final drafts = <(StarterItem, LibraryEntriesCompanion)>[];
+    for (var i = 0; i < fresh.length; i++) {
+      drafts.add((
+        fresh[i],
+        await _starterDraft(
+          fresh[i],
+          describe,
+          now.subtract(Duration(seconds: i)),
+        ),
+      ));
+    }
+    await library.transaction(() async {
+      for (final (item, draft) in drafts) {
+        if (await library.entryById(item.id) != null) continue;
+        await library.insertEntry(draft);
+        await _seedYoutubeRow(library, item);
+      }
+      await library.setMeta(_starterVersionKey, '$version');
+    });
+  } catch (e, st) {
+    // Try again next launch rather than mark a half-done addition finished.
+    AppLogger.e('LIBRARY', 'Could not add the new starter items', e, st);
+  }
+}
+
+/// The library row for a starter [item], described from the catalogue
+/// where it can be, else from the data file.
+Future<LibraryEntriesCompanion> _starterDraft(
+  StarterItem item,
+  DharmaSeedSource describe,
+  DateTime addedAt,
+) async {
+  final draft = item.id.startsWith(dharmaSeedPrefix)
+      ? await describe.libraryDraft(item.id)
+      : null;
+  return LibraryEntriesCompanion.insert(
+    sourceId: item.id,
+    kind: item.kind.name,
+    detectedGroup: Value(
+      (item.group ?? draft?.group ?? LibraryGroup.practice).name,
+    ),
+    title: draft?.title ?? item.title,
+    subtitle: Value(draft?.subtitle ?? item.uploader),
+    coverUrl: Value(draft?.coverUrl ?? ''),
+    itemCount: Value(draft?.itemCount ?? item.itemCount),
+    durationMs: Value(draft?.durationMs ?? 0),
+    addedAt: addedAt,
+  );
+}
+
+/// A YouTube course needs its playlist row to open at all, and a single its
+/// video row. Seeds either as a placeholder that is already due: the first
+/// open fetches the course's sessions, and the video's own details (picture,
+/// length, description) are read when it is opened or in the background.
+/// A row already stored (an earlier import) is kept as it is.
+Future<void> _seedYoutubeRow(LibraryDatabase library, StarterItem item) async {
+  if (item.id.startsWith('yt-playlist-')) {
+    await library
+        .into(library.youtubePlaylists)
+        .insert(
+          YoutubePlaylistsCompanion.insert(
+            playlistId: item.id.substring('yt-playlist-'.length),
+            title: item.title,
+            uploader: item.uploader,
+            thumbnail: '',
+            videoIds: '[]',
+            lastCheckedAt: DateTime.fromMillisecondsSinceEpoch(0),
+          ),
+          mode: InsertMode.insertOrIgnore,
+        );
+  } else if (item.id.startsWith('yt-video-')) {
+    await library
+        .into(library.youtubeVideos)
+        .insert(
+          YoutubeVideosCompanion.insert(
+            videoId: item.id.substring('yt-video-'.length),
+            title: item.title,
+            uploader: item.uploader,
+            thumbnail: '',
+            durationSeconds: 0,
+          ),
+          mode: InsertMode.insertOrIgnore,
+        );
   }
 }

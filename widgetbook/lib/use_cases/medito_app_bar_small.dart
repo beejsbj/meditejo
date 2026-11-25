@@ -12,10 +12,6 @@ Widget defaultAppBarSmall(BuildContext context) {
         label: 'Back button',
         initialValue: true,
       ),
-      hasCloseButton: context.knobs.boolean(
-        label: 'Close button',
-        initialValue: false,
-      ),
     ),
     body: const SizedBox.shrink(),
   );

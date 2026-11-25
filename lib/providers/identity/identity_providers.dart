@@ -6,7 +6,7 @@ import 'package:medito/services/identity/daily_mark.dart';
 import 'package:medito/services/identity/mark_generator.dart';
 import 'package:medito/services/identity/mark_spec.dart';
 import 'package:medito/services/identity/palettes.dart';
-import 'package:medito/utils/logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// The clock the identity reads. Tests replace it.
 @visibleForTesting
@@ -98,44 +98,10 @@ final activePaletteProvider = Provider<IdentityPalette>((ref) {
   };
 });
 
-/// The pinned Home mark, stored as frozen geometry so a later change to the
-/// generator never redraws it. Null: the mark changes daily.
-final pinnedMarkProvider = NotifierProvider<PinnedMarkNotifier, MarkSpec?>(
-  PinnedMarkNotifier.new,
-);
-
-class PinnedMarkNotifier extends Notifier<MarkSpec?> {
-  @override
-  MarkSpec? build() {
-    final saved = ref
-        .read(sharedPreferencesProvider)
-        .getString(SharedPreferenceConstants.identityPinnedMark);
-    if (saved == null) return null;
-    try {
-      return MarkSpec.decode(saved);
-    } catch (e) {
-      // A pin from a newer build, or damaged: fall back to the daily mark
-      // rather than fail Home.
-      AppLogger.e('IDENTITY', 'Unreadable pinned mark', e);
-      return null;
-    }
-  }
-
-  /// Keeps [mark] on Home, exactly as it is drawn now.
-  Future<void> pin(MarkSpec mark) async {
-    state = mark;
-    await ref
-        .read(sharedPreferencesProvider)
-        .setString(SharedPreferenceConstants.identityPinnedMark, mark.encode());
-  }
-
-  /// Back to the daily mark.
-  Future<void> unpin() async {
-    state = null;
-    await ref
-        .read(sharedPreferencesProvider)
-        .remove(SharedPreferenceConstants.identityPinnedMark);
-  }
+/// Home's mark was pinnable once, stored as frozen geometry. It is the day's
+/// now, always: drops what an earlier build stored.
+Future<void> forgetPinnedMark(SharedPreferences prefs) async {
+  await prefs.remove(SharedPreferenceConstants.identityPinnedMark);
 }
 
 /// Today's daily mark (built once per day).
@@ -144,7 +110,7 @@ final dailyMarkProvider = Provider<MarkSpec>((ref) {
   return MarkGenerator.build(pick.seed);
 });
 
-/// The mark on Home: the pinned one, else today's.
+/// The mark on Home: today's.
 final homeMarkProvider = Provider<MarkSpec>(
-  (ref) => ref.watch(pinnedMarkProvider) ?? ref.watch(dailyMarkProvider),
+  (ref) => ref.watch(dailyMarkProvider),
 );

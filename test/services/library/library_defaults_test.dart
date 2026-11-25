@@ -9,6 +9,7 @@ import 'package:medito/services/library/library_models.dart';
 import 'package:medito/services/library/library_store.dart';
 import 'package:medito/services/library/starter_set.dart';
 import 'package:medito/services/youtube/youtube_source.dart';
+import 'package:medito/src/youtube_api.g.dart';
 
 import '../../helpers/dharma_seed_catalogue.dart';
 import '../../helpers/dharma_seed_fake_api.dart';
@@ -72,6 +73,13 @@ class _FlakyLibrary extends LibraryDatabase {
   }
 }
 
+/// What pass 4 added to the starter set, in the set's order.
+const _since2 = [
+  'yt-video-9c736DThL_M',
+  'yt-playlist-PLND1JCRq8VuhiAkaZ4UfmMwDq0c3a_cDn',
+  'yt-playlist-PLbmYHvGI-YStGL1bzkuxj_xqFvHzvjxEY',
+];
+
 void main() {
   late LibraryDatabase db;
   late DharmaSeedDatabase ds;
@@ -93,6 +101,7 @@ void main() {
         await migrateDharmaSeedSaves(d, ds);
         await reclassifyLibraryDefaults(d);
         await seedStarterSet(d, ds);
+        await addNewStarterItems(d, ds);
       },
     );
     addTearDown(store.dispose);
@@ -323,9 +332,17 @@ void main() {
       );
       final store = await openStore();
       final entries = await store.entries();
-      expect(entries.map((e) => e.sourceId), ['ds-retreat-4496']);
+      // Pass 4: an install from before the starter set still gets the items
+      // added since (their `since` is 2), as an update brings them to every
+      // install; the first set stays out.
+      expect(entries.map((e) => e.sourceId).toSet(), {
+        'ds-retreat-4496',
+        ..._since2,
+      });
 
-      await store.remove('ds-retreat-4496');
+      for (final e in await store.entries()) {
+        await store.remove(e.sourceId);
+      }
       expect(
         await (await openStore()).entries(),
         isEmpty,
@@ -366,6 +383,171 @@ void main() {
       // A source with no sync cannot reach out; seeding must not need one.
       await seedStarterSet(db, ds);
       expect(await db.allEntries(), hasLength(starterSet.length));
+    });
+
+    group('items added later (pass 4)', () {
+      final firstSet = [
+        for (final item in starterSet)
+          if (item.since == 1) item,
+      ];
+
+      test('the set holds the new courses and the single', () {
+        expect(starterSetVersion, 2);
+        expect([
+          for (final i in starterSet)
+            if (i.since == 2) i.id,
+        ], _since2);
+        final single = starterSet.firstWhere((i) => i.id == _since2.first);
+        expect(single.kind, LibraryKind.single);
+        expect(single.group, LibraryGroup.practice);
+      });
+
+      test(
+        'a fresh install seeds them, opens the single, records v2',
+        () async {
+          final store = await openStore();
+          final entries = await store.entries();
+          final ids = entries.map((e) => e.sourceId).toList();
+          expect(ids, containsAll(_since2));
+          expect(ids.toSet(), hasLength(ids.length), reason: 'no doubles');
+          expect(await db.metaValue('starter_version'), '2');
+
+          // The single has a placeholder row, so it opens before any lookup.
+          final source = YoutubeSource(
+            db: db,
+            library: store,
+            api: FakeYoutubeApi(),
+          );
+          final track = await source.track('yt-video-9c736DThL_M');
+          expect(track.title, 'Mindfulness Meditation - Find Your Center');
+          expect(track.subtitle, "John Vervaeke's Lectern");
+          // Each new course has its due playlist row.
+          for (final id in _since2.skip(1)) {
+            expect(
+              await db.youtubePlaylist(id.substring('yt-playlist-'.length)),
+              isNotNull,
+              reason: id,
+            );
+          }
+        },
+      );
+
+      test('an install seeded with the first set gets them once', () async {
+        // Seeded weeks before the update.
+        await seedStarterSet(
+          db,
+          ds,
+          items: firstSet,
+          version: 1,
+          clock: () => DateTime.now().subtract(const Duration(days: 30)),
+        );
+        await db.setMeta('starter_version', '1');
+        final before = (await db.allEntries()).length;
+        expect(before, firstSet.length);
+
+        final store = await openStore();
+        final entries = await store.entries();
+        expect(entries, hasLength(before + _since2.length));
+        expect(
+          entries.take(3).map((e) => e.sourceId),
+          _since2,
+          reason: 'new items lead the library, in the set\'s order',
+        );
+        expect(await db.metaValue('starter_version'), '2');
+
+        // Removed, it stays removed.
+        await store.remove(_since2.last);
+        final again = await openStore();
+        expect(
+          (await again.entries()).map((e) => e.sourceId),
+          isNot(contains(_since2.last)),
+        );
+      });
+
+      test('an item the user already imported is not added again', () async {
+        await seedStarterSet(db, ds, items: firstSet, version: 1);
+        const qualia2 = 'PLbmYHvGI-YStGL1bzkuxj_xqFvHzvjxEY';
+        await db.insertEntry(
+          LibraryEntriesCompanion.insert(
+            sourceId: 'yt-playlist-$qualia2',
+            kind: 'course',
+            title: 'Mine',
+            addedAt: DateTime.utc(2026, 11, 1),
+          ),
+        );
+        await db
+            .into(db.youtubePlaylists)
+            .insert(
+              YoutubePlaylistsCompanion.insert(
+                playlistId: qualia2,
+                title: 'Qualia Mastery II',
+                uploader: 'Qualia Research Institute',
+                thumbnail: 'https://i.ytimg.com/vi/x/hq.jpg',
+                videoIds: '["aaaaaaaaaaa"]',
+                lastCheckedAt: DateTime.utc(2026, 11, 1),
+              ),
+            );
+
+        await addNewStarterItems(db, ds);
+        final rows = await db.allEntries();
+        expect(
+          rows.where((r) => r.sourceId == 'yt-playlist-$qualia2'),
+          hasLength(1),
+        );
+        expect(
+          rows.firstWhere((r) => r.sourceId == 'yt-playlist-$qualia2').title,
+          'Mine',
+        );
+        final kept = await db.youtubePlaylist(qualia2);
+        expect(kept!.videoIds, '["aaaaaaaaaaa"]', reason: 'its row is kept');
+        expect(rows.map((r) => r.sourceId), containsAll(_since2));
+      });
+
+      test(
+        'without YouTube nothing is added, and it does not ask again',
+        () async {
+          await seedStarterSet(db, ds, items: firstSet, version: 1);
+          await addNewStarterItems(db, ds, includeYoutube: false);
+          expect(await db.allEntries(), hasLength(firstSet.length));
+          expect(await db.metaValue('starter_version'), '2');
+        },
+      );
+
+      test('waits for the first seed', () async {
+        await addNewStarterItems(db, ds);
+        expect(await db.allEntries(), isEmpty);
+        expect(await db.metaValue('starter_version'), isNull);
+      });
+
+      test(
+        'the single fills in its picture and length when looked up',
+        () async {
+          final store = await openStore();
+          await store.entries();
+          const id = '9c736DThL_M';
+          final api = FakeYoutubeApi()
+            ..videos[id] = YoutubeVideo(
+              videoId: id,
+              title: 'Mindfulness Meditation - Find Your Center',
+              uploader: "John Vervaeke's Lectern",
+              durationSeconds: 1920,
+              thumbnail: 'https://i.ytimg.com/vi/$id/hqdefault.jpg',
+              description: 'Practice #1.',
+            );
+          final source = YoutubeSource(db: db, library: store, api: api);
+
+          expect(await source.describe('yt-video-$id'), isTrue);
+          final row = await db.youtubeVideo(id);
+          expect(row!.durationSeconds, 1920);
+          expect(row.thumbnail, 'https://i.ytimg.com/vi/$id/hqdefault.jpg');
+          expect(row.description, 'Practice #1.');
+          final entry = (await store.entries()).firstWhere(
+            (e) => e.sourceId == 'yt-video-$id',
+          );
+          expect(entry.durationMs, 1920 * 1000);
+          expect(entry.coverUrl, 'https://i.ytimg.com/vi/$id/hqdefault.jpg');
+        },
+      );
     });
   });
 }

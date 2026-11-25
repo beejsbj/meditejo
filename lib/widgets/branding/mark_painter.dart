@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/painting.dart';
+import 'package:medito/services/identity/mark_moments.dart';
 import 'package:medito/services/identity/mark_outline.dart';
 import 'package:medito/services/identity/mark_spec.dart';
 import 'package:medito/services/identity/palettes.dart';
@@ -101,6 +102,39 @@ Color _mix(Color a, Color b, double t) => Color.fromARGB(
 
 Color _a(Color c, double alpha) => c.withValues(alpha: clamp01(alpha));
 
+/// How a mark's parts move once it has drawn itself in. Each part takes
+/// this in its own way (a line carries a wave, a pebble swells and shifts
+/// its shape, a flame leans), so the mark reads as one thing with parts,
+/// never as a picture being zoomed.
+class MarkMotion {
+  const MarkMotion({
+    this.life = 0,
+    this.deep = 0,
+    this.follow = 0,
+    this.run = 0,
+  });
+
+  /// Nothing moves but the page's own resting breath.
+  static const none = MarkMotion();
+
+  /// The idle motion's strength, 0 to 1: a slow wave along a line, a pebble
+  /// drifting through its shapes. It fades in once the mark has drawn in.
+  final double life;
+
+  /// How far into a deep breath the mark's body is (0 out, 1 in): its
+  /// pebbles swell and round out.
+  final double deep;
+
+  /// The same breath a moment later, for the parts that answer the body:
+  /// the line's wave grows with it, a second stone follows the first.
+  final double follow;
+
+  /// How far a deep breath has pushed the waves along, in wavelengths. A
+  /// whole number is where they would have been anyway, so a breath that
+  /// ends on 1 ends without a jump.
+  final double run;
+}
+
 /// Draws a [MarkSpec] into a unit square on [canvas] (scale the canvas to
 /// the tile's side first), at [t] seconds into its life: it appears, draws
 /// its line, then breathes. A port of the draw half of `marks.js`.
@@ -121,7 +155,10 @@ class MarkRenderer {
   /// tile behind gesture and minimal marks; without it they sit on whatever
   /// is below (the app's background). [finish] lays the paper finish over a
   /// tiled mark; atmospheric scenes always carry theirs. [scale] shrinks the composition about
-  /// the centre (the launcher icon's safe zone).
+  /// the centre (the launcher icon's safe zone). [motion] is how its parts
+  /// move beyond the page's resting breath (see [MarkMotion]); nothing is
+  /// scaled as a whole. [breathe] false holds the resting breath and the
+  /// idle motion out (a mark un-drawing).
   void draw(
     MarkSpec m,
     double t, {
@@ -129,8 +166,22 @@ class MarkRenderer {
     bool tile = true,
     bool finish = true,
     double scale = 1,
+    MarkMotion motion = MarkMotion.none,
+    bool breathe = true,
   }) {
     if (still) t = 60;
+    final moving = !still && breathe;
+    _t = t;
+    _deep = moving ? motion.deep : 0;
+    _follow = moving ? motion.follow : 0;
+    _run = moving ? motion.run : 0;
+    // The idle motion waits for the mark to have drawn itself in.
+    _life = moving && motion.life > 0
+        ? motion.life *
+              easeInOut(progress(t, MarkMoments.drawnBy(m) - 0.4, 2.4))
+        : 0;
+    _breathe = breathe;
+    _pathsUsed = 0;
     final c = colors;
     if (m is AtmosMark) {
       canvas
@@ -162,6 +213,38 @@ class MarkRenderer {
     if (tile && finish) _finish(paper: 0.1, speckle: 0.18, vignette: 0);
   }
 
+  double _t = 0, _life = 0, _deep = 0, _follow = 0, _run = 0;
+  bool _breathe = true;
+
+  /// A deep breath as part [k] feels it: 0 is the body, 1 the part that
+  /// follows last.
+  double _d([double k = 0]) => _deep + (_follow - _deep) * k;
+
+  /// The resting breath at [t] (0 out, 1 in), deepened by a deep breath as
+  /// part [k] feels it.
+  double _breath(double t, double start, bool still, [double k = 0]) {
+    final b = still || !_breathe ? 0.0 : breathAt(t, start);
+    return b + (1 - b) * _d(k);
+  }
+
+  /// Whether anything beyond the page's own motion is asked for. Without
+  /// it every shape is built exactly as the page builds it.
+  bool get _alive => _life != 0 || _deep != 0 || _follow != 0;
+
+  // Paths are reused from frame to frame: a mark that moves all day should
+  // not make garbage of every outline it draws.
+  static final List<Path> _paths = [];
+  static int _pathsUsed = 0;
+
+  static Path _scratch() {
+    if (_pathsUsed == _paths.length) _paths.add(Path());
+    return _paths[_pathsUsed++]
+      ..reset()
+      ..fillType = PathFillType.nonZero;
+  }
+
+  static Float64List _sx = Float64List(0), _sy = Float64List(0);
+
   // ---------- primitives ----------
 
   void _fill(Path path, Color color, [double alpha = 1]) {
@@ -172,7 +255,10 @@ class MarkRenderer {
     canvas.drawRect(r, Paint()..color = _a(color, color.a * alpha));
   }
 
-  /// A pebble's outline as a path (see [blobOutline]).
+  /// A pebble's outline as a path: [blobOutline]'s points, written straight
+  /// into the path. [w0], [w1] and [w2] turn its three harmonics (radians),
+  /// which changes its shape softly without changing its size; [bulge] adds
+  /// a slight oval whose long side sits at [bulgeAt].
   static Path blobPath(
     MarkBlob b, {
     double grow = 1,
@@ -181,29 +267,185 @@ class MarkRenderer {
     double dy = 0,
     double sx = 1,
     double sy = 1,
+    double w0 = 0,
+    double w1 = 0,
+    double w2 = 0,
+    double bulge = 0,
+    double bulgeAt = 0,
     Path? into,
   }) {
     final path = into ?? Path();
-    final pts = blobOutline(
-      b,
-      grow: grow,
-      imperf: imperf,
-      dx: dx,
-      dy: dy,
-      sx: sx,
-      sy: sy,
-    );
-    path.moveTo(pts.first.$1, pts.first.$2);
-    for (var i = 1; i < pts.length; i++) {
-      path.lineTo(pts[i].$1, pts[i].$2);
+    final asp = lerp(1, b.asp, imperf);
+    const m = 128;
+    final c = math.cos(b.rot), s = math.sin(b.rot);
+    final a0 = imperf * b.a[0], a1 = imperf * b.a[1], a2 = imperf * b.a[2];
+    final p0 = b.p[0] + w0, p1 = b.p[1] + w1, p2 = b.p[2] + w2;
+    final cut = b.cut;
+    for (var i = 0; i <= m; i++) {
+      final th = i / m * tau;
+      var r = 1.0;
+      r += a0 * math.sin(2 * th + p0);
+      r += a1 * math.sin(3 * th + p1);
+      r += a2 * math.sin(4 * th + p2);
+      if (cut != 0) {
+        r +=
+            cut *
+            (0.6 * math.sin(b.ck[0] * th + b.cp[0]) +
+                0.4 * math.sin(b.ck[1] * th + b.cp[1]));
+      }
+      if (bulge != 0) r += bulge * math.cos(2 * (th - bulgeAt));
+      r *= b.r * grow;
+      final ux = r * math.cos(th) * asp * sx, uy = r * math.sin(th) * sy;
+      final x = b.cx + dx + ux * c - uy * s, y = b.cy + dy + ux * s + uy * c;
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
     }
     return path..close();
   }
 
+  /// A pebble as one of the mark's living parts. [part] tells the parts of
+  /// one mark apart, so no two keep the same time; [k] is how late it
+  /// answers a deep breath (0 the body, 1 last), [swell] how much it grows
+  /// at the top of one and [lift] how far it rises.
+  ///
+  /// At rest it breathes a little (every 7.3 s, where a line's wave takes
+  /// 8), an oval bulge wanders round its edge, its harmonics turn and it
+  /// drifts by a hair. All of it scales with the idle motion's strength.
+  Path _blob(
+    MarkBlob b, {
+    int part = 0,
+    double k = 0,
+    double swell = 0.1,
+    double lift = 0,
+    double grow = 1,
+    double imperf = 1,
+    double dx = 0,
+    double dy = 0,
+    double sx = 1,
+    double sy = 1,
+    Path? into,
+  }) {
+    final path = into ?? _scratch();
+    if (!_alive) {
+      return blobPath(
+        b,
+        grow: grow,
+        imperf: imperf,
+        dx: dx,
+        dy: dy,
+        sx: sx,
+        sy: sy,
+        into: path,
+      );
+    }
+    final life = _life, d = _d(k), t = _t;
+    final ph = b.rot * 3 + part * 2.399;
+    return blobPath(
+      b,
+      grow:
+          grow * (1 + swell * d + life * 0.022 * math.sin(tau * t / 7.3 + ph)),
+      imperf: imperf,
+      dx: dx + life * 0.005 * math.sin(tau * t / 13 + ph * 1.7),
+      dy: dy + life * 0.006 * math.sin(tau * t / 9.1 + ph) - lift * d,
+      sx: sx,
+      sy: sy,
+      w0: life * 0.35 * math.sin(tau * t / 11 + ph),
+      w1: life * 0.4 * math.sin(tau * t / 14.3 + ph + 1),
+      w2: life * 0.45 * math.sin(tau * t / 17.9 + ph + 2),
+      bulge: life * 0.022 + 0.015 * d,
+      bulgeAt: tau * t / 23 + ph,
+      into: path,
+    );
+  }
+
+  /// Where a line's wave is at [u] (0 to 1 along it), -1 to 1: it travels
+  /// from the start to the end once every 8 s, faster while a deep breath
+  /// pushes it, and both ends are held, as a string's are.
+  double _wave(double u, double waves) =>
+      math.sin(math.pi * u) * math.sin(tau * (waves * u - _t / 8 - _run));
+
+  /// How far a line's wave swings, in tile units: a hair at rest, three
+  /// times that at the top of a deep breath.
+  double get _waveAmp => _life * 0.008 + 0.014 * _follow;
+
+  /// The direction each point of a line swings in: its normal, smoothed
+  /// along the line. Across a sharp corner the true normal turns at once,
+  /// and a wave swung along it would tear the corner open; smoothed, the
+  /// corner is carried whole.
+  static final _swing = Expando<(Float64List, Float64List)>();
+
+  static (Float64List, Float64List) _swingOf(MarkStroke st) {
+    final cached = _swing[st];
+    if (cached != null) return cached;
+    final n = st.n;
+    var ax = Float64List.fromList(st.nx), ay = Float64List.fromList(st.ny);
+    final r = math.max(1, (n * 0.07).round());
+    // Two passes of a moving average: a triangle about each point.
+    for (var pass = 0; pass < 2; pass++) {
+      final bx = Float64List(n), by = Float64List(n);
+      var sx = 0.0, sy = 0.0;
+      var lo = 0, hi = -1;
+      for (var i = 0; i < n; i++) {
+        final from = math.max(0, i - r), to = math.min(n - 1, i + r);
+        while (hi < to) {
+          hi++;
+          sx += ax[hi];
+          sy += ay[hi];
+        }
+        while (lo < from) {
+          sx -= ax[lo];
+          sy -= ay[lo];
+          lo++;
+        }
+        bx[i] = sx / (hi - lo + 1);
+        by[i] = sy / (hi - lo + 1);
+      }
+      ax = bx;
+      ay = by;
+    }
+    for (var i = 0; i < n; i++) {
+      final len = math.sqrt(ax[i] * ax[i] + ay[i] * ay[i]);
+      // Where the normals about a point cancel out, it stays put.
+      if (len > 1e-6) {
+        final keep = math.min(1.0, len * 1.5) / len;
+        ax[i] *= keep;
+        ay[i] *= keep;
+      }
+    }
+    return _swing[st] = (ax, ay);
+  }
+
   /// A ribbon drawn up to [p] of its pen clock (`core.js` `drawStroke`).
+  /// A living line carries a wave along it (see [_wave]), swinging each
+  /// point across the line, and thickens a little as a deep breath arrives.
   void _stroke(MarkStroke st, double p, Color color) {
     if (p <= 0) return;
-    final n = st.n, x = st.x, y = st.y, nx = st.nx, ny = st.ny, w = st.w;
+    final n = st.n, nx = st.nx, ny = st.ny, w = st.w;
+    var x = st.x, y = st.y;
+    var wide = 0.5;
+    final amp = _waveAmp;
+    if (amp != 0) {
+      if (_sx.length < n) {
+        _sx = Float64List(n);
+        _sy = Float64List(n);
+      }
+      final sx = _sx, sy = _sy;
+      final (dx, dy) = _swingOf(st);
+      // One long wave on a short line, two on a long one: a sway, not a
+      // ripple.
+      final waves = (st.length / 0.8).clamp(0.75, 2.0);
+      for (var i = 0; i < n; i++) {
+        final off = amp * _wave(i / (n - 1), waves);
+        sx[i] = x[i] + dx[i] * off;
+        sy[i] = y[i] + dy[i] * off;
+      }
+      x = sx;
+      y = sy;
+      wide = 0.5 * (1 + 0.14 * _follow);
+    }
     var k = n - 1;
     var f = 0.0;
     if (p < 1) {
@@ -222,24 +464,24 @@ class MarkRenderer {
     }
     final k2 = math.min(k + 1, n - 1);
     final ex = lerp(x[k], x[k2], f), ey = lerp(y[k], y[k2], f);
-    final ew = lerp(w[k], w[k2], f) / 2;
+    final ew = lerp(w[k], w[k2], f) * wide;
     final enx = lerp(nx[k], nx[k2], f), eny = lerp(ny[k], ny[k2], f);
-    final path = Path()
-      ..moveTo(x[0] + nx[0] * w[0] / 2, y[0] + ny[0] * w[0] / 2);
+    final path = _scratch()
+      ..moveTo(x[0] + nx[0] * w[0] * wide, y[0] + ny[0] * w[0] * wide);
     for (var i = 1; i <= k; i++) {
-      path.lineTo(x[i] + nx[i] * w[i] / 2, y[i] + ny[i] * w[i] / 2);
+      path.lineTo(x[i] + nx[i] * w[i] * wide, y[i] + ny[i] * w[i] * wide);
     }
     path
       ..lineTo(ex + enx * ew, ey + eny * ew)
       ..lineTo(ex - enx * ew, ey - eny * ew);
     for (var i = k; i >= 0; i--) {
-      path.lineTo(x[i] - nx[i] * w[i] / 2, y[i] - ny[i] * w[i] / 2);
+      path.lineTo(x[i] - nx[i] * w[i] * wide, y[i] - ny[i] * w[i] * wide);
     }
     path.close();
     final paint = Paint()..color = color;
     canvas
       ..drawPath(path, paint)
-      ..drawCircle(Offset(x[0], y[0]), w[0] / 2, paint)
+      ..drawCircle(Offset(x[0], y[0]), w[0] * wide, paint)
       ..drawCircle(Offset(ex, ey), ew, paint);
   }
 
@@ -264,13 +506,14 @@ class MarkRenderer {
   void _gesture(GestureMark m, double t, bool still) {
     const s0 = 0.5;
     final bStart = s0 + m.duration + 0.4;
-    final b = still ? 0.0 : breathAt(t, bStart);
+    final b = _breath(t, bStart, still);
     final appear = easeOut(progress(t, 0, 1));
     _fill(
-      blobPath(
+      _blob(
         m.blob,
         grow: (0.92 + 0.08 * appear) * (1 + 0.025 * b),
         imperf: 1 - b,
+        lift: 0.008,
       ),
       colors.form,
       appear,
@@ -286,19 +529,38 @@ class MarkRenderer {
 
   void _minimal(MinimalMark m, double t, bool still) {
     final c = colors;
-    final b = still ? 0.0 : breathAt(t, 2.4), imp = 1 - b;
+    final b = _breath(t, 2.4, still), imp = 1 - b;
+    // The same breath as the parts that answer the body feel it.
+    final bl = _breath(t, 2.4, still, 1);
     double e(double s, double d) => still ? 1 : easeOut(progress(t, s, d));
     final e1 = e(0, 1.1), e2 = e(0.6, 1.3), e3 = e(1.1, 1.2);
     final [r1, r2, r3] = m.roles;
     Color role(String r) => c.role(r);
     Path blob(
       MarkBlob bb, {
+      int part = 0,
+      double k = 0,
+      double swell = 0.1,
+      double lift = 0,
       double grow = 1,
       double dx = 0,
       double dy = 0,
       double sx = 1,
       double sy = 1,
-    }) => blobPath(bb, imperf: imp, grow: grow, dx: dx, dy: dy, sx: sx, sy: sy);
+    }) => _blob(
+      bb,
+      part: part,
+      k: k,
+      swell: swell,
+      lift: lift,
+      // A part that follows the body rounds out when its own breath comes.
+      imperf: k == 0 ? imp : 1 - lerp(b, bl, k),
+      grow: grow,
+      dx: dx,
+      dy: dy,
+      sx: sx,
+      sy: sy,
+    );
 
     switch (m.type) {
       case 'split':
@@ -307,12 +569,33 @@ class MarkRenderer {
         canvas
           ..save()
           ..clipRect(Rect.fromLTWH(0, 0, 1, h - gap / 2));
-        _fill(blob(disc, grow: 1 + 0.02 * b, dy: (1 - e1) * 0.12), role(r1));
+        // The two halves part a little on the in-breath, the upper first.
+        _fill(
+          blob(
+            disc,
+            grow: 1 + 0.02 * b,
+            dy: (1 - e1) * 0.12,
+            swell: 0.05,
+            lift: 0.012,
+          ),
+          role(r1),
+        );
         canvas
           ..restore()
           ..save()
           ..clipRect(Rect.fromLTWH(0, h + gap / 2, 1, 1));
-        _fill(blob(disc, dx: m['shift'] * e2), role(r2), e2);
+        _fill(
+          blob(
+            disc,
+            part: 1,
+            k: 1,
+            swell: 0.05,
+            lift: -0.012,
+            dx: m['shift'] * e2,
+          ),
+          role(r2),
+          e2,
+        );
         canvas.restore();
       case 'arch':
         final w = m['w'], ht = m['ht'];
@@ -344,13 +627,21 @@ class MarkRenderer {
         final second = m.blobs['second'];
         if (second != null) {
           _fill(
-            blob(second, grow: 0.6 + 0.4 * e3),
+            blob(second, part: 2, k: 1, grow: 0.6 + 0.4 * e3),
             r3 == r1 ? c.accent : role(r3),
             e3,
           );
         }
         _fill(
-          blob(m.blobs['dot']!, grow: e2, dy: -(1 - e2) * 0.08),
+          blob(
+            m.blobs['dot']!,
+            part: 1,
+            k: 0.6,
+            swell: 0.18,
+            lift: 0.01,
+            grow: e2,
+            dy: -(1 - e2) * 0.08,
+          ),
           r2 == r1 ? c.stroke : role(r2),
         );
       case 'crescent':
@@ -359,8 +650,8 @@ class MarkRenderer {
         final ax = m['cutX'], ay = m['cutY'];
         canvas
           ..save()
-          ..clipPath(blob(disc, grow: 0.92 + 0.08 * e1));
-        final cut = Path()
+          ..clipPath(blob(disc, grow: 0.92 + 0.08 * e1, swell: 0.06));
+        final cut = _scratch()
           ..fillType = PathFillType.evenOdd
           ..addRect(const Rect.fromLTWH(-1, -1, 3, 3))
           ..addOval(
@@ -377,7 +668,7 @@ class MarkRenderer {
             _circle(
               0.5 + ax * disc.r * 0.62,
               0.5 + ay * disc.r * 0.62,
-              dot * e3,
+              dot * e3 * (1 + 0.3 * _d(1)),
             ),
             c.accent,
           );
@@ -385,8 +676,14 @@ class MarkRenderer {
       case 'vesica':
         final a = m.blobs['a']!, bb = m.blobs['b']!;
         final sep = lerp(m['sep'] * 2.4, m['sep'], e1) * (1 - 0.1 * b);
-        final pa = blob(a, dx: 0.5 - sep / 2 - a.cx);
-        final pb = blob(bb, dx: 0.5 + sep / 2 - bb.cx);
+        final pa = blob(a, swell: 0.05, dx: 0.5 - sep / 2 - a.cx);
+        final pb = blob(
+          bb,
+          part: 1,
+          k: 1,
+          swell: 0.05,
+          dx: 0.5 + sep / 2 - bb.cx,
+        );
         _fill(pa, c.form, e1);
         _fill(pb, c.accent, e1);
         canvas
@@ -400,8 +697,14 @@ class MarkRenderer {
           final s = m.stones[i];
           final es = still ? 1.0 : easeOut(progress(t, i * 0.45, 1));
           _fill(
+            // The breath climbs the stack: each stone answers after the
+            // one below, and rises a little more.
             blob(
               s,
+              part: i,
+              k: i / 2,
+              swell: 0.05,
+              lift: 0.006 * i,
               sx: s.rx!,
               sy: s.ry!,
               dy: -(1 - es) * 0.08 - (i == 2 ? 0.006 * b : 0),
@@ -443,15 +746,25 @@ class MarkRenderer {
           ..save()
           ..clipRect(Rect.fromLTWH(0, 0, 1, base.cy));
         _fill(
-          blob(base, grow: 0.9 + 0.1 * e1),
+          blob(base, grow: 0.9 + 0.1 * e1, swell: 0.04),
           r1 == 'accent' ? c.form : role(r1),
         );
         canvas.restore();
-        final fh = m['flame'] * (1 + 0.08 * b) * e2;
+        // The flame is the part that follows: it stands taller a moment
+        // after the hearth swells, and at rest its tip leans and wavers.
+        final fh =
+            m['flame'] *
+            (1 + 0.08 * bl + 0.14 * _follow) *
+            (1 + _life * 0.04 * math.sin(tau * t / 3.7)) *
+            e2;
         const fx = 0.5;
         final fy = m['fy'] + (1 - e2) * 0.1;
-        final flame = Path()
-          ..moveTo(fx, fy - fh * 1.9)
+        final lean =
+            _life *
+            fh *
+            (0.22 * math.sin(tau * t / 5.3) + 0.1 * math.sin(tau * t / 2.3));
+        final flame = _scratch()
+          ..moveTo(fx + lean, fy - fh * 1.9)
           ..cubicTo(
             fx + fh * 1.1,
             fy - fh * 0.6,
@@ -465,7 +778,7 @@ class MarkRenderer {
             fy + fh,
             fx - fh * 1.1,
             fy - fh * 0.6,
-            fx,
+            fx + lean,
             fy - fh * 1.9,
           );
         _fill(flame, c.accent);
@@ -475,20 +788,39 @@ class MarkRenderer {
         );
       case 'clearing':
         final ring = m.blobs['ring']!;
-        final path = blob(ring, grow: (0.9 + 0.1 * e1) * (1 + 0.02 * b));
-        blobPath(
+        final path = blob(
           ring,
+          grow: (0.9 + 0.1 * e1) * (1 + 0.02 * b),
+          swell: 0.04,
+        );
+        // The clearing's inner edge keeps its own time, and closes in a
+        // little as the ring swells.
+        _blob(
+          ring,
+          part: 2,
+          k: 0.5,
+          swell: -0.05,
           grow: m['inner'] * (1 - 0.04 * b),
           imperf: imp * 0.6,
           into: path,
         );
         path.fillType = PathFillType.evenOdd;
         _fill(path, role(r1), e1);
-        _fill(blob(m.blobs['dot']!, grow: e2), r2 == r1 ? c.stroke : role(r2));
+        _fill(
+          blob(m.blobs['dot']!, part: 1, k: 1, swell: 0.2, grow: e2),
+          r2 == r1 ? c.stroke : role(r2),
+        );
       case 'cushion':
         final cu = m.blobs['cushion']!;
         _fill(
-          blob(cu, sx: cu.rx! * (0.9 + 0.1 * e1), sy: cu.ry!),
+          blob(
+            cu,
+            part: 1,
+            k: 1,
+            swell: 0.03,
+            sx: cu.rx! * (0.9 + 0.1 * e1),
+            sy: cu.ry!,
+          ),
           r2 == 'stroke'
               ? c.stroke
               : r1 == 'stroke'
@@ -498,6 +830,7 @@ class MarkRenderer {
         _fill(
           blob(
             m.blobs['sitter']!,
+            lift: 0.01,
             dy: -(1 - e2) * 0.1 - 0.008 * b,
             grow: 1 + 0.02 * b,
           ),
@@ -505,12 +838,62 @@ class MarkRenderer {
           e2,
         );
       case 'shelter':
-        _fill(shelterRoof(m, e1), c.stroke);
+        _fill(_roof(m, e1), c.stroke);
         _fill(
           blob(m.blobs['sitter']!, grow: e2 * (1 + 0.02 * b)),
           r1 == 'stroke' ? c.form : role(r1),
         );
     }
+  }
+
+  /// The shelter's roof as a living line: a wave travels along it from eave
+  /// to eave (see [_wave]), both eaves held, and it spreads a little as a
+  /// deep breath reaches it. Both edges move together, so the roof keeps
+  /// its thickness and its notch stays sharp.
+  Path _roof(MinimalMark m, double open) {
+    // A roof is short and stiff: it swings less than a drawn line.
+    final amp = _waveAmp * 0.85;
+    if (amp == 0) return shelterRoof(m, open);
+    final cmds = shelterRoofCommands(m, open + 0.3 * _follow);
+    final x0 = cmds.first.$2[0];
+    final span = 1 - 2 * x0;
+    final path = _scratch();
+    var px = 0.0, py = 0.0;
+    void to(double x, double y, bool move) {
+      final wy = y + amp * _wave(clamp01((x - x0) / span), 1);
+      if (move) {
+        path.moveTo(x, wy);
+      } else {
+        path.lineTo(x, wy);
+      }
+    }
+
+    for (final (op, v) in cmds) {
+      switch (op) {
+        case 'M':
+          to(v[0], v[1], true);
+          px = v[0];
+          py = v[1];
+        case 'L':
+          for (var i = 1; i <= 4; i++) {
+            to(lerp(px, v[0], i / 4), lerp(py, v[1], i / 4), false);
+          }
+          px = v[0];
+          py = v[1];
+        case 'Q':
+          for (var i = 1; i <= 18; i++) {
+            final u = i / 18, w = 1 - u;
+            to(
+              w * w * px + 2 * w * u * v[0] + u * u * v[2],
+              w * w * py + 2 * w * u * v[1] + u * u * v[3],
+              false,
+            );
+          }
+          px = v[2];
+          py = v[3];
+      }
+    }
+    return path..close();
   }
 
   /// The minimal shelter's roof, [open] of the way spread (1 when settled).
@@ -573,7 +956,7 @@ class MarkRenderer {
 
   void _atmos(AtmosMark m, double t, bool still) {
     final c = colors;
-    final b = still ? 0.0 : breathAt(t, 3.2), imp = 1 - b;
+    final b = _breath(t, 3.2, still), imp = 1 - b;
     double e(double s, double d) => still ? 1 : easeOut(progress(t, s, d));
     const all = Rect.fromLTWH(0, 0, 1, 1);
     final sky = _mix(c.tile, c.accent, c.lightPaper ? 0.18 : 0.12);
@@ -590,12 +973,14 @@ class MarkRenderer {
 
     void ridge(RidgeLayer l, int i, int n, double drift) {
       final k = (i + 1) / n, base = l.y + (1 - e(0.3 + i * 0.3, 2)) * 0.06;
-      final path = Path()..moveTo(-0.1, 1.2);
+      // A deep breath lifts the mist, the far ridges first.
+      final amp = l.amp * (1 + 0.3 * _d(n < 2 ? 0 : i / (n - 1)));
+      final path = _scratch()..moveTo(-0.1, 1.2);
       for (var x = -0.1; x <= 1.1001; x += 0.02) {
         path.lineTo(
           x,
           base +
-              l.amp *
+              amp *
                   (0.65 * math.sin(tau * l.f * (x + drift) + l.ph) +
                       0.35 * math.sin(tau * l.f2 * (x + drift) + l.ph2)),
         );
@@ -619,13 +1004,17 @@ class MarkRenderer {
           c.accent,
           0.55 * rise,
         );
-        _plateB(m, () => _fill(blobPath(s, imperf: imp, dy: sunDy), c.accent));
+        _plateB(
+          m,
+          () => _fill(_blob(s, imperf: imp, dy: sunDy, swell: 0.14), c.accent),
+        );
         if (m.type == 'ridges') {
           for (var i = 0; i < m.layers.length; i++) {
             final l = m.layers[i];
             final drift = still
                 ? 0.0
-                : 0.025 * math.sin(tau * t / l.period + l.ph);
+                : 0.025 * math.sin(tau * t / l.period + l.ph) +
+                      0.03 * _d(i / math.max(1, m.layers.length - 1));
             canvas.drawRect(
               Rect.fromLTWH(0, l.y - 0.1, 1, 0.12),
               Paint()
@@ -651,7 +1040,9 @@ class MarkRenderer {
             final k = i / 6;
             final y = m.horizon + 0.035 + 0.27 * math.pow(k, 1.2);
             final sh = still ? 0.0 : 0.2 * math.sin(tau * t / 6 + i * 1.7);
-            final w = s.r * 2 * (0.9 - 0.65 * k) * (1 + sh) * re;
+            // The sun's path on the water widens after the sun swells.
+            final w =
+                s.r * 2 * (0.9 - 0.65 * k) * (1 + sh) * (1 + 0.3 * _d(k)) * re;
             canvas.drawLine(
               Offset(s.cx - w / 2, y),
               Offset(s.cx + w / 2, y),
@@ -668,7 +1059,7 @@ class MarkRenderer {
         _plateB(
           m,
           () => _fill(
-            blobPath(s, imperf: imp, dy: sunDy * 0.5),
+            _blob(s, imperf: imp, dy: sunDy * 0.5, swell: 0.12),
             _mix(c.accent, c.light, 0.2),
           ),
         );
@@ -682,7 +1073,11 @@ class MarkRenderer {
         );
         if (m.type == 'moonpool') {
           for (var i = 0; i < 4; i++) {
-            final u = still ? (i + 0.5) / 4 : ((t / 10 + i / 4) % 1);
+            // A deep breath sends the rings out one place further: a
+            // quarter turn, so they end where they would have been.
+            final u = still
+                ? (i + 0.5) / 4
+                : ((t / 10 + i / 4 + 0.25 * _run) % 1);
             final r = 0.04 + 0.42 * u;
             canvas.drawOval(
               Rect.fromCenter(
@@ -702,12 +1097,14 @@ class MarkRenderer {
         } else {
           for (var i = 0; i < 4; i++) {
             final y = m.horizon + 0.06 + i * 0.075;
-            final ph = still ? 0.0 : t * 0.25 + i;
-            final path = Path()..moveTo(0, y);
+            // The waves come in on a deep breath, the nearest last.
+            final ph = still ? 0.0 : t * 0.25 + i + tau * _run;
+            final swellOf = 0.012 * (1 + _d(i / 3));
+            final path = _scratch()..moveTo(0, y);
             for (var x = 0.0; x <= 1.001; x += 0.02) {
               path.lineTo(
                 x,
-                y + 0.012 * math.sin(tau * (x * (1.4 + i * 0.3)) + ph),
+                y + swellOf * math.sin(tau * (x * (1.4 + i * 0.3)) + ph),
               );
             }
             path
@@ -743,12 +1140,13 @@ class MarkRenderer {
               ]),
           );
         _fill(
-          blobPath(
+          _blob(
             s,
             imperf: imp,
             dx: 0.5 - s.cx,
             dy: ys + 0.06 - s.cy + sunDy,
             grow: 0.55,
+            swell: 0.14,
           ),
           c.accent,
         );
@@ -764,7 +1162,12 @@ class MarkRenderer {
           floor,
           Paint()
             ..shader = _lin(bot, 1, [
-              (0, _mix(c.accent, c.tile, 0.4), 0.7 * open * (0.9 + 0.1 * b)),
+              // The light on the floor answers the sun in the doorway.
+              (
+                0,
+                _mix(c.accent, c.tile, 0.4),
+                0.7 * open * (0.9 + 0.1 * _breath(t, 3.2, still, 1)),
+              ),
               (1, c.accent, 0),
             ]),
         );
@@ -784,7 +1187,12 @@ class MarkRenderer {
         _plateB(
           m,
           () => _fill(
-            blobPath(s, imperf: imp, grow: (0.9 + 0.1 * rise) * (1 + 0.03 * b)),
+            _blob(
+              s,
+              imperf: imp,
+              grow: (0.9 + 0.1 * rise) * (1 + 0.03 * b),
+              swell: 0.08,
+            ),
             c.form,
           ),
         );
