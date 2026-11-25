@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:medito/views/bottom_navigation/widgets/sounds_button.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/theme/expressive_typography.dart';
 import 'package:medito/l10n/app_localizations.dart';
@@ -164,9 +165,11 @@ class _LibraryBody extends ConsumerWidget {
             ],
           ),
         ],
+        // Clear of the floating Sounds button.
         SliverPadding(
           padding: EdgeInsets.only(
-            bottom: MediaQuery.paddingOf(context).bottom + 24,
+            bottom:
+                MediaQuery.paddingOf(context).bottom + kSoundsButtonClearance,
           ),
         ),
       ],

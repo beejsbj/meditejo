@@ -3471,4 +3471,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String settingsDhammatalksCaption(String teacher) {
     return '$teacher\'s talks, built in';
   }
+
+  @override
+  String get soundsSearchHint => 'Search sounds';
+
+  @override
+  String get soundsSearchEmpty => 'No sounds match';
+
+  @override
+  String get soundTrain => 'Train';
+
+  @override
+  String get soundTrainMetro => 'Metro';
+
+  @override
+  String get soundTrainYamanote => 'Yamanote';
 }

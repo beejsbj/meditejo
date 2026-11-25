@@ -2476,18 +2476,6 @@ void main() {
       await _captureView(tester, 'customize-undo-${brightness.name}');
     }, skip: !_enabled);
 
-    testWidgets('Customize sound open, ${brightness.name}', (tester) async {
-      await _pumpCustomize(
-        tester,
-        brightness,
-        scope: course,
-        settings: courseCues,
-        beforeStart: true,
-      );
-      await tester.tap(find.byKey(const ValueKey('customize_sound')));
-      await tester.pumpAndSettle();
-      await _captureView(tester, 'customize-sound-${brightness.name}');
-    }, skip: !_enabled);
     // The bell maker: five vertical controls under the live figure; once at
     // the S23+'s size, once on a 320 dp screen with text at 200%.
     for (final narrow in [false, true]) {

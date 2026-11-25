@@ -7,7 +7,7 @@ const _legacyTabIndexKey = 'last_main_tab_index';
 const _legacyTabLayoutKey = 'main_tab_layout';
 
 /// The four tabs, in bar order. Sounds is not one: it is a sheet over
-/// whatever is open (`showSoundsSheet`).
+/// whatever is open, from the floating Sounds button (`SoundsButton`).
 enum MainTab { home, explore, library, settings }
 
 /// The tab on screen. Any screen can move it (Home's "See all", a deep link);

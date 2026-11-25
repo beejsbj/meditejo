@@ -62,13 +62,33 @@ class SoundLook {
   }
 }
 
-/// A layer's display name: the synth's localised title or the recording's.
-/// Null for a sound this build's library no longer has.
+/// A layer's display name: the synth's localised title, its card's name
+/// for a variant ("Train", whichever train), or the recording's. Null for a
+/// sound this build's library no longer has.
 String? soundTitle(
   AppLocalizations l10n,
   String soundId,
   SoundLibrary library,
-) => isSynthId(soundId) ? synthTitle(l10n, soundId) : library[soundId]?.title;
+) {
+  if (isSynthId(soundId)) return synthTitle(l10n, soundId);
+  final entry = library[soundId];
+  if (entry == null) return null;
+  return switch (soundCardId(soundId)) {
+    'train' => l10n.soundTrain,
+    _ => entry.title,
+  };
+}
+
+/// Which of its card's recordings [soundId] is, as its chip says it.
+String soundVariantLabel(
+  AppLocalizations l10n,
+  String soundId,
+  SoundLibrary library,
+) => switch (soundId) {
+  'train' => l10n.soundTrainMetro,
+  'train-yamanote' => l10n.soundTrainYamanote,
+  _ => library[soundId]?.title ?? soundId,
+};
 
 String synthTitle(AppLocalizations l10n, String id) => switch (id) {
   kSynthNoiseId => l10n.synthNoise,

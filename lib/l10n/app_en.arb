@@ -4007,5 +4007,25 @@
         "type": "String"
       }
     }
+  },
+  "soundsSearchHint": "Search sounds",
+  "@soundsSearchHint": {
+    "description": "Hint in the Sounds sheet's search field"
+  },
+  "soundsSearchEmpty": "No sounds match",
+  "@soundsSearchEmpty": {
+    "description": "Shown in the Sounds sheet when the search finds nothing"
+  },
+  "soundTrain": "Train",
+  "@soundTrain": {
+    "description": "One sound card holding two train recordings, chosen in its mix row"
+  },
+  "soundTrainMetro": "Metro",
+  "@soundTrainMetro": {
+    "description": "Train variant: a metro carriage from inside"
+  },
+  "soundTrainYamanote": "Yamanote",
+  "@soundTrainYamanote": {
+    "description": "Train variant: Tokyo's Yamanote Line train"
   }
 }

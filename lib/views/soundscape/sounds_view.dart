@@ -467,8 +467,10 @@ class _DragHandle extends StatelessWidget {
 }
 
 /// Presets, then the library shelf by shelf, then (on the user's own mix)
-/// what plays under sessions, and the credits.
-class _SoundsLibrary extends ConsumerWidget {
+/// what plays under sessions, and the credits. A search field on top
+/// narrows the shelves to the sounds whose name, shelf or recording
+/// matches; while it holds text, only those show.
+class _SoundsLibrary extends ConsumerStatefulWidget {
   const _SoundsLibrary({
     required this.bottomPadding,
     required this.session,
@@ -480,28 +482,83 @@ class _SoundsLibrary extends ConsumerWidget {
   final ScrollController controller;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_SoundsLibrary> createState() => _SoundsLibraryState();
+}
+
+class _SoundsLibraryState extends ConsumerState<_SoundsLibrary> {
+  final _search = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  void _setQuery(String value) {
+    final query = value.trim().toLowerCase();
+    if (query != _query) setState(() => _query = query);
+  }
+
+  void _clear() {
+    _search.clear();
+    _setQuery('');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final library = ref.watch(soundLibraryProvider).value;
     final state = ref.watch(soundscapeProvider);
     final mixer = ref.read(soundscapeProvider.notifier);
     final full = !mixer.canAddLayer;
     final grid = SoundGridMetrics.of(context);
+    final searching = _query.isNotEmpty;
 
+    /// The card for [id]: its family's when it has variants (Train), on
+    /// whichever of them is in the mix.
     Widget card(String id, String title) {
-      final layer = state.mix.layers.where((l) => l.soundId == id).firstOrNull;
+      final variants = soundVariants(id);
+      final layer = state.mix.layers
+          .where((l) => variants.contains(l.soundId))
+          .firstOrNull;
       final inMix = layer != null;
+      final shown = layer?.soundId ?? id;
       return SoundCard(
         key: ValueKey('sound_$id'),
-        soundId: id,
+        soundId: shown,
         title: title,
-        params: layer?.params ?? defaultSynthParams(id),
+        params: layer?.params ?? defaultSynthParams(shown),
         selected: inMix,
         sounding: inMix && state.playing && layer.volume > 0,
         enabled: inMix || !full,
-        onTap: () => mixer.toggleSound(id),
+        onTap: () {
+          if (!inMix) return mixer.toggleSound(id);
+          // Every variant of the card in the mix goes with it.
+          for (final v in variants) {
+            if (ref.read(soundscapeProvider).mix.contains(v)) {
+              mixer.toggleSound(v);
+            }
+          }
+        },
       );
     }
+
+    bool matches(Iterable<String> words) =>
+        words.any((w) => w.toLowerCase().contains(_query));
+
+    /// Whether the card [id] (named [title], on the shelf [shelf]) is shown
+    /// for the query: by its name, its shelf's, or any of its recordings'.
+    bool wanted(String id, String title, String shelf) =>
+        !searching ||
+        matches([
+          title,
+          shelf,
+          for (final v in soundVariants(id)) ...[
+            if (library != null) soundVariantLabel(l10n, v, library),
+            ?library?[v]?.title,
+          ],
+        ]);
 
     List<Widget> shelf(
       String key,
@@ -509,55 +566,112 @@ class _SoundsLibrary extends ConsumerWidget {
       IconData icon,
       List<Widget> cards,
     ) => [
-      SliverToBoxAdapter(
-        child: _ShelfTitle(key: ValueKey('shelf_$key'), title, icon: icon),
-      ),
-      SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        // Square tiles, as many across as fit at up to [maxCardWidth]
-        // each: three on a phone, fewer once large text needs the room,
-        // and never shorter than the title needs.
-        sliver: SliverLayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.crossAxisExtent;
-            final columns = math.max(
-              1,
-              ((width + kSoundGridGap) / (grid.maxCardWidth + kSoundGridGap))
-                  .ceil(),
-            );
-            final cell = (width - kSoundGridGap * (columns - 1)) / columns;
-            return SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: columns,
-                mainAxisExtent: math.max(cell, grid.cardHeight),
-                mainAxisSpacing: kSoundGridGap,
-                crossAxisSpacing: kSoundGridGap,
-              ),
-              delegate: SliverChildListDelegate(cards),
-            );
-          },
+      if (cards.isNotEmpty) ...[
+        SliverToBoxAdapter(
+          child: _ShelfTitle(key: ValueKey('shelf_$key'), title, icon: icon),
         ),
-      ),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          // Square tiles, as many across as fit at up to [maxCardWidth]
+          // each: three on a phone, fewer once large text needs the room,
+          // and never shorter than the title needs.
+          sliver: SliverLayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.crossAxisExtent;
+              final columns = math.max(
+                1,
+                ((width + kSoundGridGap) / (grid.maxCardWidth + kSoundGridGap))
+                    .ceil(),
+              );
+              final cell = (width - kSoundGridGap * (columns - 1)) / columns;
+              return SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  mainAxisExtent: math.max(cell, grid.cardHeight),
+                  mainAxisSpacing: kSoundGridGap,
+                  crossAxisSpacing: kSoundGridGap,
+                ),
+                delegate: SliverChildListDelegate(cards),
+              );
+            },
+          ),
+        ),
+      ],
     ];
 
+    final shelves = <Widget>[];
+    if (library != null) {
+      final generated = l10n.soundCategoryGenerated;
+      shelves.addAll(
+        shelf('generated', generated, SoundLook.forCategory(null).icon, [
+          for (final id in kSynthIds)
+            if (wanted(id, synthTitle(l10n, id), generated))
+              card(id, synthTitle(l10n, id)),
+        ]),
+      );
+      for (final category in library.categories) {
+        final label = soundCategoryLabel(l10n, category);
+        shelves.addAll(
+          shelf(category.name, label, SoundLook.forCategory(category).icon, [
+            for (final sound in library.cardsIn(category))
+              if (soundTitle(l10n, sound.id, library) case final title?
+                  when wanted(sound.id, title, label))
+                card(sound.id, title),
+          ]),
+        );
+      }
+    }
+
     // On what plays under sessions, the sheet is itself that choice.
-    final chooser = session.kind != null;
+    final chooser = widget.session.kind != null;
     return CustomScrollView(
       key: const PageStorageKey('sounds_library'),
-      controller: controller,
+      controller: widget.controller,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       slivers: [
         SliverToBoxAdapter(
-          child: _ShelfTitle(
-            l10n.soundsPresets,
-            icon: Symbols.bookmarks_rounded,
-            first: true,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            child: TextField(
+              key: const ValueKey('sounds_search'),
+              controller: _search,
+              onChanged: _setQuery,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: l10n.soundsSearchHint,
+                prefixIcon: const Icon(Symbols.search_rounded),
+                suffixIcon: searching
+                    ? IconButton(
+                        key: const ValueKey('sounds_search_clear'),
+                        tooltip: l10n.clearSearch,
+                        onPressed: _clear,
+                        icon: const Icon(Symbols.close_rounded),
+                      )
+                    : null,
+                filled: true,
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(MeditejoShapes.full),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
           ),
         ),
-        SliverToBoxAdapter(
-          child: _PresetRow(
-            place: PresetContext.sounds(chooserKind: session.kind),
+        if (!searching) ...[
+          SliverToBoxAdapter(
+            child: _ShelfTitle(
+              l10n.soundsPresets,
+              icon: Symbols.bookmarks_rounded,
+              first: true,
+            ),
           ),
-        ),
+          SliverToBoxAdapter(
+            child: _PresetRow(
+              place: PresetContext.sounds(chooserKind: widget.session.kind),
+            ),
+          ),
+        ],
         if (full)
           SliverToBoxAdapter(
             child: Padding(
@@ -577,30 +691,40 @@ class _SoundsLibrary extends ConsumerWidget {
               child: Center(child: CircularProgressIndicator()),
             ),
           )
-        else ...[
-          ...shelf(
-            'generated',
-            l10n.soundCategoryGenerated,
-            SoundLook.forCategory(null).icon,
-            [for (final id in kSynthIds) card(id, synthTitle(l10n, id))],
-          ),
-          for (final category in library.categories)
-            ...shelf(
-              category.name,
-              soundCategoryLabel(l10n, category),
-              SoundLook.forCategory(category).icon,
-              [
-                for (final sound in library.inCategory(category))
-                  card(sound.id, sound.title),
-              ],
+        else if (shelves.isEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              key: const ValueKey('sounds_search_empty'),
+              padding: const EdgeInsets.fromLTRB(20, 48, 20, 0),
+              child: Column(
+                children: [
+                  Icon(
+                    Symbols.search_off_rounded,
+                    size: 32,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.soundsSearchEmpty,
+                    textAlign: TextAlign.center,
+                    style: context.typography.baseline.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
-        ],
-        if (!chooser) ...[
+          )
+        else
+          ...shelves,
+        if (!chooser && !searching) ...[
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
-          SliverToBoxAdapter(child: SoundsSessionDefaults(session: session)),
+          SliverToBoxAdapter(
+            child: SoundsSessionDefaults(session: widget.session),
+          ),
           const SliverToBoxAdapter(child: _CreditsLink()),
         ],
-        SliverPadding(padding: EdgeInsets.only(bottom: bottomPadding)),
+        SliverPadding(padding: EdgeInsets.only(bottom: widget.bottomPadding)),
       ],
     );
   }

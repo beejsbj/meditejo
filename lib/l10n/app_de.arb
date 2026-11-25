@@ -1394,5 +1394,10 @@
   "librarySectionPractices": "Übungen",
   "settingsPracticeDefaults": "Standards für Meditation",
   "settingsTalkDefaults": "Standards für Vorträge",
-  "settingsDhammatalksCaption": "Vorträge von {teacher}, eingebaut"
+  "settingsDhammatalksCaption": "Vorträge von {teacher}, eingebaut",
+  "soundsSearchHint": "Klänge suchen",
+  "soundsSearchEmpty": "Keine passenden Klänge",
+  "soundTrain": "Zug",
+  "soundTrainMetro": "U-Bahn",
+  "soundTrainYamanote": "Yamanote"
 }

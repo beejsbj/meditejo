@@ -459,6 +459,20 @@ class _AnimatedMixLayersState extends ConsumerState<AnimatedMixLayers> {
       return;
     }
     const size = MeditejoMotion.standardSpatial;
+    // A card's other recording chosen (Metro for Yamanote): the same row,
+    // not one folding away and another growing in.
+    var swapped = false;
+    for (var i = 0; i < _ids.length && i < next.length; i++) {
+      final id = _ids[i];
+      if (id != next[i] &&
+          !next.contains(id) &&
+          !_ids.contains(next[i]) &&
+          soundCardId(id) == soundCardId(next[i])) {
+        _ids[i] = next[i];
+        swapped = true;
+      }
+    }
+    if (swapped) setState(() {});
     for (var i = _ids.length - 1; i >= 0; i--) {
       final id = _ids[i];
       if (next.contains(id)) continue;
@@ -653,6 +667,32 @@ class _LayerTile extends ConsumerWidget {
                       selected: layer.animate,
                       onChanged: (on) => mixer.setLayerAnimate(id, on),
                     ),
+                    // A card's recordings (Metro, Yamanote): which one
+                    // plays here. One already in the mix can't be chosen
+                    // twice.
+                    if (soundVariants(id).length > 1)
+                      for (final variant in soundVariants(id))
+                        ChoiceChip(
+                          key: ValueKey('variant_$variant'),
+                          label: Text(
+                            soundVariantLabel(
+                              l10n,
+                              variant,
+                              ref.watch(soundLibraryProvider).value ??
+                                  SoundLibrary.empty,
+                            ),
+                          ),
+                          selected: variant == id,
+                          onSelected:
+                              variant == id ||
+                                  ref.watch(
+                                    soundscapeProvider.select(
+                                      (s) => s.mix.contains(variant),
+                                    ),
+                                  )
+                              ? null
+                              : (_) => _chooseVariant(ref, id, variant),
+                        ),
                     if (spec.adjustable)
                       ActionChip(
                         key: ValueKey('adjust_$id'),
@@ -671,6 +711,14 @@ class _LayerTile extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Plays [to] in place of [from], keeping a muted layer's remembered level.
+void _chooseVariant(WidgetRef ref, String from, String to) {
+  final memory = ref.read(layerUnmuteVolumesProvider.notifier);
+  final remembered = memory.take(from);
+  if (remembered != null) memory.remember(to, remembered);
+  ref.read(soundscapeProvider.notifier).setLayerVariant(from, to);
 }
 
 /// Opens the save sheet on the mix (the Sound slot is all the Sounds

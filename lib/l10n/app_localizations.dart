@@ -6069,6 +6069,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{teacher}\'s talks, built in'**
   String settingsDhammatalksCaption(String teacher);
+
+  /// Hint in the Sounds sheet's search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search sounds'**
+  String get soundsSearchHint;
+
+  /// Shown in the Sounds sheet when the search finds nothing
+  ///
+  /// In en, this message translates to:
+  /// **'No sounds match'**
+  String get soundsSearchEmpty;
+
+  /// One sound card holding two train recordings, chosen in its mix row
+  ///
+  /// In en, this message translates to:
+  /// **'Train'**
+  String get soundTrain;
+
+  /// Train variant: a metro carriage from inside
+  ///
+  /// In en, this message translates to:
+  /// **'Metro'**
+  String get soundTrainMetro;
+
+  /// Train variant: Tokyo's Yamanote Line train
+  ///
+  /// In en, this message translates to:
+  /// **'Yamanote'**
+  String get soundTrainYamanote;
 }
 
 class _AppLocalizationsDelegate

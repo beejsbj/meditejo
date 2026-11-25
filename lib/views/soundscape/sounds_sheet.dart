@@ -24,7 +24,7 @@ class SoundChooser {
 }
 
 /// What the open Sounds sheet is editing. There is one sheet
-/// ([showSoundsSheet], [showSoundsSheetFor], [openSessionSounds]): on its own
+/// ([showSoundsSheet], [openSessionSounds]): on its own
 /// it holds the user's mix, which plays by itself and goes on after the
 /// sheet closes; for a session, or a kind of session, it holds a draft of
 /// what plays under it, heard as it is made and kept as the sheet closes.
@@ -81,10 +81,8 @@ class SoundsSheetSession extends ChangeNotifier {
   ///
   /// As it ends, whatever played before comes back (the user's own mix, a
   /// session's sound), except that a new choice keeps playing under a
-  /// running session of the kind when [playsNow].
-  ({SoundscapeSelection? selection, bool overtaken}) _end({
-    bool playsNow = true,
-  }) {
+  /// running session of the kind.
+  ({SoundscapeSelection? selection, bool overtaken}) _end() {
     final kind = _kind;
     final draft = _draft;
     if (kind == null || draft == null) {
@@ -103,7 +101,7 @@ class SoundsSheetSession extends ChangeNotifier {
     // it goes on playing (the session then plays its own choice, which may
     // be this one), rather than the old sound coming back for a moment.
     mixer.endAudition(
-      keep: changed && playsNow && state.inSession && state.sessionKind == kind,
+      keep: changed && state.inSession && state.sessionKind == kind,
     );
     return (selection: selection, overtaken: overtaken);
   }
@@ -172,8 +170,8 @@ Future<void> _sheet(BuildContext context, SoundsSheetSession session) =>
       ),
     );
 
-/// Opens Sounds on the user's own mix, over whatever is open (Home's Sounds
-/// tile, a `meditejo://sounds` link): presets, every sound and its editor,
+/// Opens Sounds on the user's own mix, over whatever is open (the floating
+/// Sounds button over the tabs, a `meditejo://sounds` link): presets, every sound and its editor,
 /// the mix, and what plays under practice and talks. What is started here
 /// plays on its own and goes on, with its notification, after the sheet
 /// closes.
@@ -204,49 +202,27 @@ Future<void> showSoundsSheet(BuildContext context) => _once(context, () async {
 /// starting from [current]. Choosing is editing the mix: a card or a preset
 /// is heard as it goes in, and several layer up. What is left in the sheet
 /// when it closes (Done, back, a swipe down) is the choice; it returns it,
-/// or null when it is what [current] already played (or another Sounds
-/// sheet was already opening).
+/// or null when it is what [current] already played.
 ///
 /// The sheet holds the speaker while it is open. As it closes, whatever
 /// played before comes back (the user's own mix, a session's sound),
 /// except that a new choice keeps playing under a running session of
-/// [kind] when [playsNow]: the caller's choice is what that session plays
-/// (its player, its Customize, the kind's default). A course's own choice
-/// made from another course's page is not, and the sit's sound comes back.
-/// [inSession]: opened from that running session, so the sheet starts from
-/// what it plays.
+/// [kind]: the caller's choice is what that session plays. [inSession]:
+/// opened from that running session, so the sheet starts from what it
+/// plays.
 ///
 /// A session that starts or ends while it is open (autoplay moves on, a
-/// sit starts or ends) owns the mixer: the sheet closes and keeps nothing.
-/// [announce] says so in a snackbar on [context]'s messenger, except when
-/// the sheet was opened in the session that has simply ended; a caller
-/// whose messenger is hidden (under the Customize sheet) passes false.
-Future<SoundscapeSelection?> showSoundsSheetFor(
-  BuildContext context, {
-  required SoundscapeSessionKind kind,
-  required SoundscapeSelection current,
-  bool inSession = false,
-  bool playsNow = true,
-  bool announce = true,
-}) => _once(
-  context,
-  () => _showSoundsSheetFor(
-    context,
-    kind: kind,
-    current: current,
-    inSession: inSession,
-    playsNow: playsNow,
-    announce: announce,
-  ),
-);
-
+/// sit starts or ends) owns the mixer: the sheet closes and keeps nothing,
+/// and says so in a snackbar on [context]'s messenger, except when the
+/// sheet was opened in the session that has simply ended.
+///
+/// Its only caller now is the player's Sounds button ([openSessionSounds]);
+/// Customize's header Sound button, its other caller, is gone (pass 4).
 Future<SoundscapeSelection?> _showSoundsSheetFor(
   BuildContext context, {
   required SoundscapeSessionKind kind,
   required SoundscapeSelection current,
   required bool inSession,
-  bool playsNow = true,
-  bool announce = true,
 }) async {
   final container = ProviderScope.containerOf(context);
   final messenger = ScaffoldMessenger.maybeOf(context);
@@ -266,15 +242,14 @@ Future<SoundscapeSelection?> _showSoundsSheetFor(
   retryLegacySounds(container);
   SoundscapeSelection? selection;
   var overtaken = false;
+  var announce = true;
   try {
     await _sheet(context, session);
   } finally {
-    (:selection, :overtaken) = session._end(playsNow: playsNow);
+    (:selection, :overtaken) = session._end();
     session.dispose();
     // Opened in a sit that has since ended: the end screen says enough.
-    if (inSession && !container.read(soundscapeProvider).inSession) {
-      announce = false;
-    }
+    announce = !(inSession && !container.read(soundscapeProvider).inSession);
   }
   if (overtaken && announce && l10n != null) {
     messenger?.showSnackBar(

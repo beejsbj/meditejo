@@ -1265,5 +1265,10 @@
   "librarySectionPractices": "Prácticas",
   "settingsPracticeDefaults": "Predeterminados de práctica",
   "settingsTalkDefaults": "Predeterminados de charlas",
-  "settingsDhammatalksCaption": "Charlas de {teacher}, incluidas"
+  "settingsDhammatalksCaption": "Charlas de {teacher}, incluidas",
+  "soundsSearchHint": "Buscar sonidos",
+  "soundsSearchEmpty": "Ningún sonido coincide",
+  "soundTrain": "Tren",
+  "soundTrainMetro": "Metro",
+  "soundTrainYamanote": "Yamanote"
 }

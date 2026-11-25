@@ -19,7 +19,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:medito/constants/theme/app_theme.dart';
 import 'package:medito/l10n/app_localizations.dart';
-import 'package:medito/models/cues/cue_settings.dart';
 import 'package:medito/models/player/playback_request.dart';
 import 'package:medito/models/soundscape/sound_mix.dart';
 import 'package:medito/models/soundscape/synth.dart';
@@ -27,13 +26,12 @@ import 'package:medito/providers/player/audio_state_provider.dart';
 import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/soundscape/soundscape_provider.dart';
 import 'package:medito/services/identity/palettes.dart';
-import 'package:medito/views/cues/customize_sheet.dart';
 import 'package:medito/views/player/widgets/bottom_actions/player_action_bar.dart';
 import 'package:medito/views/player/widgets/bottom_actions/widgets/bg_sound_widget.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:medito/views/bottom_navigation/widgets/medito_nav_bar.dart';
 import 'package:medito/views/home/widgets/shortcuts/shortcuts_section.dart';
-import 'package:medito/views/home/widgets/shortcuts/sounds_shortcut_tile.dart';
+import 'package:medito/views/bottom_navigation/widgets/sounds_button.dart';
 import 'package:medito/views/soundscape/sounds_view.dart';
 import 'package:medito/views/soundscape/synth_editors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -185,17 +183,8 @@ Future<void> _shoot(WidgetTester tester, String name) async {
   });
 }
 
-/// Opens the Sounds sheet from the Customize sheet's Sound button.
-Future<void> _tapSound(WidgetTester tester) async {
-  final button = find.byKey(const ValueKey('customize_sound'));
-  await tester.ensureVisible(button);
-  await tester.pump();
-  await tester.tap(button);
-  await _settle(tester);
-}
-
-/// The four tabs under a page that holds Home's Sounds tile, as Home does
-/// (two tiles across).
+/// The four tabs with the floating Sounds button over them, as every tab
+/// has it, and the Timer tile Home leads with.
 class _HomeStandIn extends StatelessWidget {
   const _HomeStandIn();
 
@@ -210,6 +199,7 @@ class _HomeStandIn extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
+      floatingActionButton: const SoundsButton(),
       bottomNavigationBar: MeditoNavBar(
         items: _nav,
         selectedIndex: 0,
@@ -222,30 +212,20 @@ class _HomeStandIn extends StatelessWidget {
             builder: (context, box) {
               final width = (box.maxWidth - 12) / 2;
               final height = 56 + MediaQuery.textScalerOf(context).scale(44);
-              Widget cell(Widget tile) => SizedBox(
-                width: width,
-                height: height < 116 ? 116 : height,
-                child: tile,
-              );
-              return Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  cell(
-                    ShortcutTile(
-                      color: scheme.secondaryContainer,
-                      onColor: scheme.onSecondaryContainer,
-                      icon: (color) =>
-                          Icon(Symbols.timer_rounded, color: color),
-                      label: 'Timer',
-                      caption: '20 min',
-                      onTap: () {},
-                    ),
+              return Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: width,
+                  height: height < 116 ? 116 : height,
+                  child: ShortcutTile(
+                    color: scheme.secondaryContainer,
+                    onColor: scheme.onSecondaryContainer,
+                    icon: (color) => Icon(Symbols.timer_rounded, color: color),
+                    label: 'Timer',
+                    caption: '20 min',
+                    onTap: () {},
                   ),
-                  cell(
-                    const SoundsShortcutTile(key: ValueKey('shortcut_sounds')),
-                  ),
-                ],
+                ),
               );
             },
           ),
@@ -272,8 +252,8 @@ Finder get _library => find
     )
     .first;
 
-Future<void> _openFromTile(WidgetTester tester) async {
-  await tester.tap(find.byKey(const ValueKey('shortcut_sounds')));
+Future<void> _openFromButton(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('sounds_button')));
   await _settle(tester);
 }
 
@@ -288,21 +268,21 @@ void main() {
   for (final v in _variants) {
     final name = v.$1;
 
-    testWidgets('sounds sheet tabs and tile, $name', (tester) async {
+    testWidgets('sounds sheet tabs and button, $name', (tester) async {
       await _pump(tester, v, const _HomeStandIn());
-      await _shoot(tester, 'tabs-tile-idle-$name');
-      // A mix started in the sheet, which is then closed: the tile says so.
-      await _openFromTile(tester);
+      await _shoot(tester, 'tabs-button-idle-$name');
+      // A mix started in the sheet, which is then closed: the button says so.
+      await _openFromButton(tester);
       await _tapPreset(tester, 'starter-rain-forest');
       await tester.tap(find.byKey(const ValueKey('sounds_chooser_done')));
       await _settle(tester);
       expect(_container.read(soundscapeProvider).playing, isTrue);
-      await _shoot(tester, 'tabs-tile-playing-$name');
+      await _shoot(tester, 'tabs-button-playing-$name');
     }, skip: !_enabled);
 
     testWidgets('sounds sheet from Home, $name', (tester) async {
       await _pump(tester, v, const _HomeStandIn());
-      await _openFromTile(tester);
+      await _openFromButton(tester);
       await _shoot(tester, 'home-idle-$name');
 
       await _tapPreset(tester, 'starter-rain-forest');
@@ -349,7 +329,7 @@ void main() {
     // Clear's toast sits above the docked bar.
     testWidgets('sounds sheet clear toast, $name', (tester) async {
       await _pump(tester, v, const _HomeStandIn());
-      await _openFromTile(tester);
+      await _openFromButton(tester);
       await _tapPreset(tester, 'starter-rain-forest');
       await tester.tap(find.byKey(const ValueKey('sounds_mix_toggle')));
       await _settle(tester);
@@ -365,7 +345,7 @@ void main() {
 
     testWidgets('sounds sheet noise editor, $name', (tester) async {
       await _pump(tester, v, const _HomeStandIn());
-      await _openFromTile(tester);
+      await _openFromButton(tester);
       final mixer = _container.read(soundscapeProvider.notifier)
         ..clearMix()
         ..toggleSound(kSynthNoiseId);
@@ -389,38 +369,6 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('noise_bands_reset')));
       await _settle(tester);
       await _shoot(tester, 'editor-eq-flat-$name');
-    }, skip: !_enabled);
-
-    testWidgets('sounds sheet customize, $name', (tester) async {
-      await _pump(
-        tester,
-        v,
-        const Scaffold(
-          body: SafeArea(
-            child: CustomizeSheet(scope: CueScope(CueKind.practice)),
-          ),
-        ),
-      );
-      await _tapSound(tester);
-      await _shoot(tester, 'customize-$name');
-    }, skip: !_enabled);
-
-    testWidgets('sounds sheet timer, $name', (tester) async {
-      await _pump(
-        tester,
-        v,
-        Scaffold(
-          body: SafeArea(
-            child: CustomizeSheet(
-              scope: const CueScope(CueKind.practice),
-              isTimer: true,
-              onStart: () {},
-            ),
-          ),
-        ),
-      );
-      await _tapSound(tester);
-      await _shoot(tester, 'timer-$name');
     }, skip: !_enabled);
   }
 }

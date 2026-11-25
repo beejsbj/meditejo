@@ -3515,4 +3515,19 @@ class AppLocalizationsDe extends AppLocalizations {
   String settingsDhammatalksCaption(String teacher) {
     return 'Vorträge von $teacher, eingebaut';
   }
+
+  @override
+  String get soundsSearchHint => 'Klänge suchen';
+
+  @override
+  String get soundsSearchEmpty => 'Keine passenden Klänge';
+
+  @override
+  String get soundTrain => 'Zug';
+
+  @override
+  String get soundTrainMetro => 'U-Bahn';
+
+  @override
+  String get soundTrainYamanote => 'Yamanote';
 }
